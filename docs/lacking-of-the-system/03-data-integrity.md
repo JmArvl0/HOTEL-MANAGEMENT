@@ -2,6 +2,23 @@
 
 All references verified 2026-08-26.
 
+## 3.0 SQL date arithmetic still runs on the session timezone, not the hotel's
+
+- **Where:** five live function definitions, six occurrences, confirmed against the linked project
+  with `pg_get_functiondef`: `create_booking_hold` (2), `submit_reservation_deposit`,
+  `verify_reservation_deposit`, `review_manager_approval`, `front_desk_execute_manager_approval`.
+- **What is lacking:** Postgres `current_date` follows the session `TimeZone`, which is UTC on
+  Supabase. Asia/Manila is UTC+8, so from 16:00 UTC each day `current_date` is one day behind the
+  hotel's own date. `cancel_reservation` (`20260828050000`) derives its day from the reservation's
+  `operational_policy_snapshot` and is correct; `hotel_today(jsonb)` (`20260829050000`) factors that
+  out, and `customer_request_reservation_change` now uses it. The five above still do not.
+- **Impact:** During those eight hours a same-day arrival is treated as a future one when counting
+  sellable rooms, so a dirty room can be sold for tonight, and a Manager approval can be executed
+  against the wrong calendar day. The one case with an authorization consequence — the self-service
+  modification threshold silently skipping Manager approval — is fixed.
+- **Fix:** replace each `current_date` with `hotel_today(policy_snapshot)`. Deferred here because it
+  touches Front Desk, Manager and public-booking RPCs outside the customer scope of this change.
+
 ## 3.1 Status "cycling" is not a state machine
 
 - **Where:** `components/manager/manager-dashboard-client.tsx:43` — clicking a status badge advances

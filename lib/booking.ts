@@ -145,6 +145,48 @@ export function policyFromSnapshot(snapshot: unknown): DepositPolicy {
   };
 }
 
+export type InventoryRoomRow = { type: string; status: string; housekeeping: string | null };
+export type BlockingReservationRow = {
+  room_type: string; check_in: string; check_out: string; status: string;
+  source?: string | null; payment_due_at?: string | null;
+};
+export type ActiveHoldRow = {
+  room_type: string; check_in: string; check_out: string; status: string;
+  expires_at: string; reservation_id?: string | null;
+};
+export type AvailabilityWindow = { checkIn: string; checkOut: string; now: string; today: string };
+
+/**
+ * Sellable units of one room type over the half-open stay `[checkIn, checkOut)`.
+ * Pure: the rows may be any superset of the window, since the overlap rule filters
+ * them here rather than relying on the caller's query. `getAvailability` narrows in
+ * SQL only to move fewer rows.
+ */
+export function countAvailableUnits(
+  roomType: string,
+  window: AvailabilityWindow,
+  rows: { rooms: InventoryRoomRow[]; reservations: BlockingReservationRow[]; holds: ActiveHoldRow[] },
+) {
+  const { checkIn, checkOut, now, today } = window;
+  const overlaps = (row: { check_in: string; check_out: string }) =>
+    rangesOverlap(row.check_in, row.check_out, checkIn, checkOut);
+  // A room out of service can never be sold; a dirty one only once housekeeping has a day to reach it.
+  const inventory = rows.rooms.filter((room) =>
+    room.type === roomType && room.status !== "maintenance" && (checkIn > today || room.housekeeping === "clean")).length;
+  const blocked = rows.reservations.filter((reservation) => {
+    if (reservation.room_type !== roomType) return false;
+    if (!isBlockingReservationStatus(reservation.status) || !overlaps(reservation)) return false;
+    if (reservation.status !== "pending") return true;
+    // An unpaid website reservation past its payment deadline has released its inventory.
+    return String(reservation.source ?? "").toLowerCase() !== "website"
+      || !reservation.payment_due_at || reservation.payment_due_at > now;
+  }).length;
+  const held = rows.holds.filter((hold) =>
+    hold.room_type === roomType && !hold.reservation_id && overlaps(hold)
+    && ["active", "payment_submitted"].includes(hold.status) && hold.expires_at > now).length;
+  return Math.max(0, inventory - blocked - held);
+}
+
 export async function getAvailability(input: SearchInput): Promise<AvailableRoomType[]> {
   const parsed = searchSchema.safeParse(input);
   if (!parsed.success || !supabase) return [];
@@ -158,16 +200,11 @@ export async function getAvailability(input: SearchInput): Promise<AvailableRoom
   ]);
   if (typeError || roomError || reservationError || holdError) throw typeError || roomError || reservationError || holdError;
   const nights = calculateNights(checkIn, checkOut);
+  const window = { checkIn, checkOut, now, today: hotelToday() };
+  const rows = { rooms: rooms ?? [], reservations: reservations ?? [], holds: holds ?? [] };
   return (types ?? []).map((type) => {
-    const inventory = (rooms ?? []).filter((room) => room.type === type.name && room.status !== "maintenance" && (checkIn > hotelToday() || room.housekeeping === "clean")).length;
-    const blocked = (reservations ?? []).filter((reservation) => {
-      if (reservation.room_type !== type.name) return false;
-      if (reservation.status !== "pending") return true;
-      return String(reservation.source ?? "").toLowerCase() !== "website" || !reservation.payment_due_at || reservation.payment_due_at > now;
-    }).length;
-    const held = (holds ?? []).filter((hold) => hold.room_type === type.name && !hold.reservation_id).length;
     const rate = Number(type.base_rate);
-    return { id: type.id, name: type.name, description: type.description, maxGuests: type.max_guests, beds: type.beds, sizeSqm: type.size_sqm, amenities: Array.isArray(type.amenities) ? type.amenities.map(String) : [], nightlyRate: rate, nights, subtotal: rate * nights, availableUnits: Math.max(0, inventory - blocked - held) };
+    return { id: type.id, name: type.name, description: type.description, maxGuests: type.max_guests, beds: type.beds, sizeSqm: type.size_sqm, amenities: Array.isArray(type.amenities) ? type.amenities.map(String) : [], nightlyRate: rate, nights, subtotal: rate * nights, availableUnits: countAvailableUnits(type.name, window, rows) };
   }).filter((type) => type.availableUnits > 0).sort((a, b) => a.nightlyRate - b.nightlyRate);
 }
 
