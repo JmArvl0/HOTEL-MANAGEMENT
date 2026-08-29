@@ -1,0 +1,2 @@
+import{getServerSession}from"next-auth";import{redirect}from"next/navigation";import{authOptions}from"@/lib/auth";import{CustomerShell}from"@/components/customer/customer-shell";
+export default async function CustomerLayout({children}:{children:React.ReactNode}){const session=await getServerSession(authOptions);if(!session)redirect(`/login?callbackUrl=${encodeURIComponent("/account")}`);if(session.user.role!=="guest")redirect("/manager_dashboard");return <CustomerShell user={session.user}>{children}</CustomerShell>}

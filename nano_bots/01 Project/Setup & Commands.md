@@ -23,8 +23,9 @@ npm run dev      # http://localhost:3000
 | `NEXTAUTH_SECRET` | required in prod | Dev falls back to a local dev secret |
 
 ## Database setup
-1. Run `supabase/schema.sql` in Supabase SQL Editor (creates all tables, RLS enabled, seeds first owner account).
-2. Default seeded owner: `owner@yourhotel.com` / `ChangeMe123!` — change immediately.
+1. Run `supabase/schema.sql` in Supabase SQL Editor (creates all tables, RLS enabled, seeds the eight role accounts).
+2. Seeded accounts are created **inactive with no usable password** — no hash is committed to this repo.
+3. Activate one by setting its password: `npm run set-passwords -- <email>`. It prompts with echo off; nothing is generated, printed, or written to disk.
 
-## Demo logins (dev)
-All use password `demo123`: `owner@haven.test`, `admin@haven.test`, `manager@haven.test`, `frontdesk@haven.test`, `housekeeping@haven.test`, `maintenance@haven.test`, `accounting@haven.test`, `guest@haven.test`
+## Staff logins
+`owner@haven.test`, `admin@haven.test`, `manager@haven.test`, `frontdesk@haven.test`, `housekeeping@haven.test`, `maintenance@haven.test`, `accounting@haven.test`, `guest@haven.test` — passwords are set only by `npm run set-passwords` and live only in the database as bcrypt hashes. Re-run it to rotate; rotate `NEXTAUTH_SECRET` too if existing sessions must be invalidated.

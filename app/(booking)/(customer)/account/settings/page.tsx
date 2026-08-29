@@ -1,0 +1,2 @@
+import{PasswordForm}from"@/components/account/account-forms";
+export default function SettingsPage(){return <><section className="customer-page-title"><p className="eyebrow">Account security</p><h1>Protect your Haven account.</h1><p>Use a unique password that you do not reuse on another service.</p></section><section className="customer-profile-card narrow"><PasswordForm/></section></>}

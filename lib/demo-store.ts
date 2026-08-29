@@ -7,7 +7,7 @@ const seed: Record<Resource, RecordItem[]> = {
   reservations: [
     { id: "RSV-1048", guest_name: "Ava Thompson", room_number: "401", room_type: "Ocean Suite", check_in: iso(0), check_out: iso(3), guests: 2, status: "confirmed", total: 26700, source: "Direct" },
     { id: "RSV-1047", guest_name: "Marcus Chen", room_number: "205", room_type: "Deluxe King", check_in: iso(0), check_out: iso(2), guests: 1, status: "checked_in", total: 12800, source: "Online" },
-    { id: "RSV-1046", guest_name: "Samantha Lee", room_number: "—", room_type: "Garden Twin", check_in: iso(1), check_out: iso(4), guests: 3, status: "pending", total: 17400, source: "Phone" },
+    { id: "RSV-1046", guest_name: "Samantha Lee", room_number: "-", room_type: "Garden Twin", check_in: iso(1), check_out: iso(4), guests: 3, status: "pending", total: 17400, source: "Phone" },
     { id: "RSV-1045", guest_name: "Oliver Wilson", room_number: "302", room_type: "Executive Suite", check_in: iso(-2), check_out: iso(0), guests: 2, status: "checked_in", total: 23200, source: "Corporate" }
   ],
   rooms: [
@@ -25,6 +25,9 @@ const seed: Record<Resource, RecordItem[]> = {
     { id: "GST-2040", name: "Marcus Chen", email: "marcus@example.com", phone: "+63 918 555 0188", loyalty_tier: "Silver", stays: 4, preferences: "Late checkout" },
     { id: "GST-2039", name: "Samantha Lee", email: "sam@example.com", phone: "+63 905 555 0117", loyalty_tier: "Member", stays: 2, preferences: "Connecting rooms" }
   ],
+  guest_requests: [
+    { id: "GREQ-101", reservation_id: "RSV-1047", request: "Extra towels", department: "housekeeping", priority: "normal", status: "open", created_at: iso(0) }
+  ],
   housekeeping_tasks: [
     { id: "HKT-501", room_number: "201", task: "Checkout clean", assignee: "Ana Cruz", priority: "high", status: "in_progress", due: "11:30 AM" },
     { id: "HKT-502", room_number: "401", task: "Arrival inspection", assignee: "Ben Flores", priority: "normal", status: "pending", due: "1:00 PM" },
@@ -39,6 +42,10 @@ const seed: Record<Resource, RecordItem[]> = {
     { id: "INV-7800", reservation_id: "RSV-1045", guest_name: "Oliver Wilson", amount: 23200, paid: 23200, balance: 0, status: "paid", method: "Corporate" },
     { id: "INV-7799", reservation_id: "RSV-1048", guest_name: "Ava Thompson", amount: 26700, paid: 8900, balance: 17800, status: "deposit", method: "Credit card" }
   ],
+  payments: [
+    { id: "11111111-1111-4111-8111-111111111111", invoice_id: "INV-7799", reservation_id: "RSV-1048", amount: 8900, currency: "PHP", method: "manual_gcash", reference: "GCASH-7799", purpose: "reservation_deposit", status: "paid", created_at: iso(0) }
+  ],
+  refunds: [],
   inventory: [
     { id: "INVTRY-101", name: "Bath towels", category: "Linen", quantity: 84, reorder_point: 60, unit: "pcs", status: "healthy" },
     { id: "INVTRY-102", name: "Shampoo 40ml", category: "Amenities", quantity: 42, reorder_point: 80, unit: "bottles", status: "low" },
@@ -58,6 +65,6 @@ export const demoStore = store.__hotelStore ?? structuredClone(seed);
 if (process.env.NODE_ENV !== "production") store.__hotelStore = demoStore;
 
 export function makeId(resource: Resource) {
-  const prefix: Record<Resource, string> = { reservations: "RSV", rooms: "RM", guests: "GST", housekeeping_tasks: "HKT", maintenance_orders: "MWO", invoices: "INV", inventory: "INVTRY", staff: "STF" };
+  const prefix: Record<Resource, string> = { reservations: "RSV", rooms: "RM", guests: "GST", guest_requests: "GREQ", housekeeping_tasks: "HKT", maintenance_orders: "MWO", invoices: "INV", payments: "PAY", refunds: "RFD", inventory: "INVTRY", staff: "STF" };
   return `${prefix[resource]}-${Math.floor(1000 + Math.random() * 9000)}`;
 }

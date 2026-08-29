@@ -4,10 +4,9 @@ Source: `lib/auth.ts`, `lib/permissions.ts`, `lib/types.ts`
 
 ## Authentication
 - **Provider:** NextAuth CredentialsProvider, JWT session strategy.
-- **Resolution order in `authorize()`:**
-  1. Hardcoded demo users (`*@haven.test`, password `demo123`)
-  2. Supabase `app_users` table (via service-role key): fetch by email → verify `active` → `bcrypt.compare` against `password_hash`
-- Custom cookie name `haven.session-token` (avoids stale localhost cookies).
+- **Resolution in `authorize()`:** a single path — Supabase `user_accounts` (via service-role key): fetch by email → verify `active` → `bcrypt.compare` against `password_hash`. Returns `null` when Supabase is unconfigured, so demo mode has no logins at all. There is no hardcoded account map.
+- Passwords are issued only by `npm run set-passwords` and exist only as bcrypt hashes in the database.
+- Custom cookie name `haven.session-token` in development, `__Secure-haven.session-token` with `secure` in production (avoids stale localhost cookies).
 - Sign-in page: `/login`.
 - `role` is added to the JWT on sign-in and copied onto `session.user.role`.
 
@@ -25,6 +24,7 @@ Source: `lib/auth.ts`, `lib/permissions.ts`, `lib/types.ts`
 | guest | reservations, invoices |
 
 ## Security notes
-- Demo users bypass bcrypt entirely — never enable them in production.
+- No demo/plaintext login path exists; bcrypt against `user_accounts` is the only route in.
+- Sessions are stateless JWTs: `jwt`/`session` callbacks do no database lookup, so `active` and `password_hash` are read **only at sign-in**. Changing a password or setting `active = false` does not sign out a live session — rotate `NEXTAUTH_SECRET` to invalidate all of them.
 - Dev-only fallback `NEXTAUTH_SECRET`; production requires a real secret.
 - Service-role key used for auth lookups and all data access; RLS blocks direct client access.

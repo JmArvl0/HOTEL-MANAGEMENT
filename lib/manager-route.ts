@@ -1,0 +1,5 @@
+import{getServerSession}from"next-auth";import{NextResponse}from"next/server";import{authOptions}from"@/lib/auth";import{supabase}from"@/lib/supabase";import type{Role}from"@/lib/types";
+export type ManagerContext={actorId:string;role:Role;client:NonNullable<typeof supabase>};
+export async function guardManager(allow:(role:Role)=>boolean,denial:string):Promise<ManagerContext|NextResponse>{const session=await getServerSession(authOptions);if(!session)return NextResponse.json({error:"Unauthorized"},{status:401});const role=session.user.role as Role;if(!allow(role))return NextResponse.json({error:denial},{status:403});if(!supabase)return NextResponse.json({error:"Database unavailable."},{status:503});return{actorId:session.user.id,role,client:supabase}}
+export const managerGuardFailed=(value:ManagerContext|NextResponse):value is NextResponse=>value instanceof NextResponse;
+export function managerRpcFailure(error:{message:string},map:Record<string,string>,fallback:string){const code=Object.keys(map).find(key=>error.message.includes(key));return NextResponse.json({error:code?map[code]:fallback},{status:/FORBIDDEN/.test(error.message)?403:409})}
