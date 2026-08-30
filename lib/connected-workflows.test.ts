@@ -18,5 +18,5 @@ describe("connected hotel workflow schema",()=>{
 describe("connected workflow authorization and UI",()=>{
  it("limits refunds to Owner, Admin, and Accounting",()=>{for(const role of["owner","admin","accounting"]as const)expect(canAccess(role,"refunds")).toBe(true);for(const role of["manager","front_desk","housekeeping","maintenance","guest"]as const)expect(canAccess(role,"refunds")).toBe(false)});
  it("keeps guest cancellation and modification ownership-scoped",()=>{expect(customerCancel).toContain("p_actor_user_id:session.user.id");expect(changeRequest).toContain('.eq("user_id",session.user.id)');expect(changeRequest).toContain("selfServiceModificationDays")});
- it("exposes staff workflow actions without direct refund mutation",()=>{for(const action of["Verify ID","Collect payment","Post charge","Complete checkout","Process refund"])expect(dashboard).toContain(action);expect(resourceRoute).toContain('["payments","refunds"].includes(resource)')});
+ it("exposes staff workflow actions without direct refund or Housekeeping-task mutation",()=>{for(const action of["Verify ID","Collect payment","Post charge","Complete checkout","Process refund"])expect(dashboard).toContain(action);expect(resourceRoute).toContain('["payments","refunds","housekeeping_tasks"].includes(resource)')});
 });

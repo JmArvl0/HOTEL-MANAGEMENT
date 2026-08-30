@@ -33,3 +33,6 @@ export const canRequestManagerApproval=(role:Role)=>["owner","admin","front_desk
 export const canExecuteManagerApproval=(role:Role)=>["owner","admin","front_desk"].includes(role);
 export const canExecuteManagerFinancialApproval=(role:Role)=>["owner","admin","accounting"].includes(role);
 export const canCoordinateOperations=(role:Role)=>["owner","admin","manager"].includes(role);
+
+export const canPerformHousekeeping=(role:Role)=>["owner","admin","housekeeping"].includes(role);
+export const canReportHousekeepingMaintenance=canPerformHousekeeping;

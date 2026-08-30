@@ -31,6 +31,19 @@ export async function listForRole(resource: Resource, role: Role): Promise<Recor
     if (error) throw error;
     return data as RecordItem[];
   }
+  if (resource === "housekeeping_tasks") {
+    const { data, error } = await supabase.from("housekeeping_tasks").select("id,room_id,room_number,task,task_type,assignee,assigned_user_id,priority,status,due,notes,reservation_id,guest_request_id,source_type,started_at,completed_at,deferred_at,deferred_reason,inspection_status,inspection_reason,version,created_at,updated_at").order("created_at", { ascending: false });
+    if (error) throw error;
+    const roomIds=Array.from(new Set((data??[]).map(item=>item.room_id).filter(Boolean))) as string[];
+    const userIds=Array.from(new Set((data??[]).map(item=>item.assigned_user_id).filter(Boolean))) as string[];
+    const [roomsResult,maintenanceResult,arrivalsResult,usersResult]=await Promise.all([
+      roomIds.length?supabase.from("rooms").select("id,type,status,housekeeping").in("id",roomIds):Promise.resolve({data:[]}),
+      roomIds.length?supabase.from("maintenance_orders").select("room_id,id,priority,status").in("room_id",roomIds).in("status",["open","in_progress"]):Promise.resolve({data:[]}),
+      roomIds.length?supabase.from("reservations").select("room_id,check_in").in("room_id",roomIds).in("status",["pending","confirmed"]).gte("check_in",new Date().toISOString().slice(0,10)).order("check_in",{ascending:true}):Promise.resolve({data:[]}),
+      userIds.length?supabase.from("user_accounts").select("id,name").in("id",userIds):Promise.resolve({data:[]})
+    ]);
+    return (data??[]).map(item=>{const room=roomsResult.data?.find(value=>value.id===item.room_id);const blocks=maintenanceResult.data?.filter(value=>value.room_id===item.room_id)??[];const nextArrival=arrivalsResult.data?.find(value=>value.room_id===item.room_id);const assigned=usersResult.data?.find(value=>value.id===item.assigned_user_id);return{...item,assigned_to:assigned?.name??item.assignee??"Unassigned",room_type:room?.type??null,room_status:room?.status??null,room_housekeeping:room?.housekeeping??null,maintenance_blocked:blocks.length>0,maintenance_priority:blocks[0]?.priority??null,next_arrival:nextArrival?.check_in??null}}) as RecordItem[];
+  }
   if (resource === "payments") {
     const { data, error } = await supabase.from("payments").select("id,reservation_id,invoice_id,purpose,method,reference,amount,currency,status,submitted_at,verified_at,reviewed_at,decision_reason,created_at").order("created_at", { ascending: false });
     if (error) throw error;
