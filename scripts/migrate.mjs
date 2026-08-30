@@ -28,13 +28,21 @@ const client = new pg.Client({
   ssl: { rejectUnauthorized: false }
 });
 
+// Defaults to the rolled-up snapshot; pass a path to apply one migration file
+// instead, e.g. `npm run migrate -- supabase/migrations/20260830020000_*.sql`.
+// Postgres wraps the whole multi-statement body in one implicit transaction, so a
+// failure part-way through leaves the database untouched.
+const target = process.argv[2]
+  ? path.resolve(process.cwd(), process.argv[2])
+  : path.join(process.cwd(), "supabase", "schema.sql");
+
 await client.connect();
-const sql = fs.readFileSync(path.join(process.cwd(), "supabase", "schema.sql"), "utf8");
+const sql = fs.readFileSync(target, "utf8");
 await client.query(sql);
 
 const tables = await client.query(
   `select table_name from information_schema.tables where table_schema='public' order by table_name`
 );
-console.log("Migration complete. Public tables:");
+console.log(`Applied ${path.basename(target)}. Public tables:`);
 for (const r of tables.rows) console.log(" -", r.table_name);
 await client.end();
