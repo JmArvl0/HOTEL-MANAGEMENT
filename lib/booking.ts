@@ -145,7 +145,7 @@ export function policyFromSnapshot(snapshot: unknown): DepositPolicy {
   };
 }
 
-export type InventoryRoomRow = { type: string; status: string; housekeeping: string | null };
+export type InventoryRoomRow = { id?: string; type: string; status: string; housekeeping: string | null; administratively_active?: boolean | null };
 export type BlockingReservationRow = {
   room_type: string; check_in: string; check_out: string; status: string;
   source?: string | null; payment_due_at?: string | null;
@@ -165,14 +165,16 @@ export type AvailabilityWindow = { checkIn: string; checkOut: string; now: strin
 export function countAvailableUnits(
   roomType: string,
   window: AvailabilityWindow,
-  rows: { rooms: InventoryRoomRow[]; reservations: BlockingReservationRow[]; holds: ActiveHoldRow[] },
+  rows: { rooms: InventoryRoomRow[]; reservations: BlockingReservationRow[]; holds: ActiveHoldRow[]; blockedRoomIds?: ReadonlySet<string> },
 ) {
   const { checkIn, checkOut, now, today } = window;
   const overlaps = (row: { check_in: string; check_out: string }) =>
     rangesOverlap(row.check_in, row.check_out, checkIn, checkOut);
   // A room out of service can never be sold; a dirty one only once housekeeping has a day to reach it.
   const inventory = rows.rooms.filter((room) =>
-    room.type === roomType && room.status !== "maintenance" && (checkIn > today || room.housekeeping === "clean")).length;
+    room.type === roomType && room.administratively_active !== false
+    && (!room.id || !rows.blockedRoomIds?.has(room.id))
+    && room.status !== "maintenance" && (checkIn > today || room.housekeeping === "clean")).length;
   const blocked = rows.reservations.filter((reservation) => {
     if (reservation.room_type !== roomType) return false;
     if (!isBlockingReservationStatus(reservation.status) || !overlaps(reservation)) return false;
@@ -187,21 +189,29 @@ export function countAvailableUnits(
   return Math.max(0, inventory - blocked - held);
 }
 
-export async function getAvailability(input: SearchInput): Promise<AvailableRoomType[]> {
+export async function getAvailability(input: SearchInput, retryTransientAuth = true): Promise<AvailableRoomType[]> {
   const parsed = searchSchema.safeParse(input);
   if (!parsed.success || !supabase) return [];
   const { checkIn, checkOut, guests } = parsed.data;
   const now = new Date().toISOString();
-  const [{ data: types, error: typeError }, { data: rooms, error: roomError }, { data: reservations, error: reservationError }, { data: holds, error: holdError }] = await Promise.all([
+  const [{ data: types, error: typeError }, { data: rooms, error: roomError }, { data: reservations, error: reservationError }, { data: holds, error: holdError }, { data: maintenance, error: maintenanceError }] = await Promise.all([
     supabase.from("room_types").select("id,name,description,max_guests,beds,size_sqm,amenities,base_rate").eq("active", true).gte("max_guests", guests),
-    supabase.from("rooms").select("type,status,housekeeping"),
+    supabase.from("rooms").select("id,type,status,housekeeping,administratively_active"),
     supabase.from("reservations").select("room_type,check_in,check_out,status,source,payment_due_at").in("status", [...BLOCKING_RESERVATION_STATUSES]).lt("check_in", checkOut).gt("check_out", checkIn),
     supabase.from("booking_holds").select("room_type,check_in,check_out,status,expires_at,reservation_id").in("status", ["active","payment_submitted"]).gt("expires_at", now).lt("check_in", checkOut).gt("check_out", checkIn),
+    supabase.from("maintenance_orders").select("room_id").in("status", ["open","assigned","in_progress","waiting_parts","deferred"]).in("serviceability_impact", ["blocked","out_of_service"]),
   ]);
-  if (typeError || roomError || reservationError || holdError) throw typeError || roomError || reservationError || holdError;
+  const queryError = typeError || roomError || reservationError || holdError || maintenanceError;
+  if (queryError) {
+    if (retryTransientAuth && queryError.code === "PGRST303") {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      return getAvailability(input, false);
+    }
+    throw new Error(`Availability query failed${queryError.code ? ` (${queryError.code})` : ""}`);
+  }
   const nights = calculateNights(checkIn, checkOut);
   const window = { checkIn, checkOut, now, today: hotelToday() };
-  const rows = { rooms: rooms ?? [], reservations: reservations ?? [], holds: holds ?? [] };
+  const rows = { rooms: rooms ?? [], reservations: reservations ?? [], holds: holds ?? [], blockedRoomIds: new Set((maintenance ?? []).map((row) => row.room_id)) };
   return (types ?? []).map((type) => {
     const rate = Number(type.base_rate);
     return { id: type.id, name: type.name, description: type.description, maxGuests: type.max_guests, beds: type.beds, sizeSqm: type.size_sqm, amenities: Array.isArray(type.amenities) ? type.amenities.map(String) : [], nightlyRate: rate, nights, subtotal: rate * nights, availableUnits: countAvailableUnits(type.name, window, rows) };

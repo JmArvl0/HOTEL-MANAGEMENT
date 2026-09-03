@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 
 export async function POST(request: Request, { params }: { params: Promise<{ token: string }> }) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "guest") return NextResponse.json({ error: "Guest sign-in is required." }, { status: 401 });
+  if (!session || session.user.disabled || session.user.role !== "guest") return NextResponse.json({ error: "Guest sign-in is required." }, { status: 401 });
   if (!supabase) return NextResponse.json({ error: "Booking is temporarily unavailable." }, { status: 503 });
   const { token } = await params;
   if (!z.string().uuid().safeParse(token).success) return NextResponse.json({ error: "Invalid booking reference." }, { status: 400 });

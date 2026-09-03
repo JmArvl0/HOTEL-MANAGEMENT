@@ -4,11 +4,21 @@ import { Providers } from "@/components/providers";
 import "./globals.css";
 import "./guest-booking.css";
 import "./manager-dashboard-theme.css";
+import "./responsive.css";
+import "@/components/ui/Modal.css";
+import "@/components/booking/room-details.css";
+import "./design-tokens.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-display" });
 
 export const metadata: Metadata = { title: "Haven Hotel Management", description: "Thoughtful stays, seamlessly managed." };
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover" as const,
+};
 
 // Runs before first paint so a saved light theme never flashes the dark palette.
 // Key and fallback must match lib/theme.ts.

@@ -61,12 +61,12 @@ describe("refund retry semantics", () => {
 // ------------------------------------------------------------------- RBAC matrix (spec 6, 89, 99)
 describe("financial RBAC matrix", () => {
   it("limits refunds, adjustments, overpayment acceptance and reconciliation to financial authority", () => {
-    for (const can of [canProcessRefund, canAdjustFolio, canAcceptOverpayment, canReconcileFinancials]) expect(allowedBy(can)).toEqual(["accounting", "admin", "owner"]);
+    for (const can of [canProcessRefund, canAdjustFolio, canAcceptOverpayment, canReconcileFinancials]) expect(allowedBy(can)).toEqual(["accounting"]);
   });
   it("lets any cash handler collect payments, run a shift and issue a document", () => {
-    for (const can of [canCollectPayment, canOperateCashShift, canIssueFinancialDocument]) expect(allowedBy(can)).toEqual(["accounting", "admin", "front_desk", "owner"]);
+    for (const can of [canCollectPayment, canOperateCashShift, canIssueFinancialDocument]) expect(allowedBy(can)).toEqual(["accounting", "front_desk"]);
   });
-  it("keeps operational charge posting away from Accounting", () => { expect(allowedBy(canPostFolioCharge)).toEqual(["admin", "front_desk", "owner"]); expect(canPostFolioCharge("accounting")).toBe(false); });
+  it("keeps operational charge posting away from Accounting", () => { expect(allowedBy(canPostFolioCharge)).toEqual(["front_desk"]); expect(canPostFolioCharge("accounting")).toBe(false); });
   it("denies every financial capability to housekeeping, maintenance and guests", () => {
     for (const role of ["housekeeping", "maintenance", "guest"] as Role[])
       for (const can of [canProcessRefund, canAdjustFolio, canAcceptOverpayment, canReconcileFinancials, canCollectPayment, canOperateCashShift, canIssueFinancialDocument, canPostFolioCharge, canViewAccountingLedger]) expect(can(role)).toBe(false);
@@ -78,7 +78,7 @@ describe("server-side authorization", () => {
   it("validates every accounting request body with zod", () => { const writers = accountingRoutes.filter((path) => /export async function (POST|PATCH|PUT)/.test(read(path))); expect(writers.length).toBeGreaterThanOrEqual(7); for (const path of writers) expect(read(path), path).toMatch(/z\.(object|union|discriminatedUnion)/); });
   it("re-checks overpayment authority server-side rather than trusting the client flag", () => expect(paymentRoute).toContain("canAcceptOverpayment(session.user.role as Role)"));
   it("keeps folio corrections out of the operational charge categories", () => { expect(chargeRoute).toContain('z.enum(["incidental","room_service","laundry","minibar","extension"])'); expect(chargeRoute).not.toContain('"adjustment"'); });
-  it("gates operational charge posting to operational roles only", () => expect(chargeRoute).toContain('["owner","admin","front_desk"]'));
+  it("gates operational charge posting to operational roles only", () => expect(chargeRoute).toContain('["front_desk"]'));
   it("never exposes ledger tables through the generic CRUD resource surface", () => { for (const table of ["financial_adjustments", "cash_shifts", "payment_reconciliations", "refund_attempts", "financial_documents", "folio_charges"]) expect(resourceRoute).not.toContain(table); });
   it("re-derives every accounting mutation through an RPC instead of a table write", () => { for (const path of accountingRoutes) { const body = read(path); if (body.includes(".rpc(")) expect(body).not.toMatch(/\.from\(["'][a-z_]+["']\)\.(insert|update|delete)/); } });
 });

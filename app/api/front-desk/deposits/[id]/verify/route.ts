@@ -4,7 +4,7 @@ import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 
-const permitted = new Set(["owner","admin","front_desk","accounting"]);
+const permitted = new Set(["front_desk","accounting"]);
 export async function POST(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

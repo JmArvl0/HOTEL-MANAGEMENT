@@ -14,11 +14,13 @@ describe("staff reservation RBAC", () => {
     expect(canViewGuestContact("front_desk")).toBe(true);
     expect(canManageReservation("front_desk")).toBe(true);
   });
-  it("allows management oversight and protected financial verification", () => {
-    for (const role of ["owner", "admin"] as const) {
-      expect(canManageReservation(role)).toBe(true);
-      expect(canVerifyDeposit(role)).toBe(true);
-    }
+  it("separates Owner oversight from Front Desk and Accounting execution", () => {
+    expect(canManageReservation("owner")).toBe(false);
+    expect(canVerifyDeposit("owner")).toBe(false);
+    expect(canManageReservation("front_desk")).toBe(true);
+    expect(canVerifyDeposit("accounting")).toBe(true);
+    expect(canManageReservation("admin")).toBe(false);
+    expect(canVerifyDeposit("admin")).toBe(false);
     expect(canManageReservation("manager")).toBe(false);
     expect(canVerifyDeposit("manager")).toBe(false);
   });

@@ -1,0 +1,219 @@
+/* Haven Login — Liquid Glass editorial, premium but calm. Respects MASTER.md tokens. */
+.haven-login{
+  min-height:100vh; min-height:100dvh;
+  display:grid; grid-template-columns:1.08fr .92fr;
+  background:#f8f6f0;
+  color:#0f241e;
+  overflow:hidden;
+}
+/* Art side */
+.haven-login__art{
+  position:relative; overflow:hidden;
+  display:flex; flex-direction:column; justify-content:space-between;
+  padding:28px 40px 28px 44px;
+  color:#fff;
+  isolation:isolate;
+}
+.haven-login__art-bg{position:absolute; inset:0; z-index:-1; background:#0a201b}
+.haven-login__art-bg img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
+.haven-login__shade{
+  position:absolute; inset:0;
+  background:
+    radial-gradient(760px 420px at 70% 14%, rgba(236,208,180,.16), transparent 62%),
+    linear-gradient(180deg, rgba(8,30,24,.18) 0%, rgba(8,30,24,.62) 55%, rgba(8,30,24,.88) 100%);
+}
+.haven-login__grain{
+  position:absolute; inset:0; opacity:.07; pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+.haven-login__art-top{display:flex; align-items:center; justify-content:space-between; gap:16px}
+.haven-login__art-pill{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:7px 10px; border-radius:999px;
+  font-size:9px; font-weight:800; letter-spacing:.8px; text-transform:uppercase;
+  color:rgba(255,255,255,.9);
+  background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.18);
+  backdrop-filter:blur(8px);
+}
+.haven-login__art-copy{max-width:520px; padding: 18vh 0 24px}
+.haven-login__art-copy .eyebrow.light{color:#ecd0b4}
+.haven-login__art-copy h1{
+  font-family:var(--font-display), serif;
+  font-size: clamp(38px, 4.2vw, 62px);
+  line-height:.96; letter-spacing:-2.6px; font-weight:500;
+  margin:10px 0 16px;
+}
+.haven-login__art-copy h1 em{font-weight:400; color:#ecd0b4}
+.haven-login__art-desc{color:#cfe0d8; line-height:1.7; max-width:420px; margin:0}
+.haven-login__glass-row{display:flex; gap:14px; margin-top:28px; align-items:stretch}
+.haven-login__glass-card{
+  flex:1; min-width:0;
+  padding:14px 14px 12px; border-radius:14px;
+  background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.16);
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  box-shadow:0 12px 30px rgba(0,0,0,.18);
+}
+.haven-login__glass-icon{
+  width:26px; height:26px; display:grid; place-items:center;
+  border-radius:999px; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.16);
+  color:#fff; margin-bottom:10px;
+}
+.haven-login__glass-card blockquote{margin:0; font:400 13px/1.6 var(--font-display); color:#fff}
+.haven-login__glass-meta{display:block; font-size:10px; color:rgba(255,255,255,.72); margin-top:8px}
+.haven-login__stars{display:flex; gap:3px; color:#f5c86a; margin-top:6px}
+.haven-login__mini-stats{
+  display:flex; flex-direction:column; gap:10px; min-width:118px;
+}
+.haven-login__mini-stats div{
+  padding:12px 14px; border-radius:14px;
+  background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14);
+  backdrop-filter:blur(10px);
+}
+.haven-login__mini-stats strong{display:block; font-size:18px; line-height:1; letter-spacing:-.6px}
+.haven-login__mini-stats span{font-size:9px; letter-spacing:.6px; text-transform:uppercase; opacity:.72}
+.haven-login__art-foot{opacity:.55; font-size:11px}
+.haven-login__orb{
+  position:absolute; border-radius:999px; pointer-events:none;
+  background:radial-gradient(circle at 30% 30%, rgba(236,208,180,.55), rgba(255,255,255,.06) 62%, transparent 72%);
+  border:1px solid rgba(255,255,255,.10);
+  filter: blur(.2px);
+}
+.haven-login__orb--a{width:220px; height:220px; right:-44px; top:18%; opacity:.42; animation: haven-float 7s ease-in-out infinite}
+.haven-login__orb--b{width:160px; height:160px; right:22%; bottom:16%; opacity:.28; animation: haven-float 8.5s ease-in-out infinite reverse}
+
+/* Panel side */
+.haven-login__panel{
+  display:grid; place-items:center;
+  padding:28px 24px;
+  background:
+    radial-gradient(720px 420px at 100% 0%, rgba(236,208,180,.22), transparent 62%),
+    linear-gradient(180deg, #fff 0%, #fbfaf7 100%);
+}
+.haven-login__form{
+  width:min(420px, 100%);
+  padding:18px 0 0;
+  animation: haven-login-in 520ms cubic-bezier(.16,1,.3,1) both;
+}
+.haven-login__back{
+  display:inline-flex; align-items:center; gap:8px;
+  font-size:11px; font-weight:650; color:#6f7974;
+  padding:8px 10px; border-radius:999px;
+  border:1px solid transparent;
+  transition: border-color .18s ease, background .18s ease;
+}
+.haven-login__back:hover{border-color:#e3e5df; background:#fff}
+.haven-login__head{margin:28px 0 22px}
+.haven-login__icon{
+  width:44px; height:44px; display:grid; place-items:center;
+  border-radius:999px; background:#dcebe5; color:#1f6b52;
+  margin-bottom:14px;
+  box-shadow:0 8px 20px rgba(15,36,30,.08);
+}
+.haven-login__head .eyebrow{color:#c9783c; margin-bottom:8px}
+.haven-login__head h2{
+  font-family:var(--font-display), serif;
+  font-size:36px; line-height:1; letter-spacing:-1.4px; font-weight:500;
+  margin:0 0 8px;
+}
+.haven-login__hint{color:#6f7974; font-size:12px; line-height:1.7; margin:0}
+.haven-login__error{
+  display:grid; gap:6px;
+  padding:12px 14px; border-radius:10px;
+  background:#fdf2f0; border:1px solid #f0c9c3; color:#7a2e29;
+  font-size:11px; line-height:1.6;
+  outline:none;
+}
+.haven-login__error strong{font-size:11px}
+.haven-login__error a{color:#1f6b52; font-weight:750; text-decoration:underline; text-underline-offset:3px}
+.haven-login__field{
+  position:relative;
+  display:block;
+  margin:14px 0;
+  font-size:10px; font-weight:800; letter-spacing:.4px; color:#0f241e;
+}
+.haven-login__field > span{display:inline-flex; align-items:center; gap:6px; margin-bottom:7px; font-size:10px}
+.haven-login__field input{
+  display:block; width:100%;
+  padding:13px 14px; border-radius:10px;
+  border:1px solid #d8ddd9; background:#fff; color:#0f241e;
+  font-size:13px; font-weight:500;
+  outline:none;
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.haven-login__field input::placeholder{color:#9aa8a2}
+.haven-login__field input:focus{
+  border-color:#1f6b52;
+  box-shadow:0 0 0 3px rgba(31,107,82,.12);
+  background:#fff;
+}
+.haven-login__eye{
+  position:absolute; right:8px; top:28px;
+  width:32px; height:32px; display:grid; place-items:center;
+  border:0; border-radius:999px;
+  background:transparent; color:#6f7974;
+  cursor:pointer;
+  transition: background .18s ease, color .18s ease;
+}
+.haven-login__eye:hover{background:#f3f1ea; color:#0f241e}
+.haven-login__eye:focus-visible{outline:2px solid #1f6b52; outline-offset:2px}
+.haven-login__submit{
+  width:100%; margin-top:6px;
+  position:relative; overflow:hidden;
+  border-radius:999px; padding:14px 18px;
+  font-weight:800; letter-spacing:.2px;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.haven-login__submit:hover:not(:disabled){transform: translateY(-1px); box-shadow:0 12px 24px rgba(15,36,30,.18)}
+.haven-login__submit:disabled{opacity:.78; cursor:wait}
+.haven-login__submit-icon{transition: transform .18s ease}
+.haven-login__submit:hover .haven-login__submit-icon{transform: translateX(2px)}
+.haven-login__spinner{
+  position:absolute; right:18px; top:50%; transform:translateY(-50%);
+  width:16px; height:16px; border-radius:999px;
+  border:2px solid rgba(255,255,255,.28); border-top-color:#fff;
+  animation: haven-spin 700ms linear infinite;
+}
+.haven-login__switch{
+  margin:18px 0 0; font-size:11px; color:#6f7974; text-align:center;
+}
+.haven-login__switch a{color:#1f6b52; font-weight:800; text-decoration:underline; text-underline-offset:3px}
+.haven-login__trust{
+  display:flex; gap:10px; justify-content:center; flex-wrap:wrap;
+  margin-top:22px; padding-top:16px;
+  border-top:1px solid #e8e9e3;
+  font-size:9px; font-weight:800; letter-spacing:.7px; text-transform:uppercase; color:#8a9a94;
+}
+.haven-login__trust span{display:inline-flex; align-items:center; gap:6px}
+
+/* entrance */
+.haven-login.is-mounted .haven-login__art-copy h1{animation: haven-login-title 620ms cubic-bezier(.16,1,.3,1) both}
+.haven-login.is-mounted .haven-login__glass-card{animation: haven-login-card 560ms cubic-bezier(.16,1,.3,1) both 120ms}
+.haven-login.is-mounted .haven-login__mini-stats{animation: haven-login-card 560ms cubic-bezier(.16,1,.3,1) both 180ms}
+
+@keyframes haven-login-in{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+@keyframes haven-login-title{from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:none}}
+@keyframes haven-login-card{from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:none}}
+@keyframes haven-float{0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)}}
+@keyframes haven-spin{to{transform:translateY(-50%) rotate(360deg)}}
+
+/* reduced motion */
+@media (prefers-reduced-motion: reduce){
+  .haven-login__orb, .haven-login__spinner, .haven-login__form,
+  .haven-login.is-mounted .haven-login__art-copy h1,
+  .haven-login.is-mounted .haven-login__glass-card{animation:none !important}
+  .haven-login__submit:hover{transform:none}
+}
+
+/* responsive — keep art visible until 1000, then collapse */
+@media (max-width:1000px){
+  .haven-login{grid-template-columns:1fr}
+  .haven-login__art{display:none}
+  .haven-login__panel{padding:24px 18px}
+  .haven-login__form{padding-top:8px}
+}
+@media (max-width:380px){
+  .haven-login__glass-row{flex-direction:column}
+  .haven-login__mini-stats{flex-direction:row}
+  .haven-login__mini-stats div{flex:1}
+}

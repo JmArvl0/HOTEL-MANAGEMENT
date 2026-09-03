@@ -8,15 +8,16 @@ Source: `supabase/schema.sql` (PostgreSQL), mirrored by `lib/types.ts`.
 | reservations | `RSV-*` | pending, confirmed, checked_in, checked_out, cancelled | FK guest_id→guests, room_id→rooms; check_out > check_in |
 | rooms | `RM-*` | available, reserved, occupied, dirty, maintenance | housekeeping status separate; unique number, qr_code |
 | guests | `GST-*` | — | loyalty tier/points, stays, preferences |
-| housekeeping_tasks | `HKT-*` | pending, in_progress, completed | assignee, priority, due |
-| maintenance_orders | `MWO-*` | open, in_progress, resolved | cost tracking |
+| housekeeping_tasks | `HKT-*` | pending, assigned, in_progress, deferred, completed, cancelled | room-care ownership, checklist, inspection, source links |
+| maintenance_orders | `MWO-*` | open, assigned, in_progress, waiting_parts, deferred, resolved, completed, cancelled | diagnosis, severity, technical serviceability, parts, assignment, source links |
 | invoices | `INV-*` | unpaid, deposit, partial, paid | currency default PHP, balance = amount − paid |
 | inventory | `ITM-*` | healthy, low, out | reorder_point, vendor FK |
 | staff | `STF-*` | off_duty, on_duty, on_leave | optional FK to app_users |
 
-## Supporting tables (not yet exposed as resources)
-- `app_users` — auth users with role + bcrypt password_hash
-- `payments` — linked to invoices (cascade delete)
+## Supporting tables
+- `user_accounts` — authentication users with role + bcrypt password_hash
+- `maintenance_order_events`, `maintenance_order_assignments` — append-only work-order lifecycle and assignment history
+- `payments` — linked to invoices and reservations
 - `guest_requests`, `reviews`, `vendors`, `purchase_orders`, `audit_logs`
 
 ## Indexes

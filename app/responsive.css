@@ -1,0 +1,105 @@
+/* Haven Responsive — ui-ux-pro-max: Mobile First + Adaptive Gutters + No Horizontal Scroll
+   Covers 320, 375, 414, 768, 1024, 1280, 1440. Fixes High-severity Viewport/Horizontal Scroll/Touch Friendly.
+*/
+html{
+  -webkit-text-size-adjust: 100%;
+  overflow-x: clip;
+  scrollbar-gutter: stable;
+}
+body{ overflow-x: clip; max-width: 100vw; }
+img, video, svg, canvas{ max-width: 100%; height: auto; }
+* { min-width: 0; }
+a, button, [role="button"]{ overflow-wrap: anywhere; }
+
+/* Prevent long tokens (confirmation codes, emails) from forcing overflow */
+.token, code, .confirmation-number, .badge, .source-badge{
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+/* Adaptive gutters: 16px at 320 → 24px at 768 → 40–56px at 1024+ */
+:root{ --haven-gutter: 16px; }
+@media (min-width: 768px){ :root{ --haven-gutter: 24px; } }
+@media (min-width: 1024px){ :root{ --haven-gutter: 40px; } }
+@media (min-width: 1440px){ :root{ --haven-gutter: 56px; } }
+
+/* Tables: card layout fallback on very small screens + horizontal scroll where needed */
+.table-scroll{
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+.table-scroll table{ min-width: 560px; }
+@media (max-width: 480px){
+  .table-scroll table{ min-width: 520px; }
+}
+
+/* Touch-friendly: ensure primary CTAs are >=44px on mobile */
+@media (max-width: 680px){
+  .btn, .btn-accent, .btn-soft, .btn-cream{
+    min-height: 44px;
+    padding-top: 12px; padding-bottom: 12px;
+  }
+  .landing .btn, .haven-login__submit, .booking-bar .btn{
+    min-height: 44px;
+  }
+  /* tap targets: nav, booking bar inputs, customer account trigger */
+  .landing-menu-btn, .customer-mobile-menu, .icon-button, .haven-login__eye{
+    min-width: 44px; min-height: 44px;
+  }
+}
+
+/* Breakpoint safety: no element should force horizontal scroll */
+.landing, .booking-page, .customer-shell, .app-shell, .auth-page, .haven-login{
+  max-width: 100vw;
+  overflow-x: clip;
+}
+
+/* Booking flows: compact search + stage stacks */
+@media (max-width: 768px){
+  .booking-header{ padding:0 var(--haven-gutter, 16px); gap:16px }
+  .booking-hero{ padding:32px var(--haven-gutter, 16px) }
+  .booking-content{ padding:24px var(--haven-gutter, 16px) 40px }
+  .booking-stage{ gap:18px }
+}
+
+/* Customer shell: already handled at 900, add 375 fine tune */
+@media (max-width: 375px){
+  .customer-content{ padding:18px 14px 40px }
+  .customer-content-header{ padding-left:56px; padding-right:14px }
+  .customer-header-actions{ gap:6px }
+  .folio-summary{ grid-template-columns:1fr 1fr; gap:8px }
+}
+
+/* App shell: prevent sidebar overlap at 320 */
+@media (max-width: 360px){
+  .app-shell .sidebar, .app-shell .sidebar.collapsed{ width: 88vw }
+  .workspace-body{ padding:16px 12px }
+  .page-title h1{ font-size:20px }
+}
+
+/* Small phones 320: tighten landing hero */
+@media (max-width: 375px){
+  .landing .hero-content h1{ font-size: 38px; letter-spacing:-1.6px }
+  .landing .section-heading{ flex-direction:column; align-items:flex-start; gap:12px }
+  .landing .room-card{ min-height: 320px }
+  .amenities-grid{ grid-template-columns:1fr 1fr; gap:8px }
+  .gallery-grid{ gap:10px }
+  .footer-links{ gap:20px }
+}
+
+/* Ultra-wide: cap content width for readability (65-75ch prose already via max-width) */
+@media (min-width: 1600px){
+  .landing .intro, .landing .rooms-section, .landing .amenities-section,
+  .landing .gallery-section, .landing .faq-section, .landing .operations,
+  .booking-content{ max-width: 1440px; margin-left:auto; margin-right:auto }
+}
+
+/* Scrollbar and safe-areas */
+@supports (padding: max(0px)){
+  .landing-nav, .app-shell .app-header, .customer-content-header{
+    padding-left: max(var(--haven-gutter,16px), env(safe-area-inset-left));
+    padding-right: max(var(--haven-gutter,16px), env(safe-area-inset-right));
+  }
+}

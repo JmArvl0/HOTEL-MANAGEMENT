@@ -1,0 +1,162 @@
+/* Room-details overlay (used by the shared RoomResults list).
+   The shared Modal renders its fixed .modal-backdrop and the dialog .modal as
+   siblings (no portal), so .modal is laid out in-flow where the trigger sits.
+   Inside a results card that box is a ~200px flex cell under overflow:hidden
+   ancestors, which squeezes and clips the dialog. Pin the dialog itself to the
+   viewport and center it over its own backdrop, matching what the backdrop
+   centering was designed to do. */
+.room-details-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1001; /* above .modal-backdrop (1000) */
+  width: 100%;
+  max-height: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  margin: 0;
+  background: transparent; /* neutralize the legacy .modal surface */
+  box-shadow: none;
+  overflow: visible; /* legacy .modal overflow:auto would add a second scrollbar */
+  pointer-events: none; /* let clicks on the dim area reach the backdrop (close) */
+}
+.room-details-modal .modal-content {
+  width: min(920px, 100%);
+  pointer-events: auto;
+}
+
+/* Primary photo shown in each result card's left band (falls back to its gradient) */
+.available-room-image.room-photo { background-size: cover; background-position: center; }
+.available-room-image.room-photo::after { opacity: 0.2; }
+
+.rd-gallery {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #78907d, #263c31);
+}
+.rd-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.rd-gallery-fallback {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  text-align: center;
+  color: #fff;
+  font: 500 22px/1.2 var(--font-display, Georgia, serif);
+}
+.rd-arrow {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  backdrop-filter: blur(2px);
+}
+.rd-arrow:hover { background: rgba(0, 0, 0, 0.55); }
+.rd-arrow:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.rd-arrow--prev { left: 12px; }
+.rd-arrow--next { right: 12px; }
+.rd-arrow:disabled { display: none; }
+.rd-count {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  z-index: 2;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 750;
+}
+.rd-thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.rd-thumb {
+  width: 76px;
+  height: 52px;
+  padding: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid var(--cp-line, #e3e5df);
+  background: var(--cp-line, #e3e5df);
+  cursor: pointer;
+  opacity: 0.65;
+}
+.rd-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rd-thumb.is-active { border-color: var(--cp-green, #236f51); opacity: 1; }
+.rd-thumb:focus-visible { outline: 2px solid var(--cp-green, #236f51); outline-offset: 1px; }
+
+.rd-facts { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 4px; padding: 0; }
+.rd-facts li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--cp-line, #e3e5df);
+  background: var(--cp-panel-2, #f7f9f6);
+  color: var(--cp-text, #17201b);
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 650;
+  list-style: none;
+}
+.rd-facts svg { color: var(--cp-green, #236f51); flex: none; }
+.rd-note { margin: 10px 0 0; color: var(--cp-green, #236f51); font-size: 12px; font-weight: 750; }
+.rd-description { color: var(--cp-muted, #6d7971); line-height: 1.7; font-size: 14px; margin: 12px 0 0; }
+.rd-heading {
+  margin: 20px 0 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: var(--cp-muted, #6d7971);
+}
+.rd-amenities { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
+.rd-amenities li { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--cp-text, #17201b); }
+.rd-amenities svg { color: var(--cp-green, #236f51); flex: none; }
+.rd-rate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 16px;
+  margin-top: 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--cp-line, #e3e5df);
+  border-radius: 10px;
+  background: var(--cp-panel-2, #f7f9f6);
+}
+.rd-rate strong { font-size: 20px; color: var(--cp-text, #17201b); }
+.rd-rate small { color: var(--cp-muted, #6d7971); }
+.rd-foot-rate { margin-right: auto; display: flex; flex-direction: column; line-height: 1.25; }
+.rd-foot-rate strong { font-size: 18px; }
+.rd-foot-rate small { font-size: 11px; }
+
+@media (max-width: 640px) {
+  /* Present the overlay as a bottom sheet (matches the modal system's mobile look). */
+  .room-details-modal {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .room-details-modal .modal-content {
+    width: 100%;
+    max-height: 90vh;
+    border-radius: 16px 16px 0 0;
+  }
+  .rd-amenities { grid-template-columns: 1fr; }
+  .rd-facts li { font-size: 11px; }
+}

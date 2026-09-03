@@ -38,7 +38,7 @@ export async function listForRole(resource: Resource, role: Role): Promise<Recor
     const userIds=Array.from(new Set((data??[]).map(item=>item.assigned_user_id).filter(Boolean))) as string[];
     const [roomsResult,maintenanceResult,arrivalsResult,usersResult]=await Promise.all([
       roomIds.length?supabase.from("rooms").select("id,type,status,housekeeping").in("id",roomIds):Promise.resolve({data:[]}),
-      roomIds.length?supabase.from("maintenance_orders").select("room_id,id,priority,status").in("room_id",roomIds).in("status",["open","in_progress"]):Promise.resolve({data:[]}),
+      roomIds.length?supabase.from("maintenance_orders").select("room_id,id,priority,status,serviceability_impact").in("room_id",roomIds).in("status",["open","assigned","in_progress","waiting_parts","deferred"]).in("serviceability_impact",["blocked","out_of_service"]):Promise.resolve({data:[]}),
       roomIds.length?supabase.from("reservations").select("room_id,check_in").in("room_id",roomIds).in("status",["pending","confirmed"]).gte("check_in",new Date().toISOString().slice(0,10)).order("check_in",{ascending:true}):Promise.resolve({data:[]}),
       userIds.length?supabase.from("user_accounts").select("id,name").in("id",userIds):Promise.resolve({data:[]})
     ]);
@@ -67,6 +67,11 @@ export async function listForRole(resource: Resource, role: Role): Promise<Recor
   }
   if (resource === "inventory" && ["housekeeping", "maintenance"].includes(role)) {
     const { data, error } = await supabase.from("inventory").select("id,name,category,quantity,reorder_point,unit,status,created_at").order("created_at", { ascending: false });
+    if (error) throw error;
+    return data as RecordItem[];
+  }
+  if (resource === "maintenance_orders") {
+    const { data, error } = await supabase.from("maintenance_orders").select("id,room_id,room_number,reservation_id,guest_request_id,target_type,target_label,issue,category,assignee,assigned_user_id,priority,severity,status,serviceability_impact,serviceability_reason,diagnosis,parts_required,parts_status,external_service_required,estimated_completion,waiting_reason,resolution,cleanup_required,source_type,created_at,updated_at,resolved_at,completed_at").order("created_at", { ascending: false });
     if (error) throw error;
     return data as RecordItem[];
   }
@@ -102,7 +107,7 @@ export async function getStaffReservation(id: string, role: Role) {
     supabase.from("reservation_room_assignments").select("id,room_id,check_in,check_out,assigned_at,released_at,status,reason,is_upgrade").eq("reservation_id",id).order("assigned_at",{ascending:false}),
     supabase.from("guest_requests").select("id,request,department,priority,status,created_at").eq("reservation_id",id).order("created_at",{ascending:false}),
     reservation.room_id?supabase.from("rooms").select("id,number,type,status,housekeeping").eq("id",reservation.room_id).maybeSingle():Promise.resolve({data:null}),
-    reservation.room_id?supabase.from("maintenance_orders").select("id,issue,priority,status,created_at").eq("room_id",reservation.room_id).in("status",["open","in_progress"]):Promise.resolve({data:[]})
+    reservation.room_id?supabase.from("maintenance_orders").select("id,issue,priority,status,serviceability_impact,estimated_completion,created_at").eq("room_id",reservation.room_id).in("status",["open","assigned","in_progress","waiting_parts","deferred"]):Promise.resolve({data:[]})
   ]);
   const refundIds=(refunds??[]).map(item=>item.id);
   const refundAttempts=refundIds.length?((await supabase.from("refund_attempts").select("id,refund_request_id,status,reference,reason,attempted_at").in("refund_request_id",refundIds).order("attempted_at",{ascending:false})).data??[]):[];

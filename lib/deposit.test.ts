@@ -52,7 +52,7 @@ describe("end-to-end UI and authorization wiring",()=>{
  it("never offers obsolete online guarantees",()=>{expect(paymentPage).not.toContain("Pay at the hotel");expect(paymentPage).not.toContain("Cash guarantee")});
  it("uses the server submission RPC without accepting an amount",()=>{expect(submitRoute).toContain("submit_reservation_deposit");expect(submitRoute).not.toContain("p_amount")});
  it("requires guest ownership for deposit submission",()=>expect(submitRoute).toContain('session.user.role !== "guest"'));
- it("restricts verification to authorized staff roles",()=>expect(verifyRoute).toContain('const permitted = new Set(["owner","admin","front_desk","accounting"])'));
+ it("restricts verification to authorized staff roles",()=>expect(verifyRoute).toContain('const permitted = new Set(["front_desk","accounting"])'));
  it("uses the idempotent verification RPC",()=>expect(verifyRoute).toContain("verify_reservation_deposit"));
  it("prevents website check-in without a verified deposit",()=>expect(checkInRoute).toContain("RESERVATION_DEPOSIT_REQUIRED"));
 });

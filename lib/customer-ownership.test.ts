@@ -72,6 +72,12 @@ describe("customer session guard", () => {
     expect(nav.redirected).toEqual(["/login?callbackUrl=%2Faccount"]);
   });
 
+  it("refuses a disabled customer session", async () => {
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: A, role: "guest", disabled: true } } as never);
+    await expect(requireCustomerSession()).rejects.toThrow(/NEXT_REDIRECT/);
+    expect(nav.redirected).toEqual(["/login?callbackUrl=%2Faccount"]);
+  });
+
   it("refuses a staff session on customer pages", async () => {
     for (const role of ["owner", "admin", "manager", "front_desk", "housekeeping", "maintenance", "accounting"]) {
       nav.redirected.length = 0;

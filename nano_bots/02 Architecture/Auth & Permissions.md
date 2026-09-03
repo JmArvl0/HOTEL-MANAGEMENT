@@ -3,28 +3,47 @@
 Source: `lib/auth.ts`, `lib/permissions.ts`, `lib/types.ts`
 
 ## Authentication
-- **Provider:** NextAuth CredentialsProvider, JWT session strategy.
-- **Resolution in `authorize()`:** a single path — Supabase `user_accounts` (via service-role key): fetch by email → verify `active` → `bcrypt.compare` against `password_hash`. Returns `null` when Supabase is unconfigured, so demo mode has no logins at all. There is no hardcoded account map.
-- Passwords are issued only by `npm run set-passwords` and exist only as bcrypt hashes in the database.
-- Custom cookie name `haven.session-token` in development, `__Secure-haven.session-token` with `secure` in production (avoids stale localhost cookies).
-- Sign-in page: `/login`.
-- `role` is added to the JWT on sign-in and copied onto `session.user.role`.
+
+- NextAuth CredentialsProvider with JWT sessions.
+- Supabase `user_accounts` is the only login authority; passwords are bcrypt hashes and no embedded account map exists.
+- Sign-in rejects inactive and recovery-required accounts.
+- Every JWT refresh re-reads role, active state, `auth_version`, and recovery state. A version mismatch disables the token instead of silently refreshing its authority. Deactivation, suspension, role change, password change, or critical recovery therefore requires a fresh sign-in without rotating the global secret.
+- Customer guards and mutation routes reject disabled sessions; the fallback `guest` token role never restores customer authority.
+- Production requires a real `NEXTAUTH_SECRET`; service-role credentials remain server-only.
 
 ## Roles
+
 `owner`, `admin`, `manager`, `front_desk`, `housekeeping`, `maintenance`, `accounting`, `guest`
 
-## Access matrix (`canAccess(role, resource)`)
-| Role | Resources |
-|---|---|
-| owner / admin / manager | all 8 |
-| front_desk | reservations, rooms, guests, housekeeping_tasks, invoices |
-| housekeeping | rooms, housekeeping_tasks, inventory |
-| maintenance | rooms, maintenance_orders, inventory |
-| accounting | reservations, guests, invoices, inventory |
-| guest | reservations, invoices |
+## Authority model
 
-## Security notes
-- No demo/plaintext login path exists; bcrypt against `user_accounts` is the only route in.
-- Sessions are stateless JWTs: `jwt`/`session` callbacks do no database lookup, so `active` and `password_hash` are read **only at sign-in**. Changing a password or setting `active = false` does not sign out a live session — rotate `NEXTAUTH_SECRET` to invalidate all of them.
-- Dev-only fallback `NEXTAUTH_SECRET`; production requires a real secret.
-- Service-role key used for auth lookups and all data access; RLS blocks direct client access.
+| Role | Purpose | Mutation boundary |
+|---|---|---|
+| Owner | Executive visibility, Admin/protected-role governance, critical policy, Owner-level exception authorization | No routine Front Desk, Housekeeping, Maintenance, Accounting, or Manager execution |
+| Admin | Routine account and application configuration governance | Dedicated `/api/admin/*`; no operational execution |
+| Manager | Operational supervision, coordination, Manager-level exceptions | Does not execute departmental work or financial corrections |
+| Front Desk | Reservations, room assignment, guest coordination, check-in/out, approved Front Desk exceptions | Protected Front Desk workflows |
+| Housekeeping | Room-care ownership, checklist, completion, inspection | Protected Housekeeping workflows |
+| Maintenance | Technical diagnosis, serviceability, repair, resolution | Protected Maintenance workflows |
+| Accounting | Payment, folio, refund, shift, reconciliation, and document execution | Protected Accounting workflows |
+| Guest | Owned reservations, folios, requests, and profile | Ownership-scoped customer routes |
+
+## Read access
+
+Owner retains broad executive read visibility through `/api/owner/*` and selected read projections. `canAccess` does not imply mutation authority. Generic resource POST/PATCH explicitly rejects Owner and Admin.
+
+## Sensitive capabilities
+
+Capability helpers separate financial visibility from financial execution, Manager review from Owner review, and executive oversight from departmental operations. Owner can view the Accounting ledger but cannot verify payments, process refunds, adjust folios, operate shifts, or issue documents. Owner-level exception authorization is followed by department execution.
+
+## Protected governance
+
+- Admin cannot modify Owner or Admin accounts.
+- Owner can create and govern Admin accounts through secure recovery/invitation flow.
+- Self-deactivation, self-role change, and removal of the last active Owner are blocked.
+- Owner changes remain subject to optimistic versions, audit immutability, foreign keys, reservation conflicts, Maintenance blocks, and financial history.
+- Owner/Admin APIs revalidate the current database account for every request.
+
+## Secret protection
+
+No application role can read password hashes, recovery-token hashes, session secrets, Supabase service keys, database credentials, or OAuth secrets. RLS prevents direct browser table access; privileged functions are service-role-only.

@@ -24,7 +24,7 @@ Every website reservation records `user_id`. `/my-reservations` and its detail r
 
 ## Front Desk and check-in
 
-Confirmed website bookings appear in the existing reservation module with confirmation number, source, and payment state. Online booking reserves a room type; no physical room is assigned to the guest. Authorized Owner, Admin, Manager, or Front Desk users use the protected Assign & check in action. `front_desk_check_in` requires the correct room type, an available and clean room, no open maintenance order, no overlapping room assignment, and a current stay window. It assigns the room and changes both reservation and physical room state atomically.
+Confirmed website bookings appear in the existing reservation module with confirmation number, source, and payment state. Online booking reserves a room type; no physical room is assigned to the guest. Front Desk uses the protected Assign & check in action. Owner, Admin, and Manager may view relevant risk or governance summaries but do not perform routine check-in. `front_desk_check_in` requires the correct room type, an available and clean room, no open maintenance order, no overlapping room assignment, and a current stay window. It assigns the room and changes both reservation and physical room state atomically.
 
 ## Assumptions and limitations
 

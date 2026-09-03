@@ -1,3 +1,119 @@
 "use client";
-import{FormEvent,useState}from"react";import{signIn}from"next-auth/react";import{useRouter}from"next/navigation";import Link from"next/link";import{ArrowLeft,ArrowRight,Eye,EyeOff,LockKeyhole,Sparkles}from"lucide-react";
-export default function LoginForm({callbackUrl="/manager_dashboard",booking=false}:{callbackUrl?:string;booking?:boolean}){const router=useRouter();const[email,setEmail]=useState("");const[password,setPassword]=useState("");const[error,setError]=useState("");const[loading,setLoading]=useState(false);const[showPassword,setShowPassword]=useState(false);async function submit(event:FormEvent){event.preventDefault();setLoading(true);setError("");const result=await signIn("credentials",{email,password,callbackUrl,redirect:false});setLoading(false);if(result?.error)setError("That email or password doesn’t match our records.");else{router.push(result?.url??callbackUrl);router.refresh();}}return <main className="login-page"><section className="login-art"><Link href="/" className="brand brand-light"><span className="brand-mark"><Sparkles size={18}/></span><span>HAVEN<small>HOTEL & RESIDENCES</small></span></Link><div><p className="eyebrow light">Operations, beautifully connected</p><h1>Make every stay<br/><em>feel effortless.</em></h1><p>Reservations, rooms, service, and insights—all in one calm workspace.</p></div><small>© 2026 Haven Hotel & Residences</small></section><section className="login-form-wrap"><div className="login-form"><Link href={booking?callbackUrl:"/"} className="back-link"><ArrowLeft size={16}/> {booking?"Back to your booking":"Back to hotel"}</Link><span className="login-icon"><LockKeyhole/></span><p className="eyebrow">Haven portal</p><h2>{booking?"Sign in to continue your reservation":"Welcome."}</h2><p>{booking?"Your selected room and stay details are waiting for you.":"All team members and guests sign in here—one secure door for every role."}</p><form onSubmit={submit}><label>Work or guest email<input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} autoComplete="username" required/></label><div className="password-field"><label>Password<input type={showPassword?"text":"password"} value={password} onChange={(e)=>setPassword(e.target.value)} autoComplete="current-password" required/></label><button type="button" className="toggle-password" onClick={()=>setShowPassword((value)=>!value)} aria-label={showPassword?"Hide password":"Show password"}>{showPassword?<EyeOff size={17}/>:<Eye size={17}/>}</button></div>{error&&<p className="form-error" role="alert">{error}</p>}<button className="btn btn-accent" disabled={loading}>{loading?"Signing in…":"Sign in"}<ArrowRight size={17}/></button></form><p className="auth-switch">New guest? <Link href={`/register?callbackUrl=${encodeURIComponent(callbackUrl)}${booking?"&booking=1":""}`}>Create an account</Link></p></div></section></main>}
+import { FormEvent, useRef, useState } from "react";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
+import "./login.css";
+
+export default function LoginForm({
+  callbackUrl = "/manager_dashboard",
+  booking = false,
+}: {
+  callbackUrl?: string;
+  booking?: boolean;
+}) {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const errorRef = useRef<HTMLDivElement>(null);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+    const result = await signIn("credentials", { email, password, callbackUrl, redirect: false });
+    setLoading(false);
+    if (result?.error) {
+      setError("That email or password doesn’t match our records.");
+      requestAnimationFrame(() => errorRef.current?.focus());
+    } else {
+      router.push(result?.url ?? callbackUrl);
+      router.refresh();
+    }
+  }
+
+  return (
+    <>
+      <div className="haven-vault__head">
+        <p className="eyebrow" style={{ color: "#c9783c", margin: 0 }}>
+          Haven portal
+        </p>
+        <h1>{booking ? "Sign in to continue your reservation" : "Welcome back."}</h1>
+        <p>{booking ? "Your selected room and stay details are waiting." : "Unlock your dashboard — one secure key for every role."}</p>
+      </div>
+
+      {error && (
+        <div ref={errorRef} tabIndex={-1} role="alert" className="haven-vault__error">
+          <strong>We couldn’t sign you in</strong>
+          <span>{error}</span>
+          <a href="#haven-email">Go to email</a>
+        </div>
+      )}
+
+      <form onSubmit={submit} noValidate>
+        <label className="haven-vault__field" htmlFor="haven-email">
+          <span>
+            <Mail size={12} aria-hidden="true" /> Work or guest email
+          </span>
+          <input
+            id="haven-email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="username"
+            inputMode="email"
+            placeholder="you@haven.com"
+            required
+          />
+        </label>
+
+        <div className="haven-vault__field" style={{ position: "relative" }}>
+          <label htmlFor="haven-password">
+            <span>
+              <LockKeyhole size={12} aria-hidden="true" /> Password
+            </span>
+            <input
+              id="haven-password"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              placeholder="••••••••"
+              required
+            />
+          </label>
+          <button
+            type="button"
+            className="haven-vault__eye"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-pressed={showPassword}
+          >
+            {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+          </button>
+        </div>
+
+        <button className="haven-vault__submit" disabled={loading} aria-busy={loading}>
+          <span className="haven-vault__submit-glow" aria-hidden="true" />
+          {loading ? "Signing in…" : "Sign in"} <ArrowRight size={15} aria-hidden="true" />
+        </button>
+      </form>
+
+      <p className="haven-vault__foot">
+        New guest? <Link href={`/register?callbackUrl=${encodeURIComponent(callbackUrl)}${booking ? "&booking=1" : ""}`}>Create an account</Link>
+      </p>
+
+      <div className="haven-vault__trust">
+        <span>Encrypted</span>
+        <span>•</span>
+        <span>Pay at hotel</span>
+        <span>•</span>
+        <span>24h Desk</span>
+      </div>
+    </>
+  );
+}
