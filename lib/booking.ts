@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { formatPeso } from "@/lib/format";
+import { CHECKOUT_REQUEST_VALUES } from "@/lib/request-options";
 import { supabase } from "@/lib/supabase";
 
 export const BLOCKING_RESERVATION_STATUSES = ["pending", "confirmed", "checked_in"] as const;
@@ -46,6 +47,16 @@ export const searchSchema = z.object({
   if (value.checkOut <= value.checkIn) ctx.addIssue({ code: "custom", path: ["checkOut"], message: "Check-out must be after check-in." });
 });
 
+export type TransportService = { id: string; name: string; description: string | null; price: number; unit: string };
+export type TransportLine = { name: string; price: number; note?: string };
+
+export const transportLineSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  price: z.coerce.number().positive().max(10000000),
+  note: z.string().trim().max(120).optional().default(""),
+});
+export const transportLinesSchema = z.array(transportLineSchema).max(12).optional().default([]);
+
 export const guestDetailsSchema = z.object({
   roomType: z.string().min(1).max(100),
   checkIn: z.string().regex(datePattern),
@@ -58,7 +69,9 @@ export const guestDetailsSchema = z.object({
   address: z.string().trim().max(300).optional().default(""),
   nationality: z.string().trim().max(80).optional().default(""),
   expectedArrival: z.string().trim().max(40).optional().default(""),
+  requestOptions: z.array(z.enum(CHECKOUT_REQUEST_VALUES)).max(12).optional().default([]),
   specialRequests: z.string().trim().max(1000).optional().default(""),
+  transportLines: transportLinesSchema,
 });
 
 export const depositSubmissionSchema = z.object({
@@ -72,7 +85,7 @@ export type GuestDetailsInput = z.infer<typeof guestDetailsSchema>;
 export type AvailableRoomType = {
   id: string; name: string; description: string; maxGuests: number; beds: string;
   sizeSqm: number | null; amenities: string[]; nightlyRate: number; nights: number;
-  subtotal: number; availableUnits: number;
+  subtotal: number; availableUnits: number; photos: string[];
 };
 
 export function calculateNights(checkIn: string, checkOut: string) {
@@ -195,7 +208,7 @@ export async function getAvailability(input: SearchInput, retryTransientAuth = t
   const { checkIn, checkOut, guests } = parsed.data;
   const now = new Date().toISOString();
   const [{ data: types, error: typeError }, { data: rooms, error: roomError }, { data: reservations, error: reservationError }, { data: holds, error: holdError }, { data: maintenance, error: maintenanceError }] = await Promise.all([
-    supabase.from("room_types").select("id,name,description,max_guests,beds,size_sqm,amenities,base_rate").eq("active", true).gte("max_guests", guests),
+    supabase.from("room_types").select("id,name,description,max_guests,beds,size_sqm,amenities,base_rate,photo_urls").eq("active", true).gte("max_guests", guests),
     supabase.from("rooms").select("id,type,status,housekeeping,administratively_active"),
     supabase.from("reservations").select("room_type,check_in,check_out,status,source,payment_due_at").in("status", [...BLOCKING_RESERVATION_STATUSES]).lt("check_in", checkOut).gt("check_out", checkIn),
     supabase.from("booking_holds").select("room_type,check_in,check_out,status,expires_at,reservation_id").in("status", ["active","payment_submitted"]).gt("expires_at", now).lt("check_in", checkOut).gt("check_out", checkIn),
@@ -214,13 +227,27 @@ export async function getAvailability(input: SearchInput, retryTransientAuth = t
   const rows = { rooms: rooms ?? [], reservations: reservations ?? [], holds: holds ?? [], blockedRoomIds: new Set((maintenance ?? []).map((row) => row.room_id)) };
   return (types ?? []).map((type) => {
     const rate = Number(type.base_rate);
-    return { id: type.id, name: type.name, description: type.description, maxGuests: type.max_guests, beds: type.beds, sizeSqm: type.size_sqm, amenities: Array.isArray(type.amenities) ? type.amenities.map(String) : [], nightlyRate: rate, nights, subtotal: rate * nights, availableUnits: countAvailableUnits(type.name, window, rows) };
+    return { id: type.id, name: type.name, description: type.description, maxGuests: type.max_guests, beds: type.beds, sizeSqm: type.size_sqm, amenities: Array.isArray(type.amenities) ? type.amenities.map(String) : [], nightlyRate: rate, nights, subtotal: rate * nights, availableUnits: countAvailableUnits(type.name, window, rows), photos: Array.isArray(type.photo_urls) ? type.photo_urls.map(String) : [] };
   }).filter((type) => type.availableUnits > 0).sort((a, b) => a.nightlyRate - b.nightlyRate);
 }
 
 export async function getRoomType(name: string, search: SearchInput) {
   return (await getAvailability(search)).find((room) => room.name === name) ?? null;
 }
+
+/** Active hotel transport price list, offered at booking checkout. Server-side service-role read. */
+export async function getTransportServices(): Promise<TransportService[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase.from("transport_services")
+    .select("id,name,description,price,unit").eq("active", true)
+    .order("sort", { ascending: true }).order("name", { ascending: true });
+  if (error) throw new Error(`Transport services query failed${error.code ? ` (${error.code})` : ""}`);
+  return (data ?? []).map((row) => ({ id: String(row.id), name: String(row.name), description: row.description as string | null, price: Number(row.price), unit: String(row.unit) }));
+}
+
+/** Sums transport line prices with centavo-safe arithmetic. */
+export const transportTotal = (lines: readonly { name?: string | null; price?: number | string | null; note?: string | null }[] | null | undefined) =>
+  fromCentavos((lines ?? []).reduce((sum, line) => sum + toCentavos(line?.price ?? 0), 0));
 
 export async function getGuestProfile(userId: string, email?: string | null) {
   if (!supabase) return null;
@@ -238,7 +265,7 @@ export async function getOwnedHold(token: string, userId: string) {
   return data;
 }
 
-const reservationColumns = "id,confirmation_number,guest_name,guest_email,room_type,room_number,check_in,check_out,guests,status,total,deposit,deposit_required,deposit_policy_snapshot,payment_due_at,payment_status,payment_method,source,special_requests,expected_arrival,created_at";
+const reservationColumns = "id,confirmation_number,guest_name,guest_email,room_type,room_number,check_in,check_out,guests,status,total,deposit,deposit_required,deposit_policy_snapshot,payment_due_at,payment_status,payment_method,source,special_requests,request_options,transport_lines,expected_arrival,created_at";
 
 export async function getGuestReservations(userId: string) {
   if (!supabase) return [];

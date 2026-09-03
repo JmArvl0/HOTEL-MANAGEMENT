@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowRight, BedDouble, Check, ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { formatPeso } from "@/lib/format";
-import { roomPhotos } from "@/lib/room-images";
+import { roomPhotosFor } from "@/lib/room-images";
 import type { AvailableRoomType } from "@/lib/booking";
 
 /** "View details" trigger + room-info overlay, shared by every RoomResults card. */
@@ -13,7 +13,7 @@ export function RoomDetailsButton({ room, bookHref }: { room: AvailableRoomType;
   const [pos, setPos] = useState(0);
   const [errored, setErrored] = useState<ReadonlySet<string>>(new Set());
 
-  const photos = roomPhotos(room.name);
+  const photos = roomPhotosFor(room.photos, room.name);
   // Drop photos that failed to load; show the first remaining one.
   const live = photos.map((url, i) => (errored.has(url) ? -1 : i)).filter((i) => i !== -1);
   const shownPos = Math.min(pos, live.length - 1);

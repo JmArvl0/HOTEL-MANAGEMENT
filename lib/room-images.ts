@@ -44,3 +44,13 @@ export function roomPhotos(name: string): string[] {
 export function roomPrimaryPhoto(name: string): string | undefined {
   return roomPhotos(name)[0];
 }
+
+/** Room photos for a type: DB-backed gallery wins; falls back to the stock map by room name. */
+export function roomPhotosFor(photos?: string[], name?: string): string[] {
+  return photos && photos.length > 0 ? photos : roomPhotos(name ?? "");
+}
+
+/** Primary display image for a room type, honouring DB photos first. */
+export function roomPrimary(photos?: string[], name?: string): string | undefined {
+  return roomPhotosFor(photos, name)[0];
+}

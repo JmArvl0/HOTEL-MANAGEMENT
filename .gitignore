@@ -7,3 +7,6 @@ node_modules
 .npm-cache
 *.tsbuildinfo
 .tmp
+
+# local Claude Code tool state
+.impeccable/

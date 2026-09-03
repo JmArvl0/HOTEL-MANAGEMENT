@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateNights, countAvailableUnits, isBlockingReservationStatus, rangesOverlap, safeInternalPath, searchSchema } from "@/lib/booking";
+import { calculateNights, countAvailableUnits, isBlockingReservationStatus, rangesOverlap, safeInternalPath, searchSchema, transportLineSchema, transportLinesSchema, transportTotal } from "@/lib/booking";
 const date=(offset:number)=>{const value=new Date();value.setUTCDate(value.getUTCDate()+offset);return value.toISOString().slice(0,10)};
 describe("guest booking rules",()=>{
   it("calculates nights without timezone drift",()=>expect(calculateNights("2026-09-04","2026-09-07")).toBe(3));
@@ -10,4 +10,9 @@ describe("guest booking rules",()=>{
   it("accepts a valid search",()=>expect(searchSchema.safeParse({checkIn:date(1),checkOut:date(3),guests:2}).success).toBe(true));
   it("excludes administratively inactive and Maintenance-blocked inventory",()=>{const window={checkIn:"2026-09-05",checkOut:"2026-09-07",now:"2026-09-01T00:00:00Z",today:"2026-09-01"};const rows={rooms:[{id:"safe",type:"King",status:"available",housekeeping:"clean",administratively_active:true},{id:"inactive",type:"King",status:"available",housekeeping:"clean",administratively_active:false},{id:"blocked",type:"King",status:"available",housekeeping:"clean",administratively_active:true}],reservations:[],holds:[],blockedRoomIds:new Set(["blocked"])};expect(countAvailableUnits("King",window,rows)).toBe(1)});
   it("rejects open redirects while preserving internal booking URLs",()=>{expect(safeInternalPath("https://evil.example/steal","/")).toBe("/");expect(safeInternalPath("//evil.example/steal","/")).toBe("/");expect(safeInternalPath("/booking/details?roomType=Deluxe+King","/")).toBe("/booking/details?roomType=Deluxe+King")});
+});
+describe("hotel transport lines",()=>{
+  it("accepts a priced line and coerce-numeric string prices",()=>{expect(transportLineSchema.parse({name:"  Makati to NAIA  ",price:"1850",note:"6:00 AM"})).toMatchObject({name:"Makati to NAIA",price:1850,note:"6:00 AM"});expect(transportLineSchema.safeParse({name:"",price:10}).success).toBe(false);expect(transportLineSchema.safeParse({name:"X",price:0}).success).toBe(false);expect(transportLineSchema.safeParse({name:"X",price:-1}).success).toBe(false)});
+  it("caps a booking at twelve transport lines",()=>{const lines=Array.from({length:13},(_,i)=>({name:`Ride ${i}`,price:100}));expect(transportLinesSchema.safeParse(lines).success).toBe(false);expect(transportLinesSchema.safeParse(lines.slice(0,12)).success).toBe(true);expect(transportLinesSchema.parse(undefined)).toEqual([])});
+  it("sums centavo-safe without rounding drift",()=>{expect(transportTotal(null)).toBe(0);expect(transportTotal([{name:"a",price:0.1},{name:"b",price:0.2}])).toBeCloseTo(0.3,10);expect(transportTotal([{name:"a",price:1850},{name:"b",price:900.5}])).toBe(2750.5)});
 });

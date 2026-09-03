@@ -5,8 +5,9 @@ export type Resource = "reservations" | "rooms" | "guests" | "guest_requests" | 
 // Accounting workspaces. Deliberately not Resources: the generic /api/resources CRUD surface must
 // never reach financial ledger tables, which are only mutated through the accounting RPCs.
 export type AccountingSection = "transactions" | "folios" | "cash_shifts" | "reconciliation" | "documents";
-export type ManagerSection = "approvals";
-
+// Manager-only workspaces beyond the generic resource CRUD surface (approvals) and
+// catalog maintenance that self-fetches /api/catalog/* (room_types; transport_services added with F3).
+export type ManagerSection = "approvals" | "room_types" | "transport_services";
 export interface RecordItem { id: string; [key: string]: string | number | boolean | null | undefined; }
 export interface AccountingMetrics { grossCollected: number; refundsIssued: number; netRevenue: number; outstandingBalance: number; folioCredit: number; pendingVerification: number; pendingRefunds: number; failedRefunds: number; openCashShifts: number; unreconciledShifts: number; cashVariance: number; openReconciliationVariance: number }
 export interface DashboardData {

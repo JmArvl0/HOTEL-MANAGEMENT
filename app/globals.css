@@ -134,3 +134,19 @@ html{scroll-padding-top:86px}
 .haven-boot-hiding{animation: haven-boot-out 340ms ease forwards}
 @keyframes haven-boot-out{to{opacity:0; transform: translateY(4px)}}
 @media (prefers-reduced-motion: reduce){.haven-boot-hiding{animation:none; opacity:0}}
+
+/* Room catalog panel — manager/owner/admin photo + room-type editor */
+.spin{animation: spin 900ms linear infinite}
+@keyframes spin{to{transform: rotate(360deg)}}
+.muted{color: var(--muted, #8a8a85); font-size: 12px}
+.form-row{display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px}
+.catalog-thumb{width: 56px; height: 42px; object-fit: cover; border-radius: 6px; display:block}
+.catalog-thumb.empty{border: 1px dashed var(--line, #d8d6ce); display:flex; align-items:center; justify-content:center; color:#b0ada2}
+.photo-manager{display:flex; flex-wrap:wrap; gap:8px; margin: 8px 0}
+.photo-tile{position:relative; width:96px; height:72px; border-radius:8px; overflow:hidden; border:1px solid var(--line, #d8d6ce)}
+.photo-tile img{width:100%; height:100%; object-fit:cover; display:block}
+.photo-tile-actions{position:absolute; inset:auto 0 0 0; display:flex; gap:2px; justify-content:center; padding:3px; background:linear-gradient(transparent, rgba(0,0,0,.55))}
+.photo-tile-actions .table-action{background:rgba(255,255,255,.92); color:#222; border-radius:4px; padding:1px 5px; font-size:11px; line-height:1.4}
+.photo-tile-actions .table-action:hover{background:#fff}
+.photo-tools{display:flex; gap:8px; flex-wrap:wrap}
+.checkbox-option + .form-field-wrapper{margin-top:4px}

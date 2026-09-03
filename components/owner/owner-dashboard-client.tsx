@@ -2,16 +2,18 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
-import { Activity, BarChart3, BedDouble, Building2, ChevronDown, CircleDollarSign, ClipboardCheck, FileText, KeyRound, LogOut, Settings, ShieldCheck, Sparkles, Users } from "lucide-react";
+import { Activity, BarChart3, BedDouble, Building2, CarTaxiFront, ChevronDown, CircleDollarSign, ClipboardCheck, FileText, Image, KeyRound, LogOut, Settings, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import RoomCatalogPanel from "@/components/catalog/room-catalog-panel";
+import TransportServicesPanel from "@/components/catalog/transport-services-panel";
 
-type Section = "overview" | "operations" | "financial" | "departments" | "admins" | "roles" | "policy" | "exceptions" | "audit" | "security" | "reports";
+type Section = "overview" | "operations" | "financial" | "departments" | "admins" | "roles" | "policy" | "exceptions" | "audit" | "security" | "reports" | "room_types" | "transport_services";
 type User = { id: string; name?: string | null; email?: string | null; role: "owner" };
 type Row = Record<string, unknown>;
 type ExecutiveData = { timeZone: string; today: string; metrics: Record<string, number>; financial: Record<string, number>; trend: Row[]; roleCounts: Record<string, number>; departmentSummary: Record<string, Record<string, number>>; risks: Record<string, Row[]>; recentAudit: Row[] };
 
 const nav: [Section, string, React.ElementType][] = [
-  ["overview", "Executive Overview", BarChart3], ["operations", "Executive Operations", BedDouble], ["financial", "Financial Overview", CircleDollarSign], ["departments", "Departments", Building2], ["admins", "Admin Governance", Users], ["roles", "Roles & Permissions", ShieldCheck], ["policy", "Critical Policies", Settings], ["exceptions", "Owner Exceptions", ClipboardCheck], ["audit", "System Audit", FileText], ["security", "Security Events", KeyRound], ["reports", "Executive Reports", Activity]
+  ["overview", "Executive Overview", BarChart3], ["operations", "Executive Operations", BedDouble], ["financial", "Financial Overview", CircleDollarSign], ["departments", "Departments", Building2], ["admins", "Admin Governance", Users], ["roles", "Roles & Permissions", ShieldCheck], ["policy", "Critical Policies", Settings], ["exceptions", "Owner Exceptions", ClipboardCheck], ["room_types", "Room Types & Photos", Image], ["transport_services", "Transport Services", CarTaxiFront], ["audit", "System Audit", FileText], ["security", "Security Events", KeyRound], ["reports", "Executive Reports", Activity]
 ];
 const label = (value: unknown) => String(value ?? "—").replaceAll("_", " ");
 const money = (value: unknown) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(Number(value || 0));
@@ -26,6 +28,7 @@ export default function OwnerDashboardClient({ user }: { user: User }) {
   const [menu, setMenu] = useState(false);
   const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 3500); };
   const load = useCallback(async () => {
+    if (section === "room_types" || section === "transport_services") { setLoading(false); return; }
     setLoading(true);
     const response = await fetch(`/api/owner/data?section=${section}`, { cache: "no-store" });
     const body = await response.json();
@@ -78,7 +81,7 @@ export default function OwnerDashboardClient({ user }: { user: User }) {
       <div className="sidebar-bottom"><button onClick={() => signOut({ callbackUrl: "/" })}><LogOut size={18}/><span className="nav-label">Sign out</span></button><div className="profile"><span>{(user.name ?? "OW").slice(0, 2).toUpperCase()}</span><div className="profile-copy"><b>{user.name}</b><small>Owner / Super Admin</small></div></div></div>
     </aside>
     <main className="workspace"><header className="app-header"><button className="menu-btn brand-menu-btn" onClick={() => setMenu(true)} aria-label="Open navigation"><span className="brand-mark"><Sparkles size={16}/></span></button><div><p>{nav.find((item) => item[0] === section)?.[1]}</p><small>Provisional Owner / Super Admin Governance Baseline</small></div><div className="header-actions"><span className="mode-pill">Supabase live</span><ThemeToggle/></div></header>
-      <div className="workspace-body">{loading ? <div className="empty"><Activity/><h3>Loading executive records…</h3></div> : section === "overview" ? <Overview data={data as ExecutiveData} setSection={setSection}/> : section === "operations" ? <Operations data={data as { metrics: Record<string, number>; departmentSummary: Record<string, Record<string, number>>; risks: Record<string, Row[]>; trend: Row[] }}/> : section === "financial" ? <Financial data={data as Row}/> : section === "departments" ? <Departments data={data as { departmentSummary: Record<string, Record<string, number>>; risks: Record<string, Row[]> }}/> : section === "admins" ? <Admins rows={rows} currentId={user.id} createAdmin={createAdmin} action={adminAction}/> : section === "roles" ? <Roles data={data as { catalogue: Record<string, string[]>; ownerPrinciples: string[] }}/> : section === "policy" ? <Policy item={data as Row} edit={editPolicy}/> : section === "exceptions" ? <Exceptions rows={rows} review={reviewException}/> : section === "audit" || section === "security" ? <Audit rows={rows} security={section === "security"}/> : <Reports data={data as ExecutiveData}/>}</div>
+      <div className="workspace-body">{section === "room_types" ? <RoomCatalogPanel/> : section === "transport_services" ? <TransportServicesPanel/> : loading ? <div className="empty"><Activity/><h3>Loading executive records…</h3></div> : section === "overview" ? <Overview data={data as ExecutiveData} setSection={setSection}/> : section === "operations" ? <Operations data={data as { metrics: Record<string, number>; departmentSummary: Record<string, Record<string, number>>; risks: Record<string, Row[]>; trend: Row[] }}/> : section === "financial" ? <Financial data={data as Row}/> : section === "departments" ? <Departments data={data as { departmentSummary: Record<string, Record<string, number>>; risks: Record<string, Row[]> }}/> : section === "admins" ? <Admins rows={rows} currentId={user.id} createAdmin={createAdmin} action={adminAction}/> : section === "roles" ? <Roles data={data as { catalogue: Record<string, string[]>; ownerPrinciples: string[] }}/> : section === "policy" ? <Policy item={data as Row} edit={editPolicy}/> : section === "exceptions" ? <Exceptions rows={rows} review={reviewException}/> : section === "audit" || section === "security" ? <Audit rows={rows} security={section === "security"}/> : <Reports data={data as ExecutiveData}/>}</div>
     </main>{toast && <div className="toast"><ShieldCheck size={18}/>{toast}</div>}
   </div>;
 }
