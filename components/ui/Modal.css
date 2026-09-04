@@ -2206,3 +2206,44 @@
     border-width: 2px !important;
   }
 }
+
+/* Phones & small tablets — dialogs become a near-fullscreen sheet with
+   dynamic-viewport height, safe-area gutters, and 16px form text so iOS
+   never auto-zooms into an input. Follows the bottom-sheet pattern already
+   established in the kit's <=480px block above. */
+@supports (padding: max(0px)) {
+  @media (max-width: 480px) {
+    .modal-backdrop {
+      align-items: flex-end;
+      padding: 0 10px calc(10px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .modal,
+    .modal-content {
+      max-height: min(92dvh, calc(100dvh - 10px));
+      border-radius: 18px 18px 0 0;
+    }
+
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+      padding-left: max(20px, env(safe-area-inset-left, 0px));
+      padding-right: max(20px, env(safe-area-inset-right, 0px));
+    }
+
+    .modal-header {
+      padding-top: max(16px, env(safe-area-inset-top, 0px));
+    }
+
+    .modal-footer {
+      padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    }
+
+    /* Keep iOS from zooming into focused fields (needs >= 16px). */
+    .modal-content input:not([type="checkbox"]):not([type="radio"]),
+    .modal-content select,
+    .modal-content textarea {
+      font-size: 16px;
+    }
+  }
+}

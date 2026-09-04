@@ -103,3 +103,77 @@ a, button, [role="button"]{ overflow-wrap: anywhere; }
     padding-right: max(var(--haven-gutter,16px), env(safe-area-inset-right));
   }
 }
+
+/* Staff dashboards — touch-friendly row actions, filters & table readability.
+   ui-ux-pro-max touch-target-size: row chips and filters were ~20px tall;
+   on phones/tablets lift them to ~40px hit areas without touching the
+   desktop density (this block is width-gated). */
+@media (max-width: 720px){
+  .app-shell .table-action{
+    min-height: 40px;
+    padding: 8px 13px;
+    font-size: 12px;
+    line-height: 1.2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  /* Photo-tile reorder arrows live on top of thumbnails — keep them compact
+     pills so a taller row of chips never covers the whole preview. */
+  .app-shell .photo-tile-actions .table-action{
+    min-height: 34px;
+    padding: 5px 10px;
+  }
+  .app-shell .reservation-filters button{
+    min-height: 40px;
+    padding: 8px 14px;
+    font-size: 11px;
+  }
+  .app-shell .reservation-filters select,
+  .app-shell .table-tools input{
+    min-height: 40px;
+    font-size: 16px; /* 16px text prevents iOS auto-zoom on focus */
+  }
+  .app-shell .table-tools label{
+    min-height: 44px;
+  }
+  .app-shell .table-scroll table{
+    font-size: 12px;
+  }
+  .app-shell .table-scroll th,
+  .app-shell .table-scroll td{
+    padding: 9px 12px;
+  }
+}
+
+/* Micro-interactions — subtle, token-free motion shared by toasts, popovers,
+   rows and buttons. Every rule below is killed by the global
+   prefers-reduced-motion switch in design-tokens.css, so nothing here can
+   regress the reduced-motion guarantee. */
+@keyframes havenPopIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.toast {
+  animation: havenPopIn 0.18s ease-out;
+}
+
+.notification-popover {
+  animation: havenPopIn 0.16s ease-out;
+  transform-origin: top right;
+}
+
+.app-shell tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.app-shell .table-action {
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.app-shell .btn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+}

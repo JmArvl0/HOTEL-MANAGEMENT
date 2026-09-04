@@ -7,10 +7,9 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { isRefundActionable } from "@/lib/accounting";
 import type { AccountingLedger } from "@/lib/accounting";
 import type { AccountingSection, DashboardData, ManagerSection, RecordItem, Resource, Role } from "@/lib/types";
-import { Modal, ConfirmDialog, PromptDialog, SelectDialog } from "@/components/ui/Modal";
-import { FormDialog, FormField, MultiStepFormDialog, RoomSelectDialog, ChecklistDialog } from "@/components/ui/FormDialog";
+import { useActionDialogs } from "@/components/ui/action-dialogs";
 import RoomCatalogPanel from "@/components/catalog/room-catalog-panel";
-import TransportServicesPanel from "@/components/catalog/transport-services-panel";
+import TransportServicesPanel from "@/components/catalog/transport-vehicle-types-panel";
 
 type ReservationDetail = { reservation: RecordItem; guest: RecordItem | null; invoice: RecordItem | null; payments: RecordItem[]; charges: RecordItem[]; adjustments: RecordItem[]; refunds: RecordItem[]; refundAttempts: RecordItem[]; documents: RecordItem[]; changeRequests: RecordItem[]; assignments: RecordItem[]; requests: RecordItem[]; room: RecordItem | null; maintenance: RecordItem[] };
 
@@ -21,7 +20,7 @@ const isAccountingSection=(value:Section):value is AccountingSection=>(accountin
 const isResourceSection = (value: Section): value is Resource => value !== "overview" && value !== "reports" && value!=="approvals" && !isAccountingSection(value);
 
 const nav: { label: string; section: Section; icon: React.ElementType; roles?: Role[] }[] = [
-  { label: "Overview", section: "overview", icon: Gauge }, { label: "Reservations", section: "reservations", icon: CalendarDays }, { label: "Rooms", section: "rooms", icon: BedDouble }, { label: "Guests", section: "guests", icon: Users }, { label: "Guest Requests", section: "guest_requests", icon: Bell }, { label: "Room Types & Photos", section: "room_types", icon: Building2, roles:["manager"] }, { label: "Transport Services", section: "transport_services", icon: CarTaxiFront, roles:["manager"] }, { label: "Approvals & Escalations", section: "approvals", icon: ClipboardCheck, roles:["manager","front_desk","housekeeping","maintenance","accounting"] }, { label: "Housekeeping", section: "housekeeping_tasks", icon: ClipboardCheck }, { label: "Maintenance", section: "maintenance_orders", icon: Wrench }, { label: "Billing", section: "invoices", icon: ReceiptText }, { label: "Transactions", section: "transactions", icon: Activity, roles: ["front_desk", "accounting"] }, { label: "Guest Folios", section: "folios", icon: FileText, roles: ["front_desk", "accounting"] }, { label: "Deposit Verification", section: "payments", icon: CircleDollarSign }, { label: "Refunds", section: "refunds", icon: CircleDollarSign, roles: ["accounting"] }, { label: "Cash & Shifts", section: "cash_shifts", icon: Wallet, roles: ["front_desk", "accounting"] }, { label: "Reconciliation", section: "reconciliation", icon: Scale, roles: ["accounting"] }, { label: "Financial Documents", section: "documents", icon: Landmark, roles: ["front_desk", "accounting"] }, { label: "Inventory", section: "inventory", icon: Boxes }, { label: "Staff", section: "staff", icon: Building2, roles: [] }, { label: "Reports", section: "reports", icon: Activity, roles: ["manager", "accounting"] }
+  { label: "Overview", section: "overview", icon: Gauge }, { label: "Reservations", section: "reservations", icon: CalendarDays }, { label: "Rooms", section: "rooms", icon: BedDouble }, { label: "Guests", section: "guests", icon: Users }, { label: "Guest Requests", section: "guest_requests", icon: Bell }, { label: "Room Types & Photos", section: "room_types", icon: Building2, roles:["manager"] }, { label: "Transfer Vehicles", section: "transport_services", icon: CarTaxiFront, roles:["manager"] }, { label: "Approvals & Escalations", section: "approvals", icon: ClipboardCheck, roles:["manager","front_desk","housekeeping","maintenance","accounting"] }, { label: "Housekeeping", section: "housekeeping_tasks", icon: ClipboardCheck }, { label: "Maintenance", section: "maintenance_orders", icon: Wrench }, { label: "Billing", section: "invoices", icon: ReceiptText }, { label: "Transactions", section: "transactions", icon: Activity, roles: ["front_desk", "accounting"] }, { label: "Guest Folios", section: "folios", icon: FileText, roles: ["front_desk", "accounting"] }, { label: "Deposit Verification", section: "payments", icon: CircleDollarSign }, { label: "Refunds", section: "refunds", icon: CircleDollarSign, roles: ["accounting"] }, { label: "Cash & Shifts", section: "cash_shifts", icon: Wallet, roles: ["front_desk", "accounting"] }, { label: "Reconciliation", section: "reconciliation", icon: Scale, roles: ["accounting"] }, { label: "Financial Documents", section: "documents", icon: Landmark, roles: ["front_desk", "accounting"] }, { label: "Inventory", section: "inventory", icon: Boxes }, { label: "Staff", section: "staff", icon: Building2, roles: [] }, { label: "Reports", section: "reports", icon: Activity, roles: ["manager", "accounting"] }
 ];
 
 const config: Record<Resource, { title: string; subtitle: string; columns: { key: string; label: string; money?: boolean }[]; fields: { key: string; label: string; type?: string; value?: string | number }[]; statuses?: string[] }> = {
@@ -52,6 +51,15 @@ const pesoExact = (value: unknown) => new Intl.NumberFormat("en-PH", { style: "c
 const label = (value: unknown) => String(value ?? " ").replaceAll("_", " ");
 const access: Record<Role, Section[]> = { owner:[], admin:[], manager:["overview","reservations","rooms","guests","guest_requests","room_types","transport_services","housekeeping_tasks","maintenance_orders","approvals","reports"], front_desk:["overview","reservations","rooms","guests","guest_requests","housekeeping_tasks","invoices","payments","transactions","folios","cash_shifts","documents","approvals"], housekeeping:["overview","rooms","guest_requests","housekeeping_tasks","inventory","approvals"], maintenance:["overview","rooms","guest_requests","maintenance_orders","inventory","approvals"], accounting:["overview","reservations","invoices","payments","refunds","inventory","reports","transactions","folios","cash_shifts","reconciliation","documents","approvals"], guest:["overview","reservations","invoices"] };
 
+// Validators + option builders shared by the in-app dialog forms. FormDialog is
+// noValidate and only validates fields that carry an explicit .validation callback,
+// so every "required" field in these forms must supply one (see FormDialog.tsx).
+const required = (message = "This field is required.") => (v: string | number | boolean) => (String(v ?? "").trim() ? null : message);
+const positive = (message = "Amount must be greater than zero.") => (v: string | number | boolean) => { const s = String(v ?? "").trim(); const n = Number(s); return s !== "" && Number.isFinite(n) && n > 0 ? null : message; };
+const nonNegative = (message = "Amount cannot be negative.") => (v: string | number | boolean) => { const s = String(v ?? "").trim(); const n = Number(s); return s !== "" && Number.isFinite(n) && n >= 0 ? null : message; };
+const dateField = (message = "Enter a valid date (YYYY-MM-DD).") => (v: string | number | boolean) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v ?? "").trim()) ? null : message);
+const options = (...values: string[]) => values.map((value) => ({ value, label: label(value) }));
+
 export default function ManagerDashboardClient({ user }: { user: User }) {
   const [section, setSection] = useState<Section>("overview");
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
@@ -67,73 +75,9 @@ export default function ManagerDashboardClient({ user }: { user: User }) {
   const [detail,setDetail]=useState<ReservationDetail|null>(null);
   const [collapsed, setCollapsed] = useState(false);
 
-  // Dialog states
-  const [roomSelectDialog, setRoomSelectDialog] = useState<{
-    isOpen: boolean;
-    item: RecordItem | null;
-    title: string;
-    message: string;
-    rooms: { number: string; type: string; id?: string }[];
-    currentRoom?: string;
-    onSelect: (room: string) => void;
-    includeUpgrades?: boolean;
-  } | null>(null);
-
-  const [confirmDialog, setConfirmDialog] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    onConfirm: () => void;
-    variant?: "default" | "danger" | "warning";
-    confirmText?: string;
-    cancelText?: string;
-  } | null>(null);
-
-  const [promptDialog, setPromptDialog] = useState<{
-    isOpen: boolean;
-    title: string;
-    message?: string;
-    label?: string;
-    placeholder?: string;
-    defaultValue?: string;
-    inputType?: "text" | "number" | "email" | "tel" | "password" | "date";
-    required?: boolean;
-    onSubmit: (value: string) => void;
-    validation?: (value: string) => string | null;
-    submitText?: string;
-    cancelText?: string;
-  } | null>(null);
-
-  const [formDialog, setFormDialog] = useState<{
-    isOpen: boolean;
-    title: string;
-    description?: string;
-    fields: FormField[];
-    onSubmit: (data: Record<string, string | number | boolean>) => void;
-    submitText?: string;
-    cancelText?: string;
-  } | null>(null);
-
-  const [multiStepDialog, setMultiStepDialog] = useState<{
-    isOpen: boolean;
-    title: string;
-    steps: { title: string; description?: string; fields: FormField[] }[];
-    onSubmit: (data: Record<string, string | number | boolean>) => void;
-    submitText?: string;
-    cancelText?: string;
-    nextText?: string;
-    backText?: string;
-  } | null>(null);
-
-  const [checklistDialog, setChecklistDialog] = useState<{
-    isOpen: boolean;
-    title: string;
-    message?: string;
-    items: { key: string; label: string }[];
-    onSubmit: (data: Record<string, boolean>) => void;
-    submitText?: string;
-    cancelText?: string;
-  } | null>(null);
+  // Promise-based dialog bridge — renders the polished in-app dialogs once, then
+  // every action below awaits a decision exactly like the old native prompt/confirm.
+  const dialogs = useActionDialogs();
   const visibleNav = nav.filter((n) => access[user.role].includes(n.section) && (!n.roles || n.roles.includes(user.role)));
   // Mirrors of lib/permissions. Purely presentational - every one of these is re-checked server-side
   // by the route guard and again by the RPC's own role gate.
@@ -148,172 +92,559 @@ export default function ManagerDashboardClient({ user }: { user: User }) {
   const filtered = useMemo(() => items.filter((item) => JSON.stringify(item).toLowerCase().includes(search.toLowerCase())), [items, search]);
   const notify = (message: string) => { setToast(message); setTimeout(() => setToast(""), 2600); };
 
-  // Dialog helper functions
-  const openRoomSelect = (item: RecordItem, title: string, message: string, includeUpgrades = false) => {
-    setRoomSelectDialog({
-      isOpen: true,
-      item,
-      title,
-      message,
-      rooms: [],
-      includeUpgrades,
-      onSelect: async (room) => {
-        setRoomSelectDialog(null);
-        // This will be handled by the calling function
-      },
-    });
-    // Load rooms and update
-    fetch(`/api/front-desk/reservations/${item.id}/eligible-rooms${includeUpgrades ? "?mode=change" : ""}`, { cache: "no-store" })
-      .then(res => res.json())
-      .then(body => {
-        if (body.data) {
-          setRoomSelectDialog(prev => prev ? {
-            ...prev,
-            rooms: body.data.map((r: RecordItem) => ({ number: String(r.number), type: String(r.type), id: String(r.id) })),
-            currentRoom: String(item.room_number ?? body.data[0]?.number),
-            onSelect: async (room) => {
-              setRoomSelectDialog(null);
-              // The calling function will handle the selected room via a callback
-            },
-          } : null);
-        }
-      });
-  };
-
-  const openConfirm = (title: string, message: string, onConfirm: () => void, variant: "default" | "danger" | "warning" = "default", confirmText = "Confirm", cancelText = "Cancel") => {
-    setConfirmDialog({ isOpen: true, title, message, onConfirm, variant, confirmText, cancelText });
-  };
-
-  const openPrompt = (title: string, message: string | undefined, label: string | undefined, placeholder: string | undefined, defaultValue: string | undefined, onSubmit: (value: string) => void, options?: {
-    inputType?: "text" | "number" | "email" | "tel" | "password" | "date";
-    required?: boolean;
-    validation?: (value: string) => string | null;
-    submitText?: string;
-    cancelText?: string;
-  }) => {
-    setPromptDialog({
-      isOpen: true,
-      title,
-      message,
-      label,
-      placeholder,
-      defaultValue,
-      inputType: options?.inputType,
-      required: options?.required,
-      onSubmit,
-      validation: options?.validation,
-      submitText: options?.submitText,
-      cancelText: options?.cancelText,
-    });
-  };
-
-  const openForm = (title: string, description: string | undefined, fields: FormField[], onSubmit: (data: Record<string, string | number | boolean>) => void, submitText = "Submit", cancelText = "Cancel") => {
-    setFormDialog({ isOpen: true, title, description, fields, onSubmit, submitText, cancelText });
-  };
-
-  const openMultiStep = (title: string, steps: { title: string; description?: string; fields: FormField[] }[], onSubmit: (data: Record<string, string | number | boolean>) => void, options?: {
-    submitText?: string;
-    cancelText?: string;
-    nextText?: string;
-    backText?: string;
-  }) => {
-    setMultiStepDialog({
-      isOpen: true,
-      title,
-      steps,
-      onSubmit,
-      submitText: options?.submitText,
-      cancelText: options?.cancelText,
-      nextText: options?.nextText,
-      backText: options?.backText,
-    });
-  };
-
-  const openChecklist = (title: string, message: string | undefined, items: { key: string; label: string }[], onSubmit: (data: Record<string, boolean>) => void, submitText = "Complete", cancelText = "Cancel") => {
-    setChecklistDialog({ isOpen: true, title, message, items, onSubmit, submitText, cancelText });
-  };
-
-  // Updated functions using dialogs
-  const chooseEligibleRoom = useCallback(async (item: RecordItem, promptText: string, includeUpgrades = false): Promise<string | null> => {
+  // Eligible-room picker shared by check-in, pre-arrival assignment, and room changes.
+  // Fetches the server's authoritative list, then asks the operator to choose through the
+  // in-app RoomSelectDialog (touch-friendly) - null means the operator cancelled.
+  async function chooseEligibleRoom(item: RecordItem, promptText: string, includeUpgrades = false): Promise<string | null> {
     const response = await fetch(`/api/front-desk/reservations/${item.id}/eligible-rooms${includeUpgrades ? "?mode=change" : ""}`, { cache: "no-store" });
     const body = await response.json();
     if (!response.ok) { notify(body.error ?? "Unable to load eligible rooms."); return null; }
     const rooms = (body.data ?? []) as RecordItem[];
     if (!rooms.length) { notify("No clean, serviceable, conflict-free room of this type is currently eligible."); return null; }
-
-    // Return a promise that resolves when user selects
-    return new Promise((resolve) => {
-      setRoomSelectDialog({
-        isOpen: true,
-        item,
-        title: "Select Room",
-        message: `${promptText}\nEligible rooms: ${rooms.map(r => `${r.number} (${r.type})`).join(", ")}`,
-        rooms: rooms.map(r => ({ number: String(r.number), type: String(r.type), id: String(r.id) })),
-        currentRoom: String(item.room_number ?? rooms[0].number),
-        includeUpgrades,
-        onSelect: (room) => resolve(room),
-      });
+    return dialogs.askRoom({
+      title: "Select Room",
+      message: `${promptText}\nEligible rooms: ${rooms.map((r) => `${r.number} (${r.type})`).join(", ")}`,
+      rooms: rooms.map((r) => ({ number: String(r.number), type: String(r.type), id: String(r.id) })),
+      currentRoom: String(item.room_number ?? rooms[0].number),
     });
-  }, [notify]);
-
-  // We'll need to refactor functions to use dialogs - for now keeping async pattern
-  // The full refactor requires converting all functions to use dialog state
-  // This is a partial implementation - the dialogs will be rendered at the bottom
-  async function checkIn(item: RecordItem) { const room=await chooseEligibleRoom(item,"Choose the physical room for check-in:");if(!room)return;const res = await fetch("/api/front-desk/check-in", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({reservationId:item.id,room}) }); const body = await res.json(); if (!res.ok) { notify(body.error ?? "Unable to complete check-in."); return; } setDetail(null);notify("Guest checked in and the active room assignment was recorded."); await load(); }
-  async function assignRoom(item:RecordItem){const room=await chooseEligibleRoom(item,"Choose a pre-arrival room assignment:");if(!room)return;const reason=window.prompt("Assignment note (optional):")??"";const res=await fetch(`/api/front-desk/reservations/${item.id}/assign`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({room,reason})});const body=await res.json();if(!res.ok){notify(body.error??"Unable to assign room.");return}notify("Room assigned with history and conflict protection.");await viewReservation(item);await load(true)}
-  async function changeRoom(item:RecordItem){const room=await chooseEligibleRoom(item,"Choose a ready replacement room (Manager-authorized upgrades are labeled):",true);if(!room)return;const reason=window.prompt("Required reason for the room change:");if(!reason)return;const res=await fetch(`/api/front-desk/reservations/${item.id}/change-room`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({room,reason})});const body=await res.json();if(!res.ok){notify(body.error??"Unable to change rooms.");return}notify("Guest transferred; the old assignment and turnover history were preserved.");await viewReservation(item);await load(true)}
-  async function extendStay(item:RecordItem){const checkOut=window.prompt("New checkout date (YYYY-MM-DD):",String(item.check_out??""));if(!checkOut||checkOut===item.check_out)return;const reason=window.prompt("Reason for the extension:");if(!reason)return;const res=await fetch(`/api/front-desk/reservations/${item.id}/extend`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({checkOut,reason,idempotencyKey:crypto.randomUUID()})});const body=await res.json();if(!res.ok){notify(body.error??"Unable to extend stay.");return}notify(`Stay extended. Additional obligation: ${peso(body.data?.additional_amount)}.`);await viewReservation(item);await load(true)}
-  async function updateGuest(item:RecordItem){const phone=window.prompt("Guest phone (leave blank to keep current):")??"";const expectedArrival=window.prompt("Expected arrival / operational arrival note:")??"";const notes=window.prompt("Operational guest notes / requests:")??"";if(!phone&&!expectedArrival&&!notes)return;const res=await fetch(`/api/front-desk/reservations/${item.id}/guest`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({phone:phone||undefined,expectedArrival:expectedArrival||undefined,notes:notes||undefined})});const body=await res.json();if(!res.ok){notify(body.error??"Unable to update guest information.");return}notify("Guest operational information updated and audited.");await viewReservation(item)}
-  async function routeRequest(item:RecordItem){const department=(window.prompt("Route to: front_desk, housekeeping, or maintenance","front_desk")??"").trim();if(!["front_desk","housekeeping","maintenance"].includes(department)){notify("Choose a valid department.");return}const description=window.prompt("Describe the guest request:");if(!description)return;const priority=(window.prompt("Priority: normal, high, or urgent","normal")??"normal").trim();if(!["normal","high","urgent"].includes(priority)){notify("Choose a valid priority.");return}const res=await fetch(`/api/front-desk/reservations/${item.id}/requests`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({department,description,priority})});const body=await res.json();if(!res.ok){notify(body.error??"Unable to route request.");return}notify(`Request routed to ${label(department)}.`);await viewReservation(item)}
-  async function verifyDeposit(item: RecordItem) { const stayPayment=item.purpose==="stay_payment";if (!window.confirm(`Verify the ${peso(item.amount)} ${stayPayment?"stay payment":"reservation deposit"} with reference ${label(item.reference)}?`)) return; const res=await fetch(stayPayment?`/api/accounting/payments/${item.id}/verify`:`/api/front-desk/deposits/${item.id}/verify`,stayPayment?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({decision:"approve"})}:{method:"POST"});const body=await res.json();if(!res.ok){notify(body.error??"Unable to verify payment.");return;}notify(stayPayment?"Stay payment verified and applied to the folio.":"Reservation deposit verified and booking confirmed.");await load(); }
+  }
+  async function checkIn(item: RecordItem) { const room = await chooseEligibleRoom(item, "Choose the physical room for check-in:"); if (!room) return; const res = await fetch("/api/front-desk/check-in", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reservationId: item.id, room }) }); const body = await res.json(); if (!res.ok) { notify(body.error ?? "Unable to complete check-in."); return; } setDetail(null); notify("Guest checked in and the active room assignment was recorded."); await load(); }
+  async function assignRoom(item: RecordItem) {
+    const room = await chooseEligibleRoom(item, "Choose a pre-arrival room assignment:");
+    if (!room) return;
+    const reason = (await dialogs.askPrompt({ title: "Assign room", message: `Pre-assign room ${room} to ${label(item.guest_name)}?`, label: "Assignment note (optional)", placeholder: "Optional note recorded in the assignment history" })) ?? "";
+    const res = await fetch(`/api/front-desk/reservations/${item.id}/assign`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ room, reason }) });
+    const body = await res.json();
+    if (!res.ok) { notify(body.error ?? "Unable to assign room."); return; }
+    notify("Room assigned with history and conflict protection.");
+    await viewReservation(item); await load(true);
+  }
+  async function changeRoom(item: RecordItem) {
+    const room = await chooseEligibleRoom(item, "Choose a ready replacement room (Manager-authorized upgrades are labeled):", true);
+    if (!room) return;
+    const reason = await dialogs.askPrompt({ title: "Change room", label: "Required reason for the room change", required: true, validation: required("A reason is required for the room change.") });
+    if (!reason) return;
+    const res = await fetch(`/api/front-desk/reservations/${item.id}/change-room`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ room, reason }) });
+    const body = await res.json();
+    if (!res.ok) { notify(body.error ?? "Unable to change rooms."); return; }
+    notify("Guest transferred; the old assignment and turnover history were preserved.");
+    await viewReservation(item); await load(true);
+  }
+  async function extendStay(item: RecordItem) {
+    const data = await dialogs.askForm({
+      title: "Extend stay",
+      description: `Extend ${label(item.guest_name)}'s checkout date. The new room obligation is quoted before saving.`,
+      fields: [
+        { key: "checkOut", label: "New checkout date", type: "date", required: true, defaultValue: String(item.check_out ?? ""), validation: dateField() },
+        { key: "reason", label: "Reason for the extension", type: "textarea", required: true, validation: required("A reason is required.") },
+      ],
+      submitText: "Extend stay",
+    });
+    if (!data) return;
+    const checkOut = String(data.checkOut);
+    if (checkOut === item.check_out) return;
+    const reason = String(data.reason);
+    const res = await fetch(`/api/front-desk/reservations/${item.id}/extend`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ checkOut, reason, idempotencyKey: crypto.randomUUID() }) });
+    const body = await res.json();
+    if (!res.ok) { notify(body.error ?? "Unable to extend stay."); return; }
+    notify(`Stay extended. Additional obligation: ${peso(body.data?.additional_amount)}.`);
+    await viewReservation(item); await load(true);
+  }
+  async function updateGuest(item: RecordItem) {
+    const data = await dialogs.askForm({
+      title: "Update guest details",
+      description: "Operational contact and stay notes for this reservation.",
+      fields: [
+        { key: "phone", label: "Guest phone (leave blank to keep current)", type: "tel", defaultValue: String(item.guest_phone ?? "") },
+        { key: "expectedArrival", label: "Expected arrival / operational arrival note", type: "text", defaultValue: String(item.expected_arrival ?? "") },
+        { key: "notes", label: "Operational guest notes / requests", type: "textarea", rows: 4, defaultValue: String(item.special_requests ?? "") },
+      ],
+      submitText: "Save details",
+    });
+    if (!data) return;
+    const phone = String(data.phone); const expectedArrival = String(data.expectedArrival); const notes = String(data.notes);
+    if (!phone && !expectedArrival && !notes) return;
+    const res = await fetch(`/api/front-desk/reservations/${item.id}/guest`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone: phone || undefined, expectedArrival: expectedArrival || undefined, notes: notes || undefined }) });
+    const body = await res.json();
+    if (!res.ok) { notify(body.error ?? "Unable to update guest information."); return; }
+    notify("Guest operational information updated and audited.");
+    await viewReservation(item);
+  }
+  async function routeRequest(item: RecordItem) {
+    const data = await dialogs.askForm({
+      title: "Route guest request",
+      description: "Log and route a guest need to the responsible hotel team.",
+      fields: [
+        { key: "department", label: "Route to", type: "select", required: true, defaultValue: "front_desk", options: options("front_desk", "housekeeping", "maintenance"), validation: required("Choose a department.") },
+        { key: "description", label: "Describe the guest request", type: "textarea", required: true, validation: required("Describe the guest request.") },
+        { key: "priority", label: "Priority", type: "select", required: true, defaultValue: "normal", options: options("normal", "high", "urgent"), validation: required("Choose a priority.") },
+      ],
+      submitText: "Route request",
+    });
+    if (!data) return;
+    const department = String(data.department); const description = String(data.description); const priority = String(data.priority);
+    const res = await fetch(`/api/front-desk/reservations/${item.id}/requests`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ department, description, priority }) });
+    const body = await res.json();
+    if (!res.ok) { notify(body.error ?? "Unable to route request."); return; }
+    notify(`Request routed to ${label(department)}.`);
+    await viewReservation(item);
+  }
+  async function verifyDeposit(item: RecordItem) {
+    const stayPayment = item.purpose === "stay_payment";
+    const ok = await dialogs.askConfirm({
+      title: stayPayment ? "Verify stay payment" : "Verify deposit",
+      message: `Verify the ${peso(item.amount)} ${stayPayment ? "stay payment" : "reservation deposit"} with reference ${label(item.reference)}?`,
+      confirmText: "Verify",
+    });
+    if (!ok) return;
+    const res = await fetch(stayPayment ? `/api/accounting/payments/${item.id}/verify` : `/api/front-desk/deposits/${item.id}/verify`, stayPayment ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision: "approve" }) } : { method: "POST" });
+    const body = await res.json();
+    if (!res.ok) { notify(body.error ?? "Unable to verify payment."); return; }
+    notify(stayPayment ? "Stay payment verified and applied to the folio." : "Reservation deposit verified and booking confirmed.");
+    await load();
+  }
   async function verifyIdentity(item:RecordItem){const res=await fetch(`/api/front-desk/reservations/${item.id}/identity`,{method:"POST"});const body=await res.json();if(!res.ok){notify(body.error??"Unable to verify identity.");return}notify("Guest identity verified.");await viewReservation(item);await load(true)}
-  async function collectPayment(item:RecordItem){const amount=Number(window.prompt("Payment amount (PHP):"));if(!Number.isFinite(amount)||amount<=0)return;const method=(window.prompt("Method: cash, card, bank_transfer, or gcash","cash")??"").trim();if(!["cash","card","bank_transfer","gcash"].includes(method)){notify("Choose a supported payment method.");return}const reference=window.prompt("Payment receipt / transaction reference:");if(!reference)return;const idempotencyKey=crypto.randomUUID();const send=async(allowOverpayment:boolean)=>{const res=await fetch(`/api/front-desk/reservations/${item.id}/payment`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({amount,method,reference,idempotencyKey,allowOverpayment})});return{res,body:await res.json()}};let{res,body}=await send(false);
+  async function collectPayment(item: RecordItem) {
+    const data = await dialogs.askForm({
+      title: "Collect payment",
+      description: "Record a payment against this guest's folio.",
+      fields: [
+        { key: "amount", label: "Payment amount (PHP)", type: "number", required: true, min: 0.01, step: 0.01, validation: positive("Enter a payment amount greater than zero.") },
+        { key: "method", label: "Method", type: "select", required: true, defaultValue: "cash", options: options("cash", "card", "bank_transfer", "gcash"), validation: required("Choose a payment method.") },
+        { key: "reference", label: "Payment receipt / transaction reference", type: "text", required: true, validation: required("Enter the payment reference.") },
+      ],
+      submitText: "Record payment",
+    });
+    if (!data) return;
+    const amount = Number(data.amount); const method = String(data.method); const reference = String(data.reference);
+    const idempotencyKey = crypto.randomUUID();
+    const send = async (allowOverpayment: boolean) => { const res = await fetch(`/api/front-desk/reservations/${item.id}/payment`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amount, method, reference, idempotencyKey, allowOverpayment }) }); return { res, body: await res.json() }; };
+    let { res, body } = await send(false);
     // The server decides whether an overpayment may be kept as folio credit; this only re-asks.
-    if(!res.ok&&financialAuthority&&String(body.error??"").includes("folio credit")&&window.confirm(`${body.error} Record the excess as a folio credit?`))({res,body}=await send(true));
-    if(!res.ok){notify(body.error??"Unable to record payment.");return}notify(Number(body.data?.folio_credit??0)>0?`Payment recorded. Folio credit: ${pesoExact(body.data.folio_credit)}.`:"Payment recorded in the folio.");await viewReservation(item);await load(true)}
-  async function postCharge(item:RecordItem){const description=window.prompt("Folio charge description:");if(!description)return;const category=(window.prompt("Category: incidental, room_service, laundry, minibar, or extension","incidental")??"").trim();if(!["incidental","room_service","laundry","minibar","extension"].includes(category)){notify("Choose a supported folio category. Folio corrections are recorded as Accounting adjustments, not charges.");return}const amount=Number(window.prompt("Charge amount (PHP):"));if(!Number.isFinite(amount)||amount<=0)return;const res=await fetch(`/api/front-desk/reservations/${item.id}/charge`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({description,category,amount,idempotencyKey:crypto.randomUUID()})});const body=await res.json();if(!res.ok){notify(body.error??"Unable to post charge.");return}notify("Charge posted to the folio.");await viewReservation(item);await load(true)}
-  async function checkOut(item:RecordItem){if(!window.confirm("Check out this guest? The room will be marked dirty and a turnover task will be created."))return;const res=await fetch(`/api/front-desk/reservations/${item.id}/checkout`,{method:"POST"});const body=await res.json();if(!res.ok){notify(body.error??"Unable to complete checkout.");return}setDetail(null);notify("Guest checked out; room turnover was created.");await load()}
+    if (!res.ok && financialAuthority && String(body.error ?? "").includes("folio credit")) {
+      const keep = await dialogs.askConfirm({ title: "Keep as folio credit?", message: `${body.error} Record the excess as a folio credit?`, confirmText: "Keep as credit" });
+      if (keep) ({ res, body } = await send(true));
+    }
+    if (!res.ok) { notify(body.error ?? "Unable to record payment."); return; }
+    notify(Number(body.data?.folio_credit ?? 0) > 0 ? `Payment recorded. Folio credit: ${pesoExact(body.data.folio_credit)}.` : "Payment recorded in the folio.");
+    await viewReservation(item); await load(true);
+  }
+  async function postCharge(item: RecordItem) {
+    const data = await dialogs.askForm({
+      title: "Post folio charge",
+      description: "Add a charge to the guest folio. Folio corrections belong to Accounting adjustments, not charges.",
+      fields: [
+        { key: "description", label: "Charge description", type: "text", required: true, validation: required("Describe the charge.") },
+        { key: "category", label: "Category", type: "select", required: true, defaultValue: "incidental", options: options("incidental", "room_service", "laundry", "minibar", "extension"), validation: required("Choose a supported folio category.") },
+        { key: "amount", label: "Charge amount (PHP)", type: "number", required: true, min: 0.01, step: 0.01, validation: positive("Enter a charge amount greater than zero.") },
+      ],
+      submitText: "Post charge",
+    });
+    if (!data) return;
+    const description = String(data.description); const category = String(data.category); const amount = Number(data.amount);
+    const res = await fetch(`/api/front-desk/reservations/${item.id}/charge`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ description, category, amount, idempotencyKey: crypto.randomUUID() }) });
+    const body = await res.json();
+    if (!res.ok) { notify(body.error ?? "Unable to post charge."); return; }
+    notify("Charge posted to the folio.");
+    await viewReservation(item); await load(true);
+  }
+  async function checkOut(item: RecordItem) {
+    const ok = await dialogs.askConfirm({ title: "Check out guest", message: "Check out this guest? The room will be marked dirty and a turnover task will be created.", confirmText: "Check out", variant: "danger" });
+    if (!ok) return;
+    const res = await fetch(`/api/front-desk/reservations/${item.id}/checkout`, { method: "POST" });
+    const body = await res.json();
+    if (!res.ok) { notify(body.error ?? "Unable to complete checkout."); return; }
+    setDetail(null); notify("Guest checked out; room turnover was created."); await load();
+  }
   const post=async(url:string,payload:unknown,method="POST")=>{const res=await fetch(url,{method,headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});return{ok:res.ok,body:await res.json()}};
-  async function processRefund(item:RecordItem){const reference=window.prompt(item.status==="failed"?"Retry this refund with a new transaction reference:":"Refund transaction reference:");if(!reference)return;const{ok,body}=await post(`/api/accounting/refunds/${item.id}/process`,{reference});if(!ok){notify(body.error??"Unable to process refund.");return}notify("Refund recorded without altering the original payment.");await load()}
-  async function failRefund(item:RecordItem){const reason=window.prompt("Why did this refund attempt fail? The request stays retryable.");if(!reason)return;const{ok,body}=await post(`/api/accounting/refunds/${item.id}/fail`,{reason});if(!ok){notify(body.error??"Unable to record this refund failure.");return}notify(`Failed attempt recorded. Attempts: ${body.data?.attempts??1}.`);await load()}
-  async function rejectDeposit(item:RecordItem){const stayPayment=item.purpose==="stay_payment";const reason=window.prompt(`Why is this ${stayPayment?"stay payment":"deposit"} being rejected? The submitted payment record is kept, never deleted.`);if(!reason)return;const{ok,body}=await post(stayPayment?`/api/accounting/payments/${item.id}/verify`:`/api/accounting/payments/${item.id}/reject`,stayPayment?{decision:"reject",reason}:{reason});if(!ok){notify(body.error??"Unable to reject this payment.");return}notify(stayPayment?"Stay payment proof rejected and preserved for audit.":"Deposit rejected. The submission was preserved and the reservation released.");await load()}
-  async function reverseCharge(item:RecordItem){const raw=window.prompt(`Reversal amount (blank reverses the whole remaining ${pesoExact(item.amount)}):`)??"";const amount=raw.trim()?Number(raw):undefined;if(amount!==undefined&&(!Number.isFinite(amount)||amount<=0)){notify("Enter a positive amount or leave it blank.");return}const reason=window.prompt("Required reason for this reversal:");if(!reason)return;const{ok,body}=await post(`/api/accounting/charges/${item.id}/reverse`,{amount,reason,idempotencyKey:crypto.randomUUID()});if(!ok){notify(body.error??"Unable to reverse this charge.");return}notify(`Charge reversed by ${pesoExact(body.data?.amount)}; the original charge was preserved.`);await load(true);if(detail)await viewReservation(detail.reservation)}
-  async function recordAdjustment(reservationId:string){const transactionType=(window.prompt("Type: adjustment, credit, or write_off","adjustment")??"").trim();if(!["adjustment","credit","write_off"].includes(transactionType)){notify("Choose adjustment, credit, or write_off.");return}const direction=transactionType==="adjustment"?(window.prompt("Direction: debit increases the folio, credit reduces it","credit")??"").trim():"credit";if(!["debit","credit"].includes(direction)){notify("Choose debit or credit.");return}const amount=Number(window.prompt("Amount (PHP):"));if(!Number.isFinite(amount)||amount<=0)return;const reason=window.prompt("Required reason for this adjustment:");if(!reason)return;const{ok,body}=await post("/api/accounting/adjustments",{reservationId,transactionType,direction,amount,reason,idempotencyKey:crypto.randomUUID()});if(!ok){notify(body.error??"Unable to record this adjustment.");return}notify(`${label(transactionType)} recorded. Folio balance: ${pesoExact(body.data?.balance)}.`);await load(true);if(detail)await viewReservation(detail.reservation)}
-  async function openCashShift(){const raw=window.prompt("Opening cash float (PHP):","0");if(raw===null)return;const openingAmount=Number(raw);if(!Number.isFinite(openingAmount)||openingAmount<0){notify("The opening float cannot be negative.");return}const location=(window.prompt("Cash point / location (optional):")??"").trim();const{ok,body}=await post("/api/accounting/cash-shifts",{openingAmount,location:location||undefined});if(!ok){notify(body.error??"Unable to open a cash shift.");return}notify("Cash shift opened.");await load(true)}
-  async function closeCashShift(item:RecordItem){const raw=window.prompt("Counted cash in the drawer (PHP):");if(raw===null)return;const actualCash=Number(raw);if(!Number.isFinite(actualCash)||actualCash<0){notify("The counted cash cannot be negative.");return}const notes=(window.prompt("Closing notes (optional):")??"").trim();const{ok,body}=await post(`/api/accounting/cash-shifts/${item.id}`,{action:"close",actualCash,notes:notes||undefined,idempotencyKey:crypto.randomUUID()},"PATCH");if(!ok){notify(body.error??"Unable to close this cash shift.");return}notify(`Shift closed. Expected ${pesoExact(body.data?.expectedCash)}, variance ${pesoExact(body.data?.variance)}.`);await load(true)}
-  async function reconcileCashShift(item:RecordItem){const notes=(window.prompt(Number(item.variance||0)!==0?`Explain the ${pesoExact(item.variance)} variance (required):`:"Reconciliation notes (optional):")??"").trim();if(Number(item.variance||0)!==0&&!notes){notify("A variance must be explained before it can be reconciled.");return}const{ok,body}=await post(`/api/accounting/cash-shifts/${item.id}`,{action:"reconcile",notes:notes||undefined},"PATCH");if(!ok){notify(body.error??"Unable to reconcile this cash shift.");return}notify("Cash shift reconciled; the variance was recorded, not corrected away.");await load(true)}
-  async function recordReconciliation(){const periodStart=(window.prompt("Period start (YYYY-MM-DD):")??"").trim();const periodEnd=(window.prompt("Period end (YYYY-MM-DD):",periodStart)??"").trim();if(!periodStart||!periodEnd)return;const method=(window.prompt("Payment method as recorded (cash, card, bank_transfer, gcash):","cash")??"").trim();if(!method)return;const raw=window.prompt("Settled amount from the external statement (PHP):");if(raw===null)return;const settledAmount=Number(raw);if(!Number.isFinite(settledAmount)||settledAmount<0){notify("Enter the settled amount from the statement.");return}const notes=(window.prompt("Variance explanation / notes:")??"").trim();const{ok,body}=await post("/api/accounting/reconciliations",{periodStart,periodEnd,method,settledAmount,notes:notes||undefined,idempotencyKey:crypto.randomUUID()});if(!ok){notify(body.error??"Unable to record this reconciliation.");return}notify(`Reconciliation ${label(body.data?.status)}: recorded ${pesoExact(body.data?.expectedAmount)} against ${pesoExact(settledAmount)}.`);await load(true)}
+  async function processRefund(item: RecordItem) {
+    const reference = await dialogs.askPrompt({ title: item.status === "failed" ? "Retry refund" : "Process refund", message: item.status === "failed" ? "This refund attempt failed. Provide a new transaction reference to retry." : "Record the refund transaction reference.", label: "Refund transaction reference", required: true, validation: required("Enter the transaction reference.") });
+    if (!reference) return;
+    const { ok, body } = await post(`/api/accounting/refunds/${item.id}/process`, { reference });
+    if (!ok) { notify(body.error ?? "Unable to process refund."); return; }
+    notify("Refund recorded without altering the original payment.");
+    await load();
+  }
+  async function failRefund(item: RecordItem) {
+    const reason = await dialogs.askPrompt({ title: "Record refund failure", message: "Why did this refund attempt fail? The request stays retryable.", label: "Reason", multiline: true, rows: 3, required: true, validation: required("Explain why the attempt failed.") });
+    if (!reason) return;
+    const { ok, body } = await post(`/api/accounting/refunds/${item.id}/fail`, { reason });
+    if (!ok) { notify(body.error ?? "Unable to record this refund failure."); return; }
+    notify(`Failed attempt recorded. Attempts: ${body.data?.attempts ?? 1}.`);
+    await load();
+  }
+  async function rejectDeposit(item: RecordItem) {
+    const stayPayment = item.purpose === "stay_payment";
+    const reason = await dialogs.askPrompt({ title: stayPayment ? "Reject stay payment" : "Reject deposit", message: `Why is this ${stayPayment ? "stay payment" : "deposit"} being rejected? The submitted payment record is kept, never deleted.`, label: "Reason", multiline: true, rows: 3, required: true, validation: required("Explain the rejection.") });
+    if (!reason) return;
+    const { ok, body } = await post(stayPayment ? `/api/accounting/payments/${item.id}/verify` : `/api/accounting/payments/${item.id}/reject`, stayPayment ? { decision: "reject", reason } : { reason });
+    if (!ok) { notify(body.error ?? "Unable to reject this payment."); return; }
+    notify(stayPayment ? "Stay payment proof rejected and preserved for audit." : "Deposit rejected. The submission was preserved and the reservation released.");
+    await load();
+  }
+  async function reverseCharge(item: RecordItem) {
+    const data = await dialogs.askForm({
+      title: "Reverse folio charge",
+      description: `The original charge stays on record; this reversal nets it out. Leaving the amount blank reverses the whole remaining ${pesoExact(item.amount)}.`,
+      fields: [
+        { key: "amount", label: "Reversal amount (PHP) - blank reverses the full amount", type: "number", min: 0.01, step: 0.01, validation: (v: string | number | boolean) => { const s = String(v ?? "").trim(); return s === "" ? null : (Number.isFinite(Number(s)) && Number(s) > 0 ? null : "Enter a positive amount or leave it blank."); } },
+        { key: "reason", label: "Required reason for this reversal", type: "textarea", required: true, validation: required("A reason is required for the reversal.") },
+      ],
+      submitText: "Reverse charge",
+    });
+    if (!data) return;
+    const amount = String(data.amount).trim() ? Number(data.amount) : undefined;
+    const reason = String(data.reason);
+    const { ok, body } = await post(`/api/accounting/charges/${item.id}/reverse`, { amount, reason, idempotencyKey: crypto.randomUUID() });
+    if (!ok) { notify(body.error ?? "Unable to reverse this charge."); return; }
+    notify(`Charge reversed by ${pesoExact(body.data?.amount)}; the original charge was preserved.`);
+    await load(true); if (detail) await viewReservation(detail.reservation);
+  }
+  async function recordAdjustment(reservationId: string) {
+    const data = await dialogs.askForm({
+      title: "Adjust folio",
+      description: "Financial corrections are recorded as new entries - nothing is overwritten.",
+      fields: [
+        { key: "transactionType", label: "Type", type: "select", required: true, defaultValue: "adjustment", options: options("adjustment", "credit", "write_off"), validation: required("Choose adjustment, credit, or write_off.") },
+        { key: "direction", label: "Direction (debit increases the folio, credit reduces it)", type: "select", required: true, defaultValue: "credit", options: options("debit", "credit"), dependsOn: "transactionType", showWhen: (v: string | number | boolean) => v === "adjustment", validation: required("Choose debit or credit.") },
+        { key: "amount", label: "Amount (PHP)", type: "number", required: true, min: 0.01, step: 0.01, validation: positive("Enter an amount greater than zero.") },
+        { key: "reason", label: "Required reason for this adjustment", type: "textarea", required: true, validation: required("A reason is required.") },
+      ],
+      submitText: "Record adjustment",
+    });
+    if (!data) return;
+    const transactionType = String(data.transactionType); const direction = String(data.direction); const amount = Number(data.amount); const reason = String(data.reason);
+    const { ok, body } = await post("/api/accounting/adjustments", { reservationId, transactionType, direction, amount, reason, idempotencyKey: crypto.randomUUID() });
+    if (!ok) { notify(body.error ?? "Unable to record this adjustment."); return; }
+    notify(`${label(transactionType)} recorded. Folio balance: ${pesoExact(body.data?.balance)}.`);
+    await load(true); if (detail) await viewReservation(detail.reservation);
+  }
+  async function openCashShift() {
+    const data = await dialogs.askForm({
+      title: "Open cash shift",
+      fields: [
+        { key: "openingAmount", label: "Opening cash float (PHP)", type: "number", required: true, defaultValue: 0, min: 0, step: 0.01, validation: nonNegative("The opening float cannot be negative.") },
+        { key: "location", label: "Cash point / location (optional)", type: "text" },
+      ],
+      submitText: "Open shift",
+    });
+    if (!data) return;
+    const openingAmount = Number(data.openingAmount); const location = String(data.location).trim();
+    const { ok, body } = await post("/api/accounting/cash-shifts", { openingAmount, location: location || undefined });
+    if (!ok) { notify(body.error ?? "Unable to open a cash shift."); return; }
+    notify("Cash shift opened.");
+    await load(true);
+  }
+  async function closeCashShift(item: RecordItem) {
+    const data = await dialogs.askForm({
+      title: "Close & count cash shift",
+      description: "Count the cash in the drawer. Expected cash is recomputed from the shift's own recorded payments.",
+      fields: [
+        { key: "actualCash", label: "Counted cash in the drawer (PHP)", type: "number", required: true, min: 0, step: 0.01, validation: nonNegative("The counted cash cannot be negative.") },
+        { key: "notes", label: "Closing notes (optional)", type: "textarea", rows: 3 },
+      ],
+      submitText: "Close & count",
+    });
+    if (!data) return;
+    const actualCash = Number(data.actualCash); const notes = String(data.notes).trim();
+    const { ok, body } = await post(`/api/accounting/cash-shifts/${item.id}`, { action: "close", actualCash, notes: notes || undefined, idempotencyKey: crypto.randomUUID() }, "PATCH");
+    if (!ok) { notify(body.error ?? "Unable to close this cash shift."); return; }
+    notify(`Shift closed. Expected ${pesoExact(body.data?.expectedCash)}, variance ${pesoExact(body.data?.variance)}.`);
+    await load(true);
+  }
+  async function reconcileCashShift(item: RecordItem) {
+    const hasVariance = Number(item.variance || 0) !== 0;
+    const notes = (await dialogs.askPrompt({
+      title: "Reconcile cash shift",
+      message: hasVariance ? `Explain the ${pesoExact(item.variance)} variance (required):` : "Reconciliation notes (optional):",
+      label: "Notes",
+      multiline: true,
+      rows: 3,
+      required: hasVariance,
+      validation: hasVariance ? required("A variance must be explained before it can be reconciled.") : undefined,
+    })) ?? "";
+    if (hasVariance && !notes.trim()) return;
+    const { ok, body } = await post(`/api/accounting/cash-shifts/${item.id}`, { action: "reconcile", notes: notes.trim() || undefined }, "PATCH");
+    if (!ok) { notify(body.error ?? "Unable to reconcile this cash shift."); return; }
+    notify("Cash shift reconciled; the variance was recorded, not corrected away.");
+    await load(true);
+  }
+  async function recordReconciliation() {
+    const data = await dialogs.askForm({
+      title: "Record reconciliation",
+      description: "Compare recorded collections against an external statement figure. Variance is recorded - never used to edit a guest payment.",
+      fields: [
+        { key: "periodStart", label: "Period start (YYYY-MM-DD)", type: "date", required: true, validation: dateField() },
+        { key: "periodEnd", label: "Period end (YYYY-MM-DD)", type: "date", required: true, validation: dateField() },
+        { key: "method", label: "Payment method as recorded", type: "select", required: true, defaultValue: "cash", options: options("cash", "card", "bank_transfer", "gcash"), validation: required("Choose the payment method.") },
+        { key: "settledAmount", label: "Settled amount from the external statement (PHP)", type: "number", required: true, min: 0, step: 0.01, validation: nonNegative("Enter the settled amount from the statement.") },
+        { key: "notes", label: "Variance explanation / notes", type: "textarea", rows: 3 },
+      ],
+      submitText: "Record reconciliation",
+    });
+    if (!data) return;
+    const periodStart = String(data.periodStart); const periodEnd = String(data.periodEnd); const method = String(data.method); const settledAmount = Number(data.settledAmount); const notes = String(data.notes).trim();
+    const { ok, body } = await post("/api/accounting/reconciliations", { periodStart, periodEnd, method, settledAmount, notes: notes || undefined, idempotencyKey: crypto.randomUUID() });
+    if (!ok) { notify(body.error ?? "Unable to record this reconciliation."); return; }
+    notify(`Reconciliation ${label(body.data?.status)}: recorded ${pesoExact(body.data?.expectedAmount)} against ${pesoExact(settledAmount)}.`);
+    await load(true);
+  }
   async function generateDocument(payload:{documentType:"receipt";paymentId:string}|{documentType:"folio";reservationId:string}){const{ok,body}=await post("/api/accounting/documents",{...payload,idempotencyKey:crypto.randomUUID()});if(!ok){notify(body.error??"Unable to generate this document.");return}notify(`${payload.documentType==="receipt"?"Receipt":"Folio statement"} ${label(body.data?.documentNumber)} issued.`);await load(true)}
-  async function requestManagerApproval(item:RecordItem){const type=(window.prompt("Exception type: room_upgrade, reservation_modification, early_check_in, late_checkout, guest_compensation, refund_exception, checkout_exception")??"").trim();if(!["room_upgrade","reservation_modification","early_check_in","late_checkout","guest_compensation","refund_exception","checkout_exception"].includes(type)){notify("Choose a supported Manager exception type.");return}const reason=window.prompt("Why is management authorization required?");if(!reason)return;const requestedAction:Record<string,string|number|boolean|null>={};if(type==="room_upgrade"){const roomType=window.prompt("Requested upgrade room type:");if(!roomType)return;requestedAction.requestedRoomType=roomType;requestedAction.priceDifference=Number(window.prompt("Pricing difference (PHP):","0")||0);requestedAction.waived=window.confirm("Is the pricing difference requested as complimentary / waived?")}if(type==="reservation_modification"){const checkIn=window.prompt("Requested check-in (YYYY-MM-DD):",String(item.check_in??""));const checkOut=window.prompt("Requested check-out (YYYY-MM-DD):",String(item.check_out??""));if(!checkIn||!checkOut)return;requestedAction.checkIn=checkIn;requestedAction.checkOut=checkOut;requestedAction.roomType=window.prompt("Requested room type:",String(item.room_type??""))||String(item.room_type??"")}if(type==="early_check_in")requestedAction.requestedTime=window.prompt("Requested early check-in time:","12:00")||"12:00";if(type==="late_checkout"){const until=window.prompt("Requested checkout timestamp (ISO format):");if(!until)return;requestedAction.requestedUntil=until}if(["guest_compensation","refund_exception"].includes(type)){const amount=Number(window.prompt("Requested financial value (PHP):","0"));if(!Number.isFinite(amount)||amount<0)return;requestedAction.amount=amount}if(type==="checkout_exception")requestedAction.arrangement=window.prompt("Requested financial treatment / arrangement:")||"Accounting review required";const{ok,body}=await post("/api/manager/approvals",{type,relatedEntityType:"reservation",relatedEntityId:item.id,reservationId:item.id,department:"front_desk",severity:["refund_exception","checkout_exception"].includes(type)?"high":"normal",reason,requestedAction});if(!ok){notify(body.error??"Unable to request Manager approval.");return}notify("Manager exception requested; the responsible department will execute after review.");if(section==="approvals")await load(true)}
-  async function escalateGuestRequest(item:RecordItem){const reason=window.prompt("Escalation reason:");if(!reason)return;const severity=(window.prompt("Severity: normal, high, or critical","high")??"").trim();if(!["normal","high","critical"].includes(severity)){notify("Choose a valid severity.");return}const{ok,body}=await post("/api/manager/approvals",{type:"guest_escalation",relatedEntityType:"guest_request",relatedEntityId:item.id,reservationId:item.reservation_id||null,guestRequestId:item.id,department:String(item.department||"front_desk"),severity,reason,requestedAction:{requestedResolution:"Manager coordination"}});if(!ok){notify(body.error??"Unable to escalate this request.");return}notify("Guest issue escalated to Manager.");await load(true)}
-  async function reviewManagerApproval(item:RecordItem,decision:"approve"|"reject"){const reason=window.prompt(`${decision==="approve"?"Approval":"Rejection"} reason:`);if(!reason)return;const{ok,body}=await post(`/api/manager/approvals/${item.id}/review`,{decision,reason,version:item.version});if(!ok){notify(body.error??"Unable to review this request.");return}notify(`Request ${decision==="approve"?"approved":"rejected"}; ${body.data?.executionStatus==="awaiting_execution"?"the responsible department must now execute it.":"the decision was recorded."}`);await load(true)}
-  async function escalateOwner(item:RecordItem){const reason=window.prompt("Why does this high-risk exception exceed Manager authority?");if(!reason)return;const{ok,body}=await post(`/api/manager/approvals/${item.id}/escalate-owner`,{reason,version:item.version});if(!ok){notify(body.error??"Unable to escalate this exception to Owner.");return}notify("Exception escalated to Owner. Owner authorization will not execute the department action.");await load(true)}
-  async function executeManagerApproval(item:RecordItem){const room=item.request_type==="room_upgrade"?window.prompt("Select the currently eligible replacement room number or ID:"):null;if(item.request_type==="room_upgrade"&&!room)return;const{ok,body}=await post(`/api/manager/approvals/${item.id}/execute`,{room});if(!ok){notify(body.error??"Unable to execute this approved exception.");return}notify(`${label(body.data?.requestType)} executed by Front Desk after revalidation.`);await load(true)}
-  async function executeManagerFinancialApproval(item:RecordItem){if(!window.confirm("Apply this approved service-recovery credit to the guest folio?"))return;const{ok,body}=await post(`/api/manager/approvals/${item.id}/financial-execute`,{});if(!ok){notify(body.error??"Unable to execute this approved financial exception.");return}notify(`Service-recovery credit applied by Accounting. Folio balance: ${pesoExact(body.data?.folioBalance)}.`);await load(true)}
-  async function coordinateHousekeeping(item:RecordItem){const priority=(window.prompt("Priority: normal, high, or urgent","high")??"").trim();const reason=window.prompt("Coordination reason:");if(!reason)return;const{ok,body}=await post(`/api/manager/housekeeping/${item.id}/prioritize`,{priority,reason});if(!ok){notify(body.error??"Unable to reprioritize this task.");return}notify("Housekeeping priority updated; Housekeeping remains responsible for completion.");await load(true)}
-  async function coordinateMaintenance(item:RecordItem){const priority=(window.prompt("Escalation priority: high or urgent","urgent")??"").trim();const reason=window.prompt("Escalation reason:");if(!reason)return;const{ok,body}=await post(`/api/manager/maintenance/${item.id}/escalate`,{priority,reason});if(!ok){notify(body.error??"Unable to escalate this work order.");return}notify("Maintenance issue escalated; Maintenance remains responsible for repair completion.");await load(true)}
-  async function createMaintenance(){const roomId=window.prompt("Room number or room ID (leave blank for a facility/equipment issue):")??"";const description=window.prompt("Describe the maintenance issue:");if(!description)return;const category=window.prompt("Category:","General")??"General";const priority=(window.prompt("Priority: low, normal, high, urgent, or critical","normal")??"").trim();if(!["low","normal","high","urgent","critical"].includes(priority)){notify("Choose a valid priority.");return}const{ok,body}=await post("/api/maintenance/orders",{roomId:roomId||null,targetType:roomId?"room":"facility",targetLabel:roomId||"Hotel facility",description,category,priority,idempotencyKey:crypto.randomUUID()});if(!ok){notify(body.error??"Unable to create the work order.");return}notify(`Work order ${body.data?.id??""} created for Maintenance assessment.`);await load(true)}
-  async function operateMaintenance(item:RecordItem,action:"assign"|"start"|"diagnose"|"defer"|"progress"|"resolve"|"close"|"cancel"){
-    let payload:Record<string,unknown>={};
-    if(action==="diagnose"){const diagnosis=window.prompt("Technical diagnosis:");if(!diagnosis)return;const severity=(window.prompt("Severity: low, normal, high, or critical","normal")??"").trim();const serviceabilityImpact=(window.prompt("Technical serviceability: serviceable, blocked, or out_of_service","serviceable")??"").trim();if(!["low","normal","high","critical"].includes(severity)||!["serviceable","blocked","out_of_service"].includes(serviceabilityImpact)){notify("Enter a valid severity and serviceability decision.");return}const serviceabilityReason=serviceabilityImpact==="serviceable"?(window.prompt("Serviceability note (optional):")??""):window.prompt("Why must this room or asset be blocked?");if(serviceabilityImpact!=="serviceable"&&!serviceabilityReason)return;const partsStatus=(window.prompt("Parts status: none, required, ordered, or available","none")??"").trim();if(!["none","required","ordered","available"].includes(partsStatus)){notify("Choose a valid parts status.");return}payload={diagnosis,severity,serviceabilityImpact,serviceabilityReason,partsRequired:partsStatus!=="none",partsStatus,externalServiceRequired:window.confirm("Is an external service provider required?")}}
-    if(action==="defer"){const status=(window.prompt("Deferred state: waiting_parts or deferred","waiting_parts")??"").trim();const reason=window.prompt("Reason and next action:");const partsStatus=(window.prompt("Parts status: none, required, ordered, or available","ordered")??"").trim();if(!reason||!["waiting_parts","deferred"].includes(status)||!["none","required","ordered","available"].includes(partsStatus)){notify("Enter a valid deferred state, reason, and parts status.");return}payload={status,reason,partsStatus}}
-    if(action==="progress"){const note=window.prompt("Progress update:");if(!note)return;const partsStatus=(window.prompt("Parts status: none, required, ordered, or available",String(item.parts_status??"none"))??"").trim();if(!["none","required","ordered","available"].includes(partsStatus)){notify("Choose a valid parts status.");return}payload={note,partsStatus}}
-    if(action==="resolve"){const resolution=window.prompt("Repair resolution and verification:");if(!resolution)return;payload={resolution,cleanupRequired:window.confirm("Does Housekeeping need to clean after this repair?")}}
-    if(action==="cancel"){const reason=window.prompt("Cancellation reason:");if(!reason)return;payload={reason}}
-    const{ok,body}=await post(`/api/maintenance/orders/${item.id}/${action}`,payload);if(!ok){notify(body.error??`Unable to ${action} this work order.`);return}notify(`Maintenance ${action} action recorded.`);await load(true)
+  async function requestManagerApproval(item: RecordItem) {
+    const data = await dialogs.askForm({
+      title: "Request Manager exception",
+      description: "Management authorization for an exception to current operations or policy. The responsible department executes only after review.",
+      fields: [
+        { key: "type", label: "Exception type", type: "select", required: true, options: options("room_upgrade", "reservation_modification", "early_check_in", "late_checkout", "guest_compensation", "refund_exception", "checkout_exception"), validation: required("Choose a supported Manager exception type.") },
+        { key: "reason", label: "Why is management authorization required?", type: "textarea", required: true, validation: required("Explain why management authorization is required.") },
+        { key: "requestedRoomType", label: "Requested upgrade room type", type: "text", dependsOn: "type", showWhen: (v: string | number | boolean) => v === "room_upgrade", required: true, validation: required("Enter the requested upgrade room type.") },
+        { key: "priceDifference", label: "Pricing difference (PHP)", type: "number", defaultValue: 0, min: 0, step: 0.01, dependsOn: "type", showWhen: (v: string | number | boolean) => v === "room_upgrade", validation: nonNegative("The pricing difference cannot be negative.") },
+        { key: "waived", label: "Pricing difference is requested as complimentary / waived", type: "checkbox", defaultValue: false, dependsOn: "type", showWhen: (v: string | number | boolean) => v === "room_upgrade" },
+        { key: "checkIn", label: "Requested check-in (YYYY-MM-DD)", type: "date", defaultValue: String(item.check_in ?? ""), dependsOn: "type", showWhen: (v: string | number | boolean) => v === "reservation_modification", required: true, validation: dateField() },
+        { key: "checkOut", label: "Requested check-out (YYYY-MM-DD)", type: "date", defaultValue: String(item.check_out ?? ""), dependsOn: "type", showWhen: (v: string | number | boolean) => v === "reservation_modification", required: true, validation: dateField() },
+        { key: "roomType", label: "Requested room type", type: "text", defaultValue: String(item.room_type ?? ""), dependsOn: "type", showWhen: (v: string | number | boolean) => v === "reservation_modification" },
+        { key: "requestedTime", label: "Requested early check-in time", type: "text", defaultValue: "12:00", dependsOn: "type", showWhen: (v: string | number | boolean) => v === "early_check_in", required: true, validation: required("Enter the requested time.") },
+        { key: "requestedUntil", label: "Requested checkout timestamp (ISO format)", type: "text", placeholder: "YYYY-MM-DDTHH:MM", dependsOn: "type", showWhen: (v: string | number | boolean) => v === "late_checkout", required: true, validation: required("Enter the requested checkout timestamp.") },
+        { key: "amount", label: "Requested financial value (PHP)", type: "number", defaultValue: 0, min: 0, step: 0.01, dependsOn: "type", showWhen: (v: string | number | boolean) => v === "guest_compensation" || v === "refund_exception", validation: nonNegative("The financial value cannot be negative.") },
+        { key: "arrangement", label: "Requested financial treatment / arrangement", type: "text", defaultValue: "Accounting review required", dependsOn: "type", showWhen: (v: string | number | boolean) => v === "checkout_exception" },
+      ],
+      submitText: "Request approval",
+    });
+    if (!data) return;
+    const type = String(data.type); const reason = String(data.reason);
+    const requestedAction: Record<string, string | number | boolean | null> = {};
+    if (type === "room_upgrade") { requestedAction.requestedRoomType = String(data.requestedRoomType); requestedAction.priceDifference = Number(data.priceDifference ?? 0); requestedAction.waived = Boolean(data.waived); }
+    if (type === "reservation_modification") { requestedAction.checkIn = String(data.checkIn); requestedAction.checkOut = String(data.checkOut); requestedAction.roomType = String(data.roomType ?? String(item.room_type ?? "")); }
+    if (type === "early_check_in") requestedAction.requestedTime = String(data.requestedTime || "12:00");
+    if (type === "late_checkout") requestedAction.requestedUntil = String(data.requestedUntil);
+    if (type === "guest_compensation" || type === "refund_exception") requestedAction.amount = Number(data.amount ?? 0);
+    if (type === "checkout_exception") requestedAction.arrangement = String(data.arrangement || "Accounting review required");
+    const { ok, body } = await post("/api/manager/approvals", { type, relatedEntityType: "reservation", relatedEntityId: item.id, reservationId: item.id, department: "front_desk", severity: ["refund_exception", "checkout_exception"].includes(type) ? "high" : "normal", reason, requestedAction });
+    if (!ok) { notify(body.error ?? "Unable to request Manager approval."); return; }
+    notify("Manager exception requested; the responsible department will execute after review.");
+    if (section === "approvals") await load(true);
+  }
+  async function escalateGuestRequest(item: RecordItem) {
+    const data = await dialogs.askForm({
+      title: "Escalate guest issue",
+      description: "Raise an unresolved guest request to the Manager for coordination.",
+      fields: [
+        { key: "reason", label: "Escalation reason", type: "textarea", required: true, validation: required("Explain the escalation.") },
+        { key: "severity", label: "Severity", type: "select", required: true, defaultValue: "high", options: options("normal", "high", "critical"), validation: required("Choose a valid severity.") },
+      ],
+      submitText: "Escalate to Manager",
+    });
+    if (!data) return;
+    const reason = String(data.reason); const severity = String(data.severity);
+    const { ok, body } = await post("/api/manager/approvals", { type: "guest_escalation", relatedEntityType: "guest_request", relatedEntityId: item.id, reservationId: item.reservation_id || null, guestRequestId: item.id, department: String(item.department || "front_desk"), severity, reason, requestedAction: { requestedResolution: "Manager coordination" } });
+    if (!ok) { notify(body.error ?? "Unable to escalate this request."); return; }
+    notify("Guest issue escalated to Manager.");
+    await load(true);
+  }
+  async function reviewManagerApproval(item: RecordItem, decision: "approve" | "reject") {
+    const reason = await dialogs.askPrompt({ title: decision === "approve" ? "Approve request" : "Reject request", message: decision === "approve" ? "Approving authorizes the responsible department to execute. It does not perform their work." : "Rejecting records the decision and keeps the request closed.", label: `${decision === "approve" ? "Approval" : "Rejection"} reason`, multiline: true, rows: 3, required: true, validation: required(`A ${decision} reason is required.`) });
+    if (!reason) return;
+    const { ok, body } = await post(`/api/manager/approvals/${item.id}/review`, { decision, reason, version: item.version });
+    if (!ok) { notify(body.error ?? "Unable to review this request."); return; }
+    notify(`Request ${decision === "approve" ? "approved" : "rejected"}; ${body.data?.executionStatus === "awaiting_execution" ? "the responsible department must now execute it." : "the decision was recorded."}`);
+    await load(true);
+  }
+  async function escalateOwner(item: RecordItem) {
+    const reason = await dialogs.askPrompt({ title: "Escalate to Owner", message: "Why does this high-risk exception exceed Manager authority?", label: "Reason", multiline: true, rows: 3, required: true, validation: required("Explain why this exceeds Manager authority.") });
+    if (!reason) return;
+    const { ok, body } = await post(`/api/manager/approvals/${item.id}/escalate-owner`, { reason, version: item.version });
+    if (!ok) { notify(body.error ?? "Unable to escalate this exception to Owner."); return; }
+    notify("Exception escalated to Owner. Owner authorization will not execute the department action.");
+    await load(true);
+  }
+  async function executeManagerApproval(item: RecordItem) {
+    const room = item.request_type === "room_upgrade" ? await dialogs.askPrompt({ title: "Execute room upgrade", message: "Select the currently eligible replacement room number or ID for the approved upgrade.", label: "Room number or ID", required: true, validation: required("Enter the replacement room number or ID.") }) : null;
+    if (item.request_type === "room_upgrade" && !room) return;
+    const { ok, body } = await post(`/api/manager/approvals/${item.id}/execute`, { room });
+    if (!ok) { notify(body.error ?? "Unable to execute this approved exception."); return; }
+    notify(`${label(body.data?.requestType)} executed by Front Desk after revalidation.`);
+    await load(true);
+  }
+  async function executeManagerFinancialApproval(item: RecordItem) {
+    const ok = await dialogs.askConfirm({ title: "Apply service-recovery credit", message: "Apply this approved service-recovery credit to the guest folio?", confirmText: "Apply credit", variant: "warning" });
+    if (!ok) return;
+    const { ok: posted, body } = await post(`/api/manager/approvals/${item.id}/financial-execute`, {});
+    if (!posted) { notify(body.error ?? "Unable to execute this approved financial exception."); return; }
+    notify(`Service-recovery credit applied by Accounting. Folio balance: ${pesoExact(body.data?.folioBalance)}.`);
+    await load(true);
+  }
+  async function coordinateHousekeeping(item: RecordItem) {
+    const data = await dialogs.askForm({
+      title: "Prioritize housekeeping task",
+      description: "Manager reprioritization. Housekeeping remains responsible for completing the task.",
+      fields: [
+        { key: "priority", label: "Priority", type: "select", required: true, defaultValue: "high", options: options("normal", "high", "urgent"), validation: required("Choose a priority.") },
+        { key: "reason", label: "Coordination reason", type: "textarea", required: true, validation: required("Explain the reason.") },
+      ],
+      submitText: "Prioritize",
+    });
+    if (!data) return;
+    const priority = String(data.priority); const reason = String(data.reason);
+    const { ok, body } = await post(`/api/manager/housekeeping/${item.id}/prioritize`, { priority, reason });
+    if (!ok) { notify(body.error ?? "Unable to reprioritize this task."); return; }
+    notify("Housekeeping priority updated; Housekeeping remains responsible for completion.");
+    await load(true);
+  }
+  async function coordinateMaintenance(item: RecordItem) {
+    const data = await dialogs.askForm({
+      title: "Escalate maintenance priority",
+      description: "Manager escalation. Maintenance remains responsible for completing the repair.",
+      fields: [
+        { key: "priority", label: "Escalation priority", type: "select", required: true, defaultValue: "urgent", options: options("high", "urgent"), validation: required("Choose an escalation priority.") },
+        { key: "reason", label: "Escalation reason", type: "textarea", required: true, validation: required("Explain the reason.") },
+      ],
+      submitText: "Escalate",
+    });
+    if (!data) return;
+    const priority = String(data.priority); const reason = String(data.reason);
+    const { ok, body } = await post(`/api/manager/maintenance/${item.id}/escalate`, { priority, reason });
+    if (!ok) { notify(body.error ?? "Unable to escalate this work order."); return; }
+    notify("Maintenance issue escalated; Maintenance remains responsible for repair completion.");
+    await load(true);
+  }
+  async function createMaintenance() {
+    const data = await dialogs.askForm({
+      title: "Report maintenance issue",
+      description: "Blank room works on the facility / equipment. Room issues are tied to the room for serviceability tracking.",
+      fields: [
+        { key: "roomId", label: "Room number or room ID (leave blank for a facility/equipment issue)", type: "text" },
+        { key: "description", label: "Describe the maintenance issue", type: "textarea", required: true, validation: required("Describe the maintenance issue.") },
+        { key: "category", label: "Category", type: "text", defaultValue: "General" },
+        { key: "priority", label: "Priority", type: "select", required: true, defaultValue: "normal", options: options("low", "normal", "high", "urgent", "critical"), validation: required("Choose a valid priority.") },
+      ],
+      submitText: "Create work order",
+    });
+    if (!data) return;
+    const roomId = String(data.roomId).trim(); const description = String(data.description); const category = String(data.category || "General"); const priority = String(data.priority);
+    const { ok, body } = await post("/api/maintenance/orders", { roomId: roomId || null, targetType: roomId ? "room" : "facility", targetLabel: roomId || "Hotel facility", description, category, priority, idempotencyKey: crypto.randomUUID() });
+    if (!ok) { notify(body.error ?? "Unable to create the work order."); return; }
+    notify(`Work order ${body.data?.id ?? ""} created for Maintenance assessment.`);
+    await load(true);
+  }
+  async function operateMaintenance(item: RecordItem, action: "assign" | "start" | "diagnose" | "defer" | "progress" | "resolve" | "close" | "cancel") {
+    let payload: Record<string, unknown> = {};
+    if (action === "diagnose") {
+      const data = await dialogs.askForm({
+        title: "Diagnose work order",
+        description: "Record the technical diagnosis and serviceability decision.",
+        fields: [
+          { key: "diagnosis", label: "Technical diagnosis", type: "textarea", required: true, validation: required("Enter the technical diagnosis.") },
+          { key: "severity", label: "Severity", type: "select", required: true, defaultValue: "normal", options: options("low", "normal", "high", "critical"), validation: required("Choose a valid severity.") },
+          { key: "serviceabilityImpact", label: "Technical serviceability", type: "select", required: true, defaultValue: "serviceable", options: options("serviceable", "blocked", "out_of_service"), validation: required("Choose a serviceability decision.") },
+          { key: "serviceabilityReason", label: "Why must this room or asset be blocked?", type: "textarea", dependsOn: "serviceabilityImpact", showWhen: (v: string | number | boolean) => v !== "serviceable", required: true, validation: required("Explain the blocked or out-of-service decision.") },
+          { key: "partsStatus", label: "Parts status", type: "select", required: true, defaultValue: "none", options: options("none", "required", "ordered", "available"), validation: required("Choose a valid parts status.") },
+          { key: "externalServiceRequired", label: "An external service provider is required", type: "checkbox", defaultValue: false },
+        ],
+        submitText: "Record diagnosis",
+      });
+      if (!data) return;
+      const partsStatus = String(data.partsStatus);
+      payload = { diagnosis: String(data.diagnosis), severity: String(data.severity), serviceabilityImpact: String(data.serviceabilityImpact), serviceabilityReason: String(data.serviceabilityReason ?? ""), partsRequired: partsStatus !== "none", partsStatus, externalServiceRequired: Boolean(data.externalServiceRequired) };
+    }
+    if (action === "defer") {
+      const data = await dialogs.askForm({
+        title: "Defer work order",
+        fields: [
+          { key: "status", label: "Deferred state", type: "select", required: true, defaultValue: "waiting_parts", options: options("waiting_parts", "deferred"), validation: required("Choose a deferred state.") },
+          { key: "reason", label: "Reason and next action", type: "textarea", required: true, validation: required("Enter a reason and next action.") },
+          { key: "partsStatus", label: "Parts status", type: "select", required: true, defaultValue: "ordered", options: options("none", "required", "ordered", "available"), validation: required("Choose a valid parts status.") },
+        ],
+        submitText: "Defer",
+      });
+      if (!data) return;
+      payload = { status: String(data.status), reason: String(data.reason), partsStatus: String(data.partsStatus) };
+    }
+    if (action === "progress") {
+      const data = await dialogs.askForm({
+        title: "Progress update",
+        fields: [
+          { key: "note", label: "Progress update", type: "textarea", required: true, validation: required("Enter a progress update.") },
+          { key: "partsStatus", label: "Parts status", type: "select", required: true, defaultValue: String(item.parts_status ?? "none"), options: options("none", "required", "ordered", "available"), validation: required("Choose a valid parts status.") },
+        ],
+        submitText: "Save progress",
+      });
+      if (!data) return;
+      payload = { note: String(data.note), partsStatus: String(data.partsStatus) };
+    }
+    if (action === "resolve") {
+      const data = await dialogs.askForm({
+        title: "Resolve work order",
+        fields: [
+          { key: "resolution", label: "Repair resolution and verification", type: "textarea", required: true, validation: required("Describe the resolution.") },
+          { key: "cleanupRequired", label: "Housekeeping needs to clean after this repair", type: "checkbox", defaultValue: false },
+        ],
+        submitText: "Resolve",
+      });
+      if (!data) return;
+      payload = { resolution: String(data.resolution), cleanupRequired: Boolean(data.cleanupRequired) };
+    }
+    if (action === "cancel") {
+      const reason = await dialogs.askPrompt({ title: "Cancel work order", label: "Cancellation reason", multiline: true, rows: 3, required: true, validation: required("Enter a cancellation reason.") });
+      if (!reason) return;
+      payload = { reason };
+    }
+    const { ok, body } = await post(`/api/maintenance/orders/${item.id}/${action}`, payload);
+    if (!ok) { notify(body.error ?? `Unable to ${action} this work order.`); return; }
+    notify(`Maintenance ${action} action recorded.`);
+    await load(true);
   }
   async function operateHousekeeping(item:RecordItem,action:"assign"|"start"|"complete"|"inspect"|"defer"|"maintenance"){
     let payload:Record<string,unknown>={};
     if(action==="assign")payload={reason:"Self-claimed from Housekeeping queue"}
-    if(action==="complete"){const notes=window.prompt("Completion notes (optional):")??"";payload={checklist:{bed_and_linen:window.confirm("Checklist: bed and linen complete?"),bathroom:window.confirm("Checklist: bathroom complete?"),amenities:window.confirm("Checklist: amenities replenished?"),safety_check:window.confirm("Checklist: final safety check complete?")},notes}}
-    if(action==="inspect"){const result=(window.prompt("Inspection result: passed or failed","passed")??"").trim();if(!["passed","failed"].includes(result)){notify("Choose passed or failed.");return}const reason=result==="failed"?window.prompt("Why did inspection fail? A reclean task will be created."):window.prompt("Inspection note (optional):");if(result==="failed"&&!reason)return;payload={result,reason:reason||undefined,idempotencyKey:crypto.randomUUID()}}
-    if(action==="defer"){const reason=window.prompt("Deferral reason (for example DND or guest refusal):");if(!reason)return;payload={reason}}
-    if(action==="maintenance"){const category=window.prompt("Maintenance category:","General");const description=window.prompt("Describe the maintenance issue:");const priority=(window.prompt("Priority: normal, high, or urgent","normal")??"").trim();if(!category||!description||!["normal","high","urgent"].includes(priority)){notify("Category, description, and a valid priority are required.");return}payload={category,description,priority,idempotencyKey:crypto.randomUUID()}}
+    if(action==="complete"){
+      const data = await dialogs.askForm({
+        title: "Complete housekeeping task",
+        description: "Confirm each checklist item before marking the room ready.",
+        fields: [
+          { key: "bed_and_linen", label: "Bed and linen complete", type: "checkbox", defaultValue: false },
+          { key: "bathroom", label: "Bathroom complete", type: "checkbox", defaultValue: false },
+          { key: "amenities", label: "Amenities replenished", type: "checkbox", defaultValue: false },
+          { key: "safety_check", label: "Final safety check complete", type: "checkbox", defaultValue: false },
+          { key: "notes", label: "Completion notes (optional)", type: "textarea" },
+        ],
+        submitText: "Complete task",
+      });
+      if (!data) return;
+      payload = { checklist: { bed_and_linen: Boolean(data.bed_and_linen), bathroom: Boolean(data.bathroom), amenities: Boolean(data.amenities), safety_check: Boolean(data.safety_check) }, notes: String(data.notes ?? "") };
+    }
+    if(action==="inspect"){
+      const data = await dialogs.askForm({
+        title: "Inspect room",
+        description: "Pass the room for release, or fail it to create a reclean task.",
+        fields: [
+          { key: "result", label: "Inspection result", type: "select", required: true, defaultValue: "passed", options: options("passed", "failed"), validation: required("Choose passed or failed.") },
+          { key: "reason", label: "Why did inspection fail? A reclean task will be created.", type: "textarea", dependsOn: "result", showWhen: (v: string | number | boolean) => v === "failed", required: true, validation: required("Enter the reason the inspection failed.") },
+        ],
+        submitText: "Record inspection",
+      });
+      if (!data) return;
+      payload = { result: String(data.result), reason: String(data.reason ?? undefined) || undefined, idempotencyKey: crypto.randomUUID() };
+    }
+    if(action==="defer"){const reason=await dialogs.askPrompt({title:"Defer housekeeping task",message:"Why is this task being deferred?",label:"Deferral reason (for example DND or guest refusal)",multiline:true,rows:3,required:true,validation:required("Enter a deferral reason.")});if(!reason)return;payload={reason}}
+    if(action==="maintenance"){
+      const data = await dialogs.askForm({
+        title: "Report maintenance issue",
+        description: "Send this to Maintenance as a work order so a technician owns the repair.",
+        fields: [
+          { key: "category", label: "Maintenance category", type: "text", required: true, defaultValue: "General", validation: required("Category is required.") },
+          { key: "description", label: "Describe the maintenance issue", type: "textarea", required: true, validation: required("Describe the maintenance issue.") },
+          { key: "priority", label: "Priority", type: "select", required: true, defaultValue: "normal", options: options("normal", "high", "urgent"), validation: required("Choose a valid priority.") },
+        ],
+        submitText: "Report issue",
+      });
+      if (!data) return;
+      payload = { category: String(data.category), description: String(data.description), priority: String(data.priority), idempotencyKey: crypto.randomUUID() };
+    }
     const{ok,body}=await post(`/api/housekeeping/tasks/${item.id}/${action}`,payload);if(!ok){notify(body.error??`Unable to ${action} this Housekeeping task.`);return}notify(action==="maintenance"?"Maintenance issue reported; Maintenance owns the repair workflow.":`Housekeeping task ${action} action recorded.`);await load(true)
   }  async function viewReservation(item:RecordItem){const res=await fetch(`/api/staff/reservations/${item.id}`,{cache:"no-store"});const body=await res.json();if(!res.ok){notify(body.error??"Unable to load reservation.");return}setDetail(body.data)}
-  async function closeReservation(status:"cancelled"|"no_show"){if(!detail)return;const reason=window.prompt(status==="cancelled"?"Enter the cancellation reason:":"Enter the no-show note:");if(!reason)return;const res=await fetch(`/api/staff/reservations/${detail.reservation.id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({status,reason})});const body=await res.json();if(!res.ok){notify(body.error??"Unable to update reservation.");return}setDetail(null);notify(status==="cancelled"?"Reservation cancelled.":"Reservation marked as no-show.");await load()}
+  async function closeReservation(status:"cancelled"|"no_show"){if(!detail)return;const reason=await dialogs.askPrompt({title:status==="cancelled"?"Cancel reservation":"Mark reservation as no-show",message:status==="cancelled"?"Provide a reason for cancelling this reservation.":"Add a note explaining the no-show.",label:status==="cancelled"?"Cancellation reason":"No-show note",multiline:true,rows:3,required:true,validation:required("Enter a reason for this change.")});if(!reason)return;const res=await fetch(`/api/staff/reservations/${detail.reservation.id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({status,reason})});const body=await res.json();if(!res.ok){notify(body.error??"Unable to update reservation.");return}setDetail(null);notify(status==="cancelled"?"Reservation cancelled.":"Reservation marked as no-show.");await load()}
   async function add(payload:Record<string,string|number>){if(!isResourceSection(section))return;const{ok,body}=await post(`/api/resources/${section}`,payload);if(!ok){notify(body.error??"Unable to create this record.");return}setModal(false);notify("Record created.");await load(true)}
-  async function advance(item:RecordItem){if(!isResourceSection(section))return;const statuses=config[section].statuses??[];const index=statuses.indexOf(String(item.status));if(index<0||index+1>=statuses.length){notify("This record is already in its final status.");return}const next=statuses[index+1];if(!window.confirm(`Move this record from ${label(item.status)} to ${label(next)}?`))return;const{ok,body}=await post(`/api/resources/${section}`,{id:item.id,status:next},"PATCH");if(!ok){notify(body.error??"Unable to update this record.");return}notify(`Record moved to ${label(next)}.`);await load(true)}
+  async function advance(item:RecordItem){if(!isResourceSection(section))return;const statuses=config[section].statuses??[];const index=statuses.indexOf(String(item.status));if(index<0||index+1>=statuses.length){notify("This record is already in its final status.");return}const next=statuses[index+1];const okToMove=await dialogs.askConfirm({title:"Advance record",message:`Move this record from ${label(item.status)} to ${label(next)}?`,confirmText:"Move",cancelText:"Keep as is"});if(!okToMove)return;const{ok,body}=await post(`/api/resources/${section}`,{id:item.id,status:next},"PATCH");if(!ok){notify(body.error??"Unable to update this record.");return}notify(`Record moved to ${label(next)}.`);await load(true)}
   return <div className={`app-shell${collapsed ? " sidebar-collapsed" : ""}`}>
     <aside className={`sidebar${menu ? " open" : ""}${collapsed ? " collapsed" : ""}`}>
       <div className="sidebar-top">
@@ -325,92 +656,14 @@ export default function ManagerDashboardClient({ user }: { user: User }) {
       <p className="nav-caption">Workspace</p>
       <nav>{visibleNav.map(({label: text,section: target,icon:Icon})=><button key={target} className={section===target?"active":""} onClick={()=>{setSection(target);setMenu(false)}} title={text}><Icon size={18}/><span className="nav-label">{text}</span>{target==="housekeeping_tasks"&&Number(dashboard?.metrics.openTasks)>0&&<i>{dashboard!.metrics.openTasks}</i>}</button>)}</nav>
       <div className="sidebar-bottom"><button title="Settings"><Settings size={18}/><span className="nav-label">Settings</span></button><button onClick={()=>signOut({callbackUrl:"/"})} title="Sign out"><LogOut size={18}/><span className="nav-label">Sign out</span></button><div className="profile" title={`${user.name}   ${label(user.role)}`}><span>{(user.name||"H").split(" ").map(x=>x[0]).join("").slice(0,2)}</span><div className="profile-copy"><b>{user.name}</b><small>{label(user.role)}</small></div></div></div>
-    </aside>    <main className="workspace"><header className="app-header"><button className="menu-btn brand-menu-btn" onClick={()=>setMenu(true)} aria-label="Open navigation" title="Open navigation"><span className="brand-mark"><Sparkles size={16}/></span></button><div><p>{section === "overview" ? "Good morning" : section === "reports" ? "Performance center" : section === "approvals" ? "Approvals & Escalations" : section === "room_types" ? "Room Types & Photos" : section === "transport_services" ? "Transport Services" : isResourceSection(section) ? config[section].title : accountingViews[section].title}</p><small>{new Intl.DateTimeFormat("en-PH",{weekday:"long",month:"long",day:"numeric",year:"numeric"}).format(new Date())}</small></div><div className="header-actions"><span className="mode-pill">{mode === "demo" ? "Demo data" : "Supabase live"}</span><ThemeToggle /><div className="notification-center"><button className="icon-button" aria-label="Notifications" aria-expanded={notificationsOpen} onClick={()=>setNotificationsOpen((value)=>!value)}><Bell size={19}/>{Boolean(dashboard?.notifications.length)&&<i/>}</button>{notificationsOpen&&<div className="notification-popover"><div><b>Operations alerts</b><small>{dashboard?.notifications.length??0} current</small></div>{dashboard?.notifications.length?dashboard.notifications.map((notice)=><button key={notice.id} onClick={()=>{setSection(notice.section);setNotificationsOpen(false)}}><strong>{notice.title}</strong><span>{notice.detail}</span></button>):<p>No new operational alerts.</p>}</div>}</div></div></header>
+    </aside>    <main className="workspace"><header className="app-header"><button className="menu-btn brand-menu-btn" onClick={()=>setMenu(true)} aria-label="Open navigation" title="Open navigation"><span className="brand-mark"><Sparkles size={16}/></span></button><div><p>{section === "overview" ? "Good morning" : section === "reports" ? "Performance center" : section === "approvals" ? "Approvals & Escalations" : section === "room_types" ? "Room Types & Photos" : section === "transport_services" ? "Transfer Vehicles" : isResourceSection(section) ? config[section].title : accountingViews[section].title}</p><small>{new Intl.DateTimeFormat("en-PH",{weekday:"long",month:"long",day:"numeric",year:"numeric"}).format(new Date())}</small></div><div className="header-actions"><span className="mode-pill">{mode === "demo" ? "Demo data" : "Supabase live"}</span><ThemeToggle /><div className="notification-center"><button className="icon-button" aria-label="Notifications" aria-expanded={notificationsOpen} onClick={()=>setNotificationsOpen((value)=>!value)}><Bell size={19}/>{Boolean(dashboard?.notifications.length)&&<i/>}</button>{notificationsOpen&&<div className="notification-popover"><div><b>Operations alerts</b><small>{dashboard?.notifications.length??0} current</small></div>{dashboard?.notifications.length?dashboard.notifications.map((notice)=><button key={notice.id} onClick={()=>{setSection(notice.section);setNotificationsOpen(false)}}><strong>{notice.title}</strong><span>{notice.detail}</span></button>):<p>No new operational alerts.</p>}</div>}</div></div></header>
       <div className="workspace-body">{section === "room_types" ? <RoomCatalogPanel/> : section === "transport_services" ? <TransportServicesPanel/> : loading ? <Loading/> : section === "overview" ? <Overview data={dashboard!} setSection={setSection} allowed={access[user.role]} role={user.role}/> : section === "reports" ? <Reports data={dashboard!} role={user.role}/> : section==="approvals"?<ManagerApprovalView items={filtered} search={search} setSearch={setSearch} review={reviewManagerApproval} execute={executeManagerApproval} financialExecute={executeManagerFinancialApproval} escalateOwner={escalateOwner} canReview={user.role==="manager"} canExecute={operational} canFinancialExecute={financialAuthority}/>:isAccountingSection(section) ? <AccountingView section={section} ledger={ledger} search={search} setSearch={setSearch} rejectDeposit={rejectDeposit} reverseCharge={reverseCharge} recordAdjustment={recordAdjustment} openCashShift={openCashShift} closeCashShift={closeCashShift} reconcileCashShift={reconcileCashShift} recordReconciliation={recordReconciliation} generateDocument={generateDocument} canVerify={cashHandling} canAdjust={financialAuthority} canReconcile={financialAuthority} canOperateShift={cashHandling} canIssueDocument={cashHandling} actorId={user.id}/> : <ResourceView resource={section} items={filtered} search={search} setSearch={setSearch} open={section==="maintenance_orders"?createMaintenance:()=>setModal(true)} advance={advance} checkIn={checkIn} verifyDeposit={verifyDeposit} rejectDeposit={rejectDeposit} viewReservation={viewReservation} processRefund={processRefund} failRefund={failRefund} canProcessRefund={financialAuthority} canVerify={cashHandling} canCheckIn={operational} requestApproval={requestManagerApproval} escalateGuestRequest={escalateGuestRequest} coordinateHousekeeping={coordinateHousekeeping} coordinateMaintenance={coordinateMaintenance} housekeepingAction={operateHousekeeping} maintenanceAction={operateMaintenance} canMaintain={user.role==="maintenance"} canAssignOthers={false} canHousekeep={user.role==="housekeeping"} canCoordinate={user.role==="manager"} canRequestApproval={user.role==="front_desk"||user.role==="housekeeping"||user.role==="maintenance"||user.role==="accounting"} canCreate={section!=="housekeeping_tasks"&&section!=="maintenance_orders"&&user.role!=="accounting"&&user.role!=="manager"&&!(user.role==="front_desk"&&["rooms","guests","housekeeping_tasks","invoices","payments"].includes(section))} canAdvance={section!=="housekeeping_tasks"&&section!=="maintenance_orders"&&user.role!=="manager"&&!(user.role==="front_desk"&&["rooms","housekeeping_tasks","invoices"].includes(section))}/>}</div>
     </main>
     {modal && isResourceSection(section) && <CreateModal resource={section} close={()=>setModal(false)} submit={add}/>}
       {detail&&<ReservationDetailModal detail={detail} close={()=>setDetail(null)} checkIn={checkIn} closeReservation={closeReservation} verifyIdentity={verifyIdentity} collectPayment={collectPayment} postCharge={postCharge} assignRoom={assignRoom} changeRoom={changeRoom} extendStay={extendStay} updateGuest={updateGuest} routeRequest={routeRequest} checkOut={checkOut} reverseCharge={reverseCharge} recordAdjustment={recordAdjustment} generateDocument={generateDocument} canFinancial={cashHandling} canManage={operational} canAdjust={financialAuthority} canIssueDocument={cashHandling}/>}
       {toast && <div className="toast"><ClipboardCheck size={18}/>{toast}</div>}
 
-      {/* Dialog System */}
-      {roomSelectDialog && (
-        <RoomSelectDialog
-          isOpen={roomSelectDialog.isOpen}
-          onClose={() => setRoomSelectDialog(null)}
-          onSelect={roomSelectDialog.onSelect}
-          title={roomSelectDialog.title}
-          message={roomSelectDialog.message}
-          rooms={roomSelectDialog.rooms}
-          currentRoom={roomSelectDialog.currentRoom}
-          loading={false}
-        />
-      )}
-      {confirmDialog && (
-        <ConfirmDialog
-          isOpen={confirmDialog.isOpen}
-          onClose={() => setConfirmDialog(null)}
-          onConfirm={confirmDialog.onConfirm}
-          title={confirmDialog.title}
-          message={confirmDialog.message}
-          confirmText={confirmDialog.confirmText}
-          cancelText={confirmDialog.cancelText}
-          variant={confirmDialog.variant}
-        />
-      )}
-      {promptDialog && (
-        <PromptDialog
-          isOpen={promptDialog.isOpen}
-          onClose={() => setPromptDialog(null)}
-          onSubmit={promptDialog.onSubmit}
-          title={promptDialog.title}
-          message={promptDialog.message}
-          label={promptDialog.label}
-          placeholder={promptDialog.placeholder}
-          defaultValue={promptDialog.defaultValue}
-          inputType={promptDialog.inputType}
-          required={promptDialog.required}
-          validation={promptDialog.validation}
-          submitText={promptDialog.submitText}
-          cancelText={promptDialog.cancelText}
-        />
-      )}
-      {formDialog && (
-        <FormDialog
-          isOpen={formDialog.isOpen}
-          onClose={() => setFormDialog(null)}
-          title={formDialog.title}
-          description={formDialog.description}
-          fields={formDialog.fields}
-          onSubmit={formDialog.onSubmit}
-          submitText={formDialog.submitText}
-          cancelText={formDialog.cancelText}
-        />
-      )}
-      {multiStepDialog && (
-        <MultiStepFormDialog
-          isOpen={multiStepDialog.isOpen}
-          onClose={() => setMultiStepDialog(null)}
-          title={multiStepDialog.title}
-          steps={multiStepDialog.steps}
-          onSubmit={multiStepDialog.onSubmit}
-          submitText={multiStepDialog.submitText}
-          cancelText={multiStepDialog.cancelText}
-          nextText={multiStepDialog.nextText}
-          backText={multiStepDialog.backText}
-        />
-      )}
-      {checklistDialog && (
-        <ChecklistDialog
-          isOpen={checklistDialog.isOpen}
-          onClose={() => setChecklistDialog(null)}
-          onSubmit={checklistDialog.onSubmit}
-          title={checklistDialog.title}
-          message={checklistDialog.message}
-          items={checklistDialog.items}
-          submitText={checklistDialog.submitText}
-          cancelText={checklistDialog.cancelText}
-        />
-      )}
+      {dialogs.view}
     </div>;
 }
 
@@ -435,7 +688,7 @@ function ResourceView({resource,items,search,setSearch,open,advance,checkIn,veri
   return <><div className="page-title module-title"><div><p className="eyebrow">Hotel operations</p><h1>{c.title}</h1><p>{c.subtitle}</p></div>{!["payments","refunds"].includes(resource)&&canCreate&&<button className="btn btn-accent" onClick={open}><Plus size={17}/> Add {c.title.split(" ")[0].toLowerCase()}</button>}</div>
   {resource==="reservations"&&<div className="reservation-filters"><div>{[["all","All"],["upcoming","Upcoming"],["arrivals","Arrivals today"],["departures","Departures today"],["in_house","In-house"],["cancelled","Cancelled"],["no_show","No-shows"]].map(([value,text])=><button key={value} className={queue===value?"active":""} onClick={()=>setQueue(value)}>{text}</button>)}</div><label>Source<select value={source} onChange={(event)=>setSource(event.target.value)}><option value="all">All sources</option>{sources.map((value)=><option value={value} key={value}>{value}</option>)}</select></label></div>}
   <div className="table-tools"><label><Search size={17}/><input placeholder={`Search ${c.title.toLowerCase()}...`} value={search} onChange={event=>setSearch(event.target.value)}/></label><button className="btn btn-soft" onClick={()=>window.print()}><Download size={16}/> Export</button></div>
-  <div className="data-panel"><div className="table-scroll"><table><thead><tr>{c.columns.map((column)=><th key={column.key}>{column.label}</th>)}{["reservations","refunds","guest_requests","housekeeping_tasks","maintenance_orders"].includes(resource)&&<th>Actions</th>}</tr></thead><tbody>{visible.map((item)=><tr key={item.id}>{c.columns.map((column)=><td key={column.key}>{column.key==="status"?(resource==="reservations"?<div className="reservation-actions"><span className={`badge ${item.status}`}>{label(item.status)}</span>{canCheckIn&&String(item.status)==="confirmed"&&<button className="table-action" onClick={()=>checkIn(item)}>Assign & check in</button>}</div>:resource==="payments"?<div className="reservation-actions"><span className={`badge ${item.status}`}>{label(item.status)}</span>{canVerify&&item.status==="pending_verification"&&<><button className="table-action" onClick={()=>verifyDeposit(item)}>Verify {item.purpose==="stay_payment"?"payment":"deposit"}</button><button className="table-action" onClick={()=>rejectDeposit(item)}>Reject</button></>}{item.status==="failed"&&item.decision_reason&&<small>{label(item.decision_reason)}</small>}</div>:canAdvance?<button className={`badge ${item.status}`} onClick={()=>advance(item)} title="Click to move to next status">{label(item.status)}</button>:<span className={`badge ${item.status}`}>{label(item.status)}</span>):column.key==="payment_status"?<span className={`badge ${item.payment_status}`}>{label(item.payment_status)}</span>:column.key==="source"?<span className={`source-badge ${String(item.source).toLowerCase()}`}>{label(item.source)}</span>:column.money?<strong>{peso(item[column.key])}</strong>:column.key==="guest_name"||column.key==="name"?<strong>{label(item[column.key])}</strong>:label(item[column.key])}</td>)}{resource==="reservations"&&<td><div className="reservation-actions"><button className="table-action view-action" onClick={()=>viewReservation(item)}>View reservation</button>{canRequestApproval&&<button className="table-action" onClick={()=>requestApproval(item)}>Request exception</button>}</div></td>}{resource==="guest_requests"&&<td>{canRequestApproval&&item.status!=="completed"&&item.escalation_status!=="escalated"?<button className="table-action" onClick={()=>escalateGuestRequest(item)}>Escalate</button>:<span className={`badge ${item.escalation_status??"none"}`}>{label(item.escalation_status??"normal")}</span>}</td>}{resource==="housekeeping_tasks"&&<td><div className="reservation-actions">{canHousekeep&&["pending","assigned","deferred"].includes(String(item.status))&&item.task_type!=="inspection"&&(!item.assigned_user_id||canAssignOthers)&&<button className="table-action" onClick={()=>housekeepingAction(item,"assign")}>{item.assigned_user_id?"Reassign":"Claim"}</button>}{canHousekeep&&["pending","assigned","deferred"].includes(String(item.status))&&item.task_type!=="inspection"&&<button className="table-action view-action" onClick={()=>housekeepingAction(item,"start")}>Start</button>}{canHousekeep&&item.status==="in_progress"&&<button className="table-action view-action" onClick={()=>housekeepingAction(item,"complete")}>Complete</button>}{canHousekeep&&item.inspection_status==="pending"&&<button className="table-action view-action" onClick={()=>housekeepingAction(item,"inspect")}>Inspect</button>}{canHousekeep&&item.status==="in_progress"&&["stayover_cleaning","guest_request"].includes(String(item.task_type))&&<button className="table-action" onClick={()=>housekeepingAction(item,"defer")}>Defer</button>}{canHousekeep&&item.status!=="cancelled"&&<button className="table-action" onClick={()=>housekeepingAction(item,"maintenance")}>Report issue</button>}{canCoordinate&&item.status!=="completed"&&<button className="table-action" onClick={()=>coordinateHousekeeping(item)}>Prioritize</button>}{!canHousekeep&&!canCoordinate&&<span>View only</span>}</div></td>}{resource==="maintenance_orders"&&<td><div className="reservation-actions">{canMaintain&&item.status==="open"&&<button className="table-action" onClick={()=>maintenanceAction(item,"assign")}>Claim / assign</button>}{canMaintain&&["assigned","waiting_parts","deferred"].includes(String(item.status))&&<button className="table-action view-action" onClick={()=>maintenanceAction(item,"start")}>Start / resume</button>}{canMaintain&&["assigned","in_progress","waiting_parts","deferred"].includes(String(item.status))&&<button className="table-action" onClick={()=>maintenanceAction(item,"diagnose")}>Diagnose</button>}{canMaintain&&item.status==="in_progress"&&<button className="table-action" onClick={()=>maintenanceAction(item,"progress")}>Progress</button>}{canMaintain&&item.status==="in_progress"&&<button className="table-action" onClick={()=>maintenanceAction(item,"defer")}>Wait / defer</button>}{canMaintain&&["in_progress","waiting_parts","deferred"].includes(String(item.status))&&<button className="table-action view-action" onClick={()=>maintenanceAction(item,"resolve")}>Resolve</button>}{canMaintain&&item.status==="resolved"&&<button className="table-action view-action" onClick={()=>maintenanceAction(item,"close")}>Close</button>}{canMaintain&&["open","assigned","waiting_parts","deferred"].includes(String(item.status))&&<button className="table-action" onClick={()=>maintenanceAction(item,"cancel")}>Cancel</button>}{canCoordinate&&!["resolved","completed","cancelled"].includes(String(item.status))&&<button className="table-action" onClick={()=>coordinateMaintenance(item)}>Escalate priority</button>}{!canMaintain&&!canCoordinate&&<span>View only</span>}</div></td>}{resource==="refunds"&&<td>{canProcessRefund&&isRefundActionable(String(item.status))?<div className="reservation-actions"><button className="table-action view-action" onClick={()=>processRefund(item)}>{item.status==="failed"?"Retry refund":"Process refund"}</button><button className="table-action" onClick={()=>failRefund(item)}>Record failure</button>{Number(item.attempts||0)>0&&<small>{item.attempts} attempt{Number(item.attempts)!==1?"s":""}{item.last_failure?` - ${label(item.last_failure)}`:""}</small>}</div>:<span>{item.status==="processed"?"Complete":"Not actionable"}</span>}</td>}</tr>)}</tbody></table></div>{visible.length===0&&<div className="empty"><Search/><h3>No records found</h3><p>No matching operational records are available.</p></div>}<div className="table-footer">Showing {visible.length} record{visible.length!==1?"s":""}<span>{resource==="payments"?"Payment verification is audited and idempotent.":resource==="reservations"?"Website and staff bookings share this live queue.":"Updates are saved to the shared hotel database."}</span></div></div></>
+  <div className="data-panel"><div className="table-scroll"><table aria-label={`${label(resource)} records`}><thead><tr>{c.columns.map((column)=><th key={column.key}>{column.label}</th>)}{["reservations","refunds","guest_requests","housekeeping_tasks","maintenance_orders"].includes(resource)&&<th>Actions</th>}</tr></thead><tbody>{visible.map((item)=><tr key={item.id}>{c.columns.map((column)=><td key={column.key}>{column.key==="status"?(resource==="reservations"?<div className="reservation-actions"><span className={`badge ${item.status}`}>{label(item.status)}</span>{canCheckIn&&String(item.status)==="confirmed"&&<button className="table-action" onClick={()=>checkIn(item)}>Assign & check in</button>}</div>:resource==="payments"?<div className="reservation-actions"><span className={`badge ${item.status}`}>{label(item.status)}</span>{canVerify&&item.status==="pending_verification"&&<><button className="table-action" onClick={()=>verifyDeposit(item)}>Verify {item.purpose==="stay_payment"?"payment":"deposit"}</button><button className="table-action" onClick={()=>rejectDeposit(item)}>Reject</button></>}{item.status==="failed"&&item.decision_reason&&<small>{label(item.decision_reason)}</small>}</div>:canAdvance?<button className={`badge ${item.status}`} onClick={()=>advance(item)} title="Click to move to next status">{label(item.status)}</button>:<span className={`badge ${item.status}`}>{label(item.status)}</span>):column.key==="payment_status"?<span className={`badge ${item.payment_status}`}>{label(item.payment_status)}</span>:column.key==="source"?<span className={`source-badge ${String(item.source).toLowerCase()}`}>{label(item.source)}</span>:column.money?<strong>{peso(item[column.key])}</strong>:column.key==="guest_name"||column.key==="name"?<strong>{label(item[column.key])}</strong>:label(item[column.key])}</td>)}{resource==="reservations"&&<td><div className="reservation-actions"><button className="table-action view-action" onClick={()=>viewReservation(item)}>View reservation</button>{canRequestApproval&&<button className="table-action" onClick={()=>requestApproval(item)}>Request exception</button>}</div></td>}{resource==="guest_requests"&&<td>{canRequestApproval&&item.status!=="completed"&&item.escalation_status!=="escalated"?<button className="table-action" onClick={()=>escalateGuestRequest(item)}>Escalate</button>:<span className={`badge ${item.escalation_status??"none"}`}>{label(item.escalation_status??"normal")}</span>}</td>}{resource==="housekeeping_tasks"&&<td><div className="reservation-actions">{canHousekeep&&["pending","assigned","deferred"].includes(String(item.status))&&item.task_type!=="inspection"&&(!item.assigned_user_id||canAssignOthers)&&<button className="table-action" onClick={()=>housekeepingAction(item,"assign")}>{item.assigned_user_id?"Reassign":"Claim"}</button>}{canHousekeep&&["pending","assigned","deferred"].includes(String(item.status))&&item.task_type!=="inspection"&&<button className="table-action view-action" onClick={()=>housekeepingAction(item,"start")}>Start</button>}{canHousekeep&&item.status==="in_progress"&&<button className="table-action view-action" onClick={()=>housekeepingAction(item,"complete")}>Complete</button>}{canHousekeep&&item.inspection_status==="pending"&&<button className="table-action view-action" onClick={()=>housekeepingAction(item,"inspect")}>Inspect</button>}{canHousekeep&&item.status==="in_progress"&&["stayover_cleaning","guest_request"].includes(String(item.task_type))&&<button className="table-action" onClick={()=>housekeepingAction(item,"defer")}>Defer</button>}{canHousekeep&&item.status!=="cancelled"&&<button className="table-action" onClick={()=>housekeepingAction(item,"maintenance")}>Report issue</button>}{canCoordinate&&item.status!=="completed"&&<button className="table-action" onClick={()=>coordinateHousekeeping(item)}>Prioritize</button>}{!canHousekeep&&!canCoordinate&&<span>View only</span>}</div></td>}{resource==="maintenance_orders"&&<td><div className="reservation-actions">{canMaintain&&item.status==="open"&&<button className="table-action" onClick={()=>maintenanceAction(item,"assign")}>Claim / assign</button>}{canMaintain&&["assigned","waiting_parts","deferred"].includes(String(item.status))&&<button className="table-action view-action" onClick={()=>maintenanceAction(item,"start")}>Start / resume</button>}{canMaintain&&["assigned","in_progress","waiting_parts","deferred"].includes(String(item.status))&&<button className="table-action" onClick={()=>maintenanceAction(item,"diagnose")}>Diagnose</button>}{canMaintain&&item.status==="in_progress"&&<button className="table-action" onClick={()=>maintenanceAction(item,"progress")}>Progress</button>}{canMaintain&&item.status==="in_progress"&&<button className="table-action" onClick={()=>maintenanceAction(item,"defer")}>Wait / defer</button>}{canMaintain&&["in_progress","waiting_parts","deferred"].includes(String(item.status))&&<button className="table-action view-action" onClick={()=>maintenanceAction(item,"resolve")}>Resolve</button>}{canMaintain&&item.status==="resolved"&&<button className="table-action view-action" onClick={()=>maintenanceAction(item,"close")}>Close</button>}{canMaintain&&["open","assigned","waiting_parts","deferred"].includes(String(item.status))&&<button className="table-action" onClick={()=>maintenanceAction(item,"cancel")}>Cancel</button>}{canCoordinate&&!["resolved","completed","cancelled"].includes(String(item.status))&&<button className="table-action" onClick={()=>coordinateMaintenance(item)}>Escalate priority</button>}{!canMaintain&&!canCoordinate&&<span>View only</span>}</div></td>}{resource==="refunds"&&<td>{canProcessRefund&&isRefundActionable(String(item.status))?<div className="reservation-actions"><button className="table-action view-action" onClick={()=>processRefund(item)}>{item.status==="failed"?"Retry refund":"Process refund"}</button><button className="table-action" onClick={()=>failRefund(item)}>Record failure</button>{Number(item.attempts||0)>0&&<small>{item.attempts} attempt{Number(item.attempts)!==1?"s":""}{item.last_failure?` - ${label(item.last_failure)}`:""}</small>}</div>:<span>{item.status==="processed"?"Complete":"Not actionable"}</span>}</td>}</tr>)}</tbody></table></div>{visible.length===0&&<div className="empty"><Search/><h3>No records found</h3><p>No matching operational records are available.</p></div>}<div className="table-footer">Showing {visible.length} record{visible.length!==1?"s":""}<span>{resource==="payments"?"Payment verification is audited and idempotent.":resource==="reservations"?"Website and staff bookings share this live queue.":"Updates are saved to the shared hotel database."}</span></div></div></>
 }
 
 function ReservationDetailModal({detail,close,checkIn,closeReservation,verifyIdentity,collectPayment,postCharge,assignRoom,changeRoom,extendStay,updateGuest,routeRequest,checkOut,reverseCharge,recordAdjustment,generateDocument,canFinancial,canManage,canAdjust,canIssueDocument}:{detail:ReservationDetail;close:()=>void;checkIn:(item:RecordItem)=>void;closeReservation:(status:"cancelled"|"no_show")=>void;verifyIdentity:(item:RecordItem)=>void;collectPayment:(item:RecordItem)=>void;postCharge:(item:RecordItem)=>void;assignRoom:(item:RecordItem)=>void;changeRoom:(item:RecordItem)=>void;extendStay:(item:RecordItem)=>void;updateGuest:(item:RecordItem)=>void;routeRequest:(item:RecordItem)=>void;checkOut:(item:RecordItem)=>void;reverseCharge:(item:RecordItem)=>void;recordAdjustment:(reservationId:string)=>void;generateDocument:(payload:{documentType:"receipt";paymentId:string}|{documentType:"folio";reservationId:string})=>void;canFinancial:boolean;canManage:boolean;canAdjust:boolean;canIssueDocument:boolean}){
@@ -460,8 +713,8 @@ function ManagerApprovalView({items,search,setSearch,review,execute,financialExe
  const visible=items.filter(item=>(status==="all"||item.status===status)&&(type==="all"||item.request_type===type)&&(severity==="all"||item.severity===severity)&&(department==="all"||item.department===department)&&JSON.stringify(item).toLowerCase().includes(search.toLowerCase()));
  return <><div className="page-title module-title"><div><p className="eyebrow">Management control</p><h1>Approvals &amp; Escalations</h1><p>Review exceptions against current operations and policy. Approval authorizes the responsible department; it does not perform their work.</p></div></div>
  <div className="reservation-filters"><div>{["pending","approved","rejected","all"].map(value=><button key={value} className={status===value?"active":""} onClick={()=>setStatus(value)}>{label(value)}</button>)}</div><label>Type<select value={type} onChange={event=>setType(event.target.value)}><option value="all">All types</option>{types.map(value=><option key={value} value={value}>{label(value)}</option>)}</select></label><label>Department<select value={department} onChange={event=>setDepartment(event.target.value)}><option value="all">All departments</option>{departments.map(value=><option key={value} value={value}>{label(value)}</option>)}</select></label><label>Severity<select value={severity} onChange={event=>setSeverity(event.target.value)}><option value="all">All</option><option value="normal">Normal</option><option value="high">High</option><option value="critical">Critical</option></select></label></div>
- <div className="table-tools"><label><Search size={17}/><input value={search} onChange={event=>setSearch(event.target.value)} placeholder="Search reservation, guest, reason, type, or requester..."/></label><button className="btn btn-soft" onClick={()=>window.print()}><Download size={16}/> Export</button></div>
- <div className="data-panel"><div className="table-scroll"><table><thead><tr><th>Requested</th><th>Type</th><th>Reservation / guest</th><th>Department</th><th>Reason and requested action</th><th>Policy / current state</th><th>Requester</th><th>Status</th><th>Actions</th></tr></thead><tbody>{visible.map(item=><tr key={item.id}><td>{label(item.requested_at)}</td><td><strong>{label(item.request_type)}</strong><br/><span className={"badge "+item.severity}>{label(item.severity)}</span></td><td><strong>{label(item.reservation_reference||item.related_entity_id)}</strong><br/>{label(item.guest_name||"Operational issue")}<br/><small>{label(item.stay_dates||"")}</small></td><td>{label(item.department)}</td><td>{label(item.reason)}<br/><small>{label(item.requested_action_summary)}</small></td><td><small>{label(item.policy_summary)}</small></td><td>{label(item.requester_name)}</td><td><span className={"badge "+item.status}>{label(item.status)}</span><br/><small>{label(item.execution_status)}</small>{item.decision_reason&&<><br/><small>{label(item.decision_reason)}</small></>}</td><td><div className="reservation-actions">{canReview&&item.status==="pending"&&item.authority_level!=="owner"&&<><button className="table-action view-action" onClick={()=>review(item,"approve")}>Approve</button><button className="table-action" onClick={()=>review(item,"reject")}>Reject</button>{["high","critical"].includes(String(item.severity))&&<button className="table-action" onClick={()=>escalateOwner(item)}>Escalate to Owner</button>}</>}{canExecute&&item.status==="approved"&&item.execution_status==="awaiting_execution"&&["room_upgrade","reservation_modification","early_check_in","late_checkout","checkout_exception"].includes(String(item.request_type))&&<button className="table-action view-action" onClick={()=>execute(item)}>Execute as Front Desk</button>}{canFinancialExecute&&item.status==="approved"&&item.execution_status==="awaiting_execution"&&item.request_type==="guest_compensation"&&<button className="table-action view-action" onClick={()=>financialExecute(item)}>Apply as Accounting</button>}</div></td></tr>)}</tbody></table></div>{visible.length===0&&<div className="empty"><ClipboardCheck/><h3>No matching approvals</h3><p>Nothing in this queue currently requires action.</p></div>}<div className="table-footer">Showing {visible.length} request{visible.length!==1?"s":""}<span>Every decision and execution is server-authorized and audited.</span></div></div></>
+ <div className="table-tools"><label><Search size={17}/><input value={search} onChange={event=>setSearch(event.target.value)} aria-label="Search approvals" placeholder="Search reservation, guest, reason, type, or requester..."/></label><button className="btn btn-soft" onClick={()=>window.print()}><Download size={16}/> Export</button></div>
+ <div className="data-panel"><div className="table-scroll"><table aria-label="Approvals and escalations"><thead><tr><th>Requested</th><th>Type</th><th>Reservation / guest</th><th>Department</th><th>Reason and requested action</th><th>Policy / current state</th><th>Requester</th><th>Status</th><th>Actions</th></tr></thead><tbody>{visible.map(item=><tr key={item.id}><td>{label(item.requested_at)}</td><td><strong>{label(item.request_type)}</strong><br/><span className={"badge "+item.severity}>{label(item.severity)}</span></td><td><strong>{label(item.reservation_reference||item.related_entity_id)}</strong><br/>{label(item.guest_name||"Operational issue")}<br/><small>{label(item.stay_dates||"")}</small></td><td>{label(item.department)}</td><td>{label(item.reason)}<br/><small>{label(item.requested_action_summary)}</small></td><td><small>{label(item.policy_summary)}</small></td><td>{label(item.requester_name)}</td><td><span className={"badge "+item.status}>{label(item.status)}</span><br/><small>{label(item.execution_status)}</small>{item.decision_reason&&<><br/><small>{label(item.decision_reason)}</small></>}</td><td><div className="reservation-actions">{canReview&&item.status==="pending"&&item.authority_level!=="owner"&&<><button className="table-action view-action" onClick={()=>review(item,"approve")}>Approve</button><button className="table-action" onClick={()=>review(item,"reject")}>Reject</button>{["high","critical"].includes(String(item.severity))&&<button className="table-action" onClick={()=>escalateOwner(item)}>Escalate to Owner</button>}</>}{canExecute&&item.status==="approved"&&item.execution_status==="awaiting_execution"&&["room_upgrade","reservation_modification","early_check_in","late_checkout","checkout_exception"].includes(String(item.request_type))&&<button className="table-action view-action" onClick={()=>execute(item)}>Execute as Front Desk</button>}{canFinancialExecute&&item.status==="approved"&&item.execution_status==="awaiting_execution"&&item.request_type==="guest_compensation"&&<button className="table-action view-action" onClick={()=>financialExecute(item)}>Apply as Accounting</button>}</div></td></tr>)}</tbody></table></div>{visible.length===0&&<div className="empty"><ClipboardCheck/><h3>No matching approvals</h3><p>Nothing in this queue currently requires action.</p></div>}<div className="table-footer">Showing {visible.length} request{visible.length!==1?"s":""}<span>Every decision and execution is server-authorized and audited.</span></div></div></>
 }
 
 function AccountingView({section,ledger,search,setSearch,rejectDeposit,reverseCharge,recordAdjustment,openCashShift,closeCashShift,reconcileCashShift,recordReconciliation,generateDocument,canVerify,canAdjust,canReconcile,canOperateShift,canIssueDocument,actorId}:{section:AccountingSection;ledger:AccountingLedger|null;search:string;setSearch:(s:string)=>void;rejectDeposit:(x:RecordItem)=>void;reverseCharge:(x:RecordItem)=>void;recordAdjustment:(reservationId:string)=>void;openCashShift:()=>void;closeCashShift:(x:RecordItem)=>void;reconcileCashShift:(x:RecordItem)=>void;recordReconciliation:()=>void;generateDocument:(payload:{documentType:"receipt";paymentId:string}|{documentType:"folio";reservationId:string})=>void;canVerify:boolean;canAdjust:boolean;canReconcile:boolean;canOperateShift:boolean;canIssueDocument:boolean;actorId:string}){
@@ -486,10 +739,10 @@ function AccountingView({section,ledger,search,setSearch,rejectDeposit,reverseCh
   return <><div className="page-title module-title"><div><p className="eyebrow">Accounting</p><h1>{view.title}</h1><p>{view.subtitle}</p></div>{section==="cash_shifts"&&canOperateShift&&<button className="btn btn-accent" onClick={openCashShift}><Plus size={17}/> Open cash shift</button>}{section==="reconciliation"&&canReconcile&&<button className="btn btn-accent" onClick={recordReconciliation}><Plus size={17}/> Record reconciliation</button>}</div>
   <div className="metric-grid">{cards[section].map(({label:text,value,hint})=><article className="metric-card" key={text}><div><span>{text}</span><b>{value}</b><small>{hint}</small></div><i><CircleDollarSign size={21}/></i></article>)}</div>
   <div className="table-tools"><label><Search size={17}/><input placeholder={`Search ${view.title.toLowerCase()}...`} value={search} onChange={(event)=>setSearch(event.target.value)}/></label><button className="btn btn-soft" onClick={()=>window.print()}><Download size={16}/> Export</button></div>
-  <div className="data-panel"><div className="table-scroll"><table><thead><tr>{view.columns.map((column)=><th key={column.key}>{column.label}</th>)}<th>Actions</th></tr></thead><tbody>{rows.map((row)=><tr key={String(row.id)}>{view.columns.map((column)=><td key={column.key}>{column.key==="status"?<span className={`badge ${row.status}`}>{label(row.status)}</span>:column.money?<strong>{pesoExact(row[column.key])}</strong>:label(row[column.key] as string)}</td>)}<td>{actions(row)}</td></tr>)}</tbody></table></div>{rows.length===0&&<div className="empty"><Search/><h3>Nothing recorded yet</h3><p>No financial records match this workspace.</p></div>}<div className="table-footer">Showing {rows.length} record{rows.length!==1?"s":""}<span>{section==="transactions"?"Settled payments are immutable; corrections are reversals or adjustments.":section==="folios"?"Every folio figure is recomputed server-side from payments, charges and adjustments.":section==="cash_shifts"?"Expected cash is derived from the shift's own payments, never typed in.":section==="reconciliation"?"Statement figures are recorded manually - no external provider is connected.":"Documents are immutable snapshots and are never edited after issue."}</span></div></div>
-  {section==="folios"&&ledger.charges.length>0&&<article className="panel"><div className="panel-heading"><div><h3>Recent folio charges</h3><p>Posted by hotel operations; reversible by Accounting only</p></div></div><div className="table-scroll"><table><thead><tr><th>Reservation</th><th>Description</th><th>Category</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody>{ledger.charges.slice(0,40).map((charge)=><tr key={String(charge.id)}><td>{label(charge.reservation_id as string)}</td><td>{label(charge.description as string)}</td><td>{label(charge.category as string)}</td><td><strong>{pesoExact(charge.amount)}</strong></td><td><span className={`badge ${charge.status}`}>{label(charge.status)}</span></td><td>{canAdjust&&charge.status!=="reversed"&&<button className="table-action" onClick={()=>reverseCharge(charge as RecordItem)}>Reverse</button>}</td></tr>)}</tbody></table></div></article>}
-  {section==="reconciliation"&&ledger.refundAttempts.length>0&&<article className="panel"><div className="panel-heading"><div><h3>Refund settlement attempts</h3><p>No external refund provider is connected - every attempt is operator-recorded</p></div></div><div className="table-scroll"><table><thead><tr><th>Attempted</th><th>Refund</th><th>Reference</th><th>Detail</th><th>Status</th></tr></thead><tbody>{ledger.refundAttempts.slice(0,40).map((attempt)=><tr key={String(attempt.id)}><td>{label(attempt.attempted_at as string)}</td><td>{label(attempt.refund_request_id as string)}</td><td>{label(attempt.reference as string)}</td><td>{label(attempt.reason as string)}</td><td><span className={`badge ${attempt.status}`}>{label(attempt.status)}</span></td></tr>)}</tbody></table></div></article>}
-  {section==="folios"&&ledger.adjustments.length>0&&<article className="panel"><div className="panel-heading"><div><h3>Adjustments, credits and write-offs</h3><p>Financial corrections recorded as new entries - nothing is overwritten</p></div></div><div className="table-scroll"><table><thead><tr><th>Reservation</th><th>Type</th><th>Direction</th><th>Amount</th><th>Reason</th><th>Recorded</th></tr></thead><tbody>{ledger.adjustments.slice(0,40).map((adjustment)=><tr key={String(adjustment.id)}><td>{label(adjustment.reservation_id as string)}</td><td>{label(adjustment.transaction_type as string)}</td><td>{label(adjustment.direction as string)}</td><td><strong>{adjustment.direction==="credit"?"-":"+"}{pesoExact(adjustment.amount)}</strong></td><td>{label(adjustment.reason as string)}</td><td>{label(adjustment.created_at as string)}</td></tr>)}</tbody></table></div></article>}</>;
+  <div className="data-panel"><div className="table-scroll"><table aria-label="Ledger records"><thead><tr>{view.columns.map((column)=><th key={column.key}>{column.label}</th>)}<th>Actions</th></tr></thead><tbody>{rows.map((row)=><tr key={String(row.id)}>{view.columns.map((column)=><td key={column.key}>{column.key==="status"?<span className={`badge ${row.status}`}>{label(row.status)}</span>:column.money?<strong>{pesoExact(row[column.key])}</strong>:label(row[column.key] as string)}</td>)}<td>{actions(row)}</td></tr>)}</tbody></table></div>{rows.length===0&&<div className="empty"><Search/><h3>Nothing recorded yet</h3><p>No financial records match this workspace.</p></div>}<div className="table-footer">Showing {rows.length} record{rows.length!==1?"s":""}<span>{section==="transactions"?"Settled payments are immutable; corrections are reversals or adjustments.":section==="folios"?"Every folio figure is recomputed server-side from payments, charges and adjustments.":section==="cash_shifts"?"Expected cash is derived from the shift's own payments, never typed in.":section==="reconciliation"?"Statement figures are recorded manually - no external provider is connected.":"Documents are immutable snapshots and are never edited after issue."}</span></div></div>
+  {section==="folios"&&ledger.charges.length>0&&<article className="panel"><div className="panel-heading"><div><h3>Recent folio charges</h3><p>Posted by hotel operations; reversible by Accounting only</p></div></div><div className="table-scroll"><table aria-label="Recent folio charges"><thead><tr><th>Reservation</th><th>Description</th><th>Category</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody>{ledger.charges.slice(0,40).map((charge)=><tr key={String(charge.id)}><td>{label(charge.reservation_id as string)}</td><td>{label(charge.description as string)}</td><td>{label(charge.category as string)}</td><td><strong>{pesoExact(charge.amount)}</strong></td><td><span className={`badge ${charge.status}`}>{label(charge.status)}</span></td><td>{canAdjust&&charge.status!=="reversed"&&<button className="table-action" onClick={()=>reverseCharge(charge as RecordItem)}>Reverse</button>}</td></tr>)}</tbody></table></div></article>}
+  {section==="reconciliation"&&ledger.refundAttempts.length>0&&<article className="panel"><div className="panel-heading"><div><h3>Refund settlement attempts</h3><p>No external refund provider is connected - every attempt is operator-recorded</p></div></div><div className="table-scroll"><table aria-label="Recent refund attempts"><thead><tr><th>Attempted</th><th>Refund</th><th>Reference</th><th>Detail</th><th>Status</th></tr></thead><tbody>{ledger.refundAttempts.slice(0,40).map((attempt)=><tr key={String(attempt.id)}><td>{label(attempt.attempted_at as string)}</td><td>{label(attempt.refund_request_id as string)}</td><td>{label(attempt.reference as string)}</td><td>{label(attempt.reason as string)}</td><td><span className={`badge ${attempt.status}`}>{label(attempt.status)}</span></td></tr>)}</tbody></table></div></article>}
+  {section==="folios"&&ledger.adjustments.length>0&&<article className="panel"><div className="panel-heading"><div><h3>Adjustments, credits and write-offs</h3><p>Financial corrections recorded as new entries - nothing is overwritten</p></div></div><div className="table-scroll"><table aria-label="Recent folio adjustments"><thead><tr><th>Reservation</th><th>Type</th><th>Direction</th><th>Amount</th><th>Reason</th><th>Recorded</th></tr></thead><tbody>{ledger.adjustments.slice(0,40).map((adjustment)=><tr key={String(adjustment.id)}><td>{label(adjustment.reservation_id as string)}</td><td>{label(adjustment.transaction_type as string)}</td><td>{label(adjustment.direction as string)}</td><td><strong>{adjustment.direction==="credit"?"-":"+"}{pesoExact(adjustment.amount)}</strong></td><td>{label(adjustment.reason as string)}</td><td>{label(adjustment.created_at as string)}</td></tr>)}</tbody></table></div></article>}</>;
 }
 
 function CreateModal({resource,close,submit}:{resource:Resource;close:()=>void;submit:(p:Record<string,string|number>)=>void}) { const c=config[resource]; const [form,setForm]=useState<Record<string,string|number>>(()=>Object.fromEntries(c.fields.map(f=>[f.key,f.value??""]))); return <div className="modal-backdrop" onMouseDown={e=>{if(e.currentTarget===e.target)close()}}><div className="modal"><div className="modal-head"><div><p className="eyebrow">New record</p><h2>Add to {c.title.toLowerCase()}</h2></div><button onClick={close}><X/></button></div><form onSubmit={e=>{e.preventDefault();submit(form)}}><div className="form-grid">{c.fields.map(f=><label key={f.key}>{f.label}<input type={f.type||"text"} value={form[f.key]} required={!['special_requests','expected_arrival'].includes(f.key)} onChange={e=>setForm({...form,[f.key]:f.type==="number"?Number(e.target.value):e.target.value})}/></label>)}</div><div className="modal-actions"><button type="button" className="btn btn-soft" onClick={close}>Cancel</button><button className="btn btn-accent">Create record</button></div></form></div></div> }

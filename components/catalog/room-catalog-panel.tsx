@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Building2, ImagePlus, Loader2, Pencil, Plus, RefreshCw, Search, Trash2, Upload, X } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { useActionDialogs } from "@/components/ui/action-dialogs";
 import { roomPrimary } from "@/lib/room-images";
 
 type RoomType = {
@@ -39,6 +40,7 @@ function draftFrom(t: RoomType): Draft {
 }
 
 export default function RoomCatalogPanel() {
+  const dialogs = useActionDialogs();
   const [items, setItems] = useState<RoomType[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -66,14 +68,22 @@ export default function RoomCatalogPanel() {
 
   const set = <K extends keyof Draft,>(key: K, value: Draft[K]) => setDraft((prev) => (prev ? { ...prev, [key]: value } : prev));
 
-  const addUrl = () => {
+  const addUrl = async () => {
     if (!draft) return;
     const raw = draft.photoUrls;
-    const url = (prompt("Paste an image URL (JPEG, PNG, or WebP):") ?? "").trim();
-    if (!url) return;
-    try { new URL(url); } catch { notify("That is not a valid image URL."); return; }
     if (raw.length >= 24) { notify("A room type can hold up to 24 photos."); return; }
-    set("photoUrls", [...raw, url]);
+    const url = await dialogs.askPrompt({
+      title: "Add photo URL",
+      message: "Paste an image URL to add it to the photo gallery.",
+      label: "Image URL",
+      placeholder: "https://example.com/room-photo.jpg",
+      inputType: "text",
+      required: true,
+      validation: (value) => { const s = String(value ?? "").trim(); if (!s) return "Paste an image URL."; try { new URL(s); return null; } catch { return "That is not a valid image URL."; } },
+    });
+    const trimmed = (url ?? "").trim();
+    if (!trimmed) return;
+    set("photoUrls", [...raw, trimmed]);
   };
 
   const onPickFile = async (file: File | undefined) => {
@@ -131,7 +141,7 @@ export default function RoomCatalogPanel() {
         </button>
       </div>
       <div className="table-tools">
-        <label><Search size={17}/><input placeholder="Search room types..." value={search} onChange={(e) => setSearch(e.target.value)} /></label>
+        <label><Search size={17}/><input aria-label="Search room types" placeholder="Search room types..." value={search} onChange={(e) => setSearch(e.target.value)} /></label>
       </div>
       {loading ? (
         <div className="empty"><Loader2 className="spin"/><h3>Loading room catalog…</h3></div>
@@ -140,7 +150,7 @@ export default function RoomCatalogPanel() {
       ) : (
         <div className="data-panel">
           <div className="table-scroll">
-            <table>
+            <table aria-label="Room types catalog">
               <thead><tr>{["", "Room type", "Guests", "Beds", "Rate", "Status", "Version", ""].map((x) => <th key={x}>{x}</th>)}</tr></thead>
               <tbody>
                 {visible.map((item) => {
@@ -165,6 +175,7 @@ export default function RoomCatalogPanel() {
         </div>
       )}
       {toast && <div className="toast"><Building2 size={18}/>{toast}</div>}
+      {dialogs.view}
 
       {editing && draft && (
         <Modal isOpen onClose={closeEditor} title={`Edit ${editing.name}`} description="Changes are audited and apply to future bookings only. Room type name is fixed." size="lg">

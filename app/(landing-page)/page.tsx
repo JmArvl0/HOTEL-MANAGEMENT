@@ -345,6 +345,9 @@ export default function LandingPage() {
             <h3>Arrival assistance</h3>
             <p>Parking and airport transfer can be requested in advance and remain subject to availability. Front Desk confirms within 2 hours.</p>
           </div>
+          <a href="mailto:hello@haven-hotel.ph?subject=Arrival%20assistance%20request" className="location-arrival-link">
+            Request assistance <ArrowRight size={15} aria-hidden="true" />
+          </a>
         </div>
       </section>
 

@@ -47,15 +47,15 @@ export const searchSchema = z.object({
   if (value.checkOut <= value.checkIn) ctx.addIssue({ code: "custom", path: ["checkOut"], message: "Check-out must be after check-in." });
 });
 
-export type TransportService = { id: string; name: string; description: string | null; price: number; unit: string };
-export type TransportLine = { name: string; price: number; note?: string };
-
-export const transportLineSchema = z.object({
-  name: z.string().trim().min(1).max(120),
-  price: z.coerce.number().positive().max(10000000),
+// Transfer booked at checkout: one optional pickup->hotel ride per booking. The client only
+// submits where the ride goes and which vehicle; the server prices it (see lib/transfer.ts).
+export type TransportRideInput = { pickupAddress: string; vehicleTypeId: string; note?: string };
+export const transportRideSchema = z.object({
+  pickupAddress: z.string().trim().min(5, "Enter the pickup address.").max(200),
+  vehicleTypeId: z.string().trim().min(1).max(100),
   note: z.string().trim().max(120).optional().default(""),
 });
-export const transportLinesSchema = z.array(transportLineSchema).max(12).optional().default([]);
+export const transportLinesSchema = z.array(transportRideSchema).max(1).optional().default([]);
 
 export const guestDetailsSchema = z.object({
   roomType: z.string().min(1).max(100),
@@ -66,9 +66,9 @@ export const guestDetailsSchema = z.object({
   lastName: z.string().trim().min(1).max(80),
   email: z.string().trim().email().max(200),
   mobile: z.string().trim().min(7).max(30),
-  address: z.string().trim().max(300).optional().default(""),
+  address: z.string().trim().min(1, "Provide your home address.").max(300),
   nationality: z.string().trim().max(80).optional().default(""),
-  expectedArrival: z.string().trim().max(40).optional().default(""),
+  expectedArrival: z.string().trim().min(1, "Tell us when you expect to arrive.").max(40),
   requestOptions: z.array(z.enum(CHECKOUT_REQUEST_VALUES)).max(12).optional().default([]),
   specialRequests: z.string().trim().max(1000).optional().default(""),
   transportLines: transportLinesSchema,
@@ -233,16 +233,6 @@ export async function getAvailability(input: SearchInput, retryTransientAuth = t
 
 export async function getRoomType(name: string, search: SearchInput) {
   return (await getAvailability(search)).find((room) => room.name === name) ?? null;
-}
-
-/** Active hotel transport price list, offered at booking checkout. Server-side service-role read. */
-export async function getTransportServices(): Promise<TransportService[]> {
-  if (!supabase) return [];
-  const { data, error } = await supabase.from("transport_services")
-    .select("id,name,description,price,unit").eq("active", true)
-    .order("sort", { ascending: true }).order("name", { ascending: true });
-  if (error) throw new Error(`Transport services query failed${error.code ? ` (${error.code})` : ""}`);
-  return (data ?? []).map((row) => ({ id: String(row.id), name: String(row.name), description: row.description as string | null, price: Number(row.price), unit: String(row.unit) }));
 }
 
 /** Sums transport line prices with centavo-safe arithmetic. */
