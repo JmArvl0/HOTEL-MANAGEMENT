@@ -3,12 +3,14 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Menu, Sparkles, X } from "lucide-react";
 
-const links = [
+const drawerLinks = [
   { href: "#stay", label: "Rooms" },
   { href: "#experience", label: "Experience" },
   { href: "#amenities", label: "Amenities" },
   { href: "#gallery", label: "Gallery" },
   { href: "#about", label: "About" },
+  { href: "#faq", label: "FAQ" },
+  { href: "#book", label: "Check availability" },
 ];
 
 export function LandingNav() {
@@ -74,7 +76,7 @@ export function LandingNav() {
         </Link>
 
         <div className="nav-links">
-          {links.map((l) => (
+          {drawerLinks.slice(0, 5).map((l) => (
             <a key={l.href} href={l.href}>
               {l.label}
             </a>
@@ -118,17 +120,11 @@ export function LandingNav() {
             </button>
           </div>
           <nav className="landing-drawer-links">
-            {links.map((l) => (
-              <a key={l.href} href={l.href} onClick={() => setOpen(false)}>
+            {drawerLinks.map((l, i) => (
+              <a key={l.href} href={l.href} onClick={() => setOpen(false)} style={{ "--dr": i } as React.CSSProperties}>
                 {l.label}
               </a>
             ))}
-            <a href="#faq" onClick={() => setOpen(false)}>
-              FAQ
-            </a>
-            <a href="#book" onClick={() => setOpen(false)}>
-              Check availability
-            </a>
           </nav>
           <div className="landing-drawer-actions">
             <Link href="/login" className="btn btn-accent" onClick={() => setOpen(false)}>

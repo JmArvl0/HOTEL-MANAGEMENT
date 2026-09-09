@@ -52,10 +52,17 @@ export function setMode(next: ThemeMode, event?: { clientX?: number; clientY?: n
   root.style.setProperty("--theme-y", `${Math.round(y)}px`);
   root.style.setProperty("--theme-r", `${radius}px`);
   root.dataset.themeTransition = to === "dark" ? "expand" : "shrink";
-  doc.startViewTransition!(commit).finished.catch(() => {}).finally(() => {
-    delete root.dataset.themeTransition;
-    for (const prop of ["--theme-x", "--theme-y", "--theme-r"]) root.style.removeProperty(prop);
-  });
+  try {
+    const transition = doc.startViewTransition!(commit);
+    transition.finished.catch(() => {}).finally(() => {
+      delete root.dataset.themeTransition;
+      for (const prop of ["--theme-x", "--theme-y", "--theme-r"]) root.style.removeProperty(prop);
+    });
+  } catch {
+    // Browser refused to start the transition (document not fully active,
+    // navigation in flight, etc.) — apply the theme without animation.
+    commit();
+  }
 }
 
 export function useTheme() {

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { CalendarClock, XCircle } from "lucide-react";
 import { Modal, ConfirmDialog, PromptDialog } from "@/components/ui/Modal";
 
 export function ReservationActions({ id, status }: { id: string; status: string }) {
@@ -75,13 +76,14 @@ export function ReservationActions({ id, status }: { id: string; status: string 
 
   return (
     <div className="customer-reservation-actions">
-      <button className="btn btn-soft" disabled={busy} onClick={() => setChangeOpen(true)}>
-        Request a change
-      </button>
-      <button className="btn btn-soft danger-action" disabled={busy} onClick={() => setCancelReasonOpen(true)}>
-        Cancel reservation
-      </button>
-      {message && <p role="status">{message}</p>}
+      <div className="customer-reservation-action-buttons">
+        <button className="btn btn-accent" disabled={busy} onClick={() => setChangeOpen(true)}>
+          <CalendarClock size={16} aria-hidden="true" /> Request a change
+        </button>
+        <button className="btn btn-soft danger-action" disabled={busy} onClick={() => setCancelReasonOpen(true)}>
+          <XCircle size={16} aria-hidden="true" /> Cancel reservation
+        </button>
+      </div>      {message && <p role="status">{message}</p>}
 
       {/* Cancel Reason Prompt */}
       <PromptDialog
@@ -125,6 +127,7 @@ export function ReservationActions({ id, status }: { id: string; status: string 
         title="Request a Change"
         description="Enter the new dates or room type you're requesting. Leave blank to keep current values."
         size="sm"
+        headerVariant="branded"
         footer={
           <div className="prompt-actions">
             <button
@@ -144,7 +147,7 @@ export function ReservationActions({ id, status }: { id: string; status: string 
           </div>
         }
       >
-        <div className="change-form-fields" style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div className="change-form-fields">
           <div className="prompt-field">
             <label htmlFor="change-checkin" className="prompt-label">New Check-in (YYYY-MM-DD)</label>
             <input

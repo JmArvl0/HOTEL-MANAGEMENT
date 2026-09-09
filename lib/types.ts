@@ -7,13 +7,16 @@ export type Resource = "reservations" | "rooms" | "guests" | "guest_requests" | 
 export type AccountingSection = "transactions" | "folios" | "cash_shifts" | "reconciliation" | "documents";
 // Manager-only workspaces beyond the generic resource CRUD surface (approvals) and
 // catalog maintenance that self-fetches /api/catalog/* (room_types; transport_services added with F3).
-export type ManagerSection = "approvals" | "room_types" | "transport_services";
+// "transportation" is the standalone Transportation Service workspace (dedicated /api/transportation route).
+// "insights" = Predictive Analytics workspace; "ai" = Gemini AI assistance
+// (HAVEN AI). Both are self-fetching panels backed by /api/analytics and /api/ai.
+export type ManagerSection = "approvals" | "room_types" | "transport_services" | "transportation" | "insights" | "ai" | "staff_duty" | "request_types";
 export interface RecordItem { id: string; [key: string]: string | number | boolean | null | undefined; }
 export interface AccountingMetrics { grossCollected: number; refundsIssued: number; netRevenue: number; outstandingBalance: number; folioCredit: number; pendingVerification: number; pendingRefunds: number; failedRefunds: number; openCashShifts: number; unreconciledShifts: number; cashVariance: number; openReconciliationVariance: number }
 export interface DashboardData {
-  metrics: { occupancy: number; arrivals: number; departures: number; revenue: number; openTasks: number; availableRooms: number; onlineBookings: number; inHouse: number; unassignedArrivals: number; dirtyRooms: number; outOfServiceRooms: number; openRequests: number; balancesAttention: number; roomsCleaning:number; roomsAwaitingInspection:number; overdueHousekeeping:number; openMaintenance:number; criticalMaintenance:number; overdueRequests:number; escalatedIssues:number; pendingApprovals:number; collectionsToday:number; depositsReceived:number; refundSummary:number; outstandingBalances:number };
+  metrics: { occupancy: number; arrivals: number; departures: number; revenue: number; openTasks: number; availableRooms: number; onlineBookings: number; inHouse: number; unassignedArrivals: number; dirtyRooms: number; outOfServiceRooms: number; openRequests: number; balancesAttention: number; roomsCleaning:number; roomsAwaitingInspection:number; overdueHousekeeping:number; openMaintenance:number; criticalMaintenance:number; overdueRequests:number; escalatedIssues:number; pendingApprovals:number; collectionsToday:number; depositsReceived:number; refundSummary:number; outstandingBalances:number; cashThisShift?: number; shiftFloat?: number; shiftOpen?: boolean };
   occupancyTrend: { day: string; occupancy: number }[];
   roomMix: { name: string; value: number; color: string }[];
   recentReservations: RecordItem[];
-  notifications: { id: string; title: string; detail: string; section: Resource | AccountingSection | ManagerSection; createdAt?: string }[];
+  notifications: { id: string; title: string; detail: string; section: Resource | AccountingSection | ManagerSection | "reports"; createdAt?: string }[];
 }

@@ -35,6 +35,25 @@ export interface FormDialogProps extends Omit<ModalProps, "children" | "footer">
   validateOnChange?: boolean;
 }
 
+// Stable identity for the "no initialData" default so the reset effect's
+// deps don't churn on every render (default params are fresh objects).
+const EMPTY_VALUES: Record<string, string | number | boolean> = {};
+
+function getInitialFormValues(
+  fields: FormField[],
+  initialData: Record<string, string | number | boolean>
+): Record<string, string | number | boolean> {
+  const merged = { ...initialData };
+  fields.forEach((field) => {
+    if (field.key in merged) return;
+    merged[field.key] =
+      field.defaultValue !== undefined
+        ? field.defaultValue
+        : field.type === "checkbox" ? false : "";
+  });
+  return merged;
+}
+
 export function FormDialog({
   isOpen,
   onClose,
@@ -45,38 +64,29 @@ export function FormDialog({
   submitText = "Submit",
   cancelText = "Cancel",
   loading = false,
-  initialData = {},
+  initialData = EMPTY_VALUES,
   validateOnBlur = true,
   validateOnChange = false,
   size = "md",
+  headerVariant = "branded",
   showCloseButton = true,
   closeOnOverlayClick = true,
   closeOnEscape = true,
   className = "",
 }: FormDialogProps) {
   const formRef = useRef<HTMLFormElement>(null);
-  const [values, setValues] = useState<Record<string, string | number | boolean>>({});
+  const [values, setValues] = useState<Record<string, string | number | boolean>>(() =>
+    getInitialFormValues(fields, initialData)
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [submitted, setSubmitted] = useState(false);
   const firstErrorRef = useRef<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null>(null);
+  const prevOpenRef = useRef(false);
 
   useEffect(() => {
-    if (isOpen) {
-      const mergedValues = { ...initialData };
-      fields.forEach((field) => {
-        if (field.key in mergedValues) return;
-        if (field.defaultValue !== undefined) {
-          mergedValues[field.key] = field.defaultValue;
-        } else if (field.type === "checkbox") {
-          mergedValues[field.key] = false;
-        } else if (field.type === "number") {
-          mergedValues[field.key] = "";
-        } else {
-          mergedValues[field.key] = "";
-        }
-      });
-      setValues(mergedValues);
+    if (isOpen && !prevOpenRef.current) {
+      setValues(getInitialFormValues(fields, initialData));
       setErrors({});
       setTouched({});
       setSubmitted(false);
@@ -87,6 +97,7 @@ export function FormDialog({
         firstField?.focus();
       }, 0);
     }
+    prevOpenRef.current = isOpen;
   }, [isOpen, fields, initialData]);
 
   const validateField = useCallback(
@@ -161,6 +172,7 @@ export function FormDialog({
       title={title}
       description={description}
       size={size}
+      headerVariant={headerVariant}
       showCloseButton={showCloseButton}
       closeOnOverlayClick={closeOnOverlayClick}
       closeOnEscape={closeOnEscape}
@@ -337,42 +349,32 @@ export function MultiStepFormDialog({
   nextText = "Continue",
   backText = "Back",
   loading = false,
-  initialData = {},
+  initialData = EMPTY_VALUES,
   size = "md",
+  headerVariant = "branded",
   showCloseButton = true,
   closeOnOverlayClick = true,
   closeOnEscape = true,
   className = "",
 }: MultiStepFormDialogProps) {
   const [currentStep, setCurrentStep] = useState(0);
-  const [values, setValues] = useState<Record<string, string | number | boolean>>({});
+  const [values, setValues] = useState<Record<string, string | number | boolean>>(() =>
+    getInitialFormValues(steps.flatMap((s) => s.fields), initialData)
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [submitted, setSubmitted] = useState(false);
+  const prevOpenRef = useRef(false);
 
   useEffect(() => {
-    if (isOpen) {
-      const mergedValues = { ...initialData };
-      steps.forEach((step) => {
-        step.fields.forEach((field) => {
-          if (field.key in mergedValues) return;
-          if (field.defaultValue !== undefined) {
-            mergedValues[field.key] = field.defaultValue;
-          } else if (field.type === "checkbox") {
-            mergedValues[field.key] = false;
-          } else if (field.type === "number") {
-            mergedValues[field.key] = "";
-          } else {
-            mergedValues[field.key] = "";
-          }
-        });
-      });
-      setValues(mergedValues);
+    if (isOpen && !prevOpenRef.current) {
+      setValues(getInitialFormValues(steps.flatMap((s) => s.fields), initialData));
       setErrors({});
       setTouched({});
       setSubmitted(false);
       setCurrentStep(0);
     }
+    prevOpenRef.current = isOpen;
   }, [isOpen, steps, initialData]);
 
   const validateStep = useCallback(
@@ -442,6 +444,7 @@ export function MultiStepFormDialog({
       title={title}
       description={description || currentStepData.description}
       size={size}
+      headerVariant={headerVariant}
       showCloseButton={showCloseButton}
       closeOnOverlayClick={closeOnOverlayClick}
       closeOnEscape={closeOnEscape}
@@ -592,7 +595,7 @@ export function MultiStepFormDialog({
               <ChevronLeft size={16} aria-hidden="true" /> {backText}
             </button>
           )}
-          {currentStep === 0 && <div style={{ width: "80px" }} />}
+          {!isLastStep && <button type="button" className="btn btn-soft" onClick={onClose} disabled={loading}>{cancelText}</button>}
           {isLastStep ? (
             <button type="submit" className="btn btn-accent" disabled={loading}>
               {loading ? "Submitting…" : submitText}
@@ -602,7 +605,6 @@ export function MultiStepFormDialog({
               {nextText} <ChevronRight size={16} aria-hidden="true" />
             </button>
           )}
-          {!isLastStep && <button type="button" className="btn btn-soft" onClick={onClose} disabled={loading}>{cancelText}</button>}
         </div>
       </form>
     </Modal>
@@ -659,8 +661,8 @@ export function RoomSelectDialog({
       isOpen={isOpen}
       onClose={onClose}
       title={title}
-      description={message}
       size="md"
+      headerVariant="branded"
     >
       <div className="room-select-dialog">
         <p className="room-select-message">{message}</p>
@@ -745,8 +747,8 @@ export function ChecklistDialog({
       isOpen={isOpen}
       onClose={onClose}
       title={title}
-      description={message}
       size="md"
+      headerVariant="branded"
     >
       <div className="checklist-dialog">
         {message && <p className="checklist-message">{message}</p>}
@@ -755,7 +757,7 @@ export function ChecklistDialog({
             <label key={item.key} className="checklist-item">
               <input
                 type="checkbox"
-                checked={values[item.key]}
+                checked={values[item.key] ?? false}
                 onChange={(e) => handleChange(item.key, e.target.checked)}
                 disabled={loading}
               />

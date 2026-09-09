@@ -1,6 +1,6 @@
 import { fromCentavos, toCentavos } from "@/lib/booking";
 import { supabase } from "@/lib/supabase";
-import { canViewAccountingLedger } from "@/lib/permissions";
+import { canOperateCashShift, canViewAccountingLedger } from "@/lib/permissions";
 import type { AccountingMetrics, Role } from "@/lib/types";
 
 // Money is compared and combined in minor units only. These mirror the SQL side exactly so the
@@ -48,20 +48,35 @@ const DOCUMENT_FIELDS = "id,document_number,document_type,reservation_id,payment
 const sum = (rows: Row[], key: string) => fromCentavos(rows.reduce((total, row) => total + toCentavos(Number(row[key] || 0)), 0));
 
 export async function getAccountingLedger(role: Role): Promise<AccountingLedger | null> {
-  if (!canViewAccountingLedger(role) || !supabase) return null;
+  // Cash-handling staff (front_desk) get the ledger for their sections; the refund
+  // queue, refund attempts, and payment reconciliations stay Accounting-only.
+  if ((!canViewAccountingLedger(role) && !canOperateCashShift(role)) || !supabase) return null;
+  const full = canViewAccountingLedger(role);
   const client = supabase;
   const take = async (table: string, fields: string, order: string, limit = 200) =>
     ((await client.from(table).select(fields).order(order, { ascending: false }).limit(limit)).data ?? []) as unknown as Row[];
-  const [transactions, invoices, charges, adjustments, refunds, refundAttempts, cashShifts, reconciliations, documents] = await Promise.all([
+  const [transactions, invoices, charges, adjustments, cashShifts, documents] = await Promise.all([
     take("payments", PAYMENT_FIELDS, "created_at", 300), take("invoices", INVOICE_FIELDS, "created_at", 300),
     take("folio_charges", CHARGE_FIELDS, "created_at", 300), take("financial_adjustments", ADJUSTMENT_FIELDS, "created_at"),
-    take("refund_requests", REFUND_FIELDS, "created_at"), take("refund_attempts", ATTEMPT_FIELDS, "attempted_at"),
-    take("cash_shifts", SHIFT_FIELDS, "opened_at"), take("payment_reconciliations", RECONCILIATION_FIELDS, "reconciled_at"),
-    take("financial_documents", DOCUMENT_FIELDS, "created_at")
+    take("cash_shifts", SHIFT_FIELDS, "opened_at"), take("financial_documents", DOCUMENT_FIELDS, "created_at")
   ]);
+  const [refunds, refundAttempts, reconciliations] = full ? await Promise.all([
+    take("refund_requests", REFUND_FIELDS, "created_at"), take("refund_attempts", ATTEMPT_FIELDS, "attempted_at"),
+    take("payment_reconciliations", RECONCILIATION_FIELDS, "reconciled_at")
+  ]) : [[] as Row[], [] as Row[], [] as Row[]];
   const staffIds = [...new Set(cashShifts.map((shift) => String(shift.staff_user_id)).filter(Boolean))];
   const staff = staffIds.length ? ((await client.from("user_accounts").select("id,name").in("id", staffIds)).data ?? []) : [];
   const nameById = new Map(staff.map((person) => [String(person.id), String(person.name)]));
+  // Per-shift cash collected, derived from the payments linked to each shift (in − refunds out)
+  // so an open shift shows its running total and a closed one matches its expected-cash basis.
+  const shiftIds = cashShifts.map((shift) => String(shift.id)).filter(Boolean);
+  const shiftPayments = shiftIds.length ? ((await client.from("payments").select("cash_shift_id,amount,purpose").in("cash_shift_id", shiftIds).eq("status", "paid")).data ?? []) as Row[] : [];
+  const collectedByShift = new Map<string, number>();
+  for (const row of shiftPayments) {
+    const key = String(row.cash_shift_id);
+    const amount = row.purpose === "refund" ? -toCentavos(Number(row.amount || 0)) : toCentavos(Number(row.amount || 0));
+    collectedByShift.set(key, (collectedByShift.get(key) ?? 0) + amount);
+  }
   const settled = transactions.filter((row) => row.status === "paid");
   const gross = settled.filter((row) => row.purpose !== "refund");
   const back = settled.filter((row) => row.purpose === "refund");
@@ -80,6 +95,6 @@ export async function getAccountingLedger(role: Role): Promise<AccountingLedger 
   };
   return {
     metrics, transactions, invoices, charges, adjustments, refunds, refundAttempts, reconciliations, documents,
-    cashShifts: cashShifts.map((shift) => ({ ...shift, staff_name: nameById.get(String(shift.staff_user_id)) ?? "Unknown" }))
+    cashShifts: cashShifts.map((shift) => ({ ...shift, staff_name: nameById.get(String(shift.staff_user_id)) ?? "Unknown", collected: fromCentavos(collectedByShift.get(String(shift.id)) ?? 0) }))
   };
 }

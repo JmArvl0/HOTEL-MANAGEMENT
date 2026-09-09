@@ -29,3 +29,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Upload failed. Try again or paste an image URL instead." }, { status: 500 });
   }
 }
+
+// Cleanup of create-modal photos abandoned before the room type existed. Only
+// bare <uuid>.<ext> objects this upload flow creates are deletable — never an
+// arbitrary path. Best-effort: a storage miss is still a success.
+const OBJECT_PATH = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp)$/;
+export async function DELETE(request: NextRequest) {
+  const c = await guardCatalog();
+  if (adminGuardFailed(c)) return c;
+  try {
+    const { url } = await request.json();
+    const path = typeof url === "string" ? url.split("/").pop() ?? "" : "";
+    if (!OBJECT_PATH.test(path)) return NextResponse.json({ error: "Not a room photo managed by this catalog." }, { status: 400 });
+    await c.client.storage.from("room-photos").remove([path]);
+    return NextResponse.json({ ok: true });
+  } catch {
+    return NextResponse.json({ error: "Unable to remove the photo." }, { status: 500 });
+  }
+}

@@ -121,8 +121,11 @@
   --space-24: 96px;  /* 6rem */
 
   /* -- Typography Primitives -- */
-  --font-sans: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-display: var(--font-playfair), Georgia, 'Times New Roman', serif;
+  /* Inter/Playfair arrive from next/font as --font-sans/--font-display on
+     <body>. These :root stacks are a fallback only (nothing outside <body>
+     uses them), so no phantom var() indirection here. */
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: Georgia, 'Times New Roman', serif;
   --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
 
   --font-weight-normal: 400;
@@ -620,6 +623,16 @@
   --modal-max-width-xl: 960px;
   --modal-max-width-full: 95vw;
   --modal-padding: var(--space-6);
+  /* Branded header (Haven forest surface, from the transportation request modal).
+     Fixed brand values like --sidebar-bg: the surface is self-contained dark
+     green, so it does not remap between light and dark themes. */
+  --modal-header-branded-bg: #123b2f;
+  --modal-header-branded-border: #315b4c;
+  --modal-header-branded-fg: #fff;
+  --modal-header-branded-muted: #b5cec3;
+  --modal-header-branded-close-border: rgba(255, 255, 255, 0.17);
+  --modal-header-branded-close-bg: rgba(255, 255, 255, 0.05);
+  --modal-header-branded-close-hover: rgba(255, 255, 255, 0.1);
 
   /* -- Table -- */
   --table-cell-padding-x: var(--space-4);
@@ -698,8 +711,8 @@
   .app-header,
   .page-title .btn,
   .table-tools,
-  .modal-backdrop,
-  .modal,
+  .dialog-backdrop,
+  .dialog,
   .toast {
     display: none !important;
   }
@@ -772,25 +785,4 @@
   --muted: var(--color-fg-muted);
   --danger: var(--color-danger);
   --shadow: var(--shadow-md);
-}
-
-/* Manager dashboard aliases (from manager-dashboard-theme.css) */
-:root {
-  --md-bg: var(--color-bg);
-  --md-panel: var(--surface-card);
-  --md-line: var(--color-border);
-  --md-text: var(--color-fg);
-  --md-muted: var(--color-fg-muted);
-  --md-green: var(--color-success);
-  --md-accent: var(--color-accent);
-}
-
-.theme-light {
-  --md-bg: var(--color-bg);
-  --md-panel: var(--surface-card);
-  --md-line: var(--color-border);
-  --md-text: var(--color-fg);
-  --md-muted: var(--color-fg-muted);
-  --md-green: var(--color-success);
-  --md-accent: var(--color-accent);
 }

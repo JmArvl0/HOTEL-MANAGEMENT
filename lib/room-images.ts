@@ -1,9 +1,12 @@
 /**
- * Room-type photo galleries (royalty-free CDN stock, images.unsplash.com).
+ * Landing imagery (royalty-free CDN stock, images.unsplash.com).
  *
- * Pure, imports nothing, so both server components (RoomResults card band) and
- * client components (the details overlay) can use it. Rooms have no image
- * column in the DB — swap in real property photos later by editing this one map.
+ * Pure, imports nothing, so both server components (RoomResults card band)
+ * and client components (the details overlay) can use it.
+ * Room photos: DB `photo_urls` wins; the stock map is the fallback — swap in
+ * real property photos later by editing the PHOTOS map.
+ * Scene photos: editorial sections (brand story, experience, gallery,
+ * location, final CTA) pull from SCENES below.
  * All URLs below are verified to return HTTP 200.
  */
 const cdn = (id: string, w = 1600) =>
@@ -54,3 +57,28 @@ export function roomPhotosFor(photos?: string[], name?: string): string[] {
 export function roomPrimary(photos?: string[], name?: string): string | undefined {
   return roomPhotosFor(photos, name)[0];
 }
+
+// --- Editorial scene imagery -------------------------------------------------
+// One image per moment of the landing narrative; all verified 200s.
+
+export const SCENES = {
+  // Brand story — architectural calm, tropical lobby light.
+  story: cdn("photo-1600585154340-be6161a56a0c", 1800),
+  // Experience: morning (breakfast, warm light) / afternoon (pool) / evening (room calm).
+  morning: cdn("photo-1544148103-0773bf10d330", 1600),
+  afternoon: cdn("photo-1571003123894-1f0594d2b5d9", 1600),
+  evening: cdn("photo-1611892440504-42a792e24d32", 1600),
+  // Gallery mosaic — varied subjects, no hero-image repeats.
+  gallery: [
+    cdn("photo-1566073771259-6a8506099945", 1400), // hotel exterior/pool
+    cdn("photo-1582719508461-905c673771fd", 1200), // suite detail
+    cdn("photo-1414235077428-338989a2e8c0", 1400), // dining
+    cdn("photo-1590490360182-c33d57733427", 1400), // bathroom detail
+    cdn("photo-1519690889869-e705e59f72e1", 1400), // seaside
+    cdn("photo-1520250497591-112f2f40a3f4", 1400), // lobby
+  ],
+  // Location — Mactan coastal property feel.
+  location: cdn("photo-1584132967334-10e028bd69f7", 1800),
+  // Final CTA — dark room at dusk behind the band.
+  final: cdn("photo-1611892440504-42a792e24d32", 1800),
+} as const;

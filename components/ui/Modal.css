@@ -1,6 +1,6 @@
 /* Modal System - Accessible Dialog with Focus Trap */
 
-.modal-backdrop {
+.dialog-backdrop {
   position: fixed;
   inset: 0;
   background: rgba(4, 12, 9, 0.55);
@@ -13,10 +13,30 @@
   animation: modalBackdropIn 0.15s ease-out;
 }
 
-.modal-backdrop.reduce-motion,
-.modal.reduce-motion .modal-content {
+.dialog-backdrop.reduce-motion,
+.dialog.reduce-motion .modal-content {
   animation: none;
   transition: none;
+}
+
+/* The dialog wrapper is a full-viewport, click-transparent overlay that
+   centers the panel. It must NOT reuse the legacy `.modal` class: that name
+   belongs to the dashboard modal styles in globals.css, and the collision
+   scrambled both. */
+.dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 1001; /* above .dialog-backdrop (1000) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  pointer-events: none; /* let clicks on the dim area reach the backdrop (close) */
+  animation: modalIn 0.18s ease-out;
+}
+
+.dialog .modal-content {
+  pointer-events: auto;
 }
 
 @keyframes modalBackdropIn {
@@ -24,21 +44,31 @@
   to { opacity: 1; }
 }
 
-.modal {
-  width: 100%;
-  max-height: calc(100vh - 48px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: modalIn 0.18s ease-out;
-}
+/* Size variants (tokens from app/design-tokens.css) */
+.modal-content.modal-sm { width: min(var(--modal-max-width-sm, 400px), 100%); }
+.modal-content.modal-md { width: min(var(--modal-max-width-md, 560px), 100%); }
+.modal-content.modal-lg { width: min(var(--modal-max-width-lg, 720px), 100%); }
+.modal-content.modal-xl { width: min(var(--modal-max-width-xl, 960px), 100%); }
+.modal-content.modal-full { width: min(var(--modal-max-width-full, 95vw), 100%); }
 
 @keyframes modalIn {
   from { opacity: 0; transform: translateY(8px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* Pin the dialog panel to the light surface regardless of the visitor's OS
+   preference or app theme: the :root --cp-* aliases flip dark under
+   prefers-color-scheme, which made shared-kit modal bodies OS-dependent.
+   The staff shell keeps its dark chrome — only this panel is always light,
+   matching the branded-header reference modal. */
 .modal-content {
+  --cp-panel: #fff;
+  --cp-panel-2: #f7f9f6;
+  --cp-line: #e3e5df;
+  --cp-text: #17201b;
+  --cp-muted: #6d7971;
+  --cp-green: #236f51;
+  --cp-accent: #c9783c;
   background: var(--cp-panel, #fff);
   border: 1px solid var(--cp-line, #e3e5df);
   border-radius: 12px;
@@ -65,6 +95,18 @@
   border-bottom: 1px solid var(--cp-line, #e3e5df);
 }
 
+/* Title + description stack as one block so the description tucks under the
+   title; the close button is the only true flex sibling on the far edge.
+   (Previously title, description and close were three ungrouped children of
+   a space-between row, which floated the description into the middle.) */
+.modal-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .modal-title {
   margin: 0;
   font: 600 18px/1.3 var(--font-display, Georgia, serif);
@@ -72,7 +114,7 @@
 }
 
 .modal-description {
-  margin: 4px 0 0;
+  margin: 0;
   font-size: 13px;
   color: var(--cp-muted, #6d7971);
   line-height: 1.5;
@@ -116,6 +158,85 @@
   border-top: 1px solid var(--cp-line, #e3e5df);
   background: var(--cp-panel-2, #f7f9f6);
 }
+
+/* Wizard footers (walk-in / arrival dialogs) pass a grouped button row in the
+   footer prop — lay it out like the footer itself so nesting is invisible. */
+.modal-footer .arrival-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Detail-modal footers (reservation detail) can carry a dozen action buttons. */
+.modal-footer .reservation-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Branded header variant — the Haven forest surface standardized from the
+   "Request transportation" modal. Applied via headerVariant="branded" on
+   <Modal>; tokens live in app/design-tokens.css. Title/description/close
+   only — the body stays on the light panel surface for contrast. */
+.modal-branded .modal-header {
+  padding: 24px 28px;
+  border-bottom-color: var(--modal-header-branded-border, #315b4c);
+  background: var(--modal-header-branded-bg, #123b2f);
+  color: var(--modal-header-branded-fg, #fff);
+}
+
+.modal-branded .modal-title {
+  font: 500 28px/1.1 var(--font-display, Georgia, serif);
+  color: var(--modal-header-branded-fg, #fff);
+}
+
+/* Size-relative title scale: the 28px reference is an xl modal; smaller
+   branded dialogs step down so the header stays proportional. */
+.modal-branded.modal-md .modal-title {
+  font-size: 22px;
+}
+
+.modal-branded.modal-sm .modal-title {
+  font-size: 19px;
+}
+
+.modal-branded .modal-description {
+  margin-top: 7px; /* +3px header-text gap = the reference modal's 10px rhythm */
+  color: var(--modal-header-branded-muted, #b5cec3);
+}
+
+.modal-branded .modal-close {
+  border-color: var(--modal-header-branded-close-border, rgba(255, 255, 255, 0.17));
+  background: var(--modal-header-branded-close-bg, rgba(255, 255, 255, 0.05));
+  color: var(--modal-header-branded-fg, #fff);
+}
+
+.modal-branded .modal-close:hover {
+  background: var(--modal-header-branded-close-hover, rgba(255, 255, 255, 0.1));
+  color: var(--modal-header-branded-fg, #fff);
+}
+
+/* The green focus ring disappears on the forest surface. */
+.modal-branded .modal-close:focus-visible {
+  outline-color: var(--modal-header-branded-fg, #fff);
+}
+
+/* Body padding matches the header rhythm (the reference modal's sticky
+   footer margins are coupled to these values). */
+.modal-branded .modal-body {
+  padding: 24px 28px;
+}
+
+@media (max-width: 680px) {
+  .modal-branded .modal-header,
+  .modal-branded .modal-body {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+
 
 /* Confirm Dialog */
 .confirm-dialog {
@@ -212,14 +333,14 @@
 
 /* Responsive */
 @media (max-width: 480px) {
-  .modal-backdrop {
+  .dialog-backdrop {
     padding: 12px;
     align-items: flex-end;
   }
 
-  .modal {
-    max-height: 85vh;
-    border-radius: 16px 16px 0 0;
+  .dialog {
+    align-items: flex-end;
+    padding: 0 10px;
   }
 
   .modal-content {
@@ -244,6 +365,11 @@
     width: 100%;
   }
 
+  .modal-footer .arrival-footer,
+  .modal-footer .reservation-detail-actions {
+    flex-direction: column-reverse;
+  }
+
   .confirm-actions,
   .prompt-actions {
     flex-direction: column-reverse;
@@ -257,8 +383,8 @@
 
 /* Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
-  .modal-backdrop,
-  .modal,
+  .dialog-backdrop,
+  .dialog,
   .modal-content {
     animation: none !important;
     transition: none !important;
@@ -270,6 +396,12 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+/* Two-column record forms (dashboard CreateModal) reuse the globals .form-grid
+   layout; its legacy page-form margin-top is wrong inside a dialog body. */
+.modal-content .form-grid {
+  margin-top: 0;
 }
 
 .form-field {
@@ -429,9 +561,16 @@
 .multistep-actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 10px;
   margin-top: 8px;
+}
+
+/* Back sits alone on the left only when Cancel + Primary also render
+   (3 buttons). Two-button rows (Cancel+Primary or Back+Submit) hug the
+   right edge. Replaces the old <div style={{width:80px}}> spacer hack. */
+.multistep-actions > .btn:first-child:nth-last-child(3) {
+  margin-right: auto;
 }
 
 /* Room Select Dialog */
@@ -2213,12 +2352,16 @@
    established in the kit's <=480px block above. */
 @supports (padding: max(0px)) {
   @media (max-width: 480px) {
-    .modal-backdrop {
+    .dialog-backdrop {
       align-items: flex-end;
       padding: 0 10px calc(10px + env(safe-area-inset-bottom, 0px));
     }
 
-    .modal,
+    .dialog {
+      align-items: flex-end;
+      padding: 0 10px;
+    }
+
     .modal-content {
       max-height: min(92dvh, calc(100dvh - 10px));
       border-radius: 18px 18px 0 0;

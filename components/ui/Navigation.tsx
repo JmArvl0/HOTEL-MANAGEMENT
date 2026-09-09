@@ -349,7 +349,7 @@ export function Breadcrumb({
                 {item.label}
               </Link>
             ) : (
-              <span className={item.current ? "breadcrumb-current" : "breadcrumb-link"}>
+              <span className={item.current ? "breadcrumb-current" : "breadcrumb-link"} aria-current={item.current ? "page" : undefined}>
                 {item.label}
               </span>
             )}

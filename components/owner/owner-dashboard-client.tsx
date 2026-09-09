@@ -1,21 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { signOut } from "next-auth/react";
+import Link from "next/link";
 import { Activity, BarChart3, BedDouble, Building2, CarTaxiFront, ChevronDown, CircleDollarSign, ClipboardCheck, FileText, Image, KeyRound, LogOut, Settings, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { SettingsDialog } from "@/components/ui/SettingsDialog";
 import RoomCatalogPanel from "@/components/catalog/room-catalog-panel";
 import TransportServicesPanel from "@/components/catalog/transport-vehicle-types-panel";
+import TransportationPanel from "@/components/manager/transportation-panel";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
 import type { FormField } from "@/components/ui/FormDialog";
 
-type Section = "overview" | "operations" | "financial" | "departments" | "admins" | "roles" | "policy" | "exceptions" | "audit" | "security" | "reports" | "room_types" | "transport_services";
+type Section = "overview" | "operations" | "financial" | "departments" | "admins" | "roles" | "policy" | "exceptions" | "audit" | "security" | "reports" | "room_types" | "transport_services" | "transportation";
 type User = { id: string; name?: string | null; email?: string | null; role: "owner" };
 type Row = Record<string, unknown>;
 type ExecutiveData = { timeZone: string; today: string; metrics: Record<string, number>; financial: Record<string, number>; trend: Row[]; roleCounts: Record<string, number>; departmentSummary: Record<string, Record<string, number>>; risks: Record<string, Row[]>; recentAudit: Row[] };
 
 const nav: [Section, string, React.ElementType][] = [
-  ["overview", "Executive Overview", BarChart3], ["operations", "Executive Operations", BedDouble], ["financial", "Financial Overview", CircleDollarSign], ["departments", "Departments", Building2], ["admins", "Admin Governance", Users], ["roles", "Roles & Permissions", ShieldCheck], ["policy", "Critical Policies", Settings], ["exceptions", "Owner Exceptions", ClipboardCheck], ["room_types", "Room Types & Photos", Image], ["transport_services", "Transfer Vehicles", CarTaxiFront], ["audit", "System Audit", FileText], ["security", "Security Events", KeyRound], ["reports", "Executive Reports", Activity]
+  ["overview", "Executive Overview", BarChart3], ["operations", "Executive Operations", BedDouble], ["financial", "Financial Overview", CircleDollarSign], ["departments", "Departments", Building2], ["admins", "Admin Governance", Users], ["roles", "Roles & Permissions", ShieldCheck], ["policy", "Critical Policies", Settings], ["exceptions", "Owner Exceptions", ClipboardCheck], ["room_types", "Room Types & Photos", Image], ["transport_services", "Transfer Vehicles", CarTaxiFront], ["transportation", "Transportation", CarTaxiFront], ["audit", "System Audit", FileText], ["security", "Security Events", KeyRound], ["reports", "Executive Reports", Activity]
 ];
 const label = (value: unknown) => String(value ?? "—").replaceAll("_", " ");
 const money = (value: unknown) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(Number(value || 0));
@@ -36,7 +39,7 @@ export default function OwnerDashboardClient({ user }: { user: User }) {
   const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 3500); };
   const dialogs = useActionDialogs();
   const load = useCallback(async () => {
-    if (section === "room_types" || section === "transport_services") { setLoading(false); return; }
+    if (section === "room_types" || section === "transport_services" || section === "transportation") { setLoading(false); return; }
     setLoading(true);
     const response = await fetch(`/api/owner/data?section=${section}`, { cache: "no-store" });
     const body = await response.json();
@@ -133,16 +136,26 @@ export default function OwnerDashboardClient({ user }: { user: User }) {
 
   const rows = Array.isArray(data) ? data as Row[] : [];
   const toggleSidebar = () => { if (window.matchMedia("(max-width: 1000px)").matches) setMenu(false); else { const next = !collapsed; setCollapsed(next); window.localStorage.setItem("haven-owner-sidebar-collapsed", String(next)); } };
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const profileMenu = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!profileOpen) return;
+    const outside = (event: Event) => { if (profileMenu.current && !profileMenu.current.contains(event.target as Node)) setProfileOpen(false); };
+    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") setProfileOpen(false); };
+    document.addEventListener("pointerdown", outside);
+    document.addEventListener("keydown", escape);
+    return () => { document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", escape); };
+  }, [profileOpen]);
   return <div className={`app-shell${collapsed ? " sidebar-collapsed" : ""}`}>
     <aside className={`sidebar${menu ? " open" : ""}${collapsed ? " collapsed" : ""}`}>
-      <div className="sidebar-top"><button className="brand sidebar-brand-toggle" onClick={toggleSidebar} aria-label="Toggle navigation"><span className="brand-mark"><Sparkles size={17}/></span><span className="brand-copy">HAVEN<small>OWNER GOVERNANCE</small></span></button></div>
+      <div className="sidebar-top"><div className="brand"><button className="brand-mark sidebar-brand-toggle" onClick={toggleSidebar} aria-label="Toggle navigation" title={collapsed ? "Expand navigation" : "Collapse navigation"}><Sparkles size={17}/></button><Link href="/" className="brand-copy" aria-label="Hotel homepage" title="Hotel homepage">HAVEN<small>OWNER GOVERNANCE</small></Link></div></div>
       <div className="property-pill"><span>HV</span><div className="property-copy"><b>Haven Makati</b><small>Executive authority</small></div><ChevronDown size={15}/></div>
       <p className="nav-caption">Executive</p><nav>{nav.map(([key, text, Icon]) => <button key={key} className={section === key ? "active" : ""} onClick={() => { setSection(key); setMenu(false); }}><Icon size={18}/><span className="nav-label">{text}</span></button>)}</nav>
-      <div className="sidebar-bottom"><button onClick={() => signOut({ callbackUrl: "/" })}><LogOut size={18}/><span className="nav-label">Sign out</span></button><div className="profile"><span>{(user.name ?? "OW").slice(0, 2).toUpperCase()}</span><div className="profile-copy"><b>{user.name}</b><small>Owner / Super Admin</small></div></div></div>
     </aside>
-    <main className="workspace"><header className="app-header"><button className="menu-btn brand-menu-btn" onClick={() => setMenu(true)} aria-label="Open navigation"><span className="brand-mark"><Sparkles size={16}/></span></button><div><p>{nav.find((item) => item[0] === section)?.[1]}</p><small>Provisional Owner / Super Admin Governance Baseline</small></div><div className="header-actions"><span className="mode-pill">Supabase live</span><ThemeToggle/></div></header>
-      <div className="workspace-body">{section === "room_types" ? <RoomCatalogPanel/> : section === "transport_services" ? <TransportServicesPanel/> : loading ? <div className="empty"><Activity/><h3>Loading executive records…</h3></div> : section === "overview" ? <Overview data={data as ExecutiveData} setSection={setSection}/> : section === "operations" ? <Operations data={data as { metrics: Record<string, number>; departmentSummary: Record<string, Record<string, number>>; risks: Record<string, Row[]>; trend: Row[] }}/> : section === "financial" ? <Financial data={data as Row}/> : section === "departments" ? <Departments data={data as { departmentSummary: Record<string, Record<string, number>>; risks: Record<string, Row[]> }}/> : section === "admins" ? <Admins rows={rows} currentId={user.id} createAdmin={createAdmin} action={adminAction}/> : section === "roles" ? <Roles data={data as { catalogue: Record<string, string[]>; ownerPrinciples: string[] }}/> : section === "policy" ? <Policy item={data as Row} edit={editPolicy}/> : section === "exceptions" ? <Exceptions rows={rows} review={reviewException}/> : section === "audit" || section === "security" ? <Audit rows={rows} security={section === "security"}/> : <Reports data={data as ExecutiveData}/>}</div>
-    </main>{toast && <div className="toast"><ShieldCheck size={18}/>{toast}</div>}{dialogs.view}
+    <main className="workspace"><header className="app-header"><button className="menu-btn brand-menu-btn" onClick={() => setMenu(true)} aria-label="Open navigation"><span className="brand-mark"><Sparkles size={16}/></span></button><div><p>{nav.find((item) => item[0] === section)?.[1]}</p><small>Provisional Owner / Super Admin Governance Baseline</small></div><div className="header-actions"><span className="mode-pill">Supabase live</span><ThemeToggle/><div className="profile-menu-wrap" ref={profileMenu}><button className="profile-menu-btn" onClick={() => setProfileOpen((value) => !value)} aria-expanded={profileOpen} aria-haspopup="menu" aria-label="Account menu"><b>{(user.name ?? "OW").slice(0, 2).toUpperCase()}</b><span>{user.name}</span><ChevronDown size={14}/></button>{profileOpen && <div className="popover-gap"><div className="profile-popover"><p><strong>{user.name}</strong><small>{user.email}</small><small>Owner / Super Admin</small></p><button onClick={() => { setProfileOpen(false); setSettingsOpen(true); }}><Settings size={15}/>Settings</button><button onClick={() => signOut({ callbackUrl: "/" })}><LogOut size={15}/>Sign Out</button></div></div>}</div></div></header>
+      <div className="workspace-body">{section === "room_types" ? <RoomCatalogPanel role="owner"/> : section === "transport_services" ? <TransportServicesPanel/> : section === "transportation" ? <TransportationPanel role="owner"/> : loading ? <div className="empty"><Activity/><h3>Loading executive records…</h3></div> : section === "overview" ? <Overview data={data as ExecutiveData} setSection={setSection}/> : section === "operations" ? <Operations data={data as { metrics: Record<string, number>; departmentSummary: Record<string, Record<string, number>>; risks: Record<string, Row[]>; trend: Row[] }}/> : section === "financial" ? <Financial data={data as Row}/> : section === "departments" ? <Departments data={data as { departmentSummary: Record<string, Record<string, number>>; risks: Record<string, Row[]> }}/> : section === "admins" ? <Admins rows={rows} currentId={user.id} createAdmin={createAdmin} action={adminAction}/> : section === "roles" ? <Roles data={data as { catalogue: Record<string, string[]>; ownerPrinciples: string[] }}/> : section === "policy" ? <Policy item={data as Row} edit={editPolicy}/> : section === "exceptions" ? <Exceptions rows={rows} review={reviewException}/> : section === "audit" || section === "security" ? <Audit rows={rows} security={section === "security"}/> : <Reports data={data as ExecutiveData}/>}</div>
+    </main>{settingsOpen && <SettingsDialog isOpen onClose={()=>setSettingsOpen(false)}/>}{toast && <div className="toast"><ShieldCheck size={18}/>{toast}</div>}{dialogs.view}
   </div>;
 }
 

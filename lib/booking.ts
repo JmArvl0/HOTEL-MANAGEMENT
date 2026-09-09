@@ -30,6 +30,7 @@ export const isBlockingReservationStatus = (status: string) =>
   (BLOCKING_RESERVATION_STATUSES as readonly string[]).includes(status);
 
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
 export const hotelToday = () => {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit"
@@ -47,15 +48,40 @@ export const searchSchema = z.object({
   if (value.checkOut <= value.checkIn) ctx.addIssue({ code: "custom", path: ["checkOut"], message: "Check-out must be after check-in." });
 });
 
-// Transfer booked at checkout: one optional pickup->hotel ride per booking. The client only
-// submits where the ride goes and which vehicle; the server prices it (see lib/transfer.ts).
-export type TransportRideInput = { pickupAddress: string; vehicleTypeId: string; note?: string };
-export const transportRideSchema = z.object({
-  pickupAddress: z.string().trim().min(5, "Enter the pickup address.").max(200),
-  vehicleTypeId: z.string().trim().min(1).max(100),
-  note: z.string().trim().max(120).optional().default(""),
+// Historical transport_lines on existing reservations are still read (transportTotal below);
+// new transfers are no longer sold at checkout — see the standalone Transportation Service.
+
+// Transportation ride REQUESTED at checkout (operational only — no pricing, no folio). The
+// preferences ride hold -> reservation as jsonb and are filed into transportation_requests
+// by the file_booking_transportation_on_confirm trigger once the stay is confirmed. The
+// client never supplies the hotel side of the route; the filer fills it.
+export const transportationPreferencesSchema = z.object({
+  serviceType: z.enum(["PICKUP", "DROPOFF", "ROUND_TRIP"]),
+  pickupLocation: z.string().trim().min(5, "Enter the pickup location.").max(200).optional(),
+  dropoffLocation: z.string().trim().min(5, "Enter the destination.").max(200).optional(),
+  pickupDate: z.string().regex(datePattern, "Choose a valid pickup date."),
+  pickupTime: z.string().regex(timePattern, "Choose a valid pickup time."),
+  returnLocation: z.string().trim().min(5, "Enter the departure destination.").max(200).optional(),
+  returnDate: z.string().regex(datePattern).optional(),
+  returnTime: z.string().regex(timePattern).optional(),
+  passengerCount: z.coerce.number().int().min(1, "At least one passenger is required.").max(20, "Transportation accommodates at most 20 passengers."),
+  specialInstructions: z.string().trim().max(500).optional(),
+}).superRefine((value, ctx) => {
+  if (value.serviceType === "PICKUP" && !value.pickupLocation)
+    ctx.addIssue({ code: "custom", path: ["pickupLocation"], message: "Enter the pickup location." });
+  if (value.serviceType === "DROPOFF" && !value.dropoffLocation)
+    ctx.addIssue({ code: "custom", path: ["dropoffLocation"], message: "Enter the destination." });
+  if (value.serviceType === "ROUND_TRIP") {
+    if (!value.pickupLocation) ctx.addIssue({ code: "custom", path: ["pickupLocation"], message: "Enter the arrival pickup location." });
+    if (!value.returnLocation) ctx.addIssue({ code: "custom", path: ["returnLocation"], message: "Enter the departure destination." });
+    if (!value.returnDate) ctx.addIssue({ code: "custom", path: ["returnDate"], message: "Choose the return date." });
+    if (!value.returnTime) ctx.addIssue({ code: "custom", path: ["returnTime"], message: "Choose the return time." });
+    if (value.returnDate && value.returnDate < value.pickupDate)
+      ctx.addIssue({ code: "custom", path: ["returnDate"], message: "The return must be on or after the arrival pickup." });
+  }
 });
-export const transportLinesSchema = z.array(transportRideSchema).max(1).optional().default([]);
+
+export type TransportationPreferencesInput = z.infer<typeof transportationPreferencesSchema>;
 
 export const guestDetailsSchema = z.object({
   roomType: z.string().min(1).max(100),
@@ -68,15 +94,19 @@ export const guestDetailsSchema = z.object({
   mobile: z.string().trim().min(7).max(30),
   address: z.string().trim().min(1, "Provide your home address.").max(300),
   nationality: z.string().trim().max(80).optional().default(""),
-  expectedArrival: z.string().trim().min(1, "Tell us when you expect to arrive.").max(40),
+  expectedArrival: z.string().trim().regex(timePattern, "Select a valid arrival time.").max(40),
   requestOptions: z.array(z.enum(CHECKOUT_REQUEST_VALUES)).max(12).optional().default([]),
   specialRequests: z.string().trim().max(1000).optional().default(""),
-  transportLines: transportLinesSchema,
+  transportationPreferences: transportationPreferencesSchema.optional(),
 });
 
 export const depositSubmissionSchema = z.object({
   paymentMethod: z.enum(["manual_bank_transfer", "manual_gcash"]),
   paymentReference: z.string().trim().min(4, "Enter the transfer reference supplied by your payment service.").max(120),
+  // Staged proof path minted by the proof upload route (pending/<token>/<uuid>.<ext>).
+  // All proof metadata is re-derived server-side from the stored object.
+  proofPath: z.string().regex(/^pending\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp)$/, "Upload a payment screenshot."),
+  proofOriginalName: z.string().max(120).optional(),
 });
 
 export type SearchInput = z.infer<typeof searchSchema>;
@@ -255,7 +285,7 @@ export async function getOwnedHold(token: string, userId: string) {
   return data;
 }
 
-const reservationColumns = "id,confirmation_number,guest_name,guest_email,room_type,room_number,check_in,check_out,guests,status,total,deposit,deposit_required,deposit_policy_snapshot,payment_due_at,payment_status,payment_method,source,special_requests,request_options,transport_lines,expected_arrival,created_at";
+const reservationColumns = "id,confirmation_number,guest_name,guest_email,room_type,room_number,check_in,check_out,guests,status,total,deposit,deposit_required,deposit_policy_snapshot,payment_due_at,payment_status,payment_method,source,special_requests,request_options,transport_lines,transportation_preferences,expected_arrival,created_at";;
 
 export async function getGuestReservations(userId: string) {
   if (!supabase) return [];

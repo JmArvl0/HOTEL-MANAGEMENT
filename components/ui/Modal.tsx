@@ -10,6 +10,8 @@ export interface ModalProps {
   description?: string;
   children: ReactNode;
   size?: "sm" | "md" | "lg" | "xl" | "full";
+  /** "branded" = the Haven forest header (title/description/close only); "plain" = compact light header for utility dialogs. */
+  headerVariant?: "branded" | "plain";
   showCloseButton?: boolean;
   closeOnOverlayClick?: boolean;
   closeOnEscape?: boolean;
@@ -27,6 +29,7 @@ export function Modal({
   description,
   children,
   size = "md",
+  headerVariant = "plain",
   showCloseButton = true,
   closeOnOverlayClick = true,
   closeOnEscape = true,
@@ -42,19 +45,26 @@ export function Modal({
   const titleId = `modal-title-${generatedId}`;
   const descriptionId = `modal-description-${generatedId}`;
 
-  const sizeClasses = {
-    sm: "max-w-sm",
-    md: "max-w-md",
-    lg: "max-w-lg",
-    xl: "max-w-xl",
-    full: "max-w-4xl",
-  };
+  // Callers almost always pass inline arrows (onClose) and fresh objects
+  // (initialFocusRef/returnFocusRef), so these props change identity on every
+  // parent render. Reading them through this ref lets the handlers and the
+  // open/close effect below stay stable — with the props in the effect's dep
+  // array, every parent re-render (i.e. every keystroke in a form whose state
+  // lives above the Modal) tore the effect down and modal.focus() stole focus
+  // from the input mid-typing.
+  const latest = useRef({ onClose, closeOnEscape, disableFocusTrap, initialFocusRef, returnFocusRef });
+  // Sync the ref after commit (writing it during render is forbidden by
+  // react-hooks). Event handlers only fire post-commit, so they always see
+  // the freshest props.
+  useEffect(() => {
+    latest.current = { onClose, closeOnEscape, disableFocusTrap, initialFocusRef, returnFocusRef };
+  });
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    if (!closeOnEscape || event.key !== "Escape") return;
+    if (!latest.current.closeOnEscape || event.key !== "Escape") return;
     event.preventDefault();
-    onClose();
-  }, [closeOnEscape, onClose]);
+    latest.current.onClose();
+  }, []);
 
   const handleOverlayClick = useCallback((event: React.MouseEvent) => {
     if (!closeOnOverlayClick) return;
@@ -64,7 +74,7 @@ export function Modal({
   }, [closeOnOverlayClick, onClose]);
 
   const trapFocus = useCallback((event: KeyboardEvent) => {
-    if (disableFocusTrap || event.key !== "Tab" || !modalRef.current) return;
+    if (latest.current.disableFocusTrap || event.key !== "Tab" || !modalRef.current) return;
 
     const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
       'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
@@ -97,8 +107,9 @@ export function Modal({
     const modal = modalRef.current;
     if (modal) {
       modal.focus();
+      const { initialFocusRef: initial } = latest.current;
       setTimeout(() => {
-        initialFocusRef?.current?.focus() ?? modal.focus();
+        initial?.current?.focus() ?? modal.focus();
       }, 0);
     }
 
@@ -106,13 +117,14 @@ export function Modal({
       document.body.style.overflow = "";
       document.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("keydown", trapFocus);
-      if (returnFocusRef?.current) {
-        returnFocusRef.current.focus();
+      const { returnFocusRef: returnFocus } = latest.current;
+      if (returnFocus?.current) {
+        returnFocus.current.focus();
       } else if (previousActiveElement.current) {
         previousActiveElement.current.focus();
       }
     };
-  }, [isOpen, handleKeyDown, trapFocus, initialFocusRef, returnFocusRef]);
+  }, [isOpen, handleKeyDown, trapFocus]);
 
   if (!isOpen) return null;
 
@@ -122,27 +134,29 @@ export function Modal({
   return (
     <Fragment>
       <div
-        className={`modal-backdrop ${prefersReducedMotion ? "reduce-motion" : ""}`}
+        className={`dialog-backdrop ${prefersReducedMotion ? "reduce-motion" : ""}`}
         onClick={handleOverlayClick}
         aria-hidden="true"
       />
       <div
         ref={modalRef}
-        className={`modal ${sizeClasses[size]} ${className} ${prefersReducedMotion ? "reduce-motion" : ""}`}
+        className={`dialog ${className} ${prefersReducedMotion ? "reduce-motion" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
       >
-        <div className="modal-content">
+        <div className={`modal-content modal-${size}${headerVariant === "branded" ? " modal-branded" : ""}`}>
           <div className="modal-header">
-            <h2 id={titleId} className="modal-title">{title}</h2>
-            {description && (
-              <p id={descriptionId} className="modal-description">
-                {description}
-              </p>
-            )}
+            <div className="modal-header-text">
+              <h2 id={titleId} className="modal-title">{title}</h2>
+              {description && (
+                <p id={descriptionId} className="modal-description">
+                  {description}
+                </p>
+              )}
+            </div>
             {showCloseButton && (
               <button
                 type="button"
@@ -204,7 +218,6 @@ export function ConfirmDialog({
       isOpen={isOpen}
       onClose={onClose}
       title={title}
-      description={message}
       size="sm"
       initialFocusRef={{ current: document.querySelector('[data-action="cancel"]') as HTMLElement }}
     >
@@ -312,7 +325,6 @@ export function PromptDialog({
       isOpen={isOpen}
       onClose={onClose}
       title={title}
-      description={message}
       size="sm"
       initialFocusRef={inputRef}
     >
@@ -429,7 +441,6 @@ export function SelectDialog({
       isOpen={isOpen}
       onClose={onClose}
       title={title}
-      description={message}
       size="sm"
       initialFocusRef={selectRef}
     >

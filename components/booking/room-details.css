@@ -117,6 +117,20 @@
 }
 .rd-facts svg { color: var(--cp-green, #236f51); flex: none; }
 .rd-note { margin: 10px 0 0; color: var(--cp-green, #236f51); font-size: 12px; font-weight: 750; }
+/* Staff catalog preview: marks a type guests cannot see yet */
+.rd-draft-banner {
+  display: block;
+  margin: 0 0 14px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px dashed var(--cp-line, #e3e5df);
+  background: color-mix(in srgb, var(--cp-muted, #6d7971) 12%, transparent);
+  color: var(--cp-text, #17201b);
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
 .rd-description { color: var(--cp-muted, #6d7971); line-height: 1.7; font-size: 14px; margin: 12px 0 0; }
 .rd-heading {
   margin: 20px 0 10px;

@@ -50,9 +50,13 @@ describe("Maintenance lifecycle and cross-department invariants", () => {
     expect(migration).toContain("idempotency_key=p_idempotency_key");
   });
 
-  it("excludes only diagnosed blocking work from the browser-side eligible-room list", () => {
-    expect(eligibleRooms).toContain('["open","assigned","in_progress","waiting_parts","deferred"]');
-    expect(eligibleRooms).toContain('["blocked","out_of_service"]');
+  it("keeps blocking-work filtering server-side in the eligible-room inventory", () => {
+    // The route must not re-implement maintenance-status availability rules:
+    // it calls the inventory RPC, whose eligibility runs maintenance_room_is_blocked.
+    expect(eligibleRooms).toContain('supabase.rpc("front_desk_eligible_room_inventory"');
+    expect(eligibleRooms).not.toContain('["open","assigned","in_progress","waiting_parts","deferred"]');
+    expect(eligibleRooms).not.toContain('["blocked","out_of_service"]');
+    expect(migration).toContain("maintenance_room_is_blocked");
   });
 
   it("keeps workflow tables and RPCs server-only", () => {

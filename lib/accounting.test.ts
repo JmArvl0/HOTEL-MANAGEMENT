@@ -8,11 +8,15 @@ import type { Role } from "@/lib/types";
 const read = (path: string) => readFileSync(path, "utf8");
 const ledgerMigration = read("supabase/migrations/20260829010000_accounting_financial_operations.sql");
 const rpcMigration = read("supabase/migrations/20260829020000_accounting_operations_rpcs.sql");
-const schema = read("supabase/schema.sql");
+// schema.sql is a pg_dump snapshot of the deployed database (see its header); normalize
+// the quoted/uppercase dump formatting so substring checks match either style.
+const schema = read("supabase/schema.sql").toLowerCase().replaceAll('"', "");
+const frontDeskMigration = read("supabase/migrations/20260828070000_front_desk_operations.sql");
 const accountingLib = read("lib/accounting.ts");
 const chargeRoute = read("app/api/front-desk/reservations/[id]/charge/route.ts");
 const paymentRoute = read("app/api/front-desk/reservations/[id]/payment/route.ts");
 const resourceRoute = read("app/api/resources/[resource]/route.ts");
+const ledgerRoute = read("app/api/accounting/ledger/route.ts");
 const dashboard = read("components/manager/manager-dashboard-client.tsx");
 
 const walk = (dir: string): string[] => readdirSync(dir).flatMap((entry) => { const path = join(dir, entry); return statSync(path).isDirectory() ? walk(path) : [path]; });
@@ -83,6 +87,23 @@ describe("server-side authorization", () => {
   it("re-derives every accounting mutation through an RPC instead of a table write", () => { for (const path of accountingRoutes) { const body = read(path); if (body.includes(".rpc(")) expect(body).not.toMatch(/\.from\(["'][a-z_]+["']\)\.(insert|update|delete)/); } });
 });
 
+describe("front desk ledger access", () => {
+  it("admits cash-handling staff to the ledger endpoint, not just full ledger viewers", () => {
+    expect(ledgerRoute).toContain("canViewAccountingLedger(role)||canOperateCashShift(role)");
+  });
+  it("mirrors the same gate inside getAccountingLedger so the route cannot out-grant the data layer", () => {
+    expect(accountingLib).toContain("(!canViewAccountingLedger(role) && !canOperateCashShift(role)) || !supabase");
+  });
+  it("keeps the refund queue and reconciliation internals out of the front desk payload", () => {
+    // The accounting-only tables are fetched behind the full-ledger flag, not in the
+    // unconditional Promise.all that serves every admitted role.
+    const unconditional = accountingLib.slice(accountingLib.indexOf("const [transactions"), accountingLib.indexOf("const [refunds"));
+    for (const table of ["refund_requests", "refund_attempts", "payment_reconciliations"]) expect(unconditional).not.toContain(table);
+    const scoped = accountingLib.slice(accountingLib.indexOf("const [refunds"), accountingLib.indexOf("const staffIds"));
+    for (const table of ["refund_requests", "refund_attempts", "payment_reconciliations"]) expect(scoped).toContain(table);
+  });
+});
+
 // ------------------------------------------------------- financial correctness in SQL (25, 80, 81)
 describe("accounting RPC hardening", () => {
   const definitions = rpcMigration.split("create or replace function public.").slice(1);
@@ -129,7 +150,18 @@ describe("accounting RPC hardening", () => {
     for (const name of ["record_staff_payment", "post_folio_charge", "front_desk_extend_stay", "accounting_reverse_charge", "accounting_record_adjustment"]) expect(definitions.find((definition) => definition.startsWith(name))!, name).toContain("sync_invoice_financials");
   });
   it("strips anon and authenticated execute from every security definer function", () => {
-    for (const body of [rpcMigration, schema]) { expect(body).toContain("p.prosecdef"); expect(body).toContain("array['anon','authenticated']"); expect(body).toContain("revoke all on function %s from public"); }
+    expect(rpcMigration).toContain("p.prosecdef");
+    expect(rpcMigration).toContain("array['anon','authenticated']");
+    expect(rpcMigration).toContain("revoke all on function %s from public");
+    // Deployed state: no function the application defines is granted to anon or
+    // authenticated. The only anon grants left are btree_gist/Postgres builtin
+    // helpers, which the dump does not emit as application CREATE statements.
+    const defined = new Set([...schema.matchAll(/create or replace function public\.(\w+)/g)].map((m) => m[1]));
+    expect(defined.size, "definition parse sanity").toBeGreaterThan(50);
+    const grantedStatements = schema.match(/grant[^;]*on function[^;]*to (?:anon|authenticated)/g) ?? [];
+    expect(grantedStatements.length, "grant parse sanity").toBeGreaterThan(0);
+    const grantedNames = grantedStatements.flatMap((statement) => [...statement.matchAll(/public\.(\w+)\(/g)].map((m) => m[1]));
+    for (const name of grantedNames) expect(defined.has(name), `${name} must not be granted to anon/authenticated`).toBe(false);
   });
   it("keeps the folio recomputation helper unreachable from the API role", () => expect(rpcMigration).toContain("revoke all on function public.sync_invoice_financials(text)from service_role"));
 });
@@ -138,7 +170,7 @@ describe("migration safety", () => {
   it("applies the accounting ledger and RPCs through the schema the migrator actually runs", () => { expect(schema).toContain("create or replace function public.accounting_reconcile_payments"); expect(schema).toContain("protect_settled_payment"); expect(schema).toContain("credit_balance"); });
   it("uses only additive, re-runnable statements", () => { for (const body of [ledgerMigration, rpcMigration]) { expect(body).not.toMatch(/drop table/i); expect(body).not.toMatch(/truncate/i); expect(body).not.toMatch(/drop schema/i); } });
   it("adds new ledger tables and columns conditionally so existing data survives", () => { expect(ledgerMigration).toMatch(/create table if not exists/); expect(ledgerMigration).toMatch(/add column if not exists/); });
-  it("re-applies the room overlap constraint without aborting on the index it already created", () => expect(schema).toContain("exception when duplicate_object or duplicate_table then null"));
+  it("re-applies the room overlap constraint without aborting on the index it already created", () => expect(frontDeskMigration).toContain("exception when duplicate_object or duplicate_table then null"));
 });
 
 // ---------------------------------------------------- privacy and provider honesty (7, 79, 87, 99)

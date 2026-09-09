@@ -36,7 +36,7 @@ export async function update(resource: Resource, id: string, payload: Partial<Re
   return data as RecordItem;
 }
 
-export async function getDashboard(role: Role): Promise<DashboardData> {
+export async function getDashboard(role: Role, userId?: string): Promise<DashboardData> {
   const [reservations, rooms, tasks, invoices, payments, requests, maintenance] = await Promise.all([list("reservations"), list("rooms"), list("housekeeping_tasks"), list("invoices"), list("payments"), list("guest_requests"), list("maintenance_orders")]);
   const today = hotelToday();
   const occupied = rooms.filter((record) => record.status === "occupied").length;
@@ -44,7 +44,6 @@ export async function getDashboard(role: Role): Promise<DashboardData> {
   const blockedMaintenanceRoomIds = new Set(maintenance.filter((order) => activeMaintenanceStatuses.has(String(order.status)) && ["blocked", "out_of_service"].includes(String(order.serviceability_impact))).map((order) => order.room_id));
   const serviceableRooms = rooms.filter((record) => record.administratively_active !== false && !blockedMaintenanceRoomIds.has(record.id)).length;
   const financialRole = ["manager", "front_desk", "accounting"].includes(role);
-  const cashHandlingRole = ["front_desk", "accounting"].includes(role);
   const operationalRole = ["manager", "front_desk"].includes(role);
   const revenue = financialRole ? invoices.reduce((sum, item) => sum + Number(item.paid || 0), 0) : 0;
   const counts = (status: string) => rooms.filter((record) => record.status === status).length;
@@ -74,11 +73,25 @@ export async function getDashboard(role: Role): Promise<DashboardData> {
   const ageMinutes=(value:unknown)=>value?Math.max((now-new Date(String(value)).getTime())/60000,0):0;
   const overdueGuestRequests=requests.filter(item=>item.status!=="completed"&&((item.due_at&&new Date(String(item.due_at)).getTime()<now)||ageMinutes(item.created_at)>Number(alertPolicy.guest_request_overdue_minutes)));
   const overdueHousekeeping=tasks.filter(item=>item.status!=="completed"&&ageMinutes(item.created_at)>Number(alertPolicy.housekeeping_turnover_overdue_minutes));
+  // Daily front desk operations reports: the Manager reviews submissions,
+  // Front Desk sees manager returns that need resubmission.
+  const reportRoles=["manager","front_desk"].includes(role);
+  const reportResult=supabase&&reportRoles?await supabase.from("front_desk_reports").select("id,report_date,submitted_at,review_note").eq("status",managerRole?"submitted":"returned").order("submitted_at",{ascending:false}).limit(5):{data:[]};
+  const reportNotifications=(reportResult.data??[])as RecordItem[];
   const localDate=(value:unknown)=>value?new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Manila"}).format(new Date(String(value))):"";
   const settledToday=payments.filter(item=>item.status==="paid"&&localDate(item.verified_at||item.created_at)===today);
   const collectionsToday=financialRole?settledToday.filter(item=>item.purpose!=="refund").reduce((sum,item)=>sum+Number(item.amount||0),0):0;
   const depositsReceived=financialRole?settledToday.filter(item=>item.purpose==="reservation_deposit").reduce((sum,item)=>sum+Number(item.amount||0),0):0;
   const refundSummary=financialRole?settledToday.filter(item=>item.purpose==="refund").reduce((sum,item)=>sum+Number(item.amount||0),0):0;
+  // Front Desk cash accountability: cash collected on the caller's open shift is
+  // derived from recorded payments (never a separately stored total that could drift).
+  let cashThisShift=0;let shiftFloat=0;let shiftOpen=false;
+  if(role==="front_desk"&&supabase&&userId){
+    const shift=((await supabase.from("cash_shifts").select("id,opening_amount").eq("staff_user_id",userId).eq("status","open").maybeSingle()).data??null)as RecordItem|null;
+    if(shift){shiftOpen=true;shiftFloat=Number(shift.opening_amount||0);
+      const collected=((await supabase.from("payments").select("amount").eq("cash_shift_id",shift.id).eq("status","paid").neq("purpose","refund")).data??[])as {amount?:unknown}[];
+      cashThisShift=Math.round(collected.reduce((sum,row)=>sum+Number(row.amount||0),0)*100)/100;}
+  }
   const notifications: DashboardData["notifications"] = [];
   if (operationalRole) {
     for (const reservation of online.filter((record) => record.status === "confirmed").slice(0, 5)) {
@@ -91,6 +104,11 @@ export async function getDashboard(role: Role): Promise<DashboardData> {
       });
     }
   }
+  // Standalone Transportation Service: new guest requests surface for the roles that work them.
+  if (operationalRole && supabase) {
+    const pendingTrips = ((await supabase.from("transportation_requests").select("id,reservation_id,service_type,pickup_location,dropoff_location,pickup_date,created_at").eq("status", "REQUESTED").order("created_at", { ascending: false })).data ?? []) as RecordItem[];
+    for (const trip of pendingTrips.slice(0, 5)) notifications.push({ id: `transportation-${trip.id}`, title: "New transportation request", detail: `${String(trip.service_type).replaceAll("_", " ")} - ${trip.pickup_location} → ${trip.dropoff_location} - ${trip.pickup_date}`, section: "transportation", createdAt: typeof trip.created_at === "string" ? trip.created_at : undefined });
+  }
   if(role==="manager"){
     const maintenanceRooms=new Set(maintenance.filter(item=>activeMaintenanceStatuses.has(String(item.status))&&["blocked","out_of_service"].includes(String(item.serviceability_impact))).map(item=>item.room_id));
     for(const arrival of activeArrivals.filter(item=>!item.room_id).slice(0,5))notifications.push({id:`manager-unassigned-${arrival.id}`,title:"Arrival awaiting room assignment",detail:`${arrival.confirmation_number||arrival.id} - ${arrival.guest_name}`,section:"reservations"});
@@ -98,6 +116,7 @@ export async function getDashboard(role: Role): Promise<DashboardData> {
     for(const order of maintenance.filter(item=>item.status!=="resolved"&&["urgent","critical"].includes(String(item.priority))).slice(0,5))notifications.push({id:`manager-maintenance-${order.id}`,title:"Critical Maintenance issue",detail:`Room ${order.room_number} - ${order.issue}`,section:"maintenance_orders",createdAt:typeof order.created_at==="string"?order.created_at:undefined});
     for(const request of requests.filter(item=>item.escalation_status==="escalated").slice(0,5))notifications.push({id:`manager-escalation-${request.id}`,title:"Escalated guest issue",detail:`${request.department} - ${request.request}`,section:"approvals",createdAt:typeof request.escalated_at==="string"?request.escalated_at:undefined});
     for(const approval of approvals.filter(item=>item.status==="pending").slice(0,5))notifications.push({id:`manager-approval-${approval.id}`,title:"Manager approval requested",detail:`${String(approval.request_type).replaceAll("_"," ")} - ${approval.reason}`,section:"approvals",createdAt:typeof approval.requested_at==="string"?approval.requested_at:undefined});
+    for(const report of reportNotifications)notifications.push({id:`manager-report-${report.id}`,title:"Daily operations report awaiting review",detail:`${report.report_date} - submitted by Front Desk`,section:"reports",createdAt:typeof report.submitted_at==="string"?report.submitted_at:undefined});
   }
   if (role === "front_desk") {
     const invoiceByReservation=new Map(invoices.map(invoice=>[invoice.reservation_id,invoice]));
@@ -105,8 +124,9 @@ export async function getDashboard(role: Role): Promise<DashboardData> {
     for(const reservation of activeArrivals.filter(item=>!item.room_id))notifications.push({id:`unassigned-${reservation.id}`,title:"Arrival needs a room assignment",detail:`${reservation.confirmation_number||reservation.id} - ${reservation.guest_name}`,section:"reservations"});
     for(const reservation of [...activeArrivals,...activeDepartures]){const invoice=invoiceByReservation.get(reservation.id);if(Number(invoice?.balance||0)>0)notifications.push({id:`balance-${reservation.id}`,title:reservation.check_out===today?"Departure has an outstanding balance":"Arrival balance requires attention",detail:`${reservation.confirmation_number||reservation.id} - ${new Intl.NumberFormat("en-PH",{style:"currency",currency:"PHP"}).format(Number(invoice?.balance||0))}`,section:"reservations"});const room=rooms.find(item=>item.id===reservation.room_id);if(room&&(room.status==="maintenance"||room.housekeeping!=="clean"||maintenanceRooms.has(room.id)))notifications.push({id:`room-block-${reservation.id}`,title:"Assigned room is not ready",detail:`${reservation.confirmation_number||reservation.id} - Room ${room.number}`,section:"rooms"});}
     for(const request of requests.filter(item=>item.status!=="completed").slice(0,5))notifications.push({id:`request-${request.id}`,title:"Guest request requires coordination",detail:`${request.department} - ${request.request}`,section:"guest_requests",createdAt:typeof request.created_at==="string"?request.created_at:undefined});
+    for(const report of reportNotifications)notifications.push({id:`report-returned-${report.id}`,title:"Daily operations report returned by manager",detail:`${report.report_date}${report.review_note?` - ${report.review_note}`:""}`,section:"reports",createdAt:typeof report.submitted_at==="string"?report.submitted_at:undefined});
   }
-  if (cashHandlingRole) {
+  if (refundRole) {
     for (const payment of payments.filter((record) => record.status === "pending_verification").slice(0, 5)) {
       notifications.push({
         id: `payment-${payment.id}`,
@@ -134,7 +154,7 @@ export async function getDashboard(role: Role): Promise<DashboardData> {
       outOfServiceRooms: blockedMaintenanceRoomIds.size,
       openRequests: requests.filter(item=>item.status!=="completed").length,
       balancesAttention: [...activeArrivals,...activeDepartures].filter(item=>Number(invoices.find(invoice=>invoice.reservation_id===item.id)?.balance||0)>0).length,
-      roomsCleaning:rooms.filter(item=>item.housekeeping==="cleaning").length,roomsAwaitingInspection:rooms.filter(item=>item.housekeeping==="inspection").length,overdueHousekeeping:overdueHousekeeping.length,openMaintenance:maintenance.filter(item=>activeMaintenanceStatuses.has(String(item.status))).length,criticalMaintenance:maintenance.filter(item=>activeMaintenanceStatuses.has(String(item.status))&&["urgent","critical"].includes(String(item.priority))).length,overdueRequests:overdueGuestRequests.length,escalatedIssues:requests.filter(item=>item.escalation_status==="escalated").length,pendingApprovals:approvals.filter(item=>item.status==="pending").length,collectionsToday,depositsReceived,refundSummary,outstandingBalances:financialRole?invoices.reduce((sum,item)=>sum+Number(item.balance||0),0):0
+      roomsCleaning:rooms.filter(item=>item.housekeeping==="cleaning").length,roomsAwaitingInspection:rooms.filter(item=>item.housekeeping==="inspection").length,overdueHousekeeping:overdueHousekeeping.length,openMaintenance:maintenance.filter(item=>activeMaintenanceStatuses.has(String(item.status))).length,criticalMaintenance:maintenance.filter(item=>activeMaintenanceStatuses.has(String(item.status))&&["urgent","critical"].includes(String(item.priority))).length,overdueRequests:overdueGuestRequests.length,escalatedIssues:requests.filter(item=>item.escalation_status==="escalated").length,pendingApprovals:approvals.filter(item=>item.status==="pending").length,collectionsToday,depositsReceived,refundSummary,outstandingBalances:financialRole?invoices.reduce((sum,item)=>sum+Number(item.balance||0),0):0,cashThisShift,shiftFloat,shiftOpen
     },
     occupancyTrend,
     roomMix: [{ name: "Occupied", value: counts("occupied"), color: "#1f6b52" }, { name: "Available", value: counts("available"), color: "#9ac8b8" }, { name: "Reserved", value: counts("reserved"), color: "#d79855" }, { name: "Service", value: counts("maintenance") + counts("dirty"), color: "#d7d4cb" }],

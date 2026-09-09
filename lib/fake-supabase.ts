@@ -8,7 +8,7 @@
 type Row = Record<string, unknown>;
 export type FakeDb = Record<string, Row[]>;
 
-interface Builder extends PromiseLike<{ data: Row[]; error: null }> {
+interface Builder extends PromiseLike<{ data: Row[]; error: null; count: number }> {
   select(...columns: unknown[]): Builder;
   order(...args: unknown[]): Builder;
   limit(count: number): Builder;
@@ -19,14 +19,17 @@ interface Builder extends PromiseLike<{ data: Row[]; error: null }> {
   gt(column: string, value: unknown): Builder;
   gte(column: string, value: unknown): Builder;
   lt(column: string, value: unknown): Builder;
-  maybeSingle(): Promise<{ data: Row | null; error: null }>;
-  single(): Promise<{ data: Row | null; error: null }>;
+  maybeSingle(): Promise<{ data: Row | null; error: null; count: number }>;
+  single(): Promise<{ data: Row | null; error: null; count: number }>;
+  /** Queues a mutation applied to the filtered rows when the builder is awaited. */
+  update(values: Row): Builder;
 }
 
 const text = (value: unknown) => (value === null || value === undefined ? "" : String(value));
 
 function build(rows: Row[]): Builder {
   let result = [...rows];
+  let pendingUpdate: Row | null = null;
   const keep = (predicate: (row: Row) => boolean) => { result = result.filter(predicate); return builder; };
   const builder: Builder = {
     select: () => builder,
@@ -44,9 +47,17 @@ function build(rows: Row[]): Builder {
     gt: (column, value) => keep((row) => text(row[column]) > text(value)),
     gte: (column, value) => keep((row) => text(row[column]) >= text(value)),
     lt: (column, value) => keep((row) => text(row[column]) < text(value)),
-    maybeSingle: async () => ({ data: result[0] ?? null, error: null }),
-    single: async () => ({ data: result[0] ?? null, error: null }),
-    then: (resolve) => Promise.resolve({ data: result, error: null }).then(resolve),
+    update: (values) => { pendingUpdate = values; return builder; },
+    maybeSingle: async () => ({ data: result[0] ?? null, error: null, count: result.length }),
+    single: async () => ({ data: result[0] ?? null, error: null, count: result.length }),
+    then: (resolve) => {
+      if (pendingUpdate) {
+        for (const row of result) Object.assign(row, pendingUpdate);
+        // Supabase's update() resolves with data: null; the builder type keeps Row[] for select chains.
+        return Promise.resolve({ data: null, error: null, count: result.length } as unknown as { data: Row[]; error: null; count: number }).then(resolve);
+      }
+      return Promise.resolve({ data: result, error: null, count: result.length }).then(resolve);
+    },
   };
   return builder;
 }
@@ -54,7 +65,16 @@ function build(rows: Row[]): Builder {
 /** A client backed by `db`; mutate `db` between tests to change the fixture. */
 export function fakeSupabase(db: FakeDb) {
   return {
-    from: (table: string) => build(db[table] ?? []),
+    from: (table: string) => {
+      const rows = (db[table] ??= []);
+      const builder = build(rows);
+      return Object.assign(builder, {
+        insert: (row: Row) => {
+          rows.push(row);
+          return build([row]);
+        }
+      });
+    },
     rpc: async () => ({ data: null, error: null }),
   };
 }

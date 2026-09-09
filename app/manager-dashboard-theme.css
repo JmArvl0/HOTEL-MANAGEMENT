@@ -4,29 +4,38 @@
 .app-shell .sidebar-top{padding:0 8px 16px}.app-shell .sidebar .brand{color:#f3f6f4;font-size:13px;letter-spacing:1.7px}.app-shell .sidebar .brand-mark{width:29px;height:29px;border-color:#3b443f;color:var(--dg)}.app-shell .sidebar .brand small{color:#66716a;font-size:6px}
 .app-shell .property-pill{margin:6px 0 21px;padding:9px;background:#151a16;border:1px solid var(--dl)}.app-shell .property-pill>span{width:30px;height:30px;background:#26342d;color:#7fddba}.app-shell .nav-caption{margin:0 10px 7px;color:#555f59;letter-spacing:1.5px}
 .app-shell .sidebar nav{gap:1px}.app-shell .sidebar button{padding:9px 10px;border-radius:4px;font-size:10px}.app-shell .sidebar nav button:hover{background:#171c18;color:#d5dcd8}.app-shell .sidebar nav button.active{background:#1c231e;color:#fff;box-shadow:inset 2px 0 var(--dg)}.app-shell .sidebar nav button.active svg{color:var(--dg)}.app-shell .sidebar nav i{background:#294d3c;color:#78dcb4}.app-shell .sidebar-bottom,.app-shell .profile{border-color:#242a26}.app-shell .profile{background:#121613;margin:8px -2px -3px;padding:12px 9px;border-radius:5px}.app-shell .profile>span,.app-shell .avatar{background:#d9e3dd;color:#18231d}
-.app-shell .workspace{margin-left:-16px;background:var(--db)}.app-shell .app-header{height:58px;padding:0 24px;background:#0f1310;border-color:var(--dl)}.app-shell .app-header p{color:#eef2ef;font:600 12px var(--font-sans)}.app-shell .app-header small{color:#626d66;font-size:8px}.app-shell .mode-pill{background:#15271f;border-color:#244b39;color:#69d6aa;font-size:7px}.app-shell .icon-button,.app-shell .menu-btn{width:31px;height:31px;color:#909a94;background:#141815;border-color:var(--dl)}
+.app-shell .workspace{margin-left:-16px;background:var(--db)}.app-shell .app-header{height:58px;padding:0 24px;background:#0f1310;border-color:var(--dl)}.app-shell .app-header p{color:#eef2ef;font:600 12px var(--font-sans)}.app-shell .app-header small{color:#626d66;font-size:8px}.app-shell .mode-pill{background:#15271f;border-color:#244b39;color:#69d6aa;font-size:7px}.app-shell .shift-pill.closed{background:#1a1d1b;border-color:#2a2e2b;color:#8b948e}.app-shell .icon-button,.app-shell .menu-btn{width:31px;height:31px;color:#909a94;background:#141815;border-color:var(--dl)}
 .app-shell .workspace-body{max-width:1540px;padding:24px 26px 32px}.app-shell .page-title{margin-bottom:18px}.app-shell .page-title h1{color:#f3f5f4;font:600 22px var(--font-sans);letter-spacing:-.35px}.app-shell .page-title>div>p:last-child{margin-top:5px;color:#707b74;font-size:9px}.app-shell .eyebrow{margin-bottom:7px;color:#65716a;font-size:7px;letter-spacing:1.4px}.app-shell .btn{min-height:32px;padding:8px 12px;border-radius:4px;font-size:9px}.app-shell .btn-accent{background:#e7ece9;color:#101512}.app-shell .btn-accent:hover{background:#fff}.app-shell .btn-soft{background:#151a16;border-color:var(--dl);color:#a7b0aa}
-.app-shell .metric-grid{gap:9px}.app-shell .metric-card{min-height:106px;position:relative;overflow:hidden;padding:15px;background:var(--ds);border-color:var(--dl);box-shadow:none}.app-shell .metric-card:after{content:"";position:absolute;right:12px;bottom:19px;width:74px;height:26px;opacity:.55;background:linear-gradient(160deg,transparent 0 31%,#2a5241 32% 35%,transparent 36% 47%,#377b5f 48% 51%,transparent 52% 65%,#2d604b 66% 69%,transparent 70%)}.app-shell .metric-card:nth-child(3):after{background:linear-gradient(160deg,transparent 0 25%,#592d32 26% 30%,transparent 31% 44%,#a44950 45% 49%,transparent 50% 64%,#69353a 65% 69%,transparent 70%)}.app-shell .metric-card span{color:#8d9791;font-size:8px}.app-shell .metric-card b{margin:11px 0 4px;color:#f4f7f5;font:600 23px var(--font-sans)}.app-shell .metric-card small{color:#4e8c70;font-size:7px}.app-shell .metric-card>i{position:relative;z-index:2;width:27px;height:27px;color:#7d8881;background:#191e1a;border:1px solid #29302b}.app-shell .metric-card>i svg{width:14px}
+.app-shell .metric-grid{gap:9px}@media(min-width:1201px){.app-shell .metric-grid:has(>.metric-card:nth-child(5):last-child){grid-template-columns:repeat(5,minmax(0,1fr))}}.app-shell .metric-card{min-height:106px;position:relative;overflow:hidden;padding:15px;background:var(--ds);border-color:var(--dl);box-shadow:none}.app-shell .metric-card:after{content:"";position:absolute;right:12px;bottom:19px;width:74px;height:26px;opacity:.55;background:linear-gradient(160deg,transparent 0 31%,#2a5241 32% 35%,transparent 36% 47%,#377b5f 48% 51%,transparent 52% 65%,#2d604b 66% 69%,transparent 70%)}.app-shell .metric-card:nth-child(3):after{background:linear-gradient(160deg,transparent 0 25%,#592d32 26% 30%,transparent 31% 44%,#a44950 45% 49%,transparent 50% 64%,#69353a 65% 69%,transparent 70%)}.app-shell .metric-card span{color:#8d9791;font-size:8px}.app-shell .metric-card b{margin:11px 0 4px;color:#f4f7f5;font:600 23px var(--font-sans)}.app-shell .metric-card small{color:#4e8c70;font-size:7px}.app-shell .metric-card>i{position:relative;z-index:2;width:27px;height:27px;color:#7d8881;background:#191e1a;border:1px solid #29302b}.app-shell .metric-card>i svg{width:14px}
 .app-shell .dashboard-grid{grid-template-columns:1.62fr .88fr;gap:9px;margin-top:9px}.app-shell .panel{background:var(--ds);border-color:var(--dl);padding:16px}.app-shell .panel-heading{margin-bottom:13px}.app-shell .panel-heading h3{color:#e6ebe8;font:600 10px var(--font-sans)}.app-shell .panel-heading p{color:#626c66;font-size:7px}.app-shell .panel-heading button{color:var(--dg);font-size:8px}.app-shell .trend{color:var(--dg);background:#17281f;font-size:7px}.app-shell .chart-panel{min-height:300px}.app-shell .recharts-cartesian-axis-tick-value{fill:#5f6963;font-size:9px}.app-shell .recharts-default-tooltip{color:#dce2de!important;background:#181d19!important;border-color:#303831!important;font-size:9px}.app-shell .donut-wrap p span,.app-shell .arrival-row small,.app-shell .quick-panel small{color:#6c766f}.app-shell .donut-wrap p,.app-shell .arrival-row b,.app-shell .quick-panel b{color:#cbd2ce}.app-shell .arrival-row{border-color:#242a26}.app-shell .quick-panel>button{color:#cbd2ce;background:transparent;border-color:#242a26}.app-shell .quick-panel>button:hover{background:#181d19}.app-shell .quick-icon.amber{background:#31261b;color:#d99157}.app-shell .quick-icon.green{background:#172a21;color:#5bc698}.app-shell .quick-icon.rose{background:#301e20;color:#e16d73}
 .app-shell .table-tools{margin-bottom:8px}.app-shell .table-tools label{background:#131714;border-color:var(--dl);color:#606b64}.app-shell .table-tools input{color:#dce2de;background:transparent}.app-shell .data-panel{background:var(--ds);border-color:var(--dl)}.app-shell table{font-size:9px}.app-shell th{color:#66716a;background:#101411;border-color:var(--dl);font-size:7px}.app-shell td{color:#8d9791;border-color:#222824}.app-shell td strong{color:#dce2de}.app-shell tbody tr:hover{background:#181d19}.app-shell .table-footer{color:#59635d}.app-shell .empty{color:#68736c}.app-shell .empty h3{color:#dce2de}.app-shell .badge{background:#252b27;color:#a5afa9}
-.app-shell .badge.confirmed,.app-shell .badge.available,.app-shell .badge.paid,.app-shell .badge.completed,.app-shell .badge.resolved,.app-shell .badge.healthy,.app-shell .badge.on_duty{background:#173024;color:#65d3a5}.app-shell .badge.checked_in,.app-shell .badge.in_progress,.app-shell .badge.deposit,.app-shell .badge.partial,.app-shell .badge.reserved{background:#34291c;color:#dfa062}.app-shell .badge.cancelled,.app-shell .badge.urgent,.app-shell .badge.out,.app-shell .badge.maintenance{background:#351f21;color:#ef797e}.app-shell .badge.dirty,.app-shell .badge.low,.app-shell .badge.pending,.app-shell .badge.open,.app-shell .badge.unpaid{background:#30281b;color:#d1a35f}
-.app-shell .report-banner{background:#121613;border:1px solid var(--dl)}.app-shell .report-banner>div{border-color:var(--dl)}.app-shell .report-banner h2{color:#f0f3f1;font-family:var(--font-sans)}.app-shell .modal-backdrop{background:rgba(0,0,0,.78)}.app-shell .modal{color:#dfe5e1;background:#141815;border:1px solid #303731}.app-shell .modal h2{color:#f1f4f2}.app-shell .modal input{color:#e4e9e6;background:#0f1310;border-color:#303731}.app-shell .modal-head button{color:#8d9791}.app-shell .modal-actions{border-color:#2a302b}.app-shell .toast{background:#e9eeeb;color:#101512}
+.app-shell .badge.confirmed,.app-shell .badge.available,.app-shell .badge.paid,.app-shell .badge.completed,.app-shell .badge.resolved,.app-shell .badge.healthy,.app-shell .badge.on_duty,.app-shell .badge.scheduled,.app-shell .badge.assigned,.app-shell .badge.clean,.app-shell .badge.reconciled{background:#173024;color:#65d3a5}.app-shell .badge.checked_in,.app-shell .badge.in_progress,.app-shell .badge.deposit,.app-shell .badge.partial,.app-shell .badge.reserved,.app-shell .badge.requested,.app-shell .badge.reviewed{background:#34291c;color:#dfa062}.app-shell .badge.cancelled,.app-shell .badge.urgent,.app-shell .badge.out,.app-shell .badge.maintenance,.app-shell .badge.rejected{background:#351f21;color:#ef797e}.app-shell .badge.dirty,.app-shell .badge.low,.app-shell .badge.pending,.app-shell .badge.open,.app-shell .badge.unpaid{background:#30281b;color:#d1a35f}
+.app-shell .report-banner{background:#121613;border:1px solid var(--dl)}.app-shell .report-banner>div{border-color:var(--dl)}.app-shell .report-banner h2{color:#f0f3f1;font-family:var(--font-sans)}.app-shell .toast{background:#e9eeeb;color:#101512}
 @media(max-width:1000px){.app-shell .workspace{margin-left:0}}@media print{.app-shell,.app-shell .workspace,.app-shell .panel,.app-shell .data-panel{background:#fff!important;color:#111!important}.app-shell td,.app-shell th,.app-shell h1,.app-shell h2,.app-shell h3,.app-shell strong{color:#111!important}}
 /* LIGHT MODE OVERRIDES — scoped to the authenticated portal only. */
 .theme-light .app-shell{--db:#f4f6f3;--ds:#fff;--ds2:#f7f9f6;--dl:#e1e6e2;--dt:#17201b;--dm:#68736d;--dg:#19724f;background:var(--db);color:var(--dt)}
 .theme-light .app-shell .sidebar{background:#fff;color:#66716b;border-color:var(--dl)}.theme-light .app-shell .sidebar .brand{color:#18221c}.theme-light .app-shell .sidebar .brand-mark{border-color:#cbd5cf;color:#237455}.theme-light .app-shell .sidebar .brand small{color:#8a948e}.theme-light .app-shell .property-pill{background:#f5f7f4;border-color:#e1e6e2}.theme-light .app-shell .property-pill>span{background:#dcebe3;color:#236a4e}.theme-light .app-shell .nav-caption{color:#97a19b}.theme-light .app-shell .sidebar nav button:hover{background:#f1f5f2;color:#25312a}.theme-light .app-shell .sidebar nav button.active{background:#e9f2ed;color:#154f39;box-shadow:inset 2px 0 #277c5b}.theme-light .app-shell .sidebar nav button.active svg{color:#217453}.theme-light .app-shell .sidebar nav i{background:#d9eee4;color:#1d6b4c}.theme-light .app-shell .sidebar-bottom,.theme-light .app-shell .profile{border-color:#e3e8e4}.theme-light .app-shell .profile{background:#f7f9f7}.theme-light .app-shell .profile>span,.theme-light .app-shell .avatar{background:#dce8e1;color:#244b39}
-.theme-light .app-shell .workspace{background:var(--db)}.theme-light .app-shell .app-header{background:#fff;border-color:var(--dl)}.theme-light .app-shell .app-header p{color:#1a241e}.theme-light .app-shell .app-header small{color:#7b867f}.theme-light .app-shell .mode-pill{background:#edf7f2;border-color:#cbe6d9;color:#237253}.theme-light .app-shell .icon-button,.theme-light .app-shell .menu-btn{color:#5e6962;background:#fff;border-color:#dce2de}.theme-light .app-shell .theme-toggle{color:#9a6329;background:#fff8ec;border-color:#eed8b7}.theme-light .app-shell .page-title h1{color:#17201b}.theme-light .app-shell .page-title>div>p:last-child{color:#717c75}.theme-light .app-shell .eyebrow{color:#718078}.theme-light .app-shell .btn-accent{background:#173f32;color:#fff}.theme-light .app-shell .btn-accent:hover{background:#235c49}.theme-light .app-shell .btn-soft{background:#fff;border-color:#dce2de;color:#536058}
+.theme-light .app-shell .workspace{background:var(--db)}.theme-light .app-shell .app-header{background:#fff;border-color:var(--dl)}.theme-light .app-shell .app-header p{color:#1a241e}.theme-light .app-shell .app-header small{color:#7b867f}.theme-light .app-shell .mode-pill{background:#edf7f2;border-color:#cbe6d9;color:#237253}.theme-light .app-shell .shift-pill.closed{background:#f1f2ef;border-color:#cfd4cf;color:#68736d}.theme-light .app-shell .icon-button,.theme-light .app-shell .menu-btn{color:#5e6962;background:#fff;border-color:#dce2de}.theme-light .app-shell .theme-toggle{color:#9a6329;background:#fff8ec;border-color:#eed8b7}.theme-light .app-shell .page-title h1{color:#17201b}.theme-light .app-shell .page-title>div>p:last-child{color:#717c75}.theme-light .app-shell .eyebrow{color:#718078}.theme-light .app-shell .btn-accent{background:#173f32;color:#fff}.theme-light .app-shell .btn-accent:hover{background:#235c49}.theme-light .app-shell .btn-soft{background:#fff;border-color:#dce2de;color:#536058}
 .theme-light .app-shell .metric-card{background:#fff;border-color:#e1e6e2;box-shadow:0 4px 18px rgba(30,52,41,.035)}.theme-light .app-shell .metric-card:after{opacity:.35}.theme-light .app-shell .metric-card span{color:#707b74}.theme-light .app-shell .metric-card b{color:#162019}.theme-light .app-shell .metric-card small{color:#2e8664}.theme-light .app-shell .metric-card>i{color:#2b7658;background:#edf6f1;border-color:#d8ebe1}.theme-light .app-shell .panel{background:#fff;border-color:#e1e6e2}.theme-light .app-shell .panel-heading h3{color:#1c2720}.theme-light .app-shell .panel-heading p{color:#7c8780}.theme-light .app-shell .panel-heading button{color:#207352}.theme-light .app-shell .trend{color:#247757;background:#edf7f2}.theme-light .app-shell .recharts-cartesian-axis-tick-value{fill:#7b867f}.theme-light .app-shell .recharts-default-tooltip{color:#263129!important;background:#fff!important;border-color:#dce3de!important}.theme-light .app-shell .donut-wrap p span,.theme-light .app-shell .arrival-row small,.theme-light .app-shell .quick-panel small{color:#747f78}.theme-light .app-shell .donut-wrap p,.theme-light .app-shell .arrival-row b,.theme-light .app-shell .quick-panel b{color:#253029}.theme-light .app-shell .arrival-row{border-color:#e8ece9}.theme-light .app-shell .quick-panel>button{color:#27322b;background:#fff;border-color:#e7ebe8}.theme-light .app-shell .quick-panel>button:hover{background:#f7faf8}
-.theme-light .app-shell .table-tools label{background:#fff;border-color:#dde3df;color:#748078}.theme-light .app-shell .table-tools input{color:#263129;background:transparent}.theme-light .app-shell .data-panel{background:#fff;border-color:#dfe5e1}.theme-light .app-shell th{color:#707c74;background:#f7f9f7;border-color:#dfe5e1}.theme-light .app-shell td{color:#5c6860;border-color:#e8ece9}.theme-light .app-shell td strong{color:#1d2821}.theme-light .app-shell tbody tr:hover{background:#f7faf8}.theme-light .app-shell .table-footer{color:#727e76}.theme-light .app-shell .empty{color:#758078}.theme-light .app-shell .empty h3{color:#253029}.theme-light .app-shell .badge{background:#edf0ed;color:#59645d}.theme-light .app-shell .badge.confirmed,.theme-light .app-shell .badge.available,.theme-light .app-shell .badge.paid,.theme-light .app-shell .badge.completed,.theme-light .app-shell .badge.resolved,.theme-light .app-shell .badge.healthy,.theme-light .app-shell .badge.on_duty{background:#def1e8;color:#267056}.theme-light .app-shell .badge.checked_in,.theme-light .app-shell .badge.in_progress,.theme-light .app-shell .badge.deposit,.theme-light .app-shell .badge.partial,.theme-light .app-shell .badge.reserved{background:#fff0dd;color:#a45a22}.theme-light .app-shell .badge.cancelled,.theme-light .app-shell .badge.urgent,.theme-light .app-shell .badge.out,.theme-light .app-shell .badge.maintenance{background:#f9e3e1;color:#a44843}.theme-light .app-shell .badge.dirty,.theme-light .app-shell .badge.low,.theme-light .app-shell .badge.pending,.theme-light .app-shell .badge.open,.theme-light .app-shell .badge.unpaid{background:#f4ead7;color:#90621c}
-.theme-light .app-shell .report-banner{background:#fff;border-color:#dfe5e1;color:#526059}.theme-light .app-shell .report-banner>div{border-color:#e2e7e3}.theme-light .app-shell .report-banner h2{color:#17201b}.theme-light .app-shell .modal-backdrop{background:rgba(18,35,27,.48)}.theme-light .app-shell .modal{color:#263129;background:#fff;border-color:#dbe2dd}.theme-light .app-shell .modal h2{color:#17201b}.theme-light .app-shell .modal input{color:#263129;background:#fff;border-color:#d6ddd8}.theme-light .app-shell .modal-head button{color:#667169}.theme-light .app-shell .modal-actions{border-color:#e2e7e3}.theme-light .app-shell .toast{background:#173f32;color:#fff}
+.theme-light .app-shell .table-tools label{background:#fff;border-color:#dde3df;color:#748078}.theme-light .app-shell .table-tools input{color:#263129;background:transparent}.theme-light .app-shell .data-panel{background:#fff;border-color:#dfe5e1}.theme-light .app-shell th{color:#707c74;background:#f7f9f7;border-color:#dfe5e1}.theme-light .app-shell td{color:#5c6860;border-color:#e8ece9}.theme-light .app-shell td strong{color:#1d2821}.theme-light .app-shell tbody tr:hover{background:#f7faf8}.theme-light .app-shell .table-footer{color:#727e76}.theme-light .app-shell .empty{color:#758078}.theme-light .app-shell .empty h3{color:#253029}.theme-light .app-shell .badge{background:#edf0ed;color:#59645d}.theme-light .app-shell .badge.confirmed,.theme-light .app-shell .badge.available,.theme-light .app-shell .badge.paid,.theme-light .app-shell .badge.completed,.theme-light .app-shell .badge.resolved,.theme-light .app-shell .badge.healthy,.theme-light .app-shell .badge.on_duty,.theme-light .app-shell .badge.scheduled,.theme-light .app-shell .badge.assigned,.theme-light .app-shell .badge.clean,.theme-light .app-shell .badge.reconciled{background:#def1e8;color:#267056}.theme-light .app-shell .badge.checked_in,.theme-light .app-shell .badge.in_progress,.theme-light .app-shell .badge.deposit,.theme-light .app-shell .badge.partial,.theme-light .app-shell .badge.reserved,.theme-light .app-shell .badge.requested,.theme-light .app-shell .badge.reviewed{background:#fff0dd;color:#a45a22}.theme-light .app-shell .badge.cancelled,.theme-light .app-shell .badge.urgent,.theme-light .app-shell .badge.out,.theme-light .app-shell .badge.maintenance,.theme-light .app-shell .badge.rejected{background:#f9e3e1;color:#a44843}.theme-light .app-shell .badge.dirty,.theme-light .app-shell .badge.low,.theme-light .app-shell .badge.pending,.theme-light .app-shell .badge.open,.theme-light .app-shell .badge.unpaid{background:#f4ead7;color:#90621c}
+/* Cash-shift lifecycle: closed is deliberately neutral (inactive) — distinct from
+   open (amber, in flight) and reconciled (green, settled). Declared explicitly so
+   a future badge-family edit can't silently collapse it into another color. */
+.app-shell .badge.closed{background:#252b27;color:#a5afa9}
+.theme-light .app-shell .badge.closed{background:#edf0ed;color:#59645d}
+.theme-light .app-shell .report-banner{background:#fff;border-color:#dfe5e1;color:#526059}.theme-light .app-shell .report-banner>div{border-color:#e2e7e3}.theme-light .app-shell .report-banner h2{color:#17201b}.theme-light .app-shell .toast{background:#173f32;color:#fff}
 
 /* COLLAPSIBLE SIDEBAR — shared by every authenticated role. */
 .app-shell{grid-template-columns:232px minmax(0,1fr);transition:grid-template-columns .24s ease}
-.app-shell .sidebar{transition:width .24s ease,padding .24s ease,transform .24s ease}.app-shell .workspace{margin-left:0;transition:margin .24s ease}.app-shell .sidebar-top{display:flex;align-items:center}.app-shell .sidebar-brand-toggle{width:100%;min-width:0;margin:0;padding:0!important;border:0;background:transparent!important;justify-content:flex-start;overflow:hidden}.app-shell .sidebar-brand-toggle:focus-visible,.app-shell .brand-menu-btn:focus-visible{outline:2px solid var(--dg);outline-offset:3px}.app-shell .sidebar-brand-toggle .brand-mark{flex:0 0 29px}.app-shell .brand-copy,.app-shell .property-copy,.app-shell .profile-copy,.app-shell .nav-label{min-width:0;transition:opacity .15s ease}.app-shell .brand-menu-btn{padding:0!important;border:0!important;background:transparent!important}.app-shell .brand-menu-btn .brand-mark{width:31px;height:31px;color:var(--dg);border-color:var(--dl)}
-.app-shell.sidebar-collapsed{grid-template-columns:72px minmax(0,1fr)}.app-shell .sidebar.collapsed{width:72px;padding-left:11px;padding-right:11px}.app-shell .sidebar.collapsed .sidebar-top{padding-left:10px;padding-right:10px}.app-shell .sidebar.collapsed .sidebar-brand-toggle{width:31px}.app-shell .sidebar.collapsed .brand-copy,.app-shell .sidebar.collapsed .property-copy,.app-shell .sidebar.collapsed .property-chevron,.app-shell .sidebar.collapsed .nav-caption,.app-shell .sidebar.collapsed .nav-label,.app-shell .sidebar.collapsed .profile-copy,.app-shell .sidebar.collapsed nav i{display:none}.app-shell .sidebar.collapsed .property-pill{justify-content:center;padding:9px 6px}.app-shell .sidebar.collapsed .property-pill>span{flex:0 0 30px}.app-shell .sidebar.collapsed nav button,.app-shell .sidebar.collapsed .sidebar-bottom>button{justify-content:center;padding-left:0;padding-right:0}.app-shell .sidebar.collapsed nav button svg,.app-shell .sidebar.collapsed .sidebar-bottom>button svg{flex:0 0 auto}.app-shell .sidebar.collapsed .profile{justify-content:center;padding-left:4px;padding-right:4px}.app-shell .sidebar.collapsed .profile>span{flex:0 0 34px}
-.theme-light .app-shell .sidebar-brand-toggle{color:#18221c}.theme-light .app-shell .brand-menu-btn .brand-mark{color:#217453;border-color:#cbd5cf}
-@media(max-width:1000px){.app-shell,.app-shell.sidebar-collapsed{grid-template-columns:1fr}.app-shell .sidebar,.app-shell .sidebar.collapsed{width:232px;padding:18px 13px}.app-shell .sidebar.collapsed .sidebar-top{padding:0 8px 16px}.app-shell .sidebar.collapsed .sidebar-brand-toggle{width:100%}.app-shell .sidebar.collapsed .brand-copy,.app-shell .sidebar.collapsed .property-copy,.app-shell .sidebar.collapsed .property-chevron,.app-shell .sidebar.collapsed .nav-caption,.app-shell .sidebar.collapsed .nav-label,.app-shell .sidebar.collapsed .profile-copy{display:block}.app-shell .sidebar.collapsed nav i{display:inline}.app-shell .sidebar.collapsed .property-pill{justify-content:flex-start;padding:9px}.app-shell .sidebar.collapsed nav button,.app-shell .sidebar.collapsed .sidebar-bottom>button{justify-content:flex-start;padding:9px 10px}.app-shell .sidebar.collapsed .profile{justify-content:flex-start;padding:12px 9px}.app-shell .brand-menu-btn{display:grid}}
+.app-shell .sidebar{transition:width .24s ease,padding .24s ease,transform .24s ease}.app-shell .workspace{margin-left:0;transition:margin .24s ease}.app-shell .sidebar-top{display:flex;align-items:center}.app-shell .sidebar .brand{min-width:0;flex:1;overflow:hidden}.app-shell .sidebar .brand>.brand-mark{flex:0 0 29px;padding:0;background:transparent;cursor:pointer}.app-shell .sidebar .brand-copy{white-space:nowrap;color:inherit}.app-shell .sidebar-brand-toggle:focus-visible,.app-shell .brand-menu-btn:focus-visible{outline:2px solid var(--dg);outline-offset:3px}.app-shell .brand-copy,.app-shell .property-copy,.app-shell .profile-copy,.app-shell .nav-label{min-width:0;transition:opacity .15s ease}.app-shell .brand-menu-btn{padding:0!important;border:0!important;background:transparent!important}.app-shell .brand-menu-btn .brand-mark{width:31px;height:31px;color:var(--dg);border-color:var(--dl)}
+.app-shell.sidebar-collapsed{grid-template-columns:72px minmax(0,1fr)}.app-shell .sidebar.collapsed{width:72px;padding-left:11px;padding-right:11px}.app-shell .sidebar.collapsed .sidebar-top{padding-left:10px;padding-right:10px}.app-shell .sidebar.collapsed .brand-copy,.app-shell .sidebar.collapsed .property-copy,.app-shell .sidebar.collapsed .property-chevron,.app-shell .sidebar.collapsed .nav-caption,.app-shell .sidebar.collapsed .nav-label,.app-shell .sidebar.collapsed .profile-copy,.app-shell .sidebar.collapsed nav i{display:none}.app-shell .sidebar.collapsed .property-pill{justify-content:center;padding:9px 6px}.app-shell .sidebar.collapsed .property-pill>span{flex:0 0 30px}.app-shell .sidebar.collapsed nav button,.app-shell .sidebar.collapsed .sidebar-bottom>button{justify-content:center;padding-left:0;padding-right:0}.app-shell .sidebar.collapsed nav button svg,.app-shell .sidebar.collapsed .sidebar-bottom>button svg{flex:0 0 auto}.app-shell .sidebar.collapsed .profile{justify-content:center;padding-left:4px;padding-right:4px}.app-shell .sidebar.collapsed .profile>span{flex:0 0 34px}
+.theme-light .app-shell .sidebar .brand>.brand-mark{color:#18221c}.theme-light .app-shell .brand-menu-btn .brand-mark{color:#217453;border-color:#cbd5cf}
+@media(max-width:1000px){.app-shell,.app-shell.sidebar-collapsed{grid-template-columns:1fr}.app-shell .sidebar,.app-shell .sidebar.collapsed{width:232px;padding:18px 13px}.app-shell .sidebar.collapsed .sidebar-top{padding:0 8px 16px}.app-shell .sidebar.collapsed .brand-copy,.app-shell .sidebar.collapsed .property-copy,.app-shell .sidebar.collapsed .property-chevron,.app-shell .sidebar.collapsed .nav-caption,.app-shell .sidebar.collapsed .nav-label,.app-shell .sidebar.collapsed .profile-copy{display:block}.app-shell .sidebar.collapsed nav i{display:inline}.app-shell .sidebar.collapsed .property-pill{justify-content:flex-start;padding:9px}.app-shell .sidebar.collapsed nav button,.app-shell .sidebar.collapsed .sidebar-bottom>button{justify-content:flex-start;padding:9px 10px}.app-shell .sidebar.collapsed .profile{justify-content:flex-start;padding:12px 9px}.app-shell .brand-menu-btn{display:grid}}
 @media(min-width:1001px){.app-shell .brand-menu-btn{display:none}}
+/* Mobile drawer scrim (customer-shell pattern): tap-outside closes the nav.
+   z-index 19 sits under the sidebar's 20; hidden at desktop widths. */
+.app-shell .sidebar-backdrop{position:fixed;inset:0;z-index:19;border:0;background:#00000059;display:none}
+@media(max-width:1000px){.app-shell .sidebar-backdrop{display:block}}
 
 /* ── THEME SWITCH: `html.theme-light` drives the palette, no class = dark ── */
 .app-shell{color-scheme:dark}.theme-light .app-shell{color-scheme:light}html:not(.theme-light) body{background:#0c0f0d}
@@ -49,5 +58,911 @@ html[data-theme-transition="shrink"]::view-transition-new(root){z-index:1}
 html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 @media(prefers-reduced-motion:reduce){.theme-toggle-icon,.tt-core,.tt-cut,.tt-rays{transition:none}}
 
-.app-shell .notification-popover{background:#141815;border-color:var(--dl)}.app-shell .notification-popover>div,.app-shell .notification-popover>button{border-color:var(--dl)}.app-shell .notification-popover>button{background:#141815;color:#dfe5e1}.app-shell .notification-popover>button:hover{background:#1b211c}.app-shell .reservation-filters button,.app-shell .reservation-filters select{background:#141815;border-color:var(--dl);color:#929c96}.app-shell .reservation-filters button.active{background:#e7ede9;color:#142019}.app-shell .reservation-detail-grid section,.app-shell .reservation-payment-history,.app-shell .reservation-detail-grid dl>div,.app-shell .reservation-payment-history p{border-color:var(--dl)}.app-shell .reservation-detail-grid h3,.app-shell .reservation-payment-history h3,.app-shell .reservation-detail-grid dd{color:#dfe5e1}.app-shell .badge.no_show{background:#351f21;color:#ef797e}
-.theme-light .app-shell .notification-popover{background:#fff;border-color:#dfe5e1}.theme-light .app-shell .notification-popover>div,.theme-light .app-shell .notification-popover>button{border-color:#e5eae6}.theme-light .app-shell .notification-popover>button{background:#fff;color:#253029}.theme-light .app-shell .notification-popover>button:hover{background:#f5f8f6}.theme-light .app-shell .reservation-filters button,.theme-light .app-shell .reservation-filters select{background:#fff;border-color:#dce2de;color:#657169}.theme-light .app-shell .reservation-filters button.active{background:#173f32;color:#fff}.theme-light .app-shell .reservation-detail-grid section,.theme-light .app-shell .reservation-payment-history,.theme-light .app-shell .reservation-detail-grid dl>div,.theme-light .app-shell .reservation-payment-history p{border-color:#dfe5e1}.theme-light .app-shell .reservation-detail-grid h3,.theme-light .app-shell .reservation-payment-history h3,.theme-light .app-shell .reservation-detail-grid dd{color:#253029}.theme-light .app-shell .badge.no_show{background:#f9e3e1;color:#a44843}
+.app-shell .notification-popover{background:#141815;border-color:var(--dl)}.app-shell .notification-popover>div,.app-shell .notification-popover>button{border-color:var(--dl)}.app-shell .notification-popover>button{background:#141815;color:#dfe5e1}.app-shell .notification-popover>button:hover{background:#1b211c}
+/* Header popovers — hover-bridged dropdowns shared by manager/owner/admin (guest shell pattern, staff palette). */
+.app-shell .notification-center,.app-shell .profile-menu-wrap{position:relative}
+.app-shell .popover-gap{position:absolute;z-index:40;right:0;top:100%;padding-top:9px}
+.app-shell .notification-popover{border-radius:10px;padding:6px;box-shadow:0 16px 40px #00000059}
+.app-shell .notification-popover>div{padding:9px 9px 10px;margin:0 0 5px;border-bottom:1px solid var(--dl);display:flex;justify-content:space-between}
+.app-shell .notification-popover>div b{font-size:10px}.app-shell .notification-popover>div small{font-size:8px;color:#626d66}
+.app-shell .notification-popover>button{display:block;width:100%;padding:9px;border:0;border-radius:6px;text-align:left}
+.app-shell .notification-popover>button strong{display:block;font-size:10px}.app-shell .notification-popover>button span{display:block;margin-top:3px;font-size:9px;color:#909a94}
+.app-shell .notification-popover>p{padding:9px;color:#626d66;font-size:9px}
+.app-shell .profile-menu-btn{display:flex;align-items:center;gap:8px;max-width:210px;padding:4px 9px 4px 4px;border:1px solid var(--dl);border-radius:99px;background:#141815;color:#dfe5e1;text-align:left}
+.app-shell .profile-menu-btn:hover{border-color:#3b443f}
+.app-shell .profile-menu-btn b{width:26px;height:26px;flex:0 0 26px;display:grid;place-items:center;border-radius:50%;background:#d9e3dd;color:#18231d;font-size:9px}
+.app-shell .profile-menu-btn>span{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;font-weight:700}
+.app-shell .profile-menu-btn svg{flex:0 0 auto;color:#909a94}
+.app-shell .profile-popover{width:206px;padding:6px;border-radius:10px;background:#141815;border:1px solid var(--dl);box-shadow:0 16px 40px #00000059}
+.app-shell .profile-popover>p{padding:9px 9px 10px;margin:0 0 5px;border-bottom:1px solid var(--dl)}
+.app-shell .profile-popover>p strong,.app-shell .profile-popover>p small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app-shell .profile-popover>p strong{font-size:10px}.app-shell .profile-popover>p small{font-size:8px;color:#626d66;margin-top:3px}
+.app-shell .profile-popover>button{display:flex;align-items:center;gap:8px;width:100%;padding:9px;border:0;border-radius:6px;background:transparent;color:#dfe5e1;font-size:9px;text-align:left}
+.app-shell .profile-popover>button:hover{background:#1b211c}
+.app-shell .reservation-filters button,.app-shell .reservation-filters select{background:#141815;border-color:var(--dl);color:#929c96}.app-shell .reservation-filters button.active{background:#e7ede9;color:#142019}.app-shell .badge.no_show{background:#351f21;color:#ef797e}
+/* Front-desk reservations table — 8 consolidated columns, never-wrapping stay dates. */
+.app-shell .reservations-table{min-width:1020px;font-variant-numeric:tabular-nums}
+.app-shell .reservations-table th{position:sticky;top:0;z-index:2}
+.app-shell .reservations-table tbody tr{cursor:pointer}
+.app-shell .reservations-table tbody tr:hover,.app-shell .reservations-table tbody tr:focus-visible{background:#181d19;box-shadow:inset 2px 0 0 var(--dg)}
+.app-shell .reservations-table tbody tr:focus-visible{outline:none}
+.app-shell .cell-stack{display:grid;gap:3px;min-width:0}
+.app-shell .cell-stack b{color:#dce2de;font-weight:650;white-space:nowrap}
+.app-shell .cell-stack small{color:#6c766f;font-size:9px}
+.app-shell .cell-stack .unassigned-room{color:#8d9791;font-weight:400}
+.app-shell .stay-cell{display:grid;gap:3px;white-space:nowrap}
+.app-shell .stay-cell b{display:flex;align-items:center;gap:5px;color:#dce2de;font-weight:650}
+.app-shell .stay-cell b i{font-style:normal;color:#4e8c70}
+.app-shell .stay-cell small{color:#6c766f;font-size:9px}
+.app-shell .stay-cell.today b{color:#65d3a5}
+.app-shell .stay-cell.today b::before{content:"";width:6px;height:6px;border-radius:50%;background:#37b27a}
+.app-shell .balance-due{color:#dfa062;font-weight:700}
+.app-shell .balance-clear{color:#4e8c70}
+.app-shell .reservations-table .badge.identity{width:max-content}
+.app-shell .reservations-table .chip-count{margin-left:5px;font-style:normal;font-size:8px;font-weight:700;color:inherit;opacity:.7}
+/* Row-action chips: full state vocabulary in the staff palette. */
+.app-shell .table-action{transition:background-color .18s ease,border-color .18s ease,color .18s ease,transform .12s ease}
+.app-shell .table-action svg{width:13px;height:13px}
+.app-shell .table-action:hover{background:#17281f;border-color:#2d5c46;color:var(--dg)}
+.app-shell .table-action:focus-visible{outline:2px solid var(--dg);outline-offset:1px}
+.app-shell .table-action:active{transform:translateY(1px)}
+.app-shell .table-action.view-action{background:#173024;border-color:#235c46;color:#65d3a5}
+.app-shell .table-action.view-action:hover{background:#1d3f2c;border-color:#2d5c46;color:#8be2ba}
+.app-shell .table-action.check-in-action{background:#e7ece9;border-color:#e7ece9;color:#101512;font-weight:700}
+.app-shell .table-action.check-in-action:hover{background:#fff;color:#101512}
+@media print{.app-shell .reservations-table th{position:static}}
+.theme-light .app-shell .notification-popover{background:#fff;border-color:#dfe5e1}.theme-light .app-shell .notification-popover>div,.theme-light .app-shell .notification-popover>button{border-color:#e5eae6}.theme-light .app-shell .notification-popover>button{background:#fff;color:#253029}.theme-light .app-shell .notification-popover>button:hover{background:#f5f8f6}
+.theme-light .app-shell .notification-popover>div small,.theme-light .app-shell .notification-popover>button span,.theme-light .app-shell .notification-popover>p{color:#7b867f}
+.theme-light .app-shell .profile-menu-btn{background:#fff;border-color:#dce2de;color:#253029}.theme-light .app-shell .profile-menu-btn:hover{border-color:#9fb0a7}
+.theme-light .app-shell .profile-menu-btn b{background:#dce8e1;color:#244b39}
+.theme-light .app-shell .profile-menu-btn svg{color:#5e6962}
+.theme-light .app-shell .profile-popover{background:#fff;border-color:#dfe5e1}
+.theme-light .app-shell .profile-popover>p{border-color:#e5eae6}.theme-light .app-shell .profile-popover>p small{color:#7b867f}
+.theme-light .app-shell .profile-popover>button{color:#253029}.theme-light .app-shell .profile-popover>button:hover{background:#f5f8f6}
+@media(max-width:1000px){.app-shell .profile-menu-btn>span,.app-shell .profile-menu-btn>svg{display:none}.app-shell .profile-menu-btn{padding:4px;max-width:none}}.theme-light .app-shell .reservation-filters button,.theme-light .app-shell .reservation-filters select{background:#fff;border-color:#dce2de;color:#657169}.theme-light .app-shell .reservation-filters button.active{background:#173f32;color:#fff}.theme-light .app-shell .badge.no_show{background:#f9e3e1;color:#a44843}
+/* Reservations table + action chips, light mirrors. */
+.theme-light .app-shell .reservations-table tbody tr:hover,.theme-light .app-shell .reservations-table tbody tr:focus-visible{background:#f7faf8;box-shadow:inset 2px 0 0 #19724f}
+.theme-light .app-shell .cell-stack b{color:#1d2821}
+.theme-light .app-shell .cell-stack small{color:#747f78}
+.theme-light .app-shell .cell-stack .unassigned-room{color:#74807a}
+.theme-light .app-shell .stay-cell b{color:#1d2821}
+.theme-light .app-shell .stay-cell b i{color:#2e8664}
+.theme-light .app-shell .stay-cell small{color:#747f78}
+.theme-light .app-shell .stay-cell.today b{color:#1d6b4c}
+.theme-light .app-shell .stay-cell.today b::before{background:#37b27a}
+.theme-light .app-shell .balance-due{color:#a45a22}
+.theme-light .app-shell .balance-clear{color:#2e8664}
+.theme-light .app-shell .table-action:hover{background:#edf7f2;border-color:#9fd8bd;color:#19724f}
+.theme-light .app-shell .table-action:focus-visible{outline-color:#19724f}
+.theme-light .app-shell .table-action.view-action{background:#def1e8;border-color:#b5ddc9;color:#267056}
+.theme-light .app-shell .table-action.view-action:hover{background:#d0ecdf;border-color:#8fcdae;color:#1d5b45}
+.theme-light .app-shell .table-action.check-in-action{background:#173f32;border-color:#173f32;color:#fff}
+.theme-light .app-shell .table-action.check-in-action:hover{background:#235c49;color:#fff}
+/* Rooms module — status-tinted card grid (scan 20+ rooms by color). */
+.app-shell .room-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;padding:16px}
+.app-shell .room-card{padding:16px;border:1px solid var(--dl);border-radius:10px;background:#141815}
+.app-shell .room-card header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+.app-shell .room-card header b{min-width:0;color:#f1f4f2;font:800 20px/1.25 var(--font-sans)}
+.app-shell .room-card header .badge{flex:none;border:0;cursor:default;font-size:10px!important;line-height:1;padding:5px 10px;border-radius:999px;letter-spacing:.2px}
+.app-shell .room-card header button.badge{cursor:pointer}
+.app-shell .room-card .room-type{display:inline-flex;margin:0 0 14px;padding:4px 10px;border-radius:999px;background:#173024;color:#65d3a5;font:700 11px/1.3 var(--font-sans)}
+.app-shell .room-card dl{margin:0;border-top:1px solid #ffffff0f}
+.app-shell .room-card dl>div{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid #ffffff0f;font-size:13px;line-height:1.5}
+.app-shell .room-card dl>div:last-child{border-bottom:0}
+.app-shell .room-card dt{color:#98a29c;font-weight:600;white-space:nowrap}
+.app-shell .room-card dd{margin:0;color:#e6ebe8;text-align:right;font-weight:650;font-variant-numeric:tabular-nums}
+.app-shell .room-card dd .badge{font-size:9px!important}
+/* Room status identity — one hue per operational state, readable at grid-scan distance:
+   available forest, dirty gold, maintenance rose, reserved terracotta (brand accent),
+   occupied blue. Body tints stay deep; the border and the solid status badge carry the hue. */
+.app-shell .room-card.available{background:#142a1e;border-color:#2c6a4b}
+.app-shell .room-card.reserved{background:#2a1d12;border-color:#8a5424}
+.app-shell .room-card.occupied{background:#152740;border-color:#3a608f}
+.app-shell .room-card.dirty{background:#2d2410;border-color:#8a6d1c}
+.app-shell .room-card.maintenance{background:#2a1418;border-color:#8a3740}
+.app-shell .room-card header .badge{font-size:11px!important;font-weight:700;letter-spacing:.3px}
+.app-shell .room-card header .badge.available{background:#1f6b52;color:#eafff5}
+.app-shell .room-card header .badge.reserved{background:#9c5e26;color:#fff7ee}
+.app-shell .room-card header .badge.occupied{background:#35618f;color:#eaf4ff}
+.app-shell .room-card header .badge.dirty{background:#8f6a20;color:#fff8e6}
+.app-shell .room-card header .badge.maintenance{background:#a4444c;color:#fff0f1}
+.app-shell .badge.occupied{background:#152132;color:#7fa8d4}
+/* Settings dialog (profile menu) — theme row + guest PasswordForm. The shared
+   modal renders a light panel in both staff themes, so these pin light. */
+.app-shell .modal-content .settings-theme-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;background:#f7f9f6;border:1px solid #e1e6e2;border-radius:6px}
+.app-shell .modal-content .settings-theme-row b{display:block;color:#1a241e;font-size:11px}
+.app-shell .modal-content .settings-theme-row small{display:block;color:#7b867f;font-size:9px;margin-top:3px}
+.app-shell .modal-content .settings-body h3{color:#1c2720;font:600 10px var(--font-sans);margin:16px 0 8px}
+.app-shell .modal-content .account-form-grid label{color:#748078;font-size:9px;font-weight:800}
+.app-shell .modal-content .account-form-grid input{width:100%;margin-top:6px;padding:10px;border:1px solid #d6ddd8;border-radius:4px;background:#fff;color:#263129}
+.app-shell .modal-content .account-form .btn{margin-top:14px}
+.app-shell .modal-content .booking-error{background:#f9e3e1;color:#a44843;border:1px solid #e4beb9}
+.app-shell .modal-content .account-success{color:#267056}
+@media(max-width:680px){.app-shell .room-card-grid{grid-template-columns:1fr 1fr}}
+/* Light theme variants */
+.theme-light .app-shell .room-card{background:#fff}
+.theme-light .app-shell .room-card dl{border-color:#0000000d}
+.theme-light .app-shell .room-card dl>div{border-color:#0000000d}
+.theme-light .app-shell .room-card dt{color:#66716b}
+.theme-light .app-shell .room-card dd{color:#1d2821}
+.theme-light .app-shell .room-card header b{color:#17201b}
+.theme-light .app-shell .room-card .room-type{background:#def1e8;color:#267056}
+.theme-light .app-shell .room-card.available{background:#e9f4ed;border-color:#9ecdb5}
+.theme-light .app-shell .room-card.reserved{background:#f7efe6;border-color:#dcae7f}
+.theme-light .app-shell .room-card.occupied{background:#eaf1f7;border-color:#a9c6e0}
+.theme-light .app-shell .room-card.dirty{background:#f9eed3;border-color:#dcbc6e}
+.theme-light .app-shell .room-card.maintenance{background:#f9e7e5;border-color:#e2a29c}
+.theme-light .app-shell .room-card header .badge.available{background:#1f6b52;color:#f2fbf7}
+.theme-light .app-shell .room-card header .badge.reserved{background:#9c5e26;color:#fff8ef}
+.theme-light .app-shell .room-card header .badge.occupied{background:#2a5d8f;color:#f0f7ff}
+.theme-light .app-shell .room-card header .badge.dirty{background:#8f6414;color:#fffaea}
+.theme-light .app-shell .room-card header .badge.maintenance{background:#a44843;color:#fff1f0}
+.theme-light .app-shell .badge.occupied{background:#eaf1f7;color:#2a5d8f}
+
+/* ── F4 type floor (2026-09-05, DESIGN-STATUS): raise the smallest staff type
+   while keeping density. Sizes are set once here (the dark block) and are
+   inherited by light mode, which only overrides colors. 8px→10, 9px→11,
+   7px→9, 6px→8. ── */
+.app-shell .sidebar .brand small{font-size:8px;letter-spacing:1.6px;line-height:1.4}
+.app-shell .nav-caption{font-size:9px}
+.app-shell .app-header small{font-size:10px}
+.app-shell .mode-pill{font-size:9px;padding:6px 10px}
+.app-shell .page-title>div>p:last-child{font-size:11px}
+.app-shell .page-title .title-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.app-shell .eyebrow{font-size:9px}
+.app-shell .metric-card span{font-size:10px}
+.app-shell .metric-card small{font-size:9px;line-height:1.4}
+.app-shell .panel-heading h3{font-size:12px}
+.app-shell .panel-heading p{font-size:9px;line-height:1.5}
+.app-shell .panel-heading button{font-size:10px}
+.app-shell .trend{font-size:9px}
+.app-shell table{font-size:11px}
+.app-shell th{font-size:9px;letter-spacing:.7px}
+.app-shell .table-footer{font-size:10px}
+.app-shell .btn{min-height:36px;padding:8px 13px;border-radius:6px;font-size:11px}
+.app-shell .btn-sm{font-size:11px;min-height:32px}
+.app-shell .property-pill small{font-size:10px}
+/* Guest-request review panel: the title/description/filters/search form a
+   full-width control area; below them a two-column region pairs the submission
+   queue with a read-only inventory rail, so the rail aligns with the request
+   content instead of the page heading. */
+.app-shell .grp-layout{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:26px;align-items:start}
+.app-shell .grp-inventory{position:sticky;top:78px;border-radius:6px;padding:18px;background:var(--ds);border:1px solid var(--dl);box-shadow:0 14px 34px rgba(0,0,0,.24)}
+.app-shell .grp-inventory>header{display:flex;align-items:center;gap:10px;margin-bottom:2px;padding-bottom:12px;border-bottom:1px solid #222824}
+.app-shell .grp-inventory-icon{width:30px;height:30px;display:grid;place-items:center;border-radius:5px;background:#172a21;color:#5bc698}
+.app-shell .grp-inventory-icon svg{width:15px}
+.app-shell .grp-inventory header>div{flex:1;min-width:0}
+.app-shell .grp-inventory header b{display:block;color:#e6ebe8;font-size:12px}
+.app-shell .grp-inventory header small{display:block;margin-top:2px;color:#626c66;font-size:9px}
+.app-shell .grp-inventory header .badge{margin-left:auto}
+.app-shell .grp-inventory ul{list-style:none;margin:0;padding:0}
+.app-shell .grp-inventory li{display:grid;gap:4px;padding:11px 0;border-bottom:1px solid #222824}
+.app-shell .grp-inventory li:last-child{border-bottom:0}
+.app-shell .grp-inv-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.app-shell .grp-inv-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#dce2de;font-size:11px;font-weight:600}
+.app-shell .grp-inv-qty{margin:0;display:flex;align-items:baseline;gap:5px;font-variant-numeric:tabular-nums}
+.app-shell .grp-inv-qty b{color:#dce2de;font-weight:600;font-size:12px}
+.app-shell .grp-inv-target{color:#5f6963;font-size:10px}
+.app-shell .grp-inv-unit{color:#626c66;font-size:9px}
+.app-shell .grp-inventory li.grp-low .grp-inv-qty b{color:#d1a35f}
+.app-shell .grp-inventory .grp-inventory-empty{display:block;padding:14px 0;color:#626c66;font-size:10px}
+.app-shell .grp-inventory-note{display:block;margin-top:10px;padding-top:11px;border-top:1px solid #222824;color:#626c66;font-size:9px;line-height:1.6}
+.app-shell .grp-batches{display:grid;gap:10px}
+.app-shell .grp-batch{background:var(--ds);border:1px solid var(--dl)}
+.app-shell .grp-batch>header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:14px 16px;border-bottom:1px solid #222824}
+.app-shell .grp-batch>header strong{display:block;color:#dce2de;font-size:11px}
+.app-shell .grp-batch>header small{display:block;margin-top:4px;color:#626c66;font-size:9px}
+.app-shell .grp-batch-meta{display:flex;flex-direction:column;align-items:flex-end;gap:9px}
+.app-shell .grp-batch ul{list-style:none;margin:0;padding:4px 16px 10px}
+.app-shell .grp-batch li{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:10px 0;border-bottom:1px dashed #222824}
+.app-shell .grp-batch li:last-child{border-bottom:0}
+.app-shell .grp-batch li b{display:block;color:#dce2de;font-size:10px}
+.app-shell .grp-batch li small{display:block;margin-top:3px;color:#626c66;font-size:9px}
+.app-shell .grp-note{color:#ef797e}
+.app-shell .badge.grp-approval.pending{background:#30281b;color:#d1a35f}
+.app-shell .badge.grp-approval.approved{background:#173024;color:#65d3a5}
+.app-shell .badge.grp-approval.rejected{background:#351f21;color:#ef797e}
+.theme-light .app-shell .grp-inventory{background:#fff;border-color:#e1e6e2;box-shadow:0 4px 18px rgba(30,52,41,.05)}
+.theme-light .app-shell .grp-inventory-icon{background:#e3f1eb;color:#277058}
+.theme-light .app-shell .grp-inventory header b{color:#1c2720}
+.theme-light .app-shell .grp-inventory header small{color:#7c8780}
+.theme-light .app-shell .grp-inventory li{border-color:#e8ece9}
+.theme-light .app-shell .grp-inventory>header{border-color:#e8ece9}
+.theme-light .app-shell .grp-inv-name{color:#1d2821}
+.theme-light .app-shell .grp-inv-qty b{color:#1d2821}
+.theme-light .app-shell .grp-inv-target{color:#98a29b}
+.theme-light .app-shell .grp-inv-unit{color:#7c8780}
+.theme-light .app-shell .grp-inventory li.grp-low .grp-inv-qty b{color:#90621c}
+.theme-light .app-shell .grp-inventory .grp-inventory-empty{color:#7c8780}
+.theme-light .app-shell .grp-inventory-note{border-color:#e8ece9;color:#7c8780}
+.theme-light .app-shell .grp-batch{background:#fff;border-color:#dfe5e1}
+.theme-light .app-shell .grp-batch>header{border-color:#e8ece9}
+.theme-light .app-shell .grp-batch>header strong{color:#1d2821}
+.theme-light .app-shell .grp-batch>header small{color:#7c8780}
+.theme-light .app-shell .grp-batch li{border-color:#e8ece9}
+.theme-light .app-shell .grp-batch li b{color:#1d2821}
+.theme-light .app-shell .grp-batch li small{color:#7c8780}
+.theme-light .app-shell .grp-note{color:#a44843}
+.theme-light .app-shell .badge.grp-approval.pending{background:#f4ead7;color:#90621c}
+.theme-light .app-shell .badge.grp-approval.approved{background:#def1e8;color:#267056}
+.theme-light .app-shell .badge.grp-approval.rejected{background:#f9e3e1;color:#a44843}
+@media(max-width:1100px){.app-shell .grp-layout{grid-template-columns:minmax(0,1fr)}.app-shell .grp-inventory{position:static}}
+@media(max-width:680px){.app-shell .grp-batch>header{flex-direction:column;gap:10px}.app-shell .grp-batch-meta{align-items:flex-start}}
+
+/* Daily Front Desk Operations Report — centralized reporting workspace. */
+.app-shell .report-tools{display:flex;align-items:end;gap:10px}
+.app-shell .report-tools label{display:grid;gap:5px;color:#7f8a83;font-size:8px;letter-spacing:1px;text-transform:uppercase}
+.app-shell .report-tools input{min-height:32px;padding:6px 9px;border:1px solid var(--dl);border-radius:4px;background:#131714;color:#dce2de;font-size:10px}
+.app-shell .report-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.app-shell .export-note{margin:-4px 0 14px;padding:7px 10px;border:1px dashed #2e4c3d;border-radius:6px;background:#12201933;color:#6fae91;font-size:9px}
+.app-shell .report-snapshot{display:grid;gap:12px}
+.app-shell .report-snapshot>header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--dl)}
+.app-shell .report-snapshot>header h2{color:#f0f3f1;font:600 20px var(--font-sans)}
+.app-shell .report-snapshot>header small{color:#626d66;font-size:9px}
+.app-shell .report-snapshot section{padding:12px;border:1px solid var(--dl);border-radius:8px;background:#13171433}
+.app-shell .report-snapshot section h3{margin-bottom:3px;color:#e6ebe8;font:600 10px var(--font-sans)}
+.app-shell .snapshot-hint{margin:0 0 6px;color:#626c66;font-size:8px}
+.app-shell .snapshot-list{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px}
+.app-shell .snapshot-list li{display:flex;justify-content:space-between;gap:10px;padding:6px 9px;border:1px solid var(--dl);border-radius:5px;background:#141815;color:#8d9791;font-size:10px}
+.app-shell .snapshot-list li b{color:#dce2de;font-variant-numeric:tabular-nums}
+.app-shell .report-pager{display:inline-flex;gap:6px;margin-left:8px}
+.app-shell .badge.submitted{background:#30281b;color:#d1a35f}
+.app-shell .badge.acknowledged{background:#173024;color:#65d3a5}
+.app-shell .badge.returned{background:#351f21;color:#ef797e}
+.theme-light .app-shell .report-tools input{background:#fff;border-color:#dce2de;color:#263129}
+.theme-light .app-shell .export-note{border-color:#bcd8c9;background:#f0f7f33d;color:#2e7356}
+.theme-light .app-shell .report-snapshot>header{border-color:#dfe5e1}
+.theme-light .app-shell .report-snapshot>header h2{color:#17201b}
+.theme-light .app-shell .report-snapshot>header small{color:#7b867f}
+.theme-light .app-shell .report-snapshot section{background:#f7f9f633;border-color:#dfe5e1}
+.theme-light .app-shell .report-snapshot section h3{color:#1c2720}
+.theme-light .app-shell .snapshot-hint{color:#7c8780}
+.theme-light .app-shell .snapshot-list li{background:#fff;border-color:#e5eae6;color:#5c6860}
+.theme-light .app-shell .snapshot-list li b{color:#1d2821}
+.theme-light .app-shell .badge.submitted{background:#f4ead7;color:#90621c}
+.theme-light .app-shell .badge.acknowledged{background:#def1e8;color:#267056}
+.theme-light .app-shell .badge.returned{background:#f9e3e1;color:#a44843}
+
+/* Front Desk arrival lane + guided room-assignment / check-in wizard (2026-09-06).
+   Tokens do the theme lifting (--ds panel, --dl border, --dt text, --dm muted, --dg accent);
+   literal fills below get explicit light overrides at the end. */
+.app-shell .arrival-lane{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;padding:9px 11px;background:var(--ds);border:1px solid var(--dl);border-radius:8px}
+.app-shell .arrival-lane .lane-title{display:inline-flex;align-items:center;gap:7px;font-weight:800;font-size:10px;color:var(--dt);margin-right:2px}
+.app-shell .arrival-lane .lane-title svg{color:var(--dg)}
+.app-shell .arrival-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;background:#141815;border:1px solid var(--dl);color:#929c96;font-size:9px;font-weight:700}
+.app-shell .arrival-chip b{color:var(--dt)}
+.app-shell .arrival-chip.ok{background:#173024;border-color:#244b39;color:#65d3a5}
+.app-shell .arrival-chip.warn{background:#34291c;border-color:#57432a;color:#e2a966}
+/* Walk-in / arrival wizard bodies — these classes now live only inside the
+   shared modal's light panel, so they pin the light values (copied from the
+   former .theme-light mirrors) in both staff themes. */
+.app-shell .modal-content .arrival-summary{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:2px 0 14px;color:#68736d;font-size:10px}
+.app-shell .modal-content .arrival-summary b{color:#17201b}
+.app-shell .modal-content .arrival-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 18px}
+.app-shell .modal-content .arrival-step{display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid #e1e6e2;border-radius:6px;background:#fff;color:#68736d}
+.app-shell .modal-content .arrival-step.active{border-color:#bcd7c9;color:#154f39;background:#e9f2ed}
+.app-shell .modal-content .arrival-step.done{border-color:#b9d9c8;color:#267056}
+.app-shell .modal-content .arrival-step-badge{flex:0 0 20px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:#f5f8f6;border:1px solid #e1e6e2;font-size:9px;font-weight:800;color:#68736d}
+.app-shell .modal-content .arrival-step.active .arrival-step-badge{background:#173f32;border-color:#173f32;color:#fff}
+.app-shell .modal-content .arrival-step.done .arrival-step-badge{background:#def1e8;border-color:#cbe6d9;color:#267056}
+.app-shell .modal-content .arrival-step-label{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700}
+.app-shell .modal-content .arrival-section h3{color:#17201b;font:600 13px var(--font-sans);margin:0 0 4px}
+.app-shell .modal-content .arrival-section-copy{margin:0 0 14px;color:#68736d;font-size:10px;line-height:1.5}
+.app-shell .modal-content .arrival-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin:0 0 12px}
+.app-shell .modal-content .arrival-facts>div{padding:9px 11px;background:#fff;border:1px solid #e1e6e2;border-radius:6px}
+.app-shell .modal-content .arrival-facts dt{color:#68736d;font-size:8px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px}
+.app-shell .modal-content .arrival-facts dd{margin:0;color:#17201b;font-size:11px;font-weight:700}
+.app-shell .modal-content .arrival-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.app-shell .modal-content .arrival-options{display:grid;grid-template-columns:1fr;gap:7px;margin:4px 0 12px}
+.app-shell .modal-content .arrival-option{position:relative;display:flex;align-items:center;gap:12px;padding:10px 13px;border:1px solid #e1e6e2;border-radius:7px;background:#fff;cursor:pointer;transition:border-color .15s ease,background .15s ease}
+.app-shell .modal-content .arrival-option:hover{border-color:#b9c5be}
+.app-shell .modal-content .arrival-option.selected{border-color:#19724f;background:#e9f4ed;box-shadow:inset 0 0 0 1px #b9d9c8}
+.app-shell .modal-content .arrival-option input{position:absolute;opacity:0;pointer-events:none}
+.app-shell .modal-content .arrival-option:has(input:focus-visible){outline:2px solid #19724f;outline-offset:2px}
+.app-shell .modal-content .arrival-option-name{flex:1;min-width:0}
+.app-shell .modal-content .arrival-option-name b{display:block;color:#17201b;font-size:12px}
+.app-shell .modal-content .arrival-option-name small{display:block;margin-top:2px;color:#68736d;font-size:9px}
+.app-shell .modal-content .arrival-option-ready{display:inline-flex;align-items:center;gap:5px;color:#19724f;font-size:9px;font-weight:800}
+.app-shell .modal-content .arrival-empty{padding:14px;border:1px dashed #dbe3de;border-radius:8px;background:#f7f9f6;margin:4px 0 10px}
+.app-shell .modal-content .arrival-empty p{margin:0 0 10px;color:#8d9791;font-size:10px;line-height:1.5}
+.app-shell .modal-content .arrival-exception-request{display:grid;gap:4px;margin-top:4px}
+.app-shell .modal-content .arrival-field{display:grid;gap:5px;margin:0 0 10px;color:#748078;font-size:9px;font-weight:800}
+.app-shell .modal-content .arrival-field input,.app-shell .modal-content .arrival-field select,.app-shell .modal-content .arrival-field textarea{width:100%;margin:0;padding:9px 11px;border:1px solid #d6ddd8;border-radius:5px;background:#fff;color:#263129;font-size:11px;font-weight:400;outline:none}
+.app-shell .modal-content .arrival-notice{margin:0 0 10px;padding:9px 11px;border:1px solid #cbe6d9;border-radius:6px;background:#eef7f1;color:#267056;font-size:10px;line-height:1.5}
+.app-shell .modal-content .arrival-notice.warn{border-color:#ecd7b4;background:#fff0dd;color:#a45a22}
+.app-shell .modal-content .arrival-notice .table-action{color:#19724f;background:transparent;border:0;padding:0;font-size:10px;font-weight:800;text-decoration:underline}
+.app-shell .modal-content .arrival-error{margin:0 0 10px;padding:9px 11px;border:1px solid #e4beb9;border-radius:6px;background:#f9e3e1;color:#a44843;font-size:10px;line-height:1.5}
+.theme-light .app-shell .arrival-lane{background:#fff}
+.theme-light .app-shell .arrival-chip{background:#fff;color:#657169}
+.theme-light .app-shell .arrival-chip.ok{background:#def1e8;border-color:#cbe6d9;color:#267056}
+.theme-light .app-shell .arrival-chip.warn{background:#fff0dd;border-color:#e6d3ae;color:#a45a22}
+@media(max-width:680px){.app-shell .modal-content .arrival-steps{grid-template-columns:1fr 1fr}.app-shell .modal-content .arrival-summary{flex-direction:column}.app-shell .modal-content .arrival-facts{grid-template-columns:1fr}}
+
+/* Room cards open the room details dossier (2026-09-06). Full-card affordance:
+   pointer, a lift plus a subtle inset ring on hover (one rule, no per-status
+   color list — the status tint stays untouched), and a green focus ring. */
+.app-shell .room-card[role="button"]{cursor:pointer;transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease}
+.app-shell .room-card[role="button"]:hover{transform:translateY(-1px);box-shadow:0 10px 26px rgba(0,0,0,.3),inset 0 0 0 1px #ffffff2b}
+.app-shell .room-card[role="button"]:focus-visible{outline:2px solid #65d3a5;outline-offset:2px}
+.theme-light .app-shell .room-card[role="button"]:hover{box-shadow:0 6px 18px rgba(30,52,41,.12),inset 0 0 0 1px #1d28211f}
+.theme-light .app-shell .room-card[role="button"]:focus-visible{outline-color:#1f6b52}
+
+/* Room details dossier modal — sits on the Modal's own --cp-* surface, so it
+   follows the app theme without dashboard-scoped overrides. View-only. */
+.room-detail{display:grid;gap:14px}
+.room-detail-status{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:-6px}
+.room-detail-status .badge{font-size:10px!important}
+.room-blocked-banner{flex:1;min-width:100%;padding:9px 12px;border:1px solid #8a3740;border-radius:6px;background:#351f21;color:#ef797e;font-size:10px;font-weight:700;letter-spacing:.3px;line-height:1.5}
+.theme-light .room-blocked-banner{background:#f9e3e1;border-color:#e4beb9;color:#a44843}
+.room-detail-tabs{display:flex;gap:6px;flex-wrap:wrap}
+.room-detail-tabs button{display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border:1px solid var(--cp-line);border-radius:999px;background:var(--cp-panel-2);color:var(--cp-muted);font:700 10px var(--font-sans);cursor:pointer}
+.room-detail-tabs button.active{background:#173f32;border-color:#2e5b47;color:#fff}
+.room-detail-tabs button:focus-visible{outline:2px solid var(--cp-green);outline-offset:2px}
+.room-detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.room-detail-grid section{padding:13px;border:1px solid var(--cp-line);border-radius:8px;background:var(--cp-panel-2)}
+.room-detail-grid h3{margin:0 0 10px;color:var(--cp-text);font:600 11px var(--font-sans)}
+.room-detail-grid dl{margin:0;display:grid;gap:8px}
+.room-detail-grid dl>div{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.room-detail-grid dt{color:var(--cp-muted);font-size:10px;font-weight:600}
+.room-detail-grid dd{margin:0;color:var(--cp-text);font-size:11px;font-weight:700;text-align:right}
+.room-detail-grid .btn{margin-top:10px;min-height:32px}
+.room-detail-photo{grid-column:1/-1;width:100%;max-height:200px;object-fit:cover;border-radius:8px;border:1px solid var(--cp-line)}
+.room-detail-note{margin:0 0 6px;color:var(--cp-muted);font-size:10px;line-height:1.6}
+.room-detail-note:last-child{margin-bottom:0}
+.room-detail-note strong{color:var(--cp-text)}
+.room-detail-section{display:grid}
+.room-detail-section h3{margin:0 0 8px;color:var(--cp-text);font:600 11px var(--font-sans)}
+.room-detail-row{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid var(--cp-line)}
+.room-detail-row:last-of-type{border-bottom:0}
+.room-detail-row b{display:block;color:var(--cp-text);font-size:11px}
+.room-detail-row small{display:block;margin-top:3px;color:var(--cp-muted);font-size:9px;line-height:1.5}
+.room-detail-row-side{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.room-detail-row-side .badge{font-size:9px!important}
+.room-detail-events{margin-top:7px;padding:8px 10px;border:1px solid var(--cp-line);border-radius:6px;background:var(--cp-panel-2);display:grid;gap:4px}
+.room-detail-events small{margin:0;color:var(--cp-muted)}
+.room-detail-more{justify-self:center;margin-top:6px;padding:6px 12px;border:1px solid var(--cp-line);border-radius:999px;background:var(--cp-panel-2);color:var(--cp-muted);font:700 9px var(--font-sans);cursor:pointer}
+.room-detail-more:hover{color:var(--cp-text);border-color:var(--cp-muted)}
+.room-detail-more:focus-visible{outline:2px solid var(--cp-green);outline-offset:2px}
+.deposit-verify dl{margin:0;display:grid;gap:9px}
+.deposit-verify dl>div{display:flex;justify-content:space-between;gap:14px;align-items:baseline;border-bottom:1px dashed var(--cp-line);padding-bottom:8px}
+.deposit-verify dl>div:last-child{border-bottom:0;padding-bottom:0}
+.deposit-verify dt{color:var(--cp-muted);font-size:10px;font-weight:600}
+.deposit-verify dd{margin:0;color:var(--cp-text);font-size:11px;font-weight:700;text-align:right}
+.deposit-verify .deposit-difference{display:block;font-weight:600;font-size:9px}
+.deposit-verify .deposit-difference.over{color:var(--color-green-600,#1f6b52)}
+.deposit-verify .deposit-difference.under{color:#c0603f}
+.deposit-verify-note{margin:14px 0 0;color:var(--cp-muted);font-size:10px;line-height:1.6}
+.deposit-verify .form-actions{margin-top:14px}
+.deposit-verify .deposit-proof-none{color:var(--cp-muted);font-weight:600}
+.deposit-proof{margin:12px 0 0;border:1px solid var(--cp-line);border-radius:10px;overflow:hidden;background:var(--cp-panel-2)}
+.deposit-proof a{display:block}
+.deposit-proof img{display:block;width:100%;max-height:320px;object-fit:contain;background:var(--cp-panel-3,var(--cp-panel-2))}
+.deposit-proof-loading{height:140px;display:flex;align-items:center;justify-content:center}
+.deposit-proof-loading::after{content:"";width:22px;height:22px;border:2px solid var(--cp-line);border-top-color:var(--cp-accent);border-radius:50%;animation:proof-spin .7s linear infinite}
+@keyframes proof-spin{to{transform:rotate(360deg)}}
+.deposit-proof-missing{height:80px;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--cp-muted);font-size:11px;font-weight:600}
+.deposit-proof-missing svg{color:#c0603f}
+/* Skeleton — pulse blocks shaped like the loaded layout, never a raw "Loading…". */
+.room-skeleton{display:grid;gap:14px}
+.room-skeleton i{display:block;border-radius:5px;background:var(--cp-line);animation:roomPulse 1.1s ease-in-out infinite}
+.room-skeleton-tabs{display:flex;gap:6px}
+.room-skeleton-tabs i{width:110px;height:31px;border-radius:999px}
+.room-skeleton-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.room-skeleton-grid i{height:118px}
+@keyframes roomPulse{0%,100%{opacity:.5}50%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.room-skeleton i{animation:none}}
+@media(max-width:680px){
+  .room-detail-tabs{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}
+  .room-detail-tabs button{flex:none}
+  .room-detail-row{flex-direction:column;gap:8px}
+  .room-detail-row-side{flex-direction:row;align-items:center;flex-wrap:wrap}
+}
+
+/* Manage physical rooms — configuration roster. A flex row list, not a CRUD
+   table: each row states the administrative fact and the workflow-owned
+   operational fact side by side so the two are never confused. */
+/* The Manage-rooms button lives in the filter row, so it has to win against
+   .reservation-filters' pill treatment without changing the shared .btn size. */
+.reservation-filters .btn.btn-accent,
+.app-shell .reservation-filters .btn.btn-accent{border-radius:4px;font-size:9px;font-weight:700}
+.room-roster{display:grid;gap:16px}
+.room-roster-floor{margin:0 0 6px;color:var(--cp-muted);font:700 9px var(--font-sans);letter-spacing:1.2px;text-transform:uppercase}
+.room-roster-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--cp-line);border-radius:8px;background:var(--cp-panel-2);transition:border-color .18s ease}
+.room-roster-row+.room-roster-row{margin-top:6px}
+.room-roster-row:hover{border-color:var(--cp-muted)}
+.room-roster-row.retired{opacity:.72;border-style:dashed}
+.room-roster-id{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;min-width:180px;flex:1}
+.room-roster-id b{color:var(--cp-text);font:700 13px var(--font-sans)}
+.room-roster-id span{color:var(--cp-muted);font-size:10px;font-weight:600}
+.room-roster-id small{padding:2px 7px;border:1px solid var(--cp-line);border-radius:999px;color:var(--cp-muted);font-size:8px;font-weight:700;letter-spacing:.4px;text-transform:uppercase}
+.room-roster-state,.room-roster-ops{display:grid;gap:3px;min-width:150px}
+.room-roster-state small,.room-roster-ops small{color:var(--cp-muted);font-size:9px;line-height:1.5}
+.room-roster-row .table-action{margin-left:auto;cursor:pointer}
+.room-roster-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;width:100%}
+.room-roster-fixed{margin:0;padding:9px 11px;border:1px dashed var(--cp-line);border-radius:6px;background:var(--cp-panel-2);color:var(--cp-text);font:700 12px var(--font-sans)}
+.room-roster-ops-note{margin:0;padding:9px 11px;border:1px dashed var(--cp-line);border-radius:6px;background:var(--cp-panel-2);color:var(--cp-muted);font-size:10px;line-height:1.6}
+@media(prefers-reduced-motion:reduce){.room-roster-row{transition:none}}
+@media(max-width:680px){
+  .room-roster-row{flex-direction:column;align-items:stretch;gap:8px}
+  .room-roster-row .table-action{margin-left:0}
+}
+
+/* ── Transportation operations workspace (2026-09-07) — Front Desk executes
+   the trip lifecycle, so the page is laid out as a queue: actionable KPI cards
+   (each jumps to its filter), one cohesive chips + service + search toolbar,
+   a dense sticky-header table, and stacked cards below 720px where an
+   8-column table would be a horizontal scroll. Tokens do the theme lifting
+   (--ds surface, --dl line, --dt text, --dm muted, --dg accent); literal
+   fills get explicit light mirrors at the end. ── */
+/* KPI cards — one semantic accent per queue state, click navigates to it. */
+.app-shell .tp-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:16px}
+.app-shell .tp-kpi{position:relative;display:block;padding:13px 14px;border:1px solid var(--dl);border-radius:8px;background:var(--ds);text-align:left;cursor:pointer;transition:border-color .18s ease,background .18s ease,box-shadow .18s ease}
+.app-shell .tp-kpi:hover{border-color:var(--dm)}
+.app-shell .tp-kpi:focus-visible{outline:2px solid var(--dg);outline-offset:2px}
+.app-shell .tp-kpi span{display:block;color:var(--dm);font-size:10px;font-weight:700}
+.app-shell .tp-kpi b{display:block;margin:8px 0 3px;color:var(--dt);font:600 22px var(--font-sans);font-variant-numeric:tabular-nums}
+.app-shell .tp-kpi small{display:block;color:#4e8c70;font-size:9px;line-height:1.4}
+.app-shell .tp-kpi>i{position:absolute;top:12px;right:12px;width:28px;height:28px;display:grid;place-items:center;border-radius:6px}
+.app-shell .tp-kpi>i svg{width:15px;height:15px}
+.app-shell .tp-kpi.attention>i{background:#34291c;color:#dfa062}
+.app-shell .tp-kpi.today>i{background:#152132;color:#7fa8d4}
+.app-shell .tp-kpi.active>i{background:#122e2a;color:#57c9a4}
+.app-shell .tp-kpi.done>i{background:#173024;color:#65d3a5}
+.app-shell .tp-kpi[aria-pressed="true"]{border-color:var(--dg);background:#141f19;box-shadow:inset 0 0 0 1px var(--dg)}
+/* Toolbar — chips + service select (keeps .reservation-filters so the shared
+   touch-target and stacking rules in responsive.css still apply). */
+.app-shell .tp-toolbar{flex-wrap:wrap;margin-bottom:8px}
+.app-shell .tp-queues .chip-count{margin-left:5px;font-style:normal;font-size:8px;font-weight:700;color:inherit;opacity:.7}
+.app-shell .tp-search-row{margin-bottom:10px}
+.app-shell .tp-search-row>label{flex:1;width:auto}
+.app-shell .tp-clear{display:inline-flex;align-items:center;gap:5px;min-height:36px;padding:8px 13px;border:1px solid var(--dl);border-radius:5px;background:#141815;color:#929c96;font-size:10px;font-weight:700;cursor:pointer;transition:border-color .18s ease,color .18s ease}
+.app-shell .tp-clear:hover{border-color:var(--dm);color:var(--dt)}
+.app-shell .tp-clear:focus-visible{outline:2px solid var(--dg);outline-offset:1px}
+.app-shell .tp-note{margin:0 0 14px;padding:7px 10px;border:1px dashed var(--dl);border-radius:6px;color:var(--dm);font-size:9px;line-height:1.6}
+/* Requests table — sticky header, stacked cells, today dot on the pickup date. */
+.app-shell .tp-table{min-width:980px;font-variant-numeric:tabular-nums}
+.app-shell .tp-table th{position:sticky;top:0;z-index:2}
+.app-shell .tp-table .tp-route b{white-space:normal;overflow-wrap:anywhere;font-weight:650}
+.app-shell .tp-table .tp-route small{color:var(--dm);font-size:9px}
+.app-shell .tp-when{display:grid;gap:3px;white-space:nowrap}
+.app-shell .tp-when b{color:#dce2de;font-weight:650}
+.app-shell .tp-when small{color:var(--dm);font-size:9px}
+.app-shell .tp-when.today b{color:#65d3a5}
+.app-shell .tp-when.today b::before{content:"";display:inline-block;width:6px;height:6px;margin-right:6px;border-radius:50%;background:#37b27a;vertical-align:1px}
+.app-shell .tp-actions{text-align:right}
+.app-shell .tp-actions .reservation-actions{justify-content:flex-end}
+.app-shell .tp-unassigned{color:#8d9791}
+.app-shell .tp-view-only{color:var(--dm)}
+/* Status language, scoped to this panel: scheduled reads cool blue (booked,
+   not yet rolling), in progress reads teal (rolling), so the greens are left
+   to assigned/completed and amber to needs-review. */
+.app-shell .tp-table .badge.scheduled,.app-shell .tp-cards .badge.scheduled{background:#152132;color:#7fa8d4}
+.app-shell .tp-table .badge.in_progress,.app-shell .tp-cards .badge.in_progress{background:#14261f;color:#5bd6ab}
+/* Empty state — compact and centered; the table markup is not rendered at all
+   when there is nothing to show, so no orphan header row. */
+.app-shell .tp-empty{display:grid;justify-items:center;gap:6px;padding:34px 20px 30px;text-align:center;color:var(--dm)}
+.app-shell .tp-empty h3{margin:4px 0 0;color:var(--dt);font-size:12px}
+.app-shell .tp-empty p{margin:0;max-width:440px;font-size:10px;line-height:1.6}
+.app-shell .tp-empty-icon{width:38px;height:38px;display:grid;place-items:center;border-radius:50%;background:#172a21;color:#5bc698}
+.app-shell .tp-empty .tp-clear{margin-top:8px}
+/* Loading — pulse rows shaped like the loaded layout. */
+.app-shell .tp-skeleton{display:grid;gap:10px;padding:14px}
+.app-shell .tp-skeleton i{display:block;height:44px;border-radius:6px;background:var(--dl);animation:tpPulse 1.1s ease-in-out infinite}
+.app-shell .tp-skeleton i:nth-child(2){animation-delay:.15s}
+.app-shell .tp-skeleton i:nth-child(3){animation-delay:.3s}
+.app-shell .tp-skeleton i:nth-child(4){animation-delay:.45s}
+@keyframes tpPulse{0%,100%{opacity:.5}50%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.app-shell .tp-skeleton i{animation:none}}
+/* Mobile request cards — the table swaps for these below 720px. */
+.app-shell .tp-cards{display:none;grid-template-columns:1fr;gap:10px;padding:12px}
+.app-shell .tp-card{display:grid;gap:8px;padding:14px;border:1px solid var(--dl);border-radius:8px;background:var(--ds2)}
+.app-shell .tp-card header{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.app-shell .tp-card header b{color:var(--dt);font-size:12px}
+.app-shell .tp-card-guest strong{display:block;color:var(--dt);font-size:12px}
+.app-shell .tp-card-guest small{display:block;margin-top:2px;color:var(--dm);font-size:9px}
+.app-shell .tp-card-route{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:0;color:var(--dt);font-size:11px;font-weight:650}
+.app-shell .tp-card-route i{font-style:normal;color:var(--dg)}
+.app-shell .tp-card-meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:var(--dm);font-size:10px}
+.app-shell .tp-card-return,.app-shell .tp-card-note{margin:0;color:var(--dm);font-size:9px;line-height:1.5}
+.app-shell .tp-card-driver{margin:0;color:var(--dt);font-size:10px}
+.app-shell .tp-card-driver.tp-unassigned{color:var(--dm)}
+.app-shell .tp-card-actions{display:flex;gap:6px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--dl)}
+.app-shell .tp-card-actions .reservation-actions{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+.app-shell .tp-card-actions .table-action{flex:1;min-height:40px}
+.app-shell .tp-card-actions small{align-self:center;color:var(--dm);font-size:9px}
+@media(max-width:1000px){.app-shell .tp-kpis{grid-template-columns:1fr 1fr}}
+@media(max-width:720px){
+  .app-shell .tp-table-wrap{display:none}
+  .app-shell .tp-cards{display:grid}
+}
+/* Light mirrors for the literal fills above. */
+.theme-light .app-shell .tp-kpi{background:#fff}
+.theme-light .app-shell .tp-kpi small{color:#2e8664}
+.theme-light .app-shell .tp-kpi.attention>i{background:#fff0dd;color:#a45a22}
+.theme-light .app-shell .tp-kpi.today>i{background:#eaf1f7;color:#2a5d8f}
+.theme-light .app-shell .tp-kpi.active>i{background:#ddf2ec;color:#177a5c}
+.theme-light .app-shell .tp-kpi.done>i{background:#def1e8;color:#267056}
+.theme-light .app-shell .tp-kpi[aria-pressed="true"]{border-color:#277c5b;background:#eef7f2;box-shadow:inset 0 0 0 1px #277c5b}
+.theme-light .app-shell .tp-clear{background:#fff;border-color:#dce2de;color:#657169}
+.theme-light .app-shell .tp-clear:hover{border-color:#9fb0a7;color:#253029}
+.theme-light .app-shell .tp-when b{color:#1d2821}
+.theme-light .app-shell .tp-when.today b{color:#1d6b4c}
+.theme-light .app-shell .tp-unassigned{color:#74807a}
+.theme-light .app-shell .tp-table .badge.scheduled,.theme-light .app-shell .tp-cards .badge.scheduled{background:#eaf1f7;color:#2a5d8f}
+.theme-light .app-shell .tp-table .badge.in_progress,.theme-light .app-shell .tp-cards .badge.in_progress{background:#ddf2ec;color:#177a5c}
+.theme-light .app-shell .tp-empty-icon{background:#e3f1eb;color:#277058}
+
+/* Housekeeping operational queue — grouped cards answering "what should I
+   clean next", not a flat task log. Mirrors the roster's flex-row pattern
+   so both read as one system; taps only, no hover-dependent affordances. */
+.hk-queue{display:grid;gap:14px;padding:14px}
+.hk-queue-group{display:grid;gap:6px}
+.hk-queue-group>header{display:grid;gap:2px}
+.hk-queue-group h3{display:flex;align-items:center;gap:7px;margin:0;color:var(--cp-text);font:700 9px var(--font-sans);letter-spacing:1.1px;text-transform:uppercase}
+.hk-queue-group h3 i{padding:1px 7px;border:1px solid var(--cp-line);border-radius:999px;color:var(--cp-muted);font:700 8px var(--font-sans);letter-spacing:.4px}
+.hk-queue-group h3 svg{color:var(--cp-muted)}
+.hk-queue-group>header p{margin:0;color:var(--cp-muted);font-size:9px;line-height:1.5}
+.hk-queue-toggle{padding:0;border:0;background:transparent;color:inherit;cursor:pointer;text-align:left}
+.hk-queue-toggle h3{cursor:pointer}
+.hk-queue-toggle h3 svg:last-child{transition:transform .18s ease;color:var(--cp-muted)}
+.hk-queue-toggle h3 svg.open{transform:rotate(180deg)}
+.hk-queue-card{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--cp-line);border-radius:8px;background:var(--cp-panel-2);transition:border-color .18s ease}
+.hk-queue-card:hover{border-color:var(--cp-muted)}
+.hk-queue-card:focus-within{border-color:var(--dg)}
+.hk-queue-main{display:grid;gap:4px;min-width:0;flex:1}
+.hk-queue-main header{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.hk-queue-main header b{color:var(--cp-text);font:700 13px var(--font-sans)}
+.hk-queue-type{color:var(--cp-muted);font-size:10px;font-weight:600}
+.hk-queue-service{margin:0;color:var(--cp-text);font-size:10px}
+.hk-queue-service strong{font-weight:700}
+.hk-queue-main small{color:var(--cp-muted);font-size:9px;line-height:1.6}
+.hk-queue-main small .badge{margin:0}
+.hk-queue-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.hk-queue-actions .table-action{cursor:pointer}
+.hk-queue-actions>span{color:var(--cp-muted);font-size:9px}
+@media(prefers-reduced-motion:reduce){.hk-queue-card,.hk-queue-toggle h3 svg{transition:none}}
+@media(max-width:680px){
+  .hk-queue-card{flex-direction:column;align-items:stretch;gap:8px}
+  .hk-queue-actions{flex-direction:column-reverse;align-items:stretch}
+  .hk-queue-actions .table-action{text-align:center}
+}
+
+/* ── Walk-in booking & the reservations header split action (2026-09-07) ──
+   The dialog reuses the arrival wizard's .arrival-* grammar; only the search
+   row, field grid, and the price column on availability cards are new. The
+   header menu reuses the existing popover-gap + popover treatment so it reads
+   as a sibling of the profile and notification popovers. */
+.app-shell .new-reservation-menu{position:relative}
+.app-shell .new-reservation-menu .btn .menu-chevron{transition:transform .18s ease}
+.app-shell .new-reservation-menu[aria-expanded] .btn,
+.app-shell .new-reservation-menu .btn[aria-expanded="true"] .menu-chevron{transform:rotate(180deg)}
+.app-shell .new-reservation-popover{position:static;width:min(300px,86vw);background:var(--ds);border:1px solid var(--dl);border-radius:8px;box-shadow:0 18px 50px rgba(0,0,0,.45);z-index:40;overflow:hidden}
+.app-shell .new-reservation-popover button{display:flex;align-items:center;gap:11px;width:100%;padding:12px 14px;border:0;background:transparent;color:var(--dt);text-align:left;cursor:pointer;transition:background .15s ease}
+.app-shell .new-reservation-popover button+button{border-top:1px solid var(--dl)}
+.app-shell .new-reservation-popover button:hover,.app-shell .new-reservation-popover button:focus-visible{background:#141f19;outline:none}
+.app-shell .new-reservation-popover button:focus-visible{box-shadow:inset 0 0 0 2px var(--dg)}
+.app-shell .new-reservation-popover svg{color:var(--dg);flex:none}
+.app-shell .new-reservation-popover b{display:block;font:700 11px var(--font-sans)}
+.app-shell .new-reservation-popover small{display:block;margin-top:2px;color:var(--dm);font-size:9px;line-height:1.5}
+
+.app-shell .walk-in-dialog .modal-content .arrival-steps{grid-template-columns:repeat(3,1fr)}
+.app-shell .modal-content .walk-in-search{margin:0 0 14px}
+.app-shell .modal-content .walk-in-search-row{display:flex;align-items:center;gap:8px}
+.app-shell .modal-content .walk-in-search-row svg{flex:none;color:#68736d}
+.app-shell .modal-content .walk-in-search-row input{flex:1;margin:0;padding:9px 11px;border:1px solid #d6ddd8;border-radius:5px;background:#fff;color:#263129;font-size:11px;font-weight:400;outline:none}
+.app-shell .modal-content .walk-in-search-hint{margin:6px 0 0;color:#68736d;font-size:9px;line-height:1.5}
+.app-shell .modal-content .walk-in-guest-option{cursor:pointer;font:inherit;text-align:left}
+.app-shell .modal-content .walk-in-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin:0 0 12px}
+.app-shell .modal-content .walk-in-price{display:grid;gap:3px;text-align:right;flex:none}
+.app-shell .modal-content .walk-in-price b{color:#17201b;font:700 13px var(--font-sans);font-variant-numeric:tabular-nums}
+.app-shell .modal-content .walk-in-price small{color:#68736d;font-size:9px;font-weight:700}
+
+.theme-light .app-shell .new-reservation-popover{background:#fff;box-shadow:0 16px 40px rgba(30,52,41,.18)}
+.theme-light .app-shell .new-reservation-popover button:hover,.theme-light .app-shell .new-reservation-popover button:focus-visible{background:#eef4f0}
+.theme-light .app-shell .new-reservation-popover button:focus-visible{box-shadow:inset 0 0 0 2px #1f6b52}
+@media(prefers-reduced-motion:reduce){.app-shell .new-reservation-menu .btn .menu-chevron{transition:none}}
+@media(max-width:680px){
+  .app-shell .walk-in-dialog .modal-content .arrival-steps{grid-template-columns:1fr}
+  .app-shell .modal-content .walk-in-fields{grid-template-columns:1fr}
+  .app-shell .modal-content .arrival-option{flex-wrap:wrap}
+  .app-shell .modal-content .walk-in-price{text-align:left;width:100%}
+  .app-shell .new-reservation-popover{width:min(300px,80vw)}
+}
+
+/* =============================================================================
+   PREDICTIVE INSIGHTS + HAVEN AI (innovation layer)
+   ============================================================================= */
+.app-shell .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.app-shell .insights-toast{margin:0 0 10px;padding:8px 11px;border:1px solid var(--dl);border-radius:5px;background:#141815;color:#a9b3ad;font-size:9px}
+.app-shell .maintenance-risk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:9px}
+.app-shell .maintenance-risk-card{padding:13px;border:1px solid var(--dl);border-radius:6px;background:#141815}
+.app-shell .maintenance-risk-card header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+.app-shell .maintenance-risk-card header b{color:#dce2de;font-size:10px}
+.app-shell .maintenance-risk-card p{margin:0 0 4px;color:#8d9791;font-size:9px;line-height:1.55}
+.app-shell .maintenance-risk-card .maintenance-risk-category{color:#5f9f83;font-size:8px;text-transform:capitalize}
+.app-shell .maintenance-risk-card small{color:#626c66;font-size:8px;line-height:1.5}
+.app-shell .ai-explanation{margin-top:12px;padding:13px;border:1px solid #2b3a30;border-radius:6px;background:#122019}
+.app-shell .ai-explanation header{display:flex;align-items:center;gap:7px;margin-bottom:8px;color:#5bc698;font-size:9px}
+.app-shell .ai-explanation header button{margin-left:auto;background:none;border:0;color:#626c66;font-size:13px;line-height:1;cursor:pointer}
+.app-shell .ai-explanation header button:hover{color:#dce2de}
+.app-shell .ai-explanation p{margin:0 0 8px;color:#c3cdc7;font-size:9.5px;line-height:1.6}
+.app-shell .ai-explanation ul{margin:0 0 8px;padding-left:16px;color:#8d9791;font-size:9px;line-height:1.6}
+.app-shell .ai-explanation small{color:#626c66;font-size:8px}
+.app-shell .ai-explanation footer{margin-top:8px;padding-top:8px;border-top:1px dashed #233029;color:#59635d;font-size:7.5px}
+.app-shell .ai-brief-summary{margin:0 0 12px;color:#c3cdc7;font-size:10.5px;line-height:1.65}
+.app-shell .ai-brief section{margin-bottom:12px}
+.app-shell .ai-brief h4{margin:0 0 7px;color:#dce2de;font-size:9px;font-weight:600}
+.app-shell .ai-brief ol,.app-shell .ai-brief ul{margin:0;padding-left:18px;color:#8d9791;font-size:9.5px;line-height:1.7}
+.app-shell .ai-brief li small{display:block;color:#626c66}
+.app-shell .ai-brief footer{padding-top:9px;border-top:1px dashed #233029;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:#59635d;font-size:7.5px}
+.app-shell .ai-unavailable{display:flex;align-items:flex-start;gap:9px;padding:13px;border:1px solid var(--dl);border-radius:6px;background:#141815;color:#8d9791;font-size:9.5px;line-height:1.6}
+.app-shell .ai-unavailable svg{flex:0 0 auto;color:#b8860b;margin-top:1px}
+.app-shell .ai-conversation{max-height:380px;overflow-y:auto;display:grid;gap:9px;padding:4px 2px 10px;margin-bottom:10px}
+.app-shell .ai-turn{max-width:86%;padding:10px 12px;border:1px solid var(--dl);border-radius:8px;background:#141815}
+.app-shell .ai-turn b{display:block;margin-bottom:4px;color:#626c66;font-size:7.5px;text-transform:uppercase;letter-spacing:.6px}
+.app-shell .ai-turn p{margin:0;color:#c3cdc7;font-size:9.5px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}
+.app-shell .ai-turn.user{justify-self:end;background:#17281f;border-color:#24443a}
+.app-shell .ai-turn.assistant{justify-self:start}
+.app-shell .ai-typing{color:#626c66;font-style:normal}
+.app-shell .ai-conversation-empty{padding:10px;border:1px dashed var(--dl);border-radius:8px}
+.app-shell .ai-conversation-empty>p{margin:0 0 10px;color:#626c66;font-size:9px}
+.app-shell .ai-suggested{display:flex;flex-wrap:wrap;gap:7px}
+.app-shell .ai-suggested button{padding:7px 11px;border:1px solid #24443a;border-radius:999px;background:transparent;color:#5bc698;font-size:8.5px;cursor:pointer}
+.app-shell .ai-suggested button:hover{background:#17281f}
+.app-shell .ai-ask-form{display:flex;gap:8px}
+.app-shell .ai-ask-form input{flex:1;min-width:0;padding:9px 12px;border:1px solid var(--dl);border-radius:5px;background:#141815;color:#dce2de;font-size:9.5px}
+.app-shell .ai-ask-form input:focus-visible{outline:2px solid #2e8664;outline-offset:1px}
+.theme-light .app-shell .insights-toast{background:#f4f8f5;border-color:#dfe5e1;color:#4d5852}
+.theme-light .app-shell .maintenance-risk-card{background:#f7faf8;border-color:#e4e9e5}
+.theme-light .app-shell .maintenance-risk-card header b{color:#1d2821}
+.theme-light .app-shell .maintenance-risk-card p{color:#5c6860}
+.theme-light .app-shell .ai-explanation{background:#f2f8f4;border-color:#cfe8db}
+.theme-light .app-shell .ai-explanation header{color:#1f7250}
+.theme-light .app-shell .ai-explanation header button{color:#8b958e}
+.theme-light .app-shell .ai-explanation p{color:#33413a}
+.theme-light .app-shell .ai-explanation ul{color:#5c6860}
+.theme-light .app-shell .ai-explanation small,.theme-light .app-shell .ai-explanation footer{color:#7c8780}
+.theme-light .app-shell .ai-explanation footer{border-color:#dce8e0}
+.theme-light .app-shell .ai-brief-summary{color:#2c3931}
+.theme-light .app-shell .ai-brief h4{color:#1c2720}
+.theme-light .app-shell .ai-brief ol,.theme-light .app-shell .ai-brief ul{color:#5c6860}
+.theme-light .app-shell .ai-brief li small{color:#7c8780}
+.theme-light .app-shell .ai-brief footer{color:#7c8780;border-color:#e0e7e3}
+.theme-light .app-shell .ai-unavailable{background:#fdf8ee;border-color:#eed8b7;color:#8a6a2f}
+.theme-light .app-shell .ai-turn{background:#f7faf8;border-color:#e4e9e5}
+.theme-light .app-shell .ai-turn b{color:#7c8780}
+.theme-light .app-shell .ai-turn p{color:#2c3931}
+.theme-light .app-shell .ai-turn.user{background:#edf7f2;border-color:#cbe6d9}
+.theme-light .app-shell .ai-typing{color:#8b958e}
+.theme-light .app-shell .ai-conversation-empty>p{color:#7c8780}
+.theme-light .app-shell .ai-suggested button{border-color:#bfe0d0;color:#1f7250}
+.theme-light .app-shell .ai-suggested button:hover{background:#edf7f2}
+.theme-light .app-shell .ai-ask-form input{background:#fff;border-color:#dce3de;color:#263129}
+@media(max-width:720px){
+  .app-shell .ai-ask-form{flex-direction:column}
+  .app-shell .ai-turn{max-width:100%}
+}
+
+/* ============ Approvals & escalations queue ============================== */
+/* Toolbar keeps .reservation-filters so the shared pill/select styling and its
+   theme mirrors still apply — this only stacks pills above selects + search. */
+.app-shell .approval-toolbar{flex-direction:column;align-items:stretch;gap:10px}
+.app-shell .approval-filters{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.app-shell .approval-search{position:relative;flex:1;min-width:220px;display:flex;align-items:center}
+.app-shell .approval-search svg{position:absolute;left:10px;color:#6c766f;pointer-events:none}
+.app-shell .approval-search input{flex:1;min-width:0;border:1px solid var(--dl);background:#141815;color:#dce2de;border-radius:4px;padding:8px 10px 8px 30px;font-size:10px;font-family:inherit}
+.app-shell .approval-search input::placeholder{color:#6c766f}
+/* Approval vs escalation kind chips + derived waiting time */
+.app-shell .approval-kind{display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;font-size:8px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.app-shell .approval-kind.approval{background:#173024;border:1px solid #244b39;color:#65d3a5}
+.app-shell .approval-kind.escalation{background:#351f21;border:1px solid #57353a;color:#ef797e}
+.app-shell .approval-waiting{color:#b78a4e;font-weight:700}
+.app-shell .approval-request-cell{display:grid;gap:3px;min-width:0;max-width:420px}
+.app-shell .approval-request-cell p{margin:0;color:#c5cdc7;font-size:10px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.app-shell .approval-request-cell small{color:#6c766f;font-size:9px;line-height:1.5}
+/* Compact empty state — the stock .empty is a 50px-padded block */
+.app-shell .approval-queue .empty{padding:28px}
+/* Mobile cards — CSS-gated twin of the table (≤720px swaps one for the other) */
+.app-shell .approval-card-list{display:none}
+.app-shell .approval-card{display:grid;gap:7px;padding:13px;border:1px solid var(--dl);border-radius:8px;background:var(--ds)}
+.app-shell .approval-card header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.app-shell .approval-card-lead{display:grid;gap:2px}
+.app-shell .approval-card-lead b{color:#dce2de;font-size:11px}
+.app-shell .approval-card-lead small{color:#6c766f;font-size:9px}
+.app-shell .approval-card-meta{color:#8d9791;font-size:9px;font-weight:700}
+.app-shell .approval-card p{margin:0;color:#c5cdc7;font-size:10px;line-height:1.55}
+.app-shell .approval-card footer{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.app-shell .approval-card footer small{color:#6c766f;font-size:9px;margin-right:auto}
+@media(max-width:720px){
+  .app-shell .approval-table-wrap{display:none}
+  .app-shell .approval-card-list{display:grid;gap:9px}
+  .app-shell .approval-search{min-width:100%}
+  .app-shell .approval-search input{font-size:16px} /* iOS zoom guard */
+}
+/* Review modal — the shared modal panel renders light in both staff themes,
+   so pin light values (same approach as the account/settings modals). */
+.approval-review-modal .approval-review-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.approval-review-modal .approval-review-grid section,.approval-review-modal .approval-review-section{border:1px solid var(--line);padding:16px 18px;margin-top:14px}
+.approval-review-modal .approval-review-grid>section{margin-top:0}
+.approval-review-modal h3{font-size:11px;margin:0 0 10px}
+.approval-review-modal dl{margin:0}
+.approval-review-modal dl>div{display:flex;justify-content:space-between;gap:16px;padding:6px 0;border-top:1px solid var(--line)}
+.approval-review-modal dl>div:first-child{border-top:0}
+.approval-review-modal dt{color:var(--muted);font-size:9px}
+.approval-review-modal dd{margin:0;text-align:right;font-size:10px}
+.approval-review-modal .approval-review-section p{margin:0;font-size:10px;line-height:1.6;color:var(--ink)}
+.approval-review-modal .approval-review-section p.muted{color:var(--muted)}
+.approval-review-modal .approval-review-note{margin:16px 0 0;padding:10px 12px;background:#fff0dd;border:1px solid #e6d3ae;border-radius:6px;color:#a45a22;font-size:10px;font-weight:600}
+@media(max-width:680px){.approval-review-modal .approval-review-grid{grid-template-columns:1fr}}
+/* Light-staff mirrors (queue surface only — the modal pins light above) */
+.theme-light .app-shell .approval-search input{background:#fff;border-color:#dce2de;color:#263129}
+.theme-light .app-shell .approval-search svg{color:#7b867f}
+.theme-light .app-shell .approval-kind.approval{background:#def1e8;border-color:#cbe6d9;color:#267056}
+.theme-light .app-shell .approval-kind.escalation{background:#f9e3e1;border-color:#e4beb9;color:#a44843}
+.theme-light .app-shell .approval-waiting{color:#a45a22}
+.theme-light .app-shell .approval-request-cell p{color:#33413a}
+.theme-light .app-shell .approval-request-cell small{color:#747f78}
+.theme-light .app-shell .approval-card{background:#fff}
+.theme-light .app-shell .approval-card-lead b{color:#1d2821}
+.theme-light .app-shell .approval-card-lead small{color:#747f78}
+.theme-light .app-shell .approval-card-meta{color:#74807a}
+.theme-light .app-shell .approval-card p{color:#33413a}
+.theme-light .app-shell .approval-card footer small{color:#747f78}
+
+/* Staff & Duty — read-only operational workforce supervision (Manager).
+   Redesigned 2026-09-08 to the Transportation workspace vocabulary: semantic
+   KPI cards (each toggles its duty filter), a dashed derivation note,
+   department coverage buttons with meter bars, and a sticky-header table
+   with a CSS-gated card twin below 720px. Tokens do the theme lifting
+   (--ds surface, --dl line, --dt text, --dm muted, --dg accent); literal
+   fills get explicit light mirrors at the end. */
+/* KPI cards — one semantic accent per duty state; Departments is informational. */
+.app-shell .sd-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:12px}
+.app-shell .sd-kpi{position:relative;display:block;padding:13px 14px;border:1px solid var(--dl);border-radius:8px;background:var(--ds);text-align:left;cursor:pointer;transition:border-color .18s ease,background-color .18s ease,box-shadow .18s ease}
+.app-shell .sd-kpi:not(:disabled):hover{border-color:var(--dm)}
+.app-shell .sd-kpi:focus-visible{outline:2px solid var(--dg);outline-offset:2px}
+.app-shell .sd-kpi:disabled{opacity:.55;cursor:default}
+.app-shell .sd-kpi span{display:block;color:var(--dm);font-size:10px;font-weight:700}
+.app-shell .sd-kpi b{display:block;margin:8px 0 3px;color:var(--dt);font:600 22px var(--font-sans);font-variant-numeric:tabular-nums}
+.app-shell .sd-kpi small{display:block;color:#4e8c70;font-size:9px;line-height:1.4}
+.app-shell .sd-kpi>i{position:absolute;top:12px;right:12px;width:28px;height:28px;display:grid;place-items:center;border-radius:6px;background:#1d2320;color:#8d9791}
+.app-shell .sd-kpi>i svg{width:15px;height:15px}
+.app-shell .sd-kpi.done>i{background:#122e2a;color:#57c9a4}
+.app-shell .sd-kpi.attention>i{background:#34291c;color:#dfa062}
+.app-shell .sd-kpi.info>i{background:#152132;color:#7fa8d4}
+.app-shell .sd-kpi[aria-pressed="true"]{border-color:var(--dg);background:#141f19;box-shadow:inset 0 0 0 1px var(--dg)}
+/* Derivation note — why these statuses are what they are (dashed, tp-note style). */
+.app-shell .sd-note{margin:0 0 12px;padding:7px 10px;border:1px dashed var(--dl);border-radius:6px;color:var(--dm);font-size:10px;line-height:1.6}
+/* Department coverage — click filters the list; the meter bar fills with on-duty share. */
+.app-shell .sd-depts{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:9px;margin-bottom:12px}
+.app-shell .sd-depts>button{display:grid;gap:5px;padding:12px 14px;border:1px solid var(--dl);border-radius:8px;background:var(--ds);text-align:left;cursor:pointer;transition:border-color .18s ease,background-color .18s ease,box-shadow .18s ease}
+.app-shell .sd-depts>button:hover{border-color:var(--dm)}
+.app-shell .sd-depts>button:focus-visible{outline:2px solid var(--dg);outline-offset:2px}
+.app-shell .sd-depts>button[aria-pressed="true"]{border-color:var(--dg);background:#141f19;box-shadow:inset 0 0 0 1px var(--dg)}
+.app-shell .sd-dept-name{color:var(--dt);font:600 11px var(--font-sans);letter-spacing:.3px;text-transform:uppercase}
+.app-shell .sd-dept-count{color:var(--dm);font-size:10px}
+.app-shell .sd-dept-count i{font-style:normal;font-weight:700;color:var(--dg)}
+.app-shell .sd-depts small{color:#8d9791;font-size:9px}
+.app-shell .sd-dept-meter{height:3px;border-radius:2px;background:var(--dl);overflow:hidden}
+.app-shell .sd-dept-meter>span{display:block;height:100%;border-radius:2px;background:var(--dg);transition:width .3s ease}
+/* Toolbar — search + filters + clear (keeps .table-tools/.reservation-filters
+   for the shared control metrics, touch targets, and ≤760px stacking). */
+.app-shell .sd-toolbar{margin-bottom:10px}
+.app-shell .sd-toolbar>div{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.app-shell .sd-clear{display:inline-flex;align-items:center;gap:5px;min-height:36px;padding:8px 13px;border:1px solid var(--dl);border-radius:5px;background:#141815;color:#929c96;font-size:10px;font-weight:700;cursor:pointer;transition:border-color .18s ease,color .18s ease}
+.app-shell .sd-clear:hover{border-color:var(--dm);color:var(--dt)}
+.app-shell .sd-clear:focus-visible{outline:2px solid var(--dg);outline-offset:1px}
+/* Staff table — sticky header, tabular numbers; assignment text may be long. */
+.app-shell .sd-table{min-width:880px;font-variant-numeric:tabular-nums}
+.app-shell .sd-table th{position:sticky;top:0;z-index:2}
+.app-shell .sd-table .cell-stack b{overflow-wrap:anywhere}
+.app-shell .sd-actions{text-align:right}
+.app-shell .sd-muted{color:var(--dm);font-weight:400}
+/* Mobile staff cards — the table swaps for these below 720px. */
+.app-shell .sd-cards{display:none;grid-template-columns:1fr;gap:10px;padding:12px}
+.app-shell .sd-card{display:grid;gap:8px;padding:14px;border:1px solid var(--dl);border-radius:8px;background:var(--ds2)}
+.app-shell .sd-card header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.app-shell .sd-card header b{color:var(--dt);font-size:12px}
+.app-shell .sd-card header small{color:var(--dm);font-size:9px}
+.app-shell .sd-card-assignment{margin:0;color:var(--dt);font-size:11px;font-weight:650;line-height:1.5;overflow-wrap:anywhere}
+.app-shell .sd-card-meta{display:flex;flex-wrap:wrap;gap:4px 14px;color:var(--dm);font-size:9px}
+.app-shell .sd-card-actions{display:flex;justify-content:flex-end}
+/* Empty / loading — purpose-built, never a bare "Loading…" block. */
+.app-shell .sd-empty{display:grid;justify-items:center;gap:6px;padding:34px 20px 30px;text-align:center;color:var(--dm)}
+.app-shell .sd-empty h3{margin:4px 0 0;color:var(--dt);font-size:12px}
+.app-shell .sd-empty p{margin:0;max-width:440px;font-size:10px;line-height:1.6}
+.app-shell .sd-empty-icon{width:38px;height:38px;display:grid;place-items:center;border-radius:50%;background:#172a21;color:#5bc698}
+.app-shell .sd-empty .sd-clear{margin-top:8px}
+.app-shell .sd-skeleton{display:grid;gap:10px;padding:14px}
+.app-shell .sd-skeleton i{display:block;height:44px;border-radius:6px;background:var(--dl);animation:sdPulse 1.1s ease-in-out infinite}
+.app-shell .sd-skeleton i:nth-child(2){animation-delay:.15s}
+.app-shell .sd-skeleton i:nth-child(3){animation-delay:.3s}
+.app-shell .sd-skeleton i:nth-child(4){animation-delay:.45s}
+.app-shell .sd-skeleton i:nth-child(5){animation-delay:.6s}
+@keyframes sdPulse{0%,100%{opacity:.5}50%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.app-shell .sd-skeleton i{animation:none}.app-shell .sd-dept-meter>span{transition:none}}
+@media(max-width:720px){
+  .app-shell .sd-kpis{grid-template-columns:1fr 1fr}
+  .app-shell .sd-depts{grid-template-columns:1fr 1fr}
+  .app-shell .sd-table-wrap{display:none}
+  .app-shell .sd-cards{display:grid}
+}
+/* Detail modal — the shared modal panel renders light in both staff themes,
+   so these use the light palette literals, not the app-shell tokens. */
+.app-shell .sd-detail-hero{display:grid;gap:4px;margin-bottom:14px}
+.app-shell .sd-detail-hero small{margin-top:8px;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#74807a}
+.app-shell .sd-detail-hero p{margin:0;color:#263129;font-size:13px;font-weight:650;line-height:1.5;overflow-wrap:anywhere}
+.app-shell .sd-detail-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.app-shell .sd-detail-stats>div{padding:10px 12px;border:1px solid #dce3de;border-radius:7px;background:#f4f6f4}
+.app-shell .sd-detail-stats small{display:block;margin-bottom:4px;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#74807a}
+.app-shell .sd-detail-stats b{font-size:17px;font-weight:650;color:#263129;font-variant-numeric:tabular-nums}
+.app-shell .sd-detail h4{font:600 10px var(--font-sans);text-transform:uppercase;letter-spacing:.8px;margin:0 0 8px;color:#263129}
+.app-shell .sd-detail ul{list-style:none;margin:0;padding:0;display:grid;gap:7px}
+.app-shell .sd-detail li{display:flex;align-items:center;gap:9px;font-size:10px}
+.app-shell .sd-detail li svg{flex:0 0 auto;color:var(--dg)}
+.app-shell .sd-detail li>span:first-of-type{flex:1;color:#33413a}
+.app-shell .sd-detail section>p{margin:0;font-size:10px;color:#74807a}
+.app-shell .sd-detail-note{margin:14px 0 0;font-size:9px;color:#74807a;line-height:1.6}
+/* Light-theme mirrors for the literal fills above. */
+.theme-light .app-shell .sd-kpi{background:#fff}
+.theme-light .app-shell .sd-kpi small{color:#2e8664}
+.theme-light .app-shell .sd-kpi>i{background:#eef1ee;color:#657169}
+.theme-light .app-shell .sd-kpi.done>i{background:#e9f2ed;color:#267056}
+.theme-light .app-shell .sd-kpi.attention>i{background:#fff0dd;color:#a45a22}
+.theme-light .app-shell .sd-kpi.info>i{background:#eaf1f7;color:#2a5d8f}
+.theme-light .app-shell .sd-kpi[aria-pressed="true"]{background:#e9f2ed}
+.theme-light .app-shell .sd-depts>button{background:#fff}
+.theme-light .app-shell .sd-depts>button[aria-pressed="true"]{background:#e9f2ed}
+.theme-light .app-shell .sd-depts small{color:#74807a}
+.theme-light .app-shell .sd-dept-meter{background:#e1e6e2}
+.theme-light .app-shell .sd-clear{background:#fff;border-color:#dce3de;color:#657169}
+.theme-light .app-shell .sd-card{background:#fff}
+.theme-light .app-shell .sd-empty-icon{background:#e9f2ed;color:#267056}
+
+/* Manager Reservations oversight — derived issue badges, attention-first
+   chips, lifecycle stepper, and the mobile card twin. Severity palettes reuse
+   the arrival-chip warn / approval-kind escalation vocabularies: high is the
+   only red, warning is amber, info is neutral. No new statuses, no new
+   mutation surfaces — presentation only. */
+.app-shell .mr-issue{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;border:1px solid var(--dl);font-size:9px;font-weight:700;white-space:nowrap;cursor:help}
+.app-shell .mr-issue small{font-size:8px;opacity:.75}
+.app-shell .mr-issue.high{background:#351f21;border-color:#57353a;color:#ef797e}
+.app-shell .mr-issue.warning{background:#34291c;border-color:#57432a;color:#e2a966}
+.app-shell .mr-issue.info{background:#1a211d;border-color:#2b352f;color:#9fb0a6}
+.app-shell .mr-issue-none{color:#5f695f}
+.app-shell .mr-unassigned{color:#e2a966;font-weight:700}
+.app-shell .mr-unassigned-note{color:#e2a966;font-size:8px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.app-shell .mr-table td:last-child .table-action{cursor:pointer}
+/* Lifecycle stepper — compact, wraps, static (no animation). */
+.app-shell .mr-lifecycle{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+.app-shell .mr-lifecycle-step{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border:1px solid var(--dl);border-radius:999px;color:var(--dm);font-size:9px}
+.app-shell .mr-lifecycle-step i{width:7px;height:7px;border-radius:50%;background:var(--dl);flex:none}
+.app-shell .mr-lifecycle-step.done{border-color:#244b39;color:#65d3a5}
+.app-shell .mr-lifecycle-step.done i{background:#65d3a5}
+.app-shell .mr-lifecycle-step b{font-weight:700}
+.app-shell .mr-lifecycle-step small{color:var(--dm);font-size:8px}
+/* Mobile card twin — hidden desktop, grid ≤720px (approval-card pattern). */
+.app-shell .mr-card-list{display:none}
+.app-shell .mr-card{display:grid;gap:7px;padding:13px;border:1px solid var(--dl);border-radius:8px;background:var(--ds)}
+.app-shell .mr-card header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.app-shell .mr-card header b{color:var(--dt);font-size:11px}
+.app-shell .mr-card-lead{display:grid;gap:2px}
+.app-shell .mr-card-lead b{color:var(--dt);font-size:11px}
+.app-shell .mr-card-lead small{color:var(--dm);font-size:9px}
+.app-shell .mr-card-meta{display:flex;gap:10px;flex-wrap:wrap;color:var(--dm);font-size:9px;font-weight:700}
+.app-shell .mr-card footer{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+@media(max-width:720px){
+  .app-shell .mr-card-list{display:grid;gap:9px}
+  .app-shell .mr-table-wrap{display:none}
+}
+/* Light-staff mirrors */
+.theme-light .app-shell .mr-issue.high{background:#f9e3e1;border-color:#e4beb9;color:#a44843}
+.theme-light .app-shell .mr-issue.warning{background:#fff0dd;border-color:#e6d3ae;color:#a45a22}
+.theme-light .app-shell .mr-issue.info{background:#eef1ee;border-color:#dce2de;color:#657169}
+.theme-light .app-shell .mr-issue-none{color:#9aa39d}
+.theme-light .app-shell .mr-unassigned,.theme-light .app-shell .mr-unassigned-note{color:#a45a22}
+.theme-light .app-shell .mr-lifecycle-step.done{border-color:#cbe6d9;color:#267056}
+.theme-light .app-shell .mr-lifecycle-step.done i{background:#267056}
+.theme-light .app-shell .mr-card{background:#fff}
+.theme-light .app-shell .mr-card header b,.theme-light .app-shell .mr-card-lead b{color:#1d2821}
+.theme-light .app-shell .mr-card-lead small,.theme-light .app-shell .mr-card-meta{color:#747f78}

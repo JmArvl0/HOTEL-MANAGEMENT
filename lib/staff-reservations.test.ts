@@ -7,6 +7,7 @@ const resourceRoute = readFileSync("app/api/resources/[resource]/route.ts", "utf
 const staffRoute = readFileSync("app/api/staff/reservations/[id]/route.ts", "utf8");
 const dashboard = readFileSync("components/manager/manager-dashboard-client.tsx", "utf8");
 const dashboardData = readFileSync("lib/data.ts", "utf8");
+const managerPanel = readFileSync("components/manager/manager-reservations-panel.tsx", "utf8");
 const migration = readFileSync("supabase/migrations/20260828040000_staff_reservation_operations.sql", "utf8");
 
 describe("staff reservation RBAC", () => {
@@ -18,6 +19,7 @@ describe("staff reservation RBAC", () => {
     expect(canManageReservation("owner")).toBe(false);
     expect(canVerifyDeposit("owner")).toBe(false);
     expect(canManageReservation("front_desk")).toBe(true);
+    expect(canVerifyDeposit("front_desk")).toBe(false);
     expect(canVerifyDeposit("accounting")).toBe(true);
     expect(canManageReservation("admin")).toBe(false);
     expect(canVerifyDeposit("admin")).toBe(false);
@@ -67,5 +69,38 @@ describe("unified staff reservation workflow", () => {
     expect(dashboard).toContain("setInterval(()=>load(true),30000)");
     expect(dashboard).toContain("/api/staff/reservations/");
     expect(dashboardData).toContain("New online reservation confirmed");
+  });
+});
+
+describe("manager reservation oversight workspace", () => {
+  it("renders the manager oversight panel for managers instead of the front-desk queue", () => {
+    expect(dashboard).toContain('section==="reservations"&&user.role==="manager"');
+    expect(dashboard).toContain("ManagerReservationsPanel");
+    expect(managerPanel).toContain("Monitor reservation activity, operational risks, room readiness, and exceptions requiring management attention.");
+  });
+  it("never exposes Front Desk or Accounting actions in the manager panel or detail modal", () => {
+    for (const forbidden of ["Assign & check in", "Collect payment", "Complete checkout", "Verify deposit", "Pre-assign room", "Reassign room", "Change room", "Extend stay", "Post charge", "Cancel reservation"]) {
+      expect(managerPanel.includes(forbidden)).toBe(false);
+    }
+    // Every action button in the shared detail modal stays behind the front-desk/
+    // accounting flags the dashboard already passes as false for managers.
+    expect(dashboard).toContain("canManage={operational}");
+    expect(dashboard).toContain('oversight={user.role==="manager"||user.role==="owner"}');
+  });
+  it("routes Review Exception through the existing approval workflow, never a direct mutation", () => {
+    expect(managerPanel).toContain("Review Exception");
+    expect(dashboard).toContain("function reviewReservationException(item:RecordItem){setDetail(null);setSearch(String(item.confirmation_number||item.id));setSection(\"approvals\")}");
+    // Advisory only: the derivation module never writes reservation state.
+    const derivation = readFileSync("lib/manager-attention.ts", "utf8");
+    expect(derivation).not.toContain("supabase");
+    expect(derivation).not.toContain("fetch(");
+  });
+  it("decorates the manager list with batched lookups, not per-row queries", () => {
+    const staffData = readFileSync("lib/staff-data.ts", "utf8");
+    expect(staffData).toContain("decorateManagerAttention(decorated)");
+    expect(staffData).toContain('from("manager_approval_requests")');
+    expect(staffData).toContain('from("transportation_requests")');
+    expect(staffData).toContain('from("refund_requests")');
+    expect(staffData).toContain('from("guest_requests")');
   });
 });

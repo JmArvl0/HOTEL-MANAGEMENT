@@ -2,7 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { canRequestManagerApproval, canReviewManagerApprovals } from "@/lib/permissions";
 import type { RecordItem, Role } from "@/lib/types";
 
-export const MANAGER_APPROVAL_TYPES=["room_upgrade","reservation_modification","early_check_in","late_checkout","guest_compensation","refund_exception","checkout_exception","guest_escalation"] as const;
+export const MANAGER_APPROVAL_TYPES=["room_upgrade","room_type_exception","reservation_modification","early_check_in","late_checkout","guest_compensation","refund_exception","checkout_exception","guest_escalation"] as const;
 export const MANAGER_DECISIONS=["approve","reject"] as const;
 export const isFinalApproval=(status:string)=>["approved","rejected","cancelled","expired"].includes(status);
 export const managerCanReview=(role:Role)=>canReviewManagerApprovals(role);

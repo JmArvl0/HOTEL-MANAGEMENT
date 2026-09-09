@@ -17,5 +17,9 @@ Documentation vault for the **Haven Hotel Management** app (Next.js + Supabase),
 ## Other
 - [[01 Project/Roadmap|Roadmap]] · [[00 Inbox/Inbox|Inbox]] · [[04 Archive/Archive Index|Archive]]
 
+## Memory (AI development sessions)
+- [[05 Memory/Memory Index|Memory Index]] · [[05 Memory/Current Status|Current Status]]
+- Start protocol: [[03 Reference/AI Session Handoff|AI Session Handoff]]
+
 ---
 Quick facts: Next.js 16 App Router · NextAuth (JWT credentials) · Supabase service-role data layer with service-role-only production access · 8 user roles · protected departmental workflows.

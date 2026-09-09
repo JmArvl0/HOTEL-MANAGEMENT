@@ -1,5 +1,13 @@
 # Design System Master File
 
+> ## ⚠️ SUPERSEDED — 2026-09-05
+> This file was auto-generated 2026-09-02 and **does not match the shipped app** (it specifies navy
+> `#1E3A8A` / gold `#A16207` / Karla; the app ships forest `#173f32` / `#1f6b52` + terracotta
+> `#c9783c` + Inter / Playfair Display). See `DESIGN-STATUS.md` finding F2. **Do not apply it.**
+> The live system lives in [`DESIGN.md`](../../../DESIGN.md) with the CSS authority in
+> `app/ui-primitives.css`. Kept here for reference only.
+
+
 > **LOGIC:** When building a specific page, first check `design-system/pages/[page-name].md`.
 > If that file exists, its rules **override** this Master file.
 > If not, strictly follow the rules below.

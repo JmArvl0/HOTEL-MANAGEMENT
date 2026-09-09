@@ -105,7 +105,7 @@ export default function TransportVehicleTypesPanel() {
         <div className="data-panel">
           <div className="table-scroll">
             <table>
-              <thead><tr>{["Vehicle", "Seats", "Base fare", "Per km", "Per minute", "Booking fee", "Status", "Version", ""].map((x) => <th key={x}>{x}</th>)}</tr></thead>
+              <thead><tr>{["Vehicle", "Seats", "Base fare", "Per km", "Per minute", "Booking fee", "Status", "Version", ""].map((x, i) => <th key={i}>{x}</th>)}</tr></thead>
               <tbody>
                 {visible.map((item) => (
                   <tr key={item.id}>
@@ -129,7 +129,7 @@ export default function TransportVehicleTypesPanel() {
       {toast && <div className="toast"><CarTaxiFront size={18}/>{toast}</div>}
 
       {(editing || creating) && draft && (
-        <Modal isOpen onClose={close} title={editing ? `Edit ${editing.name}` : "Add a transfer vehicle"} description={editing ? "Changes are audited and apply to new bookings at checkout." : "Offer a vehicle type for guest pickup transfers at booking checkout."} size="md">
+        <Modal isOpen onClose={close} title={editing ? `Edit ${editing.name}` : "Add a transfer vehicle"} description={editing ? "Changes are audited and apply to new bookings at checkout." : "Offer a vehicle type for guest pickup transfers at booking checkout."} size="md" headerVariant="branded">
           <div className="form-dialog">
             <div className="form-field">
               <div className="form-field-wrapper">

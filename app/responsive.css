@@ -79,20 +79,13 @@ a, button, [role="button"]{ overflow-wrap: anywhere; }
   .page-title h1{ font-size:20px }
 }
 
-/* Small phones 320: tighten landing hero */
-@media (max-width: 375px){
-  .landing .hero-content h1{ font-size: 38px; letter-spacing:-1.6px }
-  .landing .section-heading{ flex-direction:column; align-items:flex-start; gap:12px }
-  .landing .room-card{ min-height: 320px }
-  .amenities-grid{ grid-template-columns:1fr 1fr; gap:8px }
-  .gallery-grid{ gap:10px }
-  .footer-links{ gap:20px }
-}
+/* Small-phone landing fine-tuning lives in app/(landing-page)/landing.css (375px block). */
 
 /* Ultra-wide: cap content width for readability (65-75ch prose already via max-width) */
 @media (min-width: 1600px){
-  .landing .intro, .landing .rooms-section, .landing .amenities-section,
-  .landing .gallery-section, .landing .faq-section, .landing .operations,
+  .landing .rooms-section, .landing .stats-strip, .landing .journey,
+  .landing .amenities-section, .landing .gallery-section, .landing .good-to-know,
+  .landing .faq-section, .landing .cta-band, .landing footer,
   .booking-content{ max-width: 1440px; margin-left:auto; margin-right:auto }
 }
 
@@ -176,4 +169,35 @@ a, button, [role="button"]{ overflow-wrap: anywhere; }
 
 .app-shell .btn:active:not(:disabled) {
   transform: translateY(1px) scale(0.98);
+}
+
+/* Touch at any width: phones in landscape (844px) and tablets in portrait get
+   touch metrics too — the width gates above miss them. pointer:coarse reports
+   the PRIMARY pointer, so a touchscreen laptop with a trackpad still reports
+   fine and keeps desktop density. Values mirror the ≤680/≤720px blocks, so a
+   small portrait phone (where both fire) sees identical numbers. */
+@media (pointer: coarse) {
+  .btn, .btn-sm { min-height: 44px; }
+  .table-action {
+    min-height: 40px;
+    padding: 8px 13px;
+    font-size: 12px;
+  }
+  /* Photo-tile reorder arrows stay compact pills (same exception as ≤720px). */
+  .photo-tile-actions .table-action {
+    min-height: 34px;
+    padding: 5px 10px;
+  }
+  .table-tools input, .table-tools select,
+  .reservation-filters select {
+    min-height: 40px;
+    font-size: 16px; /* 16px text prevents iOS auto-zoom on focus */
+  }
+  /* No hover on touch — give every tap real feedback instead. */
+  .table-action:active:not(:disabled),
+  .customer-shell nav a:active,
+  .landing .nav-links a:active {
+    transform: translateY(1px);
+    opacity: .85;
+  }
 }
