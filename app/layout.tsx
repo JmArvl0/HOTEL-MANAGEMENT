@@ -9,6 +9,7 @@ import "@/components/ui/Modal.css";
 import "@/components/booking/room-details.css";
 import "./design-tokens.css";
 import "./ui-primitives.css";
+import "./coastal-theme.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-display" });

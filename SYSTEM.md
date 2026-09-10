@@ -4,19 +4,19 @@ Complete reference to this codebase, from end to end. Covers what the system doe
 role, and workflow) and how it is built (architecture, data model, Postgres functions, API, security,
 tests, deployment).
 
-- **Reference point:** branch `main` @ commit `e91ee55` **plus the current working tree**
-  (2026-09-05). The working tree carries the uncommitted feature blocks described below
-  (standalone transportation service, guest-request batches, daily operations reports, and the
-  deposit-verification role change).
-- **Status:** replaces the 2026-09-04 `SYSTEM.md` (reference commit `c9a0a23`), which predates the
-  transportation service, guest-request batch approval, the daily operations report module, and the
-  Accounting-only deposit verification change. Every claim below was re-verified against source
-  (lib modules, migration files, route handlers, tests, docs) on the date above.
-- **Verification:** `npm run typecheck`, `npm run lint`, `npm test` (49 files / 600 cases), and
-  `npm run build` are the project's quality gates and pass at this tree. See §2 and §12.
-- **Source of truth for the database** is `supabase/migrations/` (50 files). The consolidated
-  `supabase/schema.sql` is a fresh-install snapshot — a `supabase db dump` of the deployed
-  database, regenerated after each feature block (see §15).
+- **Reference point:** branch `main` @ commit `f49a737` **plus the current working tree**
+  (audited 2026-09-09). The working tree includes the post-commit feature blocks documented here,
+  including request-type governance, controlled room-assignment exceptions, durable guest
+  notifications/optional email, and required payment-proof uploads.
+- **Status:** every claim below was re-checked against the current route handlers, domain modules,
+  components, migrations, tests, environment template, and package manifest. This describes the
+  local source tree; it does not claim that every local migration is already deployed remotely.
+- **Verification (2026-09-09):** `npm run typecheck`, `npm run lint`, and `npm run build` pass.
+  Lint exits successfully with 72 warnings. `npm test` currently has **671 passing / 3 failing**
+  cases across 54 files; the three UI assertion failures are recorded in §12.
+- **Source of truth for the database** is `supabase/migrations/` (51 files). The consolidated
+  `supabase/schema.sql` is a deployed-database snapshot, not the migration authority, and currently
+  lags the local 20260918–20260921 migrations (see §15).
 
 ---
 
@@ -58,10 +58,11 @@ booking. Not a multi-property (PMS/chain) system.
 | Passwords | bcryptjs (cost 12 for registration) | ^3.0.2 |
 | Validation | zod — request bodies, env, schemas | ^3.25 |
 | Styling | Hand-written CSS, no framework; `Modal.css`, `haven-loader.css` + theme CSS files | — |
-| AI (innovation layer) | `@google/genai` — **server-side only**, advisory Gemini assistance (`GEMINI_API_KEY`, never `NEXT_PUBLIC_`) | ^1.x |
+| AI (innovation layer) | `@google/genai` — **server-side only**, advisory Gemini assistance (`GEMINI_API_KEY`, never `NEXT_PUBLIC_`) | ^2.21 |
+| Guest email (optional) | Resend HTTP API via native `fetch`; server-side key only (`RESEND_API_KEY`) | no SDK |
 | QR (innovation layer) | `qrcode` (server-side PNG data-URL rendering) · `jsqr` (browser camera scanning) | — |
 | Migrations | `supabase/migrations/*.sql` applied with **`supabase db push`** | — |
-| Tests | vitest + fake-supabase query-builder seam (domain modules only) + a live rollback-safe system test | ^4.1 |
+| Tests | vitest domain/contract tests + jsdom component tests + rollback-safe live system script | ^4.1 |
 
 **npm scripts.** `dev`, `build` (`next build`), `start`, `lint` (flat `eslint.config.mjs`), `typecheck`
 (`tsc --noEmit`), `test` (`vitest run`), `test:watch`. Helper scripts live in `scripts/` (§4, §12):
@@ -86,7 +87,7 @@ app/
   scan/page.tsx                  QR operations scanner (camera via jsQR + manual token entry)
   qr-placard/[roomId]/page.tsx   printable per-room QR operations placard (staff-only)
   recover/[token]/page.tsx       public secure-account-recovery
-  api/**                         88 route handlers (full map in §11)
+  api/**                         93 route handlers (full map in §11)
 
 components/
   ui/         Modal, FormDialog, FormField, StatusBadge, AccessibleChart, Navigation,
@@ -109,7 +110,8 @@ lib/          domain layer, pure and unit-tested (see §5)
   booking.ts customer.ts accounting.ts admin.ts manager.ts hotel-policy.ts
   admin-route.ts owner-route.ts manager-route.ts housekeeping-route.ts financial-route.ts
   transportation-route.ts      transportation.ts  transportation-display.ts
-  front-desk-reports.ts        request-batches.ts
+  front-desk-reports.ts        request-batches.ts  request-catalog.ts
+  notifications.ts             email.ts            staff-duty.ts  approval-display.ts
   analytics/  occupancy, housekeeping, inventory, maintenance, runner, data
               (Predictive Analytics engine — HAVEN's own forecasts, §7.13)
   ai/         gemini-client, guard, prompts, schemas, tools, audit, brief, explain
@@ -118,16 +120,16 @@ lib/          domain layer, pure and unit-tested (see §5)
   fake-supabase.ts demo-store.ts theme.ts format.ts room-images.ts request-options.ts
 
 supabase/
-  migrations/   50 files, 2026-08-26 … 2026-09-20 (authoritative schema + ~153 definer function
-                definitions, ~100 distinct public functions)
-  schema.sql    consolidated fresh-install snapshot (lags migrations — see §15)
+  migrations/   51 files, 2026-08-26 … 2026-09-21 (authoritative schema + 178 function
+                definitions, 109 distinct public function names)
+  schema.sql    deployed-database dump (currently lags migrations — see §15)
 
 scripts/        migrate.mjs  set-passwords.mjs  verify-auth.mjs  row-counts.mjs  system-test.mjs
                 ai-smoke.mjs (opt-in single live Gemini probe)
 docs/           FRONT_DESK_OPERATIONS.md  MANAGER_OPERATIONS.md  PROVISIONAL_BUSINESS_POLICIES.md
                 TRANSPORTATION_FUTURE_ENHANCEMENTS.md  innovation-architecture.md  (§7.13 defense doc)
                 lacking-of-the-system/  (split gap notes)
-tests           vitest, co-located as lib/*.test.ts — 23 files / 365 cases
+tests           vitest, co-located domain and component tests — 54 files / 674 cases
 HAVEN-FINAL-DEPLOYMENT-REPORT.md  SYSTEM-TEST-REPORT.md  DESIGN-STATUS.md  DESIGN.md
 .vercel/project.json  design-system/haven-hotel/  research-paper/
 .env.example    tracked template (real env vars are git-ignored: .env*)
@@ -147,15 +149,16 @@ dev-only secret is used in non-production for zero-config demo runs), `NEXT_PUBL
 `SUPABASE_SERVICE_ROLE_KEY`, `DIRECT_URL` (used by maintenance and system-test scripts), and — for
 the innovation layer only — `GEMINI_API_KEY` + optional `GEMINI_MODEL` (server-side Gemini access;
 **never** a `NEXT_PUBLIC_` Gemini variable) and `CRON_SECRET` (Vercel cron bearer for
-`/api/analytics/generate`). zod validates the shape at boot. Apart from Gemini, there are
-**no third-party API keys** — the transportation service deliberately ships without external
-mapping/routing (§7.11).
+`/api/analytics/generate`). Optional `RESEND_API_KEY` + `RESEND_FROM` enable transactional guest
+email copies; without them, durable in-app notifications continue to work. zod validates the app's
+required environment at boot. Transportation deliberately uses no external mapping/routing API
+(§7.11).
 
 **Bringing up a real environment.**
 1. Provision a Supabase project and `supabase link`.
 2. Apply migrations: **`supabase db push`** (this is the supported path — not `npm run migrate`;
-   see memory note `supabase-migration-ledger-drift`). `supabase/schema.sql` exists only as a
-   fresh-install snapshot.
+   see memory note `supabase-migration-ledger-drift`). `supabase/schema.sql` is only a
+   deployed-database snapshot.
 3. Create accounts. The base migration seeds 8 role accounts whose shared bcrypt hash is
    deliberately **locked** by a later migration (idempotent update that sets
    `active=false`); run `scripts/set-passwords.mjs` against `DIRECT_URL` to give each a real
@@ -189,7 +192,8 @@ Key properties:
   workflows (its PATCH/POST refuse protected flows with 403).
 - **Domain layer is testable.** `lib/*.ts` modules are mostly pure or take an injected query
   builder, so `lib/fake-supabase.ts` (an in-memory `select/eq/in/order` query-builder) lets vitest
-  run the same code the route handlers call — 23 test files / 365 cases, no network.
+  run the same code the route handlers call. The current suite also includes jsdom component tests;
+  see the exact gate state in §12.
 - **Two-mode data layer.** `lib/data.ts` (`databaseMode`, `list/create/update`, `getDashboard(role)`)
   and `lib/staff-data.ts` (`listForRole`) branch on mode; demo store keeps operational rows only.
 - **Role is enforced twice** (route module + RPC body) — §6/§13.
@@ -347,6 +351,23 @@ Confirmation**, wired through search-params → a server-issued **hold token** �
    with the TypeScript count. Sites with no policy in scope pass `null`, which the helper resolves
    via `hotel_today` from `hotel_operational_policies`, so the same-day boundary is hotel-local
    rather than UTC `current_date`.
+
+   **Intent-aware room discovery (2026-09-10):** the landing page's three room-discovery CTAs all
+   land on `/booking/search`, whose mode is *derived from the URL* by `lib/booking.parseSearchIntent`
+   (there is no `mode` param, so back/forward/refresh keep the intent): **Check availability**
+   (hero form GET submit, `checkIn`/`checkOut`/`guests`) → *availability mode* — live per-type
+   inventory, summary chip counts room **types and physical units**; **View all rooms** →
+   *browse mode* — `lib/booking.getRoomCatalog()` (same `room_types` table, `active = true`, same
+   photo chain; no second catalog), base rates only, "Check dates for availability" — never a
+   fabricated count; **Featured Stay card** (`?roomType=<name>`; room-type *name* is the stable
+   identifier used across reservations/booking) → *focused room mode* — the type is sorted first,
+   ringed + text-chipped ("Selected from homepage") and scrolled into view
+   (`components/booking/room-focus.tsx`, reduced-motion aware), never auto-selected. Dates chosen
+   in the landing hero ride along on featured links via the client intent context
+   (`components/landing/booking-intent.tsx`). Invalid dates/guests fall back to browse with the
+   zod issue as a notice; unknown/unpublished `roomType` is dropped with a notice. Signed-in
+   guests are redirected to `/account/find-room` with all params (including `roomType`)
+   forwarded, and that page derives modes identically.
 2. **Room details** — type facts + photos; per-night rate × nights = subtotal.
 3. **Guest details** (`/booking/details`) — names, email, mobile, address, nationality, expected
    arrival, **structured multi-select request options** (`request_options`, up to 12), free-text
@@ -402,8 +423,11 @@ Self-service actions and their constraints:
 - **Transportation** (`/account/transportation`) — request a pickup/drop-off/round-trip against an
   active reservation (locations are free text; hotel-side endpoints come from policy), and cancel a
   pending request with a reason.
-- **Notifications, receipts** (`/account/receipts/[id]`), profile/password/settings, and a public
-  find-room view.
+- **Notifications** — durable, user-scoped event rows from deposit/stay-payment review,
+  guest-request review, and transportation schedule/cancellation actions. The customer shell reads
+  the newest events from `notifications`; optional Resend delivery is a non-blocking copy, so
+  email failure never rolls back the completed hotel action.
+- **Receipts** (`/account/receipts/[id]`), profile/password/settings, and a public find-room view.
 
 ### 7.4 Reservation lifecycle (authoritative narrative)
 
@@ -421,6 +445,17 @@ checked_in ──charges/payments on folio──> checkout (balance cleared) ─
 pending/confirmed ── cancel ──────────> cancelled            (refund queue if deposit eligible)
 pending/confirmed ── no-show ─────────> no_show              (only after local no-show cutoff)
 ```
+
+**Refunds have two paths, and only the exception path involves the Manager** (D-006: Accounting owns
+routine financial operations). `cancel_reservation` computes the entitlement from the reservation's
+frozen policy snapshot (basis points × settled deposit) and inserts the `refund_requests` row with
+`exception_approval_id NULL` — that policy computation **is** the authorization, so Accounting settles
+it directly (`process_refund`) with no Manager step. Only when the requested refund departs from the
+policy amount does the refund_exception approval engine run (§7.8): Manager approves the exception
+amount (validated ≤ settled deposit − already refunded; the approved amount is written to
+`eligible_amount` with `normal_policy_amount` as baseline), and Accounting then executes exactly that
+approved amount. The refund queue badges each row "Within policy" vs "Approved exception" so the
+distinction is visible at settlement time.
 
 Staff operations (each a named RPC with row locks + audit, §10):
 
@@ -551,11 +586,13 @@ AdminDashboardClient, everything else (manager, front_desk, housekeeping, mainte
 | Accounting | Overview, reservations, billing, **Deposit verification** (the only role that can act on it), Refunds, **Transactions · Folios · Cash & shifts · Reconciliation · Documents**, Reports, Approvals |
 
 The **accounting workspace is ledger-readonly**: every action posts to an accounting route that calls
-a definer RPC — corrections are reversals/adjustments, settled payments are never edited (§13). Cash-shift
-expected cash is derived from recorded payments; counted differences are stored as a variance, never
-used to rewrite a guest payment. Reconciliations compare recorded vs external-statement totals and
-only record variance. Documents (receipts `RCP-`, folio statements `FOL-`) are generated server-side
-snapshots.
+a definer RPC — corrections are reversals/adjustments, settled payments are never edited (§13). The
+refund queue distinguishes **Within policy** (policy-computed, settle directly) from **Approved
+exception** (Manager-authorized amount) on each row, so routine refunds never loop through the
+Manager. Cash-shift expected cash is derived from recorded payments; counted differences are stored
+as a variance, never used to rewrite a guest payment. Reconciliations compare recorded vs
+external-statement totals and only record variance. Documents (receipts `RCP-`, folio statements
+`FOL-`) are generated server-side snapshots.
 
 Admin and Owner get dedicated governance screens (§7.10).
 
@@ -768,8 +805,9 @@ pattern for money: read at hold creation, frozen into `deposit_policy_snapshot`.
 
 ## 9. Data model
 
-47 migrations (`20260826125341_initial_hotel_schema.sql` … `20260917010000_innovation_analytics_ai_qr.sql`)
-build ~43 tables. Grouped by domain:
+51 migrations (`20260826125341_initial_hotel_schema.sql` … `20260921010000_payment_proof.sql`)
+define 47 tables historically; two legacy tables were later dropped, leaving about 45 current tables.
+Grouped by domain:
 
 | Domain | Tables | Notes |
 |---|---|---|
@@ -778,17 +816,19 @@ build ~43 tables. Grouped by domain:
 | Reservations | `reservations`, `booking_holds`, `reservation_change_requests` | `reservations` = the spine (statuses, money snapshot, policy snapshots, `request_options`, **`transportation_preferences`** (transport_lines is legacy/deprecated — superseded by `transportation_requests` + folio charges, kept read-only for history), source website/front desk, payment mirror); holds = 15-min carts keyed by `token uuid` |
 | Housekeeping | `housekeeping_tasks`, `housekeeping_task_assignments` | Typed tasks + history; one in-progress task per room invariant |
 | Maintenance | `maintenance_orders`, `maintenance_order_events`, `maintenance_order_assignments` | Work orders + serviceability model + append-only event log |
-| Guest requests | `guest_requests` | Structured multi-type requests, **batched** (`batch_id`, `approval_status`, `approved_by/at/note`), department-routed, priority/severity/escalation |
+| Guest requests | `guest_requests`, `guest_request_catalog` | Structured batched requests plus the Manager-maintained active type/department catalogue used by future guest forms and routing; historical rows keep their text type even if a catalogue item is retired |
 | Transportation | `transportation_requests`, `transport_vehicle_types` | Requests: service type, text locations, pickup/return date-time, passengers, status machine, driver, `fare_amount`/`fare_posted_at`, `version`; **one active request per reservation** (partial unique index) + stay-window trigger. Vehicle types: seats, base fare, per-km/per-minute, booking fee. (The earlier `transport_services` price-list table was **dropped** in favor of vehicle types.) |
-| Money | `invoices`, `folio_charges`, `payments`, `financial_adjustments`, `refund_requests`, `refund_attempts`, `cash_shifts`, `payment_reconciliations`, `financial_documents` | Folio truth is **derived** (`sync_invoice_financials` recomputes paid/balance/credit/status from payments and mirrors onto `reservations.payment_status`); settled payments immutable (economic fields **and** status); documents = generated snapshots |
+| Money | `invoices`, `folio_charges`, `payments`, `financial_adjustments`, `refund_requests`, `refund_attempts`, `cash_shifts`, `payment_reconciliations`, `financial_documents` | Folio truth is **derived** (`sync_invoice_financials`); settled payments are immutable; manual deposit payments retain private proof-storage metadata for Accounting review; documents are generated snapshots |
 | Manager/owner | `manager_approval_requests`, `manager_notes`, **`front_desk_reports`** | Exception engine with `version`, `execution_status`, `authority_level` manager/owner; reports = immutable daily snapshots (`snapshot` jsonb, `supersedes` lineage, one live per date) |
 | Retail/back-office | `inventory`, `vendors`, `purchase_orders` | From the initial schema (inventory is a live stock grid; usage/replenishment workflows are deliberately deferred — vendors/POs are the future supply-chain interface tables; the unused `reviews` table was dropped 2026-09-14) |
+| Guest communication | `notifications` | Immutable guest-facing event content with per-user scope, timestamp, link, and optional `read_at`; the email copy is best-effort and not the source of truth |
 | Innovation layer | `analytics_model_runs`, `analytics_predictions`, `ai_interactions`, `inventory_movements`, `qr_tokens`, `qr_scan_events` | §7.13. Analytics run/prediction snapshots (predictions indexed by type+date); AI interaction audit rows (no prompt/response bodies — also the durable rate-limit counter); append-only consumption/restock/adjustment movements feeding the inventory forecast; hashed QR tokens (unique `token_hash`, active-per-resource partial index) + scan events. Same RLS/no-policies/service-role-only trust model as every other table |
 | Audit | `audit_logs` | Append-only event trail (`protect_audit_history`), `before_data`/`after_data` jsonb |
 
 **RLS.** Enabled on every table; **zero policies on public tables** — the app reaches them only from
-its server with the service-role key, and every mutating path is a definer RPC. The sole RLS policy
-in the repo is `room_photos_public_read` on `storage.objects` so `<img>` tags can load room photos.
+its server with the service-role key. Workflow mutations use definer RPCs; narrow server-guarded
+side channels/catalogue operations (notifications and guest-request catalogue maintenance) use the
+service-role client directly. The sole RLS policy in the repo is `room_photos_public_read` on `storage.objects` so `<img>` tags can load room photos.
 
 **IDs.** Human-visible entities use DB-generated text prefixes + 8 hex (`GST-`, `RM-`, `RSV-`,
 `HKT-`, `MWO-`, `INV-`, `ITM-`, `STF-`); later tables are `uuid`; `booking_holds` keyed by `token`;
@@ -804,8 +844,8 @@ reservation**, **one submitted daily report per hotel day**; confirmation/idempo
 
 ## 10. Postgres functions by workflow
 
-~153 `create or replace function public.…` definitions across the 44 migrations (~100 distinct
-public function names — many occurrences are redefinitions of an earlier name as columns/rules
+178 function definitions across the 51 migrations (109 distinct
+public function names — many definitions replace an earlier version as columns/rules
 evolve). All are **SECURITY DEFINER** (plus `set search_path = public`), **EXECUTE-granted to
 `service_role` only**, re-check the actor role with the null-safe `actor is null or` guard,
 row-lock everything they mutate (`for update` before validation), use `pg_advisory_xact_lock` around
@@ -814,7 +854,7 @@ availability/room-state counts, and write `audit_logs` rows. Grouped by workflow
 | Workflow | Functions (purpose) |
 |---|---|
 | Booking & availability | `create_booking_hold` (price + hold; validates request options + transportation preferences; `ROOM_TYPE_UNAVAILABLE`), `submit_reservation_deposit` (pending res + invoice + pending deposit + proof metadata; `PROOF_REQUIRED` for manual methods; idempotent by token), `verify_reservation_deposit` (**accounting-guarded** confirm + transport/transportation filing), `expire_booking_holds`, `front_desk_create_reservation`, `file_booking_guest_requests` (+ batch trigger), `file_booking_transportation_request` (+ confirmation trigger) |
-| Front desk | `front_desk_assign_room`, `front_desk_check_in`, `front_desk_change_room`, `front_desk_extend_stay`, `front_desk_checkout`, `front_desk_update_guest`, `verify_guest_identity`, `record_staff_payment`, `post_folio_charge`, `customer_submit_stay_payment` / `verify_customer_stay_payment` (**accounting-guarded**) |
+| Front desk | `front_desk_room_is_eligible`, `front_desk_eligible_room_inventory`, `front_desk_assign_room`, `front_desk_check_in`, `front_desk_change_room`, `front_desk_extend_stay`, `front_desk_checkout`, `front_desk_update_guest`, `verify_guest_identity`, `record_staff_payment`, `post_folio_charge`, `customer_submit_stay_payment` / `verify_customer_stay_payment` (**accounting-guarded**) |
 | Guest requests | `customer_submit_guest_requests` (batch), `front_desk_review_guest_request_batch` (approve/reject whole batch; note required on reject), `guest_request_route` (single department-routing table), request/task-creation triggers, `link_housekeeping_tasks_to_assigned_room` |
 | Housekeeping | `housekeeping_assign_task`, `housekeeping_start_task`, `housekeeping_complete_task`, `housekeeping_inspect_task`, `housekeeping_defer_task`, `housekeeping_report_maintenance`, task-creation triggers, assignment backfill |
 | Maintenance | `maintenance_create_work_order`, `maintenance_assign_work_order`, `maintenance_start_work_order`, `maintenance_record_diagnosis`, `maintenance_defer_work_order`, `maintenance_add_progress`, `maintenance_resolve_work_order`, `maintenance_close_work_order`, `maintenance_cancel_work_order`, `maintenance_room_is_blocked`, `maintenance_restore_room_state` |
@@ -822,7 +862,7 @@ availability/room-state counts, and write `audit_logs` rows. Grouped by workflow
 | Cancellation/refunds | `cancel_reservation` (snapshot-timezone refund basis points; opens `refund_requests`), `process_refund` (idempotent `purpose='refund'` payment; refund attempts; `REFUND_EXCEEDS_RECEIVED`), `accounting_fail_refund`, `reverse_reservation_transport` (+ cancel trigger) |
 | No-show | `mark_reservation_no_show` (local-time cutoff gate) |
 | Accounting | `sync_invoice_financials` (single folio recompute; internal-only, revoked even from service_role), `accounting_reject_deposit`, `accounting_reverse_charge`, `accounting_record_adjustment`, `accounting_open/close_cash_shift`, `accounting_reconcile_cash_shift`, `accounting_reconcile_payments`, `accounting_generate_document`; immutability triggers `protect_settled_payment` (economic fields **and status**), `protect_audit_history` |
-| Manager & Owner | `request_manager_approval`, `review_manager_approval` (feasibility re-check + version), `front_desk_execute_manager_approval`, `accounting_execute_manager_financial_approval`, `manager_prioritize_housekeeping`, `manager_escalate_maintenance`, `escalate_manager_approval_to_owner`, `review_owner_exception`, `protect_owner_exception_review`, `sync_manager_financial_execution` |
+| Manager & Owner | `request_manager_approval`, `review_manager_approval` (feasibility re-check + version), `validate_room_type_exception_request`, `validate_room_type_exception_approval`, `validate_room_type_exception_check_in` (exact-ID validation triggers), `front_desk_execute_manager_approval`, `accounting_execute_manager_financial_approval`, `manager_prioritize_housekeeping`, `manager_escalate_maintenance`, `escalate_manager_approval_to_owner`, `review_owner_exception`, `protect_owner_exception_review`, `sync_manager_financial_execution` |
 | Front-desk reports | `submit_front_desk_report` (front-desk-guarded; future-date + supersedes validation; one live per day), `review_front_desk_report` (manager-guarded; version-guarded; note required on return) |
 | Customer | `register_guest_account`, `customer_request_reservation_change`, recovery RPCs (`admin_initiate_account_recovery`, `complete_account_recovery`), policy snapshot triggers |
 | Governance/catalogue | `admin_create_staff`, `admin_change_account_status`, `admin_change_user_role`, `admin_update_user_metadata`, `admin_create_room`, `admin_update_room_metadata`, `admin_update_room_type` (incl. `photo_urls`), `admin_update_operational_policy`, `upsert_transport_vehicle_type`, `current_operational_policy_snapshot`, `hotel_today` |
@@ -835,8 +875,10 @@ zero-caller helper — see §7.2 and §15.
 
 ## 11. API reference
 
-88 route handlers under `app/api`. The **`resources`** CRUD below is the only generic surface; every
-other handler is a named, role-guarded workflow endpoint that ultimately calls a definer RPC.
+93 route handlers under `app/api`. The **`resources`** CRUD below is the only generic surface;
+most other handlers are named, role-guarded workflow endpoints. Workflow state transitions call
+definer RPCs; storage, notification, and simple catalogue endpoints use narrowly scoped server-only
+service-role operations.
 
 **Generic resource CRUD** — `GET/PATCH/POST /api/resources/[resource]`
 (resource ∈ reservations, rooms, guests, guest_requests, housekeeping_tasks, maintenance_orders,
@@ -862,7 +904,7 @@ handler).
 proof); **Transportation**: `GET/POST /account/transportation` (list own / submit request),
 `POST /account/transportation/[id]/cancel`.
 
-**Front desk** (`/api/front-desk`): `POST reservations`, `POST check-in`,
+**Front desk** (`/api/front-desk`): `GET availability`, `POST reservations`, `POST check-in`,
 `GET reservations/[id]/eligible-rooms`, `POST reservations/[id]/assign`, `…/change-room`,
 `…/charge`, `…/checkout`, `…/extend`, `PATCH …/guest`, `POST …/identity`, `POST …/payment`,
 `POST …/requests`; **`POST deposits/[id]/verify`** (accounting-only guard — the handler lives under
@@ -881,7 +923,7 @@ maintenance`.
 types), `POST /transportation/[id]/transition` (action ∈ review, schedule, assign, start, complete,
 cancel, reject — optimistic version).
 
-**Manager** (`/api/manager`): `GET/POST approvals`, `POST approvals/[id]/review | execute |
+**Manager** (`/api/manager`): `GET/POST approvals`, `GET staff-duty`, `POST approvals/[id]/review | execute |
 financial-execute | escalate-owner`, `POST housekeeping/[id]/prioritize`,
 `POST maintenance/[id]/escalate`.
 
@@ -894,12 +936,12 @@ financial-execute | escalate-owner`, `POST housekeeping/[id]/prioritize`,
 
 **Owner** (`/api/owner`): `GET data`, `POST exceptions/[id]/review`.
 
-**Catalog** (`/api/catalog`): `GET/PATCH room-types[/id]`, `POST photos`,
+**Catalog** (`/api/catalog`): `GET/POST request-types` + `PATCH/DELETE request-types/[id]`, `GET/PATCH room-types[/id]`, `POST photos`,
 `GET/POST rooms` + `PATCH rooms/[id]` (physical-room roster and configuration, §6 — same RPCs as
 Governance's `PATCH /api/admin/rooms/[id]`, so authority lives in PL/pgSQL and the two routes cannot
 diverge),
 `GET/PATCH/POST transport-vehicle-types[/id]` (vehicle-type catalogue — replaced the old
-`transport-services` price list); **staff** `GET/PATCH reservations/[id]` (reservation
+`transport-services` price list); **staff** `GET/PATCH reservations/[id]` and `GET rooms/[id]` (reservation
 detail + closeReservation); **dashboard** `GET /api/manager_dashboard`.
 
 **Analytics** (`/api/analytics`, §7.13; manager/owner/admin — front desk gets a reduced subset on
@@ -926,30 +968,27 @@ database error text is never echoed to the client.
 
 ## 12. Testing & verification
 
-**Command gates** (all pass at the reference tree): `npm run typecheck` (`tsc --noEmit`),
-`npm run lint`, `npm test` (vitest), `npm run build`, `node scripts/system-test.mjs` (live DB;
-see below).
+**Command gates (run 2026-09-09):** `npm run typecheck` and `npm run build` pass. `npm run lint`
+passes with 72 warnings. `npm test` reports 52 passing / 2 failing files and 671 passing / 3
+failing cases. The failures are stale UI expectations in `manager-reservations-panel.test.tsx` (two
+ordering/label assertions) and `predictive-insights-panel.test.tsx` (one missing “Booked (fact)”
+label assertion). `node scripts/system-test.mjs` was not run in this documentation-only audit because it
+requires the configured live database; its design is described below.
 
-**Unit/integration suite:** domain modules carry co-located `*.test.ts`:
-`accounting`, `admin-governance`, `availability`, `booking`, `connected-workflows`,
-`customer-ownership`, `customer-workflows`, `customer`, `deposit`, `env`,
-`front-desk-operations`, `front-desk-reports`, `hotel-policy`, `housekeeping-queue`,
-`housekeeping-workflow`,
-`maintenance-operations`, `manager-operations`, `owner-governance`, `physical-rooms`,
-`registration`, `request-batches`, `room-catalog`, `staff-reservations`, `system-integration`,
-`theme`, `transportation` — plus the innovation layer: `analytics/occupancy`, `analytics/housekeeping`,
-`analytics/inventory`, `analytics/maintenance`, `ai/gemini-client` (@google/genai mocked — no live
-call, no real key), `ai/guard`, `ai/audit`, `ai/tools` (registry is exactly nine zero-parameter
-read-only tools; PII markers planted in fixtures must never surface in tool output), and `qr/tokens`
-(hash-only storage, rotate-on-fetch, revoke, scan audit, plus string-asserted route authorization).
-jsdom component tests cover `predictive-insights-panel` and `haven-ai-panel` (recharts rendering
-under stubbed ResizeObserver/`getBoundingClientRect`; explanation cards scoped per panel; AI
-unavailable states).
-The seam that makes this possible: `lib/fake-supabase.ts` is an in-memory query-builder implementing
-the subset of the supabase client the domain code uses, so the route-handler logic runs headlessly.
-Migration-content tests (e.g. `front-desk-reports.test.ts`, `transportation.test.ts`) additionally
-string-assert the SQL files and route wiring — RBAC guards, immutability triggers, revoke/grant
-sets, and the "no TomTom / no transfer-quote code" absence checks.
+**Automated suite:** 54 files / 674 cases combine domain tests, migration/route contract tests, and
+jsdom component tests. Domain coverage includes booking/availability, customer ownership and
+workflows, Accounting, Admin/Owner governance, Front Desk operations/reports, Housekeeping,
+Maintenance, transportation, guest-request batches/catalogue, physical rooms, room details,
+manager attention/staff duty, approval display, durable notifications, auth/environment, theme,
+analytics, advisory AI guards/tools/audit, and hashed QR tokens. Component coverage includes the
+arrival and walk-in dialogs, Manager reservations/approvals/guest requests/staff duty/transportation,
+predictive insights, HAVEN AI, booking arrival-time selection, QR scanning, breadcrumbs, and modal
+focus behavior.
+
+`lib/fake-supabase.ts` provides the in-memory query-builder subset used by domain tests.
+Migration-content tests additionally assert SQL and route wiring (RBAC guards, immutability,
+revoke/grant sets, and deliberately absent integrations). Gemini is mocked in the normal suite; no
+real AI key or network call is used.
 
 **Live system test** — `scripts/system-test.mjs` (results recorded in `SYSTEM-TEST-REPORT.md`):
 a rollback-safe end-to-end run across all 8 access types. It opens one transaction, creates its own
@@ -1053,19 +1092,22 @@ Honest inventory of what is **not** wired up yet (not prescriptions). Full split
 - **Payments/refunds are manual, not gateway-backed.** Deposits and stay payments are staff-verified
   proof-of-transfer; refunds are recorded attempts with a transaction reference. No real card/gateway
   or actual money movement. `payments.status` has no `paid`→gateway-confirmed automatic path.
-- **No email/SMS provider** (and `emailVerificationRequired` is off); notification delivery and the
-  guest email content for the payment link / confirmation are not provisioned. Booking expiry relies
-  on in-session hold logic, not external reminders.
+- **Email is optional and SMS is not integrated.** When `RESEND_API_KEY` is configured, the server
+  sends best-effort transactional copies for selected payment, request, and transportation events;
+  durable in-app notifications remain authoritative. Email verification is off, and booking expiry
+  still has no external reminder service.
 - **Minimum-age (18) has no data source** — the hotel cannot yet verify a guest's date of birth
   against government ID through the app.
 - **Transportation is deliberately local.** Locations are free text, fares are flat per vehicle
   type, and there is no external mapping/routing — the TomTom-priced variant was removed.
   `docs/TRANSPORTATION_FUTURE_ENHANCEMENTS.md` records the deliberately deferred work (route
   pricing, distance validation, fleet integrations).
-- **`schema.sql` is a live dump, not a hand-maintained file** (memory:
-  `schema-sql-lags-behind-migrations`): since 2026-09-06 it is regenerated with
-  `npx supabase db dump -f supabase/schema.sql` (needs Docker running), so it captures
-  everything deployed — including function bodies that exist only live. It also carries the
+- **`schema.sql` is a deployed-database snapshot, not a hand-maintained source of truth**
+  (memory: `schema-sql-lags-behind-migrations`). It is regenerated with
+  `npx supabase db dump -f supabase/schema.sql` when Docker and the linked database are available.
+  At this audit it does **not** yet contain the local 20260918 request catalogue, 20260919 controlled
+  room-exception inventory, 20260920 notifications, or 20260921 payment-proof changes. It also
+  carries the
   btree_gist/Postgres builtin helper grants to `anon`/`authenticated` (harmless — those are not
   application RPCs; `lib/accounting.test.ts` asserts no application function is granted to
   them). Regenerate it after each feature block; `supabase/migrations/` stays the source of
@@ -1106,11 +1148,14 @@ Honest inventory of what is **not** wired up yet (not prescriptions). Full split
   defers.
 - `docs/innovation-architecture.md` — the innovation layer's architecture and defense narrative
   (predictive analytics vs Gemini assistance vs QR operations, methodologies, security, limits).
+- `docs/DIAGRAMS.md` — BPA, ERD, use-case, and WBS diagrams of the system (Mermaid).
 - `docs/lacking-of-the-system/` — the full split gap list.
 - `HAVEN-FINAL-DEPLOYMENT-REPORT.md` — deployment detail, env wiring, SSO/Vercel notes.
 - `SYSTEM-TEST-REPORT.md` — recorded results of the live system test (§12).
 - `DESIGN-STATUS.md` / `DESIGN.md` / `design-system/haven-hotel/` — the UI design system and its
   current status.
+- `docs/ui-motion-guidelines.md` — area-based UI motion policy: intensity matrix, motion tokens,
+  reduced-motion contract, and bundle rules (GSAP in landing + auth chunks only).
 - `research-paper/` — an earlier snapshot of the design (07 chapters; older than the current tree).
 - `nano_bots/` — a notes vault.
 - Migration-by-migration walkthrough: the fresh notes captured for this document (id scheme, basis

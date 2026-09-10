@@ -37,6 +37,16 @@ Only one pending request of the same type is allowed for the same related entity
 
 The normal refund result and the management exception amount are separate fields. Original payments are never rewritten. Approved paid upgrades create a linked folio charge; waived upgrades preserve the waiver in the approval record.
 
+**D-006 — routine financial operations never reach the Manager.** A policy-computed refund (the
+frozen cancellation policy × settled deposit) is created by `cancel_reservation` with
+`exception_approval_id NULL` and settled directly by Accounting; the policy computation is the
+authorization, so there is no approval step and no Manager loop. The Manager approval engine runs
+only for amounts the policy does not grant — and even then the Manager authorizes the amount while
+Accounting executes it (`process_refund` / `accounting_execute_manager_financial_approval`).
+Trigger `refund_completes_manager_approval` closes the loop on execution: an executed approval is
+never re-approved. The approvals summary strip counts "awaiting Accounting" so the Manager can track
+approved financial exceptions still owed to the ledger without gaining any ledger authority.
+
 ## Protected endpoints
 
 - `GET|POST /api/manager/approvals`

@@ -42,10 +42,10 @@ export function RegisterForm({ callbackUrl }: { callbackUrl: string }) {
   return (
     <>
       <div className="haven-vault__head">
-        <p className="eyebrow" style={{ color: "#c9783c", margin: 0 }}>
+        <p className="eyebrow" style={{ color: "var(--color-forest-light)", margin: 0 }}>
           Guest registration
         </p>
-        <h1>Join Haven.</h1>
+        <h1>Make the coast yours.</h1>
         <p>Your booking context is preserved — create a key in seconds.</p>
       </div>
 
@@ -93,7 +93,6 @@ export function RegisterForm({ callbackUrl }: { callbackUrl: string }) {
         </label>
 
         <button className="haven-vault__submit" disabled={loading} aria-busy={loading}>
-          <span className="haven-vault__submit-glow" aria-hidden="true" />
           {loading ? "Creating account…" : "Create guest account"} <ArrowRight size={15} aria-hidden="true" />
         </button>
       </form>

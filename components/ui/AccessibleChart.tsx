@@ -19,6 +19,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
+import { usePrefersReducedMotion } from "@/lib/motion/reduced-motion";
 
 
 export interface ChartDataPoint {
@@ -75,6 +76,10 @@ export function AccessibleChart({
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const [focusedSeries, setFocusedSeries] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  // Motion policy (docs/ui-motion-guidelines.md): charts render instantly under
+  // prefers-reduced-motion — Recharts draw-in is disabled, data is just there.
+  const reducedMotion = usePrefersReducedMotion();
+  const chartAnimated = animate && !reducedMotion;
 
   // Generate accessible data table for screen readers
   const tableData = useMemo<Record<string, React.ReactNode>[]>(() => {
@@ -183,7 +188,6 @@ export function AccessibleChart({
       data,
       width: typeof width === "number" ? width : undefined,
       height: typeof height === "number" ? height : undefined,
-      animate,
     };
 
     // recharts series onClick shapes differ per component; normalize to the target node.
@@ -221,6 +225,7 @@ export function AccessibleChart({
                 fill={s.color}
                 fillOpacity={0.3}
                 strokeWidth={2}
+                isAnimationActive={chartAnimated}
                 onClick={seriesClick(s.key)}
               />
             ))}
@@ -250,6 +255,7 @@ export function AccessibleChart({
                 name={s.label}
                 fill={s.color}
                 radius={[4, 4, 0, 0]}
+                isAnimationActive={chartAnimated}
                 onClick={seriesClick(s.key)}
               />
             ))}
@@ -271,6 +277,7 @@ export function AccessibleChart({
               nameKey={xKey}
               label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
               labelLine={false}
+              isAnimationActive={chartAnimated}
               onClick={seriesClick(series[0].key)}
             >
               {data.map((_, index) => (
@@ -308,6 +315,7 @@ export function AccessibleChart({
                 strokeWidth={2}
                 dot={false}
                 activeDot={{ r: 6, fill: s.color }}
+                isAnimationActive={chartAnimated}
                 onClick={seriesClick(s.key)}
               />
             ))}

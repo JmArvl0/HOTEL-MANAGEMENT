@@ -1,16 +1,23 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { ArrowRight } from "lucide-react";
 
 export function BookingSearchForm({
   initial,
   compact = false,
   action = "/booking/search",
+  emptyDates = false,
+  onIntentChange,
 }: {
   initial?: { checkIn?: string; checkOut?: string; guests?: number; roomType?: string };
   compact?: boolean;
   action?: string;
+  /** Start with empty date fields (landing hero) — dates are the guest's own choice there. */
+  emptyDates?: boolean;
+  /** Live form values for surfaces that link elsewhere with the current search (landing featured cards). */
+  onIntentChange?: (intent: { checkIn: string; checkOut: string; guests: number }) => void;
 }) {
+  const id = useId();
   const today = useMemo(() => {
     const parts = new Intl.DateTimeFormat("en-US", {
       timeZone: "Asia/Manila",
@@ -26,9 +33,16 @@ export function BookingSearchForm({
     date.setUTCDate(date.getUTCDate() + 1);
     return date.toISOString().slice(0, 10);
   }, [today]);
-  const [checkIn, setCheckIn] = useState(initial?.checkIn ?? today);
-  const [checkOut, setCheckOut] = useState(initial?.checkOut ?? tomorrow);
+  const [checkIn, setCheckIn] = useState(initial?.checkIn ?? (emptyDates ? "" : today));
+  const [checkOut, setCheckOut] = useState(initial?.checkOut ?? (emptyDates ? "" : tomorrow));
+  const [guests, setGuests] = useState(initial?.guests ?? 2);
   const [submitting, setSubmitting] = useState(false);
+  useEffect(() => {
+    onIntentChange?.({ checkIn, checkOut, guests });
+  }, [checkIn, checkOut, guests, onIntentChange]);
+  const nextDate = new Date(`${checkIn || today}T00:00:00Z`);
+  nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+  const earliestCheckout = Number.isNaN(nextDate.getTime()) ? tomorrow : nextDate.toISOString().slice(0, 10);
   return (
     <form
       className={compact ? "booking-search compact" : "booking-bar"}
@@ -36,13 +50,12 @@ export function BookingSearchForm({
       method="get"
       aria-label="Check availability"
       onSubmit={() => setSubmitting(true)}
-      noValidate
     >
       {initial?.roomType ? <input type="hidden" name="roomType" value={initial.roomType} /> : null}
-      <label htmlFor="landing-checkin">
+      <label htmlFor={`${id}-checkin`}>
         Check in
         <input
-          id="landing-checkin"
+          id={`${id}-checkin`}
           name="checkIn"
           type="date"
           min={today}
@@ -51,8 +64,8 @@ export function BookingSearchForm({
             const value = event.target.value;
             setCheckIn(value);
             if (checkOut <= value) {
-              const next = new Date(`${value}T00:00:00`);
-              next.setDate(next.getDate() + 1);
+              const next = new Date(`${value}T00:00:00Z`);
+              next.setUTCDate(next.getUTCDate() + 1);
               setCheckOut(next.toISOString().slice(0, 10));
             }
           }}
@@ -60,22 +73,22 @@ export function BookingSearchForm({
           aria-required="true"
         />
       </label>
-      <label htmlFor="landing-checkout">
+      <label htmlFor={`${id}-checkout`}>
         Check out
         <input
-          id="landing-checkout"
+          id={`${id}-checkout`}
           name="checkOut"
           type="date"
-          min={checkIn || today}
+          min={earliestCheckout}
           value={checkOut}
           onChange={(event) => setCheckOut(event.target.value)}
           required
           aria-required="true"
         />
       </label>
-      <label htmlFor="landing-guests">
+      <label htmlFor={`${id}-guests`}>
         Guests
-        <select id="landing-guests" name="guests" defaultValue={String(initial?.guests ?? 2)} required aria-required="true">
+        <select id={`${id}-guests`} name="guests" value={guests} onChange={(event) => setGuests(Number(event.target.value))} required aria-required="true">
           {[1, 2, 3, 4, 5, 6, 7, 8].map((count) => (
             <option value={count} key={count}>
               {count} guest{count > 1 ? "s" : ""}

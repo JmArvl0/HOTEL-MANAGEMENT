@@ -157,7 +157,7 @@ export async function getDashboard(role: Role, userId?: string): Promise<Dashboa
       roomsCleaning:rooms.filter(item=>item.housekeeping==="cleaning").length,roomsAwaitingInspection:rooms.filter(item=>item.housekeeping==="inspection").length,overdueHousekeeping:overdueHousekeeping.length,openMaintenance:maintenance.filter(item=>activeMaintenanceStatuses.has(String(item.status))).length,criticalMaintenance:maintenance.filter(item=>activeMaintenanceStatuses.has(String(item.status))&&["urgent","critical"].includes(String(item.priority))).length,overdueRequests:overdueGuestRequests.length,escalatedIssues:requests.filter(item=>item.escalation_status==="escalated").length,pendingApprovals:approvals.filter(item=>item.status==="pending").length,collectionsToday,depositsReceived,refundSummary,outstandingBalances:financialRole?invoices.reduce((sum,item)=>sum+Number(item.balance||0),0):0,cashThisShift,shiftFloat,shiftOpen
     },
     occupancyTrend,
-    roomMix: [{ name: "Occupied", value: counts("occupied"), color: "#1f6b52" }, { name: "Available", value: counts("available"), color: "#9ac8b8" }, { name: "Reserved", value: counts("reserved"), color: "#d79855" }, { name: "Service", value: counts("maintenance") + counts("dirty"), color: "#d7d4cb" }],
+    roomMix: [{ name: "Occupied", value: counts("occupied"), color: "#084b55" }, { name: "Available", value: counts("available"), color: "#85cbd0" }, { name: "Reserved", value: counts("reserved"), color: "#dfa062" }, { name: "Service", value: counts("maintenance") + counts("dirty"), color: "#d7d4cb" }],
     recentReservations,
     notifications
   };

@@ -41,17 +41,17 @@ a, button, [role="button"]{ overflow-wrap: anywhere; }
     min-height: 44px;
     padding-top: 12px; padding-bottom: 12px;
   }
-  .landing .btn, .haven-login__submit, .booking-bar .btn{
+  .landing .btn, .haven-vault__submit, .booking-bar .btn{
     min-height: 44px;
   }
   /* tap targets: nav, booking bar inputs, customer account trigger */
-  .landing-menu-btn, .customer-mobile-menu, .icon-button, .haven-login__eye{
+  .landing-menu-btn, .customer-mobile-menu, .icon-button, .haven-vault__eye{
     min-width: 44px; min-height: 44px;
   }
 }
 
 /* Breakpoint safety: no element should force horizontal scroll */
-.landing, .booking-page, .customer-shell, .app-shell, .auth-page, .haven-login{
+.landing, .booking-page, .customer-shell, .app-shell, .auth-page{
   max-width: 100vw;
   overflow-x: clip;
 }
@@ -85,7 +85,7 @@ a, button, [role="button"]{ overflow-wrap: anywhere; }
 @media (min-width: 1600px){
   .landing .rooms-section, .landing .stats-strip, .landing .journey,
   .landing .amenities-section, .landing .gallery-section, .landing .good-to-know,
-  .landing .faq-section, .landing .cta-band, .landing footer,
+  .landing .faq-section, .landing .cta-band,
   .booking-content{ max-width: 1440px; margin-left:auto; margin-right:auto }
 }
 

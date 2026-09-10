@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Menu, Sparkles, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import { WaveMark } from "./wave-mark";
 
 const drawerLinks = [
   { href: "#stay", label: "Rooms" },
@@ -13,7 +14,7 @@ const drawerLinks = [
   { href: "#book", label: "Check availability" },
 ];
 
-export function LandingNav() {
+export function LandingNav({ active, rootLinks = false }: { active?: string; rootLinks?: boolean } = {}) {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -68,7 +69,7 @@ export function LandingNav() {
       <nav className={`landing-nav ${scrolled ? "is-scrolled" : ""}`} aria-label="Primary">
         <Link href="/" className="brand brand-light" aria-label="Haven Hotel home">
           <span className="brand-mark" aria-hidden="true">
-            <Sparkles size={18} />
+            <WaveMark />
           </span>
           <span>
             HAVEN<small>HOTEL & RESIDENCES</small>
@@ -77,15 +78,15 @@ export function LandingNav() {
 
         <div className="nav-links">
           {drawerLinks.slice(0, 5).map((l) => (
-            <a key={l.href} href={l.href}>
+            <a key={l.href} href={rootLinks ? `/${l.href}` : l.href} aria-current={active === l.label ? "page" : undefined}>
               {l.label}
             </a>
           ))}
         </div>
 
         <div className="landing-actions">
-          <Link href="/login" className="sign-in-link">
-            Sign in
+          <Link href="/account" className="sign-in-link">
+            My account
           </Link>
           <a href="#book" className="btn btn-cream btn-nav-cta">
             Book now
@@ -121,7 +122,7 @@ export function LandingNav() {
           </div>
           <nav className="landing-drawer-links">
             {drawerLinks.map((l, i) => (
-              <a key={l.href} href={l.href} onClick={() => setOpen(false)} style={{ "--dr": i } as React.CSSProperties}>
+              <a key={l.href} href={rootLinks ? `/${l.href}` : l.href} aria-current={active === l.label ? "page" : undefined} onClick={() => setOpen(false)} style={{ "--dr": i } as React.CSSProperties}>
                 {l.label}
               </a>
             ))}

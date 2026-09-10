@@ -45,6 +45,16 @@ describe("staff reservation RBAC", () => {
     expect(departmentRequestFields).not.toContain("email");
     expect(operationalReservationFields).toContain("guest_email");
   });
+  it("carries booking-captured guest data into the operational projection", () => {
+    // request_options must reach the staff detail modal — for pending reservations
+    // it is the only place staff can see what the guest requested at booking
+    // (the derived guest_requests rows only exist after confirmation).
+    expect(operationalReservationFields).toContain("request_options");
+    // Accounting keeps its slim financial projection: no request chips either.
+    expect(accountingReservationFields).not.toContain("request_options");
+    expect(accountingReservationFields).not.toContain("nationality");
+    expect(accountingReservationFields).not.toContain("address");
+  });
 });
 
 describe("unified staff reservation workflow", () => {

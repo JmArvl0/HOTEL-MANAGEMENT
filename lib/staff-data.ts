@@ -3,7 +3,7 @@ import { canAccess, canViewGuestContact, canViewTransportation } from "@/lib/per
 import { supabase } from "@/lib/supabase";
 import type { RecordItem, Resource, Role } from "@/lib/types";
 
-export const operationalReservationFields = "id,confirmation_number,guest_id,guest_name,guest_email,room_id,room_number,room_type,check_in,check_out,guests,status,source,total,deposit,deposit_required,payment_status,payment_method,special_requests,expected_arrival,cancellation_reason,identity_status,identity_verified_at,operational_policy_snapshot,created_at";
+export const operationalReservationFields = "id,confirmation_number,guest_id,guest_name,guest_email,room_id,room_number,room_type,check_in,check_out,guests,status,source,total,deposit,deposit_required,payment_status,payment_method,special_requests,request_options,expected_arrival,cancellation_reason,identity_status,identity_verified_at,operational_policy_snapshot,created_at";
 export const accountingReservationFields = "id,confirmation_number,guest_name,room_type,check_in,check_out,status,source,total,deposit,deposit_required,payment_status,payment_method,cancellation_reason,created_at";
 export const departmentRequestFields = "id,reservation_id,request,department,priority,severity,due_at,escalation_status,escalated_at,status,created_at";
 
@@ -54,14 +54,24 @@ export async function listForRole(resource: Resource, role: Role): Promise<Recor
     return (data ?? []).map(({ reservations, ...item }) => ({ ...item, reservation: ((reservations ?? null) as unknown as RecordItem | null) })) as RecordItem[];
   }
   if (resource === "refunds") {
-    const { data, error } = await supabase.from("refund_requests").select("id,reservation_id,invoice_id,reason,paid_deposit,refund_basis_points,eligible_amount,status,processed_at,reference,created_at").order("created_at", { ascending: false });
+    // normal_policy_amount + exception_approval_id distinguish the two refund
+    // paths: policy-computed (approval null — Accounting processes directly,
+    // no Manager step) vs Manager-approved exception. The linked approval's
+    // state is batch-fetched so the queue can badge each row.
+    const { data, error } = await supabase.from("refund_requests").select("id,reservation_id,invoice_id,reason,paid_deposit,refund_basis_points,eligible_amount,normal_policy_amount,exception_approval_id,status,processed_at,reference,created_at").order("created_at", { ascending: false });
     if (error) throw error;
     const ids = (data ?? []).map((item) => item.id);
-    const attempts = ids.length ? ((await supabase.from("refund_attempts").select("refund_request_id,status,reason,attempted_at").in("refund_request_id", ids)).data ?? []) : [];
+    const approvalIds = Array.from(new Set((data ?? []).map((item) => item.exception_approval_id).filter(Boolean))) as string[];
+    const [attemptsResult, approvalsResult] = await Promise.all([
+      ids.length ? supabase.from("refund_attempts").select("refund_request_id,status,reason,attempted_at").in("refund_request_id", ids) : Promise.resolve({ data: [] }),
+      approvalIds.length ? supabase.from("manager_approval_requests").select("id,status,execution_status").in("id", approvalIds) : Promise.resolve({ data: [] }),
+    ]);
+    const attempts = attemptsResult.data ?? [];
     return (data ?? []).map((item) => {
       const own = attempts.filter((attempt) => attempt.refund_request_id === item.id);
       const failure = own.filter((attempt) => attempt.status === "failed").sort((a, b) => String(b.attempted_at).localeCompare(String(a.attempted_at)))[0];
-      return { ...item, attempts: own.length, processed_amount: item.status === "processed" ? item.eligible_amount : 0, last_failure: failure?.reason ?? null };
+      const approval = approvalsResult.data?.find((value) => value.id === item.exception_approval_id);
+      return { ...item, attempts: own.length, processed_amount: item.status === "processed" ? item.eligible_amount : 0, last_failure: failure?.reason ?? null, approval_status: approval?.status ?? null, approval_execution_status: approval?.execution_status ?? null };
     }) as RecordItem[];
   }
   if (resource === "rooms" && ["housekeeping", "maintenance"].includes(role)) {
@@ -147,7 +157,7 @@ export async function getStaffReservation(id: string, role: Role) {
   }
   const result = role === "accounting"
     ? await supabase.from("reservations").select("id,confirmation_number,guest_name,room_type,check_in,check_out,status,source,total,deposit,deposit_required,payment_status,payment_method,cancellation_reason,created_at").eq("id", id).maybeSingle()
-    : await supabase.from("reservations").select("id,confirmation_number,guest_id,guest_name,guest_email,room_id,room_number,room_type,check_in,check_out,guests,status,source,total,deposit,deposit_required,payment_status,payment_method,special_requests,expected_arrival,cancellation_reason,identity_status,identity_verified_at,operational_policy_snapshot,checked_in_at,checked_out_at,created_at").eq("id", id).maybeSingle();
+    : await supabase.from("reservations").select("id,confirmation_number,guest_id,guest_name,guest_email,room_id,room_number,room_type,check_in,check_out,guests,status,source,total,deposit,deposit_required,payment_status,payment_method,special_requests,request_options,expected_arrival,cancellation_reason,identity_status,identity_verified_at,operational_policy_snapshot,checked_in_at,checked_out_at,created_at").eq("id", id).maybeSingle();
   if (result.error) throw result.error;
   const reservation = result.data as RecordItem | null;
   if (!reservation) return null;
@@ -172,7 +182,7 @@ export async function getStaffReservation(id: string, role: Role) {
   const refundAttempts=refundIds.length?((await supabase.from("refund_attempts").select("id,refund_request_id,status,reference,reason,attempted_at").in("refund_request_id",refundIds).order("attempted_at",{ascending:false})).data??[]):[];
   let guest: RecordItem | null = null;
   if (role !== "accounting" && reservation.guest_id) {
-    const result = await supabase.from("guests").select("id,name,email,phone,loyalty_tier,preferences,special_requests").eq("id", reservation.guest_id).maybeSingle();
+    const result = await supabase.from("guests").select("id,name,email,phone,loyalty_tier,preferences,special_requests,nationality,address").eq("id", reservation.guest_id).maybeSingle();
     guest = result.data as RecordItem | null;
   }
   return { reservation, guest, invoice: invoice as RecordItem | null, payments: (payments ?? []) as RecordItem[], charges:(charges??[])as RecordItem[], adjustments:(adjustments??[])as RecordItem[], refunds:(refunds??[])as RecordItem[], refundAttempts:refundAttempts as RecordItem[], documents:(documents??[])as RecordItem[], changeRequests:(changeRequests??[])as RecordItem[], assignments:(assignments??[])as RecordItem[], requests:(requests??[])as RecordItem[], room:room as RecordItem|null, maintenance:(maintenance??[])as RecordItem[], transportation:(transportation??[])as RecordItem[], approvals:(approvals??[])as RecordItem[], turnover:(turnover?.[0] ?? null) as RecordItem|null };

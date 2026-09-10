@@ -90,16 +90,16 @@
   --color-slate-950: #020617;
 
   /* Haven Brand Colors (Legacy - mapped to primitives) */
-  --color-forest: #173f32;
-  --color-forest-light: #1f6b52;
-  --color-forest-dark: #0d2016;
-  --color-mint: #dcebe5;
-  --color-cream: #f6f4ee;
+  --color-forest: #084b55;
+  --color-forest-light: #176773;
+  --color-forest-dark: #082f39;
+  --color-mint: #e1eeeb;
+  --color-cream: #f8f6f1;
   --color-paper: #ffffff;
-  --brand-accent: #c9783c;
-  --brand-accent-dark: #ad6230;
-  --brand-accent-light: #d69058;
-  --color-ink: #17332a;
+  --brand-accent: #084b55;
+  --brand-accent-dark: #136573;
+  --brand-accent-light: #77bec6;
+  --color-ink: #103e48;
   --color-line: #e3e5df;
   --color-muted: #6f7974;
   --brand-danger: #a94e48;
@@ -295,7 +295,7 @@
 
   --sidebar-bg: var(--color-forest-dark);
   --sidebar-fg: #dbe7e2;
-  --sidebar-border: #24463a;
+  --sidebar-border: #29454d;
   --sidebar-hover: rgba(255, 255, 255, 0.1);
   --sidebar-active: rgba(255, 255, 255, 0.15);
   --sidebar-active-border: var(--color-accent);
@@ -449,7 +449,7 @@
 
     --sidebar-bg: var(--color-forest-dark);
     --sidebar-fg: #a9bbb4;
-    --sidebar-border: #24463a;
+    --sidebar-border: #29454d;
     --sidebar-hover: rgba(255, 255, 255, 0.08);
     --sidebar-active: rgba(255, 255, 255, 0.12);
     --sidebar-active-border: var(--color-accent-light);
@@ -564,7 +564,7 @@
 
   --sidebar-bg: var(--color-forest-dark);
   --sidebar-fg: #dbe7e2;
-  --sidebar-border: #24463a;
+  --sidebar-border: #29454d;
   --sidebar-hover: rgba(255, 255, 255, 0.1);
   --sidebar-active: rgba(255, 255, 255, 0.15);
   --sidebar-active-border: var(--color-accent);
@@ -626,10 +626,10 @@
   /* Branded header (Haven forest surface, from the transportation request modal).
      Fixed brand values like --sidebar-bg: the surface is self-contained dark
      green, so it does not remap between light and dark themes. */
-  --modal-header-branded-bg: #123b2f;
-  --modal-header-branded-border: #315b4c;
+  --modal-header-branded-bg: #084b55;
+  --modal-header-branded-border: #176773;
   --modal-header-branded-fg: #fff;
-  --modal-header-branded-muted: #b5cec3;
+  --modal-header-branded-muted: #a9c6c3;
   --modal-header-branded-close-border: rgba(255, 255, 255, 0.17);
   --modal-header-branded-close-bg: rgba(255, 255, 255, 0.05);
   --modal-header-branded-close-hover: rgba(255, 255, 255, 0.1);

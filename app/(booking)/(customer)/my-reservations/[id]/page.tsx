@@ -45,6 +45,7 @@ export default async function ReservationPage({ params }: { params: Promise<{ id
         identityStatus: String(reservation.identity_status),
         source: String(reservation.source),
         specialRequests: reservation.special_requests ?? null,
+        expectedArrival: reservation.expected_arrival ? String(reservation.expected_arrival) : null,
         cancellationReason: reservation.cancellation_reason ?? null,
         checkInTime: displayTime(policy.checkInTime),
         checkOutTime: displayTime(policy.checkOutTime),

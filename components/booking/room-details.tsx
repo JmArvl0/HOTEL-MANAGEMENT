@@ -5,11 +5,12 @@ import { ArrowRight, BedDouble, Check, ChevronLeft, ChevronRight, Users } from "
 import { Modal } from "@/components/ui/Modal";
 import { formatPeso } from "@/lib/format";
 import { roomPhotosFor } from "@/lib/room-images";
-import type { AvailableRoomType } from "@/lib/booking";
+import type { AvailableRoomType, RoomTypeSummary } from "@/lib/booking";
 
 /** Shared room-type presentation: photo carousel, facts, description, amenities.
- *  Used by the guest "View details" overlay and the staff catalog preview. */
-export function RoomTypeDetailsBody({ room, note, rateLine }: { room: AvailableRoomType; note?: ReactNode; rateLine?: ReactNode }) {
+ *  Used by the guest "View details" overlay and the staff catalog preview.
+ *  Summary rooms (no `availableUnits`) show catalog copy instead of date-dependent notes. */
+export function RoomTypeDetailsBody({ room, note, rateLine }: { room: AvailableRoomType | RoomTypeSummary; note?: ReactNode; rateLine?: ReactNode }) {
   const [pos, setPos] = useState(0);
   const [errored, setErrored] = useState<ReadonlySet<string>>(new Set());
 
@@ -73,7 +74,7 @@ export function RoomTypeDetailsBody({ room, note, rateLine }: { room: AvailableR
         <li><BedDouble size={14} aria-hidden="true" /> {room.beds}</li>
         {room.sizeSqm ? <li>{room.sizeSqm} m²</li> : null}
       </ul>
-      {note !== undefined ? note : <p className="rd-note">{room.availableUnits} room{room.availableUnits !== 1 ? "s" : ""} available for your dates</p>}
+      {note !== undefined ? note : <p className="rd-note">{"availableUnits" in room ? `${room.availableUnits} room${room.availableUnits !== 1 ? "s" : ""} available for your dates` : "Choose your dates to see live availability"}</p>}
       <p className="rd-description">{room.description}</p>
       <h3 className="rd-heading">What this room includes</h3>
       <ul className="rd-amenities">
@@ -84,7 +85,7 @@ export function RoomTypeDetailsBody({ room, note, rateLine }: { room: AvailableR
       {rateLine !== undefined ? rateLine : (
         <div className="rd-rate">
           <strong>{formatPeso(room.nightlyRate)}</strong>
-          <small>per night · {room.nights} night{room.nights !== 1 ? "s" : ""} = {formatPeso(room.subtotal)}</small>
+          <small>{"availableUnits" in room ? `per night · ${room.nights} night${room.nights !== 1 ? "s" : ""} = ${formatPeso(room.subtotal)}` : "per night · choose dates for your total"}</small>
         </div>
       )}
     </>
@@ -92,17 +93,18 @@ export function RoomTypeDetailsBody({ room, note, rateLine }: { room: AvailableR
 }
 
 /** "View details" trigger + room-info overlay, shared by every RoomResults card. */
-export function RoomDetailsButton({ room, bookHref }: { room: AvailableRoomType; bookHref: string }) {
+export function RoomDetailsButton({ room, bookHref }: { room: AvailableRoomType | RoomTypeSummary; bookHref: string }) {
   const [open, setOpen] = useState(false);
+  const priced = "availableUnits" in room;
 
   const footer = (
     <>
       <span className="rd-foot-rate">
-        <small>Estimated stay total</small>
-        <strong>{formatPeso(room.subtotal)}</strong>
+        <small>{priced ? "Estimated stay total" : "Nightly base rate"}</small>
+        <strong>{formatPeso(priced ? room.subtotal : room.nightlyRate)}</strong>
       </span>
       <Link href={bookHref} className="btn btn-accent" onClick={() => setOpen(false)}>
-        Book this room <ArrowRight size={16} aria-hidden="true" />
+        {priced ? "Book this room" : "Choose your dates"} <ArrowRight size={16} aria-hidden="true" />
       </Link>
     </>
   );
@@ -116,7 +118,7 @@ export function RoomDetailsButton({ room, bookHref }: { room: AvailableRoomType;
         isOpen={open}
         onClose={() => setOpen(false)}
         title={room.name}
-        description={`Rooms & suites · ${room.nights} night${room.nights !== 1 ? "s" : ""} · up to ${room.maxGuests} guest${room.maxGuests !== 1 ? "s" : ""}`}
+        description={`Rooms & suites · ${priced ? `${room.nights} night${room.nights !== 1 ? "s" : ""} · ` : ""}up to ${room.maxGuests} guest${room.maxGuests !== 1 ? "s" : ""}`}
         size="full"
         headerVariant="branded"
         className="room-details-modal"

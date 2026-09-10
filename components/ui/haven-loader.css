@@ -1,12 +1,12 @@
 /* Haven Loader — bespoke hotel identity, not a generic spinner
-   Uses Haven tokens: forest #0f241e, cream #f8f6f0, gold #ecd0b4 / #c9783c, mint #dcebe5
+   Uses coastal tokens: deep ocean #082f39, ivory #f8f6f1, sea-glass #c2e0dc / #084b55, mint #e1eeeb
    Quick: 900-1200ms. Respects prefers-reduced-motion. No GSAP runtime — pure CSS for SPA safety.
 */
 .haven-loader{
-  --haven-forest:#0f241e;
-  --haven-cream:#f8f6f0;
-  --haven-gold:#ecd0b4;
-  --haven-accent:#c9783c;
+  --haven-forest:#082f39;
+  --haven-cream:#f8f6f1;
+  --haven-gold:#c2e0dc;
+  --haven-accent:#084b55;
   --haven-line:rgba(255,255,255,.14);
   position:relative;
   display:grid; place-items:center;
@@ -32,9 +32,9 @@
 .haven-loader__bg{
   position:absolute; inset:0;
   background:
-    radial-gradient(820px 420px at 70% 18%, rgba(236,208,180,.18), transparent 60%),
-    radial-gradient(720px 460px at 10% 90%, rgba(31,107,82,.22), transparent 58%),
-    linear-gradient(180deg, #13382c 0%, #0a201b 100%);
+    radial-gradient(820px 420px at 70% 18%, rgba(194,224,220,.18), transparent 60%),
+    radial-gradient(720px 460px at 10% 90%, rgba(23,103,115,.22), transparent 58%),
+    linear-gradient(180deg, #112c34 0%, #081720 100%);
   pointer-events:none;
 }
 .haven-loader--inline .haven-loader__bg{
@@ -67,7 +67,7 @@
   color:#fff;
 }
 .haven-loader--inline .haven-loader__core{
-  background:#fff; border-color:#e3e5df; color:#1f6b52;
+  background:#fff; border-color:#e3e5df; color:#176773;
 }
 .haven-loader__ring{
   position:absolute; inset:0;
@@ -78,16 +78,16 @@
 }
 .haven-loader__ring--gold{
   inset:6px;
-  border-color: rgba(236,208,180,.16);
+  border-color: rgba(194,224,220,.16);
   border-top-color: var(--haven-gold);
-  border-right-color: rgba(236,208,180,.9);
+  border-right-color: rgba(194,224,220,.9);
   animation-duration: 1.25s;
   animation-direction: reverse;
   opacity:.95;
 }
 .haven-loader__orbit{
   position:absolute; inset:-6px; border-radius:999px;
-  border:1px dashed rgba(236,208,180,.22);
+  border:1px dashed rgba(194,224,220,.22);
   animation: haven-spin 3.8s linear infinite;
   opacity:.7;
 }
@@ -98,7 +98,7 @@
   line-height:1;
   color:#fff;
 }
-.haven-loader--inline .haven-loader__word{color:#0f241e}
+.haven-loader--inline .haven-loader__word{color:#082f39}
 .haven-loader__word span{
   display:inline-block;
   opacity:0; transform: translateY(8px);
@@ -127,10 +127,10 @@
 .haven-loader--inline .haven-loader__progress{background:#efece2; border-color:#e8e9e3}
 .haven-loader__bar{
   position:absolute; inset:0 45% 0 0;
-  background: linear-gradient(90deg, var(--haven-gold) 0%, #d9a06a 55%, var(--haven-accent) 100%);
+  background: linear-gradient(90deg, var(--haven-gold) 0%, #77bec6 55%, var(--haven-accent) 100%);
   border-radius:999px;
   animation: haven-progress 1.15s cubic-bezier(.4,0,.2,1) infinite;
-  box-shadow:0 0 12px rgba(236,208,180,.45);
+  box-shadow:0 0 12px rgba(194,224,220,.45);
 }
 .haven-loader__shimmer{
   position:absolute; inset:0;

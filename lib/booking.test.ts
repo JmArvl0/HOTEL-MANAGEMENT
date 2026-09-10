@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateNights, countAvailableUnits, guestDetailsSchema, isBlockingReservationStatus, rangesOverlap, safeInternalPath, searchSchema, transportTotal } from "@/lib/booking";
+import { calculateNights, countAvailableUnits, guestDetailsSchema, isBlockingReservationStatus, parseSearchIntent, rangesOverlap, safeInternalPath, searchSchema, transportTotal } from "@/lib/booking";
 import { ARRIVAL_TIME_OPTIONS, arrivalFromParts, arrivalParts, arrivalValue, formatArrival, parseArrival } from "@/lib/arrival-time-options";
 const date=(offset:number)=>{const value=new Date();value.setUTCDate(value.getUTCDate()+offset);return value.toISOString().slice(0,10)};
 describe("guest booking rules",()=>{
@@ -11,6 +11,24 @@ describe("guest booking rules",()=>{
   it("accepts a valid search",()=>expect(searchSchema.safeParse({checkIn:date(1),checkOut:date(3),guests:2}).success).toBe(true));
   it("excludes administratively inactive and Maintenance-blocked inventory",()=>{const window={checkIn:"2026-09-05",checkOut:"2026-09-07",now:"2026-09-01T00:00:00Z",today:"2026-09-01"};const rows={rooms:[{id:"safe",type:"King",status:"available",housekeeping:"clean",administratively_active:true},{id:"inactive",type:"King",status:"available",housekeeping:"clean",administratively_active:false},{id:"blocked",type:"King",status:"available",housekeeping:"clean",administratively_active:true}],reservations:[],holds:[],blockedRoomIds:new Set(["blocked"])};expect(countAvailableUnits("King",window,rows)).toBe(1)});
   it("rejects open redirects while preserving internal booking URLs",()=>{expect(safeInternalPath("https://evil.example/steal","/")).toBe("/");expect(safeInternalPath("//evil.example/steal","/")).toBe("/");expect(safeInternalPath("/booking/details?roomType=Deluxe+King","/")).toBe("/booking/details?roomType=Deluxe+King")});
+});
+describe("search intent (landing → /booking/search modes)",()=>{
+  it("treats a dateless arrival as browse, keeping an optional room-type focus",()=>{
+    expect(parseSearchIntent({})).toEqual({mode:"browse"});
+    expect(parseSearchIntent({roomType:"Garden Twin"})).toEqual({mode:"browse",roomType:"Garden Twin"});
+  });
+  it("reads a valid date pair as availability, carrying dates, guests and focus",()=>{
+    expect(parseSearchIntent({checkIn:date(1),checkOut:date(3),guests:"4",roomType:"Ocean Suite"})).toEqual({mode:"availability",checkIn:date(1),checkOut:date(3),guests:4,roomType:"Ocean Suite"});
+    expect(parseSearchIntent({checkIn:date(1),checkOut:date(2)})).toEqual({mode:"availability",checkIn:date(1),checkOut:date(2),guests:2});
+  });
+  it("falls back to browse with a notice for invalid dates or guests",()=>{
+    const reversed=parseSearchIntent({checkIn:date(2),checkOut:date(1),guests:"2"});
+    expect(reversed.mode).toBe("browse");
+    expect(reversed.mode==="browse"&&reversed.notice).toContain("after check-in");
+    const tooMany=parseSearchIntent({checkIn:date(1),checkOut:date(2),guests:"99"});
+    expect(tooMany.mode).toBe("browse");
+    expect(parseSearchIntent({checkIn:date(1)})).toEqual({mode:"browse"});
+  });
 });
 describe("stored transport lines (historical)",()=>{
   it("sums stored transport lines centavo-safe without rounding drift",()=>{expect(transportTotal(null)).toBe(0);expect(transportTotal([{name:"a",price:0.1},{name:"b",price:0.2}])).toBeCloseTo(0.3,10);expect(transportTotal([{name:"a",price:1850},{name:"b",price:900.5}])).toBe(2750.5)});

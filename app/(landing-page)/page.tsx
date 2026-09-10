@@ -1,581 +1,91 @@
-import type { CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  ArrowRight,
-  BedDouble,
-  Car,
-  Check,
-  ChevronDown,
-  CircleHelp,
-  Clock3,
-  ConciergeBell,
-  Dumbbell,
-  Mail,
-  MapPin,
-  ParkingCircle,
-  Phone,
-  Plane,
-  Shirt,
-  Signal,
-  Sparkles,
-  UtensilsCrossed,
-  Waves,
-} from "lucide-react";
-import { BookingSearchForm } from "@/components/booking/booking-search-form";
+import { ArrowRight, Waves, UtensilsCrossed, Wifi, Car, Dumbbell, ConciergeBell, ParkingCircle, Shirt, MapPin, Phone, Mail, QrCode, Check } from "lucide-react";
+import { BookingIntentProvider, FeaturedStays, HeroBookingForm } from "@/components/landing/booking-intent";
 import { LandingNav } from "@/components/landing/landing-nav";
 import { LandingMotion } from "@/components/landing/landing-motion";
-import { roomPhotosFor, roomPrimary, SCENES } from "@/lib/room-images";
+import { WaveMark } from "@/components/landing/wave-mark";
+import { ExperienceGallery } from "@/components/landing/experience-gallery";
+import { SCENES } from "@/lib/room-images";
 import { supabase } from "@/lib/supabase";
+import { Sparkles, TrendingUp, CalendarCheck, Brush } from "lucide-react";
 import "./landing.css";
 
-type LandingRoom = { id: string; name: string; guests: number; beds: string; price: string; photos: string[] };
-
-// Demo-safe fallback: what visitors see when Supabase is unconfigured or the
-// catalog is empty. The live rows below always win when data exists.
-const fallbackRooms: LandingRoom[] = [
-  { id: "garden-twin", name: "Garden Twin", guests: 2, beds: "2 twin beds", price: "₱5,800", photos: [] },
-  { id: "deluxe-king", name: "Deluxe King", guests: 2, beds: "1 king bed", price: "₱6,400", photos: [] },
-  { id: "ocean-suite", name: "Ocean Suite", guests: 3, beds: "king bed + lounge", price: "₱8,900", photos: [] },
-];
-
-const peso = (value: unknown) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 }).format(Number(value || 0));
-
-async function loadRooms(): Promise<LandingRoom[]> {
-  if (!supabase) return fallbackRooms;
-  const { data } = await supabase
-    .from("room_types")
-    .select("id,name,max_guests,beds,base_rate,photo_urls")
-    .eq("active", true)
-    .order("base_rate", { ascending: true });
-  if (!data?.length) return fallbackRooms;
-  return data.map((type) => {
-    const photos = roomPhotosFor(Array.isArray(type.photo_urls) ? type.photo_urls : undefined, String(type.name));
-    return {
-      id: String(type.id),
-      name: String(type.name),
-      guests: Number(type.max_guests) || 1,
-      beds: String(type.beds),
-      price: peso(type.base_rate),
-      photos,
-    };
-  });
-}
-
-// Rates come from the live catalog; a short revalidation keeps them fresh
-// without making the landing page render per visitor.
 export const revalidate = 300;
-
 const amenities = [
-  { name: "Swimming pool", icon: Waves, note: "Poolside towels and all-day access." },
-  { name: "Restaurant", icon: UtensilsCrossed, note: "Breakfast and dining on site." },
-  { name: "Hotel Wi-Fi", icon: Signal, note: "Available throughout the hotel." },
-  { name: "Parking", icon: ParkingCircle, note: "On-site, subject to availability." },
-  { name: "Fitness center", icon: Dumbbell, note: "Open daily for guests." },
-  { name: "Room service", icon: ConciergeBell, note: "Assistance whenever you need it." },
-  { name: "Airport transfer", icon: Plane, note: "Requestable in advance." },
-  { name: "Laundry", icon: Shirt, note: "Same-day service on request." },
+  { name: "On-site dining", icon: UtensilsCrossed }, { name: "Swimming pool", icon: Waves },
+  { name: "Hotel Wi-Fi", icon: Wifi }, { name: "Fitness center", icon: Dumbbell },
+  { name: "Front Desk assistance", icon: ConciergeBell }, { name: "Airport transfers", icon: Car },
+  { name: "Guest parking", icon: ParkingCircle }, { name: "Laundry service", icon: Shirt },
 ];
-
-const facts = [
-  "Check-in begins at 3:00 PM",
-  "Check-out is by 12:00 PM",
-  "Front Desk assistance is available 24 hours",
-  "Wi-Fi is available throughout the hotel",
-  "Parking and transfers are subject to availability",
-  "Cancellation requests are reviewed under your booked terms",
-];
-
 const faqs = [
-  {
-    q: "Can I change my reservation?",
-    a: "Contact Front Desk with your confirmation number. Changes depend on availability and your booking terms.",
-  },
-  {
-    q: "When do I pay?",
-    a: "Online bookings currently use a pay-at-hotel guarantee. Your final folio is settled with Front Desk.",
-  },
-  {
-    q: "Are children welcome?",
-    a: "Yes. Include every staying guest in your search so we can show suitable room types.",
-  },
-  {
-    q: "Is parking available?",
-    a: "Parking is listed as a hotel amenity but remains subject to availability. Contact the hotel before arrival.",
-  },
+  ["How is my reservation confirmed?", "Choose your dates and room, then follow the deposit instructions at checkout. Your booking is confirmed after the required deposit is verified. Payment and cancellation terms are shown before you reserve."],
+  ["Can I change my reservation?", "Open My reservations in your guest account to request a change or cancellation. Availability, approval, and the cancellation terms accepted with your reservation apply."],
+  ["Can you arrange my airport transfer?", "Request transportation through your guest account for an eligible stay. Front Desk will review your request and confirm the schedule and assignment."],
+  ["What should I bring for check-in?", "Bring a valid government-issued ID and your reservation details. If a check-in QR code is available in your account, show it at Front Desk. Staff will verify your identity and complete your room assignment."],
 ];
-
-const experienceScenes = [
-  {
-    label: "Morning",
-    heading: "Slow starts.",
-    text: "Warm light and breakfast when you're ready — no rush, no queue.",
-    image: SCENES.morning,
-    alt: "Morning breakfast spread in warm light at Haven",
-  },
-  {
-    label: "Afternoon",
-    heading: "Space to disappear for a while.",
-    text: "The pool, the shade, or a quiet corner with nowhere to be.",
-    image: SCENES.afternoon,
-    alt: "Poolside afternoon at Haven",
-  },
-  {
-    label: "Evening",
-    heading: "Come back to somewhere quiet.",
-    text: "A prepared room, a calm close to the day, and Front Desk within reach all night.",
-    image: SCENES.evening,
-    alt: "A calm guest room in the evening at Haven",
-  },
-];
-
-const trustPoints = [
-  { icon: BedDouble, title: "Direct booking", text: "Reserve with the hotel itself — no third-party middlemen." },
-  { icon: Check, title: "Transparent rates", text: "Nightly base rates come straight from our live catalog." },
-  { icon: ConciergeBell, title: "24-hour Front Desk", text: "Guest care and arrival assistance at any hour." },
-  { icon: Clock3, title: "Real-time availability", text: "Search shows live inventory for your dates and guests." },
-  { icon: Sparkles, title: "Prepared rooms", text: "Room readiness is checked before your arrival." },
-];
-
-const galleryCaptions = [
-  "Pool & grounds",
-  "Suites",
-  "Dining",
-  "Bath & details",
-  "Seabreeze",
-  "Lobby",
-];
-
-// Stagger helper: reveal delay as a CSS custom property consumed by landing.css
-const rd = (ms: number) => ({ "--rd": `${ms}ms` }) as CSSProperties;
-const wi = (i: number) => ({ "--i": i }) as CSSProperties;
 
 export default async function LandingPage() {
-  const rooms = await loadRooms();
-  return (
-    <LandingMotion>
-      <main className="landing">
-        <LandingNav />
+  const result = supabase ? await supabase.from("room_types").select("id,name,max_guests,beds,base_rate,photo_urls").eq("active", true).order("base_rate", { ascending: true }) : null;
+  const rooms = result?.error ? [] : result?.data ?? [];
+  return <main className="landing coastal-landing">
+    <LandingNav />
+    <LandingMotion />
+    <BookingIntentProvider>
+    <section className="coast-hero" aria-labelledby="coast-title">
+      <Image src={SCENES.location} alt="A sunlit hotel pool surrounded by tropical greenery" fill priority sizes="100vw" className="coast-hero-image"/>
+      <div className="coast-hero-wash"/>
+      <div className="coast-hero-copy">
+        <p className="coast-eyebrow">A brighter kind of stay</p>
+        <h1 id="coast-title">Find Your Haven</h1>
+        <p className="coast-hero-lead">Extraordinary stays. A little more breathing room.</p>
+        <p>Beautiful spaces. Thoughtful hospitality.<br/>Your own corner of calm.</p>
+        <a href="#stay" className="coast-text-link">Discover your stay <ArrowRight size={18}/></a>
+      </div>
+      <p className="coast-hero-note">Good stays.<br/>Brighter days.</p>
+      <div className="coast-book" id="book"><HeroBookingForm/></div>
+      <p className="coast-scroll-cue" aria-hidden="true">Scroll to explore</p>
+    </section>
 
-        {/* 01 — Cinematic hero */}
-        <section className="hero" aria-label="Haven hero">
-          <div className="hero-media" aria-hidden="true">
-            <Image
-              src="/hotel-hero.png"
-              alt=""
-              fill
-              priority
-              sizes="100vw"
-              className="hero-image"
-            />
-          </div>
-          <div className="hero-shade" aria-hidden="true" />
-          <div className="hero-content">
-            <h1 data-reveal="words" aria-label="Stay somewhere unforgettable.">
-              <span className="rw">
-                <span className="rwi" style={wi(0)}>
-                  Stay
-                </span>
-              </span>{" "}
-              <span className="rw">
-                <span className="rwi" style={wi(1)}>
-                  somewhere
-                </span>
-              </span>
-              <br />
-              <span className="rw">
-                <span className="rwi" style={wi(2)}>
-                  <em>unforgettable.</em>
-                </span>
-              </span>
-            </h1>
-            <p className="hero-sub" data-reveal="up" style={rd(480)}>
-              Quiet luxury, thoughtful service, and moments that feel entirely your own.
-            </p>
-            <div className="hero-actions" data-reveal="up" style={rd(620)}>
-              <Link href="/booking/search" className="btn btn-cream">
-                Find your room <ArrowRight size={17} aria-hidden="true" />
-              </Link>
-              <a href="#book" className="btn btn-outline-light">
-                Check dates
-              </a>
-            </div>
-          </div>
-          <a href="#story" className="hero-scroll-cue" aria-label="Scroll to explore Haven">
-            <ChevronDown size={18} aria-hidden="true" />
-          </a>
-          <div id="book">
-            <BookingSearchForm />
-          </div>
-        </section>
+    <section className="coast-section" id="stay" aria-labelledby="stays-title">
+      <header className="coast-section-heading"><div><h2 id="stays-title">Featured Stays</h2><p>A space for every kind of escape.</p></div><Link href="/booking/search" className="coast-text-link">View all rooms <ArrowRight size={18}/></Link></header>
+      {rooms.length ? <FeaturedStays rooms={rooms}/> : <div className="coast-catalog-empty"><h3>Let’s find your next stay.</h3><p>The room catalog is currently unavailable. Search your dates to check the latest availability.</p><Link href="/booking/search" className="coast-button">Search rooms <ArrowRight size={16}/></Link></div>}
+      <p className="coast-caption">Rates and availability are confirmed for your selected dates. Images without uploaded room photos are illustrative.</p>
+    </section>
+    </BookingIntentProvider>
 
-        {/* 02 — Brand story */}
-        <section className="story-section" id="story" aria-labelledby="story-heading">
-          <div className="story-copy">
-            <h2 id="story-heading" data-reveal="up">
-              A slower kind
-              <br />
-              <em>of stay.</em>
-            </h2>
-            <p data-reveal="up" style={rd(140)}>
-              Haven is a small hotel on Mactan Bay built around one idea: that the best
-              trips feel unhurried. Rooms prepared with care, service that answers when
-              you call, and a setting that asks nothing of you.
-            </p>
-          </div>
-          <div className="story-media" data-reveal="clip">
-            <Image
-              src={SCENES.story}
-              alt="Haven's tropical architecture in warm daylight"
-              fill
-              sizes="(max-width: 900px) 92vw, 44vw"
-              className="story-image"
-            />
-          </div>
-        </section>
+    <section className="coast-section coast-amenities" id="amenities" aria-labelledby="amenities-title">
+      <header className="coast-section-heading"><div><h2 id="amenities-title">More Than a Stay</h2><p>Thoughtful details. A more comfortable escape.</p></div><a className="coast-text-link" href="#location">Ask us about your stay <ArrowRight size={18}/></a></header>
+      <ul>{amenities.map(({ name, icon: Icon }) => <li key={name}><span><Icon size={25} strokeWidth={1.3}/></span>{name}</li>)}</ul>
+      <p className="coast-caption">Some services require advance arrangements or additional charges. Contact Front Desk for details.</p>
+    </section>
 
-        {/* 03 — Rooms & Suites, editorial alternating rows */}
-        <section className="rooms-section" id="stay" aria-labelledby="rooms-heading">
-          <div className="section-heading" data-reveal="up">
-            <h2 id="rooms-heading">Rooms &amp; Suites</h2>
-            <Link href="/booking/search" className="section-link">
-              Check live availability <ArrowRight size={16} aria-hidden="true" />
-            </Link>
-          </div>
-          {rooms.map((room, index) => {
-            const primary = room.photos[0] ?? roomPrimary(undefined, room.name);
-            return (
-              <article
-                className={`room-row ${index % 2 === 1 ? "room-row-alt" : ""}`}
-                key={room.id}
-                aria-label={room.name}
-              >
-                <div className="room-row-media" data-reveal="clip">
-                  {primary ? (
-                    <Image
-                      src={primary}
-                      alt={`${room.name} — ${room.beds}`}
-                      fill
-                      sizes="(max-width: 900px) 92vw, 52vw"
-                      className="room-row-image"
-                    />
-                  ) : null}
-                </div>
-                <div className="room-row-content">
-                  <p className="room-row-label" data-reveal="up">
-                    {String(index + 1).padStart(2, "0")} · {room.guests} guest{room.guests > 1 ? "s" : ""}
-                  </p>
-                  <h3 data-reveal="up" style={rd(90)}>
-                    {room.name}
-                  </h3>
-                  <p className="room-row-beds" data-reveal="up" style={rd(150)}>
-                    {room.beds}
-                  </p>
-                  <p className="room-row-rate" data-reveal="up" style={rd(210)}>
-                    From <strong>{room.price}</strong> / night
-                  </p>
-                  <div className="room-row-actions" data-reveal="up" style={rd(270)}>
-                    <Link
-                      href={`/booking/search?roomType=${encodeURIComponent(room.name)}`}
-                      className="btn btn-forest"
-                      aria-label={`Check availability for ${room.name} — opens live inventory filtered to ${room.name}`}
-                    >
-                      Explore room <ArrowRight size={15} aria-hidden="true" />
-                    </Link>
-                    <a href="#book" className="room-row-quick">
-                      Check dates
-                    </a>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
-          <p className="rooms-footnote" data-reveal="up">
-            Nightly base rates from our live catalog — availability updates with your dates and guests.
-          </p>
-        </section>
+    <section className="coast-section coast-experience-grid" id="experience" aria-label="Your Haven experience">
+      <ExperienceGallery />
+      <article className="coast-portal"><div><p className="coast-eyebrow">A little more effortless</p><h2>Your stay,<br/>beautifully organised.</h2><p>One guest account. Everything you need before you arrive and while you’re here.</p><ul>{["Manage your reservations", "Request transportation and assistance", "View payments and your folio", "Keep up with your stay updates"].map(item => <li key={item}><Check size={16}/>{item}</li>)}</ul><Link href="/account" className="coast-text-link">Explore your account <ArrowRight size={18}/></Link></div><div className="coast-phone" aria-label="Illustrative guest portal preview"><WaveMark/><b>HAVEN</b><h3>Made for<br/>your stay.</h3><Image src={SCENES.story} alt="A quiet hotel retreat" width={220} height={200}/><span>Your reservations</span><span>Payments &amp; folio</span><span>Guest assistance</span></div></article>
+    </section>
 
-        {/* 04 — The Haven Experience, time-of-day scenes */}
-        <section className="experience-section" id="experience" aria-labelledby="experience-heading">
-          <div className="experience-copy">
-            <h2 id="experience-heading" data-reveal="up">
-              A day at
-              <br />
-              <em>Haven.</em>
-            </h2>
-            <p data-reveal="up" style={rd(140)}>
-              From the first coffee to the last quiet hour, the day moves at your pace.
-            </p>
-          </div>
-          <div className="experience-scenes">
-            {experienceScenes.map((scene, index) => (
-              <article className="experience-scene" key={scene.label} data-reveal="up" style={rd(index * 120)}>
-                <div className="experience-scene-media">
-                  <Image
-                    src={scene.image}
-                    alt={scene.alt}
-                    fill
-                    sizes="(max-width: 900px) 92vw, 30vw"
-                    className="experience-scene-image"
-                  />
-                </div>
-                <div className="experience-scene-copy">
-                  <p className="experience-scene-label">{scene.label}</p>
-                  <h3>{scene.heading}</h3>
-                  <p>{scene.text}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
+    <section className="coast-section coast-service-grid" id="about" aria-label="Thoughtful hospitality">
+      <article className="coast-arrival"><QrCode size={30} strokeWidth={1.3}/><h2>A smoother arrival.</h2><p>Your reservation, close at hand. Show your check-in QR at Front Desk, where our team verifies your details and gets you settled.</p><Link className="coast-text-link" href="/my-reservations">View your reservation <ArrowRight size={16}/></Link></article>
+      <article className="coast-story" id="gallery"><Image src={SCENES.gallery[4]} alt="A peaceful place to unwind at the hotel" fill sizes="(max-width: 800px) 100vw, 40vw"/><div><h2>A place to slow down,<br/>and feel more at home.</h2><a href="#experience" className="coast-text-link">Discover the experience <ArrowRight size={16}/></a></div></article>
+      <article className="coast-care"><WaveMark/><h2>Small details.<br/>Warmer welcomes.</h2><p>A helping hand with your plans, a room to return to, and time to make your own.</p><a href="#location" className="coast-text-link">Meet us at Haven <ArrowRight size={16}/></a></article>
+    </section>
 
-        {/* 05 — Amenities, typographic list */}
-        <section className="amenities-section" id="amenities" aria-labelledby="amenities-heading">
-          <div className="section-heading" data-reveal="up">
-            <h2 id="amenities-heading">Everything for an effortless stay.</h2>
-          </div>
-          <ul className="amenities-list">
-            {amenities.map(({ name, icon: Icon, note }, index) => (
-              <li key={name} data-reveal="up" style={rd((index % 4) * 70)}>
-                <span className="amenity-name">{name}</span>
-                <span className="amenity-note">
-                  <Icon aria-hidden="true" /> {note}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
+    <section className="coast-section coast-teaser" id="smarter" aria-labelledby="smarter-title">
+      <header className="coast-section-heading"><div><p className="coast-eyebrow">Behind the scenes</p><h2 id="smarter-title">Smarter hospitality.</h2><p>Technology in service of a warmer welcome.</p></div><Sparkles size={30} strokeWidth={1.3} aria-hidden="true"/></header>
+      <div className="coast-teaser-grid">
+        <div className="coast-teaser-tile"><TrendingUp size={20} strokeWidth={1.5} aria-hidden="true"/><b>84%</b><span>Occupancy outlook</span></div>
+        <div className="coast-teaser-tile"><CalendarCheck size={20} strokeWidth={1.5} aria-hidden="true"/><b>12</b><span>Tomorrow&rsquo;s arrivals</span></div>
+        <div className="coast-teaser-tile"><Brush size={20} strokeWidth={1.5} aria-hidden="true"/><b>4</b><span>Rooms requiring attention</span></div>
+      </div>
+      <p className="coast-teaser-copy">Our team works alongside predictive insights and Gemini-assisted guidance — occupancy, housekeeping, and inventory forecasts that keep every stay ready before you arrive. QR-based operations and one connected workflow mean quicker answers and smoother arrivals.</p>
+      <p className="coast-caption coast-teaser-note">Illustrative figures — shown to give a sense of the system. Actual live insights stay private to hotel operations.</p>
+    </section>
 
-        {/* 06 — Gallery mosaic */}
-        <section className="gallery-section" id="gallery" aria-labelledby="gallery-heading">
-          <div className="section-heading" data-reveal="up">
-            <h2 id="gallery-heading">Spaces made for slowing down.</h2>
-          </div>
-          <div className="gallery-grid">
-            {SCENES.gallery.map((src, index) => (
-              <figure
-                key={src}
-                className={`gallery-tile gallery-tile-${index + 1}`}
-                data-reveal={index % 2 === 0 ? "clip" : "up"}
-                style={rd(index * 90)}
-              >
-                <Image
-                  src={src}
-                  alt={`Haven ${galleryCaptions[index].toLowerCase()}`}
-                  fill
-                  sizes="(max-width: 680px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                />
-                <figcaption>{galleryCaptions[index]}</figcaption>
-              </figure>
-            ))}
-          </div>
-        </section>
+    <section className="coast-section coast-contact" id="location" aria-labelledby="contact-title"><div><p className="coast-eyebrow">Find us</p><h2 id="contact-title">Your next chapter<br/>starts here.</h2><p>Haven Hotel &amp; Residences<br/>A quieter pace, a warmer welcome.</p><nav aria-label="Contact the hotel"><a href="tel:+63324001234"><Phone size={17}/>+63 32 400 1234</a><a href="mailto:hello@haven-hotel.ph"><Mail size={17}/>hello@haven-hotel.ph</a><a href="https://www.google.com/maps/search/?api=1&query=Haven+Hotel" target="_blank" rel="noreferrer"><MapPin size={17}/>Open in Maps <ArrowRight size={14}/></a></nav></div><div className="coast-contact-photo"><Image src={SCENES.afternoon} alt="Hotel pool ready for a relaxing afternoon" fill sizes="(max-width: 800px) 100vw, 50vw"/><div><h3>Let’s plan your<br/>time away.</h3><a href="#book" className="coast-button coast-button-light">Find your stay <ArrowRight size={16}/></a></div></div></section>
 
-        {/* 07 — Why Haven / trust */}
-        <section className="trust-section" id="about" aria-labelledby="trust-heading">
-          <div className="trust-copy">
-            <h2 id="trust-heading" data-reveal="up">
-              Why book
-              <br />
-              <em>directly with us.</em>
-            </h2>
-          </div>
-          <ul className="trust-list">
-            {trustPoints.map(({ icon: Icon, title, text }, index) => (
-              <li key={title} data-reveal="up" style={rd((index % 3) * 90)}>
-                <Icon aria-hidden="true" />
-                <div>
-                  <h3>{title}</h3>
-                  <p>{text}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
+    <section className="coast-section coast-faq" id="faq" aria-labelledby="faq-title"><div><p className="coast-eyebrow">A few things to know</p><h2 id="faq-title">Before you arrive.</h2><p>More questions? Our Front Desk is here to help.</p><a className="coast-text-link" href="tel:+63324001234">Let’s talk <Phone size={16}/></a></div><div>{faqs.map(([question,answer]) => <details key={question}><summary>{question}<span aria-hidden="true">+</span></summary><p>{answer}</p></details>)}</div></section>
 
-        {/* 08 — Plan your stay */}
-        <section className="plan-section" aria-labelledby="plan-heading">
-          <div className="plan-copy" data-reveal="up">
-            <h2 id="plan-heading">Plan your stay.</h2>
-            <p>Live availability, real rates, and a booking that takes about a minute.</p>
-          </div>
-          <div data-reveal="up" style={rd(140)}>
-            <BookingSearchForm />
-          </div>
-          <p className="plan-note" data-reveal="up" style={rd(220)}>
-            Payment is settled with Front Desk at the hotel.
-          </p>
-        </section>
-
-        {/* 09 — Location & arrival */}
-        <section className="location-section" id="location" data-reveal="up" aria-labelledby="location-heading">
-          <div className="location-grid">
-            {/* LEFT COLUMN: editorial copy + contact */}
-            <div className="location-left">
-              <h2 id="location-heading">
-                Meet us at <em>Haven.</em>
-              </h2>
-              <address className="location-address">
-                <strong>Haven Hotel &amp; Residences</strong>
-                <br />
-                128 Seabreeze Avenue, Mactan Bay
-                <br />
-                Lapu-Lapu City, Cebu 6015 · Philippines
-              </address>
-              <div className="location-contact">
-                <a href="tel:+63324001234" className="location-link">
-                  <Phone size={14} aria-hidden="true" /> +63 32 400 1234
-                </a>
-                <a href="mailto:hello@haven-hotel.ph" className="location-link">
-                  <Mail size={14} aria-hidden="true" /> hello@haven-hotel.ph
-                </a>
-                <a
-                  href="https://maps.google.com/?q=Mactan+Bay+Cebu"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="location-link"
-                >
-                  <MapPin size={14} aria-hidden="true" /> Open in Maps
-                </a>
-              </div>
-            </div>
-
-            {/* RIGHT COLUMN: property image + reservation support */}
-            <div className="location-right">
-              <div className="location-media">
-                <Image
-                  src={SCENES.location}
-                  alt="Haven's coastal property on Mactan Bay"
-                  fill
-                  sizes="(max-width: 900px) 92vw, 44vw"
-                  className="location-image"
-                />
-              </div>
-              <div className="location-support">
-                <h3 className="location-support-heading">Need help with your reservation?</h3>
-                <p className="location-support-desc">
-                  For existing bookings, manage your stay through <Link href="/my-reservations">My reservations</Link> or contact our Front Desk for assistance.
-                </p>
-                <div className="location-support-actions">
-                  <a href="tel:+63324001234" className="btn btn-accent">
-                    <Phone size={16} aria-hidden="true" /> Call Front Desk
-                  </a>
-                  <a href="mailto:hello@haven-hotel.ph" className="btn btn-soft">
-                    <Mail size={16} aria-hidden="true" /> Email us
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Full-width arrival assistance strip — unified under both columns */}
-          <div className="location-arrival-assistance">
-            <Car aria-hidden="true" />
-            <div>
-              <h3>Arrival assistance</h3>
-              <p>Parking and airport transfer can be requested in advance and remain subject to availability. Front Desk confirms within 2 hours.</p>
-            </div>
-            <a href="mailto:hello@haven-hotel.ph?subject=Arrival%20assistance%20request" className="location-arrival-link">
-              Request assistance <ArrowRight size={15} aria-hidden="true" />
-            </a>
-          </div>
-        </section>
-
-        {/* Good to know + FAQ stay together as the practical close */}
-        <section className="good-to-know" aria-labelledby="good-to-know-heading">
-          <div data-reveal="up">
-            <h2 id="good-to-know-heading">Plan your arrival.</h2>
-          </div>
-          <ul data-reveal="up" style={rd(120)}>
-            {facts.map((fact) => (
-              <li key={fact}>
-                <Check size={15} aria-hidden="true" />
-                {fact}
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section className="faq-section" id="faq" aria-labelledby="faq-heading">
-          <div data-reveal="up">
-            <h2 id="faq-heading">Before you book.</h2>
-          </div>
-          <div data-reveal="up" style={rd(120)}>
-            {faqs.map((item) => (
-              <details key={item.q}>
-                <summary>
-                  {item.q}
-                  <CircleHelp size={16} aria-hidden="true" />
-                </summary>
-                <div className="faq-body">
-                  <div>
-                    <p>{item.a}</p>
-                  </div>
-                </div>
-              </details>
-            ))}
-          </div>
-        </section>
-
-        {/* 10 — Final cinematic CTA */}
-        <section className="cta-band" data-reveal="fade" aria-labelledby="cta-heading">
-          <div className="cta-band-media" aria-hidden="true">
-            <Image
-              src={SCENES.final}
-              alt=""
-              fill
-              sizes="100vw"
-              className="cta-band-image"
-            />
-          </div>
-          <div className="cta-band-content">
-            <h2 id="cta-heading" data-reveal="up">
-              Your room <em>is waiting.</em>
-            </h2>
-            <p data-reveal="up" style={rd(140)}>
-              Search live availability and book your stay — payment is settled with Front Desk at the hotel.
-            </p>
-            <Link href="/booking/search" className="btn btn-cream" data-reveal="up" style={rd(280)}>
-              Check availability <ArrowRight size={16} aria-hidden="true" />
-            </Link>
-          </div>
-        </section>
-
-        {/* 11 — Footer */}
-        <footer aria-label="Site footer">
-          <div>
-            <Link href="/" className="brand" aria-label="Haven home">
-              <span className="brand-mark" aria-hidden="true">
-                <Sparkles size={18} />
-              </span>
-              <span>
-                HAVEN<small>HOTEL &amp; RESIDENCES</small>
-              </span>
-            </Link>
-            <p>Thoughtful stays, beautifully prepared.</p>
-          </div>
-          <div className="footer-links">
-            <div>
-              <h2 className="footer-heading">Explore</h2>
-              <a href="#stay">Rooms &amp; Suites</a>
-              <a href="#experience">Experience</a>
-              <a href="#amenities">Amenities</a>
-            </div>
-            <div>
-              <h2 className="footer-heading">Plan</h2>
-              <a href="#book">Book now</a>
-              <Link href="/my-reservations">My reservations</Link>
-              <a href="#faq">FAQ</a>
-            </div>
-            <div>
-              <h2 className="footer-heading">Hotel</h2>
-              <a href="#about">About</a>
-              <a href="#gallery">Gallery</a>
-              <a href="#location">Contact</a>
-            </div>
-          </div>
-        </footer>
-      </main>
-    </LandingMotion>
-  );
+    <footer className="coast-footer"><div className="coast-footer-inner"><div><Link href="/" className="coast-footer-brand"><WaveMark/><span>HAVEN<small>HOTEL &amp; RESIDENCES</small></span></Link><p>A brighter stay. A little more you.</p></div><nav aria-label="Footer"><a href="#stay">Rooms &amp; suites</a><a href="#experience">Experiences</a><a href="#amenities">Amenities</a><a href="#location">Contact us</a><a href="#faq">Help &amp; FAQs</a><Link href="/account">My account</Link></nav><div><h2>Good people.<br/>Brighter places.</h2><a href="#book" className="coast-button coast-button-light">Book your stay <ArrowRight size={16}/></a></div><small className="coast-copyright">© {new Date().getFullYear()} Haven Hotel &amp; Residences. All rights reserved.</small></div></footer>
+  </main>;
 }

@@ -118,6 +118,34 @@ export type AvailableRoomType = {
   subtotal: number; availableUnits: number; photos: string[];
 };
 
+/** A catalog room type with no date context — browse mode. Never carries availability. */
+export type RoomTypeSummary = {
+  id: string; name: string; description: string; maxGuests: number; beds: string;
+  sizeSqm: number | null; amenities: string[]; nightlyRate: number; photos: string[];
+};
+
+/**
+ * How the guest arrived at /booking/search: with a valid date pair (availability)
+ * or without one (browse). `roomType` rides along in both modes and is validated
+ * against live room data by the page, not here. Derived from the URL so
+ * back/forward/refresh keep the same intent — there is no `mode` param.
+ */
+export type SearchIntent =
+  | { mode: "availability"; checkIn: string; checkOut: string; guests: number; roomType?: string }
+  | { mode: "browse"; roomType?: string; notice?: string };
+
+export function parseSearchIntent(raw: Record<string, string | string[] | undefined>): SearchIntent {
+  const single = (key: string) => (typeof raw[key] === "string" ? (raw[key] as string) : undefined);
+  const roomType = single("roomType");
+  const checkIn = single("checkIn");
+  const checkOut = single("checkOut");
+  if (!checkIn || !checkOut) return { mode: "browse", roomType };
+  const parsed = searchSchema.safeParse({ checkIn, checkOut, guests: Number(single("guests")) || 2 });
+  if (parsed.success) return { mode: "availability", ...parsed.data, roomType };
+  // Invalid dates/guests fall back to a safe browse state; the first issue becomes the notice.
+  return { mode: "browse", roomType, notice: parsed.error.issues[0]?.message };
+}
+
 export function calculateNights(checkIn: string, checkOut: string) {
   return Math.round((Date.parse(`${checkOut}T00:00:00Z`) - Date.parse(`${checkIn}T00:00:00Z`)) / 86_400_000);
 }
@@ -263,6 +291,23 @@ export async function getAvailability(input: SearchInput, retryTransientAuth = t
 
 export async function getRoomType(name: string, search: SearchInput) {
   return (await getAvailability(search)).find((room) => room.name === name) ?? null;
+}
+
+/** All active room types with no date context — the browse-mode catalog. Same source and photo chain as availability. */
+export async function getRoomCatalog(): Promise<RoomTypeSummary[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase.from("room_types")
+    .select("id,name,description,max_guests,beds,size_sqm,amenities,base_rate,photo_urls")
+    .eq("active", true)
+    .order("base_rate", { ascending: true });
+  if (error) throw new Error(`Room catalog query failed${error.code ? ` (${error.code})` : ""}`);
+  return (data ?? []).map((type) => ({
+    id: type.id, name: type.name, description: type.description, maxGuests: type.max_guests,
+    beds: type.beds, sizeSqm: type.size_sqm,
+    amenities: Array.isArray(type.amenities) ? type.amenities.map(String) : [],
+    nightlyRate: Number(type.base_rate),
+    photos: Array.isArray(type.photo_urls) ? type.photo_urls.map(String) : [],
+  }));
 }
 
 /** Sums transport line prices with centavo-safe arithmetic. */

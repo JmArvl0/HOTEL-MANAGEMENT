@@ -4,7 +4,6 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
-import "./login.css";
 
 export default function LoginForm({
   callbackUrl = "/manager_dashboard",
@@ -39,10 +38,10 @@ export default function LoginForm({
   return (
     <>
       <div className="haven-vault__head">
-        <p className="eyebrow" style={{ color: "#c9783c", margin: 0 }}>
+        <p className="eyebrow" style={{ color: "var(--color-forest-light)", margin: 0 }}>
           Haven portal
         </p>
-        <h1>{booking ? "Sign in to continue your reservation" : "Welcome back."}</h1>
+        <h1>{booking ? "Sign in to continue your reservation" : "Welcome back to the bright side."}</h1>
         <p>{booking ? "Your selected room and stay details are waiting." : "Unlock your dashboard — one secure key for every role."}</p>
       </div>
 
@@ -98,7 +97,6 @@ export default function LoginForm({
         </div>
 
         <button className="haven-vault__submit" disabled={loading} aria-busy={loading}>
-          <span className="haven-vault__submit-glow" aria-hidden="true" />
           {loading ? "Signing in…" : "Sign in"} <ArrowRight size={15} aria-hidden="true" />
         </button>
       </form>
