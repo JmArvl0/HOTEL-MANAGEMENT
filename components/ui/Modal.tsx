@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, ReactNode, useEffect, useId, useRef, useCallback, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 export interface ModalProps {
@@ -20,6 +21,11 @@ export interface ModalProps {
   returnFocusRef?: React.RefObject<HTMLElement>;
   className?: string;
   footer?: ReactNode;
+  /** Render at document.body via a portal. Required when an ancestor has a
+   *  transform/filter (e.g. a hover lift or entrance animation): such
+   *  ancestors become the containing block for position:fixed, so the
+   *  dialog would position relative to them instead of the viewport. */
+  portal?: boolean;
 }
 
 export function Modal({
@@ -38,6 +44,7 @@ export function Modal({
   returnFocusRef,
   className = "",
   footer,
+  portal = false,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const previousActiveElement = useRef<HTMLElement | null>(null);
@@ -126,12 +133,12 @@ export function Modal({
     };
   }, [isOpen, handleKeyDown, trapFocus]);
 
-  if (!isOpen) return null;
+  if (!isOpen || (portal && typeof document === "undefined")) return null;
 
   const prefersReducedMotion = typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  return (
+  const content = (
     <Fragment>
       <div
         className={`dialog-backdrop ${prefersReducedMotion ? "reduce-motion" : ""}`}
@@ -174,6 +181,7 @@ export function Modal({
       </div>
     </Fragment>
   );
+  return portal ? createPortal(content, document.body) : content;
 }
 
 export interface ConfirmDialogProps {

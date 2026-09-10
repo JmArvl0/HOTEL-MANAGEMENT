@@ -123,6 +123,7 @@ export function RoomDetailsButton({ room, bookHref }: { room: AvailableRoomType 
         headerVariant="branded"
         className="room-details-modal"
         footer={footer}
+        portal
       >
         <RoomTypeDetailsBody room={room} />
       </Modal>
