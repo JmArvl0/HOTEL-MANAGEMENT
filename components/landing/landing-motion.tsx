@@ -44,7 +44,9 @@ export function LandingMotion() {
       // ctx.revert() in cleanup restores every style GSAP touched.
       ctx = gsap.context(() => {
         // ---- Hero load sequence -------------------------------------------------
-        const heroImg = ".coast-hero-image";
+        // The media wrapper (not the bare image) is the scale owner, so the
+        // image and wash zoom as one composited layer.
+        const heroMedia = ".coast-hero-media";
         const heroParts = [
           ".coast-hero .coast-eyebrow",
           ".coast-hero h1",
@@ -53,7 +55,7 @@ export function LandingMotion() {
           ".coast-hero .coast-text-link",
         ];
 
-        gsap.set(heroImg, { scale: 1.05 });
+        gsap.set(heroMedia, { scale: 1.05 });
         gsap.set(heroParts, { autoAlpha: 0, y: 22 });
         gsap.set(".coast-hero-note", { autoAlpha: 0 });
         gsap.set(".coast-book", { autoAlpha: 0, y: 30 });
@@ -62,7 +64,7 @@ export function LandingMotion() {
         const tl = gsap.timeline({
           defaults: { ease: "power4.out", duration: 0.9 },
         });
-        tl.to(heroImg, { scale: 1, duration: 1.2, ease: "power3.out" }, 0)
+        tl.to(heroMedia, { scale: 1, duration: 1.2, ease: "power3.out" }, 0)
           .to(".coast-hero .coast-eyebrow", { autoAlpha: 1, y: 0, duration: 0.6 }, 0.15)
           .to(".coast-hero h1", { autoAlpha: 1, y: 0, duration: 0.75 }, 0.3)
           .to(".coast-hero .coast-hero-lead", { autoAlpha: 1, y: 0, duration: 0.7 }, 0.45)
@@ -77,16 +79,24 @@ export function LandingMotion() {
           .to(".coast-scroll-cue", { autoAlpha: 1, duration: 0.5 }, 1.15);
 
         // ---- Scroll: hero reframe (scrub, no pinning, no hijack) ---------------
-        gsap.to(heroImg, {
-          scale: 1.12,
-          ease: "none",
-          scrollTrigger: {
-            trigger: ".coast-hero",
-            start: "top top",
-            end: "bottom top",
-            scrub: true,
+        // fromTo + immediateRender:false: the scrub must not capture its start
+        // value while the load timeline is still at scale 1.05, or the hero
+        // keeps a stale zoom once you scroll back to the top.
+        gsap.fromTo(
+          heroMedia,
+          { scale: 1 },
+          {
+            scale: 1.12,
+            ease: "none",
+            immediateRender: false,
+            scrollTrigger: {
+              trigger: ".coast-hero",
+              start: "top top",
+              end: "bottom top",
+              scrub: true,
+            },
           },
-        });
+        );
         gsap.to(".coast-hero-copy", {
           y: -40,
           autoAlpha: 0.15,
@@ -118,13 +128,12 @@ export function LandingMotion() {
           });
         });
 
-        // Room cards: light stagger on scroll
-        gsap.from(".coast-room", {
+        // Reveal the grid as one unit so cards remain aligned while scrolling.
+        gsap.from(".coast-room-grid", {
           autoAlpha: 0,
-          y: 32,
+          y: 24,
           duration: 0.8,
           ease: "power3.out",
-          stagger: 0.12,
           scrollTrigger: { trigger: ".coast-room-grid", start: "top 88%", once: true },
         });
 

@@ -32,6 +32,29 @@
 .theme-light .app-shell .sidebar .brand>.brand-mark{color:#103e48}.theme-light .app-shell .brand-menu-btn .brand-mark{color:#176773;border-color:#cbd5cf}
 @media(max-width:1000px){.app-shell,.app-shell.sidebar-collapsed{grid-template-columns:1fr}.app-shell .sidebar,.app-shell .sidebar.collapsed{width:232px;padding:18px 13px}.app-shell .sidebar.collapsed .sidebar-top{padding:0 8px 16px}.app-shell .sidebar.collapsed .brand-copy,.app-shell .sidebar.collapsed .property-copy,.app-shell .sidebar.collapsed .property-chevron,.app-shell .sidebar.collapsed .nav-caption,.app-shell .sidebar.collapsed .nav-label,.app-shell .sidebar.collapsed .profile-copy{display:block}.app-shell .sidebar.collapsed nav i{display:inline}.app-shell .sidebar.collapsed .property-pill{justify-content:flex-start;padding:9px}.app-shell .sidebar.collapsed nav button,.app-shell .sidebar.collapsed .sidebar-bottom>button{justify-content:flex-start;padding:9px 10px}.app-shell .sidebar.collapsed .profile{justify-content:flex-start;padding:12px 9px}.app-shell .brand-menu-btn{display:grid}}
 @media(min-width:1001px){.app-shell .brand-menu-btn{display:none}}
+/* ── COLLAPSIBLE NAV CATEGORIES (groupedNav in manager-dashboard-client).
+      Headers are captions, not page links; a category with no visible children
+      is never rendered (RBAC filters upstream). The active module's group is
+      forced open in JS (isGroupOpen) — CSS only animates the transition. ── */
+.app-shell .sidebar nav{gap:0;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain}
+.app-shell .sidebar .nav-group-wrap + .nav-group-wrap{margin-top:7px}
+.app-shell .sidebar .nav-group-header{display:flex;width:calc(100% - 8px);margin:0 4px 2px;padding:6px 8px;border-radius:4px;background:transparent;color:#555f59;font-size:9px;letter-spacing:1.5px;text-transform:uppercase}
+.app-shell .sidebar .nav-group-header:hover{background:#171c18;color:#a7b0aa}
+.app-shell .sidebar .nav-group-header:focus-visible{outline:2px solid var(--dg);outline-offset:2px}
+.app-shell .sidebar .nav-group-header i{margin-left:6px}
+.app-shell .sidebar .nav-group-chevron{margin-left:auto;flex:0 0 auto;transition:transform .2s ease}
+.app-shell .sidebar .nav-group-header[aria-expanded="true"] .nav-group-chevron{transform:rotate(90deg)}
+.app-shell .sidebar .nav-group{display:grid;grid-template-rows:0fr;visibility:hidden;transition:grid-template-rows .2s ease,visibility .2s ease}
+.app-shell .sidebar .nav-group.open{grid-template-rows:1fr;visibility:visible}
+.app-shell .sidebar .nav-group-items{display:flex;flex-direction:column;gap:1px;overflow:hidden;min-height:0}
+/* Icon rail: category headers disappear, every module stays one tap away. */
+@media(min-width:1001px){.app-shell .sidebar.collapsed .nav-group-header{display:none}.app-shell .sidebar.collapsed .nav-group{grid-template-rows:1fr;visibility:visible}}
+/* Mobile drawer: headers stay real buttons even when the rail state is collapsed. */
+@media(max-width:1000px){.app-shell .sidebar.collapsed .nav-group-header{display:flex}}
+/* Touch floor for every sidebar control (ui-primitives only covers .btn). */
+@media(max-width:680px){.app-shell .sidebar nav button{min-height:44px}}
+.theme-light .app-shell .sidebar .nav-group-header{color:#97a19b}
+.theme-light .app-shell .sidebar .nav-group-header:hover{background:#f1f5f2;color:#53676b}
 /* Mobile drawer scrim (customer-shell pattern): tap-outside closes the nav.
    z-index 19 sits under the sidebar's 20; hidden at desktop widths. */
 .app-shell .sidebar-backdrop{position:fixed;inset:0;z-index:19;border:0;background:#00000059;display:none}
@@ -371,6 +394,22 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .app-shell .modal-content .arrival-notice{margin:0 0 10px;padding:9px 11px;border:1px solid #cbe6d9;border-radius:6px;background:#eaf3f1;color:#267056;font-size:10px;line-height:1.5}
 .app-shell .modal-content .arrival-notice.warn{border-color:#ecd7b4;background:#fff0dd;color:#a45a22}
 .app-shell .modal-content .arrival-notice .table-action{color:#176773;background:transparent;border:0;padding:0;font-size:10px;font-weight:800;text-decoration:underline}
+.app-shell .modal-content .arrival-notice .table-action:focus-visible{outline:2px solid #176773;outline-offset:2px;border-radius:2px}
+.app-shell .modal-content .arrival-notice.approved svg{vertical-align:-2px;margin-right:5px;color:#267056}
+/* Approved room-type exception callout (2026-09-11): positive sage surface, full
+   border (no side accent), status left / primary CTA right, stacked on mobile.
+   One-time entrance only, and only when the viewer allows motion. */
+.app-shell .modal-content .arrival-approval{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 10px;padding:12px 14px;border:1px solid #bfe0cd;border-radius:8px;background:#e7f3ed}
+.app-shell .modal-content .arrival-approval-title{display:flex;align-items:center;gap:6px;margin:0;color:#1d5c46;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase}
+.app-shell .modal-content .arrival-approval-title svg{color:#267056}
+.app-shell .modal-content .arrival-approval-detail{margin:4px 0 0;color:#2f6b52;font-size:10px;line-height:1.55}
+.app-shell .modal-content .arrival-approval-detail b{color:#1d5c46}
+.app-shell .modal-content .arrival-approval-cta{flex-shrink:0;white-space:nowrap}
+.app-shell .modal-content .arrival-approval .arrival-approval-cta:focus-visible{outline:2px solid #176773;outline-offset:2px}
+.app-shell .modal-content .arrival-exception-hint{color:#68736d;font-size:9px;font-weight:600;line-height:1.5}
+@keyframes arrival-approval-in{from{opacity:0;transform:translateY(4px)}}
+@media(prefers-reduced-motion:no-preference){.app-shell .modal-content .arrival-approval{animation:arrival-approval-in .2s ease-out both}}
+@media(max-width:680px){.app-shell .modal-content .arrival-approval{flex-direction:column;align-items:stretch;text-align:left}.app-shell .modal-content .arrival-approval-cta{width:100%}}
 .app-shell .modal-content .arrival-error{margin:0 0 10px;padding:9px 11px;border:1px solid #e4beb9;border-radius:6px;background:#f9e3e1;color:#a44843;font-size:10px;line-height:1.5}
 .theme-light .app-shell .arrival-lane{background:#fff}
 .theme-light .app-shell .arrival-chip{background:#fff;color:#657169}
@@ -531,6 +570,8 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .app-shell .tp-when.today b::before{content:"";display:inline-block;width:6px;height:6px;margin-right:6px;border-radius:50%;background:#37b27a;vertical-align:1px}
 .app-shell .tp-actions{text-align:right}
 .app-shell .tp-actions .reservation-actions{justify-content:flex-end}
+.app-shell .rt-actions{text-align:right}
+.app-shell .rt-actions .reservation-actions{justify-content:flex-end}
 .app-shell .tp-unassigned{color:#8d9791}
 .app-shell .tp-view-only{color:var(--dm)}
 /* Status language, scoped to this panel: scheduled reads cool blue (booked,

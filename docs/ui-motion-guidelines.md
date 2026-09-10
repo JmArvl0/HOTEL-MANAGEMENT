@@ -93,7 +93,10 @@ component that animates.
 - **Scroll reveal (non-landing):** `<Reveal>` component — observes, fades once,
   restores styles on unmount.
 - **Hero sequence (landing):** staggered load order image → eyebrow → headline → copy →
-  CTAs → booking widget → scroll cue; scroll reframe via scrub only, no pinning.
+  CTAs → booking widget → scroll cue; scroll reframe via scrub only, no pinning. The
+  `.coast-hero-media` wrapper is the single scale owner (image + wash zoom as one
+  composited layer, clipped by `.coast-hero`'s `overflow:hidden`) — never animate the
+  bare image or wash independently.
 - **Hover:** micro-interactions from DESIGN.md §7 (150–300ms); landing room cards get a
   restrained lift + image scale + arrow nudge.
 

@@ -1,8 +1,8 @@
 # Current Status
 
-Last Updated: 2026-09-10
-Current Development Area: Guest booking discovery (landing → search intents)
-Current Feature: Intent-aware room discovery — delivered + browser-verified
+Last Updated: 2026-09-11
+Current Development Area: Staff dashboard UX
+Current Feature: Landing hero/wash sync + Featured Stays alignment (2026-09-11 Session 04)
 Current Branch: `main`
 Latest Relevant Commit: `e91ee55` (TomTom-priced hotel transfers)
 
@@ -19,6 +19,51 @@ Impeccable detector clean, typecheck and lint clean, 713/713 tests passing, buil
 desktop/mobile browser smoke checks passing without runtime errors or horizontal overflow.
 
 ## Recently Completed
+
+- **Landing hero/wash sync + Featured Stays alignment (Session 04, 2026-09-11)** — the
+  reported regressions matched committed HEAD, but the uncommitted working tree already
+  held a parallel session's complete fix (`.coast-hero-media` shared wrapper owns the GSAP
+  scale, hero `overflow:hidden` clips; cards flex-column stretch with `margin-top:auto`
+  price rows, single-unit grid reveal). This session verified it (curl confirmed :3000
+  serves the wrapper — the report was a cached page), added `pointer-events:none` to the
+  wash, pinned the architecture with `landing-hero-structure.test.tsx`, and documented the
+  scale-ownership rule in `docs/ui-motion-guidelines.md` §6. All gates green (743/743);
+  user-side browser TEST 1–8 pending after a hard reload. See [[2026-09-11 - Session 04]].
+
+- **Request Types row-action arrangement (Session 03, 2026-09-11)** — the Request Types
+  module's row buttons (Hide/Offer, Edit, Delete) were bare inline children of a plain
+  `<td>` with no spacing or alignment. Wrapped in the standard `reservation-actions` flex
+  container, right-aligned via `.rt-actions` (mirrors transportation panel), Hide/Offer
+  gained Eye/EyeOff icons so all chips are equal height, Delete now uses `danger-action`,
+  and the actions column header is labeled "Actions". Presentation only. All gates green
+  (738/738); manual visual check pending on user side. See [[2026-09-11 - Session 03]].
+
+- **Approved room-type exception CTA (Session 02, 2026-09-11)** — the check-in Room step's
+  approved-exception notice became a prominent sage/green `role="status"` callout with the
+  room type as its own element and a real `btn-accent` "Load X rooms" CTA; the active
+  exception shows an "Approved exception active" summary; the alternative-request form now
+  excludes the already-approved type (client-side filter) and gains a "Need a different
+  room type" hint, preventing duplicate approval requests. Presentation only — approval
+  rules, filtering, repricing, assignment RPC untouched. All gates green (738/738 tests,
+  4 new dialog tests); manual visual check pending on user side. See
+  [[2026-09-11 - Session 02]].
+
+- **Staff sidebar dropdown responsiveness (Session 01, 2026-09-11)** — the left-navbar category
+  dropdowns on `/manager_dashboard` re-rendered the whole dashboard on every click because
+  `openGroups` lived at the component root. State moved into extracted `ManagerSidebarNav` /
+  `AdminSidebarNav` components so a toggle re-renders only the sidebar. RBAC, localStorage keys,
+  aria, CSS unchanged. All gates green (734/734 tests, 2 new jsdom interaction tests); manual
+  visual check pending on user side. See [[2026-09-11 - Session 01]].
+
+- **Booking Review — Go Back + Guest Details refinement (Session 05, 2026-09-10)** — the shared
+  booking-flow Go Back pill is now a compact "Back to <previous step>" text link (label derived
+  from the breadcrumb; deterministic `router.push`, never `router.back()`), and the review page's
+  Guest Details switched from boxed icon tiles to a clean label/value grid. Review's back/breadcrumb/
+  Edit links now carry `hold=<token>` and `/booking/details` prefills the form from that hold
+  (validated: owned, active, unexpired, matching room/dates/guests), so entered guest info,
+  expected arrival, preparations, and the transportation request survive the round-trip.
+  Resubmission still creates a new hold. All gates green (730/730 tests); manual UI verification
+  pending. See [[2026-09-10 - Session 05]].
 
 - **Extended coastal theme conformance (Session 02, 2026-09-10)** — removed the surviving
   forest/terracotta family from booking search, shared modals, room details, QR placards, staff
@@ -115,6 +160,11 @@ desktop/mobile browser smoke checks passing without runtime errors or horizontal
 
 ## Recent Sessions
 
+- [[2026-09-11 - Session 04]] — Landing hero/wash sync + Featured Stays alignment
+- [[2026-09-11 - Session 03]] — Request Types row-action arrangement
+- [[2026-09-11 - Session 02]] — Approved room-type exception CTA (check-in Room step)
+- [[2026-09-11 - Session 01]] — Staff sidebar dropdown responsiveness fix
+- [[2026-09-10 - Session 05]] — Booking Review Go Back + Guest Details refinement
 - [[2026-09-10 - Session 02]] — Extended coastal theme conformance and verification
 - [[2026-09-10 - Session 01]] — Intent-aware room discovery (landing → /booking/search)
 - [[2026-09-09 - Session 05]] — Manager/Accounting workflow revision (D-007)

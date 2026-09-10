@@ -41,8 +41,8 @@ export default function LoginForm({
         <p className="eyebrow" style={{ color: "var(--color-forest-light)", margin: 0 }}>
           Haven portal
         </p>
-        <h1>{booking ? "Sign in to continue your reservation" : "Welcome back to the bright side."}</h1>
-        <p>{booking ? "Your selected room and stay details are waiting." : "Unlock your dashboard — one secure key for every role."}</p>
+        <h1>{booking ? "Sign in to continue your reservation" : "Sign in to your Haven account"}</h1>
+        <p>{booking ? "Your selected room and stay details are waiting." : "Access your dashboard, reservations, and stay details securely."}</p>
       </div>
 
       {error && (
@@ -105,13 +105,7 @@ export default function LoginForm({
         New guest? <Link href={`/register?callbackUrl=${encodeURIComponent(callbackUrl)}${booking ? "&booking=1" : ""}`}>Create an account</Link>
       </p>
 
-      <div className="haven-vault__trust">
-        <span>Encrypted</span>
-        <span>•</span>
-        <span>Pay at hotel</span>
-        <span>•</span>
-        <span>24h Desk</span>
-      </div>
+      <div className="haven-vault__trust"><span>Secure credentials</span><span>•</span><span>Role-based access</span></div>
     </>
   );
 }

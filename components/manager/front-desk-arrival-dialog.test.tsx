@@ -77,9 +77,22 @@ const roomTypeRoute = (responder: Responder): Route => ({
   respond: () => responder,
 });
 
-const standardRoutes = (base: Route, extra: Route[] = []): Route[] => [
+// Eligible-rooms fetch for an approved exception (?exceptionType=…) — the callout CTA's target.
+const exceptionRoute = (responder: Responder): Route => ({
+  match: (url) => url.includes("exceptionType="),
+  respond: () => responder,
+});
+
+// Latest room_type_exception approval row, already approved and awaiting execution.
+const approvedExceptionRow = {
+  reservation_id: "res-1", request_type: "room_type_exception", status: "approved",
+  execution_status: "awaiting_execution", requested_at: "2026-09-11T09:00:00Z",
+  requested_action: { roomType: "Deluxe King" },
+};
+
+const standardRoutes = (base: Route, extra: Route[] = [], approvals: Responder = jsonResponse({ data: [] })): Route[] => [
   { match: (url) => url.includes("/api/staff/reservations/res-1"), respond: () => jsonResponse(detailBody) },
-  { match: (url) => url.includes("/api/manager/approvals"), respond: (_url, init) => init?.method === "POST" ? jsonResponse({ data: { id: "appr-1" } }) : jsonResponse({ data: [] }) },
+  { match: (url) => url.includes("/api/manager/approvals"), respond: (_url, init) => init?.method === "POST" ? jsonResponse({ data: { id: "appr-1" } }) : approvals },
   base,
   ...extra,
 ];
@@ -194,5 +207,69 @@ describe("FrontDeskArrivalDialog — Step 3 room assignment", () => {
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toMatch(/Room inventory changed/i);
     await waitFor(() => expect(select("Target room type").value).toBe(""));
+  });
+});
+
+describe("FrontDeskArrivalDialog — approved exception callout", () => {
+  it("presents an approved exception as a prominent status callout with a primary load button", async () => {
+    serve(standardRoutes(
+      baseRoute(() => jsonResponse({ data: [], reservedRoomTypeId: "gt-id", alternativeRoomTypes: alternatives })),
+      [],
+      jsonResponse({ data: [approvedExceptionRow] })
+    ));
+    renderDialog();
+    await advanceToRoomStep();
+    // Status lives in a role="status" block, the room type is its own element,
+    // and the next action is a real accent button — not an inline text link.
+    const title = await screen.findByText("Room-type exception approved");
+    expect(title.closest('[role="status"]')).toBeTruthy();
+    expect(screen.getByText("Deluxe King", { selector: ".arrival-approval-detail b" })).toBeTruthy();
+    const cta = screen.getByRole("button", { name: "Load Deluxe King rooms" });
+    expect(cta.className).toContain("btn-accent");
+  });
+
+  it("loads only the approved type's rooms from the callout CTA and shows the active summary", async () => {
+    const fetchMock = serve(standardRoutes(
+      baseRoute(() => jsonResponse({ data: [], reservedRoomTypeId: "gt-id", alternativeRoomTypes: alternatives })),
+      [exceptionRoute(jsonResponse({ data: deluxeRooms, reservedRoomTypeId: "gt-id", alternativeRoomTypes: [], exceptionApproved: true, typeRate: 3200 }))],
+      jsonResponse({ data: [approvedExceptionRow] })
+    ));
+    renderDialog();
+    await advanceToRoomStep();
+    fireEvent.click(await screen.findByRole("button", { name: "Load Deluxe King rooms" }));
+    // The staff member still chooses the physical room — the CTA only loads the list.
+    const group = await screen.findByRole("radiogroup", { name: "Eligible rooms" });
+    expect(within(group).getByText("Room 201")).toBeTruthy();
+    expect(fetchMock.mock.calls.some(([url]) => decodeURIComponent(String(url)).includes("exceptionType=Deluxe King"))).toBe(true);
+    expect(await screen.findByText(/Approved exception active/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /use reserved-type rooms instead/i })).toBeTruthy();
+  });
+
+  it("keeps the request form for different types only — the approved type is never a duplicate option", async () => {
+    serve(standardRoutes(
+      baseRoute(() => jsonResponse({ data: [], reservedRoomTypeId: "gt-id", alternativeRoomTypes: alternatives })),
+      [],
+      jsonResponse({ data: [approvedExceptionRow] })
+    ));
+    renderDialog();
+    await advanceToRoomStep();
+    expect(await screen.findByText(/Need a different room type than the approved Deluxe King\?/i)).toBeTruthy();
+    const typeSelect = select("Target room type");
+    expect(within(typeSelect).queryByRole("option", { name: /Deluxe King/i })).toBeNull();
+    expect(within(typeSelect).getByRole("option", { name: "Ocean Suite — 1 room available" })).toBeTruthy();
+  });
+
+  it("hides the request form entirely when the approved type is the only alternative with rooms", async () => {
+    serve(standardRoutes(
+      baseRoute(() => jsonResponse({ data: [], reservedRoomTypeId: "gt-id", alternativeRoomTypes: [alternatives[0]] })),
+      [],
+      jsonResponse({ data: [approvedExceptionRow] })
+    ));
+    renderDialog();
+    await advanceToRoomStep();
+    expect(await screen.findByRole("button", { name: "Load Deluxe King rooms" })).toBeTruthy();
+    expect(screen.queryByLabelText("Target room type")).toBeNull();
+    expect(screen.queryByRole("button", { name: /request manager approval/i })).toBeNull();
+    expect(screen.queryByText(/No alternative room types currently have eligible rooms/i)).toBeNull();
   });
 });

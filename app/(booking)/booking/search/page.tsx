@@ -6,6 +6,7 @@ import { ArrowRight, CalendarDays, Check, ChevronRight, Clock3, Headphones, Shie
 import { authOptions } from "@/lib/auth";
 import { LandingNav } from "@/components/landing/landing-nav";
 import { BookingSearchForm } from "@/components/booking/booking-search-form";
+import { BackButton } from "@/components/booking/back-button";
 import { RoomResults } from "@/components/booking/room-results";
 import { RoomFocus } from "@/components/booking/room-focus";
 import { getAvailability, getRoomCatalog, parseSearchIntent, type AvailableRoomType, type RoomTypeSummary } from "@/lib/booking";
@@ -91,6 +92,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             <Link href="/#stay">Rooms &amp; Suites</Link><ChevronRight size={13} aria-hidden="true" />
             <span aria-current="page">Select your room</span>
           </nav>
+          <BackButton />
           <div className="booking-search-heading">
             <div>
               {focusRoomType && !availability ? <><h1 id="search-title">{focusRoomType}</h1><p>Explore this room, or compare it with the rest of the HAVEN collection.</p></>

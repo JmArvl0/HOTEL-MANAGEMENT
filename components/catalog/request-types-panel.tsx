@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { ListChecks, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Eye, EyeOff, ListChecks, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 
 // Manager-maintained guest request catalog. What is active here is exactly
@@ -92,7 +92,7 @@ export default function RequestTypesPanel() {
         <div className="data-panel">
           <div className="table-scroll">
             <table>
-              <thead><tr>{["Request type", "Form key", "Routed to", "Status", ""].map((x, i) => <th key={i}>{x}</th>)}</tr></thead>
+              <thead><tr>{["Request type", "Form key", "Routed to", "Status", "Actions"].map((x, i) => <th key={i}>{x}</th>)}</tr></thead>
               <tbody>
                 {visible.map((item) => (
                   <tr key={item.id}>
@@ -100,10 +100,12 @@ export default function RequestTypesPanel() {
                     <td><code>{item.value}</code></td>
                     <td>{departmentLabel(item.department)}</td>
                     <td><span className={`badge ${item.active ? "active" : "inactive"}`}>{item.active ? "Offered" : "Hidden"}</span></td>
-                    <td>
-                      <button className="table-action view-action" onClick={() => toggleActive(item)}>{item.active ? "Hide" : "Offer"}</button>
-                      <button className="table-action view-action" onClick={() => { setEditing(item); setCreating(false); setDraft({ label: item.label, department: item.department, active: item.active }); }}><Pencil size={14}/> Edit</button>
-                      <button className="table-action" onClick={() => remove(item)}><Trash2 size={14}/> Delete</button>
+                    <td className="rt-actions">
+                      <div className="reservation-actions">
+                        <button className="table-action view-action" onClick={() => toggleActive(item)}>{item.active ? <><EyeOff size={14}/> Hide</> : <><Eye size={14}/> Offer</>}</button>
+                        <button className="table-action view-action" onClick={() => { setEditing(item); setCreating(false); setDraft({ label: item.label, department: item.department, active: item.active }); }}><Pencil size={14}/> Edit</button>
+                        <button className="table-action danger-action" onClick={() => remove(item)}><Trash2 size={14}/> Delete</button>
+                      </div>
                     </td>
                   </tr>
                 ))}

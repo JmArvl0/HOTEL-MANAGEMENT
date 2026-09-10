@@ -33,8 +33,10 @@ export default async function LandingPage() {
     <LandingMotion />
     <BookingIntentProvider>
     <section className="coast-hero" aria-labelledby="coast-title">
-      <Image src={SCENES.location} alt="A sunlit hotel pool surrounded by tropical greenery" fill priority sizes="100vw" className="coast-hero-image"/>
-      <div className="coast-hero-wash"/>
+      <div className="coast-hero-media">
+        <Image src={SCENES.location} alt="A sunlit hotel pool surrounded by tropical greenery" fill priority sizes="100vw" className="coast-hero-image"/>
+        <div className="coast-hero-wash"/>
+      </div>
       <div className="coast-hero-copy">
         <p className="coast-eyebrow">A brighter kind of stay</p>
         <h1 id="coast-title">Find Your Haven</h1>

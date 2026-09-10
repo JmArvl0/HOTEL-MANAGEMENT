@@ -372,7 +372,13 @@ Confirmation**, wired through search-params → a server-issued **hold token** �
 3. **Guest details** (`/booking/details`) — names, email, mobile, address, nationality, expected
    arrival, **structured multi-select request options** (`request_options`, up to 12), free-text
    special requests, and an **optional transportation preference** (service type, locations, dates,
-   times, passengers — see §7.11).
+   times, passengers — see §7.11). The Review page's back link, breadcrumb, and "Edit details"
+   action link here with `hold=<token>`; the page then prefills the form from that hold (same
+   room/dates/guests, active and unexpired) so entered guest info, expected arrival, preparations,
+   and the transportation request survive the round-trip. Resubmitting creates a **new** hold —
+   the old one expires on its own timer. Flow pages share a compact back link
+   (`components/booking/booking-page-frame.tsx` + `BackButton`) that pushes deterministically to
+   the previous breadcrumb step (never `router.back()`), labelled "Back to <step>".
 4. **Review** (`/booking/review/[token]`) — holds the reservation.
 5. **Payment link** (`/booking/payment/[token]`) — manual deposit only (see below).
 6. **Confirmation** (`/booking/confirmation/[id]`).
@@ -575,7 +581,13 @@ only the arrival dialog creates it.
 A single route renders the right client by role: `owner` → OwnerDashboardClient, `admin` →
 AdminDashboardClient, everything else (manager, front_desk, housekeeping, maintenance, accounting)
 → ManagerDashboardClient. The operational client is one screen whose **navigation is gated per role**
-(client-side mirror of permissions) across these workspaces:
+(client-side mirror of permissions) and organized into **collapsible sidebar categories** —
+Workspace, Front Office, Operations, Finance, Management (manager-only; it auto-hides for every
+other role, as does any category RBAC empties). The active module's category is always expanded
+(its page can never be hidden inside a collapsed group); a category's open/closed choice persists
+per browser in `localStorage["haven-sidebar-groups"]`, alongside the rail toggle
+`haven-sidebar-collapsed`. Grouping is presentational — the `access` map and per-module role gates
+are unchanged. Workspaces offered per role:
 
 | Role | Sections offered |
 |---|---|
@@ -597,6 +609,12 @@ external-statement totals and only record variance. Documents (receipts `RCP-`, 
 Admin and Owner get dedicated governance screens (§7.10).
 
 ### 7.10 Admin governance & Owner executive
+
+Both governance clients use the same collapsible category sidebar as the operational client
+(§7.9): Admin groups its modules into Workspace · Accounts · Configuration · Governance, Owner into
+Executive · Governance · Catalog. The active module's category is always expanded and each client
+persists its own open/closed choices (`localStorage["haven-admin-sidebar-groups"]` /
+`["haven-owner-sidebar-groups"]`). Grouping is presentational — every module stays reachable.
 
 - **Admin** (`AdminDashboardClient`, `/api/admin/*`): staff account lifecycle
   (`admin_create_staff`, status changes, role changes, metadata), **secure account recovery** tokens,
@@ -766,7 +784,7 @@ visibility is never the gate) serves a **read-only** workforce snapshot derived 
   Completed-today counting uses the Asia/Manila hotel day (fixed UTC+8), matching
   `buildDailyReport`. Transportation is shown only insofar as it produces work — it assigns no
   staff FK today, so it does not appear in duty derivation.
-- **UI.** The Manager dashboard sidebar ("Staff & Duty", after Approvals & Escalations) renders
+- **UI.** The Manager dashboard sidebar (Staff & Duty, under the Management category) renders
   `components/manager/staff-duty-panel.tsx` in the standard operations-workspace anatomy: semantic
   KPI cards (each toggles its duty filter), a dashed derivation note, department coverage buttons
   with on-duty meter bars, a search/filter toolbar with Clear filters, a sticky-header staff table

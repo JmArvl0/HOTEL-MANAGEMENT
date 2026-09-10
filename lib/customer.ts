@@ -16,6 +16,37 @@ export function formatStayRange(checkIn:string,checkOut:string){const start=new 
 export function reservationCategory(reservation:{status:string;check_in:string;check_out:string},today=hotelToday()):ReservationCategory{if(["cancelled","no_show"].includes(reservation.status))return"cancelled";if(reservation.status==="checked_in")return"current";if(reservation.status==="checked_out"||reservation.check_out<=today)return"past";return"upcoming"}
 export function groupReservations<T extends{status:string;check_in:string;check_out:string}>(reservations:T[],today=hotelToday()){const groups:Record<ReservationCategory,T[]>={current:[],upcoming:[],past:[],cancelled:[]};for(const reservation of reservations)groups[reservationCategory(reservation,today)].push(reservation);groups.current.sort((a,b)=>a.check_out.localeCompare(b.check_out));groups.upcoming.sort((a,b)=>a.check_in.localeCompare(b.check_in));groups.past.sort((a,b)=>b.check_out.localeCompare(a.check_out));groups.cancelled.sort((a,b)=>b.check_in.localeCompare(a.check_in));return groups}
 
+export type ReservationHistoryStatus="all"|"current"|"upcoming"|"completed"|"cancelled";
+export type ReservationHistorySort="recommended"|"stay-oldest"|"stay-newest"|"booked-newest";
+type ReservationHistoryRecord={status:string;check_in:string;check_out:string;confirmation_number?:string|null;guest_name?:string|null;room_type?:string|null;created_at?:string|null};
+const HISTORY_STATUSES:ReservationHistoryStatus[]=["all","current","upcoming","completed","cancelled"];
+const HISTORY_SORTS:ReservationHistorySort[]=["recommended","stay-oldest","stay-newest","booked-newest"];
+export function filterReservationHistory<T extends ReservationHistoryRecord>(records:T[],filters:{status?:string|null;query?:string|null;sort?:string|null},today=hotelToday()):T[]{
+ const status=HISTORY_STATUSES.includes(filters.status as ReservationHistoryStatus)?filters.status as ReservationHistoryStatus:"all";
+ const sort=HISTORY_SORTS.includes(filters.sort as ReservationHistorySort)?filters.sort as ReservationHistorySort:"recommended";
+ const query=filters.query?.trim().toLocaleLowerCase()??"";
+ const category=status==="completed"?"past":status;
+ const result=records.filter((record)=>(category==="all"||reservationCategory(record,today)===category)&&(!query||[record.confirmation_number,record.room_type,record.guest_name].some((value)=>value?.toLocaleLowerCase().includes(query))));
+ return result.sort((a,b)=>{
+  if(sort==="stay-oldest")return a.check_in.localeCompare(b.check_in);
+  if(sort==="stay-newest")return b.check_in.localeCompare(a.check_in);
+  if(sort==="booked-newest")return (b.created_at??"").localeCompare(a.created_at??"");
+  return b.check_in.localeCompare(a.check_in);
+ });
+}
+
+/* Payments & folio filter derivation (Customer Portal): presentation-only.
+   folioMoney mirrors the page's invoice-fallback math so the two never drift. */
+export type FolioPaymentState="pending"|"due"|"refund"|"settled";
+export const FOLIO_STAY_FILTERS:ReservationCategory[]=["current","upcoming","past","cancelled"];
+export const FOLIO_PAY_FILTERS:FolioPaymentState[]=["pending","due","refund","settled"];
+export type FolioMoneyInput={total:string|number;deposit?:string|number|null;invoice:{amount:string|number;paid:string|number;balance:string|number;status:string}|null};
+export type FolioStateInput=FolioMoneyInput&{status:string;check_in:string;check_out:string;payments:{status:string}[];refunds:unknown[]};
+export function folioMoney(record:FolioMoneyInput){const total=Number(record.invoice?.amount??record.total);const paid=Number(record.invoice?.paid??record.deposit??0);const balance=Number(record.invoice?.balance??Math.max(total-paid,0));return{total,paid,balance}}
+// Precedence: an in-flight payment outranks the balance it covers; a live balance outranks refund bookkeeping.
+export function financialPaymentState(record:FolioStateInput):FolioPaymentState{if(record.payments.some((payment)=>payment.status==="pending_verification")||record.invoice?.status==="pending_verification")return"pending";if(folioMoney(record).balance>0&&!["cancelled","no_show"].includes(record.status))return"due";if(record.refunds.length>0)return"refund";return"settled"}
+export function filterFinancialRecords<T extends FolioStateInput>(records:T[],filters:{stay?:string|null;pay?:string|null},today=hotelToday()):T[]{const stay=FOLIO_STAY_FILTERS.includes(filters.stay as ReservationCategory)?(filters.stay as ReservationCategory):null;const pay=FOLIO_PAY_FILTERS.includes(filters.pay as FolioPaymentState)?(filters.pay as FolioPaymentState):null;return records.filter((record)=>(!stay||reservationCategory(record,today)===stay)&&(!pay||financialPaymentState(record)===pay))}
+
 const financialColumns="id,confirmation_number,room_type,check_in,check_out,guests,status,total,deposit,deposit_required,deposit_policy_snapshot,operational_policy_snapshot,payment_due_at,payment_status,cancellation_reason,identity_status";
 export async function getCustomerFinancials(userId:string){
   if(!supabase)return[];await supabase.rpc("expire_booking_holds");

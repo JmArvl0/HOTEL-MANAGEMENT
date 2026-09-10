@@ -10,3 +10,7 @@ node_modules
 
 # local Claude Code tool state
 .impeccable/
+.claude/
+
+# local visual verification captures
+tmp-shots/

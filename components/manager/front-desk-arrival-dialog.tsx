@@ -6,7 +6,7 @@
 // step is presentational; the server (front_desk_check_in) remains the arbiter
 // and its friendly gate errors are surfaced inline on the final step.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BedDouble, Check, ChevronLeft, ChevronRight, ClipboardCheck, KeyRound, RefreshCw, ShieldCheck, Wallet } from "lucide-react";
+import { BedDouble, Check, CheckCircle2, ChevronLeft, ChevronRight, ClipboardCheck, KeyRound, RefreshCw, ShieldCheck, Wallet } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import type { RecordItem } from "@/lib/types";
 import type { AskFormOptions, AskFormData } from "@/components/ui/action-dialogs";
@@ -259,16 +259,23 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
 
   const eligibleLabel = exceptionMode ? `rooms of the approved type ${human(exceptionMode)}` : `rooms of the reserved type ${human(reservation.room_type)}`;
 
+  // When an exception is already approved, the request form exists only for asking
+  // for a DIFFERENT type — the approved one is filtered out so staff can't send a
+  // duplicate approval request for what a Manager already granted.
+  const approvedTypeName = approvedException && !exceptionMode ? human(approvedException.type) : "";
+  const requestableAlternatives = approvedTypeName ? alternatives.filter((type) => type.roomTypeName !== approvedTypeName) : alternatives;
+
   // Controlled exception form: both selects are fed exclusively by the server's
   // eligible-inventory lists — the reserved type, inactive types, and types with
   // zero eligible rooms never appear as options.
   const exceptionForm = (
     <div className="arrival-exception-request">
       <b>Alternative room assignment</b>
+      {approvedTypeName && <small className="arrival-exception-hint">Need a different room type than the approved {approvedTypeName}? Request another exception below.</small>}
       <label className="arrival-field">Target room type
         <select value={targetTypeId} onChange={(event) => selectTargetType(event.target.value)} disabled={busy}>
           <option value="">Select an available room type</option>
-          {alternatives.map((type) => (
+          {requestableAlternatives.map((type) => (
             <option key={type.roomTypeId} value={type.roomTypeId}>{type.roomTypeName} — {type.eligibleRoomCount} room{type.eligibleRoomCount === 1 ? "" : "s"} available</option>
           ))}
         </select>
@@ -373,10 +380,16 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
               <p className="arrival-section-copy">Only clean, serviceable, conflict-free {eligibleLabel} are shown. The server re-checks readiness atomically at check-in.</p>
 
               {approvedException && !exceptionMode && (
-                <p className="arrival-notice">A Manager approved a room-type exception to <b>{human(approvedException.type)}</b>. <button className="table-action" disabled={busy} onClick={() => { setError(""); setExceptionMode(approvedException.type); }}>Load {human(approvedException.type)} rooms</button></p>
+                <div className="arrival-approval" role="status">
+                  <div className="arrival-approval-body">
+                    <p className="arrival-approval-title"><CheckCircle2 size={14} aria-hidden="true" /> Room-type exception approved</p>
+                    <p className="arrival-approval-detail">A Manager approved <b>{human(approvedException.type)}</b> as the alternative room type for this reservation. Load those rooms to continue check-in.</p>
+                  </div>
+                  <button className="btn btn-accent arrival-approval-cta" disabled={busy} onClick={() => { setError(""); setExceptionMode(approvedException.type); }}>Load {human(approvedException.type)} rooms</button>
+                </div>
               )}
               {exceptionMode && (
-                <p className="arrival-notice">Checking in to the approved type <b>{human(exceptionMode)}</b> will reprice this folio. <button className="table-action" disabled={busy} onClick={() => { setError(""); setExceptionMode(null); }}>Use reserved-type rooms instead</button></p>
+                <p className="arrival-notice approved"><CheckCircle2 size={13} aria-hidden="true" /> Approved exception active — checking in to <b>{human(exceptionMode)}</b> will reprice this folio. <button className="table-action" disabled={busy} onClick={() => { setError(""); setExceptionMode(null); }}>Use reserved-type rooms instead</button></p>
               )}
 
               {rooms.length > 0 && (
@@ -402,8 +415,10 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
                         <p className="arrival-notice warn">A Manager rejected the room-type exception request. Choose another eligible room type and room below, or refresh to re-check inventory.</p>
                         {exceptionForm}
                       </>
-                    ) : alternatives.length === 0 ? (
-                      <p className="arrival-notice">No alternative room types currently have eligible rooms. Use Refresh eligible rooms to re-check inventory.</p>
+                    ) : requestableAlternatives.length === 0 ? (
+                      // With an approved exception, the callout above is the path
+                      // forward — only announce "no alternatives" when nothing was approved.
+                      approvedTypeName ? null : <p className="arrival-notice">No alternative room types currently have eligible rooms. Use Refresh eligible rooms to re-check inventory.</p>
                     ) : (
                       exceptionForm
                     )

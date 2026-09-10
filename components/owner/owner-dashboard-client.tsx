@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
-import { Activity, BarChart3, BedDouble, Building2, CarTaxiFront, ChevronDown, CircleDollarSign, ClipboardCheck, FileText, Image, KeyRound, LogOut, Settings, ShieldCheck, Sparkles, Users } from "lucide-react";
+import { Activity, BarChart3, BedDouble, Building2, CarTaxiFront, ChevronDown, ChevronRight, CircleDollarSign, ClipboardCheck, FileText, Image, KeyRound, LogOut, Settings, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SettingsDialog } from "@/components/ui/SettingsDialog";
 import RoomCatalogPanel from "@/components/catalog/room-catalog-panel";
@@ -19,6 +19,12 @@ type ExecutiveData = { timeZone: string; today: string; metrics: Record<string, 
 
 const nav: [Section, string, React.ElementType][] = [
   ["overview", "Executive Overview", BarChart3], ["operations", "Executive Operations", BedDouble], ["financial", "Financial Overview", CircleDollarSign], ["departments", "Departments", Building2], ["admins", "Admin Governance", Users], ["roles", "Roles & Permissions", ShieldCheck], ["policy", "Critical Policies", Settings], ["exceptions", "Owner Exceptions", ClipboardCheck], ["room_types", "Room Types & Photos", Image], ["transport_services", "Transfer Vehicles", CarTaxiFront], ["transportation", "Transportation", CarTaxiFront], ["audit", "System Audit", FileText], ["security", "Security Events", KeyRound], ["reports", "Executive Reports", Activity]
+];
+// Presentational grouping only — every section stays reachable; no RBAC here (owner sees all modules).
+export const NAV_GROUPS: { id: string; label: string; sections: Section[] }[] = [
+  { id: "executive", label: "Executive", sections: ["overview", "operations", "financial", "departments"] },
+  { id: "governance", label: "Governance", sections: ["admins", "roles", "policy", "exceptions", "audit", "security", "reports"] },
+  { id: "catalog", label: "Catalog", sections: ["room_types", "transport_services", "transportation"] }
 ];
 const label = (value: unknown) => String(value ?? "—").replaceAll("_", " ");
 const money = (value: unknown) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(Number(value || 0));
@@ -36,6 +42,9 @@ export default function OwnerDashboardClient({ user }: { user: User }) {
   const [toast, setToast] = useState("");
   const [collapsed, setCollapsed] = useState(() => typeof window !== "undefined" && window.localStorage.getItem("haven-owner-sidebar-collapsed") === "true");
   const [menu, setMenu] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const toggleGroup = (id: string) => setOpenGroups((prev) => { const next = { ...prev, [id]: !(prev[id] ?? false) }; window.localStorage.setItem("haven-owner-sidebar-groups", JSON.stringify(next)); return next; });
+  useEffect(() => { const timer = window.setTimeout(() => { try { const saved: unknown = JSON.parse(window.localStorage.getItem("haven-owner-sidebar-groups") ?? "{}"); if (saved && typeof saved === "object") setOpenGroups(saved as Record<string, boolean>); } catch {} }, 0); return () => window.clearTimeout(timer); }, []);
   const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 3500); };
   const dialogs = useActionDialogs();
   const load = useCallback(async () => {
@@ -151,7 +160,10 @@ export default function OwnerDashboardClient({ user }: { user: User }) {
     <aside className={`sidebar${menu ? " open" : ""}${collapsed ? " collapsed" : ""}`}>
       <div className="sidebar-top"><div className="brand"><button className="brand-mark sidebar-brand-toggle" onClick={toggleSidebar} aria-label="Toggle navigation" title={collapsed ? "Expand navigation" : "Collapse navigation"}><Sparkles size={17}/></button><Link href="/" className="brand-copy" aria-label="Hotel homepage" title="Hotel homepage">HAVEN<small>OWNER GOVERNANCE</small></Link></div></div>
       <div className="property-pill"><span>HV</span><div className="property-copy"><b>Haven Makati</b><small>Executive authority</small></div><ChevronDown size={15}/></div>
-      <p className="nav-caption">Executive</p><nav>{nav.map(([key, text, Icon]) => <button key={key} className={section === key ? "active" : ""} onClick={() => { setSection(key); setMenu(false); }}><Icon size={18}/><span className="nav-label">{text}</span></button>)}</nav>
+      <nav aria-label="Modules">{NAV_GROUPS.map((group) => { const open = (openGroups[group.id] ?? false) || group.sections.includes(section); return <div className="nav-group-wrap" key={group.id}>
+        <button className="nav-caption nav-group-header" aria-expanded={open} aria-controls={`nav-group-${group.id}`} onClick={() => toggleGroup(group.id)}><span className="nav-group-label">{group.label}</span><ChevronRight size={13} className="nav-group-chevron" aria-hidden="true"/></button>
+        <div className={`nav-group${open ? " open" : ""}`} id={`nav-group-${group.id}`}><div className="nav-group-items">{nav.filter(([key]) => group.sections.includes(key)).map(([key, text, Icon]) => <button key={key} className={section === key ? "active" : ""} onClick={() => { setSection(key); setMenu(false); }}><Icon size={18}/><span className="nav-label">{text}</span></button>)}</div></div>
+      </div>; })}</nav>
     </aside>
     <main className="workspace"><header className="app-header"><button className="menu-btn brand-menu-btn" onClick={() => setMenu(true)} aria-label="Open navigation"><span className="brand-mark"><Sparkles size={16}/></span></button><div><p>{nav.find((item) => item[0] === section)?.[1]}</p><small>Provisional Owner / Super Admin Governance Baseline</small></div><div className="header-actions"><span className="mode-pill">Supabase live</span><ThemeToggle/><div className="profile-menu-wrap" ref={profileMenu}><button className="profile-menu-btn" onClick={() => setProfileOpen((value) => !value)} aria-expanded={profileOpen} aria-haspopup="menu" aria-label="Account menu"><b>{(user.name ?? "OW").slice(0, 2).toUpperCase()}</b><span>{user.name}</span><ChevronDown size={14}/></button>{profileOpen && <div className="popover-gap"><div className="profile-popover"><p><strong>{user.name}</strong><small>{user.email}</small><small>Owner / Super Admin</small></p><button onClick={() => { setProfileOpen(false); setSettingsOpen(true); }}><Settings size={15}/>Settings</button><button onClick={() => signOut({ callbackUrl: "/" })}><LogOut size={15}/>Sign Out</button></div></div>}</div></div></header>
       <div className="workspace-body">{section === "room_types" ? <RoomCatalogPanel role="owner"/> : section === "transport_services" ? <TransportServicesPanel/> : section === "transportation" ? <TransportationPanel role="owner"/> : loading ? <div className="empty"><Activity/><h3>Loading executive records…</h3></div> : section === "overview" ? <Overview data={data as ExecutiveData} setSection={setSection}/> : section === "operations" ? <Operations data={data as { metrics: Record<string, number>; departmentSummary: Record<string, Record<string, number>>; risks: Record<string, Row[]>; trend: Row[] }}/> : section === "financial" ? <Financial data={data as Row}/> : section === "departments" ? <Departments data={data as { departmentSummary: Record<string, Record<string, number>>; risks: Record<string, Row[]> }}/> : section === "admins" ? <Admins rows={rows} currentId={user.id} createAdmin={createAdmin} action={adminAction}/> : section === "roles" ? <Roles data={data as { catalogue: Record<string, string[]>; ownerPrinciples: string[] }}/> : section === "policy" ? <Policy item={data as Row} edit={editPolicy}/> : section === "exceptions" ? <Exceptions rows={rows} review={reviewException}/> : section === "audit" || section === "security" ? <Audit rows={rows} security={section === "security"}/> : <Reports data={data as ExecutiveData}/>}</div>

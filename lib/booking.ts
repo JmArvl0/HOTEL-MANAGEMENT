@@ -38,6 +38,15 @@ export const hotelToday = () => {
   const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
   return `${value.year}-${value.month}-${value.day}`;
 };
+// Today + n days in hotel time, as YYYY-MM-DD (mirrors hotelToday's timezone rule).
+export const hotelDateWithin = (days: number) => {
+  const target = new Date(Date.now() + days * 86400000);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit"
+  }).formatToParts(target);
+  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${value.year}-${value.month}-${value.day}`;
+};
 
 export const searchSchema = z.object({
   checkIn: z.string().regex(datePattern, "Choose a valid check-in date."),

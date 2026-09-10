@@ -45,8 +45,8 @@ export function RegisterForm({ callbackUrl }: { callbackUrl: string }) {
         <p className="eyebrow" style={{ color: "var(--color-forest-light)", margin: 0 }}>
           Guest registration
         </p>
-        <h1>Make the coast yours.</h1>
-        <p>Your booking context is preserved — create a key in seconds.</p>
+        <h1>Create your Haven account</h1>
+        <p>Your booking context is preserved while you create your secure guest account.</p>
       </div>
 
       {error && (

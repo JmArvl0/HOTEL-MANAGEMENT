@@ -129,7 +129,22 @@ The public room-discovery route (`/booking/search`) extends the landing-page ide
 - Support copy must remain operationally truthful: live inventory, the configured 15-minute hold, and deposit/terms disclosed before submission. Do not add invented ratings, scarcity, guarantees, sustainability claims, or chain-wide claims.
 - `app/(booking)/booking/search/search.css` owns this route's scoped composition. Shared booking validation, availability, rates, and reservation behavior remain in their existing components and domain libraries.
 
-## 9. Known-open items
+## 9. Customer payments & folio
+
+`/account/payments` (refined 2026-09-10) keeps the coastal card identity while adding
+URL-driven filter chips (`?stay=` current/upcoming/past/cancelled, `?pay=`
+pending/due/refund/settled — two chip rows above the list, each with a live count).
+Chips are plain links (back button, sharing, direct load; zero client JS); a zero-match
+chip renders dimmed and disabled. An aggregate strip under the filters shows the
+filtered set's folio count, outstanding balance, and paid-to-date, server-computed.
+Each folio card carries a paid-vs-total progress bar (`.folio-progress`, accent =
+partial, green = settled) between header and `.folio-summary`, with a text
+alternative on the progressbar role. Bucket derivation (`financialPaymentState`) and
+filtering live in `lib/customer.ts` as pure presentation helpers — no query or
+business-logic change. Styling is scoped in `guest-booking.css` (`.folio-*`) using
+`--cp-*` tokens, with 44px chip touch floors ≤680px.
+
+## 10. Known-open items
 
 - **F6 — landing double-styling** (`globals.css` vs `landing.css`): **closed 2026-09-07** — the
   interactive landing redesign consolidated every landing rule into `app/(landing-page)/landing.css`;

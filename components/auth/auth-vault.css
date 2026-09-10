@@ -1,168 +1,48 @@
-/* Haven Vault — coastal "door at sea level". Full-bleed sea photo, one floating glass card. */
-.haven-vault{
-  min-height:100vh; min-height:100dvh;
-  display:flex; flex-direction:column;
-  background:#073b46;
-  color:#fff;
-  position:relative; overflow:hidden;
-  isolation:isolate;
-}
-.haven-vault__bg{
-  position:absolute; inset:0; z-index:-2;
-}
-.haven-vault__bg img{
-  position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
-  opacity:.34; filter:saturate(.85) contrast(1.06);
-}
-.haven-vault__bg::after{
-  content:""; position:absolute; inset:0;
-  background:
-    radial-gradient(900px 560px at 78% 16%, rgba(119,190,198,.20), transparent 60%),
-    linear-gradient(180deg, rgba(7,59,70,.30) 0%, rgba(7,59,70,.58) 55%, rgba(6,48,58,.94) 100%);
-}
-/* Ambient tide glow — one authored moment alongside the GSAP entrance. Disabled under reduced-motion. */
-.haven-vault__tide{
-  position:absolute; inset:0; z-index:-1; pointer-events:none;
-  background: radial-gradient(620px 420px at 50% 108%, rgba(133,203,208,.30), transparent 70%);
-  animation: haven-tide 9s ease-in-out infinite alternate;
-}
-.haven-vault__header{
-  display:flex; align-items:center; justify-content:space-between; gap:16px;
-  padding:22px 32px;
-}
-.haven-vault__header .brand{color:#fff}
-.haven-vault__help{
-  display:inline-flex; align-items:center; gap:8px;
-  font-size:11px; font-weight:650; color:rgba(255,255,255,.85);
-  padding:8px 12px; border-radius:999px;
-  border:1px solid rgba(255,255,255,.16); background:rgba(8,47,57,.28);
-  backdrop-filter:blur(8px);
-}
-.haven-vault__stage{
-  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
-  gap:20px; padding:24px 20px 40px; text-align:center;
-}
-.haven-vault__statement{
-  font-family:var(--font-display), serif;
-  font-size:clamp(26px, 3.4vw, 40px);
-  line-height:1.02; letter-spacing:-1.2px; font-weight:500;
-  margin:0; color:#f8f6f1;
-  text-shadow:0 2px 24px rgba(4,32,40,.4);
-}
-.haven-vault__statement em{font-weight:400; font-style:italic; color:#f5c86a}
-.haven-vault__card{
-  width:min(460px,100%);
-  border-radius:20px; padding:26px 28px 22px;
-  background:rgba(248,246,241,.94);
-  border:1px solid rgba(255,255,255,.7);
-  box-shadow:0 24px 80px rgba(2,26,33,.45), inset 0 1px 0 rgba(255,255,255,.85);
-  color:var(--ink, #103e48);
-  text-align:left;
-  backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
-}
-.haven-vault__tabs{
-  display:flex; gap:6px; padding:4px;
-  background:rgba(220,228,225,.9); border:1px solid #dce4e1; border-radius:999px;
-  align-self:flex-start; margin-bottom:6px;
-}
-.haven-vault__tab{
-  padding:8px 14px; border-radius:999px; border:0;
-  font-size:11px; font-weight:800; letter-spacing:.3px;
-  color:var(--muted, #53676b); background:transparent; cursor:pointer;
-  transition: background .2s ease, color .2s ease, transform .2s ease;
-}
-.haven-vault__tab.is-active{background:var(--color-forest, #084b55); color:#f8f6f1; box-shadow:0 6px 18px rgba(8,75,85,.25)}
-.haven-vault__tab:active{transform:scale(.98)}
-.haven-vault__tab:focus-visible{outline:2px solid var(--focus-ring, #328d9b); outline-offset:2px}
-.haven-vault__head{margin:16px 0 12px}
-.haven-vault__head h1{
-  font-family:var(--font-display), serif;
-  font-size:30px; line-height:1.02; letter-spacing:-1.2px; font-weight:500; margin:0 0 8px;
-  color:var(--ink, #103e48);
-}
-.haven-vault__head p{margin:0; color:var(--muted, #53676b); font-size:12px; line-height:1.6}
-.haven-vault__head .eyebrow{color:var(--color-forest-light, #176773); margin-bottom:8px}
-.haven-vault__error{
-  display:grid; gap:6px; padding:11px 12px; border-radius:10px;
-  background:#fdf2f0; border:1px solid #f0c9c3; color:#7a2e29; font-size:11px;
-  outline:none;
-}
-.haven-vault__error a{color:#7a2e29; font-weight:750; text-decoration:underline; text-underline-offset:3px}
-.haven-vault__field{display:block; margin:12px 0; font-size:10px; font-weight:800; letter-spacing:.3px; position:relative; color:var(--ink, #103e48)}
-.haven-vault__field > span{display:inline-flex; align-items:center; gap:6px; margin-bottom:7px; font-size:10px}
-.haven-vault__field > span.muted{font-weight:650; color:var(--muted, #53676b); letter-spacing:0; text-transform:none}
-.haven-vault__field input{
-  display:block; width:100%; margin-top:7px;
-  padding:12px 13px; border-radius:10px;
-  border:1px solid var(--line, #dce4e1); background:#fff; color:var(--ink, #103e48);
-  font-size:13px; font-weight:500; outline:none;
-  transition: border-color .18s ease, box-shadow .18s ease;
-}
-.haven-vault__field input:focus{border-color:var(--color-forest-light, #176773); box-shadow:0 0 0 3px rgba(23,103,115,.14)}
-.haven-vault__field input:focus-visible{outline:2px solid var(--focus-ring, #328d9b); outline-offset:2px}
-.haven-vault__row{display:grid; grid-template-columns:1fr 1fr; gap:12px}
-.haven-vault__eye{
-  position:absolute; right:8px; top:27px; width:30px; height:30px;
-  display:grid; place-items:center; border:0; border-radius:999px;
-  background:transparent; color:var(--muted, #53676b); cursor:pointer;
-}
-.haven-vault__eye:hover{background:#edf2ef; color:var(--ink, #103e48)}
-.haven-vault__eye:focus-visible{outline:2px solid var(--focus-ring, #328d9b); outline-offset:2px}
-.haven-vault__submit{
-  width:100%; margin-top:14px; position:relative;
-  min-height:40px;
-  border-radius:999px; padding:12px 18px;
-  background:var(--color-forest, #084b55);
-  color:#fff; border:0; font-weight:800; cursor:pointer;
-  display:flex; align-items:center; justify-content:center; gap:8px;
-  box-shadow:0 12px 24px rgba(8,75,85,.22);
-  transition: background .18s ease, transform .18s ease, box-shadow .18s ease;
-}
-.haven-vault__submit:hover:not(:disabled){background:var(--brand-accent-dark, #136573); transform:translateY(-1px); box-shadow:0 16px 30px rgba(8,75,85,.28)}
-.haven-vault__submit:active:not(:disabled){transform:translateY(1px) scale(.99)}
-.haven-vault__submit:disabled{opacity:.72; cursor:wait}
-.haven-vault__submit:focus-visible{outline:2px solid var(--focus-ring, #328d9b); outline-offset:2px}
-.haven-vault__foot{
-  margin-top:14px; text-align:center; font-size:11px; color:var(--muted, #53676b);
-}
-.haven-vault__foot a{color:var(--color-forest-light, #176773); font-weight:800; text-decoration:underline; text-underline-offset:3px}
-.haven-vault__trust{
-  display:flex; gap:10px; justify-content:center; flex-wrap:wrap;
-  margin-top:16px; padding-top:12px; border-top:1px solid var(--line, #dce4e1);
-  font-size:9px; font-weight:800; letter-spacing:.7px; text-transform:uppercase; color:#8a9a94;
-}
-.haven-vault__chips{display:flex; gap:10px; justify-content:center; flex-wrap:wrap}
-.haven-vault__chip{
-  display:inline-flex; align-items:center; gap:10px;
-  padding:10px 14px; border-radius:14px;
-  background:rgba(8,47,57,.34); border:1px solid rgba(255,255,255,.18);
-  backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
-  color:#edf5f3; font-size:10px;
-}
-.haven-vault__chip strong{font-size:11px; letter-spacing:.3px}
-.haven-vault__stars{display:flex; gap:3px; color:#f5c86a}
-
-/* responsive */
-@media (max-width:760px){
-  .haven-vault__header{padding:16px 20px}
-  .haven-vault__stage{padding:16px 16px 28px; gap:16px}
-  .haven-vault__statement{font-size:24px}
-  .haven-vault__card{width:100%; padding:22px 20px 18px}
-}
-@media (max-width:480px){
-  .haven-vault__row{grid-template-columns:1fr}
-  .haven-vault__tabs{width:100%}
-  .haven-vault__tab{flex:1}
-  .haven-vault__field input{font-size:16px} /* iOS zoom guard */
-  .haven-vault__submit{min-height:44px}
-  .haven-vault__eye{top:30px; width:34px; height:34px}
-}
-
-/* reduced motion / transparency */
-@media (prefers-reduced-motion: reduce){
-  .haven-vault__tide{animation:none}
-}
-@media (prefers-reduced-transparency: reduce){
-  .haven-vault__help, .haven-vault__card, .haven-vault__chip{backdrop-filter:none}
-}
-@keyframes haven-tide{from{opacity:.55; transform:translateY(6px)} to{opacity:1; transform:translateY(-6px)}}
+/* Haven authentication — split hospitality image and focused account workspace. */
+.haven-vault{min-height:100vh;min-height:100dvh;display:grid;grid-template-columns:minmax(0,1.12fr) minmax(480px,.88fr);background:#f8f6f1;color:#103e48}
+.haven-vault__visual{position:relative;min-height:100dvh;overflow:hidden;isolation:isolate;color:#fff}
+.haven-vault__visual>img{object-fit:cover;object-position:center}
+.haven-vault__visual-wash{position:absolute;inset:0;z-index:0;background:linear-gradient(180deg,#082f392e 0%,#082f3914 38%,#061f29d9 100%),linear-gradient(90deg,#082f3952,transparent 65%)}
+.haven-vault__brand{position:absolute;z-index:2;top:34px;left:clamp(28px,5vw,74px);color:#fff;text-shadow:0 2px 20px #082f3966}
+.haven-vault__brand .brand-mark{background:#f8f6f11f}
+.haven-vault__story{position:absolute;z-index:2;left:clamp(32px,6vw,92px);top:50%;width:min(560px,75%);transform:translateY(-48%);text-shadow:0 2px 28px #082f3980}
+.haven-vault__story>p:first-child{margin:0 0 24px;font-size:10px;font-weight:800;letter-spacing:3.5px;text-transform:uppercase}
+.haven-vault__statement{margin:0;font:500 clamp(48px,5vw,76px)/.98 var(--font-display),Georgia,serif;letter-spacing:-.035em;color:#fff}
+.haven-vault__statement em{font-weight:400;color:#d5ece9}
+.haven-vault__keyline{display:block;width:56px;height:2px;margin:32px 0 23px;background:#85cbd0}
+.haven-vault__story>p:last-child{margin:0;font:400 clamp(16px,1.4vw,20px)/1.45 var(--font-display),Georgia,serif;color:#f2f7f5}
+.haven-vault__qualities{position:absolute;z-index:2;left:clamp(32px,6vw,92px);right:clamp(32px,5vw,74px);bottom:38px;display:flex;gap:0;margin:0;padding:20px 0 0;border-top:1px solid #ffffff4d;list-style:none}
+.haven-vault__qualities li{display:flex;align-items:center;gap:10px;min-width:0;padding:0 24px;border-right:1px solid #ffffff4d;font-size:11px;line-height:1.35}
+.haven-vault__qualities li:first-child{padding-left:0}.haven-vault__qualities li:last-child{border:0}
+.haven-vault__qualities svg{width:22px;color:#85cbd0;flex:0 0 auto}
+.haven-vault__panel{min-width:0;max-height:100dvh;overflow-y:auto;background:radial-gradient(circle at 100% 100%,#d8ebe64d,transparent 34%),#f8f6f1}
+.haven-vault__header{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:30px clamp(30px,4vw,64px)}
+.haven-vault__back,.haven-vault__help{display:inline-flex;align-items:center;gap:9px;color:#385b63;font-size:11px;font-weight:650;text-decoration:none}
+.haven-vault__back:hover,.haven-vault__help:hover strong{text-decoration:underline;text-underline-offset:4px}
+.haven-vault__help span,.haven-vault__help strong{display:block}.haven-vault__help strong{margin-top:2px;color:#084b55}
+.haven-vault__stage{min-height:calc(100dvh - 92px);display:grid;place-items:center;padding:24px clamp(30px,5vw,82px) 48px}
+.haven-vault__card{width:min(560px,100%);color:#103e48}
+.haven-vault__tabs{display:grid;grid-template-columns:1fr 1fr;margin:28px 0 20px;padding:5px;background:#e2ebe7;border-radius:999px}
+.haven-vault__tab{min-height:48px;padding:11px 16px;border:0;border-radius:999px;background:transparent;color:#385b63;font-size:12px;font-weight:800;cursor:pointer;display:grid;place-items:center;text-decoration:none;transition:background .2s,color .2s,box-shadow .2s,transform .2s}
+.haven-vault__tab.is-active{background:#084b55;color:#fff;box-shadow:0 8px 22px #084b5530}
+.haven-vault__tab:active{transform:scale(.985)}
+.haven-vault__tab:focus-visible,.haven-vault :is(a,button,input):focus-visible{outline:3px solid #328d9b;outline-offset:3px}
+.haven-vault__head{margin:0 0 22px}.haven-vault__head .eyebrow{margin:0 0 14px!important;color:#176773!important;font-size:10px;letter-spacing:3px}
+.haven-vault__head h1{max-width:560px;margin:0 0 12px;font:500 clamp(40px,4vw,60px)/1.02 var(--font-display),Georgia,serif;letter-spacing:-.035em;color:#103e48;text-wrap:balance}
+.haven-vault__head p{max-width:48ch;margin:0;color:#53676b;font-size:14px;line-height:1.55}
+.haven-vault__error{display:grid;gap:5px;margin:0 0 16px;padding:12px 14px;border:1px solid #e8bab5;border-radius:12px;background:#fdf0ee;color:#7a2e29;font-size:12px}.haven-vault__error a{font-weight:750;text-decoration:underline;text-underline-offset:3px}
+.haven-vault form{margin:0}
+.haven-vault__field{position:relative;display:block;margin:14px 0;color:#103e48;font-size:11px;font-weight:750}
+.haven-vault__field>span,.haven-vault__field label>span{display:flex;align-items:center;gap:7px;margin-bottom:8px}
+.haven-vault__field input{display:block;width:100%;min-height:50px;margin-top:8px;padding:13px 15px;border:1px solid #cddbd8;border-radius:10px;background:#fff;color:#103e48;font-size:14px;outline:0;transition:border-color .18s,box-shadow .18s}
+.haven-vault__field input::placeholder{color:#7a8c8e}.haven-vault__field input:focus{border-color:#176773;box-shadow:0 0 0 3px #328d9b24}
+.haven-vault__row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.haven-vault__eye{position:absolute;right:9px;top:30px;width:36px;height:36px;display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:#53676b}.haven-vault__eye:hover{background:#eaf1ee;color:#084b55}
+.haven-vault__submit{width:100%;min-height:52px;margin-top:20px;padding:13px 20px;border:0;border-radius:999px;background:linear-gradient(110deg,#084b55,#136573);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 12px 26px #084b5524;transition:transform .18s,box-shadow .18s}.haven-vault__submit:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 16px 30px #084b5533}.haven-vault__submit:disabled{opacity:.65;cursor:wait}
+.haven-vault__foot{margin:18px 0 0;text-align:center;color:#53676b;font-size:12px}.haven-vault__foot a{color:#084b55;font-weight:800;text-decoration:underline;text-underline-offset:4px}
+.haven-vault__trust{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:18px;color:#687d80;font-size:10px;text-transform:uppercase;letter-spacing:.7px}
+.haven-vault__security{display:flex;align-items:center;justify-content:center;gap:8px;margin:24px 0 0;padding-top:18px;border-top:1px solid #dce4e1;color:#64787b;font-size:11px}.haven-vault__security svg{color:#176773}
+@media(max-width:1100px){.haven-vault{grid-template-columns:minmax(0,1fr) minmax(440px,.95fr)}.haven-vault__story{width:82%}.haven-vault__qualities li{padding:0 14px}}
+@media(max-width:900px){.haven-vault{display:block}.haven-vault__visual{min-height:390px}.haven-vault__story{top:52%;width:75%}.haven-vault__qualities{bottom:24px}.haven-vault__panel{max-height:none}.haven-vault__stage{min-height:auto;padding-top:34px}.haven-vault__header{padding:22px 30px}.haven-vault__statement{font-size:52px}}
+@media(max-width:600px){.haven-vault__visual{min-height:310px}.haven-vault__brand{top:22px;left:22px}.haven-vault__story{left:22px;top:55%;width:86%}.haven-vault__story>p:first-child,.haven-vault__keyline,.haven-vault__story>p:last-child{display:none}.haven-vault__statement{font-size:43px}.haven-vault__qualities{display:none}.haven-vault__header{padding:18px 20px}.haven-vault__help>span{display:none}.haven-vault__stage{padding:20px 20px 40px}.haven-vault__tabs{margin-top:16px}.haven-vault__head h1{font-size:42px}.haven-vault__row{grid-template-columns:1fr}.haven-vault__field input{font-size:16px}.haven-vault__submit{min-height:50px}}
+@media(prefers-reduced-motion:reduce){.haven-vault *{animation:none!important;transition:none!important}}

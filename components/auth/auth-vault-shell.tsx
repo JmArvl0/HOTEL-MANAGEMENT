@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, ShieldCheck, Sparkles, Star } from "lucide-react";
+import Image from "next/image";
+import { ArrowLeft, Building2, Headphones, ShieldCheck, Sparkles, Sun, UsersRound } from "lucide-react";
 import { AuthMotion } from "./auth-motion";
 import "./auth-vault.css";
 
@@ -16,84 +16,64 @@ export function AuthVaultShell({
   booking?: boolean;
   children: React.ReactNode;
 }) {
-  const router = useRouter();
-
-  const switchHref =
-    mode === "login"
-      ? `/register?callbackUrl=${encodeURIComponent(callbackUrl)}${booking ? "&booking=1" : ""}`
-      : `/login?callbackUrl=${encodeURIComponent(callbackUrl)}${booking ? "&booking=1" : ""}`;
+  const bookingParam = booking ? "&booking=1" : "";
+  const loginHref = `/login?callbackUrl=${encodeURIComponent(callbackUrl)}${bookingParam}`;
+  const registerHref = `/register?callbackUrl=${encodeURIComponent(callbackUrl)}${bookingParam}`;
 
   return (
-    <div className="haven-vault">
-      <div className="haven-vault__bg" aria-hidden="true">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/hotel-hero.png" alt="" />
-      </div>
-      <span className="haven-vault__tide" aria-hidden="true" />
-
-      <header className="haven-vault__header">
-        <Link href="/" className="brand brand-light" aria-label="Haven home">
-          <span className="brand-mark" aria-hidden="true">
-            <Sparkles size={16} />
-          </span>
-          <span>
-            HAVEN<small>HOTEL & RESIDENCES</small>
-          </span>
+    <div className={`haven-vault haven-vault--${mode}`}>
+      <aside className="haven-vault__visual" aria-label="Welcome to Haven">
+        <Image src="/hotel-hero.png" alt="A peaceful Haven hotel terrace overlooking the water" fill priority sizes="(max-width: 900px) 100vw, 56vw" />
+        <span className="haven-vault__visual-wash" aria-hidden="true" />
+        <Link href="/" className="brand brand-light haven-vault__brand" aria-label="Haven home">
+          <span className="brand-mark" aria-hidden="true"><Sparkles size={16} /></span>
+          <span>HAVEN<small>HOTEL &amp; RESIDENCES</small></span>
         </Link>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <Link href="/" className="haven-vault__help" style={{ textDecoration: "none" }} aria-label="Back to landing page">
-            <ArrowLeft size={12} aria-hidden="true" /> Back to Haven
-          </Link>
-          <span className="haven-vault__help" aria-hidden="true">
-            <ShieldCheck size={14} aria-hidden="true" /> Secure
-          </span>
+        <div className="haven-vault__story">
+          <p>More than a stay</p>
+          <h2 className="haven-vault__statement">Good people.<br /><em>Brighter places.</em></h2>
+          <span className="haven-vault__keyline" aria-hidden="true" />
+          <p>Beautiful spaces. Thoughtful hospitality.<br />Welcome to a brighter way to stay.</p>
         </div>
-      </header>
+        <ul className="haven-vault__qualities" aria-label="Haven hospitality values">
+          <li><Building2 aria-hidden="true" /><span>Beautiful<br />spaces</span></li>
+          <li><UsersRound aria-hidden="true" /><span>Thoughtful<br />service</span></li>
+          <li><Sun aria-hidden="true" /><span>Brighter<br />stays</span></li>
+        </ul>
+      </aside>
 
-      <main className="haven-vault__stage">
-        <p className="haven-vault__statement" aria-hidden="true">
-          Good people.
-          <br />
-          <em>Brighter places.</em>
-        </p>
-
-        <div className="haven-vault__card">
-          <div className="haven-vault__tabs" role="tablist" aria-label="Authentication">
-            <button
-              role="tab"
-              aria-selected={mode === "login"}
+      <section className="haven-vault__panel">
+        <header className="haven-vault__header">
+          <Link href="/" className="haven-vault__back"><ArrowLeft size={15} aria-hidden="true" /> Back to Haven</Link>
+          <a className="haven-vault__help" href="mailto:hello@haven-hotel.ph">
+            <Headphones size={18} aria-hidden="true" />
+            <span>Need help?<strong>Contact Front Desk</strong></span>
+          </a>
+        </header>
+        <main className="haven-vault__stage">
+          <div className="haven-vault__card">
+          <nav className="haven-vault__tabs" aria-label="Account access">
+            <Link
+              href={loginHref}
+              aria-current={mode === "login" ? "page" : undefined}
               className={`haven-vault__tab ${mode === "login" ? "is-active" : ""}`}
-              onClick={() => mode !== "login" && router.push(switchHref)}
             >
               Sign in
-            </button>
-            <button
-              role="tab"
-              aria-selected={mode === "register"}
+            </Link>
+            <Link
+              href={registerHref}
+              aria-current={mode === "register" ? "page" : undefined}
               className={`haven-vault__tab ${mode === "register" ? "is-active" : ""}`}
-              onClick={() => mode !== "register" && router.push(switchHref)}
             >
               Create account
-            </button>
-          </div>
+            </Link>
+          </nav>
 
           {children}
-        </div>
-
-        <div className="haven-vault__chips" aria-hidden="true">
-          <span className="haven-vault__chip">
-            <strong>4.9 · 1.2k+ stays</strong>
-            <span className="haven-vault__stars">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} size={10} fill="currentColor" />
-              ))}
-            </span>
-          </span>
-          <span className="haven-vault__chip">
-            <strong>24h Front Desk</strong>
-          </span>
-        </div>
-      </main>
+            <p className="haven-vault__security"><ShieldCheck size={15} aria-hidden="true" /> Your account information is protected.</p>
+          </div>
+        </main>
+      </section>
 
       <AuthMotion />
     </div>

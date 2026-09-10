@@ -1,0 +1,503 @@
+/* HAVEN Customer Portal — design-system layer (2026-09-10 premium guest-portal refinement).
+   Scope: .customer-shell ONLY — the staff .app-shell is untouched. This file is imported
+   AFTER coastal-theme.css in app/layout.tsx so it wins the token cascade for the shell.
+   Fonts: --font-sans (Inter) and --font-display (Playfair) arrive from next/font on <body>.
+
+   Sections: 1 tokens · 2 type floors · 3 sidebar rail · 4 header · 5 status pills
+   (customer-status / customer-folio-status / StatusBadge subset) · 6 card family ·
+   7 restrained motion. */
+
+/* ============ 1. Tokens ============ */
+.customer-shell{
+  /* Deep forest dark (default) — deliberate role remap, not an inversion of the light palette. */
+  --cp-bg:#0e1613; --cp-panel:#151f1a; --cp-panel-2:#1b2721;
+  --cp-line:#28352e; --cp-line-soft:#222e28;
+  --cp-text:#ede8dc; --cp-muted:#98a69b;
+  --cp-green:#7fc3bd; --cp-accent:#7fc3bd; --cp-gold:#c9a35f;
+  --cp-sage:#1e2b25; --cp-rail:#131c17; --cp-active-fg:#dcefe9;
+  --cp-danger:#e2857d; --cp-warning:#d9a05b; --cp-positive:#8ecdae; --cp-info:#93bdd8;
+  --btn-primary-bg:#7fc3bd; --btn-primary-hover:#a5d8d2; --btn-primary-fg:#06231f;
+  /* Status pills (dot + tint + border, both themes) */
+  --st-pos-bg:#173229;  --st-pos-fg:#8ecdae;  --st-pos-bd:#2b4a3e;
+  --st-warn-bg:#33291a; --st-warn-fg:#dfb371; --st-warn-bd:#4d3f27;
+  --st-neg-bg:#372226;  --st-neg-fg:#e59a94;  --st-neg-bd:#523236;
+  --st-info-bg:#1f2f38; --st-info-fg:#9cc3dc; --st-info-bd:#31474f;
+  --st-neutral-bg:#242e29; --st-neutral-fg:#b9c4bc; --st-neutral-bd:#37453d;
+  /* Card family */
+  --cp-card-radius:14px; --cp-card-pad:24px;
+  --cp-shadow:0 2px 10px rgba(10,20,15,.28);
+  --cp-shadow-hover:0 10px 26px rgba(10,20,15,.38);
+  font-size:14px;
+}
+.theme-light .customer-shell{
+  /* Warm ivory light — sage secondary surface, forest primary, restrained copper accent. */
+  --cp-bg:#f6f4ed; --cp-panel:#fffdf8; --cp-panel-2:#f1eee4;
+  --cp-line:#e2ddd0; --cp-line-soft:#eae5d8;
+  --cp-text:#1f3a34; --cp-muted:#5f6f66;
+  --cp-green:#084b55; --cp-accent:#084b55; --cp-gold:#b98a4a;
+  --cp-sage:#e9efe8; --cp-rail:#fbfaf4; --cp-active-fg:#0a444d;
+  --cp-danger:#a6433c; --cp-warning:#8b5b18; --cp-positive:#1c6a4f; --cp-info:#2c5f7d;
+  --btn-primary-bg:#084b55; --btn-primary-hover:#136573; --btn-primary-fg:#fff;
+  --st-pos-bg:#e3efe7;  --st-pos-fg:#1c6a4f;  --st-pos-bd:#bcd8c6;
+  --st-warn-bg:#f6eedb; --st-warn-fg:#8b5b18; --st-warn-bd:#e0cfa6;
+  --st-neg-bg:#f7e4e2;  --st-neg-fg:#a6433c;  --st-neg-bd:#e3c2bd;
+  --st-info-bg:#e7eef4; --st-info-fg:#2c5f7d; --st-info-bd:#c4d4e0;
+  --st-neutral-bg:#eeeae0; --st-neutral-fg:#5f6f66; --st-neutral-bd:#dbd4c4;
+  --cp-shadow:0 2px 10px rgba(31,58,52,.06);
+  --cp-shadow-hover:0 10px 26px rgba(31,58,52,.13);
+}
+
+/* ============ 2. Type system — floors and sizes ============ */
+/* No text below 10px; labels/eyebrows 10-11px; body 12-14px; weight scale 400/500/600/700.
+   Display type (page titles, card headings, room names, empty-state headlines) already
+   uses var(--font-display) in guest-booking.css — these overrides raise the sans floors. */
+.customer-shell .customer-brand-copy{font-weight:700}
+.customer-shell .customer-brand-copy small{font-size:10px;letter-spacing:1.6px}
+.customer-shell .customer-nav-label{font-size:10px;letter-spacing:1.4px}
+.customer-shell .customer-content-header span{font-size:10px;letter-spacing:1.2px;color:var(--cp-gold)}
+.customer-shell .customer-content-header strong{font-size:13px;font-weight:600;margin-top:2px}
+.customer-shell .customer-identity b{font-size:11px;font-weight:600}
+.customer-shell .customer-identity>button>span{font-size:12px;font-weight:600}
+.customer-shell .customer-account-popover>p strong{font-size:12px}
+.customer-shell .customer-account-popover>p small{font-size:10px}
+.customer-shell .customer-account-popover a,.customer-shell .customer-account-popover button{font-size:11px}
+.customer-shell .customer-notifications-heading{font-size:11px;font-weight:600}
+.customer-shell .customer-notifications-popover a{font-size:11px}
+.customer-shell .customer-notifications-popover a b{font-size:11px}
+.customer-shell .customer-notifications-popover a time{font-size:10px}
+.customer-shell .customer-notifications-all{font-size:11px;font-weight:700}
+.customer-shell .eyebrow{font-size:10px;letter-spacing:1.6px;color:var(--cp-gold)}
+.customer-shell .customer-card-heading p{font-size:10px;letter-spacing:.8px;text-transform:uppercase}
+.customer-shell .customer-card dl>div{font-size:12px}
+.customer-shell .customer-card dt{font-size:11px}
+.customer-shell .customer-card>p{font-size:12px}
+.customer-shell .customer-card>a{font-size:11px;font-weight:700}
+.customer-shell .customer-card li{font-size:12px}
+.customer-shell .customer-card li b{font-size:10px;font-weight:700}
+.customer-shell .customer-feature-card p{font-size:10px;letter-spacing:1.4px}
+.customer-shell .customer-feature-card>div>small{font-size:11px}
+.customer-shell .customer-quick-actions a{font-size:12px;font-weight:600}
+.customer-shell .customer-empty p{font-size:12px}
+.customer-shell .customer-empty-note,.customer-shell .customer-data-note{font-size:11px}
+.customer-shell .customer-financial-list p,.customer-shell .customer-financial-list small{font-size:11px}
+.customer-shell .folio-summary span{font-size:10px;letter-spacing:.6px;text-transform:uppercase}
+.customer-shell .folio-summary strong{font-size:14px;font-variant-numeric:tabular-nums}
+.customer-shell .payment-history h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+.customer-shell .payment-transaction small{font-size:10px}
+.customer-shell .payment-transaction>span{font-variant-numeric:tabular-nums}
+.customer-shell .customer-request-form label{font-size:11px}
+.customer-shell .customer-request-heading{font-size:12px;font-weight:700}
+.customer-shell .customer-request-list p,.customer-shell .customer-request-list time{font-size:11px}
+.customer-shell .customer-timeline h2{font-size:13px;font-weight:600}
+.customer-shell .customer-timeline p,.customer-shell .customer-timeline time{font-size:11px}
+.customer-shell .customer-help-grid p{font-size:12px}
+.customer-shell .customer-help-grid a,.customer-shell .customer-inline-action{font-size:11px;font-weight:700}
+.customer-shell .customer-faq summary{font-size:13px;font-weight:600}
+.customer-shell .customer-faq details p,.customer-shell .customer-policy p{font-size:12px}
+.customer-shell .customer-reservation-groups>section>header p{font-size:11px}
+.customer-shell .customer-reservation-groups>section>header span{font-size:10px;font-variant-numeric:tabular-nums}
+.customer-shell .customer-reservation-card p,.customer-shell .customer-reservation-card small{font-size:11px}
+.customer-shell .customer-reservation-card a{font-size:11px}
+.customer-shell .customer-back{font-size:11px}
+.customer-shell .customer-detail-card dt{font-size:11px}
+.customer-shell .customer-detail-card dd{font-size:12px}
+.customer-shell .customer-detail-card .detail-balance dd{font-variant-numeric:tabular-nums}
+/* crd-* reservation detail */
+.customer-shell .customer-reservation-reference{font-size:10px;letter-spacing:1.2px}
+.customer-shell .crd-copy-status{font-size:10px}
+.customer-shell .crd-hero-facts{font-size:11px}
+.customer-shell .customer-reservation-detail .customer-title-status small{font-size:10px}
+.customer-shell .crd-stepper span{font-size:11px;font-weight:500}
+.customer-shell .crd-folio-figures span{font-size:10px;letter-spacing:.6px}
+.customer-shell .crd-folio-figures strong{font-size:16px;font-variant-numeric:tabular-nums}
+.customer-shell .crd-activity-heading{font-size:12px;font-weight:700}
+.customer-shell .crd-activity-heading b{font-size:10px;font-weight:700}
+.customer-shell .crd-activity-row b{font-size:12px}
+.customer-shell .crd-activity-row small{font-size:10px}
+.customer-shell .crd-activity-row>span{font-variant-numeric:tabular-nums}
+.customer-shell .crd-transport-card b{font-size:12px}
+.customer-shell .crd-transport-card small{font-size:10px}
+/* ctr-* transportation */
+.customer-shell .ctr-service-options legend{font-size:10px}
+.customer-shell .ctr-service-option b{font-size:12px}
+.customer-shell .ctr-service-option small{font-size:10px}
+.customer-shell .ctr-hotel-end span{font-size:10px}
+.customer-shell .ctr-hotel-end b{font-size:11px}
+.customer-shell .ctr-route-stops b{font-size:11px}
+.customer-shell .ctr-route-stops small{font-size:10px}
+.customer-shell .ctr-card-header b{font-size:12px}
+.customer-shell .ctr-card-header small{font-size:10px}
+.customer-shell .ctr-card-meta{font-size:11px}
+.customer-shell .ctr-note{font-size:10px}
+.customer-shell .ctr-note b{font-size:10px}
+.customer-shell .ctr-stay-window span{font-size:10px}
+/* cgr-* guest requests */
+.customer-shell .cgr-batch-heading small{font-size:10px}
+.customer-shell .cgr-batch-count{font-size:11px;font-variant-numeric:tabular-nums}
+.customer-shell .cgr-batch-items b{font-size:12px}
+.customer-shell .cgr-batch-items small{font-size:10px}
+.customer-shell .ctr-request-invitation p,.customer-shell .cgr-request-invitation p{font-size:11px}
+/* check-in QR */
+.customer-shell .customer-checkin-qr-head p{font-size:11px}
+.customer-shell .customer-checkin-qr-validity small{font-size:10px}
+.customer-shell .customer-checkin-qr-validity span{font-size:10px}
+/* misc */
+.customer-shell .customer-receipt-link{font-size:11px}
+.customer-shell .customer-payment-submit>p{font-size:11px}
+.customer-shell .reservation-payment-list h3{font-size:11px;font-weight:700}
+.customer-shell .reservation-payment-list p{font-size:11px}
+.customer-shell .review-details dt{font-size:10px}
+.customer-shell .review-finance dt{font-size:10px}
+.customer-shell .review-finance small{font-size:10px}
+.customer-shell .review-edit-link{font-size:10px;font-weight:700}
+.customer-shell .review-quote{font-size:12px}
+
+/* ============ 3. Sidebar — premium nav rail ============ */
+/* Quiet rail surface; active = sage surface + forest text + inset accent rail (never color-only). */
+.customer-shell .customer-sidebar,
+.theme-light .customer-shell .customer-sidebar{background:var(--cp-rail);border-right:1px solid var(--cp-line);color:var(--cp-muted)}
+.customer-shell .customer-sidebar .customer-brand-copy{color:var(--cp-text)}
+.customer-shell .customer-sidebar .customer-brand-copy small{color:var(--cp-muted)}
+.customer-shell .customer-sidebar nav a,
+.customer-shell .customer-bottom-link,
+.theme-light .customer-shell .customer-sidebar nav a,
+.theme-light .customer-shell .customer-bottom-link{
+  min-height:42px;border-radius:10px;font-size:13px;font-weight:500;color:var(--cp-muted);
+}
+.customer-shell .customer-sidebar nav a svg,
+.customer-shell .customer-bottom-link svg{flex-basis:19px;color:inherit}
+.customer-shell .customer-sidebar nav a:hover,
+.customer-shell .customer-bottom-link:hover,
+.theme-light .customer-shell .customer-sidebar nav a:hover,
+.theme-light .customer-shell .customer-bottom-link:hover{
+  color:var(--cp-text);background:color-mix(in srgb,var(--cp-text) 6%,transparent);
+}
+.customer-shell .customer-sidebar nav a.active,
+.customer-shell .customer-bottom-link.active,
+.theme-light .customer-shell .customer-sidebar nav a.active,
+.theme-light .customer-shell .customer-bottom-link.active{
+  color:var(--cp-active-fg);background:var(--cp-sage);
+  box-shadow:inset 3px 0 var(--cp-green);font-weight:600;
+}
+.customer-shell .customer-sidebar-bottom{border-color:var(--cp-line)}
+
+/* ============ 4. Header ============ */
+.customer-shell .customer-content-header{
+  background:color-mix(in srgb,var(--cp-bg) 88%,transparent);
+  border-bottom:1px solid var(--cp-line);
+}
+.customer-shell .customer-content-header .customer-header-link,
+.customer-shell .customer-content-header .customer-header-theme,
+.customer-shell .customer-header-actions>a,
+.customer-shell .customer-header-actions>.icon-button{
+  border-radius:9px;border-color:var(--cp-line);background:var(--cp-panel);color:var(--cp-muted);
+}
+.customer-shell .customer-identity>button{border-color:var(--cp-line);background:var(--cp-panel)}
+.customer-shell .customer-account-popover,
+.customer-shell .customer-notifications-popover{
+  background:var(--cp-panel);border-color:var(--cp-line);
+  box-shadow:0 18px 48px rgba(8,16,12,.4);
+}
+.theme-light .customer-shell .customer-account-popover,
+.theme-light .customer-shell .customer-notifications-popover{box-shadow:0 18px 48px rgba(31,58,52,.14)}
+
+/* ============ 5. Status pills — one token-driven system ============ */
+/* 5a. .customer-status — adds a status dot via ::before (markup untouched). */
+.customer-shell .customer-status{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:4px 10px;border:1px solid var(--st-neutral-bd);border-radius:999px;
+  background:var(--st-neutral-bg);color:var(--st-neutral-fg);
+  font-size:11px;font-weight:600;text-transform:capitalize;white-space:nowrap;
+}
+.customer-shell .customer-status::before{
+  content:"";width:6px;height:6px;flex:0 0 6px;border-radius:50%;background:currentColor;
+}
+.customer-shell .customer-status.confirmed,.customer-shell .customer-status.paid,
+.customer-shell .customer-status.completed,.customer-shell .customer-status.available,
+.customer-shell .customer-status.approved,.customer-shell .customer-status.checked_in{
+  background:var(--st-pos-bg);color:var(--st-pos-fg);border-color:var(--st-pos-bd);
+}
+.customer-shell .customer-status.checked_out{background:var(--st-info-bg);color:var(--st-info-fg);border-color:var(--st-info-bd)}
+.customer-shell .customer-status.partial,.customer-shell .customer-status.deposit,
+.customer-shell .customer-status.in_progress{background:var(--st-warn-bg);color:var(--st-warn-fg);border-color:var(--st-warn-bd)}
+.customer-shell .customer-status.pending,.customer-shell .customer-status.open,
+.customer-shell .customer-status.unpaid,.customer-shell .customer-status.requested,
+.customer-shell .customer-status.reviewed,.customer-shell .customer-status.pending_verification{
+  background:var(--st-warn-bg);color:var(--st-warn-fg);border-color:var(--st-warn-bd);
+}
+.customer-shell .customer-status.cancelled,.customer-shell .customer-status.failed,
+.customer-shell .customer-status.rejected,.customer-shell .customer-status.no_show{
+  background:var(--st-neg-bg);color:var(--st-neg-fg);border-color:var(--st-neg-bd);
+}
+.customer-shell .customer-status.scheduled,.customer-shell .customer-status.assigned{
+  background:var(--st-info-bg);color:var(--st-info-fg);border-color:var(--st-info-bd);
+}
+
+/* 5b. .customer-folio-status — same tokens (fixes the missing light-theme variants). */
+.customer-shell .customer-folio-status{
+  border-color:var(--st-neutral-bd);background:var(--st-neutral-bg);color:var(--st-neutral-fg);
+}
+.customer-shell .customer-folio-status.paid{background:var(--st-pos-bg);color:var(--st-pos-fg);border-color:var(--st-pos-bd)}
+.customer-shell .customer-folio-status.deposit,.customer-shell .customer-folio-status.partial,
+.customer-shell .customer-folio-status.pending_verification,.customer-shell .customer-folio-status.refund_pending{
+  background:var(--st-warn-bg);color:var(--st-warn-fg);border-color:var(--st-warn-bd);
+}
+.customer-shell .customer-folio-status.unpaid,.customer-shell .customer-folio-status.failed,
+.customer-shell .customer-folio-status.expired,.customer-shell .customer-folio-status.cancelled{
+  background:var(--st-neg-bg);color:var(--st-neg-fg);border-color:var(--st-neg-bd);
+}
+.customer-shell .customer-folio-status.refunded,.customer-shell .customer-folio-status.partial_refund{
+  background:var(--st-info-bg);color:var(--st-info-fg);border-color:var(--st-info-bd);
+}
+.customer-shell .customer-folio-status.credit{background:var(--st-info-bg);color:var(--st-info-fg);border-color:var(--st-info-bd)}
+
+/* 5c. StatusBadge (components/ui) emits Tailwind utilities this Tailwind-less app never
+   styled. Scope the minimal subset it uses to the customer shell so its icon pills render
+   in the portal status system. Staff dashboards are untouched. */
+.customer-shell .inline-flex{display:inline-flex}
+.customer-shell .items-center{align-items:center}
+.customer-shell .flex-wrap{flex-wrap:wrap}
+.customer-shell .flex-shrink-0{flex-shrink:0}
+.customer-shell .font-medium{font-weight:500}
+.customer-shell .rounded-full{border-radius:999px}
+.customer-shell .border{border-style:solid;border-width:1px}
+.customer-shell .border-current{border-color:currentColor}
+.customer-shell .bg-transparent{background:transparent}
+.customer-shell .text-xs{font-size:11px}
+.customer-shell .text-sm{font-size:12px}
+.customer-shell .text-base{font-size:13px}
+.customer-shell .px-2{padding-inline:8px}
+.customer-shell .px-3{padding-inline:12px}
+.customer-shell .px-4{padding-inline:16px}
+.customer-shell .py-0\.5{padding-block:3px}
+.customer-shell .py-1{padding-block:5px}
+.customer-shell .py-1\.5{padding-block:6px}
+.customer-shell .gap-1{gap:4px}
+.customer-shell .gap-1\.5{gap:6px}
+.customer-shell .gap-2{gap:8px}
+.customer-shell .bg-green-100{background:var(--st-pos-bg);color:var(--st-pos-fg);border-color:var(--st-pos-bd)}
+.customer-shell .bg-amber-100,.customer-shell .bg-orange-100{background:var(--st-warn-bg);color:var(--st-warn-fg);border-color:var(--st-warn-bd)}
+.customer-shell .bg-red-100{background:var(--st-neg-bg);color:var(--st-neg-fg);border-color:var(--st-neg-bd)}
+.customer-shell .bg-blue-100{background:var(--st-info-bg);color:var(--st-info-fg);border-color:var(--st-info-bd)}
+.customer-shell .bg-gray-100{background:var(--st-neutral-bg);color:var(--st-neutral-fg);border-color:var(--st-neutral-bd)}
+
+/* ============ 6. Card family ============ */
+.customer-shell .customer-card,.customer-shell .customer-detail-card,
+.customer-shell .customer-profile-card{border-radius:var(--cp-card-radius);padding:var(--cp-card-pad);box-shadow:var(--cp-shadow)}
+.customer-shell .customer-feature-card{border-radius:var(--cp-card-radius)}
+.customer-shell .customer-reservation-card,.customer-shell .cgr-batch,
+.customer-shell .ctr-card{border-radius:12px}
+.customer-shell .customer-financial-list>article{border-radius:var(--cp-card-radius);overflow:hidden;box-shadow:var(--cp-shadow)}
+.customer-shell .crd-folio-strip,.customer-shell .customer-reservation-hero{border-radius:var(--cp-card-radius)}
+.customer-shell .customer-empty{border-radius:var(--cp-card-radius);padding:48px}
+.customer-shell .customer-quick-actions a{border-radius:12px;padding:18px}
+.customer-shell .customer-page-title{margin-bottom:30px}
+.customer-shell .customer-request-form{border-radius:12px}
+
+/* ============ 7. Restrained motion (portal rung of the motion ladder) ============ */
+.customer-shell .customer-quick-actions a{
+  transition:transform .22s cubic-bezier(.22,1,.36,1),box-shadow .22s cubic-bezier(.22,1,.36,1),border-color .22s ease;
+}
+.customer-shell .customer-quick-actions a:hover{
+  transform:translateY(-2px);box-shadow:var(--cp-shadow-hover);border-color:var(--cp-line);
+}
+.customer-shell .customer-card,.customer-shell .customer-reservation-card{
+  transition:box-shadow .22s ease,border-color .22s ease;
+}
+/* The design-tokens.css prefers-reduced-motion kill-switch remains the guarantee net. */
+
+/* ============ 8. Module content-width caps ============ */
+/* Default .customer-content stays max-width:1320px (guest-booking.css). Narrower modules
+   keep ledger rows and forms from stretching on wide canvases. */
+.customer-shell .customer-content--payments{max-width:1160px;width:100%;margin-inline:auto}
+.customer-shell .customer-requests-page .customer-request-form.wide{max-width:900px}
+.customer-shell .customer-transportation-page .ctr-form{max-width:900px}
+
+/* ============ 11. Payments — guest-first folio summary ============ */
+.customer-shell .folio-summary{grid-template-columns:repeat(3,1fr)}
+.customer-shell .folio-summary strong{font-size:16px;font-weight:600}
+.customer-shell .folio-balance strong{color:var(--cp-gold)}
+.customer-shell .folio-note{margin:0;padding:10px 20px;border-bottom:1px solid var(--cp-line);color:var(--cp-muted);font-size:11px}
+.customer-shell .payment-transaction b,.customer-shell .payment-transaction>span:last-child{font-variant-numeric:tabular-nums}
+@media(max-width:900px){.customer-shell .folio-summary{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){.customer-shell .folio-summary{grid-template-columns:1fr 1fr}.customer-shell .folio-balance{grid-column:1/-1}}
+
+/* ============ 12. Transportation & Requests — feature-card invitation + floors ============ */
+/* The twin invitation banners (ctr/cgr) move off the hardcoded #084b55 block onto the
+   feature-card treatment: soft green-tinted surface that reads as a hero in BOTH themes. */
+.customer-shell .ctr-request-invitation,
+.customer-shell .cgr-request-invitation{
+  background:color-mix(in srgb,var(--cp-green) 12%,var(--cp-panel));
+  border:1px solid color-mix(in srgb,var(--cp-green) 32%,var(--cp-line));
+  color:var(--cp-text);border-radius:var(--cp-card-radius);box-shadow:var(--cp-shadow);
+}
+.customer-shell .ctr-invitation-icon,
+.customer-shell .cgr-invitation-icon{
+  background:color-mix(in srgb,var(--cp-green) 18%,transparent);color:var(--cp-green);
+}
+.customer-shell .ctr-request-invitation p,
+.customer-shell .cgr-request-invitation p{font-size:12px;line-height:1.6;color:var(--cp-muted)}
+/* Remaining 8px floors in the ctr system */
+.customer-shell .ctr-filters button{font-size:11px;font-weight:600}
+.customer-shell .ctr-filters button b{font-size:10px;font-weight:700}
+.customer-shell .ctr-assignment{font-size:11px}
+.customer-shell .ctr-route-stops i{margin-left:5px}
+.customer-shell .ctr-terminal-notice{font-size:11px;color:var(--cp-muted)}
+/* cgr batch disclosure — chevron + hover (guest-booking.css) + focus ring */
+.customer-shell .cgr-batch-header:focus-visible{outline:2px solid var(--cp-green);outline-offset:-2px;border-radius:8px}
+.customer-shell .cgr-batch-submitted{font-weight:600}
+/* remaining 9px/8px floors caught in the sub-10px sweep */
+.customer-shell .ctr-date-hint{font-size:10px}
+.customer-shell .customer-request-options legend{font-size:11px;font-weight:600}
+.customer-shell .customer-checkin-qr-skeleton small{font-size:10px}
+/* folio filter chips + aggregate (2026-09-10 URL-driven filters) — floors + weight scale */
+.customer-shell .folio-filter-label{font-size:10px;font-weight:700}
+.customer-shell .folio-chip{font-size:11px;font-weight:600}
+.customer-shell .folio-chip b{font-size:10px;font-weight:700}
+.customer-shell .folio-aggregate{font-size:11px}
+.customer-shell .folio-aggregate b{font-weight:600}
+
+
+.customer-shell .customer-reservation-card{overflow:hidden}
+.customer-shell .customer-reservation-card>strong,
+.customer-shell .customer-reservation-card>div>strong{font-variant-numeric:tabular-nums}
+.customer-reservation-photo{position:relative;width:148px;flex:0 0 148px;min-height:120px;border-radius:10px;overflow:hidden;align-self:stretch;margin:-22px 0 -22px -22px}
+.customer-reservation-photo img{object-fit:cover}
+@media(max-width:600px){
+  .customer-reservation-card{flex-direction:column}
+  .customer-reservation-photo{width:100%;flex:0 0 auto;height:150px;margin:0 0 16px}
+}
+
+/* My Reservations: searchable card history */
+.customer-shell .customer-reservations-page{max-width:1160px;margin-inline:auto}
+.customer-shell .reservation-history-controls{margin-bottom:16px;padding:18px;background:var(--cp-panel);border:1px solid var(--cp-line);border-radius:var(--cp-card-radius);box-shadow:var(--cp-shadow)}
+.customer-shell .reservation-filter-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.customer-shell .reservation-filter-chip{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:8px 13px;border:1px solid var(--cp-line);border-radius:999px;background:var(--cp-panel-2);color:var(--cp-muted);font-size:11px;font-weight:650;transition:background .18s ease,border-color .18s ease,color .18s ease}
+.customer-shell .reservation-filter-chip b{min-width:20px;padding:2px 6px;border-radius:999px;background:var(--cp-panel);color:var(--cp-text);font-size:10px;text-align:center;font-variant-numeric:tabular-nums}
+.customer-shell .reservation-filter-chip:hover{border-color:var(--cp-green);color:var(--cp-text)}
+.customer-shell .reservation-filter-chip.is-active{border-color:var(--cp-green);background:var(--cp-green);color:#fff}
+.customer-shell .reservation-filter-chip.is-active b{background:#ffffff24;color:#fff}
+.customer-shell .reservation-filter-form{display:grid;grid-template-columns:minmax(260px,1fr) 230px auto auto;align-items:end;gap:10px}
+.customer-shell .reservation-search-field,.customer-shell .reservation-sort-field{position:relative;display:grid;gap:6px}
+.customer-shell .reservation-search-field>span,.customer-shell .reservation-sort-field>span{color:var(--cp-muted);font-size:10px;font-weight:700}
+.customer-shell .reservation-search-field svg{position:absolute;left:13px;bottom:12px;color:var(--cp-muted);pointer-events:none}
+.customer-shell .reservation-search-field input,.customer-shell .reservation-sort-field select{width:100%;height:42px;border:1px solid var(--cp-line);border-radius:8px;background:var(--cp-panel-2);color:var(--cp-text);font:inherit;font-size:12px}
+.customer-shell .reservation-search-field input{padding:0 13px 0 40px}
+.customer-shell .reservation-sort-field select{padding:0 34px 0 12px}
+.customer-shell .reservation-search-field input:focus-visible,.customer-shell .reservation-sort-field select:focus-visible{outline:2px solid var(--cp-green);outline-offset:1px}
+.customer-shell .reservation-filter-submit{height:42px;padding-inline:20px}
+.customer-shell .reservation-filter-reset{align-self:center;color:var(--cp-green);font-size:11px;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.customer-shell .reservation-results-summary{display:flex;align-items:baseline;gap:7px;margin:0 2px 22px;color:var(--cp-text);font-size:12px;font-weight:700}
+.customer-shell .reservation-results-summary small{color:var(--cp-muted);font-size:11px;font-weight:400}
+.customer-shell .customer-reservation-groups{gap:42px}
+.customer-shell .reservation-history-section>header{padding-bottom:12px;border-bottom:1px solid var(--cp-line)}
+.customer-shell .reservation-history-section>header span{border-radius:999px}
+.customer-shell .customer-reservation-groups .reservation-history-list{display:grid;grid-template-columns:1fr;gap:12px}
+.customer-shell .customer-reservation-card{display:grid;grid-template-columns:220px minmax(0,1fr) 230px;gap:0;padding:0;min-height:180px;border-radius:14px;box-shadow:var(--cp-shadow)}
+.customer-shell .customer-reservation-card:hover{border-color:color-mix(in srgb,var(--cp-green) 42%,var(--cp-line));box-shadow:var(--cp-shadow-hover)}
+.customer-shell .customer-reservation-card .customer-reservation-photo{width:auto;height:auto;min-height:180px;margin:0;border-radius:13px 0 0 13px}
+.customer-shell .reservation-card-copy{min-width:0;padding:24px 26px}
+.customer-shell .reservation-card-badges{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+.customer-shell .reservation-card-reference{margin:0;color:var(--cp-accent)!important;font-size:10px!important;font-weight:750;letter-spacing:1px;text-transform:uppercase}
+.customer-shell .reservation-card-copy h3{margin:6px 0 15px;font-size:30px;line-height:1.05}
+.customer-shell .reservation-card-facts{display:flex;flex-wrap:wrap;gap:9px 18px}
+.customer-shell .reservation-card-facts span{display:inline-flex;align-items:center;gap:7px;color:var(--cp-muted);font-size:11px}
+.customer-shell .reservation-card-facts svg{flex:none;color:var(--cp-green)}
+.customer-shell .reservation-card-finance{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:4px;padding:24px 26px;border-left:1px solid var(--cp-line);background:var(--cp-panel-2);text-align:right}
+.customer-shell .customer-reservation-card .reservation-card-finance small{color:var(--cp-muted);font-size:10px;text-transform:uppercase;letter-spacing:.8px}
+.customer-shell .customer-reservation-card .reservation-card-finance strong{margin-bottom:7px;font-size:22px}
+.customer-shell .customer-reservation-card .reservation-card-finance p{margin:0;color:var(--cp-muted);font-size:10px}
+.customer-shell .customer-reservation-card .reservation-card-action{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:38px;margin-top:13px;padding:9px 13px;border:1px solid var(--cp-green);border-radius:8px;background:var(--cp-green);color:#fff;font-size:11px;font-weight:750}
+.customer-shell .customer-reservation-card .reservation-card-action:hover{filter:brightness(1.08)}
+.customer-shell .reservation-history-section--past .reservation-card-action,.customer-shell .reservation-history-section--cancelled .reservation-card-action{background:transparent;color:var(--cp-green)}
+.customer-shell .reservation-history-empty{margin-top:12px}
+@media(max-width:900px){
+  .customer-shell .reservation-filter-form{grid-template-columns:1fr 210px auto}
+  .customer-shell .reservation-filter-reset{grid-column:1/-1;justify-self:start}
+  .customer-shell .customer-reservation-card{grid-template-columns:180px minmax(0,1fr)}
+  .customer-shell .reservation-card-finance{grid-column:1/-1;display:grid;grid-template-columns:auto auto 1fr auto;align-items:center;padding:16px 20px;border-top:1px solid var(--cp-line);border-left:0;text-align:left}
+  .customer-shell .reservation-card-finance small{grid-column:1}
+  .customer-shell .reservation-card-finance strong{grid-column:2;margin:0}
+  .customer-shell .reservation-card-finance p{display:none}
+  .customer-shell .reservation-card-finance .reservation-card-action{grid-column:4;margin:0}
+}
+@media(max-width:650px){
+  .customer-shell .reservation-history-controls{padding:14px}
+  .customer-shell .reservation-filter-chips{display:grid;grid-template-columns:1fr 1fr}
+  .customer-shell .reservation-filter-chip{justify-content:space-between;min-height:44px}
+  .customer-shell .reservation-filter-form{grid-template-columns:1fr}
+  .customer-shell .reservation-filter-submit{width:100%;min-height:44px}
+  .customer-shell .reservation-filter-reset{grid-column:auto}
+  .customer-shell .customer-reservation-card{grid-template-columns:1fr}
+  .customer-shell .customer-reservation-card .customer-reservation-photo{width:100%;height:190px;min-height:190px;border-radius:13px 13px 0 0}
+  .customer-shell .reservation-card-copy{padding:20px}
+  .customer-shell .reservation-card-copy h3{font-size:27px}
+  .customer-shell .reservation-card-finance{display:grid;grid-template-columns:1fr auto;padding:18px 20px}
+  .customer-shell .reservation-card-finance small,.customer-shell .reservation-card-finance strong{grid-column:1}
+  .customer-shell .reservation-card-finance .reservation-card-action{grid-column:2;grid-row:1/3}
+}
+@media(max-width:420px){
+  .customer-shell .reservation-filter-chips{grid-template-columns:1fr}
+  .customer-shell .reservation-card-finance{display:flex;align-items:stretch;text-align:left}
+  .customer-shell .reservation-card-finance .reservation-card-action{width:100%;margin-top:10px}
+}
+
+/* ============ 13. Empty states — one shared rhythm (icon · display heading · sentence · CTA) */
+.customer-shell .customer-empty{display:grid;place-items:center;align-content:center;gap:12px}
+.customer-shell .customer-empty .btn{justify-self:center}
+
+/* ============ 9. Overview — stay hero, attention strip ============ */
+/* Hero: real room photo left, stay facts center, balance panel right. */
+.customer-stay-hero{
+  display:grid;grid-template-columns:200px minmax(0,1fr) auto;gap:0;overflow:hidden;
+  background:var(--cp-panel);border:1px solid var(--cp-line);border-radius:var(--cp-card-radius);
+  box-shadow:var(--cp-shadow);
+}
+.customer-stay-photo{position:relative;min-height:200px}
+.customer-stay-photo img{object-fit:cover}
+.customer-stay-copy{display:flex;flex-direction:column;justify-content:center;gap:6px;padding:26px 30px;min-width:0}
+.customer-stay-badges{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.customer-stay-kind{color:var(--cp-muted);font-size:11px}
+.customer-stay-copy h2{margin:4px 0 0;font:500 clamp(26px,2.6vw,34px)/1.1 var(--font-display);letter-spacing:-.02em}
+.customer-stay-copy strong{font-size:13px;font-weight:600}
+.customer-stay-copy small{color:var(--cp-muted);font-size:11px}
+.customer-stay-actions{display:flex;align-items:center;gap:14px;margin-top:12px;flex-wrap:wrap}
+.customer-stay-qr{display:inline-flex;align-items:center;gap:7px;color:var(--cp-green);font-size:12px;font-weight:600}
+.customer-stay-qr svg{color:var(--cp-gold)}
+.customer-stay-qr:hover{text-decoration:underline;text-underline-offset:4px}
+.customer-stay-folio{
+  display:flex;flex-direction:column;justify-content:center;gap:4px;
+  padding:26px 30px;border-left:1px solid var(--cp-line);background:var(--cp-sage);
+}
+.customer-stay-folio span{color:var(--cp-muted);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px}
+.customer-stay-folio strong{font-size:26px;font-weight:600;font-variant-numeric:tabular-nums}
+.customer-stay-folio small{color:var(--cp-muted);font-size:11px}
+.customer-stay-folio a{display:inline-flex;align-items:center;gap:6px;margin-top:8px;color:var(--cp-green);font-size:11px;font-weight:700}
+
+/* Attention strip — only rendered for real actionable states. */
+.customer-attention{margin-top:14px}
+.customer-attention h2{margin:0 0 10px;font:500 21px var(--font-display)}
+.customer-attention>div{display:grid;gap:8px}
+.customer-attention a{
+  display:flex;align-items:center;gap:14px;padding:14px 18px;
+  background:color-mix(in srgb,var(--cp-gold) 7%,var(--cp-panel));
+  border:1px solid color-mix(in srgb,var(--cp-gold) 30%,var(--cp-line));
+  border-radius:12px;color:var(--cp-text);
+}
+.customer-attention a:hover{border-color:var(--cp-gold)}
+.customer-attention a b{font-size:13px;font-weight:600;white-space:nowrap}
+.customer-attention a span{flex:1;color:var(--cp-muted);font-size:12px}
+.customer-attention a>svg{flex:0 0 auto;color:var(--cp-gold)}
+@media(max-width:1100px){
+  .customer-stay-hero{grid-template-columns:160px minmax(0,1fr)}
+  .customer-stay-folio{grid-column:1/-1;border-left:0;border-top:1px solid var(--cp-line);flex-direction:row;align-items:center;gap:18px;flex-wrap:wrap}
+  .customer-stay-folio strong{font-size:22px}
+}
+@media(max-width:600px){
+  .customer-stay-hero{grid-template-columns:1fr}
+  .customer-stay-photo{min-height:180px}
+  .customer-stay-copy{padding:20px 18px}
+  .customer-stay-folio{padding:18px}
+  .customer-attention a{align-items:flex-start;flex-direction:column;gap:4px}
+  .customer-attention a>svg{display:none}
+}
