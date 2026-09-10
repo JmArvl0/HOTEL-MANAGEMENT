@@ -1,0 +1,53 @@
+/* Shared coastal brand layer. Semantic success/warning/danger tokens stay unchanged. */
+:root,.theme-light {
+  --color-forest:#084b55;--color-forest-light:#176773;--color-forest-dark:#082f39;
+  --color-cream:#f8f6f1;--color-mint:#e1eeeb;--brand-accent:#084b55;
+  --brand-accent-dark:#136573;--brand-accent-light:#77bec6;
+  --color-accent:#084b55;--color-accent-hover:#136573;--color-accent-dark:#136573;
+  --color-primary:#084b55;--color-primary-hover:#136573;--color-primary-light:#e1eeeb;
+  --btn-primary-bg:#084b55;--btn-primary-hover:#136573;--btn-primary-fg:#fff;
+  --ink:#103e48;--forest:#084b55;--green:#176773;--accent:#084b55;
+  --cream:#f8f6f1;--mint:#e1eeeb;--line:#dce4e1;--muted:#53676b;--focus-ring:#328d9b;
+}
+.app-shell,.customer-shell{
+  --db:#0c2027;--ds:#112c34;--ds2:#17363f;--dl:#29454d;--dt:#edf5f3;--dm:#9cb7bb;--dg:#85cbd0;
+  --cp-bg:var(--db);--cp-panel:var(--ds);--cp-panel-2:var(--ds2);--cp-line:var(--dl);
+  --cp-text:var(--dt);--cp-muted:var(--dm);--cp-green:var(--dg);--cp-accent:#85cbd0;
+  --btn-primary-bg:#85cbd0;--btn-primary-hover:#b1dfe1;--btn-primary-fg:#082f39;
+}
+.theme-light .app-shell,.theme-light .customer-shell{
+  --db:#f6f5f0;--ds:#fff;--ds2:#f0f5f2;--dl:#dce4e1;--dt:#173e47;--dm:#5b7378;--dg:#176773;
+  --cp-bg:var(--db);--cp-panel:var(--ds);--cp-panel-2:var(--ds2);--cp-line:var(--dl);
+  --cp-text:var(--dt);--cp-muted:var(--dm);--cp-green:var(--dg);--cp-accent:#176773;
+  --btn-primary-bg:#084b55;--btn-primary-hover:#136573;--btn-primary-fg:#fff;
+}
+.app-shell .sidebar,.app-shell .app-header,.customer-shell .customer-sidebar,.customer-shell .customer-header{background:var(--ds);border-color:var(--dl);color:var(--dt)}
+.theme-light .app-shell .sidebar,.theme-light .app-shell .app-header,.theme-light .customer-shell .customer-sidebar,.theme-light .customer-shell .customer-header{background:var(--ds);border-color:var(--dl);color:var(--dt)}
+.app-shell .sidebar .brand,.theme-light .app-shell .sidebar .brand,.app-shell .app-header p,.theme-light .app-shell .app-header p{color:var(--dt)}
+.app-shell .sidebar .brand-mark,.theme-light .app-shell .sidebar .brand-mark{color:var(--dg)}
+.app-shell .sidebar nav button.active,.theme-light .app-shell .sidebar nav button.active,.customer-shell .customer-sidebar nav a.active,.theme-light .customer-shell .customer-sidebar nav a.active{background:color-mix(in srgb,var(--dg) 12%,var(--ds));color:var(--dg);box-shadow:inset 2px 0 var(--dg)}
+.app-shell .sidebar nav button.active svg,.theme-light .app-shell .sidebar nav button.active svg{color:var(--dg)}
+.app-shell .sidebar nav button:hover,.theme-light .app-shell .sidebar nav button:hover,.customer-shell .customer-sidebar nav a:hover,.theme-light .customer-shell .customer-sidebar nav a:hover{background:var(--ds2);color:var(--dt)}
+.app-shell .btn-accent,.theme-light .app-shell .btn-accent,.customer-shell .btn-accent,.theme-light .customer-shell .btn-accent{background:var(--btn-primary-bg);color:var(--btn-primary-fg)}
+.app-shell .btn-accent:hover,.theme-light .app-shell .btn-accent:hover,.customer-shell .btn-accent:hover,.theme-light .customer-shell .btn-accent:hover{background:var(--btn-primary-hover)}
+.app-shell .property-pill,.theme-light .app-shell .property-pill{background:var(--ds2);border-color:var(--dl)}
+.app-shell .property-pill>span,.theme-light .app-shell .property-pill>span{background:color-mix(in srgb,var(--dg) 15%,var(--ds));color:var(--dg)}
+.customer-shell .customer-identity b{background:#d3e8e4;color:#084b55}
+.booking-hero{background:linear-gradient(115deg,#0a4953,#082f39)}
+
+
+/* Dark-mode coastal parity — deep-teal equivalents of the root brand tokens.
+   Shells already carry their own dark vars above; this covers :root consumers.
+   Landing is light-only (landing.css sets color-scheme:light) and is not targeted. */
+@media (prefers-color-scheme: dark){
+  :root:not(.theme-light){
+    --color-forest:#0c2027;--color-forest-light:#112c34;--color-forest-dark:#081720;
+    --color-cream:#112c34;--color-mint:#17363f;
+    --brand-accent:#85cbd0;--brand-accent-dark:#77bec6;--brand-accent-light:#b1dfe1;
+    --color-accent:#85cbd0;--color-accent-hover:#b1dfe1;--color-accent-dark:#77bec6;
+    --color-primary:#85cbd0;--color-primary-hover:#b1dfe1;--color-primary-light:#17363f;
+    --btn-primary-bg:#85cbd0;--btn-primary-hover:#b1dfe1;--btn-primary-fg:#082f39;
+    --ink:#d6e6e6;--forest:#85cbd0;--green:#77bec6;--accent:#85cbd0;
+    --cream:#112c34;--mint:#17363f;--line:#29454d;--muted:#9cb7bb;--focus-ring:#85cbd0;
+  }
+}

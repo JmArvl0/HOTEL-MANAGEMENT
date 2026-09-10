@@ -1,0 +1,170 @@
+/* =============================================================================
+   HAVEN — UI PRIMITIVES (normalization layer)  ·  added 2026-09-05
+   -----------------------------------------------------------------------------
+   Loaded LAST in app/layout.tsx (after design-tokens.css) so, at equal
+   specificity, these rules win the cascade over the three legacy sheets
+   (globals.css, guest-booking.css, manager-dashboard-theme.css).
+
+   Scope: SHARED CONTROL METRICS + action-row spacing only. It deliberately
+   does NOT re-paint any portal. Colors/palettes stay in each surface's own
+   scoped rules (.customer-shell … , .app-shell … , .theme-light …) so the
+   guest, booking and staff portals keep their character.
+
+   Findings addressed: button/action spacing slop, the ≤680px blank
+   header-button bug, DESIGN-STATUS F5 (badge coverage) and F7 (guest-shell
+   light remnants). F4 (staff type floor) is raised in-place in
+   manager-dashboard-theme.css; F3 is trimmed in design-tokens.css.
+   ============================================================================= */
+
+/* ---- 1. One canonical .btn metric block (overrides globals.css:1) ----------
+   The base height is already the 40px reference; this floors it, unifies the
+   icon gap, shares the radius/focus tokens and keeps one hover/active curve.
+   Colors are untouched — each portal's .btn-accent / .btn-soft rules still
+   decide the palette. Staff `.app-shell .btn` keeps its intentional compact
+   scale (see manager-dashboard-theme.css) but shares this radius + motion. */
+.btn {
+  min-height: 40px;                 /* --btn-height-md */
+  gap: 8px;
+  border-radius: 6px;               /* --radius-btn / --radius-md */
+  transition: transform .18s ease, box-shadow .18s ease,
+              background-color .18s ease, border-color .18s ease,
+              color .18s ease;
+}
+.btn svg { flex-shrink: 0; }
+/* Real press feedback for every shell (staff had it; public/guest didn't).
+   The login form's hover-lift reset in globals.css is more specific and wins. */
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled { cursor: not-allowed; }
+.btn:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--green, #176773));
+  outline-offset: 2px;
+}
+
+/* Size opt-ins on the shared scale (--btn-height-sm/md/lg). */
+.btn-sm {
+  min-height: 32px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-inline: 12px;
+  gap: 6px;
+  font-size: 12px;
+  border-radius: 5px;
+}
+.btn-lg {
+  min-height: 48px;
+  padding-inline: 22px;
+  gap: 10px;
+  font-size: 15px;
+}
+
+/* ---- 2. Action rows: buttons never touch, they wrap ------------- */
+.btn-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.btn-row.end    { justify-content: flex-end; }
+.btn-row.between{ justify-content: space-between; }
+.btn-row.center { justify-content: center; }
+.btn-row.stack  { flex-direction: column; align-items: stretch; }
+
+/* Shared action containers used across shells — give them a floor gap + wrap
+   so stacked buttons never glue or overflow at narrow widths. */
+.reservation-actions { flex-wrap: wrap; }
+.form-actions { flex-wrap: wrap; }
+
+/* Row-action chips were 8px / 5px padding (guest-booking.css) — too small to
+   read on desktop. Raise the floor; mobile already lifts them to 40px hit
+   areas in responsive.css. */
+.table-action {
+  min-height: 26px;
+  padding: 5px 9px;
+  font-size: 10px;
+  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.table-action svg { flex-shrink: 0; }
+/* Interaction metrics for the staff table-action chips (palette lives in
+   manager-dashboard-theme.css, per the DESIGN.md scope split). */
+.table-action {
+  transition: background-color .18s ease, border-color .18s ease,
+              color .18s ease, transform .12s ease;
+}
+.app-shell .table-action svg { width: 13px; height: 13px; }
+
+/* ---- 3. Mobile header buttons (globals.css:6 bug) --------------------------
+   globals.css collapses every `.page-title .btn` to `font-size:0` under
+   680px, turning icon-less header CTAs (Manage users, Update policy, …) into
+   blank squares. Keep text-only and icon+label buttons readable; collapse to
+   a square ONLY when the button is genuinely icon-only (:has guard). In
+   browsers without :has the first rule still wins → no blank buttons. */
+@media (max-width: 680px) {
+  .page-title .btn {
+    font-size: 12px;
+    padding: 0 13px;
+    min-height: 44px;
+    white-space: nowrap;
+  }
+  .page-title .btn:has(> svg:only-child) {
+    font-size: 0;
+    padding: 0;
+    width: 44px;
+  }
+  .page-title .btn svg { margin: 0; }
+  /* Touch floor for every button, staff shell included (keeps 44px on
+     phones; desktop density untouched). */
+  .app-shell .btn,
+  .btn-sm { min-height: 44px; }
+}
+
+/* ---- 4. Badge status coverage (DESIGN-STATUS F5) ---------------------------
+   Missing `.badge.*` semantic colors: account active/inactive/suspended,
+   staff on_leave, escalation escalated. inactive / off_duty / none read as
+   the neutral (gray) badge by design — no extra rule needed. Palette pairs
+   mirror the existing green / amber / red families in each context. */
+.badge.active      { background: #def1e8; color: #267056; }
+.badge.on_leave    { background: #fff0dd; color: #a45a22; }
+.badge.suspended,
+.badge.escalated   { background: #f9e3e1; color: #a44843; }
+
+/* Approval severity + decision badges (manager queue). normal / rejected stay
+   the neutral gray default; approved is green, high amber, critical red. */
+.badge.approved   { background: #def1e8; color: #267056; }
+.badge.high       { background: #fff0dd; color: #a45a22; }
+.badge.critical   { background: #f9e3e1; color: #a44843; }
+
+/* app-shell dark (staff theme) mirrors */
+.app-shell .badge.active    { background: #173024; color: #65d3a5; }
+.app-shell .badge.on_leave  { background: #34291c; color: #dfa062; }
+.app-shell .badge.suspended,
+.app-shell .badge.escalated { background: #351f21; color: #ef797e; }
+.app-shell .badge.approved  { background: #173024; color: #65d3a5; }
+.app-shell .badge.high      { background: #34291c; color: #dfa062; }
+.app-shell .badge.critical  { background: #351f21; color: #ef797e; }
+
+/* app-shell light mirrors */
+.theme-light .app-shell .badge.active    { background: #def1e8; color: #267056; }
+.theme-light .app-shell .badge.on_leave  { background: #fff0dd; color: #a45a22; }
+.theme-light .app-shell .badge.suspended,
+.theme-light .app-shell .badge.escalated{ background: #f9e3e1; color: #a44843; }
+.theme-light .app-shell .badge.approved  { background: #def1e8; color: #267056; }
+.theme-light .app-shell .badge.high      { background: #fff0dd; color: #a45a22; }
+.theme-light .app-shell .badge.critical  { background: #f9e3e1; color: #a44843; }
+
+/* ---- 5. Guest-shell light remnants (DESIGN-STATUS F7) ----------------------
+   The booking flow was light-only; inside the dark customer shell a few
+   stragglers still hardcode light values. Re-theme them with --cp-* so both
+   guest themes read correctly. */
+.customer-shell .booking-notice {
+  background: var(--cp-panel-2);
+  border-color: var(--cp-line);
+  color: var(--cp-accent);
+}
+.customer-shell .deposit-reference { color: var(--cp-muted); }

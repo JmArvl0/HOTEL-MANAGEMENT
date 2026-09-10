@@ -1,0 +1,113 @@
+/* HAVEN room QR placard — designed to print one sheet per room. */
+
+.qr-placard-page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  gap: 18px;
+  padding: 32px 16px;
+  background: var(--surface-canvas, #f6f5f1);
+}
+
+.qr-placard-sheet {
+  width: min(420px, 100%);
+  background: var(--surface-card);
+  border: 1px solid var(--color-line, #dce0da);
+  border-radius: var(--radius-xl);
+  padding: 34px 28px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(28, 36, 33, 0.06);
+}
+
+.qr-placard-brand {
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent, #084b55);
+}
+
+.qr-placard-sheet h1 {
+  font-family: var(--font-display);
+  font-size: var(--font-size-4xl);
+  color: var(--color-ink, #103e48);
+  margin: 6px 0 2px;
+}
+
+.qr-placard-sub {
+  font-size: var(--font-size-sm);
+  color: var(--color-slate-500, #64748b);
+  margin-bottom: 22px;
+}
+
+.qr-placard-code {
+  width: 260px;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+  display: block;
+}
+
+.qr-placard-hint {
+  margin-top: 18px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-ink, #103e48);
+}
+
+.qr-placard-footer {
+  margin-top: 22px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--color-line, #dce0da);
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: var(--font-size-xs);
+  color: var(--color-slate-500, #64748b);
+}
+
+.qr-placard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.qr-placard-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.qr-placard-actions .btn-primary {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+}
+.qr-placard-actions .btn-primary:hover { background: var(--btn-primary-hover); }
+
+.qr-placard-actions .btn-secondary {
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-fg);
+  border-color: var(--btn-secondary-border);
+}
+.qr-placard-actions .btn-secondary:hover:not(:disabled) { background: var(--btn-secondary-hover); }
+.qr-placard-actions .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.qr-placard-note {
+  width: 100%;
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-slate-600, #475569);
+}
+
+@media print {
+  .qr-placard-actions { display: none; }
+  .qr-placard-page { padding: 0; background: #fff; }
+  .qr-placard-sheet { border: none; box-shadow: none; border-radius: 0; width: 100%; }
+}
