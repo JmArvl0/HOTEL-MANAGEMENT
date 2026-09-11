@@ -28,7 +28,9 @@ describe("room detail RBAC", () => {
     }
   });
   it("never queries financial or guest-contact data for a room", () => {
-    const body = staffData.slice(staffData.indexOf("getRoomDetail"));
+    // Bounded to the getRoomDetail function itself — later functions in the
+    // file (getStaffGuestProfile) legitimately query guests and invoices.
+    const body = staffData.slice(staffData.indexOf("getRoomDetail"), staffData.indexOf("getStaffGuestProfile"));
     expect(body).not.toContain("from(\"payments\")");
     expect(body).not.toContain("from(\"invoices\")");
     expect(body).not.toContain("from(\"guests\")");

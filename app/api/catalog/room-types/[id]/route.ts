@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { guardCatalog, adminGuardFailed, adminRpcFailure } from "@/lib/admin-route";
+import { ROOM_TYPE_COLORS } from "@/lib/room-type-badge";
 
 const schema = z.object({
   description: z.string().trim().min(3).max(1000),
@@ -11,6 +12,7 @@ const schema = z.object({
   baseRate: z.coerce.number().min(0).max(10000000),
   active: z.boolean(),
   photoUrls: z.array(z.string().trim().url().max(400)).max(24).optional(),
+  badgeColorKey: z.enum(ROOM_TYPE_COLORS).nullable(),
   reason: z.string().trim().min(3).max(500),
   version: z.coerce.number().int().positive(),
 });
@@ -34,6 +36,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     p_reason: v.reason,
     p_expected_version: v.version,
     p_actor_user_id: c.actorId,
+    p_badge_color_key: v.badgeColorKey,
   });
   if (error) return adminRpcFailure(error, "Unable to update the room type.");
   return NextResponse.json({ data });

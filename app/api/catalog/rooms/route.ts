@@ -6,7 +6,7 @@ export async function GET(){
   const c=await guardCatalog();if(adminGuardFailed(c))return c;
   const[roomsResult,typesResult,assignmentsResult,reservationsResult]=await Promise.all([
     c.client.from("rooms").select("id,number,floor,type,status,housekeeping,wing,administrative_designation,administratively_active,deactivated_at,deactivation_reason,configuration_version").order("floor",{ascending:true}).order("number",{ascending:true}),
-    c.client.from("room_types").select("id,name,base_rate,active").order("name",{ascending:true}),
+    c.client.from("room_types").select("id,name,base_rate,active,badge_color_key").order("name",{ascending:true}),
     // One pass each for the forward commitments that block a retype, so the
     // dialog can disable the type field before the RPC has to refuse it.
     c.client.from("reservation_room_assignments").select("room_id").eq("status","active"),

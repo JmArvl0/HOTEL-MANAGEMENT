@@ -31,10 +31,11 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
   if (row?.reservation_id) {
     const { data: reservation } = await supabase
       .from("reservations")
-      .select("id,user_id,confirmation_number,guest_email,room_type,check_in,check_out,total,deposit")
+      .select("id,user_id,confirmation_number,guest_email,room_type,check_in,check_out,guests,total,deposit")
       .eq("id", row.reservation_id)
       .maybeSingle();
     if (reservation?.user_id) {
+      const remaining = Number(reservation.total) - Number(reservation.deposit);
       void notifyWithOptionalEmail(
         { userId: reservation.user_id, type: "reservation_confirmed", title: "Reservation confirmed", detail: `${reservation.room_type} — ${reservation.confirmation_number}`, href: `/my-reservations/${reservation.id}` },
         reservation.guest_email,
@@ -46,7 +47,9 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
 <tr><td style="color:#8a8a8a">Confirmation</td><td><strong>${reservation.confirmation_number}</strong></td></tr>
 <tr><td style="color:#8a8a8a">Room</td><td>${reservation.room_type}</td></tr>
 <tr><td style="color:#8a8a8a">Stay</td><td>${reservation.check_in} to ${reservation.check_out}</td></tr>
+<tr><td style="color:#8a8a8a">Guests</td><td>${reservation.guests}</td></tr>
 <tr><td style="color:#8a8a8a">Deposit paid</td><td>PHP ${Number(reservation.deposit).toLocaleString("en-PH")}</td></tr>
+<tr><td style="color:#8a8a8a">Payment state</td><td>${remaining > 0 ? `PHP ${remaining.toLocaleString("en-PH")} remaining, payable at check-in` : "Fully paid"}</td></tr>
 </table>`
         }
       );

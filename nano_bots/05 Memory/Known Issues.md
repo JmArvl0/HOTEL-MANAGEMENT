@@ -6,19 +6,22 @@ gets cluttered — do not archive aggressively).
 
 ## KI-001 — Room-type exception repricing policy not business-confirmed
 
-Status: Open
+Status: Resolved (2026-09-22) — the business rule arrived and is implemented
 Area: [[Check-in & Room Assignment]]
 
 Description:
-The technical repricing rule exists (target `base_rate × nights`, balance-due gate — [[D-004]]),
-but the hotel has not confirmed whether some exceptions (e.g. compensation upgrades) should
+The technical repricing rule existed (target `base_rate × nights`, balance-due gate — [[D-004]]),
+but the hotel had not confirmed whether some exceptions (e.g. compensation upgrades) should
 waive the difference.
 
-Impact:
-Do not change reservation pricing in the exception flow without an explicit business decision.
+Resolution:
+The 2026-09-22 business rule supersedes it: financial responsibility derives from the
+Manager-approved reason code (hotel-caused → hotel absorbs; guest-requested → guest pays with
+recorded acceptance; downgrade → flagged, no refund invented). Implemented in migration
+`20260922010000`; see [[D-008]] and SYSTEM.md § "Room-type change financial responsibility".
 
 Related:
-[[D-004 — Approved room-type exceptions reprice the folio to target base rate × nights]]
+[[D-004 — Room-type change financial responsibility derives from the approved reason]] · [[D-008]]
 
 ---
 

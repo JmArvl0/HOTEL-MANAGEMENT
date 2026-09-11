@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Bell, Boxes, ClipboardCheck, Search } from "lucide-react";
+import { BedDouble, Bell, Boxes, ClipboardCheck, Search } from "lucide-react";
+import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
 import { canAccess } from "@/lib/permissions";
 import { requestLabel } from "@/lib/request-options";
@@ -9,14 +10,16 @@ import type { Role } from "@/lib/types";
 
 // Guest-request review workspace. Customer submissions arrive as batches (one
 // portal submission = one batch_id = one Front Desk decision). Front Desk
-// approves or declines; Manager sees the same queue read-only. The inventory
+// approves or declines; Manager sees the same queue read-only; Housekeeping
+// receives its routed items with operational escalation controls. The inventory
 // panel in the right rail is read-only supply context — stock edits stay with
 // Housekeeping/Maintenance.
 type StaffRequest = {
   id: string; reservation_id: string; guest_id: string | null; request: string; request_type: string | null;
   batch_id: string; approval_status: "pending" | "approved" | "rejected"; approval_note: string | null;
   approved_at: string | null; department: string; priority: string; status: string; created_at: string;
-  reservation?: { confirmation_number: string | null; guest_name: string | null; room_type: string | null } | null;
+  escalation_status?: string | null;
+  reservation?: { confirmation_number: string | null; guest_name: string | null; room_type: string | null; room_number: string | null } | null;
 };
 type InventoryItem = { id: string; name: string; category: string; quantity: number; reorder_point: number; unit: string; status: string };
 type Batch = { key: string; items: StaffRequest[]; approval: "pending" | "approved" | "rejected" };
@@ -39,16 +42,17 @@ function groupBatches(requests: StaffRequest[]): Batch[] {
   })).sort((a, b) => b.items[0].created_at.localeCompare(a.items[0].created_at));
 }
 
-export default function GuestRequestsPanel({ role }: { role: Role }) {
+export default function GuestRequestsPanel({ role, onEscalate }: { role: Role; onEscalate?: (request: StaffRequest) => void | Promise<void> }) {
   const [requests, setRequests] = useState<StaffRequest[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
-  const [queue, setQueue] = useState("pending");
+  const [queue, setQueue] = useState("all");
   const [search, setSearch] = useState("");
   const dialogs = useActionDialogs();
   const canReview = role === "front_desk";
+  const canEscalate = role === "housekeeping" && Boolean(onEscalate);
   const showInventory = canAccess(role, "inventory");
   const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 2600); };
 
@@ -93,6 +97,10 @@ export default function GuestRequestsPanel({ role }: { role: Role }) {
     const note = await dialogs.askPrompt({ title: "Decline submission", message: "The guest sees this reason, and every request in the submission is cancelled — including pending Housekeeping tasks.", label: "Reason", multiline: true, rows: 3, required: true, validation: (v: string | number | boolean) => (String(v ?? "").trim() ? null : "A reason is required.") });
     if (note) await review(batch, "reject", String(note).trim());
   }
+  async function escalate(item: StaffRequest) {
+    await onEscalate?.(item);
+    await load(true);
+  }
 
   const batches = useMemo(() => groupBatches(requests), [requests]);
   const counts = {
@@ -116,16 +124,22 @@ export default function GuestRequestsPanel({ role }: { role: Role }) {
   // content, not the page heading.
   return <div>
     <div className="page-title module-title">
-      <div><p className="eyebrow">Hotel operations</p><h1>Guest requests</h1><p>Customer submissions grouped as they were filed. Front Desk approves or declines each submission as one decision; approved items route to their department queue.</p></div>
+      <div><p className="eyebrow">Hotel operations</p><h1>Guest requests</h1><p>{role === "housekeeping" ? "Approved guest requests routed to Housekeeping. Review each destination room and escalate unresolved work when coordination is needed." : "Customer submissions grouped as they were filed. Front Desk approves or declines each submission as one decision; approved items route to their department queue."}</p></div>
     </div>
     {error && <div className="empty"><Bell /><h3>Guest requests unavailable</h3><p>{error}</p></div>}
     {!error && (<>
+      <ModuleSummaryCards cards={[
+        { label: "Awaiting approval", value: counts.pending, hint: "Submission batches pending", icon: ClipboardCheck, tone: "attention", queue: "pending" },
+        { label: "Open work", value: counts.open, hint: "Approved, in department queues", icon: Bell, tone: "today", queue: "open" },
+        { label: "Approved", value: counts.approved, hint: "Granted submissions", icon: ClipboardCheck, tone: "done", queue: "approved" },
+        { label: "Declined", value: counts.rejected, hint: "Refused submissions", icon: Bell, queue: "rejected" },
+      ]} activeQueue={queue} onSelect={setQueue} ariaLabel="Guest requests summary"/>
       <div className="reservation-filters"><div>{QUEUES.map(([value, text]) => <button key={value} className={queue === value ? "active" : ""} onClick={() => setQueue(value)}>{text} <b>{counts[value as keyof typeof counts]}</b></button>)}</div></div>
       <div className="table-tools"><label><Search size={17} /><input placeholder="Search guest, reservation, request..." value={search} onChange={(event) => setSearch(event.target.value)} /></label></div>
       <div className={showInventory ? "grp-layout" : undefined}>
         <div className="grp-main">
         <div className="grp-batches">
-          {visible.map((batch) => { const first = batch.items[0]; return (
+          {visible.map((batch) => { const first = batch.items[0]; const roomNumber = first.reservation?.room_number; return (
             <article key={batch.key} className="grp-batch">
               <header>
                 <div>
@@ -133,7 +147,13 @@ export default function GuestRequestsPanel({ role }: { role: Role }) {
                   <small>{first.reservation?.confirmation_number ?? first.reservation_id}{first.reservation?.room_type ? ` · ${first.reservation.room_type}` : ""} · submitted {new Date(first.created_at).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" })}</small>
                 </div>
                 <div className="grp-batch-meta">
-                  <span className={`badge grp-approval ${batch.approval}`}>{APPROVAL_LABELS[batch.approval]}</span>
+                  <div className="grp-batch-badges">
+                    <span className={`grp-room ${roomNumber ? "assigned" : "unassigned"}`} title={roomNumber ? `Deliver to room ${roomNumber}` : "A physical room has not been assigned"}>
+                      <BedDouble size={13} aria-hidden="true" />
+                      {roomNumber ? `Room ${roomNumber}` : "Room not assigned"}
+                    </span>
+                    <span className={`badge grp-approval ${batch.approval}`}>{APPROVAL_LABELS[batch.approval]}</span>
+                  </div>
                   {canReview && batch.approval === "pending" && <div className="reservation-actions">
                     <button className="table-action view-action" onClick={() => act(batch, "approve")}>Approve</button>
                     <button className="table-action" onClick={() => act(batch, "reject")}>Decline</button>
@@ -143,7 +163,11 @@ export default function GuestRequestsPanel({ role }: { role: Role }) {
               <ul>{batch.items.map((item) => (
                 <li key={item.id}>
                   <div><b>{item.request_type ? requestLabel(item.request_type) : item.request}</b><small>{label(item.department)} · {label(item.status)}</small>{item.approval_status === "rejected" && item.approval_note && <small className="grp-note">{item.approval_note}</small>}</div>
-                  <span className={`badge ${item.status}`}>{label(item.status)}</span>
+                  <div className="grp-item-actions">
+                    <span className={`badge ${item.status}`}>{label(item.status)}</span>
+                    {canEscalate && item.status !== "completed" && item.escalation_status !== "escalated" && <button className="table-action" onClick={() => void escalate(item)}>Escalate</button>}
+                    {canEscalate && item.escalation_status === "escalated" && <span className="badge escalated">Escalated</span>}
+                  </div>
                 </li>
               ))}</ul>
             </article>

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import GuestRequestsPanel from "./guest-requests-panel";
 
 // Render-layer smoke test for the two-column rework: the control area
@@ -12,7 +12,7 @@ const submission = (overrides: Record<string, unknown> = {}) => ({
   id: "gr1", reservation_id: "r1", guest_id: "g1", request: "Extra towels", request_type: null,
   batch_id: "b1", approval_status: "pending", approval_note: null, approved_at: null,
   department: "housekeeping", priority: "normal", status: "open", created_at: "2026-09-07T02:00:00Z",
-  reservation: { confirmation_number: "HVN-260907-ABCD", guest_name: "Mark Cruz", room_type: "Deluxe King" },
+  reservation: { confirmation_number: "HVN-260907-ABCD", guest_name: "Mark Cruz", room_type: "Deluxe King", room_number: "412" },
   ...overrides,
 });
 
@@ -54,10 +54,52 @@ describe("GuestRequestsPanel render layer", () => {
     expect(screen.getByRole("button", { name: "Decline" })).toBeTruthy();
   });
 
+  it("groups the Housekeeping queue by submission, shows its destination room, and preserves escalation", async () => {
+    const onEscalate = vi.fn();
+    mockFetch([
+      submission({ approval_status: "approved" }),
+      submission({ id: "gr2", request: "Extra pillows", request_type: "extra_pillows", approval_status: "approved" }),
+    ], [stock()]);
+
+    render(<GuestRequestsPanel role="housekeeping" onEscalate={onEscalate} />);
+
+    await waitFor(() => expect(screen.getByText("Room 412")).toBeTruthy());
+    expect(screen.getByText("Extra towels")).toBeTruthy();
+    expect(screen.getByText("Extra pillows")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Approve" })).not.toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Decline" })).not.toBeTruthy();
+
+    const escalationButtons = screen.getAllByRole("button", { name: "Escalate" });
+    fireEvent.click(escalationButtons[0]);
+    expect(onEscalate).toHaveBeenCalledWith(expect.objectContaining({ id: "gr1", reservation_id: "r1" }));
+  });
+
   it("keeps the inventory rail present beside the empty state", async () => {
     mockFetch([], [stock()]);
     render(<GuestRequestsPanel role="manager" />);
     await waitFor(() => expect(screen.getByText("No submissions")).toBeTruthy());
     expect(screen.getByRole("complementary", { name: "Inventory summary" })).toBeTruthy();
+  });
+
+  it("renders summary cards that match the queue counts and drive the queue filter", async () => {
+    mockFetch([
+      submission(),
+      submission({ id: "gr2", batch_id: "b2", approval_status: "approved", status: "in_progress" }),
+      submission({ id: "gr3", batch_id: "b3", approval_status: "rejected" }),
+    ], [stock()]);
+    render(<GuestRequestsPanel role="front_desk" />);
+    await waitFor(() => expect(screen.getAllByText(/Mark Cruz/).length).toBeGreaterThan(0));
+    const summary = screen.getByRole("group", { name: "Guest requests summary" });
+    expect(summary.textContent).toContain("Awaiting approval");
+    expect(summary.textContent).toContain("Open work");
+    // Card counts equal the chip counts (1 pending, 1 open, 1 approved, 1 declined);
+    // query inside the card group — the filter chip shares the label.
+    const awaitingCard = within(summary).getByRole("button", { name: /Awaiting approval/ });
+    expect(awaitingCard.querySelector("b")?.textContent).toBe("1");
+    // Default view is All: every batch is listed (each guest name renders in the batch).
+    expect(screen.getAllByText(/Mark Cruz/).length).toBeGreaterThanOrEqual(3);
+    // Clicking the card switches to the pending-only queue and shows its selected state.
+    fireEvent.click(awaitingCard);
+    expect(awaitingCard.getAttribute("aria-pressed")).toBe("true");
   });
 });

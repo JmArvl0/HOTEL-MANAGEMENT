@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { guardCatalog, adminGuardFailed, adminRpcFailure } from "@/lib/admin-route";
+import { ROOM_TYPE_COLORS } from "@/lib/room-type-badge";
 
 const proposalColumns = "id,proposed_rate,reason,status,proposed_by,created_at,decided_by,decided_at,decision_reason";
+const badgeColorKey = z.enum(ROOM_TYPE_COLORS); // required on create — every new type enters with its badge identity
 
 export async function GET() {
   const c = await guardCatalog();
@@ -10,7 +12,7 @@ export async function GET() {
   const [typesResult, roomsResult] = await Promise.all([
     c.client
       .from("room_types")
-      .select(`id,name,description,max_guests,beds,size_sqm,amenities,base_rate,active,version,created_at,updated_at,photo_urls,room_rate_proposals(${proposalColumns})`)
+      .select(`id,name,description,max_guests,beds,size_sqm,amenities,base_rate,active,version,created_at,updated_at,photo_urls,badge_color_key,room_rate_proposals(${proposalColumns})`)
       .order("name", { ascending: true }),
     // One aggregate pass — physical-room counts per type (no per-type queries).
     c.client.from("rooms").select("type,administratively_active"),
@@ -38,6 +40,7 @@ const createSchema = z.object({
   baseRate: z.coerce.number().min(0).max(10000000),
   active: z.boolean().optional().default(false),
   photoUrls: z.array(z.string().trim().url().max(400)).min(1).max(24),
+  badgeColorKey,
   reason: z.string().trim().min(3).max(500),
 });
 
@@ -59,6 +62,7 @@ export async function POST(request: Request) {
     p_photo_urls: v.photoUrls ?? null,
     p_reason: v.reason,
     p_actor_user_id: c.actorId,
+    p_badge_color_key: v.badgeColorKey,
   });
   if (error) return adminRpcFailure(error, "Unable to create the room type.");
   return NextResponse.json({ data }, { status: 201 });

@@ -59,6 +59,20 @@ One coastal palette across surfaces (brand refresh 2026-09-09), differentiated p
   red `#f9e3e1`/`#a44843`); *app-shell dark* = deep background + bright text (`#173024`/`#65d3a5`,
   `#34291c`/`#dfa062`, `#351f21`/`#ef797e`). Coverage gap closed 2026-09-05: `active`,
   `on_leave`, `suspended`, `escalated` added in both contexts (see `DESIGN-STATUS` F5).
+- **Room-type badge colors** (2026-09-25, migration `20260925010000`): each active room type owns
+  one semantic key from an eight-color HAVEN palette — `sage`, `gold`, `ocean`, `plum`,
+  `terracotta`, `slate`, `sand`, `lavender` — stored on `room_types.badge_color_key` and rendered
+  by the shared `RoomTypeBadge` (`lib/room-type-badge.ts`) as `.room-type.rt-<key>` pills.
+  Each variant defines a dual palette via custom properties (`--rt-bg`/`--rt-fg` for the dark
+  shell, `--rt-bg-l`/`--rt-fg-l` for light theme + shared light modal panels); e.g. sage
+  `#173024`/`#65d3a5` dark, `#def1e8`/`#267056` light. Null/unknown keys fall back to the neutral
+  pill (`#232823`/`#a8b3a8` dark, `#e8e8e2`/`#4a524a` light). These are **type identity**
+  colors only — room-status and housekeeping badge colors are separate rules and never derive
+  from the type key. Swatches in the Room Types & Photos editor render as the badge itself.
+  Governance (`20260927010000`): a color is reserved by active types *and* types with pending rate
+  proposals; creation requires a choice (no neutral escape hatch — null is legacy-fallback only);
+  the `terracotta` key is a categorical badge hue and is not the retired brand accent `#c9783c`.
+  Physical rooms inherit their type's key — there is no per-room color control anywhere.
 
 **Theming:** `.theme-light` on `<html>`, set pre-paint by the inline script in `app/layout.tsx`.
 `coastal-theme.css` adds a dark-mode `@media (prefers-color-scheme: dark)` block for the shell.
@@ -144,7 +158,42 @@ filtering live in `lib/customer.ts` as pure presentation helpers — no query or
 business-logic change. Styling is scoped in `guest-booking.css` (`.folio-*`) using
 `--cp-*` tokens, with 44px chip touch floors ≤680px.
 
-## 10. Known-open items
+## 10. Module quick-overview cards (staff dashboards)
+
+`ModuleSummaryCards` (`components/manager/module-summary-cards.tsx`, styled by the
+`.mod-kpis` / `.mod-kpi` block in `manager-dashboard-theme.css` — dark and `.theme-light`
+mirrors) is the single pattern for the compact operational snapshot at the top of a staff
+module. Each card is label / strong value (count or peso total) / one-line hint / icon chip.
+It is deliberately **not** the big Overview `metric-card`: 10px label, 22px number, 9px
+hint, 13–14px padding — dense enough to read as a snapshot above a table.
+
+- **Tones are accents, not backgrounds.** The four semantic tones (`attention`, `today`,
+  `active`, `done`) tint only the icon chip background; the card surface stays neutral.
+- **Clickable where a filter exists.** A card with a `queue` renders as `<button
+  aria-pressed>` and drives the module's existing filter state (Reservations queues,
+  Transportation queues, Approvals status pills, Guest Requests submission queues, Front
+  Desk Reports status chips) — one control surface, never a parallel filter. Cards without a
+  matching filter (e.g. Reservations "Active" or "Arrivals needing prep") are informational
+  `<article>`s. Selected state = ring/border via `aria-pressed`, not color flips.
+- **Counts are the filters.** Values derive from the same predicates, the same grouped
+  queue (Housekeeping), and the same Asia/Manila `today` string as the module's filters,
+  so card == chip == table rows.
+- **Ordering is fixed.** Page title → cards → filter chips → search → table; the strip is
+  the module's snapshot, read before any control.
+- **Grid: one row, any count.** `repeat(auto-fit,minmax(0,1fr))` keeps 2–6 cards on one
+  row with equal columns. ≤1000px → 2 columns, with an odd last card spanning the full row
+  so nothing dangles; ≤480px → 1 column. Zero is a valid value and renders; the workspace
+  loading gate means no false zeros while fetching.
+- **Admin governance modules use the same vocabulary** (2026-09-24): Users & Staff, Room
+  Configuration, Audit Logs, Security, and Admin Reports all lead with the card strip
+  (clickable where a filter exists), and the shared filter-toolbar / table-badge / footer /
+  clear-filters-empty-state kit from Users & Staff is the pattern for every admin table.
+  Roles & Permissions renders role cards with capability chips; Hotel Policies groups the
+  raw columns into labeled stat tiles (times `HH:MM`, booleans Yes/No, basis points as a
+  percent) with a fallback group so schema additions are never hidden. Admin CSS lives in
+  the `admin-*` block of `manager-dashboard-theme.css` (dark + `.theme-light` mirrors).
+
+## 11. Known-open items
 
 - **F6 — landing double-styling** (`globals.css` vs `landing.css`): **closed 2026-09-07** — the
   interactive landing redesign consolidated every landing rule into `app/(landing-page)/landing.css`;

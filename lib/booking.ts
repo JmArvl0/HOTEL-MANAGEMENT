@@ -2,6 +2,7 @@ import { z } from "zod";
 import { formatPeso } from "@/lib/format";
 import { CHECKOUT_REQUEST_VALUES } from "@/lib/request-options";
 import { supabase } from "@/lib/supabase";
+import { nightlyRates, stayTotal, uniformRate, fromRate, type RatePlan } from "@/lib/rate-plans";
 
 export const BLOCKING_RESERVATION_STATUSES = ["pending", "confirmed", "checked_in"] as const;
 export const HOLD_MINUTES = 15;
@@ -274,14 +275,15 @@ export async function getAvailability(input: SearchInput, retryTransientAuth = t
   if (!parsed.success || !supabase) return [];
   const { checkIn, checkOut, guests } = parsed.data;
   const now = new Date().toISOString();
-  const [{ data: types, error: typeError }, { data: rooms, error: roomError }, { data: reservations, error: reservationError }, { data: holds, error: holdError }, { data: maintenance, error: maintenanceError }] = await Promise.all([
+  const [{ data: types, error: typeError }, { data: rooms, error: roomError }, { data: reservations, error: reservationError }, { data: holds, error: holdError }, { data: maintenance, error: maintenanceError }, { data: plans, error: planError }] = await Promise.all([
     supabase.from("room_types").select("id,name,description,max_guests,beds,size_sqm,amenities,base_rate,photo_urls").eq("active", true).gte("max_guests", guests),
     supabase.from("rooms").select("id,type,status,housekeeping,administratively_active"),
     supabase.from("reservations").select("room_type,check_in,check_out,status,source,payment_due_at").in("status", [...BLOCKING_RESERVATION_STATUSES]).lt("check_in", checkOut).gt("check_out", checkIn),
     supabase.from("booking_holds").select("room_type,check_in,check_out,status,expires_at,reservation_id").in("status", ["active","payment_submitted"]).gt("expires_at", now).lt("check_in", checkOut).gt("check_out", checkIn),
     supabase.from("maintenance_orders").select("room_id").in("status", ["open","assigned","in_progress","waiting_parts","deferred"]).in("serviceability_impact", ["blocked","out_of_service"]),
+    supabase.from("room_rate_plans").select("id,room_type_id,name,start_date,end_date,days_of_week,nightly_rate,status,decided_at").eq("status", "active"),
   ]);
-  const queryError = typeError || roomError || reservationError || holdError || maintenanceError;
+  const queryError = typeError || roomError || reservationError || holdError || maintenanceError || planError;
   if (queryError) {
     if (retryTransientAuth && queryError.code === "PGRST303") {
       await new Promise((resolve) => setTimeout(resolve, 300));
@@ -292,9 +294,14 @@ export async function getAvailability(input: SearchInput, retryTransientAuth = t
   const nights = calculateNights(checkIn, checkOut);
   const window = { checkIn, checkOut, now, today: hotelToday() };
   const rows = { rooms: rooms ?? [], reservations: reservations ?? [], holds: holds ?? [], blockedRoomIds: new Set((maintenance ?? []).map((row) => row.room_id)) };
+  // Estimates only — the create_booking_hold RPC is the pricing authority and
+  // freezes the per-night rates it actually charges.
   return (types ?? []).map((type) => {
-    const rate = Number(type.base_rate);
-    return { id: type.id, name: type.name, description: type.description, maxGuests: type.max_guests, beds: type.beds, sizeSqm: type.size_sqm, amenities: Array.isArray(type.amenities) ? type.amenities.map(String) : [], nightlyRate: rate, nights, subtotal: rate * nights, availableUnits: countAvailableUnits(type.name, window, rows), photos: Array.isArray(type.photo_urls) ? type.photo_urls.map(String) : [] };
+    const typePlans = ((plans ?? []) as RatePlan[]).filter((plan) => plan.room_type_id === type.id);
+    const perNight = nightlyRates(type.base_rate, typePlans, checkIn, checkOut);
+    const rate = uniformRate(perNight) ?? Math.min(...perNight.map((night) => night.rate));
+    const subtotal = stayTotal(perNight);
+    return { id: type.id, name: type.name, description: type.description, maxGuests: type.max_guests, beds: type.beds, sizeSqm: type.size_sqm, amenities: Array.isArray(type.amenities) ? type.amenities.map(String) : [], nightlyRate: rate, nights, subtotal, availableUnits: countAvailableUnits(type.name, window, rows), photos: Array.isArray(type.photo_urls) ? type.photo_urls.map(String) : [] };
   }).filter((type) => type.availableUnits > 0).sort((a, b) => a.nightlyRate - b.nightlyRate);
 }
 
@@ -305,16 +312,21 @@ export async function getRoomType(name: string, search: SearchInput) {
 /** All active room types with no date context — the browse-mode catalog. Same source and photo chain as availability. */
 export async function getRoomCatalog(): Promise<RoomTypeSummary[]> {
   if (!supabase) return [];
-  const { data, error } = await supabase.from("room_types")
-    .select("id,name,description,max_guests,beds,size_sqm,amenities,base_rate,photo_urls")
-    .eq("active", true)
-    .order("base_rate", { ascending: true });
+  const [{ data, error }, { data: plans }] = await Promise.all([
+    supabase.from("room_types")
+      .select("id,name,description,max_guests,beds,size_sqm,amenities,base_rate,photo_urls")
+      .eq("active", true)
+      .order("base_rate", { ascending: true }),
+    supabase.from("room_rate_plans").select("id,room_type_id,nightly_rate,status").eq("status", "active"),
+  ]);
   if (error) throw new Error(`Room catalog query failed${error.code ? ` (${error.code})` : ""}`);
+  // "From" price: any active plan can price a night cheaper than base — the guest
+  // should never see a higher figure than the best night actually on sale.
   return (data ?? []).map((type) => ({
     id: type.id, name: type.name, description: type.description, maxGuests: type.max_guests,
     beds: type.beds, sizeSqm: type.size_sqm,
     amenities: Array.isArray(type.amenities) ? type.amenities.map(String) : [],
-    nightlyRate: Number(type.base_rate),
+    nightlyRate: fromRate(type.base_rate, ((plans ?? []) as RatePlan[]).filter((plan) => plan.room_type_id === type.id)),
     photos: Array.isArray(type.photo_urls) ? type.photo_urls.map(String) : [],
   }));
 }

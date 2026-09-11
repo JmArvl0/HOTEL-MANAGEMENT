@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { CalendarDays, ClipboardCheck, Download, FileText, Send, X } from "lucide-react";
+import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
 import { canGenerateFrontDeskReport, canReviewFrontDeskReports } from "@/lib/permissions";
 import type { DailyReportSnapshot } from "@/lib/front-desk-reports";
@@ -160,6 +161,12 @@ export default function FrontDeskReportsPanel({ role }: { role: Role }) {
       <p className="export-note">Export prints or saves this preview. It does not submit anything to the Manager.</p>
       <ReportSnapshotView snapshot={viewing ? viewing.snapshot : preview!}/>
     </article>}
+    <ModuleSummaryCards cards={[
+      { label: "Submitted", value: rows.filter((row) => row.status === "submitted").length, hint: "Awaiting Manager review", icon: Send, tone: "attention", queue: "submitted" },
+      { label: "Acknowledged", value: rows.filter((row) => row.status === "acknowledged").length, hint: "Reviewed and closed", icon: ClipboardCheck, tone: "done", queue: "acknowledged" },
+      { label: "Returned", value: rows.filter((row) => row.status === "returned").length, hint: "Needs resubmission", icon: FileText, tone: "today", queue: "returned" },
+      { label: "On record", value: rows.length, hint: "All stored snapshots", icon: CalendarDays },
+    ]} activeQueue={["submitted", "acknowledged", "returned"].includes(status) ? status : undefined} onSelect={(target) => setStatus(target)} ariaLabel="Report history summary"/>
     <div className="reservation-filters"><div>{["all", "submitted", "acknowledged", "returned"].map((value) => <button key={value} className={status === value ? "active" : ""} onClick={() => setStatus(value)}>{label(value)}</button>)}</div></div>
     <div className="data-panel"><div className="table-scroll"><table aria-label="Front desk report history"><thead><tr><th>Report date</th><th>Submitted</th><th>By</th><th>Status</th><th>Review</th><th>Actions</th></tr></thead>
       <tbody>{visible.map((row) => <tr key={row.id}>

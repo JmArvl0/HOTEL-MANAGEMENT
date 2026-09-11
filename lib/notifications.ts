@@ -21,7 +21,9 @@ export type NotificationType =
   | "transportation_scheduled"
   | "transportation_cancelled"
   | "payment_link"
-  | "reservation_confirmed";
+  | "reservation_confirmed"
+  | "pre_arrival_reminder"
+  | "pre_departure_reminder";
 
 export interface NotificationInput {
   userId: string;

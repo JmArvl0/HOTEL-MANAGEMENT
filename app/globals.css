@@ -72,7 +72,15 @@ html{scroll-padding-top:86px}
 .catalog-card-actions{margin-top:auto; flex-wrap:wrap}
 .catalog-card-version{margin:2px 0 0}
 .photo-cover-tag{position:absolute; top:4px; left:4px; z-index:2; padding:2px 6px; border-radius:4px; background:rgba(8,75,85,.92); color:#fff; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.4px}
+/* Rate plans — dated overlays on the base rate (weekend/seasonal/holiday) */
+.rate-plan-manager{display:flex; flex-direction:column; gap:10px}
+.rate-plan-row{display:flex; align-items:flex-start; justify-content:space-between; gap:10px; padding:10px 12px; border:1px solid var(--line, #d8d6ce); border-radius:10px; background:var(--paper, #fff)}
+.rate-plan-row .badge{flex:none; margin-left:8px; vertical-align:2px}
+.rate-plan-main{display:flex; flex-direction:column; gap:3px; min-width:0}
+.rate-plan-main p{margin:0}
+.rate-plan-form{border-top:1px solid var(--line, #d8d6ce); padding-top:12px; margin-top:4px}
 @media (max-width:680px){
+  .rate-plan-row{flex-direction:column}
   .catalog-cards{grid-template-columns:1fr; padding:10px; gap:12px}
   .catalog-card-actions{gap:6px}
 }

@@ -23,9 +23,10 @@ export const viewport = {
   viewportFit: "cover" as const,
 };
 
-// Runs before first paint so a saved light theme never flashes the dark palette.
-// Key and fallback must match lib/theme.ts.
-const themeScript = `(function(){try{var m=localStorage.getItem('haven-dashboard-theme');if(m!=='light'&&m!=='dark')m='system';if(m==='light'||(m==='system'&&!window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('theme-light')}catch(e){}})()`;
+// Runs before first paint so the default light theme (and a saved one) never flashes
+// the dark base palette. Key and rule must match lib/theme.ts: only a stored 'dark'
+// paints dark — every other value (missing, junk, legacy 'system') is light.
+const themeScript = `(function(){try{if(localStorage.getItem('haven-dashboard-theme')!=='dark')document.documentElement.classList.add('theme-light')}catch(e){}})()`;
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return <html lang="en" suppressHydrationWarning>

@@ -119,7 +119,10 @@ describe("transportation fare on the folio (charged at assignment)", () => {
 
 describe("transportation workspace layout", () => {
   it("separates the KPI summary from the filter controls", () => {
-    expect(managerTheme).toContain(".tp-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:16px}");
+    // 2026-09-23: the KPI cards moved to the shared ModuleSummaryCards pattern
+    // (.mod-kpi, used by every staff module summary); the block stays separate
+    // from the filter/toolbar styles. auto-fit keeps any card count on one row.
+    expect(managerTheme).toContain(".mod-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:9px;margin-bottom:16px}");
   });
 });
 

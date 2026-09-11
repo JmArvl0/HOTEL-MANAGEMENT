@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { groupedNav, isGroupOpen, ManagerSidebarNav, nav, NAV_GROUPS } from "./manager-dashboard-client";
+import { badgeLabel, groupedNav, isGroupOpen, ManagerSidebarNav, nav, NAV_GROUPS } from "./manager-dashboard-client";
 
 // The dashboard file pulls in recharts via its panel imports; jsdom has no
 // ResizeObserver or layout. (Same stubs as approvals-view.test.tsx.)
@@ -89,7 +89,7 @@ describe("sidebar dropdown interaction", () => {
   afterEach(() => { localStorage.clear(); cleanup(); });
 
   it("toggles a category open on click and persists the choice", () => {
-    render(<ManagerSidebarNav items={nav} section="overview" onSelect={() => {}} openTasks={0} />);
+    render(<ManagerSidebarNav items={nav} section="overview" onSelect={() => {}} badges={{}} />);
     const header = screen.getByRole("button", { name: "Operations" });
     expect(header.getAttribute("aria-expanded")).toBe("false");
     fireEvent.click(header);
@@ -99,9 +99,52 @@ describe("sidebar dropdown interaction", () => {
 
   it("keeps the active module's category open even when stored collapsed", () => {
     localStorage.setItem("haven-sidebar-groups", JSON.stringify({ operations: false }));
-    render(<ManagerSidebarNav items={nav} section="housekeeping_tasks" onSelect={() => {}} openTasks={2} />);
+    render(<ManagerSidebarNav items={nav} section="housekeeping_tasks" onSelect={() => {}} badges={{ housekeeping_tasks: 2 }} />);
     expect(screen.getByRole("button", { name: "Operations" }).getAttribute("aria-expanded")).toBe("true");
     // The housekeeping module button carries the open-task count badge.
     expect(screen.getByTitle("Housekeeping").textContent).toContain("2");
+  });
+});
+
+describe("sidebar module badges", () => {
+  afterEach(() => { localStorage.clear(); cleanup(); });
+
+  it("renders a badge only for modules with pending work", () => {
+    render(<ManagerSidebarNav items={nav} section="overview" onSelect={() => {}} badges={{ guest_requests: 3, housekeeping_tasks: 0 }} />);
+    expect(screen.getByTitle("Guest Requests").textContent).toContain("3");
+    // Zero pending = no badge element at all, never a "0".
+    const housekeeping = screen.getByTitle("Housekeeping");
+    expect(housekeeping.querySelectorAll(".nav-badge")).toHaveLength(0);
+    expect(housekeeping.textContent).not.toContain("0");
+  });
+
+  it("caps large counts at 99+", () => {
+    expect(badgeLabel(1)).toBe("1");
+    expect(badgeLabel(99)).toBe("99");
+    expect(badgeLabel(100)).toBe("99+");
+    expect(badgeLabel(347)).toBe("99+");
+  });
+
+  it("sums module badges on a collapsed category header", () => {
+    // Operations stays collapsed (active section is elsewhere).
+    render(<ManagerSidebarNav items={nav} section="overview" onSelect={() => {}} badges={{ housekeeping_tasks: 2, maintenance_orders: 1 }} />);
+    const header = screen.getByRole("button", { name: /^Operations/ });
+    expect(header.textContent).toContain("3");
+  });
+
+  it("shows no category badge when the category has no pending work", () => {
+    render(<ManagerSidebarNav items={nav} section="overview" onSelect={() => {}} badges={{ guest_requests: 3 }} />);
+    const header = screen.getByRole("button", { name: /^Operations/ });
+    expect(header.querySelectorAll(".nav-badge")).toHaveLength(0);
+  });
+});
+
+describe("Housekeeping overview boundaries", () => {
+  it("shows room-readiness activity instead of linking to forbidden reservations", () => {
+    const dashboard = readFileSync(resolve(process.cwd(), "components/manager/manager-dashboard-client.tsx"), "utf8");
+
+    expect(dashboard).toContain('allowed.includes("reservations")?<article className="panel arrivals"');
+    expect(dashboard).toContain("Room readiness activity");
+    expect(dashboard).toContain('onClick={()=>setSection("rooms")}>View rooms');
   });
 });

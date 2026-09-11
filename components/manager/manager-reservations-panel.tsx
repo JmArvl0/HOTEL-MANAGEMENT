@@ -1,7 +1,8 @@
 "use client";
 import { useMemo, useState } from "react";
-import { CalendarDays, Eye, QrCode, Search, ShieldAlert } from "lucide-react";
+import { BedDouble, CalendarDays, Eye, LogIn, LogOut, QrCode, Search, ShieldAlert } from "lucide-react";
 import { byAttentionThenStay, deriveReservationAttention, needsAttention, type AttentionRow } from "@/lib/manager-attention";
+import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import type { RecordItem } from "@/lib/types";
 
 const peso = (value: unknown) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 }).format(Number(value || 0));
@@ -60,13 +61,23 @@ export function ManagerReservationsPanel({ items, search, setSearch, viewReserva
   onReviewException: (item: RecordItem) => void;
   onScan: (() => void) | null;
 }) {
-  const [queue, setQueue] = useState("attention");
+  const [queue, setQueue] = useState("all");
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
   const rows = items as AttentionRow[];
   const counts = useMemo(() => new Map(QUEUES.map(([value]) => [value, rows.filter((item) => managerQueueFilter(item, value, today)).length] as [string, number])), [rows, today]);
   const visible = useMemo(() => (queue === "attention" ? rows.filter((item) => managerQueueFilter(item, queue, today)).sort(byAttentionThenStay(today)) : rows.filter((item) => managerQueueFilter(item, queue, today))), [rows, queue, today]);
 
   const openRow = (item: RecordItem) => viewReservation(item);
+
+  // Quick-overview snapshot before the queue chips. Counts call the SAME
+  // managerQueueFilter predicates as the chips/table, so the three can never
+  // disagree; attention uses the authoritative needsAttention derivation.
+  const summaryCards = [
+    { label: "Attention required", value: counts.get("attention") ?? 0, hint: "Derived operational issues", icon: ShieldAlert, tone: "attention" as const, queue: "attention" },
+    { label: "Arrivals today", value: counts.get("arrivals") ?? 0, hint: "Expected check-ins", icon: LogIn, tone: "active" as const, queue: "arrivals" },
+    { label: "Departures today", value: counts.get("departures") ?? 0, hint: "Due to check out", icon: LogOut, tone: "today" as const, queue: "departures" },
+    { label: "In-house", value: counts.get("in_house") ?? 0, hint: "Current stays", icon: BedDouble, tone: "done" as const, queue: "in_house" },
+  ];
 
   return <>
     <div className="page-title module-title">
@@ -77,6 +88,7 @@ export function ManagerReservationsPanel({ items, search, setSearch, viewReserva
       </div>
       {onScan && <div className="title-actions"><button className="btn btn-soft" onClick={onScan}><QrCode size={17} /> Scan QR</button></div>}
     </div>
+    <ModuleSummaryCards cards={summaryCards} activeQueue={queue} onSelect={setQueue} ariaLabel="Reservations summary"/>
     <div className="reservation-filters">
       <div>{QUEUES.map(([value, text]) => <button key={value} className={queue === value ? "active" : ""} aria-pressed={queue === value} onClick={() => setQueue(value)}>{text}<i className="chip-count">{counts.get(value) ?? 0}</i></button>)}</div>
     </div>

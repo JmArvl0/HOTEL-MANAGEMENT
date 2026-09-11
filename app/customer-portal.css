@@ -501,3 +501,24 @@
   .customer-attention a{align-items:flex-start;flex-direction:column;gap:4px}
   .customer-attention a>svg{display:none}
 }
+
+/* Expanded sidebar gets an explicit collapse affordance; once collapsed, the
+   HAVEN mark is centered and acts as the expand control. */
+.customer-shell .customer-sidebar-collapse{
+  flex:0 0 30px;width:30px;height:30px;margin-left:auto;padding:0;border:0;border-radius:7px;
+  display:grid;place-items:center;background:transparent;color:var(--cp-muted);
+}
+.customer-shell .customer-brand-copy{min-width:0;flex:1}
+.customer-shell .customer-sidebar-collapse:hover{background:color-mix(in srgb,var(--cp-text) 7%,transparent);color:var(--cp-text)}
+.customer-shell .customer-sidebar-collapse:focus-visible{outline:2px solid var(--cp-green);outline-offset:2px}
+.customer-shell .customer-sidebar.collapsed .customer-brand{justify-content:center}
+.customer-shell .customer-sidebar.collapsed .customer-sidebar-collapse{display:none}
+@media(max-width:900px){
+  .customer-shell .customer-sidebar .customer-brand,
+  .customer-shell .customer-sidebar.collapsed .customer-brand{justify-content:flex-start}
+  .customer-shell .customer-sidebar-collapse{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+  .customer-shell,.customer-shell .customer-sidebar,.customer-shell .customer-brand-copy,
+  .customer-shell .customer-sidebar nav span,.customer-shell .customer-bottom-link span{transition:none}
+}

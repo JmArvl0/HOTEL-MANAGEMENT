@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { CalendarDays, CarFront, CarTaxiFront, CheckCircle2, ClipboardCheck, Search, X } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
 import type { FormField } from "@/components/ui/FormDialog";
 import { canCancelTransportation, canOperateTransportation } from "@/lib/permissions";
@@ -152,12 +152,6 @@ export default function TransportationPanel({ role }: { role: Role }) {
   const counts = Object.fromEntries(QUEUES.map(([value]) => [value, trips.filter((trip) => queueMatch(trip, value, today)).length])) as Record<string, number>;
   const hasActiveFilters = queue !== "all" || serviceFilter !== "all" || search.trim() !== "";
   const clearFilters = () => { setQueue("all"); setServiceFilter("all"); setSearch(""); };
-  const cards: { name: string; value: number; hint: string; queue: string; icon: LucideIcon; tone: string }[] = [
-    { name: "Needs review", value: trips.filter((trip) => ["REQUESTED", "REVIEWED"].includes(trip.status)).length, hint: "Requested or reviewed", queue: "pending", icon: ClipboardCheck, tone: "attention" },
-    { name: "Trips today", value: trips.filter((trip) => trip.pickup_date === today && !isTerminalStatus(trip.status)).length, hint: "Scheduled for today", queue: "today", icon: CalendarDays, tone: "today" },
-    { name: "Assigned / in progress", value: trips.filter((trip) => ["ASSIGNED", "IN_PROGRESS"].includes(trip.status)).length, hint: "Driver on the trip", queue: "active", icon: CarFront, tone: "active" },
-    { name: "Completed this week", value: trips.filter((trip) => trip.status === "COMPLETED" && trip.completed_at && new Date(trip.completed_at).getTime() >= weekAgo).length, hint: "Last 7 days", queue: "completed", icon: CheckCircle2, tone: "done" },
-  ];
 
   const actions = (trip: StaffTrip) => {
     const buttons: [string, () => void][] = [];
@@ -180,7 +174,12 @@ export default function TransportationPanel({ role }: { role: Role }) {
     <div className="page-title module-title"><div><p className="eyebrow">Hotel operations</p><h1>Transportation</h1><p>Review, schedule, assign and complete guest pickup, drop-off and round-trip trips.</p></div></div>
     {error && <div className="tp-empty"><span className="tp-empty-icon"><CarTaxiFront size={22}/></span><h3>Transportation unavailable</h3><p>{error}</p></div>}
     {!error && (<>
-    <div className="tp-kpis">{cards.map(({ name, value, hint, queue: target, icon: Icon, tone }) => <button className={`tp-kpi${queue === target ? " active" : ""} ${tone}`} key={name} aria-pressed={queue === target} onClick={() => setQueue(target)}><span>{name}</span><b>{value}</b><small>{hint}</small><i aria-hidden="true"><Icon size={16}/></i></button>)}</div>
+    <ModuleSummaryCards cards={[
+      { label: "Needs review", value: trips.filter((trip) => ["REQUESTED", "REVIEWED"].includes(trip.status)).length, hint: "Requested or reviewed", queue: "pending", icon: ClipboardCheck, tone: "attention" },
+      { label: "Trips today", value: trips.filter((trip) => trip.pickup_date === today && !isTerminalStatus(trip.status)).length, hint: "Scheduled for today", queue: "today", icon: CalendarDays, tone: "today" },
+      { label: "Assigned / in progress", value: trips.filter((trip) => ["ASSIGNED", "IN_PROGRESS"].includes(trip.status)).length, hint: "Driver on the trip", queue: "active", icon: CarFront, tone: "active" },
+      { label: "Completed this week", value: trips.filter((trip) => trip.status === "COMPLETED" && trip.completed_at && new Date(trip.completed_at).getTime() >= weekAgo).length, hint: "Last 7 days", queue: "completed", icon: CheckCircle2, tone: "done" },
+    ]} activeQueue={queue} onSelect={setQueue} ariaLabel="Transportation summary"/>
     <div className="tp-toolbar reservation-filters"><div className="tp-queues">{QUEUES.map(([value, text]) => <button key={value} className={queue === value ? "active" : ""} aria-pressed={queue === value} onClick={() => setQueue(value)}>{text}<i className="chip-count">{counts[value]}</i></button>)}</div><label>Service<select value={serviceFilter} onChange={(event) => setServiceFilter(event.target.value)}><option value="all">All services</option><option value="PICKUP">Airport Pickup</option><option value="DROPOFF">Hotel Drop-off</option><option value="ROUND_TRIP">Round Trip</option></select></label></div>
     <div className="tp-search-row table-tools"><label><Search size={17}/><input type="search" aria-label="Search transportation requests" placeholder="Search guest, reservation, route, location…" value={search} onChange={(event) => setSearch(event.target.value)}/></label>{hasActiveFilters && <button className="tp-clear" onClick={clearFilters}><X size={13}/>Clear filters</button>}</div>
     <p className="tp-note">Locations are recorded as text — coordinate trips by phone; there is no external mapping or fleet service.</p>

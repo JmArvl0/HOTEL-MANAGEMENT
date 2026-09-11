@@ -1,15 +1,25 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BedDouble, Building2, Check, Eye, ImagePlus, Images, Loader2, Pencil, Plus, RefreshCw, Search, Trash2, Upload, Users, X } from "lucide-react";
+import { BedDouble, Building2, CalendarRange, Check, Eye, ImagePlus, Images, Loader2, Pencil, Plus, RefreshCw, Search, Trash2, Upload, Users, X } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
 import { RoomTypeDetailsBody } from "@/components/booking/room-details";
 import { roomPrimary } from "@/lib/room-images";
 import { canProposeRoomTypeRate, canSetRoomTypeRate } from "@/lib/permissions";
+import { daysLabel, type RatePlan } from "@/lib/rate-plans";
+import { ROOM_TYPE_COLORS } from "@/lib/room-type-badge";
+import { RoomTypeBadge } from "@/components/ui/RoomTypeBadge";
 import type { Role } from "@/lib/types";
 import type { AvailableRoomType } from "@/lib/booking";
 
 type Proposal = { id: string; proposed_rate: number; reason: string; status: string; created_at: string };
+type PlanDraft = { name: string; startDate: string; endDate: string; days: string[]; nightlyRate: string; reason: string };
+const DAY_OPTIONS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
+const dateValue = (days: number) => {
+  const d = new Date(Date.now() + days * 86400000);
+  return d.toISOString().slice(0, 10);
+};
+const emptyPlanDraft = (): PlanDraft => ({ name: "", startDate: dateValue(1), endDate: dateValue(7), days: [...DAY_OPTIONS], nightlyRate: "", reason: "" });
 type RoomType = {
   id: string;
   name: string;
@@ -22,11 +32,12 @@ type RoomType = {
   active: boolean;
   version: number;
   photo_urls: string[];
+  badge_color_key: string | null;
   physicalRooms?: number;
   activeRooms?: number;
   room_rate_proposals?: Proposal[] | null;
 };
-type Draft = { name: string; description: string; maxGuests: string; beds: string; sizeSqm: string; amenities: string; baseRate: string; active: boolean; reason: string };
+type Draft = { name: string; description: string; maxGuests: string; beds: string; sizeSqm: string; amenities: string; baseRate: string; active: boolean; badgeColorKey: string | null; reason: string };
 
 const peso = (value: unknown) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 }).format(Number(value || 0));
 const label = (value: unknown) => String(value ?? "").replaceAll("_", " ");
@@ -55,10 +66,17 @@ function draftFrom(t: RoomType): Draft {
     amenities: amenityList(t.amenities),
     baseRate: String(t.base_rate),
     active: t.active,
+    badgeColorKey: t.badge_color_key ?? null,
     reason: "",
   };
 }
-const emptyDraft = (): Draft => ({ name: "", description: "", maxGuests: "2", beds: "", sizeSqm: "", amenities: "", baseRate: "", active: false, reason: "" });
+const emptyDraft = (): Draft => ({ name: "", description: "", maxGuests: "2", beds: "", sizeSqm: "", amenities: "", baseRate: "", active: false, badgeColorKey: null, reason: "" });
+// A color is claimable when no OTHER type in the reservation scope holds it:
+// active types and types with a pending rate proposal (a proposal is a type on
+// its way live). The type being edited keeps its own.
+const colorOwner = (items: RoomType[], key: string, editingId?: string) =>
+  items.find((item) => item.badge_color_key === key && item.id !== editingId && (item.active || pendingOf(item)));
+const colorName = (key: string | null | undefined) => (key ? key[0].toUpperCase() + key.slice(1) : "None");
 
 export default function RoomCatalogPanel({ role }: { role: Role }) {
   const dialogs = useActionDialogs();
@@ -72,6 +90,9 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
   const [photoType, setPhotoType] = useState<RoomType | null>(null); // photo manager target
   const [photoDraft, setPhotoDraft] = useState<string[] | null>(null);
   const [preview, setPreview] = useState<RoomType | null>(null);
+  const [planType, setPlanType] = useState<RoomType | null>(null); // rate-plan manager target
+  const [plans, setPlans] = useState<RatePlan[] | null>(null); // null = loading
+  const [planDraft, setPlanDraft] = useState<PlanDraft | null>(null);
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState("");
@@ -107,6 +128,87 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
   };
   const openPhotos = (item: RoomType) => { setPhotoType(item); setPhotoDraft(Array.isArray(item.photo_urls) ? [...item.photo_urls] : []); };
   const closePhotos = () => { setPhotoType(null); setPhotoDraft(null); };
+
+  // Rate plans: dated overlays on base rate — weekend/seasonal/holiday pricing.
+  // Manager proposes, Owner/Admin approve, anyone here can retire. Plans price
+  // FUTURE bookings only; confirmed bookings keep their agreed rates.
+  const openPlans = async (item: RoomType) => {
+    setPlanType(item); setPlans(null); setPlanDraft(null);
+    const response = await fetch(`/api/catalog/room-types/${item.id}/rate-plans`, { cache: "no-store" });
+    const body = await response.json();
+    if (!response.ok) { notify(body.error ?? "Unable to load rate plans."); setPlans([]); return; }
+    setPlans(body.data ?? []);
+  };
+  const loadPlans = async (id: string) => {
+    const response = await fetch(`/api/catalog/room-types/${id}/rate-plans`, { cache: "no-store" });
+    const body = await response.json();
+    if (response.ok) setPlans(body.data ?? []);
+  };
+  const proposePlan = async () => {
+    if (!planType || !planDraft) return;
+    if (planDraft.name.trim().length < 3) { notify("Enter a plan name (at least 3 characters)."); return; }
+    if (!planDraft.days.length) { notify("Choose at least one day of the week."); return; }
+    if (!Number.isFinite(Number(planDraft.nightlyRate)) || Number(planDraft.nightlyRate) < 0) { notify("Enter a valid nightly rate."); return; }
+    if (planDraft.reason.trim().length < 3) { notify("Enter a reason (at least 3 characters)."); return; }
+    setBusy(true);
+    try {
+      const response = await fetch(`/api/catalog/room-types/${planType.id}/rate-plans`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: planDraft.name.trim(), startDate: planDraft.startDate, endDate: planDraft.endDate,
+          days: planDraft.days, nightlyRate: Number(planDraft.nightlyRate), reason: planDraft.reason.trim(),
+        }),
+      });
+      const body = await response.json();
+      if (!response.ok) { notify(body.error ?? "Unable to submit the rate plan."); return; }
+      notify(`Rate plan for ${planType.name} sent for approval.`);
+      setPlanDraft(null);
+      await loadPlans(planType.id);
+    } finally { setBusy(false); }
+  };
+  const reviewPlan = async (plan: RatePlan, decision: "approve" | "reject") => {
+    if (!planType) return;
+    const reason = await dialogs.askPrompt({
+      title: decision === "approve" ? "Approve rate plan" : "Reject rate plan",
+      message: `${planType.name}: ${plan.name} — ${peso(plan.nightly_rate)}/night, ${plan.start_date} to ${plan.end_date}, ${daysLabel(plan.days_of_week)}. Proposed: “${plan.reason ?? ""}”`,
+      label: "Decision reason",
+      inputType: "text",
+      required: true,
+      validation: reasonCheck,
+    });
+    if (reason == null || reason.trim() === "") return;
+    const response = await fetch(`/api/catalog/rate-plans/${plan.id}/review`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ decision, reason: reason.trim() }),
+    });
+    const body = await response.json();
+    if (!response.ok) { notify(body.error ?? "Unable to review the rate plan."); return; }
+    notify(decision === "approve" ? `${plan.name} is live — it prices future bookings from ${plan.start_date}.` : `${plan.name} rejected.`);
+    await loadPlans(planType.id);
+  };
+  const retirePlan = async (plan: RatePlan) => {
+    if (!planType) return;
+    const reason = await dialogs.askPrompt({
+      title: "Retire rate plan",
+      message: `${plan.name} stops pricing future nights once retired. Bookings already made keep their agreed rates.`,
+      label: "Reason",
+      inputType: "text",
+      required: true,
+      validation: reasonCheck,
+    });
+    if (reason == null || reason.trim() === "") return;
+    const response = await fetch(`/api/catalog/rate-plans/${plan.id}/retire`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason: reason.trim() }),
+    });
+    const body = await response.json();
+    if (!response.ok) { notify(body.error ?? "Unable to retire the rate plan."); return; }
+    notify(`${plan.name} retired.`);
+    await loadPlans(planType.id);
+  };
 
   const set = <K extends keyof Draft,>(key: K, value: Draft[K]) => setDraft((prev) => (prev ? { ...prev, [key]: value } : prev));
   const setPhotos = (next: string[]) => setPhotoDraft((prev) => (prev == null ? prev : next));
@@ -203,6 +305,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
           amenities: amenityArray(photoType.amenities),
           baseRate: Number(photoType.base_rate),
           active: photoType.active,
+          badgeColorKey: photoType.badge_color_key ?? null,
           photoUrls: photoDraft,
           reason: reason.trim(),
           version: photoType.version,
@@ -220,6 +323,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
     if (!draft) return;
     const creating = !editing;
     if (creating && draft.name.trim().length < 3) { notify("Enter a room type name (at least 3 characters)."); return; }
+    if (creating && !draft.badgeColorKey) { notify("Choose a badge color for this room type."); return; }
     if (creating && createPhotos.length === 0) { setPhotoError(true); notify("At least one room photo is required."); return; }
     if (draft.reason.trim().length < 3) { notify("Enter a reason for this change."); return; }
     setBusy(true);
@@ -233,6 +337,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
         amenities: draft.amenities.split(",").map((x) => x.trim()).filter(Boolean),
         baseRate: Number(draft.baseRate || 0),
         active: draft.active,
+        badgeColorKey: draft.badgeColorKey,
         reason: draft.reason.trim(),
         ...(!creating ? { version: editing!.version } : {}),
       };
@@ -284,7 +389,9 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
   const reviewProposal = async (item: RoomType, proposal: Proposal, decision: "approve" | "reject") => {
     const reason = await dialogs.askPrompt({
       title: decision === "approve" ? "Approve rate proposal" : "Reject rate proposal",
-      message: `${item.name}: ${peso(item.base_rate)} → ${peso(proposal.proposed_rate)} per night. Proposed: “${proposal.reason}”`,
+      message: `${item.name}: ${peso(item.base_rate)} → ${peso(proposal.proposed_rate)} per night. Badge color: ${colorName(item.badge_color_key)}`
+        + (decision === "approve" && !item.active ? `. Approving sets the rate and publishes the room type with its ${colorName(item.badge_color_key)} badge in one step.` : "")
+        + ` Proposed: “${proposal.reason}”`,
       label: "Decision reason",
       inputType: "text",
       required: true,
@@ -298,7 +405,9 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
     });
     const body = await response.json();
     if (!response.ok) { notify(body.error ?? "Unable to review the rate proposal."); return; }
-    notify(decision === "approve" ? `Rate for ${item.name} set to ${peso(proposal.proposed_rate)}.` : `Rate proposal for ${item.name} rejected.`);
+    notify(decision === "approve"
+      ? (item.active ? `Rate for ${item.name} set to ${peso(proposal.proposed_rate)}.` : `${item.name} published with its ${colorName(item.badge_color_key)} badge — rate set to ${peso(proposal.proposed_rate)}.`)
+      : `Rate proposal for ${item.name} rejected.`);
     await load();
   };
 
@@ -341,7 +450,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
                     <span className={`badge ${item.active ? "active" : "inactive"}`}>{item.active ? "Published" : "Unpublished"}</span>
                   </div>
                   <div className="catalog-card-body">
-                    <h3>{item.name}</h3>
+                    <h3>{item.name} <RoomTypeBadge name={colorName(item.badge_color_key)} colorKey={item.badge_color_key}/></h3>
                     <p className="catalog-card-desc">{label(item.description.length > 120 ? item.description.slice(0, 120) + "…" : item.description)}</p>
                     <ul className="catalog-card-facts">
                       <li><Users size={13} aria-hidden="true"/> {item.max_guests} guests</li>
@@ -363,6 +472,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
                         </>
                       )}
                       <button className="table-action view-action" onClick={() => setPreview(item)} title="See this type as guests see it"><Eye size={14}/> Preview</button>
+                      <button className="table-action view-action" onClick={() => void openPlans(item)} title="Weekend, seasonal, and holiday rate overlays"><CalendarRange size={14}/> Rate plans</button>
                       <button className="table-action view-action" onClick={() => openPhotos(item)}><Images size={14}/> Manage photos ({(item.photo_urls ?? []).length})</button>
                       <button className="table-action view-action" onClick={() => openEditor(item)}><Pencil size={14}/> Edit</button>
                     </div>
@@ -389,6 +499,95 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
             note={<p className="rd-note">{preview.physicalRooms ?? 0} physical room{(preview.physicalRooms ?? 0) !== 1 ? "s" : ""} back this type · {preview.activeRooms ?? 0} in service</p>}
             rateLine={null}
           />
+        </Modal>
+      )}
+
+      {planType && (
+        <Modal isOpen onClose={() => { setPlanType(null); setPlans(null); setPlanDraft(null); }} title={`Rate plans — ${planType.name}`}
+          description={`Dated overlays on the ${peso(planType.base_rate)} base rate: weekends, seasons, holidays. A live plan prices future bookings only — confirmed bookings keep their agreed rates. When plans overlap, the narrowest date range wins.`}
+          size="lg" headerVariant="branded">
+          {plans == null ? (
+            <div className="empty"><Loader2 className="spin"/><h3>Loading rate plans…</h3></div>
+          ) : (
+            <div className="rate-plan-manager">
+              {plans.length === 0 && !planDraft && (
+                <div className="empty"><CalendarRange/><h3>No rate plans yet</h3><p>Every night currently prices at the {peso(planType.base_rate)} base rate.</p></div>
+              )}
+              {plans.map((plan) => (
+                <div className="rate-plan-row" key={plan.id}>
+                  <div className="rate-plan-main">
+                    <strong>{plan.name}</strong>
+                    <span className={`badge ${plan.status === "active" ? "active" : plan.status === "pending" ? "pending" : "inactive"}`}>{label(plan.status)}</span>
+                    <p className="muted">{plan.start_date} → {plan.end_date} · {daysLabel(plan.days_of_week)} · <strong>{peso(plan.nightly_rate)}</strong>/night{plan.reason ? ` · “${plan.reason}”` : ""}{plan.decision_reason ? ` · ${label(plan.status)}: “${plan.decision_reason}”` : ""}</p>
+                  </div>
+                  <div className="btn-row">
+                    {plan.status === "pending" && canSetRate && (
+                      <>
+                        <button className="table-action view-action" onClick={() => void reviewPlan(plan, "approve")}><Check size={14}/> Approve</button>
+                        <button className="table-action danger-action" onClick={() => void reviewPlan(plan, "reject")}><X size={14}/> Reject</button>
+                      </>
+                    )}
+                    {plan.status === "active" && (
+                      <button className="table-action danger-action" onClick={() => void retirePlan(plan)} title="Stop pricing future nights">Retire</button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {planDraft ? (
+                <div className="form-dialog rate-plan-form">
+                  <div className="form-field">
+                    <div className="form-field-wrapper">
+                      <label htmlFor="rp-name" className="form-label">Plan name <span className="required">*</span></label>
+                      <input id="rp-name" className="form-input" type="text" value={planDraft.name} onChange={(e) => setPlanDraft({ ...planDraft, name: e.target.value })} placeholder="Holy Week peak"/>
+                      <small className="muted">Shown to approvers and in the audit trail, never to guests.</small>
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-field-wrapper">
+                      <label htmlFor="rp-start" className="form-label">Start date <span className="required">*</span></label>
+                      <input id="rp-start" className="form-input" type="date" min={dateValue(0)} value={planDraft.startDate} onChange={(e) => setPlanDraft({ ...planDraft, startDate: e.target.value })}/>
+                    </div>
+                    <div className="form-field-wrapper">
+                      <label htmlFor="rp-end" className="form-label">End date <span className="required">*</span></label>
+                      <input id="rp-end" className="form-input" type="date" min={planDraft.startDate} value={planDraft.endDate} onChange={(e) => setPlanDraft({ ...planDraft, endDate: e.target.value })}/>
+                    </div>
+                    <div className="form-field-wrapper">
+                      <label htmlFor="rp-rate" className="form-label">Rate / night (₱) <span className="required">*</span></label>
+                      <input id="rp-rate" className="form-input" type="number" min={0} value={planDraft.nightlyRate} onChange={(e) => setPlanDraft({ ...planDraft, nightlyRate: e.target.value })} placeholder={String(planType.base_rate)}/>
+                    </div>
+                  </div>
+                  <div className="form-field">
+                    <div className="form-field-wrapper">
+                      <label className="form-label">Days of week <span className="required">*</span></label>
+                      <div className="rt-color-row" role="group" aria-label="Days of week">
+                        {DAY_OPTIONS.map((day) => (
+                          <label key={day} className="checkbox-option">
+                            <input type="checkbox" checked={planDraft.days.includes(day)}
+                              onChange={(e) => setPlanDraft({ ...planDraft, days: e.target.checked ? [...planDraft.days, day] : planDraft.days.filter((d) => d !== day) })}/>
+                            <span>{day}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="form-field">
+                    <div className="form-field-wrapper">
+                      <label htmlFor="rp-reason" className="form-label">Reason <span className="required">*</span></label>
+                      <input id="rp-reason" className="form-input" type="text" value={planDraft.reason} onChange={(e) => setPlanDraft({ ...planDraft, reason: e.target.value })} placeholder="Audited with the proposal"/>
+                    </div>
+                  </div>
+                  <div className="form-actions">
+                    <button type="button" className="btn btn-soft" onClick={() => setPlanDraft(null)}>Cancel</button>
+                    <button type="button" className="btn btn-accent" onClick={proposePlan} disabled={busy}>{busy ? <Loader2 className="spin" size={15}/> : null} Send for approval</button>
+                  </div>
+                </div>
+              ) : canPropose && (
+                <div className="form-actions">
+                  <button type="button" className="btn btn-soft" onClick={() => setPlanDraft(emptyPlanDraft())}><Plus size={15}/> Propose rate plan</button>
+                </div>
+              )}
+            </div>
+          )}
         </Modal>
       )}
 
@@ -529,6 +728,36 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
               <div className="form-field-wrapper">
                 <label htmlFor="rt-amenities" className="form-label">Amenities</label>
                 <input id="rt-amenities" className="form-input" type="text" value={draft.amenities} onChange={(e) => set("amenities", e.target.value)} placeholder="Wi-Fi, Breakfast, Pool — comma separated"/>
+              </div>
+            </div>
+            <div className="form-field">
+              <div className="form-field-wrapper">
+                <label className="form-label">Badge color <span className="required">*</span></label>
+                <small className="muted">Identifies this room type on room cards everywhere — independent of room status. Each live type has its own color.</small>
+                {editing && canPropose && editing.active ? (
+                  <>
+                    <div className="rt-color-row"><RoomTypeBadge name={editing.name} colorKey={draft.badgeColorKey}/></div>
+                    <small className="muted">Read-only for Manager — only Owner/Admin can change the badge color of an active room type.</small>
+                  </>
+                ) : (
+                  <>
+                    <div className="rt-color-row" role="radiogroup" aria-label="Badge color">
+                      {ROOM_TYPE_COLORS.map((key) => {
+                        const owner = colorOwner(items, key, editing?.id);
+                        return (
+                          <button type="button" key={key} className="rt-color-swatch" role="radio" aria-checked={draft.badgeColorKey === key}
+                            disabled={Boolean(owner)} onClick={() => set("badgeColorKey", key)}
+                            title={owner ? `Used by ${owner.name}` : `Use ${key}`}
+                            aria-label={owner ? `${colorName(key)} — used by ${owner.name}` : colorName(key)}>
+                            <RoomTypeBadge name={colorName(key)} colorKey={key}/>
+                            {owner && <small>{owner.name}</small>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <small className="muted" aria-live="polite">Preview: <RoomTypeBadge name={editing?.name || draft.name.trim() || "Room type name"} colorKey={draft.badgeColorKey}/></small>
+                  </>
+                )}
               </div>
             </div>
             <div className="form-field">

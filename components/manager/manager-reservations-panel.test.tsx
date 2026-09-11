@@ -83,13 +83,13 @@ const rows = () => Array.from(document.querySelectorAll<HTMLTableRowElement>("ta
 const cards = () => Array.from(document.querySelectorAll<HTMLElement>(".mr-card"));
 
 describe("ManagerReservationsPanel", () => {
-  it("defaults to Attention Required and derives its count — the high-severity overdue row sorts first", () => {
+  it("defaults to All and keeps the Attention Required count available", () => {
     renderPanel();
     const active = chips().find((chip) => chip.className.includes("active"))!;
-    expect(active.textContent).toContain("Attention Required");
-    expect(active.textContent).toContain("3"); // arrival, overdue, approval — quiet and closed drop out
-    const refs = rows().map((row) => within(row).getAllByText(/HV-200\d/)[0].textContent);
-    expect(refs).toEqual(["HV-2002", "HV-2001", "HV-2003"]); // overdue (high) → warning rows → info rows
+    expect(active.textContent).toContain("All");
+    expect(active.textContent).toContain("5");
+    expect(rows()).toHaveLength(5);
+    expect(screen.getByText("Attention Required").textContent).toContain("3");
   });
 
   it("shows the manager oversight subtitle, not the Front Desk queue copy", () => {
@@ -113,7 +113,7 @@ describe("ManagerReservationsPanel", () => {
   it("View opens the read-only detail; rows are keyboard reachable", () => {
     const props = renderPanel();
     fireEvent.click(within(rows()[0]).getByText("View"));
-    expect(props.viewReservation).toHaveBeenCalledWith(overdue);
+    expect(props.viewReservation).toHaveBeenCalledWith(quiet);
     fireEvent.keyDown(rows()[0], { key: "Enter" });
     expect(props.viewReservation).toHaveBeenCalledTimes(2);
   });
@@ -141,14 +141,16 @@ describe("ManagerReservationsPanel", () => {
 
   it("renders the mobile card twin alongside the desktop table", () => {
     renderPanel();
-    expect(cards()).toHaveLength(3); // mirrors the Attention Required rows
-    fireEvent.click(cards()[0], {} as unknown as MouseEvent);
+    expect(cards()).toHaveLength(5);
+    const overdueCard = cards().find((card) => within(card).queryByText("HV-2002"))!;
+    fireEvent.click(overdueCard, {} as unknown as MouseEvent);
     expect(screen.getAllByText("Overdue checkout").length).toBe(2); // badge on the table row and the card twin
-    expect(cards()[0].querySelector(".mr-issue")).not.toBeNull();
+    expect(overdueCard.querySelector(".mr-issue")).not.toBeNull();
   });
 
   it("shows the caught-up empty state when no reservation needs attention", () => {
     renderPanel({ items: [quiet, closed] });
+    fireEvent.click(screen.getByText("Attention Required"));
     expect(screen.getByText("No reservations need attention")).toBeTruthy();
   });
 });

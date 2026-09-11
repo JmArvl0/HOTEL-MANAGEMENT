@@ -41,7 +41,7 @@ describe("TransportationPanel render layer", () => {
     expect(screen.getByRole("table", { name: "Transportation requests" })).toBeTruthy();
     const allChip = screen.getByRole("button", { name: /All/ });
     expect(allChip.getAttribute("aria-pressed")).toBe("true");
-    const kpi = screen.getAllByRole("button", { name: /Needs review/ }).find((b) => b.className.includes("tp-kpi"));
+    const kpi = screen.getAllByRole("button", { name: /Needs review/ }).find((b) => b.className.includes("mod-kpi"));
     expect(kpi?.getAttribute("aria-pressed")).toBe("false");
   });
 

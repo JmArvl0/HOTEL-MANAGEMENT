@@ -10,13 +10,13 @@ import { BedDouble, Check, CheckCircle2, ChevronLeft, ChevronRight, ClipboardChe
 import { Modal } from "@/components/ui/Modal";
 import type { RecordItem } from "@/lib/types";
 import type { AskFormOptions, AskFormData } from "@/components/ui/action-dialogs";
+import { ROOM_TYPE_CHANGE_REASONS, roomTypeChangeResponsibility, roomTypeChangeReasonLabel, financialDifference, type RoomTypeChangeFinancials } from "@/lib/room-type-change-reasons";
 
 type EligibleRoom = { id: string; number: string; floor?: unknown; type: string; housekeeping?: string };
 type AlternativeRoomType = { roomTypeId: string; roomTypeName: string; eligibleRoomCount: number };
 type InvoiceRow = { amount?: unknown; paid?: unknown; balance?: unknown; credit_balance?: unknown; status?: string };
 type Detail = { reservation: RecordItem; invoice: InvoiceRow | null };
 
-const money = (v: unknown) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 }).format(Number(v || 0));
 const moneyExact = (v: unknown) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(Number(v || 0));
 const human = (v: unknown) => String(v ?? "").replaceAll("_", " ");
 const DAY = 86400000;
@@ -30,11 +30,18 @@ const STEPS = [
   { key: "checkin", label: "Check in", icon: ClipboardCheck },
 ];
 
-export default function FrontDeskArrivalDialog({ reservationId, guestName, exceptionType, askForm, onClose, onCheckedIn }: {
+// Wizard progress lifted to the parent so a closed-and-reopened dialog resumes where
+// the front desk left off (step + chosen room + active exception mode). In-memory only:
+// the server re-validates everything on room-step entry and at check-in.
+export type ArrivalProgress = { step: number; selected: string; exceptionMode: string | null };
+
+export default function FrontDeskArrivalDialog({ reservationId, guestName, exceptionType, askForm, resume, onProgress, onClose, onCheckedIn }: {
   reservationId: string;
   guestName: string;
   exceptionType?: string | null;
   askForm: (options: AskFormOptions) => Promise<AskFormData | null>;
+  resume?: ArrivalProgress | null;
+  onProgress?: (progress: ArrivalProgress) => void;
   onClose: () => void;
   onCheckedIn: () => void;
 }) {
@@ -42,8 +49,8 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
   const [step, setStep] = useState(0);
   const [rooms, setRooms] = useState<EligibleRoom[]>([]);
   const [exceptionMode, setExceptionMode] = useState<string | null>(exceptionType ?? null);
-  const [exceptionRate, setExceptionRate] = useState<number | null>(null);
-  const [approvedException, setApprovedException] = useState<{ type: string } | null>(null);
+  const [exceptionFinancials, setExceptionFinancials] = useState<RoomTypeChangeFinancials | null>(null);
+  const [approvedException, setApprovedException] = useState<{ type: string; id: string; financials: RoomTypeChangeFinancials | null; guestAcceptedAt: string | null } | null>(null);
   const [selected, setSelected] = useState<string>("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -56,10 +63,19 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
   const [targetRooms, setTargetRooms] = useState<EligibleRoom[]>([]);
   const [targetRoomsLoading, setTargetRoomsLoading] = useState(false);
   const [requestedRoomId, setRequestedRoomId] = useState("");
+  const [requestedReasonCode, setRequestedReasonCode] = useState("");
   const [requestedReason, setRequestedReason] = useState("");
+  const [targetRate, setTargetRate] = useState<number | null>(null);
+  const [targetNightlyRates, setTargetNightlyRates] = useState<{ night: string; rate: number }[]>([]);
   const [requestSent, setRequestSent] = useState(false);
   const [exceptionStatus, setExceptionStatus] = useState<"" | "pending" | "rejected">("");
+  // Voluntary reassignment while reserved-type rooms remain: the form is reachable
+  // through this toggle (guest-requested reasons are legitimate upgrades).
+  const [showAlternativeForm, setShowAlternativeForm] = useState(false);
   const loadingRef = useRef(false);
+  // Mount-time capture of the resume payload: the parent keys this dialog per open,
+  // so the ref is read exactly once per open and later prop changes are ignored.
+  const resumeRef = useRef(resume);
 
   const reservation = detail?.reservation ?? null;
   const invoice = detail?.invoice ?? null;
@@ -75,7 +91,11 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
   const financialReady = balance !== null && balance <= 0 && depositReady;
   const nights = reservation ? nightsBetween(reservation.check_in, reservation.check_out) : 0;
   const paid = invoice ? Number(invoice.paid ?? 0) : Number(reservation?.deposit || 0);
-  const previewTotal = exceptionMode && exceptionRate ? round2(exceptionRate * nights) : null;
+  // Server-stamped financials for the active exception (approved callout or exception
+  // mode); display only — the RPCs re-derive and consume the stamp server-side.
+  const exceptionFinancialsActive = exceptionMode ? (exceptionFinancials ?? approvedException?.financials ?? null) : null;
+  const exceptionDiff = financialDifference(exceptionFinancialsActive);
+  const exceptionResponsibility = exceptionFinancialsActive?.responsibility ?? null;
 
   const fetchDetail = useCallback(async () => {
     setBusy(true); setError("");
@@ -87,19 +107,22 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
     } finally { setBusy(false); }
   }, [reservationId]);
 
-  const loadRooms = useCallback(async (mode: string | null) => {
+  // Returns the mapped rooms so the caller can validate a resumed selection.
+  const loadRooms = useCallback(async (mode: string | null): Promise<EligibleRoom[]> => {
     const q = mode ? `?exceptionType=${encodeURIComponent(mode)}` : "";
     const res = await fetch(`/api/front-desk/reservations/${reservationId}/eligible-rooms${q}`, { cache: "no-store" });
     const body = await res.json().catch(() => ({}));
-    if (!res.ok) { setError(body.error ?? "Unable to load eligible rooms."); setRooms([]); setAlternatives([]); return; }
-    setRooms(((body.data ?? []) as EligibleRoom[]).map((room) => ({ ...room, number: String(room.number) })));
+    if (!res.ok) { setError(body.error ?? "Unable to load eligible rooms."); setRooms([]); setAlternatives([]); return []; }
+    const mapped = ((body.data ?? []) as EligibleRoom[]).map((room) => ({ ...room, number: String(room.number) }));
+    setRooms(mapped);
     setAlternatives(((body.alternativeRoomTypes ?? []) as AlternativeRoomType[]));
     setReservedRoomTypeId(String(body.reservedRoomTypeId ?? ""));
     if (mode) {
-      if (body.exceptionApproved) { setExceptionRate(typeof body.typeRate === "number" ? body.typeRate : null); }
-      else { setError(`The approved room-type exception for ${human(mode)} is no longer valid.`); setExceptionMode(null); setExceptionRate(null); return; }
-    } else { setExceptionRate(null); }
+      if (body.exceptionApproved) { setExceptionFinancials((body.financials ?? null) as RoomTypeChangeFinancials | null); }
+      else { setError(`The approved room-type exception for ${human(mode)} is no longer valid.`); setExceptionMode(null); setExceptionFinancials(null); return mapped; }
+    } else { setExceptionFinancials(null); }
     setSelected("");
+    return mapped;
   }, [reservationId]);
 
   const checkApprovals = useCallback(async () => {
@@ -112,8 +135,9 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
       .sort((a, b) => String(b.requested_at ?? "").localeCompare(String(a.requested_at ?? "")))[0];
     if (!latest) return;
     if (latest.status === "approved" && latest.execution_status === "awaiting_execution") {
-      const target = String((latest.requested_action && (latest.requested_action as Record<string, unknown>).roomType) || "");
-      if (target) { setApprovedException({ type: target }); setExceptionStatus(""); }
+      const action = (latest.requested_action ?? {}) as Record<string, unknown>;
+      const target = String(action.roomType || "");
+      if (target) { setApprovedException({ type: target, id: String(latest.id), financials: (action.financials ?? null) as RoomTypeChangeFinancials | null, guestAcceptedAt: latest.guest_accepted_at ? String(latest.guest_accepted_at) : null }); setExceptionStatus(""); }
     } else if (latest.status === "pending") {
       setExceptionStatus("pending");
     } else if (latest.status === "rejected") {
@@ -137,33 +161,59 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
         return;
       }
       setTargetRooms(((body.data ?? []) as EligibleRoom[]).map((room) => ({ ...room, number: String(room.number) })));
+      setTargetRate(body.typeRate === null || body.typeRate === undefined ? null : Number(body.typeRate));
+      setTargetNightlyRates(((body.nightlyRates ?? []) as { night: string; rate: number }[]).map((night) => ({ night: String(night.night), rate: Number(night.rate) })));
     } finally { setTargetRoomsLoading(false); }
   }, [reservationId, loadRooms, checkApprovals]);
 
   const selectTargetType = (value: string) => {
     setTargetTypeId(value);
     setRequestedRoomId(""); setTargetRooms([]);
-    if (value) void loadTargetRooms(value);
+    if (value) void loadTargetRooms(value); else { setTargetRate(null); setTargetNightlyRates([]); }
   };
-  const clearAlternativeSelection = () => { setTargetTypeId(""); setTargetRooms([]); setRequestedRoomId(""); };
+  const clearAlternativeSelection = () => { setTargetTypeId(""); setTargetRooms([]); setRequestedRoomId(""); setTargetRate(null); setTargetNightlyRates([]); };
 
-  // Open: reset and pull fresh server state.
+  // Open: reset and pull fresh server state. A resume (the wizard was previously left
+  // mid-flow for this reservation) restores the step, chosen room, and active exception
+  // mode — everything else reloads from the server. checkApprovals runs here too so the
+  // Financial step can itemize an accepted upgrade charge before the Room step.
   useEffect(() => {
-    setStep(0); setRooms([]); setExceptionMode(exceptionType ?? null); setExceptionRate(null); setApprovedException(null); setSelected(""); setError(""); setNotice("");
-    setAlternatives([]); setTargetTypeId(""); setTargetRooms([]); setRequestedRoomId(""); setRequestedReason(""); setRequestSent(false); setExceptionStatus("");
+    const saved = resumeRef.current;
+    setStep(saved?.step ?? 0); setRooms([]);
+    setExceptionMode(saved ? saved.exceptionMode : exceptionType ?? null);
+    setExceptionFinancials(null); setApprovedException(null); setSelected(saved?.selected ?? ""); setError(""); setNotice("");
+    setAlternatives([]); setTargetTypeId(""); setTargetRooms([]); setRequestedRoomId(""); setRequestedReasonCode(""); setRequestedReason(""); setTargetRate(null); setTargetNightlyRates([]); setRequestSent(false); setExceptionStatus(""); setShowAlternativeForm(false);
     void fetchDetail();
-  }, [exceptionType, fetchDetail]);
+    void checkApprovals();
+  }, [exceptionType, fetchDetail, checkApprovals]);
 
   // Room step entry: load rooms for the active mode and scan for an approved exception.
+  // A resumed flow re-validates the saved room selection against live inventory on the
+  // first entry — restored when still eligible, or clamped back to this step when not
+  // (the server rejects stale rooms at check-in regardless). The resume survives the
+  // detail fetch (reservation is null on the first run) and is consumed only when the
+  // load actually runs.
   useEffect(() => {
-    if (step !== 2 || !reservation || loadingRef.current) return;
+    const saved = resumeRef.current;
+    const resumingAtRoom = Boolean(saved && saved.step >= 2);
+    if ((!resumingAtRoom && step !== 2) || !reservation || loadingRef.current) return;
+    resumeRef.current = null; // one-shot: only the first load after (re)open restores
     loadingRef.current = true;
     setError(""); setNotice("");
     (async () => {
-      await loadRooms(exceptionMode);
+      const loaded = await loadRooms(exceptionMode);
       if (!exceptionMode) await checkApprovals();
+      if (saved) {
+        if (saved.selected && loaded.some((room) => room.number === saved.selected)) { setSelected(saved.selected); }
+        else if (saved.step >= 3) { setStep(2); }
+      }
     })().finally(() => { loadingRef.current = false; });
   }, [step, exceptionMode, reservation, loadRooms, checkApprovals]);
+
+  // Report wizard progress upward so the parent can resume the flow after close.
+  // The transient mount-time report (pre-restore values) is harmless: resume is read
+  // through the mount-time ref only, and this converges to the true state in-mount.
+  useEffect(() => { onProgress?.({ step, selected, exceptionMode }); }, [step, selected, exceptionMode, onProgress]);
 
   // Escape / overlay / close-button all route through the shared Modal — this
   // guard keeps a posting step from dismissing the wizard.
@@ -237,13 +287,30 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
     const alternative = alternatives.find((type) => type.roomTypeId === targetTypeId);
     const room = targetRooms.find((item) => item.id === requestedRoomId);
     if (!alternative || !room) { setError("Choose a target room type and one of its eligible physical rooms."); return; }
+    if (!requestedReasonCode) { setError("Choose the reason for the room-type change."); return; }
     if (requestedReason.trim().length < 3) { setError("Explain why the exception is required."); return; }
     setBusy(true); setError("");
     try {
-      const res = await fetch("/api/manager/approvals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "room_type_exception", relatedEntityType: "reservation", relatedEntityId: reservationId, reservationId, department: "front_desk", severity: "normal", reason: requestedReason.trim(), requestedAction: { roomType: alternative.roomTypeName, requestedRoomTypeId: alternative.roomTypeId, requestedRoomId: room.id, requestedRoomNumber: String(room.number), originalRoomTypeId: reservedRoomTypeId, originalRoomType: reservation?.room_type ?? "" } }) });
+      const res = await fetch("/api/manager/approvals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "room_type_exception", relatedEntityType: "reservation", relatedEntityId: reservationId, reservationId, department: "front_desk", severity: "normal", reason: requestedReason.trim(), requestedAction: { reasonCode: requestedReasonCode, roomType: alternative.roomTypeName, requestedRoomTypeId: alternative.roomTypeId, requestedRoomId: room.id, requestedRoomNumber: String(room.number), originalRoomTypeId: reservedRoomTypeId, originalRoomType: reservation?.room_type ?? "" } }) });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) { setError(body.error ?? "Unable to request the Manager exception."); return; }
-      setRequestSent(true); setExceptionStatus("pending"); clearAlternativeSelection(); setRequestedReason("");
+      setRequestSent(true); setExceptionStatus("pending"); clearAlternativeSelection(); setRequestedReason(""); setRequestedReasonCode(""); setShowAlternativeForm(false);
+    } finally { setBusy(false); }
+  };
+
+  // Record the guest's acceptance of a guest-pays difference. The RPC (not this
+  // dialog) posts the upgrade charge to the folio and stamps the acceptance —
+  // check-in cannot finalize without it.
+  const doRecordAcceptance = async () => {
+    if (!approvedException) return;
+    setBusy(true); setError("");
+    try {
+      const res = await fetch(`/api/manager/approvals/${approvedException.id}/record-acceptance`, { method: "POST" });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) { setError(body.error ?? "Unable to record guest acceptance."); return; }
+      setNotice("Guest acceptance recorded — the upgrade charge is now on the folio.");
+      await checkApprovals();
+      await fetchDetail();
     } finally { setBusy(false); }
   };
 
@@ -265,9 +332,9 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
   const approvedTypeName = approvedException && !exceptionMode ? human(approvedException.type) : "";
   const requestableAlternatives = approvedTypeName ? alternatives.filter((type) => type.roomTypeName !== approvedTypeName) : alternatives;
 
-  // Controlled exception form: both selects are fed exclusively by the server's
-  // eligible-inventory lists — the reserved type, inactive types, and types with
-  // zero eligible rooms never appear as options.
+  // Controlled exception form: every select is fed by the server's eligible-inventory
+  // lists or the shared reason allowlist — the reserved type, inactive types, types
+  // with zero eligible rooms, and unknown reason codes never appear as options.
   const exceptionForm = (
     <div className="arrival-exception-request">
       <b>Alternative room assignment</b>
@@ -292,10 +359,52 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
           )}
         </label>
       )}
+      {requestedReasonCode && roomTypeChangeResponsibility(requestedReasonCode) === "hotel" && rooms.length > 0 && (
+        <small className="arrival-exception-hint warn">Reserved-type rooms are still available — a hotel-caused reason will be rejected as unnecessary. Pick a reserved-type room, or choose a guest-requested reason if the guest wants the change.</small>
+      )}
+      {requestedReasonCode && reservation && (() => {
+        // Per-night resolver rates when the server sent them; base-rate fallback
+        // otherwise. Preview only — the exception RPC stamps the real financials.
+        const rates = targetNightlyRates.map((night) => night.rate);
+        const uniform = rates.length > 0 && rates.every((rate) => rate === rates[0]);
+        const previewTotal = rates.length > 0
+          ? round2(rates.reduce((sum, rate) => sum + rate, 0))
+          : targetRate !== null ? round2(Number(targetRate) * nights) : null;
+        if (previewTotal === null) return null;
+        const previewDiff = round2(previewTotal - Number(reservation.total || 0));
+        const payer = roomTypeChangeResponsibility(requestedReasonCode);
+        return (
+          <small className="arrival-exception-hint">
+            {uniform
+              ? <>Target rate {moneyExact(rates[0])} × {nights} night{nights === 1 ? "" : "s"} = {moneyExact(previewTotal)}</>
+              : <>{nights} night{nights === 1 ? "" : "s"} at varying rates ({moneyExact(Math.min(...rates))}–{moneyExact(Math.max(...rates))}) = {moneyExact(previewTotal)}</>}{" "}
+            vs the agreed total {moneyExact(reservation.total)} —{" "}
+            {payer === "hotel"
+              ? previewDiff > 0 ? `the hotel absorbs ${moneyExact(previewDiff)}; the guest keeps the agreed price.` : "no guest charge; the guest keeps the agreed price."
+              : previewDiff > 0 ? `the guest pays ${moneyExact(previewDiff)} on acceptance.` : "no additional guest charge."}
+            {" "}(The server derives the final amounts — this is a preview.)
+          </small>
+        );
+      })()}
+      <label className="arrival-field">Reason for the change
+        <select value={requestedReasonCode} onChange={(event) => setRequestedReasonCode(event.target.value)} disabled={busy}>
+          <option value="">Select a reason</option>
+          <optgroup label="Hotel-caused — the hotel absorbs the difference">
+            {ROOM_TYPE_CHANGE_REASONS.filter((reason) => reason.responsibility === "hotel").map((reason) => (
+              <option key={reason.code} value={reason.code}>{reason.label}</option>
+            ))}
+          </optgroup>
+          <optgroup label="Guest-requested — the guest pays the difference">
+            {ROOM_TYPE_CHANGE_REASONS.filter((reason) => reason.responsibility === "guest").map((reason) => (
+              <option key={reason.code} value={reason.code}>{reason.label}</option>
+            ))}
+          </optgroup>
+        </select>
+      </label>
       <label className="arrival-field">Why is the exception required?<textarea rows={3} value={requestedReason} onChange={(event) => setRequestedReason(event.target.value)} placeholder="Explain why the guest must be reassigned to another room type." /></label>
       <div className="arrival-actions">
-        <button className="btn btn-soft" disabled={busy} onClick={() => { clearAlternativeSelection(); setRequestedReason(""); }}>Cancel</button>
-        <button className="btn btn-accent" disabled={busy || !targetTypeId || !requestedRoomId || requestedReason.trim().length < 3} onClick={sendExceptionRequest}>Request Manager approval</button>
+        <button className="btn btn-soft" disabled={busy} onClick={() => { clearAlternativeSelection(); setRequestedReason(""); setRequestedReasonCode(""); setShowAlternativeForm(false); }}>Cancel</button>
+        <button className="btn btn-accent" disabled={busy || !targetTypeId || !requestedRoomId || !requestedReasonCode || requestedReason.trim().length < 3} onClick={sendExceptionRequest}>Request Manager approval</button>
       </div>
     </div>
   );
@@ -363,6 +472,9 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
               <p className="arrival-section-copy">The folio must show no remaining balance before this arrival checks in.</p>
               <div className="arrival-facts">
                 <div><dt>Folio total</dt><dd>{moneyExact(invoice?.amount ?? reservation.total)}</dd></div>
+                {approvedException?.guestAcceptedAt && approvedException.financials?.responsibility === "guest" && financialDifference(approvedException.financials) > 0 && (
+                  <div><dt>Upgrade charge</dt><dd>{moneyExact(financialDifference(approvedException.financials))} (included in the folio total)</dd></div>
+                )}
                 <div><dt>Net paid</dt><dd>{moneyExact(invoice?.paid ?? reservation.deposit)}</dd></div>
                 <div><dt>Balance</dt><dd>{moneyExact(balance)}</dd></div>
                 <div><dt>Source</dt><dd>{human(reservation.source)}</dd></div>
@@ -384,12 +496,43 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
                   <div className="arrival-approval-body">
                     <p className="arrival-approval-title"><CheckCircle2 size={14} aria-hidden="true" /> Room-type exception approved</p>
                     <p className="arrival-approval-detail">A Manager approved <b>{human(approvedException.type)}</b> as the alternative room type for this reservation. Load those rooms to continue check-in.</p>
+                    {approvedException.financials && (() => {
+                      const fin = approvedException.financials;
+                      const diff = financialDifference(fin);
+                      return (
+                        <>
+                          <p className="arrival-approval-detail">
+                            {roomTypeChangeReasonLabel(fin.reasonCode ?? "")} —{" "}
+                            {fin.responsibility === "hotel"
+                              ? diff > 0
+                                ? <>the hotel absorbs <b>{moneyExact(diff)}</b>; the guest keeps the agreed total of <b>{moneyExact(fin.originalTotal)}</b>.</>
+                                : <>the guest keeps the agreed total of <b>{moneyExact(fin.originalTotal)}</b> (rate difference {moneyExact(diff)} — no automatic refund applies).</>
+                              : diff > 0
+                                ? <>the guest pays <b>{moneyExact(diff)}</b> on top of the agreed total of {moneyExact(fin.originalTotal)} (new total <b>{moneyExact(fin.targetTotal)}</b>).</>
+                                : <>no additional guest charge (new total {moneyExact(fin.targetTotal)}).</>}
+                          </p>
+                          {fin.responsibility === "guest" && diff > 0 && (
+                            approvedException.guestAcceptedAt
+                              ? <p className="arrival-approval-detail">Guest acceptance recorded — the {moneyExact(diff)} upgrade charge is on the folio.</p>
+                              : <div className="arrival-actions"><button className="btn btn-soft" disabled={busy} onClick={doRecordAcceptance}>Record guest acceptance of {moneyExact(diff)}</button></div>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
                   <button className="btn btn-accent arrival-approval-cta" disabled={busy} onClick={() => { setError(""); setExceptionMode(approvedException.type); }}>Load {human(approvedException.type)} rooms</button>
                 </div>
               )}
               {exceptionMode && (
-                <p className="arrival-notice approved"><CheckCircle2 size={13} aria-hidden="true" /> Approved exception active — checking in to <b>{human(exceptionMode)}</b> will reprice this folio. <button className="table-action" disabled={busy} onClick={() => { setError(""); setExceptionMode(null); }}>Use reserved-type rooms instead</button></p>
+                <p className="arrival-notice approved">
+                  <CheckCircle2 size={13} aria-hidden="true" /> Approved exception active — checking in to <b>{human(exceptionMode)}</b>{" "}
+                  {exceptionResponsibility === "hotel"
+                    ? "keeps the original agreed total; the hotel absorbs any rate difference."
+                    : exceptionDiff > 0
+                      ? `adds a ${moneyExact(exceptionDiff)} guest charge (${approvedException?.guestAcceptedAt ? "acceptance recorded" : "guest acceptance required"}).`
+                      : "keeps the original agreed total."}{" "}
+                  <button className="table-action" disabled={busy} onClick={() => { setError(""); setExceptionMode(null); }}>Use reserved-type rooms instead</button>
+                </p>
               )}
 
               {rooms.length > 0 && (
@@ -403,6 +546,13 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
                   ))}
                 </div>
               )}
+
+              {!exceptionMode && rooms.length > 0 && requestableAlternatives.length > 0 && (showAlternativeForm ? exceptionForm : (
+                // Reserved-type rooms exist, but a guest-requested upgrade is a legitimate
+                // exception — the server gates decide (hotel-caused reasons are rejected
+                // as unnecessary while reserved-type rooms remain).
+                <button className="btn btn-soft" disabled={busy} onClick={() => { setError(""); setShowAlternativeForm(true); }}>Request a different room type</button>
+              ))}
 
               {rooms.length === 0 && !busy && (
                 <div className="arrival-empty">
@@ -438,14 +588,28 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
                 <div><dt>Room</dt><dd>Room {human(selected)}</dd></div>
                 <div><dt>Room type</dt><dd>{exceptionMode ? `${human(reservation.room_type)} → ${human(exceptionMode)}` : human(reservation.room_type)}</dd></div>
                 <div><dt>Stay</dt><dd>{human(reservation.check_in)} to {human(reservation.check_out)} ({nights} night{nights === 1 ? "" : "s"})</dd></div>
-                {exceptionMode && previewTotal !== null && <>
-                  <div><dt>Repriced stay total</dt><dd>{moneyExact(previewTotal)} ({money(exceptionRate)} × {nights} night{nights === 1 ? "" : "s"})</dd></div>
+                {exceptionMode && exceptionFinancialsActive && <>
+                  {exceptionResponsibility === "hotel"
+                    ? <>
+                        <div><dt>Stay total (unchanged)</dt><dd>{moneyExact(exceptionFinancialsActive.originalTotal)} — the guest keeps the agreed price</dd></div>
+                        {exceptionDiff !== 0 && <div><dt>{exceptionDiff > 0 ? "Hotel absorbs" : "Rate difference (no refund applies)"}</dt><dd>{moneyExact(exceptionDiff)}</dd></div>}
+                      </>
+                    : <>
+                        <div><dt>Stay total</dt><dd>{moneyExact(exceptionFinancialsActive.targetTotal)}{exceptionFinancialsActive.targetRate != null ? ` (${moneyExact(exceptionFinancialsActive.targetRate)} × ${human(exceptionFinancialsActive.nights)} night${Number(exceptionFinancialsActive.nights) === 1 ? "" : "s"})` : ` · ${human(exceptionFinancialsActive.nights)} night${Number(exceptionFinancialsActive.nights) === 1 ? "" : "s"} at varying rates`}</dd></div>
+                        <div><dt>{exceptionDiff > 0 ? "Upgrade difference (guest pays)" : "Rate difference (no refund applies)"}</dt><dd>{moneyExact(exceptionDiff)}</dd></div>
+                      </>}
                   <div><dt>Net paid toward folio</dt><dd>{moneyExact(paid)}</dd></div>
                 </>}
               </div>
-              {exceptionMode && previewTotal !== null && (paid >= previewTotal
-                ? <p className="arrival-notice">Paid funds fully cover the repriced total — check-in will proceed.</p>
-                : <p className="arrival-notice warn">The repriced total {moneyExact(previewTotal)} exceeds the {moneyExact(paid)} already paid. Collect {moneyExact(previewTotal - paid)} first, then return here.</p>)}
+              {exceptionMode && exceptionFinancialsActive && exceptionResponsibility === "guest" && exceptionDiff > 0 && !approvedException?.guestAcceptedAt && (
+                <p className="arrival-notice warn">Guest acceptance of the {moneyExact(exceptionDiff)} difference must be recorded before check-in can complete.</p>
+              )}
+              {exceptionMode && exceptionFinancialsActive && (() => {
+                const effectiveTotal = exceptionResponsibility === "guest" && exceptionDiff > 0 ? Number(exceptionFinancialsActive.targetTotal) : Number(exceptionFinancialsActive.originalTotal ?? reservation.total);
+                return paid >= effectiveTotal
+                  ? <p className="arrival-notice">Paid funds fully cover the stay total — check-in will proceed.</p>
+                  : <p className="arrival-notice warn">The stay total {moneyExact(effectiveTotal)} exceeds the {moneyExact(paid)} already paid. Collect {moneyExact(effectiveTotal - paid)} first, then return here.</p>;
+              })()}
             </section>
           )}
         </div>

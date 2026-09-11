@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Fragment, ReactNode } from "react";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Modal, ModalProps } from "./Modal";
+import { RoomTypeBadge } from "./RoomTypeBadge";
 
 export interface FormField {
   key: string;
@@ -13,6 +14,8 @@ export interface FormField {
   placeholder?: string;
   defaultValue?: string | number | boolean;
   options?: { value: string; label: string; disabled?: boolean }[];
+  // Grouped select options (rendered as <optgroup>s) — takes precedence over `options`.
+  groups?: { label: string; options: { value: string; label: string }[] }[];
   validation?: (value: string | number | boolean) => string | null;
   dependsOn?: string;
   showWhen?: (value: string | number | boolean) => boolean;
@@ -239,11 +242,19 @@ export function FormDialog({
                   aria-describedby={errors[field.key] && (touched[field.key] || submitted) ? `${field.key}-error` : undefined}
                 >
                   {field.required ? <option value="" disabled>Select an option</option> : <option value="">—</option>}
-                  {field.options?.map((opt) => (
-                    <option key={opt.value} value={opt.value} disabled={opt.disabled}>
-                      {opt.label}
-                    </option>
-                  ))}
+                  {field.groups
+                    ? field.groups.map((group) => (
+                      <optgroup key={group.label} label={group.label}>
+                        {group.options.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </optgroup>
+                    ))
+                    : field.options?.map((opt) => (
+                      <option key={opt.value} value={opt.value} disabled={opt.disabled}>
+                        {opt.label}
+                      </option>
+                    ))}
                 </select>
                 {errors[field.key] && (touched[field.key] || submitted) && (
                   <p id={`${field.key}-error`} className="form-error" role="alert">{errors[field.key]}</p>
@@ -518,11 +529,19 @@ export function MultiStepFormDialog({
                   aria-describedby={errors[field.key] && (touched[field.key] || submitted) ? `${field.key}-error` : undefined}
                 >
                   {field.required ? <option value="" disabled>Select an option</option> : <option value="">—</option>}
-                  {field.options?.map((opt) => (
-                    <option key={opt.value} value={opt.value} disabled={opt.disabled}>
-                      {opt.label}
-                    </option>
-                  ))}
+                  {field.groups
+                    ? field.groups.map((group) => (
+                      <optgroup key={group.label} label={group.label}>
+                        {group.options.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </optgroup>
+                    ))
+                    : field.options?.map((opt) => (
+                      <option key={opt.value} value={opt.value} disabled={opt.disabled}>
+                        {opt.label}
+                      </option>
+                    ))}
                 </select>
                 {errors[field.key] && (touched[field.key] || submitted) && (
                   <p id={`${field.key}-error`} className="form-error" role="alert">{errors[field.key]}</p>
@@ -617,7 +636,7 @@ export interface RoomSelectDialogProps {
   onSelect: (roomNumber: string) => void;
   title: string;
   message: string;
-  rooms: { number: string; type: string; id?: string }[];
+  rooms: { number: string; type: string; id?: string; colorKey?: string | null }[];
   currentRoom?: string;
   loading?: boolean;
 }
@@ -680,7 +699,7 @@ export function RoomSelectDialog({
               />
               <div className="room-option-info">
                 <strong>Room {room.number}</strong>
-                <span className="room-type">{room.type}</span>
+                <RoomTypeBadge name={room.type} colorKey={room.colorKey} />
               </div>
             </label>
           ))}

@@ -2,7 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { canRequestManagerApproval, canReviewManagerApprovals } from "@/lib/permissions";
 import type { RecordItem, Role } from "@/lib/types";
 
-export const MANAGER_APPROVAL_TYPES=["room_upgrade","room_type_exception","reservation_modification","early_check_in","late_checkout","guest_compensation","refund_exception","checkout_exception","guest_escalation"] as const;
+export const MANAGER_APPROVAL_TYPES=["room_upgrade","room_type_exception","reservation_modification","early_check_in","late_checkout","guest_compensation","refund_exception","checkout_exception","guest_escalation","stay_extension"] as const;
 export const MANAGER_DECISIONS=["approve","reject"] as const;
 export const isFinalApproval=(status:string)=>["approved","rejected","cancelled","expired"].includes(status);
 export const managerCanReview=(role:Role)=>canReviewManagerApprovals(role);
@@ -10,7 +10,7 @@ export const staffCanRequestApproval=(role:Role)=>canRequestManagerApproval(role
 
 export async function listManagerApprovals(role:Role,userId:string):Promise<RecordItem[]>{
  if(!supabase)return[];
- let query=supabase.from("manager_approval_requests").select("id,request_type,related_entity_type,related_entity_id,reservation_id,guest_request_id,department,severity,reason,requested_action,normal_policy_result,requested_by,requested_at,status,reviewed_by,reviewed_at,decision_reason,execution_status,executed_by,executed_at,version,updated_at,authority_level,owner_escalated_by,owner_escalated_at,owner_escalation_reason,owner_reviewed_by,owner_reviewed_at");
+ let query=supabase.from("manager_approval_requests").select("id,request_type,related_entity_type,related_entity_id,reservation_id,guest_request_id,department,severity,reason,requested_action,normal_policy_result,requested_by,requested_at,status,reviewed_by,reviewed_at,decision_reason,execution_status,executed_by,executed_at,version,updated_at,guest_accepted_at,guest_accepted_by,authority_level,owner_escalated_by,owner_escalated_at,owner_escalation_reason,owner_reviewed_by,owner_reviewed_at");
  if(!canReviewManagerApprovals(role))query=query.eq("requested_by",userId);
  const{data,error}=await query.order("requested_at",{ascending:false});if(error)throw error;
  const rows=(data??[])as RecordItem[];const reservationIds=[...new Set(rows.map(row=>String(row.reservation_id||"")).filter(Boolean))];const userIds=[...new Set(rows.flatMap(row=>[String(row.requested_by||""),String(row.reviewed_by||"")]).filter(Boolean))];

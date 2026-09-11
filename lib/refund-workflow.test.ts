@@ -102,7 +102,9 @@ describe("D-006 refund queue surfacing", () => {
     expect(dashboard).toContain("Approved exception");
   });
   it("shows the Manager how many approved financial exceptions await Accounting", () => {
-    expect(dashboard).toContain("awaiting Accounting");
+    // 2026-09-23: the chip strip became a ModuleSummaryCards card — the label
+    // title-cased, the derivation (and the type list below) is unchanged.
+    expect(dashboard).toContain("Awaiting Accounting");
     expect(dashboard).toContain('["guest_compensation","refund_exception"]');
   });
   it("keeps Manager off every financial mutation surface", () => {

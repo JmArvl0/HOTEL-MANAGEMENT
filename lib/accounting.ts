@@ -26,6 +26,25 @@ export const adjustedFolioAmount = (folioAmount: number, direction: "debit" | "c
 export const REFUND_RETRYABLE_STATUSES = ["pending", "failed"] as const;
 export const isRefundActionable = (status: string) => (REFUND_RETRYABLE_STATUSES as readonly string[]).includes(status);
 
+// VAT-inclusive tax breakdown, derived from the gross total. Mirrors the SQL in
+// accounting_generate_document exactly (migration 20260928010000) so documents and
+// dashboards cannot drift: net = gross / ((1+sc)*(1+vat)), service charge = sc*net,
+// and the VAT line absorbs rounding so the three lines always sum to the gross.
+// Returns null when no rates are configured — the document has no breakdown.
+export function inclusiveTaxBreakdown(gross: number, vatRateBp: number, serviceChargeBp: number) {
+  const g = Math.max(toCentavos(gross), 0);
+  if (g <= 0 || (vatRateBp <= 0 && serviceChargeBp <= 0)) return null;
+  const net = Math.round(g / ((1 + serviceChargeBp / 10000) * (1 + vatRateBp / 10000)));
+  const serviceCharge = Math.round((net * serviceChargeBp) / 10000);
+  const vat = g - net - serviceCharge;
+  return {
+    pricingBasis: "vat_inclusive" as const, vatRateBp, serviceChargeBp,
+    netSubtotal: fromCentavos(net), serviceCharge: fromCentavos(serviceCharge),
+    vatAmount: fromCentavos(vat), grossTotal: fromCentavos(g),
+  };
+}
+export const ratePercent = (basisPoints: number) => `${basisPoints / 100}%`;
+
 type Row = Record<string, unknown>;
 export interface AccountingLedger {
   metrics: AccountingMetrics;
@@ -43,7 +62,7 @@ const REFUND_FIELDS = "id,reservation_id,invoice_id,reason,paid_deposit,refund_b
 const ATTEMPT_FIELDS = "id,refund_request_id,status,reference,reason,attempted_at";
 const SHIFT_FIELDS = "id,staff_user_id,location,opening_amount,status,opened_at,closed_at,expected_cash,actual_cash,variance,close_notes,reconciled_at,reconciliation_notes";
 const RECONCILIATION_FIELDS = "id,period_start,period_end,payment_method,expected_amount,settled_amount,variance,status,notes,reconciled_at";
-const DOCUMENT_FIELDS = "id,document_number,document_type,reservation_id,payment_id,created_at";
+const DOCUMENT_FIELDS = "id,document_number,document_type,reservation_id,payment_id,snapshot,created_at";
 
 const sum = (rows: Row[], key: string) => fromCentavos(rows.reduce((total, row) => total + toCentavos(Number(row[key] || 0)), 0));
 

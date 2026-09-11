@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { DoorClosed, Loader2, Pencil, Plus } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { RoomTypeBadge } from "@/components/ui/RoomTypeBadge";
 
 // Configuration-only roster for physical rooms. Occupancy, housekeeping, and
 // maintenance state belong to their own workflows and are shown read-only —
@@ -16,7 +17,7 @@ type Room = {
   configuration_version: number;
   commitments: number;
 };
-type RoomType = { id: string; name: string; active: boolean };
+type RoomType = { id: string; name: string; active: boolean; badge_color_key?: string | null };
 type Draft = { number: string; type: string; floor: string; wing: string; designation: string; active: boolean; reason: string };
 
 const label = (value: unknown) => String(value ?? "").replaceAll("_", " ");
@@ -57,6 +58,9 @@ export default function RoomRosterPanel({ onClose }: { onClose: () => void }) {
   useEffect(() => { void load(); }, []);
 
   const selectable = types.filter((type) => type.active);
+  // Physical rooms inherit the badge color from their room type (rooms.type is
+  // the type name) — no per-room color anywhere.
+  const colorOf = (typeName: string) => types.find((type) => type.name === typeName)?.badge_color_key ?? null;
   const openEditor = (room: Room) => { setEditing(room); setDraft(draftFrom(room)); };
   const openCreate = () => { setEditing(null); setDraft(emptyDraft(selectable[0]?.name ?? "")); };
   const closeEditor = () => { setEditing(null); setDraft(null); };
@@ -123,7 +127,7 @@ export default function RoomRosterPanel({ onClose }: { onClose: () => void }) {
                   <div className={`room-roster-row${room.administratively_active ? "" : " retired"}`} key={room.id}>
                     <div className="room-roster-id">
                       <b>{label(room.number)}</b>
-                      <span>{label(room.type)}</span>
+                      <RoomTypeBadge name={label(room.type)} colorKey={colorOf(room.type)}/>
                       {room.administrative_designation && <small>{label(room.administrative_designation)}</small>}
                     </div>
                     <div className="room-roster-state">

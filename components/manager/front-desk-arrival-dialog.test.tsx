@@ -4,7 +4,7 @@
 // the server's eligible-inventory endpoint — never free text. All fetches are stubbed.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import FrontDeskArrivalDialog from "./front-desk-arrival-dialog";
+import FrontDeskArrivalDialog, { type ArrivalProgress } from "./front-desk-arrival-dialog";
 
 // jsdom ships no matchMedia; Modal reads prefers-reduced-motion on every render.
 if (!window.matchMedia) {
@@ -97,8 +97,8 @@ const standardRoutes = (base: Route, extra: Route[] = [], approvals: Responder =
   ...extra,
 ];
 
-const renderDialog = () => render(
-  <FrontDeskArrivalDialog reservationId="res-1" guestName="Ana Cruz" askForm={askForm} onClose={() => {}} onCheckedIn={() => {}} />
+const renderDialog = (props: { resume?: ArrivalProgress | null; onProgress?: (p: ArrivalProgress) => void } = {}) => render(
+  <FrontDeskArrivalDialog reservationId="res-1" guestName="Ana Cruz" askForm={askForm} onClose={() => {}} onCheckedIn={() => {}} {...props} />
 );
 
 // Identity (verified) and financial (zero balance) are ready, so two Continues reach Step 3.
@@ -162,6 +162,7 @@ describe("FrontDeskArrivalDialog — Step 3 room assignment", () => {
     await advanceToRoomStep();
     fireEvent.change(await screen.findByLabelText("Target room type"), { target: { value: "dk-id" } });
     fireEvent.change(await screen.findByLabelText("Physical room"), { target: { value: "RM-205" } });
+    fireEvent.change(screen.getByLabelText("Reason for the change"), { target: { value: "hotel_type_unavailable" } });
     fireEvent.change(screen.getByLabelText(/Why is the exception required\?/i), { target: { value: "All eligible Garden Twin rooms are currently unavailable." } });
     fireEvent.click(screen.getByRole("button", { name: /request manager approval/i }));
     expect(await screen.findByText(/Room-type exception requested/i)).toBeTruthy();
@@ -170,7 +171,7 @@ describe("FrontDeskArrivalDialog — Step 3 room assignment", () => {
     const body = JSON.parse(String((post?.[1] as RequestInit).body));
     expect(body.type).toBe("room_type_exception");
     expect(body.reservationId).toBe("res-1");
-    expect(body.requestedAction).toEqual({ roomType: "Deluxe King", requestedRoomTypeId: "dk-id", requestedRoomId: "RM-205", requestedRoomNumber: "205", originalRoomTypeId: "gt-id", originalRoomType: "Garden Twin" });
+    expect(body.requestedAction).toEqual({ reasonCode: "hotel_type_unavailable", roomType: "Deluxe King", requestedRoomTypeId: "dk-id", requestedRoomId: "RM-205", requestedRoomNumber: "205", originalRoomTypeId: "gt-id", originalRoomType: "Garden Twin" });
   });
 
   it("shows an explicit empty state and no approval request when no alternative type has rooms", async () => {
@@ -271,5 +272,46 @@ describe("FrontDeskArrivalDialog — approved exception callout", () => {
     expect(screen.queryByLabelText("Target room type")).toBeNull();
     expect(screen.queryByRole("button", { name: /request manager approval/i })).toBeNull();
     expect(screen.queryByText(/No alternative room types currently have eligible rooms/i)).toBeNull();
+  });
+});
+
+describe("FrontDeskArrivalDialog — resume across close/reopen", () => {
+  it("resumes at the Room step with the saved room selected", async () => {
+    serve(standardRoutes(baseRoute(() => jsonResponse({ data: [reservedRoom("101"), reservedRoom("104")], reservedRoomTypeId: "gt-id", alternativeRoomTypes: [] }))));
+    renderDialog({ resume: { step: 2, selected: "101", exceptionMode: null } });
+    // No Continue clicks: the wizard reopens directly on the Room step.
+    expect(await screen.findByText("Choose the physical room")).toBeTruthy();
+    expect(screen.queryByText("Guest identity")).toBeNull();
+    const group = await screen.findByRole("radiogroup", { name: "Eligible rooms" });
+    const radio = within(group).getByRole("radio", { name: /Room 101/ }) as HTMLInputElement;
+    expect(radio.checked).toBe(true);
+  });
+
+  it("resumes at the Review step and reports progress", async () => {
+    serve(standardRoutes(baseRoute(() => jsonResponse({ data: [reservedRoom("101")], reservedRoomTypeId: "gt-id", alternativeRoomTypes: [] }))));
+    const onProgress = vi.fn();
+    renderDialog({ resume: { step: 3, selected: "101", exceptionMode: null }, onProgress });
+    expect(await screen.findByText("Review and check in")).toBeTruthy();
+    expect(await screen.findByText("Room 101")).toBeTruthy();
+    await waitFor(() => expect(onProgress).toHaveBeenCalledWith({ step: 3, selected: "101", exceptionMode: null }));
+  });
+
+  it("clamps to the Room step when the saved room is no longer eligible", async () => {
+    serve(standardRoutes(baseRoute(() => jsonResponse({ data: [reservedRoom("101")], reservedRoomTypeId: "gt-id", alternativeRoomTypes: [] }))));
+    renderDialog({ resume: { step: 3, selected: "999", exceptionMode: null } });
+    expect(await screen.findByText("Choose the physical room")).toBeTruthy();
+    expect(screen.queryByText("Review and check in")).toBeNull();
+  });
+
+  it("resumes an active exception mode with its room selected", async () => {
+    serve(standardRoutes(
+      baseRoute(() => jsonResponse({ data: [], reservedRoomTypeId: "gt-id", alternativeRoomTypes: alternatives })),
+      [exceptionRoute(jsonResponse({ data: deluxeRooms, reservedRoomTypeId: "gt-id", alternativeRoomTypes: [], exceptionApproved: true }))],
+    ));
+    renderDialog({ resume: { step: 2, selected: "201", exceptionMode: "Deluxe King" } });
+    expect(await screen.findByText(/Approved exception active/i)).toBeTruthy();
+    const group = await screen.findByRole("radiogroup", { name: "Eligible rooms" });
+    const radio = within(group).getByRole("radio", { name: /Room 201/ }) as HTMLInputElement;
+    expect(radio.checked).toBe(true);
   });
 });

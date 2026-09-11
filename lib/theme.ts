@@ -3,14 +3,18 @@ import { useSyncExternalStore } from "react";
 
 export type ThemeMode = "light" | "dark" | "system";
 export type Theme = "light" | "dark";
-/** Kept in sync with the anti-flicker inline script in app/layout.tsx. */
+// Default is LIGHT: only a stored 'dark' paints dark. "system" stays a valid
+// ThemeMode (effectiveTheme still supports it) but is never the fallback, and a
+// legacy stored 'system' resolves to light — kept in sync with the anti-flicker
+// inline script in app/layout.tsx.
 export const THEME_KEY = "haven-dashboard-theme";
 
 export const parseMode = (raw: unknown): ThemeMode => (raw === "light" || raw === "dark" || raw === "system" ? raw : "system");
 export const effectiveTheme = (mode: ThemeMode, osDark: boolean): Theme => (mode === "system" ? (osDark ? "dark" : "light") : mode);
 
 const osDark = () => !!window.matchMedia?.("(prefers-color-scheme: dark)").matches;
-const storedMode = (): ThemeMode => { try { return parseMode(window.localStorage.getItem(THEME_KEY)); } catch { return "system"; } };
+// Missing/junk storage and legacy 'system' values all resolve to the light default.
+const storedMode = (): ThemeMode => { try { const mode = parseMode(window.localStorage.getItem(THEME_KEY)); return mode === "system" ? "light" : mode; } catch { return "light"; } };
 const currentTheme = (): Theme => effectiveTheme(storedMode(), osDark());
 
 let listeners: (() => void)[] = [];
@@ -66,7 +70,9 @@ export function setMode(next: ThemeMode, event?: { clientX?: number; clientY?: n
 }
 
 export function useTheme() {
-  // Server/hydration snapshot is "dark" because that is what the base stylesheet paints.
+  // Server/hydration snapshot is "dark" because that is what the base stylesheet paints;
+  // the pre-paint script in app/layout.tsx has already added .theme-light for every
+  // account without an explicit dark choice, and the store re-reads right after hydration.
   const theme = useSyncExternalStore(subscribe, currentTheme, () => "dark" as Theme);
   return { theme, setMode, toggle: (event?: Parameters<typeof setMode>[1]) => setMode(currentTheme() === "dark" ? "light" : "dark", event) };
 }

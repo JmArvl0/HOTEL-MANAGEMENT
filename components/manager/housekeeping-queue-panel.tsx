@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BedDouble, ChevronDown, ClipboardCheck, Search, Sparkles, Wrench } from "lucide-react";
+import { BedDouble, ChevronDown, ClipboardCheck, Search, Sparkles, Wand2, Wrench } from "lucide-react";
+import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
+import type { AssignmentSuggestion } from "@/lib/housekeeping-suggestions";
 import type { RecordItem, Role } from "@/lib/types";
 
 // Operational queue for the housekeeping workflow. Renders the same
@@ -57,7 +59,7 @@ export const queueTaskOrder = (a: RecordItem, b: RecordItem): number =>
 
 type GroupSpec = { key: QueueGroup; title: string; hint: string; icon: typeof BedDouble };
 
-export default function HousekeepingQueuePanel({ role, userId, items, search, setSearch, housekeepingAction, coordinate, onViewMaintenance, onViewRoom }: {
+export default function HousekeepingQueuePanel({ role, userId, items, search, setSearch, housekeepingAction, coordinate, applySuggestion, suggestions = [], onViewMaintenance, onViewRoom }: {
   role: Role;
   userId: string;
   items: RecordItem[];
@@ -65,6 +67,10 @@ export default function HousekeepingQueuePanel({ role, userId, items, search, se
   setSearch: (value: string) => void;
   housekeepingAction: (item: RecordItem, action: "assign" | "start" | "complete" | "inspect" | "defer" | "maintenance") => void;
   coordinate: (item: RecordItem) => void;
+  /** Applies an advisory assignment suggestion through the audited assign route. Housekeeping self-assigns; Owner assigns the suggested teammate. */
+  applySuggestion?: (suggestion: AssignmentSuggestion) => void;
+  /** Advisory plan from /api/housekeeping/assignment-suggestions — the parent owns data fetching, this panel stays presentational. */
+  suggestions?: AssignmentSuggestion[];
   onViewMaintenance: () => void;
   onViewRoom: (item: RecordItem) => void;
 }) {
@@ -73,6 +79,17 @@ export default function HousekeepingQueuePanel({ role, userId, items, search, se
   const mine = role === "housekeeping" ? userId : "";
   const canHousekeep = role === "housekeeping";
   const canCoordinate = role === "manager";
+  // Advisory assignment plan — Housekeeping sees it to claim, Manager to
+  // coordinate, Owner to assign. Front Desk keeps its read-only queue.
+  const canSeeSuggestions = ["housekeeping", "manager", "owner"].includes(role);
+  const canApplySuggestion = canHousekeep || role === "owner";
+
+  // Keep the plan honest against the live queue: a row disappears the moment
+  // its task is no longer open unassigned work (claimed, reassigned, done).
+  const liveSuggestions = useMemo(
+    () => (canSeeSuggestions ? suggestions.filter((suggestion) => items.some((item) => String(item.id) === suggestion.taskId && !item.assigned_user_id && !item.assignee && openTaskStatuses.includes(String(item.status)))) : []),
+    [canSeeSuggestions, suggestions, items]
+  );
 
   const groups = useMemo(() => {
     const grouped: Record<QueueGroup, RecordItem[]> = { blocked: [], needs_attention: [], my_tasks: [], in_progress: [], waiting_inspection: [], completed_today: [], other_open: [] };
@@ -98,6 +115,33 @@ export default function HousekeepingQueuePanel({ role, userId, items, search, se
 
   return <>
     <div className="page-title module-title"><div><p className="eyebrow">Hotel operations</p><h1>Housekeeping</h1><p>A live, auditable room-care queue from turnover through inspection and readiness.</p></div></div>
+    <ModuleSummaryCards cards={[
+      { label: "Needs attention", value: groups.needs_attention.length, hint: "Unassigned or urgent", icon: ClipboardCheck, tone: "attention" },
+      { label: "In progress", value: groups.in_progress.length, hint: "Being cleaned now", icon: BedDouble, tone: "today" },
+      { label: "Waiting for inspection", value: groups.waiting_inspection.length, hint: "Not sellable until passed", icon: Sparkles, tone: "active" },
+      { label: "Blocked by Maintenance", value: groups.blocked.length, hint: "Work order holds the room", icon: Wrench, tone: "attention" },
+      { label: "Completed today", value: groups.completed_today.length, hint: "Finished this hotel day", icon: ClipboardCheck, tone: "done" },
+    ]} ariaLabel="Housekeeping summary"/>
+    {canSeeSuggestions && liveSuggestions.length > 0 && <div className="data-panel hk-queue" aria-label="Suggested assignments">
+      <section className="hk-queue-group">
+        <header><h3><Wand2 size={14} aria-hidden="true" />Suggested assignments<i>{liveSuggestions.length}</i></h3><p>Suggestion — you decide. A balanced plan from open tasks and current workloads; nothing is assigned automatically.</p></header>
+        {liveSuggestions.map((suggestion) => <article key={suggestion.taskId} className="hk-queue-card">
+          <div className="hk-queue-main">
+            <header>
+              <b>Room {suggestion.roomNumber}</b>
+              <span className="hk-queue-type">{suggestion.taskType}</span>
+              <span className={`badge ${suggestion.priority}`}>{suggestion.priority}</span>
+            </header>
+            <p className="hk-queue-service"><strong>{suggestion.staffName}</strong></p>
+            <small>{suggestion.reason}</small>
+          </div>
+          <div className="hk-queue-actions">
+            {canApplySuggestion && applySuggestion && <button className="table-action view-action" onClick={() => applySuggestion(suggestion)}>{canHousekeep ? "Assign to me" : `Assign to ${suggestion.staffName}`}</button>}
+            {!canApplySuggestion && <span>Suggestion only — coordinate via Prioritize</span>}
+          </div>
+        </article>)}
+      </section>
+    </div>}
     <div className="table-tools"><label><Search size={17} /><input placeholder="Search the room-care queue..." value={search} onChange={(event) => setSearch(event.target.value)} /></label></div>
     <div className="data-panel hk-queue" aria-label="Room care queue">
       {items.length === 0 && <div className="empty"><Search /><h3>No records found</h3><p>No matching operational records are available.</p></div>}

@@ -1,6 +1,8 @@
 // Pure display helpers for the Manager Approvals & Escalations queue.
 // Kept free of React so the formatting and the pending-first ordering are testable.
 
+import { roomTypeChangeReasonLabel } from "@/lib/room-type-change-reasons";
+
 export type ApprovalRecord = Record<string, unknown>;
 
 // Backend severity values (manager_approval_requests.severity): normal | high | critical.
@@ -45,6 +47,7 @@ const detailLabels: Record<string, string> = {
   checkOut: "Check out",
   requestedTime: "Requested time",
   requestedUntil: "Requested until",
+  requestedCheckOut: "Requested new checkout",
   amount: "Amount",
   arrangement: "Arrangement",
   requestedResolution: "Requested resolution",
@@ -58,8 +61,10 @@ const numberFormat = new Intl.NumberFormat("en-PH");
 // data) are dropped; booleans read yes; numbers get separators.
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // Machine identifiers submitted alongside the human-readable fields (rooms use
-// RM-XXXXXXXX ids) — never display data for the approval queue.
-const hiddenKeys = new Set(["requestedRoomId", "requestedRoomTypeId", "originalRoomTypeId"]);
+// RM-XXXXXXXX ids) — never display data for the approval queue. `financials` and
+// `stayExtension` are server-stamped snapshots; ApprovalReviewModal renders each as
+// its own section instead.
+const hiddenKeys = new Set(["requestedRoomId", "requestedRoomTypeId", "originalRoomTypeId", "financials", "stayExtension"]);
 
 export function formatDetail(value: unknown): string {
   if (!value || typeof value !== "object") return "";
@@ -67,6 +72,8 @@ export function formatDetail(value: unknown): string {
   for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
     if (hiddenKeys.has(key)) continue;
     if (raw === null || raw === undefined || raw === false || raw === "") continue;
+    // Reason codes carry the financial-responsibility decision — show the human label.
+    if (key === "reasonCode") { parts.push(`Reason: ${roomTypeChangeReasonLabel(String(raw))}`); continue; }
     const text = typeof raw === "boolean" ? "yes" : typeof raw === "number" ? numberFormat.format(raw) : String(raw);
     if (!text.trim() || uuidPattern.test(text)) continue;
     const name = detailLabels[key] ?? key.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/_/g, " ");

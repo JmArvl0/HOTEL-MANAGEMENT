@@ -3,6 +3,10 @@
     {
       "path": "/api/analytics/generate",
       "schedule": "35 18 * * *"
+    },
+    {
+      "path": "/api/guest-reminders",
+      "schedule": "5 1 * * *"
     }
   ]
 }

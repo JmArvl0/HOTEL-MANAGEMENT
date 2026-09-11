@@ -58,6 +58,16 @@ const decidedComp = {
   reviewer_name: "Manager", reviewed_at: ago(20), decision_reason: "Verified against ledger",
   requested_action: { amount: 1200 },
 } as unknown as RecordItem;
+// Approved stay extension with the server-stamped snapshot: the review modal must
+// repeat the stamped figures back and offer the Front Desk execution path.
+const approvedStayExtension = {
+  id: "a5", request_type: "stay_extension", severity: "normal", status: "approved",
+  execution_status: "awaiting_execution", department: "front_desk", requested_at: ago(40),
+  reason: "Guest flight moved; room taken after current checkout", reservation_reference: "HV-1004",
+  guest_name: "Garcia", reservation_status: "checked_in", requester_name: "Reception",
+  reviewer_name: "Manager", reviewed_at: ago(10), decision_reason: "Approved with room move",
+  requested_action: { requestedCheckOut: "2026-09-15", stayExtension: { currentCheckOut: "2026-09-12", requestedCheckOut: "2026-09-15", nights: 3, rate: 11600, additionalAmount: 34800, projectedTotal: 58000, roomConflict: true, roomNumber: "302", roomType: "Executive Suite" } },
+} as unknown as RecordItem;
 
 const items = [normalCheckout, highEscalation, criticalUpgrade, decidedComp];
 
@@ -108,18 +118,25 @@ const tableRows = () => Array.from(document.querySelectorAll<HTMLTableRowElement
 afterEach(cleanup);
 
 describe("ManagerApprovalView", () => {
-  it("shows the queue summary: pending, high priority, oldest waiting, escalations, awaiting Accounting", () => {
+  it("shows the queue summary cards: pending, high priority, escalations, awaiting Accounting, oldest waiting", () => {
     renderView();
-    const summary = screen.getByRole("status").textContent ?? "";
-    expect(summary).toContain("3 pending");
-    expect(summary).toContain("2 high priority"); // high + critical
-    expect(summary).toContain("1 escalation");
-    expect(summary).toContain("1 awaiting Accounting"); // decidedComp: approved, not yet executed by Accounting
-    expect(summary).toMatch(/oldest waiting/i);
+    const summary = screen.getByRole("group", { name: "Approvals queue summary" }).textContent ?? "";
+    expect(summary).toContain("Pending");
+    expect(summary).toContain("3"); // pending count
+    expect(summary).toContain("High priority");
+    expect(summary).toContain("2"); // high + critical
+    expect(summary).toContain("Escalations");
+    expect(summary).toContain("1"); // guest_escalation
+    expect(summary).toContain("Awaiting Accounting");
+    expect(summary).toContain("1"); // decidedComp: approved, not yet executed by Accounting
+    expect(summary).toContain("Oldest waiting");
   });
 
-  it("orders the pending queue severity-first, then longest-waiting, and keeps decided rows off it", () => {
+  it("defaults to All, then orders the pending queue severity-first and keeps decided rows off it", () => {
     renderView();
+    expect(screen.getByRole("button", { name: "all" }).getAttribute("aria-pressed")).toBe("true");
+    expect(tableRows()).toHaveLength(4);
+    fireEvent.click(screen.getByRole("button", { name: "pending" }));
     const refs = tableRows().map((row) => within(row).getAllByText(/HV-100\d/)[0].textContent);
     expect(refs).toEqual(["HV-1003", "HV-1002", "HV-1001"]); // critical, high, normal
     expect(refs).not.toContain("HV-1000"); // approved row is on another tab
@@ -130,13 +147,14 @@ describe("ManagerApprovalView", () => {
     const escalationRow = tableRows().find((row) => within(row).queryByText("HV-1002"))!;
     expect(within(escalationRow).getByText("Escalation")).toBeTruthy();
     expect(within(escalationRow).queryByText("Approval")).toBeNull();
-    const criticalRow = tableRows()[0];
+    const criticalRow = tableRows().find((row) => within(row).queryByText("HV-1003"))!;
     expect(within(criticalRow).getByText("critical")).toBeTruthy();
     expect(within(criticalRow).getByText("room upgrade")).toBeTruthy();
   });
 
   it("Review opens the decision modal; Approve routes through review() and closes on success", async () => {
     const props = renderView();
+    fireEvent.click(screen.getByRole("button", { name: "pending" }));
     fireEvent.click(within(tableRows()[0]).getByText("Review"));
     const modal = await screen.findByRole("dialog");
     expect(within(modal).getByText("Requested action")).toBeTruthy();
@@ -149,6 +167,7 @@ describe("ManagerApprovalView", () => {
 
   it("keeps the modal open when the decision does not complete (prompt cancelled or server error)", async () => {
     const props = renderView({ review: vi.fn().mockResolvedValue(false) });
+    fireEvent.click(screen.getByRole("button", { name: "pending" }));
     fireEvent.click(within(tableRows()[0]).getByText("Review"));
     fireEvent.click(await screen.findByText("Reject"));
     await waitFor(() => expect(props.review).toHaveBeenCalledWith(criticalUpgrade, "reject"));
@@ -157,6 +176,7 @@ describe("ManagerApprovalView", () => {
 
   it("hides decision buttons from view-only roles and offers the execute path on approved rows", async () => {
     renderView({ canReview: false });
+    fireEvent.click(screen.getByRole("button", { name: "pending" }));
     fireEvent.click(within(tableRows()[0]).getByText("Review"));
     const modal = await screen.findByRole("dialog");
     expect(within(modal).queryByText("Approve")).toBeNull();
@@ -175,6 +195,7 @@ describe("ManagerApprovalView", () => {
 
   it("shows the caught-up empty state when the pending queue is clear, and the clear-filters state when filtered out", () => {
     renderView({ items: [decidedComp] });
+    fireEvent.click(screen.getByRole("button", { name: "pending" }));
     expect(screen.getByText("No approvals need attention")).toBeTruthy();
     expect(screen.getByText(/all caught up/i)).toBeTruthy();
     cleanup();
@@ -183,5 +204,25 @@ describe("ManagerApprovalView", () => {
     expect(screen.getByText("No requests match these filters")).toBeTruthy();
     fireEvent.click(screen.getByText("Clear filters"));
     expect(filtered.setSearch).toHaveBeenCalledWith("");
+  });
+
+  it("renders the stamped stay-extension snapshot and the Front Desk execution path for an approved extension", async () => {
+    const props = renderView({ items: [approvedStayExtension] });
+    fireEvent.click(screen.getByRole("button", { name: "approved" })); // status pill
+    fireEvent.click(within(tableRows()[0]).getByText("Review"));
+    const modal = await screen.findByRole("dialog");
+    // The stamped figures are repeated back — nights, rate, amounts, and the room
+    // conflict that explains why the exception exists at all.
+    expect(within(modal).getByText("Stay extension")).toBeTruthy();
+    expect(within(modal).getByText(/3 added nights/)).toBeTruthy();
+    expect(within(modal).getByText(/11,600/)).toBeTruthy();
+    expect(within(modal).getByText(/34,800/)).toBeTruthy();
+    expect(within(modal).getByText("Conflict during added nights")).toBeTruthy();
+    expect(within(modal).getByText(/same-type room/i)).toBeTruthy();
+    // The raw stayExtension object never leaks into the generic detail line.
+    expect(within(modal).queryByText(/roomConflict: /i)).toBeNull();
+    fireEvent.click(within(modal).getByText("Execute as Front Desk"));
+    await waitFor(() => expect(props.execute).toHaveBeenCalledWith(approvedStayExtension));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 });

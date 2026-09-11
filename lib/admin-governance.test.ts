@@ -99,4 +99,15 @@ describe("Admin lifecycle and configuration invariants", () => {
     expect(dashboard).toContain("/api/admin/data?section=");
     expect(dashboard).not.toContain("Demo data");
   });
+
+  it("provides an actionable, live-data-driven Admin overview", () => {
+    for (const action of ["Manage accounts", "Review permissions", "Configure rooms", "Update hotel policy", "Review security"]) {
+      expect(dashboard).toContain(action);
+    }
+    expect(dashboard).toContain("admin-quick-actions");
+    expect(dashboard).toContain("admin-health-card");
+    expect(dashboard).toContain("Account distribution");
+    expect(dashboard).toContain("Recent governance activity");
+    expect(dashboard).toContain("No governance activity yet");
+  });
 });
