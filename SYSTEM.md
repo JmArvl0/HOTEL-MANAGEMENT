@@ -849,7 +849,13 @@ Executive · Governance · Catalog. The active module's category is always expan
 persists its own open/closed choices (`localStorage["haven-admin-sidebar-groups"]` /
 `["haven-owner-sidebar-groups"]`). Grouping is presentational — every module stays reachable.
 
-- **Admin** (`AdminDashboardClient`, `/api/admin/*`): staff account lifecycle
+- **System Administrator** (internal role `admin`, displayed as "System Administrator" /
+  "System Administration" in the UI; `AdminDashboardClient`, `/api/admin/*`): HAVEN's
+  system administrator — maintains users, system configuration, hotel setup, technical
+  health, security administration, and administrative auditability. It is NOT a hotel
+  operations role and does not bypass department authority (no check-in/out, no payment
+  verification, no housekeeping/maintenance execution, no transport operation, no Manager
+  approvals). Scope: staff account lifecycle
   (`admin_create_staff`, status changes, role changes, metadata), **secure account recovery** tokens,
   room/room-type/policy editing. The Users & Staff module carries a client-side filter toolbar
   (role / status / recovery-required / department / search over the loaded rows, with a clear-filters
@@ -868,7 +874,9 @@ persists its own open/closed choices (`localStorage["haven-admin-sidebar-groups"
   Everything is
   version-checked (`ACCOUNT_STALE`,
   `ROOM_CONFIGURATION_STALE`, `ROOM_TYPE_STALE`, `POLICY_STALE`); protected roles (owner/admin),
-  self-lifecycle changes, and the last active Owner are guarded; timezone changes are **Owner-only**;
+  self-lifecycle changes, and the last active Owner are guarded; timezone changes are
+  Owner-or-System-Administrator (migration `20261001010000` intentionally removed the
+  former Owner-only gate — hotel timezone is system configuration);
   a room with an active/upcoming assignment cannot be deactivated.
 - **Admin System Health** (`/api/admin/data?section=system`, migration
   `20260924010000`): a technical-operations module in the Governance group. It
@@ -882,7 +890,17 @@ persists its own open/closed choices (`localStorage["haven-admin-sidebar-groups"
   (`outputFileTracingIncludes`) bundles `supabase/migrations/**` with the route
   so the local count works on Vercel; when the files are unavailable the module
   degrades to remote-count-only (`unknown` status). The section auto-refreshes
-  silently every minute while open plus a manual "Run checks now" button.
+  silently every minute while open plus a manual "Run checks now" button. Extended
+  (Unknown-first, read-only, no secrets): **Application** (environment from `NODE_ENV`,
+  `package.json` version, Vercel commit short hash when present — otherwise `Unknown`),
+  **Storage** (service-role `list` probe on the `room-photos` bucket — status only, never
+  keys or URLs), **Email** (`RESEND_API_KEY` presence → Configured/Not configured; delivery
+  history untracked → `Unknown`), **Scheduled automations** (the two real `vercel.json`
+  crons — guest reminders daily 01:05 UTC, analytics generation daily 18:35 UTC — with
+  last-run `Unknown`), **Deployment** (provider Vercel, status `Unknown` — no deployment
+  feed connected), **Domain** (`Not connected` — health reporting not connected), and a
+  **Recent technical issues** list derived from live probes only. No deploy/redeploy/
+  rollback/SQL/shell/env controls exist anywhere in the workspace.
 - **Owner** (`OwnerDashboardClient`, `/api/owner/data`, `/api/owner/exceptions/[id]/review`):
   executive data, the top-tier exception review above Manager authority, plus read-only views of the
   room-type catalogue, transfer vehicle types, and the live Transportation workspace

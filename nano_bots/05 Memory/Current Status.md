@@ -18,6 +18,15 @@ confirmation stops). **ALL PHASES COMPLETE** — 1 tax-aware documents, 2 guest 
 6 housekeeping assignment suggestions, 7 inventory draft POs, 8 preventive maintenance
 foundation, 9 commercial readiness (9A/9B/9C/9D). The final overall report was delivered
 in-session. Remaining: manual UI verification (role logins) and committing the tree.
+- **System Administrator formalization (2026-09-30)** — internal `admin` is now HAVEN's
+  System Administrator (display-only; no new role, no identifier renames). Q1: migration
+  `20261001010000` (pushed + verified, 66/66 in sync) lets Owner or Admin change the hotel
+  timezone ([[D-012]]); Q3: workspace shows System Administrator / System Administration;
+  Q2: System Health extended Unknown-first (application, storage, email, deployment,
+  domain, automations, technical issues — read-only, no secrets, no new integrations).
+  All gates green: typecheck, lint 0 errors, **990/990**, build. Manual UI verification
+  pending (Admin login). See [[2026-09-30 - System Administrator Formalization]].
+
 
 ## Recently Completed
 
@@ -504,6 +513,7 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
 - [[D-009 — Stay extension semantics: in-house only, one implementation, exception only on room conflict]]
 - [[D-010 — Room-type badge color governance: reservation scope, approve = activate, Owner/Admin-only recolors]]
 - [[D-011 — Staff notification surfaces are three distinct derived views; no persistent read/unread store]]
+- [[D-012 — Hotel timezone is Owner-or-System-Administrator configuration]]
 - [[D-005 — Manager attention rules are derived, never mutating]]
 - [[D-007 — Accounting handles routine financial operations]]
 
@@ -513,7 +523,8 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
    Owner/Admin policy dialogs (VAT/service charge, deposit SLA), Manager inventory
    replenishment + draft PO, Maintenance/Manager asset registry, Housekeeping suggestion
    strip (self-assign vs Owner assign vs Manager read-only), guest-profile modal, rate
-   plans modal, deposit aging chips.
+   plans modal, deposit aging chips, System Administrator labels + timezone field +
+   extended System Health cards (Admin login).
 2. Commit the working tree (all sessions' features + parallel work) — the tree is large;
    coordinate with parallel sessions first.
 3. Confirm the first live guest-reminders cron firing (09:05 Manila) once a night passes

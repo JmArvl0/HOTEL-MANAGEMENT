@@ -32,10 +32,20 @@ const health = (overrides: Partial<SystemHealth> = {}): SystemHealth => ({
     localCount: 2,
     status: "in_sync",
   },
+  application: { environment: "Production", version: "1.0.0", commit: "abc1234" },
+  storage: { status: "operational" },
+  email: { status: "configured" },
+  automations: [
+    { name: "Guest reminders", schedule: "Daily 01:05 UTC", lastRun: null, status: "unknown" },
+    { name: "Analytics generation", schedule: "Daily 18:35 UTC", lastRun: null, status: "unknown" },
+  ],
+  deployment: { provider: "Vercel", status: "unknown" },
+  domain: { status: "not_connected" },
+  issues: [],
   ...overrides,
 });
 
-const tableRows = () => Array.from(document.querySelectorAll<HTMLTableRowElement>("table tbody tr"));
+const tableRows = () => Array.from(document.querySelectorAll<HTMLTableRowElement>('table[aria-label="Applied migrations"] tbody tr'));
 
 afterEach(cleanup);
 
@@ -84,5 +94,35 @@ describe("SystemHealthView", () => {
     expect(screen.getByText("Checking…")).toBeTruthy();
     expect(screen.getByText("0")).toBeTruthy();
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("renders the extended application, storage, email, deployment, and domain cards", () => {
+    render(<SystemHealthView data={health()} onRefresh={() => {}} />);
+    expect(screen.getByText("Production")).toBeTruthy();
+    expect(screen.getByText("v1.0.0 · abc1234")).toBeTruthy();
+    expect(screen.getByText("Operational")).toBeTruthy();
+    expect(screen.getByText("Configured")).toBeTruthy();
+    expect(screen.getByText("Not connected")).toBeTruthy();
+    expect(screen.getByText("Guest reminders")).toBeTruthy();
+    expect(screen.getByText("Analytics generation")).toBeTruthy();
+  });
+
+  it("falls back to honest Unknowns when extended sections are missing", () => {
+    render(<SystemHealthView data={{ db: health().db, activity: health().activity, migrations: health().migrations } as SystemHealth} onRefresh={() => {}} />);
+    expect(screen.getAllByText("Unknown").length).toBeGreaterThan(0);
+    expect(screen.getByText("Not connected")).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("lists technical issues without adding alert roles", () => {
+    render(<SystemHealthView data={health({ issues: ["1 local migration is not applied to the live database."] })} onRefresh={() => {}} />);
+    expect(screen.getByRole("heading", { name: "Recent technical issues" })).toBeTruthy();
+    expect(screen.getByText("1 local migration is not applied to the live database.")).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("never carries secret values in the health payload", () => {
+    const payload = JSON.stringify(health());
+    for (const marker of ["DATABASE_URL", "DIRECT_URL", "SERVICE_ROLE_KEY", "RESEND_API_KEY", "NEXTAUTH_SECRET", "BEGIN PRIVATE", "postgres://", "postgresql://"]) expect(payload).not.toContain(marker);
   });
 });

@@ -405,3 +405,32 @@ conflation the spec warns about is impossible by construction when no read state
 ### Origin
 
 [[2026-09-11 - Session 06]]
+
+## D-012 — Hotel timezone is Owner-or-System-Administrator configuration
+
+Date: 2026-09-30 (Session — System Administrator formalization)
+Status: Active
+
+### Decision
+
+The internal `admin` role (displayed as System Administrator) may change `hotel_timezone`
+in the operational policy, same as Owner. Other roles may not. Migration
+`20261001010000` intentionally removed the former Owner-only gate from
+`admin_update_operational_policy`; stale-version protection, required reason, audit
+logging, IANA validation, and future-only snapshots are preserved.
+
+### Reason
+
+Timezone is system/operational configuration, which fits the System Administrator
+responsibility (users, configuration, room setup, policies, health, audit). The Admin
+policy dialog label incorrectly claimed Owner-only; route guard, RPC guard, and UI are
+now consistent end to end.
+
+### Related
+
+[[2026-09-30 - System Administrator Formalization]] · `SYSTEM.md` §7.10 ·
+`supabase/migrations/20261001010000_policy_timezone_admin.sql`
+
+### Origin
+
+[[2026-09-30 - System Administrator Formalization]]

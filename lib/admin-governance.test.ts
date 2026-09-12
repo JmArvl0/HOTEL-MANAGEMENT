@@ -111,3 +111,56 @@ describe("Admin lifecycle and configuration invariants", () => {
     expect(dashboard).toContain("No governance activity yet");
   });
 });
+
+describe("System Administrator timezone authority (Q1)", () => {
+  const policyMigration = read("supabase/migrations/20261001010000_policy_timezone_admin.sql");
+
+  it("lets Owner or Admin change the hotel timezone, no other role", () => {
+    expect(policyMigration).toContain("admin_update_operational_policy");
+    expect(policyMigration).toContain("actor not in('owner','admin')");
+    expect(policyMigration).not.toContain("TIMEZONE_OWNER_ONLY");
+    expect(adminGuard).not.toContain("TIMEZONE_OWNER_ONLY");
+  });
+
+  it("preserves policy safety: stale protection, reason, audit, IANA validation", () => {
+    for (const marker of ["POLICY_STALE", "pg_timezone_names", "nullif(trim(p_reason)", "'admin_update_operational_policy'"]) expect(policyMigration).toContain(marker);
+    expect(policyMigration).toContain("version=version+1");
+  });
+
+  it("labels the timezone field without an Owner-only claim", () => {
+    expect(dashboard).toContain('label:"Hotel timezone"');
+    expect(dashboard).not.toContain("Owner-only to change");
+  });
+});
+
+describe("System Administrator display name (Q3)", () => {
+  it("presents the admin role as System Administrator in user-facing labels", () => {
+    expect(dashboard).toContain("SYSTEM ADMINISTRATION");
+    expect(dashboard).toContain("System Administrator");
+    expect(dashboard).toContain("System Administration");
+    expect(dashboard).toContain("roleLabel");
+    expect(dashboard).not.toContain("ADMIN GOVERNANCE");
+    expect(dashboard).not.toContain(">admin<");
+  });
+
+  it("keeps every internal admin identifier unchanged", () => {
+    expect(adminGuard).toContain("canAdministerSystem");
+    for (const route of [adminData, adminUsers, adminActions]) expect(route).toContain("guardAdmin");
+    expect(migration).toContain("actor not in('owner','admin')");
+    expect(page).toContain('session.user.role === "admin"');
+  });
+});
+
+describe("System Health honesty and secrecy (Q2)", () => {
+  it("reports Unknown-first sections without secret values", () => {
+    expect(adminData).toContain("Unknown");
+    expect(adminData).toContain("not_connected");
+    expect(adminData).toContain("room-photos");
+    for (const marker of ["DATABASE_URL", "DIRECT_URL", "SERVICE_ROLE_KEY", "NEXTAUTH_SECRET"]) expect(adminData).not.toContain(marker);
+  });
+
+  it("keeps health read-only with no infrastructure controls", () => {
+    for (const forbidden of ["db reset", "migration repair", "redeploy", "rollback"]) expect(adminData.toLowerCase()).not.toContain(forbidden);
+    for (const forbidden of ["Redeploy", "Rollback", "Reset database", "SQL editor"]) expect(dashboard).not.toContain(forbidden);
+  });
+});

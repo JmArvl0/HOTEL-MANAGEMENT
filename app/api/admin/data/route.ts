@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readdir } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { guardAdmin,adminGuardFailed } from "@/lib/admin-route";
 import { ROLE_CAPABILITIES } from "@/lib/admin";
@@ -27,18 +27,40 @@ async function systemHealth(db:AdminDbClient):Promise<SystemHealth>{
  let live=true,latencyMs:number|null=null,dbError:string|undefined;
  try{const{error}=await db.from("hotel_operational_policies").select("key").limit(1);if(error)throw new Error(error.message);latencyMs=Date.now()-started}
  catch(error){live=false;dbError=error instanceof Error?error.message:"Database probe failed."}
- let lastAuditAt:string|null=null,auditEvents24h=0,pendingApprovals=0,applied:SystemHealth["migrations"]["applied"]=[],appliedCount=0,localCount:number|null=null;
- if(live){
-  const since=new Date(Date.now()-24*60*60*1000).toISOString();
-  const[{data:lastAudit},{count:recentCount},{count:pending},{data:ledger}]=await Promise.all([
-   db.from("audit_logs").select("created_at").order("created_at",{ascending:false}).limit(1),
-   db.from("audit_logs").select("id",{count:"exact",head:true}).gte("created_at",since),
-   db.from("manager_approval_requests").select("id",{count:"exact",head:true}).eq("status","pending"),
-   db.rpc("admin_read_migration_ledger")]);
-  lastAuditAt=lastAudit?.[0]?String(lastAudit[0].created_at):null;
-  auditEvents24h=recentCount??0;pendingApprovals=pending??0;
-  applied=(ledger??[]).map((row:{version:unknown;name:unknown})=>({version:String(row.version),name:String(row.name)}));appliedCount=applied.length;
- }
- try{localCount=(await readdir(path.join(process.cwd(),"supabase","migrations"))).filter(file=>file.endsWith(".sql")).length}catch{localCount=null}
- return{db:{live,latencyMs,checkedAt,error:dbError},activity:{lastAuditAt,auditEvents24h,pendingApprovals},migrations:{applied,appliedCount,localCount,status:migrationStatus(appliedCount,localCount)}};
+  let lastAuditAt:string|null=null,auditEvents24h=0,pendingApprovals=0,applied:SystemHealth["migrations"]["applied"]=[],appliedCount=0,localCount:number|null=null;
+  // Storage probe is presence-only: operational/unavailable, never keys or URLs.
+  let storage:NonNullable<SystemHealth["storage"]>={status:"unknown"};
+  if(live){
+   const since=new Date(Date.now()-24*60*60*1000).toISOString();
+   const[{data:lastAudit},{count:recentCount},{count:pending},{data:ledger}]=await Promise.all([
+    db.from("audit_logs").select("created_at").order("created_at",{ascending:false}).limit(1),
+    db.from("audit_logs").select("id",{count:"exact",head:true}).gte("created_at",since),
+    db.from("manager_approval_requests").select("id",{count:"exact",head:true}).eq("status","pending"),
+    db.rpc("admin_read_migration_ledger")]);
+   lastAuditAt=lastAudit?.[0]?String(lastAudit[0].created_at):null;
+   auditEvents24h=recentCount??0;pendingApprovals=pending??0;
+   applied=(ledger??[]).map((row:{version:unknown;name:unknown})=>({version:String(row.version),name:String(row.name)}));appliedCount=applied.length;
+   try{const{error:storageError}=await db.storage.from("room-photos").list("",{limit:1});storage={status:storageError?"unavailable":"operational"}}catch{storage={status:"unknown"}}
+  }
+  try{localCount=(await readdir(path.join(process.cwd(),"supabase","migrations"))).filter(file=>file.endsWith(".sql")).length}catch{localCount=null}
+  const status=migrationStatus(appliedCount,localCount);
+  const behind=(localCount??0)-appliedCount;
+  const issues:string[]=[];
+  if(!live)issues.push("Database unreachable.");
+  if(status==="remote_behind")issues.push(`${behind} local migration${behind===1?" is":"s are"} not applied to the live database.`);
+  // Application facts from safe local sources only — Unknown when unavailable.
+  const nodeEnv=process.env.NODE_ENV;
+  const environment=nodeEnv==="production"?"Production":nodeEnv==="development"?"Development":"Unknown";
+  let appVersion="Unknown";
+  try{const pkg=JSON.parse(await readFile(path.join(process.cwd(),"package.json"),"utf8")) as {version?:unknown};if(typeof pkg.version==="string"&&pkg.version)appVersion=pkg.version}catch{appVersion="Unknown"}
+  const commit=process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA?.slice(0,7)??null;
+  // Email reports configuration presence only — never keys or delivery claims.
+  const email:NonNullable<SystemHealth["email"]>={status:process.env.RESEND_API_KEY?"configured":"not_configured"};
+  // Automations that really exist (vercel.json crons). Last run is untracked —
+  // Unknown rather than invented.
+  const automations:NonNullable<SystemHealth["automations"]>=[
+   {name:"Guest reminders",schedule:"Daily 01:05 UTC",lastRun:null,status:"unknown"},
+   {name:"Analytics generation",schedule:"Daily 18:35 UTC",lastRun:null,status:"unknown"},
+  ];
+  return{db:{live,latencyMs,checkedAt,error:dbError},activity:{lastAuditAt,auditEvents24h,pendingApprovals},migrations:{applied,appliedCount,localCount,status},application:{environment,version:appVersion,commit},storage,email,automations,deployment:{provider:"Vercel",status:"unknown"},domain:{status:"not_connected"},issues};
 }
