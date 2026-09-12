@@ -190,8 +190,19 @@ hint, 13–14px padding — dense enough to read as a snapshot above a table.
   clear-filters-empty-state kit from Users & Staff is the pattern for every admin table.
   Roles & Permissions renders role cards with capability chips; Hotel Policies groups the
   raw columns into labeled stat tiles (times `HH:MM`, booleans Yes/No, basis points as a
-  percent) with a fallback group so schema additions are never hidden. Admin CSS lives in
-  the `admin-*` block of `manager-dashboard-theme.css` (dark + `.theme-light` mirrors).
+   percent) with a fallback group so schema additions are never hidden. Admin CSS lives in
+   the `admin-*` block of `manager-dashboard-theme.css` (dark + `.theme-light` mirrors).
+
+- **Data toolbar convention (search-first).** Every combined search/filter row leads
+  with search: `[Search…] [Filter ▾] [Filter ▾]` on desktop, never filters-first with
+  search stretched across the remainder. Search is the widest single control but
+  bounded (`flex:1 1 300px`, `min-width:240px`, `max-width:480px`; standalone
+  `.table-tools` rows keep `width:min(360px,60%)`); selects stay compact. Status
+  pills/chips keep their own row above the filters row (cards → chips → search →
+  table). ≤720px stacks full-width: search, then one filter per row; touch
+  min-heights (40/44px) and the 16px iOS zoom guard are preserved. Search inputs
+  carry `aria-label`s (placeholders are never the only label); filtering,
+  pagination, and RBAC behavior are untouched by toolbar layout.
 
 ## 11. Known-open items
 

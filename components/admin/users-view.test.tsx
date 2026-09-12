@@ -123,4 +123,11 @@ describe("UsersView filters", () => {
     expect(tableRows()).toHaveLength(4);
     expect(screen.getByText("Showing 4 of 4 accounts")).toBeTruthy();
   });
+
+  it("places search first in the toolbar, ahead of the filter selects", () => {
+    renderView();
+    const search = screen.getByLabelText("Search accounts");
+    const firstSelect = document.querySelector(".approval-filters select")!;
+    expect(search.compareDocumentPosition(firstSelect) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 });

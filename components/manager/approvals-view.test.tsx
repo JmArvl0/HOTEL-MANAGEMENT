@@ -142,8 +142,14 @@ describe("ManagerApprovalView", () => {
     expect(refs).not.toContain("HV-1000"); // approved row is on another tab
   });
 
-  it("labels escalation vs approval and never relies on color alone for severity", () => {
+  it("places search first in the filters row, ahead of the filter selects", () => {
     renderView();
+    const search = screen.getByLabelText("Search approvals");
+    const firstSelect = document.querySelector(".approval-filters select")!;
+    expect(search.compareDocumentPosition(firstSelect) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("labels escalation vs approval and never relies on color alone for severity", () => {    renderView();
     const escalationRow = tableRows().find((row) => within(row).queryByText("HV-1002"))!;
     expect(within(escalationRow).getByText("Escalation")).toBeTruthy();
     expect(within(escalationRow).queryByText("Approval")).toBeNull();

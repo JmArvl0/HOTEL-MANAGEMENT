@@ -97,7 +97,7 @@ export default function TransportVehicleTypesPanel() {
         <button className="btn btn-accent" onClick={openCreate}><Plus size={16}/> Add vehicle</button>
       </div>
       <div className="table-tools">
-        <label><Search size={17}/><input placeholder="Search transfer vehicles..." value={search} onChange={(e) => setSearch(e.target.value)} /></label>
+        <label><Search size={17}/><input aria-label="Search transfer vehicles" placeholder="Search transfer vehicles..." value={search} onChange={(e) => setSearch(e.target.value)} /></label>
       </div>
       {loading ? (
         <div className="empty"><Loader2 className="spin"/><h3>Loading transfer vehicles…</h3></div>

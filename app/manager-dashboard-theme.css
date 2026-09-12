@@ -636,7 +636,7 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .app-shell .tp-toolbar{flex-wrap:wrap;margin-bottom:8px}
 .app-shell .tp-queues .chip-count{margin-left:5px;font-style:normal;font-size:8px;font-weight:700;color:inherit;opacity:.7}
 .app-shell .tp-search-row{margin-bottom:10px}
-.app-shell .tp-search-row>label{flex:1;width:auto}
+.app-shell .tp-search-row>label{flex:1 1 auto;width:auto;min-width:min(100%,240px);max-width:480px}
 .app-shell .tp-clear{display:inline-flex;align-items:center;gap:5px;min-height:36px;padding:8px 13px;border:1px solid var(--dl);border-radius:5px;background:#141815;color:#929c96;font-size:10px;font-weight:700;cursor:pointer;transition:border-color .18s ease,color .18s ease}
 .app-shell .tp-clear:hover{border-color:var(--dm);color:var(--dt)}
 .app-shell .tp-clear:focus-visible{outline:2px solid var(--dg);outline-offset:1px}
@@ -873,10 +873,11 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
    theme mirrors still apply — this only stacks pills above selects + search. */
 .app-shell .approval-toolbar{flex-direction:column;align-items:stretch;gap:10px}
 .app-shell .approval-filters{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
-.app-shell .approval-search{position:relative;flex:1;min-width:220px;display:flex;align-items:center}
+.app-shell .approval-search{position:relative;flex:1 1 300px;min-width:240px;max-width:480px;display:flex;align-items:center}
 .app-shell .approval-search svg{position:absolute;left:10px;color:#6c766f;pointer-events:none}
-.app-shell .approval-search input{flex:1;min-width:0;border:1px solid var(--dl);background:#141815;color:#dce2de;border-radius:4px;padding:8px 10px 8px 30px;font-size:10px;font-family:inherit}
+.app-shell .approval-search input{flex:1;min-width:0;min-height:34px;border:1px solid var(--dl);background:#141815;color:#dce2de;border-radius:4px;padding:8px 10px 8px 30px;font-size:10px;font-family:inherit}
 .app-shell .approval-search input::placeholder{color:#6c766f}
+.app-shell .approval-filters select{min-height:34px}
 /* Approval vs escalation kind chips + derived waiting time */
 .app-shell .approval-kind{display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;font-size:8px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
 .app-shell .approval-kind.approval{background:#173024;border:1px solid #244b39;color:#65d3a5}
@@ -901,8 +902,10 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 @media(max-width:720px){
   .app-shell .approval-table-wrap{display:none}
   .app-shell .approval-card-list{display:grid;gap:9px}
-  .app-shell .approval-search{min-width:100%}
+  .app-shell .approval-search{min-width:100%;max-width:none}
   .app-shell .approval-search input{font-size:16px} /* iOS zoom guard */
+  .app-shell .approval-filters>label:not(.approval-search){flex:1 1 100%}
+  .app-shell .approval-filters>label:not(.approval-search)>select{width:100%}
 }
 /* Review modal — the shared modal panel renders light in both staff themes,
    so pin light values (same approach as the account/settings modals). */
@@ -1287,7 +1290,7 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .app-shell .admin-workspace .workspace-body-inner>.reservation-filters{margin-bottom:10px;padding:10px;border:1px solid var(--dl);border-radius:8px;background:var(--ds)}
 .app-shell .admin-workspace .approval-filters label{font-size:8px;font-weight:750;letter-spacing:.25px}
 .app-shell .admin-workspace .approval-filters select{min-height:34px}
-.app-shell .admin-workspace .approval-search{min-width:min(100%,280px);flex:1}
+.app-shell .admin-workspace .approval-search{flex:1 1 300px;min-width:min(100%,240px);max-width:480px}
 .app-shell .admin-workspace .approval-search input{min-height:34px}
 .app-shell .admin-workspace>.table-tools,
 .app-shell .admin-workspace .workspace-body-inner>.table-tools{margin-bottom:10px}

@@ -84,6 +84,13 @@ describe("RoomsView", () => {
     fireEvent.click(screen.getByText("Clear filters"));
     expect(tableRows()).toHaveLength(3);
   });
+
+  it("places search first in the toolbar, ahead of the filter selects", () => {
+    render(<RoomsView rows={rooms} configure={() => {}} />);
+    const search = screen.getByLabelText("Search rooms");
+    const firstSelect = document.querySelector(".approval-filters select")!;
+    expect(search.compareDocumentPosition(firstSelect) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 });
 
 describe("AuditView", () => {
@@ -104,6 +111,13 @@ describe("AuditView", () => {
     expect(screen.getByText("No events match these filters")).toBeTruthy();
     fireEvent.click(screen.getByText("Clear filters"));
     expect(tableRows()).toHaveLength(3);
+  });
+
+  it("places search first in the toolbar, ahead of the filter selects", () => {
+    render(<AuditView security={false} rows={events} />);
+    const search = screen.getByLabelText("Search events");
+    const firstSelect = document.querySelector(".approval-filters select")!;
+    expect(search.compareDocumentPosition(firstSelect) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("frames the same stream as security events", () => {

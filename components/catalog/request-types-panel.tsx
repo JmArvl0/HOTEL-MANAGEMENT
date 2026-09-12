@@ -84,7 +84,7 @@ export default function RequestTypesPanel() {
         <button className="btn btn-accent" onClick={() => { setCreating(true); setEditing(null); setDraft(emptyDraft()); }}><Plus size={16}/> Add request type</button>
       </div>
       <div className="table-tools">
-        <label><Search size={17}/><input placeholder="Search request types..." value={search} onChange={(e) => setSearch(e.target.value)} /></label>
+        <label><Search size={17}/><input aria-label="Search request types" placeholder="Search request types..." value={search} onChange={(e) => setSearch(e.target.value)} /></label>
       </div>
       {loading ? (
         <div className="empty"><Loader2 className="spin"/><h3>Loading request types…</h3></div>
