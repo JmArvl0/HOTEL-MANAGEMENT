@@ -68,13 +68,12 @@ export function TablePagination({
   const hasMultiplePages = pageCount > 1;
   const range = hasMultiplePages ? `${start}\u2013${end}` : `${total}`;
   const totalContext = allTotal === undefined || allTotal === total ? total : allTotal;
-  const qualifier = allTotal !== undefined && allTotal !== total ? " matching" : "";
 
   return (
     <nav className="table-pagination" aria-label={`${noun} pagination`}>
       <div className="table-pagination-copy" aria-live="polite">
         <span className="table-pagination-summary">
-          Showing {range} of {totalContext}{qualifier} {noun}
+          Showing {range} of {totalContext} {noun}
         </span>
         {note ? <span className="table-pagination-note">{note}</span> : null}
       </div>

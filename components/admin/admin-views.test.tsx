@@ -3,9 +3,9 @@
 // filters, and footer all count the same loaded rows, card clicks drive the
 // existing filters, and the policy view groups and formats the raw columns.
 // Pure render; no fetches.
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { AuditView, PolicyView, RoomsView } from "./admin-dashboard-client";
+import { AuditView, normalizeRoleCapabilities, PolicyView, RolesView, RoomsView } from "./admin-dashboard-client";
 import type { RecordItem } from "@/lib/types";
 
 // The dashboard module imports panels that read layout/motion APIs jsdom lacks.
@@ -135,5 +135,23 @@ describe("PolicyView", () => {
     render(<PolicyView item={{ ...policy, future_flag: true } as RecordItem} edit={() => {}} />);
     expect(screen.getByRole("heading", { name: "Additional settings" })).toBeTruthy();
     expect(screen.getByText("Future flag")).toBeTruthy();
+  });
+});
+
+describe("RolesView", () => {
+  it("sorts the fixed role catalogue and its permissions alphabetically", () => {
+    expect(normalizeRoleCapabilities({
+      manager: ["Operational oversight", "Approvals"],
+      admin: ["User governance", "Administrative audit"],
+    })).toEqual([
+      ["admin", ["Administrative audit", "User governance"]],
+      ["manager", ["Approvals", "Operational oversight"]],
+    ]);
+  });
+
+  it("does not crash when a previous module payload is rendered during navigation", () => {
+    render(<RolesView data={{ metrics: { activeUsers: 12 }, recentAudit: [] }} />);
+    expect(screen.getByRole("heading", { name: "Roles and permissions" })).toBeTruthy();
+    expect(screen.getByText("Role catalogue unavailable")).toBeTruthy();
   });
 });

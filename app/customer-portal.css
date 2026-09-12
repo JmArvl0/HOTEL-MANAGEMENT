@@ -522,3 +522,19 @@
   .customer-shell,.customer-shell .customer-sidebar,.customer-shell .customer-brand-copy,
   .customer-shell .customer-sidebar nav span,.customer-shell .customer-bottom-link span{transition:none}
 }
+
+/* - Stay review (one per completed stay) - */
+.stay-review{margin-top:18px}
+.stay-review h2{display:flex;align-items:center;gap:8px}
+.stay-review-stars{display:flex;gap:6px;margin:12px 0;padding:0}
+.stay-review-stars button{background:none;border:0;padding:6px;min-width:44px;min-height:44px;display:grid;place-items:center;color:var(--cp-muted);cursor:pointer;border-radius:8px}
+.stay-review-stars button.lit{color:#b8860b}
+.stay-review-stars button:focus-visible{outline:2px solid var(--cp-green);outline-offset:2px}
+.stay-review p.stay-review-stars{color:#b8860b}
+.stay-review label{display:block;font-size:11px;font-weight:700;margin:8px 0 6px}
+.stay-review textarea{width:100%;border:1px solid var(--cp-line);border-radius:10px;padding:10px 12px;font:inherit;font-size:13px;background:var(--cp-panel);color:var(--cp-text);resize:vertical}
+.stay-review-comment{font-size:13px;line-height:1.6}
+.stay-review-note{font-size:11px;color:var(--cp-muted)}
+.stay-review-error{font-size:12px;color:#b3261e}
+.stay-review .btn{margin-top:10px}
+.stay-review .btn:disabled{opacity:.5;cursor:not-allowed}

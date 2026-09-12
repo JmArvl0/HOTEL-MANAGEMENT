@@ -18,6 +18,9 @@ confirmation stops). **ALL PHASES COMPLETE** — 1 tax-aware documents, 2 guest 
 6 housekeeping assignment suggestions, 7 inventory draft POs, 8 preventive maintenance
 foundation, 9 commercial readiness (9A/9B/9C/9D). The final overall report was delivered
 in-session. Remaining: manual UI verification (role logins) and committing the tree.
+
+## Recently Completed
+
 - **System Administrator formalization (2026-09-30)** — internal `admin` is now HAVEN's
   System Administrator (display-only; no new role, no identifier renames). Q1: migration
   `20261001010000` (pushed + verified, 66/66 in sync) lets Owner or Admin change the hotel
@@ -27,8 +30,13 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
   All gates green: typecheck, lint 0 errors, **990/990**, build. Manual UI verification
   pending (Admin login). See [[2026-09-30 - System Administrator Formalization]].
 
-
-## Recently Completed
+- **Stay-gated guest reviews + landing refresh (2026-09-12)** — `#smarter` tiles no longer leak
+  internal ops numbers (now: 48 rooms / amenity count / 1 connected account); new landing Guest
+  stories section (static grid, verified-stay badges, dummy fallback while empty); `stay_reviews`
+  table + `customer_submit_stay_review` RPC (checked_out only, 1 per stay, instant publish, no
+  moderation); `StayReviewCard` on the completed-stay detail page; `GET/POST /api/account/reviews`.
+  Migration `20260935010000` **not yet pushed**. All gates green: typecheck, lint 0 errors,
+  **977/977**, build. See [[2026-09-12 - Stay Reviews & Landing Refresh]].
 
 - **Commercial readiness — roadmap Phase 9 (2026-09-30)** — four sub-items, none faking an
   integration. **9A payments**: audited clean — guest methods are exactly

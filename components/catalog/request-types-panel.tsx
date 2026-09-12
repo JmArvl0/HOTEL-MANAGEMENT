@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff, ListChecks, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination";
 
 // Manager-maintained guest request catalog. What is active here is exactly
 // what the portal Requests module offers guests — nothing else can be
@@ -35,7 +36,8 @@ export default function RequestTypesPanel() {
   };
   useEffect(() => { void load(); }, []);
 
-  const visible = useMemo(() => items.filter((item) => JSON.stringify(item).toLowerCase().includes(search.toLowerCase())), [items, search]);
+  const visible = useMemo(() => sortTableRows(items.filter((item) => JSON.stringify(item).toLowerCase().includes(search.toLowerCase())), (item) => item.label), [items, search]);
+  const page = useTablePagination(visible);
   const close = () => { setEditing(null); setCreating(false); setDraft(null); };
 
   const save = async () => {
@@ -94,7 +96,7 @@ export default function RequestTypesPanel() {
             <table>
               <thead><tr>{["Request type", "Form key", "Routed to", "Status", "Actions"].map((x, i) => <th key={i}>{x}</th>)}</tr></thead>
               <tbody>
-                {visible.map((item) => (
+                {page.rows.map((item) => (
                   <tr key={item.id}>
                     <td><strong>{item.label}</strong></td>
                     <td><code>{item.value}</code></td>
@@ -112,6 +114,7 @@ export default function RequestTypesPanel() {
               </tbody>
             </table>
           </div>
+          <TablePagination {...page} onPageChange={page.setPage} noun="request types" allTotal={items.length} />
           {visible.length === 0 && <div className="empty"><Search/><h3>No request types match</h3><p>Try a different search, or add a request type above.</p></div>}
         </div>
       )}

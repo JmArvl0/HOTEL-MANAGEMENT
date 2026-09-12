@@ -4,7 +4,9 @@ import { getCustomerReservationDetail } from "@/lib/customer";
 import { formatPeso } from "@/lib/booking";
 import { displayTime, operationalPolicyFromSnapshot } from "@/lib/hotel-policy";
 import { getCustomerTransportation } from "@/lib/transportation";
+import { supabase } from "@/lib/supabase";
 import { ReservationDetailView } from "@/components/customer/reservation-detail-view";
+import { StayReviewCard } from "@/components/customer/stay-review-card";
 
 export default async function ReservationPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireCustomerSession();
@@ -26,7 +28,20 @@ export default async function ReservationPage({ params }: { params: Promise<{ id
       line !== null && typeof line === "object" && Number((line as { price?: unknown }).price ?? 0) > 0)
     .map((line) => ({ name: line.name, price: Number(line.price), note: line.note ?? null }));
 
+  // Stay review: only a completed stay can be reviewed, one per stay.
+  let existingReview: { rating: number; comment: string } | null = null;
+  if (reservation.status === "checked_out" && supabase) {
+    const { data } = await supabase
+      .from("stay_reviews")
+      .select("rating,comment")
+      .eq("reservation_id", id)
+      .eq("user_id", session.user.id)
+      .maybeSingle();
+    if (data) existingReview = { rating: Number(data.rating), comment: String(data.comment) };
+  }
+
   return (
+    <>
     <ReservationDetailView
       data={{
         id: reservation.id,
@@ -69,5 +84,9 @@ export default async function ReservationPage({ params }: { params: Promise<{ id
         transportation: transportation.filter((request) => request.reservation_id === id),
       }}
     />
+    {reservation.status === "checked_out" && (
+      <StayReviewCard reservationId={id} existing={existingReview} />
+    )}
+    </>
   );
 }

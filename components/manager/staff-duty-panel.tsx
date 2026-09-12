@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Activity, Building2, CircleDollarSign, ClipboardCheck, ClipboardList, Eye, RefreshCw, Search, Users, Wrench, X } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination";
 import { STAFF_DUTY_BASIS_NOTE, type StaffDutyMember, type StaffDutySnapshot, type StaffDutyStatus } from "@/lib/staff-duty";
 
 /**
@@ -65,7 +66,7 @@ export default function StaffDutyPanel() {
   const filtered = useMemo(() => {
     if (!data) return [];
     const needle = search.trim().toLowerCase();
-    return data.staff.filter((member) => {
+    return sortTableRows(data.staff.filter((member) => {
       if (department !== "all" && member.department !== department) return false;
       if (duty !== "all" && member.dutyStatus !== duty) return false;
       if (needle) {
@@ -73,8 +74,9 @@ export default function StaffDutyPanel() {
         if (!haystack.includes(needle)) return false;
       }
       return true;
-    });
+    }), (member) => member.name);
   }, [data, search, department, duty]);
+  const page = useTablePagination(filtered);
 
   const hasActiveFilters = Boolean(search.trim()) || department !== "all" || duty !== "all";
   const clearFilters = () => { setSearch(""); setDepartment("all"); setDuty("all"); };
@@ -182,11 +184,11 @@ export default function StaffDutyPanel() {
                 <div className="table-scroll sd-table-wrap">
                   <table className="sd-table" aria-label="Staff on duty">
                     <thead><tr><th>Staff</th><th>Department</th><th>Duty</th><th>Current assignment</th><th>Today</th><th /></tr></thead>
-                    <tbody>{filtered.map(renderRow)}</tbody>
+                    <tbody>{page.rows.map(renderRow)}</tbody>
                   </table>
                 </div>
-                <div className="sd-cards">{filtered.map(renderCard)}</div>
-                <div className="table-footer">Showing {filtered.length} of {data.staff.length} staff<span>Read-only supervision — duty is derived from live operational records.</span></div>
+                <div className="sd-cards">{page.rows.map(renderCard)}</div>
+                <TablePagination {...page} onPageChange={page.setPage} noun="staff" allTotal={data.staff.length} note="Alphabetical by staff name · duty is derived from live operational records." />
               </>
             )}
           </div>

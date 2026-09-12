@@ -151,7 +151,18 @@
 .coast-teaser-tile b{font-size:30px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
 .coast-teaser-tile span{font-size:11px;color:var(--muted)}
 .coast-teaser-copy{max-width:640px;font-size:13px;color:var(--muted);margin:22px 0 0}
-.coast-teaser-note{max-width:640px}
+
+/* — Guest reviews (verified stays + empty-state placeholders) — */
+.coast-reviews{border-top:1px solid var(--line)}
+.coast-review-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.coast-review-card{display:flex;flex-direction:column;gap:12px;padding:24px;border:1px solid #dce4e1;border-radius:16px;background:#fff;transition:transform .3s cubic-bezier(.22,1,.36,1),box-shadow .3s cubic-bezier(.22,1,.36,1)}
+.coast-review-card:hover{transform:translateY(-4px);box-shadow:0 14px 34px #123f4514}
+.coast-review-stars{display:flex;gap:3px;margin:0;color:#b8860b}
+.coast-review-comment{margin:0;font-size:14px;line-height:1.65;color:var(--ink)}
+.coast-review-card footer{margin-top:auto;display:flex;flex-direction:column;gap:2px}
+.coast-review-card footer b{font-size:13px}
+.coast-review-card footer span{font-size:11px;color:var(--muted)}
+.coast-review-verified{display:inline-flex;align-items:center;gap:5px;color:#2e6d77;font-weight:600}
 
 /* — Room card: restrained premium hover (lift + image scale + arrow nudge) — */
 .coast-room{transition:transform .3s cubic-bezier(.22,1,.36,1),box-shadow .3s cubic-bezier(.22,1,.36,1)}
@@ -162,6 +173,6 @@
 
 /* — Experience gallery image crossfade (CSS only, GSAP not needed) — */
 .coast-experience>img{transition:opacity .45s ease}
-@media(max-width:1100px){.coast-teaser-grid{grid-template-columns:1fr 1fr}.coast-teaser-tile{padding:18px}}
-@media(max-width:600px){.coast-teaser-grid{grid-template-columns:1fr}.coast-teaser-tile b{font-size:26px}.coast-scroll-cue{display:none}}
+@media(max-width:1100px){.coast-teaser-grid{grid-template-columns:1fr 1fr}.coast-teaser-tile{padding:18px}.coast-review-grid{grid-template-columns:1fr 1fr}.coast-review-card{padding:18px}}
+@media(max-width:600px){.coast-teaser-grid{grid-template-columns:1fr}.coast-teaser-tile b{font-size:26px}.coast-review-grid{grid-template-columns:1fr}.coast-scroll-cue{display:none}}
 @media(prefers-reduced-motion:reduce){.coastal-landing *{scroll-behavior:auto!important;animation:none!important;transition:none!important}}

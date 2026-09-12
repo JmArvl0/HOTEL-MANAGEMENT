@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { BedDouble, CalendarDays, Eye, LogIn, LogOut, QrCode, Search, ShieldAlert } from "lucide-react";
 import { byAttentionThenStay, deriveReservationAttention, needsAttention, type AttentionRow } from "@/lib/manager-attention";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
+import { TablePagination, useTablePagination } from "@/components/ui/table-pagination";
 import type { RecordItem } from "@/lib/types";
 
 const peso = (value: unknown) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 }).format(Number(value || 0));
@@ -66,6 +67,7 @@ export function ManagerReservationsPanel({ items, search, setSearch, viewReserva
   const rows = items as AttentionRow[];
   const counts = useMemo(() => new Map(QUEUES.map(([value]) => [value, rows.filter((item) => managerQueueFilter(item, value, today)).length] as [string, number])), [rows, today]);
   const visible = useMemo(() => (queue === "attention" ? rows.filter((item) => managerQueueFilter(item, queue, today)).sort(byAttentionThenStay(today)) : rows.filter((item) => managerQueueFilter(item, queue, today))), [rows, queue, today]);
+  const page = useTablePagination(visible);
 
   const openRow = (item: RecordItem) => viewReservation(item);
 
@@ -97,7 +99,7 @@ export function ManagerReservationsPanel({ items, search, setSearch, viewReserva
       <div className="table-scroll mr-table-wrap">
         <table className="reservations-table mr-table" aria-label="Manager reservations oversight">
           <thead><tr><th>Reference</th><th>Guest</th><th>Room</th><th>Stay</th><th>Financial</th><th>Status</th><th>Operational Issue</th><th>Action</th></tr></thead>
-          <tbody>{visible.map((item) => {
+          <tbody>{page.rows.map((item) => {
             const status = String(item.status);
             const issues = deriveReservationAttention(item, today);
             const unassignedToday = !item.room_number && String(item.check_in) === today && status === "confirmed";
@@ -118,7 +120,7 @@ export function ManagerReservationsPanel({ items, search, setSearch, viewReserva
             </tr>; })}</tbody>
         </table>
       </div>
-      <div className="mr-card-list" aria-label="Manager reservations oversight">{visible.map((item) => {
+      <div className="mr-card-list" aria-label="Manager reservations oversight">{page.rows.map((item) => {
         const issues = deriveReservationAttention(item, today);
         const top = issues[0];
         const balance = Number(item.folio_balance || 0);
@@ -136,7 +138,7 @@ export function ManagerReservationsPanel({ items, search, setSearch, viewReserva
           </footer>
         </article>; })}</div>
       {visible.length === 0 && <div className="empty">{queue === "attention" ? <><CalendarDays /><h3>No reservations need attention</h3><p>Every active reservation is on track. Switch filters to browse the full list.</p></> : <><Search /><h3>No records found</h3><p>No matching operational records are available.</p></>}</div>}
-      <div className="table-footer">Showing {visible.length} record{visible.length !== 1 ? "s" : ""}<span>Issues are derived from live reservation, room, approval, and payment data — read-only oversight.</span></div>
+      <TablePagination {...page} onPageChange={page.setPage} noun="reservations" note="Issues retain operational priority and are derived from live reservation, room, approval, and payment data." />
     </div>
   </>;
 }

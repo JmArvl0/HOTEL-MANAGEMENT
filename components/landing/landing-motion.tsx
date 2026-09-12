@@ -137,6 +137,15 @@ export function LandingMotion() {
           scrollTrigger: { trigger: ".coast-room-grid", start: "top 88%", once: true },
         });
 
+        // Guest review cards: same one-unit reveal as the room grid.
+        gsap.from(".coast-review-grid", {
+          autoAlpha: 0,
+          y: 24,
+          duration: 0.8,
+          ease: "power3.out",
+          scrollTrigger: { trigger: ".coast-review-grid", start: "top 88%", once: true },
+        });
+
         // Amenity list items: subtle stagger
         gsap.from(".coast-amenities li", {
           autoAlpha: 0,

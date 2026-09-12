@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Activity, BedDouble, Boxes, RefreshCw, Sparkles, Wrench } from "lucide-react";
 import { usePrefersReducedMotion } from "@/lib/motion/reduced-motion";
+import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination";
 import type { RiskLevel } from "@/lib/analytics/types";
 import type { PredictionMetrics } from "@/lib/analytics/runner";
 
@@ -150,6 +151,11 @@ export default function PredictiveInsightsPanel() {
     }
   };
 
+  const housekeepingRows = data?.housekeeping.days ?? [];
+  const inventoryRows = sortTableRows(data?.inventory.items.filter((item) => item.risk !== "low") ?? [], (item) => item.name);
+  const housekeepingPage = useTablePagination(housekeepingRows);
+  const inventoryPage = useTablePagination(inventoryRows);
+
   if (loading) return <div className="empty"><h3>Loading predictions…</h3></div>;
   if (error) return <div className="empty"><h3>Predictions unavailable</h3><p>{error}</p></div>;
   if (!data) return null;
@@ -162,7 +168,7 @@ export default function PredictiveInsightsPanel() {
     "Booked (fact)": Math.round(day.knownOccupancyPct),
     ...(day.predictedOccupancyPct !== undefined ? { "Predicted": Math.round(day.predictedOccupancyPct) } : {})
   }));
-  const riskyItems = data.inventory.items.filter((item) => item.risk !== "low");
+  const riskyItems = inventoryRows;
 
   return (
     <>
@@ -261,7 +267,7 @@ export default function PredictiveInsightsPanel() {
               <tr><th>Day</th><th>Checkout cleans</th><th>Stayover services</th><th>Guest requests</th><th>Inspections</th><th>Total</th><th>Workload</th><th>Est. labor</th><th>Basis</th></tr>
             </thead>
             <tbody>
-              {data.housekeeping.days.map((day) => (
+              {housekeepingPage.rows.map((day) => (
                 <tr key={day.date}>
                   <td>{fmtDay(day.date)}</td>
                   <td>{day.checkoutCleans}</td>
@@ -277,6 +283,7 @@ export default function PredictiveInsightsPanel() {
             </tbody>
           </table>
         </div>
+        <TablePagination {...housekeepingPage} onPageChange={housekeepingPage.setPage} noun="forecast days" note="Calendar order retained for forecast interpretation." />
         {explanation?.type === "housekeeping" && <ExplanationCard explanation={explanation.data} onClose={() => setExplanation(null)} />}
       </article>
 
@@ -297,7 +304,7 @@ export default function PredictiveInsightsPanel() {
                 <tr><th>Item</th><th>In stock</th><th>Reorder at</th><th>Predicted 3-day use</th><th>Projected shortage</th><th>Reorder now</th><th>Risk</th><th>Basis</th></tr>
               </thead>
               <tbody>
-                {riskyItems.map((item) => (
+                {inventoryPage.rows.map((item) => (
                   <tr key={item.itemId}>
                     <td><b>{item.name}</b><small> {item.unit}</small></td>
                     <td>{item.currentStock}</td>
@@ -313,6 +320,7 @@ export default function PredictiveInsightsPanel() {
             </table>
           </div>
         )}
+        {riskyItems.length > 0 && <TablePagination {...inventoryPage} onPageChange={inventoryPage.setPage} noun="at-risk items" note="Alphabetical by inventory item." />}
         <p className="snapshot-hint">Forecasts use recorded consumption history; items without history are flagged rather than guessed. {data.inventory.notes.join(" ")}</p>
         {explanation?.type === "inventory" && <ExplanationCard explanation={explanation.data} onClose={() => setExplanation(null)} />}
       </article>

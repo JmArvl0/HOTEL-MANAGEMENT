@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { CalendarDays, CarFront, CarTaxiFront, CheckCircle2, ClipboardCheck, Search, X } from "lucide-react";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
+import { TablePagination, useTablePagination } from "@/components/ui/table-pagination";
 import type { FormField } from "@/components/ui/FormDialog";
 import { canCancelTransportation, canOperateTransportation } from "@/lib/permissions";
 import { formatPeso } from "@/lib/format";
@@ -149,6 +150,7 @@ export default function TransportationPanel({ role }: { role: Role }) {
     if (!queueMatch(trip, queue, today)) return false;
     return JSON.stringify(trip).toLowerCase().includes(search.toLowerCase());
   });
+  const page = useTablePagination(visible);
   const counts = Object.fromEntries(QUEUES.map(([value]) => [value, trips.filter((trip) => queueMatch(trip, value, today)).length])) as Record<string, number>;
   const hasActiveFilters = queue !== "all" || serviceFilter !== "all" || search.trim() !== "";
   const clearFilters = () => { setQueue("all"); setServiceFilter("all"); setSearch(""); };
@@ -188,7 +190,7 @@ export default function TransportationPanel({ role }: { role: Role }) {
       : visible.length === 0 ? <div className="tp-empty"><span className="tp-empty-icon"><CarTaxiFront size={22}/></span><h3>No transportation requests</h3><p>{trips.length === 0 ? "Guest transfer requests appear here as soon as they are submitted at booking or from the guest account." : "No requests match the current filters or search."}</p>{trips.length > 0 && hasActiveFilters && <button className="tp-clear" onClick={clearFilters}><X size={13}/>Clear filters</button>}</div>
       : <>
       <div className="table-scroll tp-table-wrap"><table className="tp-table" aria-label="Transportation requests"><thead><tr><th>Guest / reservation</th><th>Service</th><th>Route</th><th>When</th><th>Passengers</th><th>Status</th><th>Driver / vehicle</th><th>Actions</th></tr></thead>
-        <tbody>{visible.map((trip) => <tr key={trip.id}>
+        <tbody>{page.rows.map((trip) => <tr key={trip.id}>
           <td><div className="cell-stack"><b>{label(trip.reservations?.guest_name)}</b><small>{label(trip.reservations?.confirmation_number ?? trip.reservation_id)}</small></div></td>
           <td>{SERVICE_TYPE_LABELS[trip.service_type]}</td>
           <td><div className="cell-stack tp-route"><b>{trip.pickup_location} → {trip.dropoff_location}</b>{trip.service_type === "ROUND_TRIP" && trip.return_location && <small>Return: {trip.dropoff_location} → {trip.return_location}</small>}</div></td>
@@ -198,7 +200,7 @@ export default function TransportationPanel({ role }: { role: Role }) {
           <td>{trip.driver_name ? <div className="cell-stack"><b>{label(trip.driver_name)}</b><small>{label(trip.transport_vehicle_types?.name)}</small>{trip.fare_amount != null && <small>{formatPeso(trip.fare_amount)} on folio</small>}</div> : <span className="tp-unassigned">Not assigned</span>}</td>
           <td className="tp-actions">{actions(trip)}</td>
         </tr>)}</tbody></table></div>
-      <div className="tp-cards">{visible.map((trip) => <article className="tp-card" key={trip.id}>
+      <div className="tp-cards">{page.rows.map((trip) => <article className="tp-card" key={trip.id}>
         <header><b>{SERVICE_TYPE_LABELS[trip.service_type]}</b><span className={`badge ${trip.status.toLowerCase()}`}>{TRANSPORTATION_STATUS_LABELS[trip.status]}</span></header>
         <div className="tp-card-guest"><strong>{label(trip.reservations?.guest_name)}</strong><small>{label(trip.reservations?.confirmation_number ?? trip.reservation_id)}</small></div>
         <p className="tp-card-route">{trip.pickup_location}<i aria-hidden="true">→</i>{trip.dropoff_location}</p>
@@ -209,7 +211,7 @@ export default function TransportationPanel({ role }: { role: Role }) {
         <div className="tp-card-actions">{actions(trip)}</div>
       </article>)}</div>
       </>}
-      <div className="table-footer">Showing {visible.length} request{visible.length !== 1 ? "s" : ""}<span>Every transition is server-validated, versioned and audited.</span></div>
+      <TablePagination {...page} onPageChange={page.setPage} noun="transportation requests" allTotal={trips.length} note="Every transition is server-validated, versioned and audited." />
     </div></>)}
     {toast && <div className="toast"><ClipboardCheck size={18}/>{toast}</div>}
     {dialogs.view}

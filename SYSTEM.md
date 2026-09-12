@@ -389,6 +389,12 @@ governance rules in §6, as is the **transfer vehicle-type catalogue**
 (`catalog/transport-vehicle-types-panel`: seats, base fare, per-km/per-minute rates, booking fee —
 the fare model behind §7.11).
 
+The public landing also carries a **Guest stories** reviews section (`#reviews`, between `#smarter`
+and `#location`): the latest stay reviews (rating 1–5 + comment, guest first name + last initial,
+room type, stay month, "Verified stay" badge), served server-side from `stay_reviews` with a static
+dummy fallback while no real review exists. The `#smarter` teaser tiles deliberately show only
+safe public facts (room count, amenity count, one connected account) — never live operations data.
+
 ### 7.2 Guest booking flow (`/booking/*`)
 
 A signed-in **guest** books online. Flow: **Search → Dates/Guest details → Review → Payment link →
@@ -501,6 +507,10 @@ Self-service actions and their constraints:
   One delivery per reservation per kind — `guest_reminder_deliveries` unique index makes cron
   retries, redeploys, and manual re-runs no-ops.
 - **Receipts** (`/account/receipts/[id]`), profile/password/settings, and a public find-room view.
+- **Stay reviews** — after checkout (`checked_out` only), the reservation detail page offers one
+  review per stay (`stay_reviews`, UNIQUE on `reservation_id`; `customer_submit_stay_review` RPC
+  enforces ownership + completion: `NOT_BOOKED` / `STAY_NOT_COMPLETED` / `ALREADY_REVIEWED`).
+  Submitted reviews publish instantly to the landing Guest-stories section; no moderation queue.
 
 ### 7.4 Reservation lifecycle (authoritative narrative)
 

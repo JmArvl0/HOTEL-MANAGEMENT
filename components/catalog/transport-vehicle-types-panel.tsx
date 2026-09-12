@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { CarTaxiFront, Loader2, Pencil, Plus, Search } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination";
 
 type Vehicle = {
   id: string;
@@ -44,7 +45,8 @@ export default function TransportVehicleTypesPanel() {
   };
   useEffect(() => { void load(); }, []);
 
-  const visible = useMemo(() => items.filter((item) => JSON.stringify(item).toLowerCase().includes(search.toLowerCase())), [items, search]);
+  const visible = useMemo(() => sortTableRows(items.filter((item) => JSON.stringify(item).toLowerCase().includes(search.toLowerCase())), (item) => item.name), [items, search]);
+  const page = useTablePagination(visible);
   const set = <K extends keyof Draft,>(key: K, value: Draft[K]) => setDraft((prev) => (prev ? { ...prev, [key]: value } : prev));
   const openCreate = () => { setCreating(true); setEditing(null); setDraft(emptyDraft()); };
   const openEdit = (item: Vehicle) => { setEditing(item); setCreating(false); setDraft(draftFrom(item)); };
@@ -107,7 +109,7 @@ export default function TransportVehicleTypesPanel() {
             <table>
               <thead><tr>{["Vehicle", "Seats", "Base fare", "Per km", "Per minute", "Booking fee", "Status", "Version", ""].map((x, i) => <th key={i}>{x}</th>)}</tr></thead>
               <tbody>
-                {visible.map((item) => (
+                {page.rows.map((item) => (
                   <tr key={item.id}>
                     <td><strong>{item.name}</strong>{item.description ? <small className="row-note">{item.description.length > 90 ? item.description.slice(0, 90) + "…" : item.description}</small> : null}</td>
                     <td>{item.seats}</td>
@@ -123,6 +125,7 @@ export default function TransportVehicleTypesPanel() {
               </tbody>
             </table>
           </div>
+          <TablePagination {...page} onPageChange={page.setPage} noun="vehicle types" allTotal={items.length} />
           {visible.length === 0 && <div className="empty"><Search/><h3>No transfer vehicles match</h3><p>Try a different search, or add a vehicle above.</p></div>}
         </div>
       )}

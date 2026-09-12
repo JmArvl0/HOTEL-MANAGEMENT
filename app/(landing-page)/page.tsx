@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Waves, UtensilsCrossed, Wifi, Car, Dumbbell, ConciergeBell, ParkingCircle, Shirt, MapPin, Phone, Mail, QrCode, Check } from "lucide-react";
+import { ArrowRight, BedDouble, Waves, UtensilsCrossed, Wifi, Car, Dumbbell, ConciergeBell, ParkingCircle, Shirt, MapPin, Phone, Mail, QrCode, Check } from "lucide-react";
 import { BookingIntentProvider, FeaturedStays, HeroBookingForm } from "@/components/landing/booking-intent";
 import { LandingNav } from "@/components/landing/landing-nav";
 import { LandingMotion } from "@/components/landing/landing-motion";
@@ -8,7 +8,8 @@ import { WaveMark } from "@/components/landing/wave-mark";
 import { ExperienceGallery } from "@/components/landing/experience-gallery";
 import { SCENES } from "@/lib/room-images";
 import { supabase } from "@/lib/supabase";
-import { Sparkles, TrendingUp, CalendarCheck, Brush } from "lucide-react";
+import { getPublishedReviews } from "@/lib/stay-reviews";
+import { Sparkles, Star, BadgeCheck } from "lucide-react";
 import "./landing.css";
 
 export const revalidate = 300;
@@ -28,6 +29,7 @@ const faqs = [
 export default async function LandingPage() {
   const result = supabase ? await supabase.from("room_types").select("id,name,max_guests,beds,base_rate,photo_urls").eq("active", true).order("base_rate", { ascending: true }) : null;
   const rooms = result?.error ? [] : result?.data ?? [];
+  const reviews = await getPublishedReviews();
   return <main className="landing coastal-landing">
     <LandingNav />
     <LandingMotion />
@@ -76,18 +78,33 @@ export default async function LandingPage() {
     <section className="coast-section coast-teaser" id="smarter" aria-labelledby="smarter-title">
       <header className="coast-section-heading"><div><p className="coast-eyebrow">Behind the scenes</p><h2 id="smarter-title">Smarter hospitality.</h2><p>Technology in service of a warmer welcome.</p></div><Sparkles size={30} strokeWidth={1.3} aria-hidden="true"/></header>
       <div className="coast-teaser-grid">
-        <div className="coast-teaser-tile"><TrendingUp size={20} strokeWidth={1.5} aria-hidden="true"/><b>84%</b><span>Occupancy outlook</span></div>
-        <div className="coast-teaser-tile"><CalendarCheck size={20} strokeWidth={1.5} aria-hidden="true"/><b>12</b><span>Tomorrow&rsquo;s arrivals</span></div>
-        <div className="coast-teaser-tile"><Brush size={20} strokeWidth={1.5} aria-hidden="true"/><b>4</b><span>Rooms requiring attention</span></div>
+        <div className="coast-teaser-tile"><BedDouble size={20} strokeWidth={1.5} aria-hidden="true"/><b>48</b><span>Boutique rooms in one Makati property</span></div>
+        <div className="coast-teaser-tile"><ConciergeBell size={20} strokeWidth={1.5} aria-hidden="true"/><b>{amenities.length}</b><span>Thoughtful amenities &amp; services</span></div>
+        <div className="coast-teaser-tile"><QrCode size={20} strokeWidth={1.5} aria-hidden="true"/><b>1</b><span>Connected guest account for your whole stay</span></div>
       </div>
       <p className="coast-teaser-copy">Our team works alongside predictive insights and Gemini-assisted guidance — occupancy, housekeeping, and inventory forecasts that keep every stay ready before you arrive. QR-based operations and one connected workflow mean quicker answers and smoother arrivals.</p>
-      <p className="coast-caption coast-teaser-note">Illustrative figures — shown to give a sense of the system. Actual live insights stay private to hotel operations.</p>
+    </section>
+
+    <section className="coast-section coast-reviews" id="reviews" aria-labelledby="reviews-title">
+      <header className="coast-section-heading"><div><p className="coast-eyebrow">Guest stories</p><h2 id="reviews-title">Loved by our guests.</h2><p>Real words from real stays — one review per completed stay.</p></div><Link href="/booking/search" className="coast-text-link">Book your stay <ArrowRight size={18}/></Link></header>
+      <div className="coast-review-grid">
+        {reviews.map((review) => (
+          <article key={review.id} className="coast-review-card">
+            <p className="coast-review-stars" role="img" aria-label={`${review.rating} out of 5 stars`}>
+              {[1, 2, 3, 4, 5].map((star) => <Star key={star} size={15} aria-hidden="true" fill={star <= review.rating ? "currentColor" : "none"} />)}
+            </p>
+            <p className="coast-review-comment">&ldquo;{review.comment}&rdquo;</p>
+            <footer><b>{review.guestName}</b><span>{review.roomType}{review.stayLabel ? ` · ${review.stayLabel}` : ""}</span>{!review.dummy && <span className="coast-review-verified"><BadgeCheck size={13} aria-hidden="true" />Verified stay</span>}</footer>
+          </article>
+        ))}
+      </div>
+      <p className="coast-caption">Stayed with us? Leave your review from your reservation after checkout.</p>
     </section>
 
     <section className="coast-section coast-contact" id="location" aria-labelledby="contact-title"><div><p className="coast-eyebrow">Find us</p><h2 id="contact-title">Your next chapter<br/>starts here.</h2><p>Haven Hotel &amp; Residences<br/>A quieter pace, a warmer welcome.</p><nav aria-label="Contact the hotel"><a href="tel:+63324001234"><Phone size={17}/>+63 32 400 1234</a><a href="mailto:hello@haven-hotel.ph"><Mail size={17}/>hello@haven-hotel.ph</a><a href="https://www.google.com/maps/search/?api=1&query=Haven+Hotel" target="_blank" rel="noreferrer"><MapPin size={17}/>Open in Maps <ArrowRight size={14}/></a></nav></div><div className="coast-contact-photo"><Image src={SCENES.afternoon} alt="Hotel pool ready for a relaxing afternoon" fill sizes="(max-width: 800px) 100vw, 50vw"/><div><h3>Let’s plan your<br/>time away.</h3><a href="#book" className="coast-button coast-button-light">Find your stay <ArrowRight size={16}/></a></div></div></section>
 
     <section className="coast-section coast-faq" id="faq" aria-labelledby="faq-title"><div><p className="coast-eyebrow">A few things to know</p><h2 id="faq-title">Before you arrive.</h2><p>More questions? Our Front Desk is here to help.</p><a className="coast-text-link" href="tel:+63324001234">Let’s talk <Phone size={16}/></a></div><div>{faqs.map(([question,answer]) => <details key={question}><summary>{question}<span aria-hidden="true">+</span></summary><p>{answer}</p></details>)}</div></section>
 
-    <footer className="coast-footer"><div className="coast-footer-inner"><div><Link href="/" className="coast-footer-brand"><WaveMark/><span>HAVEN<small>HOTEL &amp; RESIDENCES</small></span></Link><p>A brighter stay. A little more you.</p></div><nav aria-label="Footer"><a href="#stay">Rooms &amp; suites</a><a href="#experience">Experiences</a><a href="#amenities">Amenities</a><a href="#location">Contact us</a><a href="#faq">Help &amp; FAQs</a><Link href="/account">My account</Link></nav><div><h2>Good people.<br/>Brighter places.</h2><a href="#book" className="coast-button coast-button-light">Book your stay <ArrowRight size={16}/></a></div><small className="coast-copyright">© {new Date().getFullYear()} Haven Hotel &amp; Residences. All rights reserved.</small></div></footer>
+    <footer className="coast-footer"><div className="coast-footer-inner"><div><Link href="/" className="coast-footer-brand"><WaveMark/><span>HAVEN<small>HOTEL &amp; RESIDENCES</small></span></Link><p>A brighter stay. A little more you.</p></div><nav aria-label="Footer"><a href="#stay">Rooms &amp; suites</a><a href="#experience">Experiences</a><a href="#amenities">Amenities</a><a href="#reviews">Guest reviews</a><a href="#location">Contact us</a><a href="#faq">Help &amp; FAQs</a><Link href="/account">My account</Link></nav><div><h2>Good people.<br/>Brighter places.</h2><a href="#book" className="coast-button coast-button-light">Book your stay <ArrowRight size={16}/></a></div><small className="coast-copyright">© {new Date().getFullYear()} Haven Hotel &amp; Residences. All rights reserved.</small></div></footer>
   </main>;
 }

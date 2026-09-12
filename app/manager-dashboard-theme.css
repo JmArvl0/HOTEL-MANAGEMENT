@@ -1216,3 +1216,156 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .theme-light .app-shell .sidebar-collapse-button:hover{background:#edf4f0;color:#084b55}
 @media(max-width:1000px){.app-shell .sidebar .brand,.app-shell .sidebar.collapsed .brand{justify-content:flex-start}.app-shell .sidebar-collapse-button{display:none}}
 @media(prefers-reduced-motion:reduce){.app-shell,.app-shell .sidebar,.app-shell .brand-copy,.app-shell .property-copy,.app-shell .profile-copy,.app-shell .nav-label{transition:none}}
+
+/* Shared list pagination — compact enough for operations, explicit enough to
+   keep long governance and service queues understandable. */
+.app-shell .table-pagination{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:48px;padding:9px 14px;border-top:1px solid var(--dl);background:var(--ds)}
+.app-shell .table-pagination-copy{display:grid;gap:2px;min-width:0}
+.app-shell .table-pagination-summary{color:var(--dt);font-size:9px;font-weight:700}
+.app-shell .table-pagination-note{overflow:hidden;color:var(--dm);font-size:8px;line-height:1.4;text-overflow:ellipsis;white-space:nowrap}
+.app-shell .table-pagination-controls{display:flex;align-items:center;gap:7px;flex:none}
+.app-shell .table-pagination-page{min-width:78px;color:var(--dm);font-size:8px;font-weight:700;text-align:center;font-variant-numeric:tabular-nums}
+.app-shell .table-pagination-button{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-height:30px;padding:6px 9px;border:1px solid var(--dl);border-radius:6px;background:var(--ds2);color:var(--dt);font-size:8px;font-weight:750;cursor:pointer;transition:border-color .16s ease,background-color .16s ease,color .16s ease}
+.app-shell .table-pagination-button:hover:not(:disabled){border-color:var(--dg);background:#17363f;color:#dff7ef}
+.app-shell .table-pagination-button:focus-visible{outline:2px solid var(--dg);outline-offset:2px}
+.app-shell .table-pagination-button:disabled{cursor:not-allowed;opacity:.42}
+
+/* Admin command band: one branded orientation surface establishes the page
+   priority, while the posture readout stays integrated rather than nested. */
+.app-shell .admin-overview-title{position:relative;align-items:center;overflow:hidden;padding:20px 22px;border:1px solid #28505a;border-radius:10px;background:#102f37}
+.app-shell .admin-overview-title::after{content:"";position:absolute;right:-55px;bottom:-70px;width:190px;height:150px;border:1px solid rgba(133,203,208,.18);border-radius:50%;pointer-events:none}
+.app-shell .admin-overview-title>div:first-child{position:relative;z-index:1;max-width:650px}
+.app-shell .admin-overview-title h1{color:#f5f0e5}
+.app-shell .admin-overview-title>div:first-child>p{color:#aac1c0}
+.app-shell .admin-overview-title .admin-posture{position:relative;z-index:1;border:0;border-left:1px solid rgba(170,193,192,.28);border-radius:0;background:transparent;padding:9px 0 9px 18px}
+.app-shell .admin-overview-title .admin-posture strong{color:#f5f0e5}
+.app-shell .admin-overview-title .admin-posture small{color:#aac1c0}
+.app-shell .admin-overview-title .admin-posture button{color:#8ed7cc}
+.app-shell .admin-health-card strong{font-size:24px;line-height:1;font-variant-numeric:tabular-nums}
+.theme-light .app-shell .admin-overview-title{background:#0d4650;border-color:#2e6670}
+.theme-light .app-shell .admin-overview-title .admin-posture{background:transparent}
+
+@media(max-width:820px){
+ .app-shell .admin-overview-title .admin-posture{border-left:0;border-top:1px solid rgba(170,193,192,.28);padding:14px 0 0}
+}
+@media(max-width:620px){
+ .app-shell .table-pagination{align-items:flex-start;flex-direction:column}
+ .app-shell .table-pagination-note{white-space:normal}
+ .app-shell .table-pagination-controls{justify-content:space-between;width:100%}
+ .app-shell .table-pagination-button span{display:none}
+ .app-shell .admin-overview-title{padding:18px}
+}
+@media(prefers-reduced-motion:reduce){.app-shell .table-pagination-button{transition:none}}
+
+/* Admin workspace system — shared across every governance module, including
+   the catalog panels. The shell remains compact, while module boundaries and
+   action hierarchy are easier to scan. */
+.app-shell .admin-workspace{--admin-accent:#69cfc8;--admin-accent-soft:#17363f;--admin-focus:#86d8d2}
+.app-shell .admin-workspace>.page-title:not(.admin-overview-title),
+.app-shell .admin-workspace .workspace-body-inner>.page-title{position:relative;align-items:center;min-height:108px;margin:0 0 14px;padding:18px 20px 18px 23px;overflow:hidden;border:1px solid var(--dl);border-radius:10px;background:var(--ds)}
+.app-shell .admin-workspace>.page-title:not(.admin-overview-title)::before,
+.app-shell .admin-workspace .workspace-body-inner>.page-title::before{content:"";position:absolute;inset:18px auto 18px 0;width:3px;border-radius:0 3px 3px 0;background:var(--admin-accent)}
+.app-shell .admin-workspace>.page-title:not(.admin-overview-title)>div:first-child,
+.app-shell .admin-workspace .workspace-body-inner>.page-title>div:first-child{max-width:760px}
+.app-shell .admin-workspace>.page-title:not(.admin-overview-title) h1,
+.app-shell .admin-workspace .workspace-body-inner>.page-title h1{font-size:25px;line-height:1.08;letter-spacing:-.55px}
+.app-shell .admin-workspace .admin-section-context,
+.app-shell .admin-workspace .workspace-body-inner>.page-title .eyebrow{margin:0 0 7px;color:var(--admin-accent);font-size:8px;font-weight:800;letter-spacing:1.25px;text-transform:uppercase}
+.app-shell .admin-workspace .admin-title-stat{display:grid;justify-items:end;gap:2px;flex:none;padding-left:18px;border-left:1px solid var(--dl);color:var(--dm);font-size:9px;text-transform:uppercase;letter-spacing:.65px}
+.app-shell .admin-workspace .admin-title-stat b{color:var(--dt);font:600 23px/1 var(--font-sans);font-variant-numeric:tabular-nums}
+.app-shell .admin-workspace .btn{transition:border-color .18s ease,background-color .18s ease,color .18s ease,transform .18s ease}
+.app-shell .admin-workspace .btn:hover{transform:translateY(-1px)}
+.app-shell .admin-workspace .btn:focus-visible,
+.app-shell .admin-workspace .table-action:focus-visible,
+.app-shell .admin-workspace select:focus-visible,
+.app-shell .admin-workspace input:focus-visible{outline:2px solid var(--admin-focus);outline-offset:2px}
+
+/* Summary and filter rails stay visually connected to the data they control. */
+.app-shell .admin-workspace>.mod-kpis,
+.app-shell .admin-workspace .workspace-body-inner>.mod-kpis{margin-bottom:10px}
+.app-shell .admin-workspace>.reservation-filters,
+.app-shell .admin-workspace .workspace-body-inner>.reservation-filters{margin-bottom:10px;padding:10px;border:1px solid var(--dl);border-radius:8px;background:var(--ds)}
+.app-shell .admin-workspace .approval-filters label{font-size:8px;font-weight:750;letter-spacing:.25px}
+.app-shell .admin-workspace .approval-filters select{min-height:34px}
+.app-shell .admin-workspace .approval-search{min-width:min(100%,280px);flex:1}
+.app-shell .admin-workspace .approval-search input{min-height:34px}
+.app-shell .admin-workspace>.table-tools,
+.app-shell .admin-workspace .workspace-body-inner>.table-tools{margin-bottom:10px}
+.app-shell .admin-workspace .table-tools label{min-height:38px;border-radius:7px}
+
+/* Data surfaces use one border, one header rhythm, and calm interaction cues. */
+.app-shell .admin-workspace .data-panel{overflow:hidden;border-radius:10px;box-shadow:0 8px 26px rgba(0,0,0,.08)}
+.app-shell .admin-workspace .data-panel>.panel-heading{padding:15px 16px;margin:0;border-bottom:1px solid var(--dl)}
+.app-shell .admin-workspace .table-scroll{max-width:100%}
+.app-shell .admin-workspace th{height:38px;padding-inline:14px;white-space:nowrap}
+.app-shell .admin-workspace td{height:48px;padding-inline:14px;vertical-align:middle}
+.app-shell .admin-workspace tbody tr{transition:background-color .16s ease,box-shadow .16s ease}
+.app-shell .admin-workspace tbody tr:hover{box-shadow:inset 3px 0 var(--admin-accent)}
+.app-shell .admin-workspace .reservation-actions{gap:6px;flex-wrap:nowrap}
+.app-shell .admin-workspace .table-action{min-height:30px;border-radius:6px;transition:border-color .16s ease,background-color .16s ease,color .16s ease}
+.app-shell .admin-workspace .empty.admin-module-empty{min-height:260px;border:1px dashed var(--dl);border-radius:10px;background:var(--ds)}
+.app-shell .admin-workspace .admin-loading{min-height:calc(100vh - 170px)}
+.app-shell .admin-workspace .admin-loading svg{color:var(--admin-accent);animation:admin-pulse 1.15s ease-in-out infinite}
+@keyframes admin-pulse{50%{opacity:.38;transform:scale(.92)}}
+
+/* Roles read as a governed catalogue rather than an undifferentiated chip wall. */
+.app-shell .admin-workspace .admin-roles-grid{grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.app-shell .admin-workspace .admin-role-card{position:relative;min-height:156px;padding:16px;border-radius:9px;transition:border-color .18s ease,background-color .18s ease,transform .18s ease}
+.app-shell .admin-workspace .admin-role-card:hover{border-color:var(--admin-accent);background:var(--ds2);transform:translateY(-2px)}
+.app-shell .admin-workspace .admin-role-card header{align-items:flex-start;padding-bottom:12px;border-bottom:1px solid var(--dl)}
+.app-shell .admin-workspace .admin-role-card header>div{display:grid;gap:3px;min-width:0;flex:1}
+.app-shell .admin-workspace .admin-role-count{display:grid;place-items:center;min-width:25px;height:25px;padding:0 7px;border-radius:999px;background:var(--admin-accent-soft);color:var(--admin-accent);font-size:9px;font-weight:800;font-variant-numeric:tabular-nums}
+.app-shell .admin-workspace .admin-role-card ul{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.app-shell .admin-workspace .admin-role-card li{position:relative;padding:7px 8px 7px 20px;border:0;border-radius:5px;background:var(--ds2);font-size:8px;line-height:1.35}
+.app-shell .admin-workspace .admin-role-card li::before{content:"";position:absolute;left:8px;top:11px;width:5px;height:5px;border-radius:50%;background:var(--admin-accent)}
+
+/* Policy settings are grouped into independent, responsive decision blocks. */
+.app-shell .admin-workspace .admin-policy-panel{border-radius:10px}
+.app-shell .admin-workspace .admin-policy-meta{padding:12px 16px;background:var(--ds2);font-weight:650}
+.app-shell .admin-workspace .admin-policy-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px}
+.app-shell .admin-workspace .admin-policy-groups section{padding:15px;border:1px solid var(--dl);border-radius:8px;background:var(--ds)}
+.app-shell .admin-workspace .admin-policy-groups section:last-child{border-bottom:1px solid var(--dl)}
+.app-shell .admin-workspace .admin-policy-groups h4{font-size:13px}
+.app-shell .admin-workspace .admin-policy-groups dl{grid-template-columns:1fr}
+.app-shell .admin-workspace .admin-policy-groups dl>div{min-height:52px;background:var(--ds2)}
+.app-shell .admin-workspace .admin-report-lower{gap:12px}
+.app-shell .admin-workspace .admin-config-list li{min-height:47px;transition:background-color .16s ease}
+.app-shell .admin-workspace .admin-config-list li:hover{background:var(--ds2)}
+
+/* Shared catalog modules inherit Admin spacing without changing their use in
+   Manager or Owner workspaces. */
+.app-shell .admin-workspace .workspace-body-inner{display:grid;gap:0}
+.app-shell .admin-workspace .catalog-card{transition:border-color .18s ease,transform .18s ease,box-shadow .18s ease}
+.app-shell .admin-workspace .catalog-card:hover{border-color:var(--admin-accent);transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.12)}
+
+.theme-light .app-shell .admin-workspace{--admin-accent:#0f737c;--admin-accent-soft:#e1eeeb;--admin-focus:#0f737c}
+.theme-light .app-shell .admin-workspace>.page-title:not(.admin-overview-title),
+.theme-light .app-shell .admin-workspace .workspace-body-inner>.page-title{background:#fff;box-shadow:0 8px 24px rgba(30,52,41,.045)}
+.theme-light .app-shell .admin-workspace>.reservation-filters,
+.theme-light .app-shell .admin-workspace .workspace-body-inner>.reservation-filters{background:#fff}
+.theme-light .app-shell .admin-workspace .data-panel{box-shadow:0 8px 24px rgba(30,52,41,.045)}
+.theme-light .app-shell .admin-workspace .admin-role-card li,
+.theme-light .app-shell .admin-workspace .admin-policy-groups dl>div{background:#f7f9f7}
+
+@media(max-width:900px){
+ .app-shell .admin-workspace .admin-policy-groups{grid-template-columns:1fr}
+ .app-shell .admin-workspace .reservation-actions{flex-wrap:wrap}
+}
+@media(max-width:620px){
+ .app-shell .admin-workspace>.page-title:not(.admin-overview-title),
+ .app-shell .admin-workspace .workspace-body-inner>.page-title{align-items:stretch;min-height:0;padding:16px 16px 16px 19px}
+ .app-shell .admin-workspace .admin-title-stat{justify-items:start;padding:11px 0 0;border-left:0;border-top:1px solid var(--dl)}
+ .app-shell .admin-workspace .admin-role-card ul{grid-template-columns:1fr}
+ .app-shell .admin-workspace .admin-policy-groups{padding:8px}
+}
+@media(prefers-reduced-motion:reduce){
+ .app-shell .admin-workspace .btn,
+ .app-shell .admin-workspace tbody tr,
+ .app-shell .admin-workspace .table-action,
+ .app-shell .admin-workspace .admin-role-card,
+ .app-shell .admin-workspace .catalog-card{transition:none}
+ .app-shell .admin-workspace .btn:hover,
+ .app-shell .admin-workspace .admin-role-card:hover,
+ .app-shell .admin-workspace .catalog-card:hover{transform:none}
+ .app-shell .admin-workspace .admin-loading svg{animation:none}
+}
