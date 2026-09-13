@@ -71,4 +71,33 @@ describe("HavenAiPanel", () => {
     expect(screen.getByText("Which rooms need maintenance attention?")).toBeTruthy();
     expect(screen.getByText("Are we at risk of running out of any supplies?")).toBeTruthy();
   });
+
+  it("renders assistant Markdown as formatted output while user text stays literal", async () => {
+    mockFetch({
+      "/api/ai/brief": { data: brief, model: "gemini-2.5-flash", generatedAt: "2026-09-08T02:10:00Z" },
+      "/api/ai/ask": { data: { answer: "### Supply Risk Summary\n\n- **FACT:** 1 of 4 items low.", data_basis: "getInventoryRiskSummary" }, model: "gemini-2.5-flash" }
+    });
+    const { container } = render(<HavenAiPanel />);
+    await waitFor(() => expect(screen.getByText(/Tomorrow runs at 75%/)).toBeTruthy());
+    fireEvent.change(screen.getByLabelText("Ask HAVEN a question"), { target: { value: "Is **anything** low?" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+    await waitFor(() => expect(container.querySelector(".ai-turn.assistant h4")).toBeTruthy());
+    expect(container.querySelector(".ai-turn.assistant strong")?.textContent).toBe("FACT:");
+    // The user's own Markdown-looking text is never interpreted.
+    expect(screen.getByText("Is **anything** low?")).toBeTruthy();
+    expect(container.textContent).not.toContain("###");
+  });
+
+  it("keeps the Ask button accessible with a decorative icon and hidden label", async () => {
+    mockFetch({ "/api/ai/brief": { data: brief, model: "gemini-2.5-flash", generatedAt: "2026-09-08T02:10:00Z" } });
+    const { container } = render(<HavenAiPanel />);
+    await waitFor(() => expect(screen.getByText(/Tomorrow runs at 75%/)).toBeTruthy());
+    const button = screen.getByRole("button", { name: "Ask" });
+    expect(button.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
+    // No icon fallback text leaks into the visible or accessible name.
+    expect(button.textContent).not.toMatch(/svg/i);
+    const label = container.querySelector('label[for="ai-question"]');
+    expect(label?.textContent).toBe("Ask HAVEN a question");
+    expect(label?.className).toContain("sr-only");
+  });
 });

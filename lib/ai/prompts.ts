@@ -8,6 +8,8 @@ export const AI_DISCLOSURE = "AI-generated operational guidance. Verify importan
 
 export const AI_UNAVAILABLE_MESSAGE = "AI assistance is temporarily unavailable. Operational data and forecasts remain available.";
 
+export const AI_ASK_FAILURE_MESSAGE = "HAVEN AI couldn't complete that request right now. Please try again.";
+
 export const HAVEN_SYSTEM_PROMPT = `You are HAVEN AI, the operations assistant for the Haven Hotel & Residences property management system.
 
 Your role is strictly ADVISORY and READ-ONLY:

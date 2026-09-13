@@ -21,6 +21,46 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
 
 ## Recently Completed
 
+- **HostForge Docker deployment preparation (2026-09-13)** — added a root
+  `Dockerfile` using `node:22-alpine` and the existing
+  `npm ci → npm run build → npm run start` lifecycle, plus a secret-safe
+  `.dockerignore`. The container binds to `0.0.0.0:3000`; HostForge must
+  provide production environment variables through its platform settings.
+  Verification: clean install passed, typecheck passed, lint 0 errors
+  (71 existing warnings), 1,027/1,027 tests passed, production build passed,
+  and all 66 Supabase migrations matched remotely. Docker CLI 29.7.2 was
+  present, but its Linux engine was not running, so local image construction
+  remains a HostForge/local-Docker follow-up. See
+  [[2026-09-13 - HostForge Docker Deployment]].
+
+- **Ask HAVEN Markdown rendering (2026-09-13)** — answers now render as clean formatted
+  guidance instead of raw `\###`/`\*\*`/`&#x20;` literals. Cause: no Markdown support existed
+  (`<p>{text}</p>`) and the model emits backslash-escaped Markdown + space entities with no
+  format guidance. Fix (UI/rendering only; thoughtSignature loop, model, tools untouched):
+  `ASK_TASK` style rules (compact dashboard Markdown, never escape), context-aware
+  `normalizeAiAnswer` (`lib/ai/answer-format.ts` — Markdown-syntax patterns + known space
+  entities only, assistant answers only), zero-dep safe `AiMarkdown` renderer
+  (`components/manager/ai-markdown.tsx` — headings/bullets/ordered/bold/italic/code/rules,
+  raw HTML inert, no `dangerouslySetInnerHTML`), `.ai-md` styles both themes. `svgAsk`: no
+  literal in source; panel renders inside `.app-shell` so the sr-only label stays hidden —
+  copy/serialization artifact; still hardened (`aria-hidden` Send icon, tested name/label).
+  New tests: `answer-format` 9/9, `ai-markdown` 8/8, panel +2. Gates: typecheck clean,
+  lint 0 errors, **1027/1027**, build. Manual browser verification pending (Manager Ask page).
+  See [[2026-09-13 - Ask HAVEN Markdown Rendering]].
+
+- **Ask HAVEN thought-signature 400 fix (2026-09-13)** — root cause: `app/api/ai/ask/route.ts`
+  rebuilt `{ functionCall: { name, args } }` from the SDK `functionCalls` getter, dropping the
+  Gemini 3 `thoughtSignature` sibling; the next `generateContent` failed HTTP 400. Fix preserves
+  `candidates[0].content` verbatim in history (order + call ids echoed), fails safe with
+  `AI_TOOL_CONTEXT_ERROR` when unrecoverable (never reconstructs unsigned calls). Model unchanged:
+  `gemini-3.6-flash` via `lib/ai/gemini-client.ts` (single source of truth, `GEMINI_MODEL` override
+  kept; SDK `@google/genai` 2.21.0 verified). Raw `[AI DEBUG]` provider messages removed from all
+  four AI routes — Ask returns "HAVEN AI couldn't complete that request right now. Please try
+  again.", others return the generic unavailable message; logs carry category only. Tools unchanged
+  (9 read-only, zero params). New `lib/ai/tool-history.test.ts` (14). Gates: typecheck clean,
+  lint 0 errors, **1008/1008**, build. Manual Ask HAVEN verification pending (4 tool questions +
+  multi-turn same session). See session handoff [[2026-09-13 - Ask HAVEN Thought-Signature Fix]].
+
 - **System Administrator formalization (2026-09-30)** — internal `admin` is now HAVEN's
   System Administrator (display-only; no new role, no identifier renames). Q1: migration
   `20261001010000` (pushed + verified, 66/66 in sync) lets Owner or Admin change the hotel

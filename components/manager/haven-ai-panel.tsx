@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { RefreshCw, Send, Sparkles } from "lucide-react";
+import AiMarkdown from "./ai-markdown";
 
 /**
  * HAVEN AI — the Gemini assistance workspace for the Manager. Two features:
@@ -195,7 +196,9 @@ export default function HavenAiPanel() {
           {history.map((turn, index) => (
             <div className={`ai-turn ${turn.role}`} key={index}>
               <b>{turn.role === "user" ? "You" : "HAVEN AI"}</b>
-              <p>{turn.text}</p>
+              {turn.role === "assistant"
+                ? <div className="ai-md"><AiMarkdown text={turn.text} /></div>
+                : <p>{turn.text}</p>}
             </div>
           ))}
           {asking && <div className="ai-turn assistant"><b>HAVEN AI</b><p><i className="ai-typing">Checking HAVEN&apos;s data…</i></p></div>}
@@ -217,7 +220,7 @@ export default function HavenAiPanel() {
             autoComplete="off"
           />
           <button type="submit" className="btn btn-accent" disabled={!question.trim() || asking}>
-            <Send size={15} /> Ask
+            <Send size={15} aria-hidden="true" /> Ask
           </button>
         </form>
         <p className="snapshot-hint">

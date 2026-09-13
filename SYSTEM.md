@@ -1059,16 +1059,29 @@ snapshot with on-demand-compute fallback. UI: Manager dashboard → **Predictive
 dashed predicted line, housekeeping/inventory forecast tables, maintenance-risk cards, performance
 metrics, honest data-quality notes everywhere).
 
-**Gemini AI assistance** (`lib/ai/`, server-side only, `@google/genai`). `gemini-client.ts`
+**Gemini AI assistance** (`lib/ai/`, server-side only, `@google/genai` 2.21.0). `gemini-client.ts`
+is the single source of truth for the model (`GEMINI_MODEL_DEFAULT = "gemini-3.6-flash"`,
+overridable with server-side `GEMINI_MODEL`; never `NEXT_PUBLIC_`). It
 returns a discriminated `AiResult` and **never throws** — a Gemini outage (unconfigured,
-unavailable, rate-limited, timeout, invalid) only disables AI explanations; every HAVEN operation
-keeps working (UI: "AI assistance is temporarily unavailable…"). Access is Manager/Owner/Admin
+unavailable, rate-limited, timeout, invalid, tool_context) only disables AI explanations; every HAVEN operation
+keeps working (Ask HAVEN UI: "HAVEN AI couldn't complete that request right now. Please try again.";
+other surfaces: "AI assistance is temporarily unavailable…"). Failure reasons map to sanitized
+server-side categories (`AI_TOOL_CONTEXT_ERROR` for tool-context/signature problems); raw provider
+bodies, signatures, and keys never reach the browser or the logs. Access is Manager/Owner/Admin
 only (`guardAiSession`, enforced server-side before any data is fetched). Four features:
 **daily brief** (`/api/ai/brief` — Gemini narrates the analytics output into summary, priority
 actions, warnings and forecast notes; cached per hotel day, refresh rate-limited), **Ask HAVEN**
 (`/api/ai/ask` — tool-calling loop over an explicit read-only tool registry in `lib/ai/tools.ts`;
 **no generic SQL tool**; each tool returns aggregated PII-minimized payloads — "3 arrivals
-require accessibility preparation", never names/rooms), **Explain with AI** (`/api/ai/explain` —
+require accessibility preparation", never names/rooms; the loop preserves Gemini's full returned
+model content — including Gemini 3 thought signatures — verbatim in history and fails safe with
+`AI_TOOL_CONTEXT_ERROR` instead of reconstructing unsigned function calls when that content is
+unrecoverable; `functionCalls` is used only to decide which tools to execute, and call ids are
+echoed so parallel responses match their calls; the final answer is normalized server-side
+(`normalizeAiAnswer` — context-aware unescaping of Markdown-syntax escapes and whitespace
+entities only, assistant answers only) and rendered by a zero-dependency safe subset renderer
+(`AiMarkdown`: ##/### headings, bullets, ordered lists, bold/italic/inline code, rules —
+no raw HTML, no `dangerouslySetInnerHTML`; user questions stay plain text), **Explain with AI** (`/api/ai/explain` —
 server rebuilds the forecast and its contributing factors; Gemini explains, never recomputes; the
 client never supplies numbers), and **AI-assisted report summary** (`/api/ai/report-summary` —
 summarizes `buildDailyReport` output; the original report data stays authoritative and untouched).

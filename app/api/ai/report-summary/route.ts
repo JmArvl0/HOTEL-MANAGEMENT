@@ -60,9 +60,8 @@ export async function POST(request: NextRequest) {
       model: geminiModel(), latencyMs: result.ok ? result.latencyMs : undefined
     });
     if (!result.ok) {
-      // TEMPORARY AI DEBUG (revert to AI_UNAVAILABLE_MESSAGE after live testing)
       console.error(`[ai] report_summary served fallback — reason=${result.reason} httpStatus=${result.httpStatus ?? "n/a"} errorCode=${result.errorCode ?? "n/a"}`);
-      return NextResponse.json({ data: null, message: `[AI DEBUG] report summary failed — reason=${result.reason} httpStatus=${result.httpStatus ?? "n/a"} errorCode=${result.errorCode ?? "n/a"} :: ${(result.message ?? "").slice(0, 200)}` }, { status: 200 });
+      return NextResponse.json({ data: null, message: AI_UNAVAILABLE_MESSAGE }, { status: 200 });
     }
     return NextResponse.json({ data: result.data, model: result.model, reportDate: report.reportDate, disclosure: AI_DISCLOSURE });
   } catch (error) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Activity, BedDouble, Boxes, RefreshCw, Sparkles, Wrench } from "lucide-react";
 import { usePrefersReducedMotion } from "@/lib/motion/reduced-motion";
 import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination";
@@ -156,13 +156,13 @@ export default function PredictiveInsightsPanel() {
   const housekeepingPage = useTablePagination(housekeepingRows);
   const inventoryPage = useTablePagination(inventoryRows);
 
-  if (loading) return <div className="empty"><h3>Loading predictions…</h3></div>;
-  if (error) return <div className="empty"><h3>Predictions unavailable</h3><p>{error}</p></div>;
+  if (loading) return <div className="insights-state" role="status"><RefreshCw className="insights-state-spinner" size={24} /><h3>Preparing this week&apos;s outlook</h3><p>Reading the latest operational records and forecast snapshots.</p></div>;
+  if (error) return <div className="insights-state insights-state-error" role="alert"><Activity size={24} /><h3>Predictions unavailable</h3><p>{error}</p><button type="button" className="btn btn-soft" onClick={() => void load()}>Try again</button></div>;
   if (!data) return null;
 
   const tomorrow = (days: { date: string }[]) => days[1] ?? days[0];
-  const occupancyTomorrow = tomorrow(data.occupancy.days) as OccupancyDay;
-  const housekeepingTomorrow = tomorrow(data.housekeeping.days) as HousekeepingDay;
+  const occupancyTomorrow = tomorrow(data.occupancy.days) as OccupancyDay | undefined;
+  const housekeepingTomorrow = tomorrow(data.housekeeping.days) as HousekeepingDay | undefined;
   const chartData = data.occupancy.days.map((day) => ({
     day: fmtDay(day.date),
     "Booked (fact)": Math.round(day.knownOccupancyPct),
@@ -171,45 +171,46 @@ export default function PredictiveInsightsPanel() {
   const riskyItems = inventoryRows;
 
   return (
-    <>
-      <div className="page-title">
+    <div className="predictive-insights">
+      <div className="page-title insights-title">
         <div>
-          <p className="eyebrow">Predictive analytics</p>
           <h1>What is coming this week?</h1>
           <p>HAVEN&apos;s own forecast models — occupancy, housekeeping workload, inventory demand and maintenance risk — computed from live operational data.</p>
         </div>
-        <button type="button" className="btn btn-accent" onClick={refresh} disabled={refreshing}>
-          <RefreshCw size={16} /> {refreshing ? "Refreshing…" : "Refresh predictions"}
-        </button>
+        <div className="insights-title-actions">
+          <span className="insights-freshness"><Activity size={15} /><span><b>{data.databaseMode === "demo" ? "Demo outlook" : "Live outlook"}</b><small>Generated {fmtStamp(data.generatedAt)}</small></span></span>
+          <button type="button" className="btn btn-accent" onClick={refresh} disabled={refreshing}>
+            <RefreshCw className={refreshing ? "is-spinning" : ""} size={16} /> {refreshing ? "Refreshing…" : "Refresh predictions"}
+          </button>
+        </div>
       </div>
 
       {toast && <p className="insights-toast" role="status">{toast}</p>}
 
-      <div className="metric-grid">
-        <article className="metric-card">
+      <section className="metric-grid insights-metric-grid" aria-label="Forecast summary">
+        <article className={`metric-card insights-metric-card ${occupancyTomorrow?.riskLevel ?? "low"}`}>
           <div>
             <span>Occupancy tomorrow</span>
-            <b>{occupancyTomorrow.knownOccupancyPct}% booked</b>
+            <b>{occupancyTomorrow ? `${occupancyTomorrow.knownOccupancyPct}% booked` : "No forecast"}</b>
             <small>
-              {occupancyTomorrow.predictedOccupancyPct !== undefined
+              {occupancyTomorrow?.predictedOccupancyPct !== undefined
                 ? `Predicted final ${occupancyTomorrow.predictedOccupancyPct}% · ${occupancyTomorrow.basisObservations} observations`
                 : "No pickup prediction yet — booked rooms only"}
             </small>
           </div>
           <i><BedDouble size={21} /></i>
         </article>
-        <article className="metric-card">
+        <article className={`metric-card insights-metric-card ${housekeepingTomorrow?.workload ?? "low"}`}>
           <div>
             <span>Housekeeping tomorrow</span>
-            <b>{housekeepingTomorrow.totalTasks} tasks</b>
+            <b>{housekeepingTomorrow ? `${housekeepingTomorrow.totalTasks} tasks` : "No forecast"}</b>
             <small>
-              {label(housekeepingTomorrow.workload)} workload · {housekeepingTomorrow.checkoutCleans} checkout cleans · {housekeepingTomorrow.stayoverServices} stayovers
-              {housekeepingTomorrow.estimatedLaborHours !== undefined ? ` · ~${housekeepingTomorrow.estimatedLaborHours}h labor` : ""}
+              {housekeepingTomorrow ? `${label(housekeepingTomorrow.workload)} workload · ${housekeepingTomorrow.checkoutCleans} checkout cleans · ${housekeepingTomorrow.stayoverServices} stayovers${housekeepingTomorrow.estimatedLaborHours !== undefined ? ` · ~${housekeepingTomorrow.estimatedLaborHours}h labor` : ""}` : "No workload data is available for tomorrow"}
             </small>
           </div>
           <i><Activity size={21} /></i>
         </article>
-        <article className="metric-card">
+        <article className={`metric-card insights-metric-card ${data.inventory.shortageCount > 0 ? "high" : "low"}`}>
           <div>
             <span>Inventory shortage risk</span>
             <b>{data.inventory.shortageCount} item{data.inventory.shortageCount !== 1 ? "s" : ""}</b>
@@ -217,7 +218,7 @@ export default function PredictiveInsightsPanel() {
           </div>
           <i><Boxes size={21} /></i>
         </article>
-        <article className="metric-card">
+        <article className={`metric-card insights-metric-card ${data.maintenance.elevatedCount > 0 ? "high" : "low"}`}>
           <div>
             <span>Recurring maintenance risk</span>
             <b>{data.maintenance.elevatedCount} elevated</b>
@@ -225,9 +226,9 @@ export default function PredictiveInsightsPanel() {
           </div>
           <i><Wrench size={21} /></i>
         </article>
-      </div>
+      </section>
 
-      <article className="panel">
+      <article className="panel insights-panel insights-chart-panel">
         <div className="panel-heading">
           <div>
             <h3>7-day occupancy outlook</h3>
@@ -235,13 +236,16 @@ export default function PredictiveInsightsPanel() {
           </div>
           <ExplainButton type="occupancy" onExplain={explain} busy={explaining} />
         </div>
+        <div className="insights-chart-key" aria-label="Occupancy chart legend">
+          <span><i className="booked" aria-hidden="true" />Booked (fact)</span>
+          <span><i className="predicted" aria-hidden="true" />Predicted</span>
+        </div>
         <ResponsiveContainer width="100%" height={280}>
           <ComposedChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--line, #e8e7e2)" />
             <XAxis dataKey="day" axisLine={false} tickLine={false} />
             <YAxis domain={[0, 100]} axisLine={false} tickLine={false} unit="%" width={44} />
             <Tooltip />
-            <Legend />
             <Bar dataKey="Booked (fact)" fill="#176773" radius={[3, 3, 0, 0]} maxBarSize={38} isAnimationActive={chartAnimated} />
             <Line type="monotone" dataKey="Predicted" stroke="#b8860b" strokeWidth={2.5} strokeDasharray="6 4" dot={{ r: 3 }} connectNulls isAnimationActive={chartAnimated} />
           </ComposedChart>
@@ -253,7 +257,7 @@ export default function PredictiveInsightsPanel() {
         {explanation?.type === "occupancy" && <ExplanationCard explanation={explanation.data} onClose={() => setExplanation(null)} />}
       </article>
 
-      <article className="panel">
+      <article className="panel insights-panel">
         <div className="panel-heading">
           <div>
             <h3>Housekeeping workload forecast</h3>
@@ -287,7 +291,7 @@ export default function PredictiveInsightsPanel() {
         {explanation?.type === "housekeeping" && <ExplanationCard explanation={explanation.data} onClose={() => setExplanation(null)} />}
       </article>
 
-      <article className="panel">
+      <article className="panel insights-panel">
         <div className="panel-heading">
           <div>
             <h3>Inventory demand forecast</h3>
@@ -325,7 +329,7 @@ export default function PredictiveInsightsPanel() {
         {explanation?.type === "inventory" && <ExplanationCard explanation={explanation.data} onClose={() => setExplanation(null)} />}
       </article>
 
-      <article className="panel">
+      <article className="panel insights-panel">
         <div className="panel-heading">
           <div>
             <h3>Recurring maintenance risk</h3>
@@ -354,7 +358,7 @@ export default function PredictiveInsightsPanel() {
         {explanation?.type === "maintenance" && <ExplanationCard explanation={explanation.data} onClose={() => setExplanation(null)} />}
       </article>
 
-      <article className="panel">
+      <article className="panel insights-panel insights-performance-panel">
         <div className="panel-heading">
           <div>
             <h3>Prediction performance</h3>
@@ -382,6 +386,6 @@ export default function PredictiveInsightsPanel() {
           live forecasts computed {fmtStamp(data.generatedAt)} · {data.databaseMode === "demo" ? "demo data" : "live data"}
         </p>
       </article>
-    </>
+    </div>
   );
 }

@@ -313,6 +313,26 @@
 .customer-shell .customer-requests-page .customer-request-form.wide{max-width:900px}
 .customer-shell .customer-transportation-page .ctr-form{max-width:900px}
 
+/* Customer counterpart to the shared staff module header. */
+.customer-shell .customer-page-title{position:relative;isolation:isolate;min-height:130px;overflow:hidden;margin-bottom:30px;padding:24px 26px;border:1px solid #2e6670;border-radius:12px;background:#0d4650;color:#f8f6f1}
+.customer-shell .customer-page-title::after{content:"";position:absolute;z-index:-1;right:-48px;bottom:-92px;width:250px;height:180px;border:1px solid rgba(133,203,208,.2);border-radius:50%;pointer-events:none}
+.customer-shell .customer-page-title.split{align-items:center}
+.customer-shell .customer-page-title>div{min-width:0;max-width:780px}
+.customer-shell .customer-page-title h1{color:#f8f6f1;font-size:clamp(32px,4vw,48px);letter-spacing:-.025em}
+.customer-shell .customer-page-title>p:last-child,
+.customer-shell .customer-page-title>div>p:last-child{max-width:72ch;margin-bottom:0;color:#c9dcda;font-size:11px;line-height:1.6}
+.customer-shell .customer-page-title .eyebrow{color:#e5bd84}
+.customer-shell .customer-page-title>.btn{position:relative;z-index:1;flex:none;min-height:42px;border-radius:999px;white-space:nowrap}
+.customer-shell .customer-page-title>.btn-accent{border-color:#f8f6f1;background:#f8f6f1;color:#0d4650}
+.customer-shell .customer-page-title>.btn-accent:hover{border-color:#fff;background:#e1eeeb;color:#083940}
+.customer-shell .customer-page-title>.btn-soft{border-color:rgba(201,220,218,.55);background:transparent;color:#f8f6f1}
+.customer-shell .customer-page-title>.btn-soft:hover{border-color:#f8f6f1;background:rgba(248,246,241,.1);color:#fff}
+@media(max-width:600px){
+ .customer-shell .customer-page-title{min-height:0;padding:20px}
+ .customer-shell .customer-page-title.split{align-items:stretch;gap:18px}
+ .customer-shell .customer-page-title>.btn{justify-content:center;width:100%}
+}
+
 /* ============ 11. Payments — guest-first folio summary ============ */
 .customer-shell .folio-summary{grid-template-columns:repeat(3,1fr)}
 .customer-shell .folio-summary strong{font-size:16px;font-weight:600}

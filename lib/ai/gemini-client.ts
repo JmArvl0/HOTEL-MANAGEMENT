@@ -12,7 +12,7 @@ import type { z } from "zod";
  * housekeeping and reports keep working.
  */
 
-export type AiFailureReason = "unconfigured" | "unavailable" | "rate_limited" | "timeout" | "invalid";
+export type AiFailureReason = "unconfigured" | "unavailable" | "rate_limited" | "timeout" | "invalid" | "tool_context";
 export type AiResult<T> =
   | { ok: true; data: T; model: string; latencyMs: number }
   // httpStatus/errorCode carry Google's safe error category (e.g. 403
@@ -21,7 +21,7 @@ export type AiResult<T> =
   // stays generic. Never includes the key or prompt content.
   | { ok: false; reason: AiFailureReason; message: string; httpStatus?: number; errorCode?: string };
 
-/** Default is a long-term stable Gemini model with tool use; override with GEMINI_MODEL. */
+/** Single source of truth for the Gemini model. Keep gemini-3.6-flash; override with GEMINI_MODEL. */
 export const GEMINI_MODEL_DEFAULT = "gemini-3.6-flash";
 
 const blank = (value: string | undefined) => {
@@ -40,6 +40,49 @@ const getClient = () => {
   client ??= new GoogleGenAI({ apiKey: key });
   return client;
 };
+
+/** True when a provider message describes a tool-context/signature problem (never logged verbatim). */
+export function isToolContextMessage(message: string): boolean {
+  return /thought[_-]?signature|functioncall[^a-z0-9]{0,20}(is\s+)?missing/i.test(message ?? "");
+}
+
+function classifyCallError(error: unknown, httpStatus: number | undefined): AiFailureReason {
+  if (httpStatus === 429) return "rate_limited";
+  if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) return "timeout";
+  if (httpStatus === 400 && error instanceof Error && isToolContextMessage(error.message)) return "tool_context";
+  return "unavailable";
+}
+
+/**
+ * Full model content for tool-history preservation (Gemini 3 thought signatures).
+ * Returns the original candidates[0].content with its parts array intact —
+ * including thoughtSignature siblings of functionCall parts, original order,
+ * and call ids — or null when it cannot be recovered. Callers MUST fail safe
+ * (AI_TOOL_CONTEXT_ERROR) instead of reconstructing {name,args} when tool
+ * calls exist but this returns null; reconstruction drops the signature and
+ * the next call fails with HTTP 400.
+ */
+export function getModelContentForToolHistory(response: GenerateContentResponse): Content | null {
+  const content = response?.candidates?.[0]?.content;
+  const parts = content?.parts;
+  if (!content || !Array.isArray(parts) || parts.length === 0) return null;
+  return { role: "model", parts };
+}
+
+/**
+ * Builds one functionResponse part per executed call, preserving order and
+ * echoing the SDK call id when present so responses match their calls.
+ */
+export function buildFunctionResponseParts(
+  calls: { name?: string; id?: string }[],
+  outputs: unknown[]
+): { functionResponse: { name: string; id?: string; response: Record<string, unknown> } }[] {
+  return calls.map((call, index) => {
+    const name = call.name ?? "unknown";
+    const response: Record<string, unknown> = { result: outputs[index] };
+    return { functionResponse: call.id ? { name, id: call.id, response } : { name, response } };
+  });
+}
 
 const DEFAULT_TIMEOUT_MS = 20_000;
 
@@ -77,13 +120,15 @@ async function callModel(options: GeminiCallOptions): Promise<AiResult<GenerateC
     // numeric code on the JSON body instead. Safe fields only — never headers.
     const httpStatus = error instanceof ApiError ? error.status : typeof (error as { code?: unknown })?.code === "number" ? (error as { code: number }).code : undefined;
     const errorCode = typeof (error as { error?: { status?: unknown } })?.error?.status === "string" ? (error as { error: { status: string } }).error.status : undefined;
-    // One safe server-side line per failed call so the real category (auth
-    // denial, retired model, quota, outage) is diagnosable from the logs.
-    console.error(`[ai] Gemini call failed — model=${model} reason=%s httpStatus=%s errorCode=%s message=${message.slice(0, 200)}`,
-      httpStatus === 429 ? "rate_limited" : error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError") ? "timeout" : "unavailable",
+    // One safe server-side line per failed call: category only, never the
+    // provider message body, key, signature, or prompt content.
+    const reason = classifyCallError(error, httpStatus);
+    console.error(`[ai] Gemini call failed — model=${model} reason=%s httpStatus=%s errorCode=%s`,
+      reason,
       httpStatus ?? "n/a", errorCode ?? "n/a");
-    if (error instanceof ApiError && error.status === 429) return { ok: false, reason: "rate_limited", message, httpStatus, errorCode };
-    if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) return { ok: false, reason: "timeout", message, httpStatus, errorCode };
+    if (reason === "rate_limited") return { ok: false, reason, message, httpStatus, errorCode };
+    if (reason === "timeout") return { ok: false, reason, message, httpStatus, errorCode };
+    if (reason === "tool_context") return { ok: false, reason, message, httpStatus, errorCode };
     return { ok: false, reason: "unavailable", message, httpStatus, errorCode };
   }
 }
