@@ -45,9 +45,10 @@
 .app-shell .sidebar .nav-group-header .nav-badge{position:static;transform:none;margin-left:6px;flex:0 0 auto}
 .theme-light .app-shell .sidebar nav button .nav-badge{background:#f4ead7;color:#90621c}
 .theme-light .app-shell .sidebar nav button.active .nav-badge{background:#eed9b4;color:#7c5412}
-/* Bell count pill on the header icon-button. */
+/* Bell count pill on the header icon-button — the ONLY badge in the header.
+   One element, one aggregate count; never one pill per notification source. */
 .app-shell .notification-center .icon-button{position:relative}
-.app-shell .notification-center .nav-badge{position:absolute;right:-5px;top:-5px;min-width:16px;height:16px;padding:0 4px;border:0;border-radius:8px;background:#3a2d1a;color:#e8b96a;font-size:8px;font-weight:700;font-style:normal;line-height:1;letter-spacing:.3px;display:inline-flex;align-items:center;justify-content:center}
+.app-shell .notification-center .nav-badge{position:absolute;right:-5px;top:-5px;z-index:1;min-width:18px;height:18px;padding:0 5px;border:0;border-radius:9px;background:#3a2d1a;color:#e8b96a;font-size:8px;font-weight:700;font-style:normal;line-height:1;letter-spacing:.3px;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center}
 .theme-light .app-shell .notification-center .nav-badge{background:#f4ead7;color:#90621c}
 /* Transient toast stack — bottom-right, clear of the top-right bell/profile
    popovers. Surfaces and text come from the dashboard tokens so both themes
