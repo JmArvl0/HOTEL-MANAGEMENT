@@ -8,6 +8,7 @@ const migration = readFileSync("supabase/migrations/20260912010000_front_desk_re
 const submitRoute = readFileSync("app/api/front-desk/reports/route.ts", "utf8");
 const reviewRoute = readFileSync("app/api/front-desk/reports/[id]/review/route.ts", "utf8");
 const dashboard = readFileSync("components/manager/manager-dashboard-client.tsx", "utf8");
+const performanceReports = readFileSync("components/manager/performance-reports.tsx", "utf8");
 const transportationPanel = readFileSync("components/manager/transportation-panel.tsx", "utf8");
 const reportsPanel = readFileSync("components/manager/front-desk-reports-panel.tsx", "utf8");
 const cashMigration = readFileSync("supabase/migrations/20260913010000_cash_payment_internal_reference.sql", "utf8");
@@ -134,7 +135,8 @@ describe("cash payment collection", () => {
 
 describe("centralized reporting replaces scattered module exports", () => {
   it("keeps exactly one window.print — on the Reports page itself", () => {
-    expect(dashboard.match(/window\.print/g)?.length ?? 0).toBe(1);
+    expect(dashboard.match(/window\.print/g)?.length ?? 0).toBe(0);
+    expect(performanceReports.match(/window\.print/g)?.length ?? 0).toBe(1);
     expect(transportationPanel).not.toContain("window.print");
   });
   it("keeps the legitimate document downloads", () => {

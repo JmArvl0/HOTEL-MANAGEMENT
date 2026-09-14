@@ -43,6 +43,17 @@ const policy = {
 };
 
 const tableRows = () => Array.from(document.querySelectorAll<HTMLTableRowElement>("table tbody tr"));
+// HavenSelect is a button + listbox (not a native select): open the trigger,
+// then click the option by its visible label.
+const triggerFor = (name: string) => screen.getByRole("button", { name });
+const openHaven = async (name: string) => {
+  fireEvent.click(triggerFor(name));
+  return screen.findByRole("listbox");
+};
+const chooseHaven = async (name: string, option: string | RegExp) => {
+  const menu = await openHaven(name);
+  fireEvent.click(within(menu).getByRole("option", { name: option }));
+};
 
 afterEach(cleanup);
 
@@ -63,20 +74,20 @@ describe("RoomsView", () => {
     expect(screen.getByText("Showing 1 of 3 rooms")).toBeTruthy();
   });
 
-  it("filters by type and wing, searches, and shows badges for every state column", () => {
+  it("filters by type and wing, searches, and shows badges for every state column", async () => {
     render(<RoomsView rows={rooms} configure={() => {}} />);
     expect(screen.getByText("Showing 3 of 3 rooms")).toBeTruthy();
     expect(screen.getByText("Corner room")).toBeTruthy();
     // Operational and housekeeping state render as badges (read-only display).
     expect(screen.getByText("occupied")).toBeTruthy();
     expect(screen.getByText("inspection")).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("Type"), { target: { value: "Deluxe King" } });
+    await chooseHaven("Filter by room type", "Deluxe King");
     expect(tableRows()).toHaveLength(1);
-    fireEvent.change(screen.getByLabelText("Type"), { target: { value: "all" } });
-    fireEvent.change(screen.getByLabelText("Wing"), { target: { value: "south" } });
+    await chooseHaven("Filter by room type", "All types");
+    await chooseHaven("Filter by wing", "south");
     expect(tableRows()).toHaveLength(1);
     expect(within(tableRows()[0]).getByText("201")).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("Wing"), { target: { value: "all" } });
+    await chooseHaven("Filter by wing", "All wings");
     fireEvent.change(screen.getByLabelText("Search rooms"), { target: { value: "corner" } });
     expect(tableRows()).toHaveLength(1);
     fireEvent.change(screen.getByLabelText("Search rooms"), { target: { value: "no such room" } });
@@ -88,13 +99,13 @@ describe("RoomsView", () => {
   it("places search first in the toolbar, ahead of the filter selects", () => {
     render(<RoomsView rows={rooms} configure={() => {}} />);
     const search = screen.getByLabelText("Search rooms");
-    const firstSelect = document.querySelector(".approval-filters select")!;
+    const firstSelect = document.querySelector(".approval-filters .haven-select-trigger")!;
     expect(search.compareDocumentPosition(firstSelect) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });
 
 describe("AuditView", () => {
-  it("summarizes the event stream and filters by action and search", () => {
+  it("summarizes the event stream and filters by action and search", async () => {
     render(<AuditView security={false} rows={events} />);
     expect(screen.getByRole("heading", { name: "Administrative audit" })).toBeTruthy();
     const summary = screen.getByRole("group", { name: "Audit summary" });
@@ -102,9 +113,9 @@ describe("AuditView", () => {
     expect(within(summary).getByText("Last 24 hours").nextElementSibling?.textContent).toBe("1");
     expect(within(summary).getByText("Action types").nextElementSibling?.textContent).toBe("2");
     expect(screen.getByText("Showing 3 of 3 events")).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("Action"), { target: { value: "admin_create_user" } });
+    await chooseHaven("Filter by action", "admin create user");
     expect(tableRows()).toHaveLength(2);
-    fireEvent.change(screen.getByLabelText("Action"), { target: { value: "all" } });
+    await chooseHaven("Filter by action", "All actions");
     fireEvent.change(screen.getByLabelText("Search events"), { target: { value: "u-2" } });
     expect(tableRows()).toHaveLength(1);
     fireEvent.change(screen.getByLabelText("Search events"), { target: { value: "nothing" } });
@@ -116,7 +127,7 @@ describe("AuditView", () => {
   it("places search first in the toolbar, ahead of the filter selects", () => {
     render(<AuditView security={false} rows={events} />);
     const search = screen.getByLabelText("Search events");
-    const firstSelect = document.querySelector(".approval-filters select")!;
+    const firstSelect = document.querySelector(".approval-filters .haven-select-trigger")!;
     expect(search.compareDocumentPosition(firstSelect) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 

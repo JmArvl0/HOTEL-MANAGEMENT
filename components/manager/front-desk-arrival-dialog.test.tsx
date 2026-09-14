@@ -110,7 +110,18 @@ const advanceToRoomStep = async () => {
   await screen.findByText("Choose the physical room");
 };
 
-const select = (label: string | RegExp) => screen.getByLabelText(label) as HTMLSelectElement;
+// HavenSelect is a button + listbox (not a native select): open the trigger,
+// then assert/click options inside the open menu. The trigger's accessible
+// name is the stable field label; the menu itself is labeled "<field> options".
+const triggerFor = (label: string | RegExp) => screen.getByRole("button", { name: label });
+const openHaven = async (label: string | RegExp) => {
+  fireEvent.click(triggerFor(label));
+  return screen.findByRole("listbox");
+};
+const chooseHaven = async (label: string | RegExp, option: string | RegExp) => {
+  const menu = await openHaven(label);
+  fireEvent.click(within(menu).getByRole("option", { name: option }));
+};
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
@@ -130,11 +141,11 @@ describe("FrontDeskArrivalDialog — Step 3 room assignment", () => {
     renderDialog();
     await advanceToRoomStep();
     expect(await screen.findByText(/No eligible rooms of the reserved type Garden Twin are available right now\./i)).toBeTruthy();
-    const typeSelect = select("Target room type");
-    expect(within(typeSelect).getByRole("option", { name: "Deluxe King — 3 rooms available" })).toBeTruthy();
-    expect(within(typeSelect).getByRole("option", { name: "Ocean Suite — 1 room available" })).toBeTruthy();
-    expect(within(typeSelect).queryByRole("option", { name: /Garden Twin/i })).toBeNull();
-    expect(within(typeSelect).queryByRole("option", { name: /Executive Suite/i })).toBeNull();
+    const menu = await openHaven("Target room type");
+    expect(within(menu).getByRole("option", { name: "Deluxe King — 3 rooms available" })).toBeTruthy();
+    expect(within(menu).getByRole("option", { name: "Ocean Suite — 1 room available" })).toBeTruthy();
+    expect(within(menu).queryByRole("option", { name: /Garden Twin/i })).toBeNull();
+    expect(within(menu).queryByRole("option", { name: /Executive Suite/i })).toBeNull();
     // Present but disabled until type + room + reason are all chosen.
     expect((screen.getByRole("button", { name: /request manager approval/i }) as HTMLButtonElement).disabled).toBe(true);
   });
@@ -146,11 +157,13 @@ describe("FrontDeskArrivalDialog — Step 3 room assignment", () => {
     ));
     renderDialog();
     await advanceToRoomStep();
-    fireEvent.change(await screen.findByLabelText("Target room type"), { target: { value: "dk-id" } });
-    const roomSelect = await screen.findByLabelText("Physical room");
+    await chooseHaven("Target room type", "Deluxe King — 3 rooms available");
     expect(fetchMock.mock.calls.some(([url]) => String(url).includes("roomTypeId=dk-id"))).toBe(true);
-    for (const number of ["201", "205", "208"]) expect(within(roomSelect).getByRole("option", { name: new RegExp(`Room ${number}`) })).toBeTruthy();
-    expect(within(roomSelect).queryByRole("option", { name: /Garden Twin/i })).toBeNull();
+    // Physical rooms load async from the server — the trigger renders once they arrive.
+    await screen.findByRole("button", { name: "Physical room" });
+    const physical = await openHaven("Physical room");
+    for (const number of ["201", "205", "208"]) expect(within(physical).getByRole("option", { name: new RegExp(`Room ${number}`) })).toBeTruthy();
+    expect(within(physical).queryByRole("option", { name: /Garden Twin/i })).toBeNull();
   });
 
   it("submits the exception with structured IDs from the server-fed selections", async () => {
@@ -160,9 +173,10 @@ describe("FrontDeskArrivalDialog — Step 3 room assignment", () => {
     ));
     renderDialog();
     await advanceToRoomStep();
-    fireEvent.change(await screen.findByLabelText("Target room type"), { target: { value: "dk-id" } });
-    fireEvent.change(await screen.findByLabelText("Physical room"), { target: { value: "RM-205" } });
-    fireEvent.change(screen.getByLabelText("Reason for the change"), { target: { value: "hotel_type_unavailable" } });
+    await chooseHaven("Target room type", "Deluxe King — 3 rooms available");
+    await screen.findByRole("button", { name: "Physical room" });
+    await chooseHaven("Physical room", /Room 205/);
+    await chooseHaven("Reason for the change", "Reserved room type unavailable at arrival");
     fireEvent.change(screen.getByLabelText(/Why is the exception required\?/i), { target: { value: "All eligible Garden Twin rooms are currently unavailable." } });
     fireEvent.click(screen.getByRole("button", { name: /request manager approval/i }));
     expect(await screen.findByText(/Room-type exception requested/i)).toBeTruthy();
@@ -204,10 +218,10 @@ describe("FrontDeskArrivalDialog — Step 3 room assignment", () => {
     ));
     renderDialog();
     await advanceToRoomStep();
-    fireEvent.change(await screen.findByLabelText("Target room type"), { target: { value: "dk-id" } });
+    await chooseHaven("Target room type", "Deluxe King — 3 rooms available");
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toMatch(/Room inventory changed/i);
-    await waitFor(() => expect(select("Target room type").value).toBe(""));
+    await waitFor(() => expect(triggerFor("Target room type").textContent).toMatch(/Select an available room type/));
   });
 });
 
@@ -255,9 +269,9 @@ describe("FrontDeskArrivalDialog — approved exception callout", () => {
     renderDialog();
     await advanceToRoomStep();
     expect(await screen.findByText(/Need a different room type than the approved Deluxe King\?/i)).toBeTruthy();
-    const typeSelect = select("Target room type");
-    expect(within(typeSelect).queryByRole("option", { name: /Deluxe King/i })).toBeNull();
-    expect(within(typeSelect).getByRole("option", { name: "Ocean Suite — 1 room available" })).toBeTruthy();
+    const typeMenu = await openHaven("Target room type");
+    expect(within(typeMenu).queryByRole("option", { name: /Deluxe King/i })).toBeNull();
+    expect(within(typeMenu).getByRole("option", { name: "Ocean Suite — 1 room available" })).toBeTruthy();
   });
 
   it("hides the request form entirely when the approved type is the only alternative with rooms", async () => {

@@ -1,0 +1,182 @@
+/* =============================================================================
+   HAVEN — SELECT SYSTEM (shared dropdown visual language)
+   One trigger/menu language for the custom HavenSelect listbox + a styled
+   native <select> fallback for forms/booking/guest flows (mobile UX wins).
+   Palette derives from coastal tokens; metrics live here, not per-module.
+   ============================================================================= */
+
+:root {
+  --select-bg: #fff;
+  --select-border: #dce2de;
+  --select-border-hover: #9fb0a7;
+  --select-border-focus: #176773;
+  --select-text: #103e48;
+  --select-muted: #657169;
+  --select-hover: #f2f7f5;
+  --select-selected: #e1eeeb;
+  --select-selected-text: #084b55;
+  --select-shadow: 0 12px 32px rgba(16, 62, 72, 0.14);
+  --select-ring: rgba(23, 103, 115, 0.18);
+  --select-error: #a94e48;
+  --select-error-ring: rgba(169, 78, 72, 0.15);
+}
+
+.app-shell {
+  --select-bg: #141815;
+  --select-border: #2c332f;
+  --select-border-hover: #3b443f;
+  --select-border-focus: #85cbd0;
+  --select-text: #dce2de;
+  --select-muted: #909a94;
+  --select-hover: #1c231f;
+  --select-selected: #173024;
+  --select-selected-text: #65d3a5;
+  --select-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --select-ring: rgba(133, 203, 208, 0.22);
+}
+
+.theme-light .app-shell {
+  --select-bg: #fff;
+  --select-border: #dce2de;
+  --select-border-hover: #9fb0a7;
+  --select-border-focus: #176773;
+  --select-text: #263129;
+  --select-muted: #657169;
+  --select-hover: #f2f7f5;
+  --select-selected: #e1eeeb;
+  --select-selected-text: #084b55;
+  --select-shadow: 0 12px 32px rgba(16, 62, 72, 0.14);
+  --select-ring: rgba(23, 103, 115, 0.18);
+}
+
+/* ---- HavenSelect custom listbox ---- */
+.haven-select { position: relative; display: inline-flex; min-width: 0; }
+.haven-select-trigger {
+  display: inline-flex; align-items: center; gap: 10px;
+  min-height: 44px; padding: 10px 12px 10px 14px;
+  background: var(--select-bg); border: 1px solid var(--select-border);
+  border-radius: 11px; color: var(--select-text);
+  font: inherit; font-size: 14px; font-weight: 650; text-align: left;
+  cursor: pointer; max-width: 100%;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+.haven-select-trigger:hover:not(:disabled) { border-color: var(--select-border-hover); background: var(--select-hover); }
+.haven-select-trigger:focus-visible { outline: none; border-color: var(--select-border-focus); box-shadow: 0 0 0 3px var(--select-ring); }
+.haven-select-trigger[aria-expanded="true"] { border-color: var(--select-border-focus); box-shadow: 0 0 0 3px var(--select-ring); }
+.haven-select-trigger:disabled { opacity: 0.55; cursor: not-allowed; }
+.haven-select-icon { display: inline-flex; color: var(--select-muted); flex-shrink: 0; }
+.haven-select-value { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.haven-select-value.is-placeholder { color: var(--select-muted); font-weight: 500; }
+.haven-select-chevron { flex-shrink: 0; color: var(--select-muted); transition: transform 0.15s ease; }
+.haven-select-chevron.is-open { transform: rotate(180deg); }
+
+.haven-select-menu {
+  position: absolute; top: calc(100% + 6px); left: 0; min-width: 100%; width: max-content; max-width: min(320px, 90vw);
+  max-height: 320px; overflow-y: auto; overscroll-behavior: contain;
+  margin: 0; padding: 7px; list-style: none;
+  background: var(--select-bg); border: 1px solid var(--select-border);
+  border-radius: 11px; box-shadow: var(--select-shadow); z-index: 60;
+  animation: havenSelectIn 0.15s ease-out;
+}
+@keyframes havenSelectIn { from { opacity: 0; transform: translateY(-4px) scale(0.99); } to { opacity: 1; transform: none; } }
+.haven-select-group { list-style: none; }
+.haven-select-group > ul { margin: 0; padding: 0; list-style: none; }
+.haven-select-group-label {
+  display: block; padding: 8px 10px 4px;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--select-muted);
+}
+.haven-select-item {
+  display: flex; align-items: center; gap: 10px;
+  min-height: 42px; padding: 9px 10px; border-radius: 8px;
+  font-size: 14px; font-weight: 550; color: var(--select-text);
+  cursor: pointer; user-select: none;
+}
+.haven-select-item:hover, .haven-select-item.is-active { background: var(--select-hover); }
+.haven-select-item.is-selected { background: var(--select-selected); color: var(--select-selected-text); font-weight: 750; }
+.haven-select-item.is-disabled { opacity: 0.45; cursor: not-allowed; }
+.haven-select-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.haven-select-check { flex-shrink: 0; }
+.haven-select-empty { padding: 12px 10px; font-size: 13px; color: var(--select-muted); }
+.haven-filter { display: inline-flex; align-items: center; gap: 8px; font-size: 9px; color: var(--select-muted); font-weight: 700; }
+.haven-filter > span { white-space: nowrap; }
+.arrival-field.haven-field { display: grid; gap: 5px; }
+.arrival-field.haven-field > span { display: block; }
+
+/* ---- Styled native <select> fallback (forms, booking, guest) ----
+   Same border/radius/focus language + custom chevron; keeps native
+   menu behavior, mobile pickers, and form validation intact. */
+select.form-input,
+.reservation-filters select,
+.approval-filters select,
+.table-tools select,
+.filter-input,
+.prompt-input,
+.booking-form-grid select,
+.booking-search.compact select,
+.customer-request-form select,
+.customer-payment-submit select,
+.arrival-field select,
+.coastal-landing .booking-bar select {
+  appearance: none; -webkit-appearance: none;
+  min-height: 44px; padding: 10px 34px 10px 14px;
+  background-color: var(--select-bg); border: 1px solid var(--select-border);
+  border-radius: 11px; color: var(--select-text);
+  font: inherit; font-size: 14px; font-weight: 550; line-height: 1.4;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23657169' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+.app-shell select.form-input,
+.app-shell .reservation-filters select,
+.app-shell .approval-filters select,
+.app-shell .table-tools select,
+.app-shell .filter-input,
+.app-shell .prompt-input,
+.app-shell .arrival-field select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23909a94' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+select.form-input:hover:not(:disabled),
+.reservation-filters select:hover:not(:disabled),
+.approval-filters select:hover:not(:disabled),
+.table-tools select:hover:not(:disabled),
+.filter-input:hover:not(:disabled),
+.arrival-field select:hover:not(:disabled) { border-color: var(--select-border-hover); }
+select.form-input:focus,
+.reservation-filters select:focus,
+.approval-filters select:focus,
+.table-tools select:focus,
+.filter-input:focus,
+.prompt-input:focus,
+.arrival-field select:focus {
+  outline: none; border-color: var(--select-border-focus);
+  box-shadow: 0 0 0 3px var(--select-ring);
+}
+select.form-input:disabled,
+.reservation-filters select:disabled,
+.approval-filters select:disabled,
+.arrival-field select:disabled { opacity: 0.55; cursor: not-allowed; }
+select.form-input.error, .prompt-input.error { border-color: var(--select-error); }
+select.form-input.error:focus, .prompt-input.error:focus { box-shadow: 0 0 0 3px var(--select-error-ring); }
+select.form-input option, .prompt-input option { background: var(--select-bg); color: var(--select-text); }
+
+/* Compact filter-row density: keep 40px floor, full Haven language. */
+.approval-filters select, .reservation-filters select { min-height: 40px; font-size: 13px; }
+
+/* Mobile: full-width filters, touch floors, menu stays in viewport. */
+@media (max-width: 720px) {
+  .haven-select { width: 100%; }
+  .haven-select-trigger { width: 100%; min-height: 44px; }
+  .haven-select-menu { left: 0; right: 0; width: auto; max-width: none; max-height: 60vh; }
+  .approval-filters > label:not(.approval-search),
+  .approval-filters > .haven-filter,
+  .reservation-filters > label,
+  .reservation-filters > .haven-filter { flex: 1 1 100%; }
+  .approval-filters > label:not(.approval-search) > select,
+  .reservation-filters > label > select { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .haven-select-menu { animation: none; }
+  .haven-select-trigger, .haven-select-chevron { transition: none; }
+}

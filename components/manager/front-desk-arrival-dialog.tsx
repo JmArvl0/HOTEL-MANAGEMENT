@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BedDouble, Check, CheckCircle2, ChevronLeft, ChevronRight, ClipboardCheck, KeyRound, RefreshCw, ShieldCheck, Wallet } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { HavenSelect } from "@/components/ui/haven-select";
 import type { RecordItem } from "@/lib/types";
 import type { AskFormOptions, AskFormData } from "@/components/ui/action-dialogs";
 import { ROOM_TYPE_CHANGE_REASONS, roomTypeChangeResponsibility, roomTypeChangeReasonLabel, financialDifference, type RoomTypeChangeFinancials } from "@/lib/room-type-change-reasons";
@@ -339,25 +340,15 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
     <div className="arrival-exception-request">
       <b>Alternative room assignment</b>
       {approvedTypeName && <small className="arrival-exception-hint">Need a different room type than the approved {approvedTypeName}? Request another exception below.</small>}
-      <label className="arrival-field">Target room type
-        <select value={targetTypeId} onChange={(event) => selectTargetType(event.target.value)} disabled={busy}>
-          <option value="">Select an available room type</option>
-          {requestableAlternatives.map((type) => (
-            <option key={type.roomTypeId} value={type.roomTypeId}>{type.roomTypeName} — {type.eligibleRoomCount} room{type.eligibleRoomCount === 1 ? "" : "s"} available</option>
-          ))}
-        </select>
-      </label>
+      <div className="arrival-field haven-field"><span>Target room type</span>
+        <HavenSelect value={targetTypeId} onChange={selectTargetType} ariaLabel="Target room type" disabled={busy} placeholder="Select an available room type" options={requestableAlternatives.map((type) => ({ value: type.roomTypeId, label: `${type.roomTypeName} — ${type.eligibleRoomCount} room${type.eligibleRoomCount === 1 ? "" : "s"} available` }))} />
+      </div>
       {targetTypeId && (
-        <label className="arrival-field">Physical room
+        <div className="arrival-field haven-field"><span>Physical room</span>
           {targetRoomsLoading ? <small>Loading eligible rooms…</small> : targetRooms.length === 0 ? <small>No eligible rooms of that type are available right now.</small> : (
-            <select value={requestedRoomId} onChange={(event) => setRequestedRoomId(event.target.value)} disabled={busy}>
-              <option value="">Select a physical room</option>
-              {targetRooms.map((room) => (
-                <option key={room.id} value={room.id}>Room {human(room.number)}{room.floor !== undefined && room.floor !== null ? ` · Floor ${human(room.floor)}` : ""}</option>
-              ))}
-            </select>
+            <HavenSelect value={requestedRoomId} onChange={setRequestedRoomId} ariaLabel="Physical room" disabled={busy} placeholder="Select a physical room" options={targetRooms.map((room) => ({ value: room.id, label: `Room ${human(room.number)}${room.floor !== undefined && room.floor !== null ? ` · Floor ${human(room.floor)}` : ""}` }))} />
           )}
-        </label>
+        </div>
       )}
       {requestedReasonCode && roomTypeChangeResponsibility(requestedReasonCode) === "hotel" && rooms.length > 0 && (
         <small className="arrival-exception-hint warn">Reserved-type rooms are still available — a hotel-caused reason will be rejected as unnecessary. Pick a reserved-type room, or choose a guest-requested reason if the guest wants the change.</small>
@@ -386,21 +377,9 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
           </small>
         );
       })()}
-      <label className="arrival-field">Reason for the change
-        <select value={requestedReasonCode} onChange={(event) => setRequestedReasonCode(event.target.value)} disabled={busy}>
-          <option value="">Select a reason</option>
-          <optgroup label="Hotel-caused — the hotel absorbs the difference">
-            {ROOM_TYPE_CHANGE_REASONS.filter((reason) => reason.responsibility === "hotel").map((reason) => (
-              <option key={reason.code} value={reason.code}>{reason.label}</option>
-            ))}
-          </optgroup>
-          <optgroup label="Guest-requested — the guest pays the difference">
-            {ROOM_TYPE_CHANGE_REASONS.filter((reason) => reason.responsibility === "guest").map((reason) => (
-              <option key={reason.code} value={reason.code}>{reason.label}</option>
-            ))}
-          </optgroup>
-        </select>
-      </label>
+      <div className="arrival-field haven-field"><span>Reason for the change</span>
+        <HavenSelect value={requestedReasonCode} onChange={setRequestedReasonCode} ariaLabel="Reason for the change" disabled={busy} placeholder="Select a reason" groups={[{ label: "Hotel-caused — the hotel absorbs the difference", options: ROOM_TYPE_CHANGE_REASONS.filter((reason) => reason.responsibility === "hotel").map((reason) => ({ value: reason.code, label: reason.label })) }, { label: "Guest-requested — the guest pays the difference", options: ROOM_TYPE_CHANGE_REASONS.filter((reason) => reason.responsibility === "guest").map((reason) => ({ value: reason.code, label: reason.label })) }]} />
+      </div>
       <label className="arrival-field">Why is the exception required?<textarea rows={3} value={requestedReason} onChange={(event) => setRequestedReason(event.target.value)} placeholder="Explain why the guest must be reassigned to another room type." /></label>
       <div className="arrival-actions">
         <button className="btn btn-soft" disabled={busy} onClick={() => { clearAlternativeSelection(); setRequestedReason(""); setRequestedReasonCode(""); setShowAlternativeForm(false); }}>Cancel</button>

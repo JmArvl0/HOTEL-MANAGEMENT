@@ -1,5 +1,4 @@
 "use client";
-import { SessionProvider } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { HavenLoader } from "@/components/ui/haven-loader";
 
@@ -31,9 +30,5 @@ function HavenBootGate({ children }: { children: React.ReactNode }) {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  return (
-    <SessionProvider>
-      <HavenBootGate>{children}</HavenBootGate>
-    </SessionProvider>
-  );
+  return <HavenBootGate>{children}</HavenBootGate>;
 }

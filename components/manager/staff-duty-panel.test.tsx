@@ -61,6 +61,72 @@ describe("StaffDutyPanel", () => {
     for (const name of ["Ana Cruz", "Carlo Diaz", "Mia Reyes"]) expect(within(table()).getByText(name)).toBeTruthy();
   });
 
+  it("renders the teal hero, four summary cards, and the duty derivation note", async () => {
+    vi.stubGlobal("fetch", serve({ data: snapshot }));
+    const { container } = render(<StaffDutyPanel />);
+    expect(await screen.findByRole("heading", { name: /staff & duty/i })).toBeTruthy();
+    expect(screen.getByText(/staff operations/i)).toBeTruthy();
+    const summary = screen.getByLabelText("Duty summary");
+    for (const name of ["Working now", "Assigned work", "No active work", "Departments"]) {
+      expect(within(summary).getByText(name)).toBeTruthy();
+    }
+    expect(screen.getByText(STAFF_DUTY_BASIS_NOTE)).toBeTruthy();
+    expect(container.querySelector(".sd-hero")).toBeTruthy();
+    expect(container.querySelector(".sd-info-strip")).toBeTruthy();
+  });
+
+  it("renders coverage as a right-side panel with real onDuty/total counts — no horizontal strip", async () => {
+    vi.stubGlobal("fetch", serve({ data: snapshot }));
+    const { container } = render(<StaffDutyPanel />);
+    await screen.findByRole("table");
+    expect(container.querySelector(".sd-depts")).toBeNull();
+    expect(container.querySelector(".sd-workspace")).toBeTruthy();
+    const panel = screen.getByLabelText("Department coverage");
+    expect(panel.tagName.toLowerCase()).toBe("aside");
+    expect(within(panel).getByText("Department Coverage")).toBeTruthy();
+    const housekeeping = within(panel).getByRole("button", { name: /housekeeping/i });
+    expect(within(housekeeping).getByText((_, element) => element?.textContent === "1 of 1 on duty")).toBeTruthy();
+    expect(within(housekeeping).getByText("100%")).toBeTruthy();
+    const frontDesk = within(panel).getByRole("button", { name: /front desk/i });
+    expect(within(frontDesk).getByText((_, element) => element?.textContent === "0 of 1 on duty")).toBeTruthy();
+    expect(within(frontDesk).getByText("0%")).toBeTruthy();
+  });
+
+  it("filters the table when a coverage department is pressed, and restores on second press", async () => {
+    vi.stubGlobal("fetch", serve({ data: snapshot }));
+    render(<StaffDutyPanel />);
+    await screen.findByRole("table");
+    const panel = screen.getByLabelText("Department coverage");
+    fireEvent.click(within(panel).getByRole("button", { name: /housekeeping/i }));
+    expect(within(table()).getByText("Ana Cruz")).toBeTruthy();
+    expect(within(table()).queryByText("Carlo Diaz")).toBeNull();
+    fireEvent.click(within(panel).getByRole("button", { name: /housekeeping/i }));
+    expect(within(table()).getByText("Carlo Diaz")).toBeTruthy();
+  });
+
+  it("keeps the staffing advisory informational — no link, no chevron action", async () => {
+    vi.stubGlobal("fetch", serve({ data: snapshot }));
+    render(<StaffDutyPanel />);
+    await screen.findByRole("table");
+    const advise = screen.getByText("Need additional staff?").closest(".sd-advise");
+    expect(advise).toBeTruthy();
+    expect(advise!.tagName.toLowerCase()).not.toBe("a");
+    expect(advise!.tagName.toLowerCase()).not.toBe("button");
+    expect(advise!.querySelector("a,button")).toBeNull();
+  });
+
+  it("never frames duty as login or attendance tracking", async () => {
+    vi.stubGlobal("fetch", serve({ data: snapshot }));
+    const { container } = render(<StaffDutyPanel />);
+    await screen.findByRole("table");
+    // The authoritative note explicitly negates these ("never used", "keeps
+    // no shift schedule"), so ban only positive tracking claims here.
+    const copy = (container.textContent ?? "").toLowerCase();
+    for (const banned of ["logged in", "log in", "online", "offline", "attendance"]) {
+      expect(copy).not.toContain(banned);
+    }
+    expect(screen.getByText(STAFF_DUTY_BASIS_NOTE)).toBeTruthy();
+  });
   it("filters the table when a duty KPI is pressed, and restores on second press", async () => {
     vi.stubGlobal("fetch", serve({ data: snapshot }));
     render(<StaffDutyPanel />);

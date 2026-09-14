@@ -4,7 +4,7 @@ import { aiGuardFailed, guardAiSession } from "@/lib/ai/guard";
 import { aiRateLimited, recordAiInteraction } from "@/lib/ai/audit";
 import { HAVEN_SYSTEM_PROMPT, AI_UNAVAILABLE_MESSAGE } from "@/lib/ai/prompts";
 import { BriefResponseSchema, BriefSchema } from "@/lib/ai/schemas";
-import { buildBriefInput, formatBriefInput } from "@/lib/ai/brief";
+import { buildBriefInput, formatBriefInput, getBriefIndicators, type BriefIndicators } from "@/lib/ai/brief";
 
 /**
  * HAVEN AI daily operations brief. One Gemini call per hotel day (cached
@@ -23,7 +23,7 @@ Rules:
 
 // ponytail: per-instance in-memory cache; on serverless each warm instance
 // shares it. The rate limit is the real guard against quota burn.
-let cachedBrief: { date: string; brief: unknown; model: string; generatedAt: string } | null = null;
+let cachedBrief: { date: string; brief: unknown; indicators: BriefIndicators; model: string; generatedAt: string } | null = null;
 const hotelDay = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 
 export async function GET(request: NextRequest) {
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
   const refresh = request.nextUrl.searchParams.get("refresh") === "1";
   const today = hotelDay();
   if (!refresh && cachedBrief?.date === today) {
-    return NextResponse.json({ data: cachedBrief.brief, model: cachedBrief.model, generatedAt: cachedBrief.generatedAt, cached: true });
+    return NextResponse.json({ data: cachedBrief.brief, indicators: cachedBrief.indicators, model: cachedBrief.model, generatedAt: cachedBrief.generatedAt, cached: true });
   }
 
   if (refresh && await aiRateLimited(session.userId, "brief", 3, 10)) {
@@ -47,6 +47,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const input = await buildBriefInput();
+    const indicators = getBriefIndicators(input);
     const result = await generateJson({
       systemInstruction: `${HAVEN_SYSTEM_PROMPT}\n\n${BRIEF_TASK}`,
       contents: formatBriefInput(input),
@@ -61,10 +62,10 @@ export async function GET(request: NextRequest) {
     });
     if (!result.ok) {
       console.error(`[ai] brief served fallback — reason=${result.reason} httpStatus=${result.httpStatus ?? "n/a"} errorCode=${result.errorCode ?? "n/a"}`);
-      return NextResponse.json({ data: null, message: AI_UNAVAILABLE_MESSAGE }, { status: 200 });
+      return NextResponse.json({ data: null, indicators, message: AI_UNAVAILABLE_MESSAGE }, { status: 200 });
     }
-    cachedBrief = { date: today, brief: result.data, model: result.model, generatedAt: new Date().toISOString() };
-    return NextResponse.json({ data: result.data, model: result.model, generatedAt: cachedBrief.generatedAt });
+    cachedBrief = { date: today, brief: result.data, indicators, model: result.model, generatedAt: new Date().toISOString() };
+    return NextResponse.json({ data: result.data, indicators, model: result.model, generatedAt: cachedBrief.generatedAt });
   } catch {
     await recordAiInteraction({ userId: session.userId, role: session.role, feature: "brief", toolCalls: [], status: "error" });
     return NextResponse.json({ data: null, message: AI_UNAVAILABLE_MESSAGE }, { status: 200 });

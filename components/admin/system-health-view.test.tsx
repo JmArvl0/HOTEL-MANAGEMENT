@@ -2,7 +2,7 @@
 // System Health module: the view formats server-computed figures only — status
 // cards, drift warning, and the migration ledger table. Pure render; no fetches.
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { SystemHealthView } from "./admin-dashboard-client";
 import type { SystemHealth } from "@/lib/system-health";
 
@@ -52,8 +52,12 @@ afterEach(cleanup);
 describe("SystemHealthView", () => {
   it("renders the live DB card with latency and the activity counters", () => {
     render(<SystemHealthView data={health()} onRefresh={() => {}} />);
-    expect(screen.getByText("Live")).toBeTruthy();
-    expect(screen.getByText("142 ms response")).toBeTruthy();
+    expect(screen.getByText("Connected")).toBeTruthy();
+    expect(screen.getByText(/142 ms response/)).toBeTruthy();
+    const dbCard = screen.getByText("Database").closest("article")!;
+    expect(dbCard).toBeTruthy();
+    expect(within(dbCard).getByText(/Supabase PostgreSQL/)).toBeTruthy();
+    expect(within(dbCard).getByText(/checked /)).toBeTruthy();
     expect(screen.getByText("37")).toBeTruthy();
     expect(screen.getByText("2")).toBeTruthy();
   });

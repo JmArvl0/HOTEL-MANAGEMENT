@@ -204,7 +204,54 @@ hint, 13–14px padding — dense enough to read as a snapshot above a table.
   carry `aria-label`s (placeholders are never the only label); filtering,
   pagination, and RBAC behavior are untouched by toolbar layout.
 
-## 11. Known-open items
+## 11. Dropdowns & selects — one Haven language, two mechanisms
+
+`HavenSelect` (`components/ui/haven-select.tsx`, styled by
+`components/ui/haven-select.css`, tokens `--select-*` mapped to the coastal
+palette in both `.app-shell` dark and `.theme-light` mirrors) is the single
+shared dropdown primitive. Zero dependencies beyond `lucide-react` (no
+Radix/shadcn — banned in `docs/ui-motion-guidelines.md`).
+
+- **Filter/selector UI uses `HavenSelect`** (button + listbox): 44px trigger,
+  11px radius, pale-teal selected row with a right checkmark, grouped options
+  where the native control used optgroups, ≤720px full-width triggers with a
+  60vh scrollable menu. Keyboard: arrows/Home/End + Enter + Escape, focus
+  returns to the trigger; the menu carries "<field> options" as its label so
+  it never collides with the trigger's accessible name.
+- **Form data-entry keeps the styled native `<select>`** (same border/radius/
+  focus/error language + custom chevron via `haven-select.css`): mobile
+  pickers, form validation, and date/time inputs are untouched. Never nest a
+  `HavenSelect` inside a `<label>` — labels forward clicks on non-interactive
+  descendants to the toggle and would reopen the menu; use the neutral
+  `.haven-filter` div (filters) or `.arrival-field.haven-field` div (forms)
+  with the trigger's stable `aria-label` as the accessible name.
+- **Out of scope by design:** action menus (⋮/profile/New-reservation),
+  date/time inputs, the arrival time wheel, and the room radiogroup keep
+  their own semantics and share only radius/type/shadow.
+
+## 12. Performance reports surface (staff Reports section)
+
+`PerformanceReports` (`components/manager/performance-reports.tsx`, styles in
+the report block of `manager-dashboard-theme.css` — dark and `.theme-light`
+mirrors) is the analytics half of the Reports section; the immutable daily
+operations-report review (`FrontDeskReportsPanel`) renders below it as a
+visually distinct second workflow, never a competing page header.
+
+- **Header + decision KPIs.** One `page-title` row (eyebrow, title, plain-language
+  subtitle, `window.print()` Export — the single print entry point on this
+  surface) followed by exactly three KPI cards: money (role-aware label/figure),
+  average occupancy with seven-day point change, operational readiness. Same
+  card grammar as `ModuleSummaryCards` (label / strong value / hint / icon
+  chip); numbers derive from the existing `DashboardData` payload only.
+- **Chart + evidence + inventory.** The seven-day occupancy `AreaChart`
+  carries a `role="img"` summary label and a `<details>` data-table fallback
+  with the same values; the room-status aside renders share bars from
+  `roomMix` colors with per-slice percentages. Print CSS keeps the 3-column
+  KPI row and hides the data-table disclosure.
+- **Responsive.** 3→1 KPI columns ≤760px, analysis grid 1.65fr/.75fr → 1fr
+  ≤1050px, room-status list 2→1 columns; figures use tabular numerals.
+
+## 13. Known-open items
 
 - **F6 — landing double-styling** (`globals.css` vs `landing.css`): **closed 2026-09-07** — the
   interactive landing redesign consolidated every landing rule into `app/(landing-page)/landing.css`;

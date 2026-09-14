@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import PredictiveInsightsPanel from "./predictive-insights-panel";
 
 // jsdom has no ResizeObserver and no layout; recharts' ResponsiveContainer needs both.
@@ -102,11 +102,14 @@ describe("PredictiveInsightsPanel", () => {
   it("renders inventory risk and maintenance risk detail with honest data-quality notes", async () => {
     mockFetch({ "/api/analytics/insights": { data: insights } });
     render(<PredictiveInsightsPanel />);
+    await waitFor(() => expect(screen.getByText("7-day occupancy outlook")).toBeTruthy());
+    fireEvent.click(screen.getByRole("tab", { name: "Inventory Demand" }));
     await waitFor(() => expect(screen.getByText("Bath towels")).toBeTruthy());
     expect(screen.getByText("26")).toBeTruthy(); // projected shortage
-    expect(screen.getByText(/Room 305: 4 air conditioning work orders/)).toBeTruthy();
     // Items without movement history are labeled, never guessed.
     expect(screen.getByText(/only 3 days of history — not yet predictable/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "Maintenance Risk" }));
+    await waitFor(() => expect(screen.getByText(/Room 305: 4 air conditioning work orders/)).toBeTruthy());
   });
 
   it("renders unavailable performance metrics without crashing", async () => {
@@ -136,6 +139,108 @@ describe("PredictiveInsightsPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: /Refresh predictions/ }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/analytics/generate", expect.objectContaining({ method: "POST" })));
     await waitFor(() => expect(screen.getByText(/Predictions refreshed/)).toBeTruthy());
+  });
+
+  it("keeps the hero plain teal with Live outlook and Refresh grouped on the right", async () => {
+    mockFetch({ "/api/analytics/insights": { data: insights } });
+    const { container } = render(<PredictiveInsightsPanel />);
+    await waitFor(() => expect(screen.getByText("What is coming this week?")).toBeTruthy());
+    const hero = container.querySelector(".insights-title")!;
+    expect(hero).toBeTruthy();
+    expect(hero.querySelector("img")).toBeNull();
+    const actions = hero.querySelector(".insights-title-actions")!;
+    expect(actions).toBeTruthy();
+    expect(actions.textContent).toContain("Live outlook");
+    expect(actions.textContent).toContain("Refresh predictions");
+  });
+
+  it("renders exactly four forecast tabs with Occupancy selected by default", async () => {
+    mockFetch({ "/api/analytics/insights": { data: insights } });
+    const { container } = render(<PredictiveInsightsPanel />);
+    await waitFor(() => expect(screen.getByText("7-day occupancy outlook")).toBeTruthy());
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs.map((tab) => tab.textContent)).toEqual([
+      "Occupancy Outlook",
+      "Housekeeping Forecast",
+      "Inventory Demand",
+      "Maintenance Risk"
+    ]);
+    expect(screen.getByRole("tab", { name: "Occupancy Outlook" }).getAttribute("aria-selected")).toBe("true");
+    // Only the selected panel renders — sibling forecasts stay out of the DOM.
+    expect(screen.queryByText("Housekeeping workload forecast")).toBeNull();
+    expect(container.querySelectorAll(".insights-row")).toHaveLength(0);
+    // Prediction performance stays visible outside the tabs.
+    expect(screen.getByText("Prediction performance")).toBeTruthy();
+  });
+
+  it("switches forecast panels locally with no refetch", async () => {
+    const fetchMock = mockFetch({ "/api/analytics/insights": { data: insights } });
+    render(<PredictiveInsightsPanel />);
+    await waitFor(() => expect(screen.getByText("7-day occupancy outlook")).toBeTruthy());
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("tab", { name: "Housekeeping Forecast" }));
+    expect(screen.getByText("Housekeeping workload forecast")).toBeTruthy();
+    expect(screen.queryByText("7-day occupancy outlook")).toBeNull();
+    fireEvent.click(screen.getByRole("tab", { name: "Inventory Demand" }));
+    expect(screen.getByText("Bath towels")).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "Maintenance Risk" }));
+    expect(screen.getByRole("heading", { name: "Recurring maintenance risk" })).toBeTruthy();
+    // Tab switches render already-loaded data — the insights endpoint is hit once.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    // Performance remains visible regardless of the selected tab.
+    expect(screen.getByText("Prediction performance")).toBeTruthy();
+  });
+
+  it("moves tab selection with arrow keys", async () => {
+    mockFetch({ "/api/analytics/insights": { data: insights } });
+    render(<PredictiveInsightsPanel />);
+    await waitFor(() => expect(screen.getByText("7-day occupancy outlook")).toBeTruthy());
+    fireEvent.keyDown(screen.getByRole("tablist"), { key: "ArrowRight" });
+    expect(screen.getByText("Housekeeping workload forecast")).toBeTruthy();
+    fireEvent.keyDown(screen.getByRole("tablist"), { key: "End" });
+    expect(screen.getByRole("heading", { name: "Recurring maintenance risk" })).toBeTruthy();
+  });
+
+  it("keeps the active tab after Refresh predictions", async () => {
+    const fetchMock = mockFetch({
+      "/api/analytics/insights": { data: insights },
+      "/api/analytics/generate": { data: { generatedAt: "2026-09-08T03:00:00Z", persisted: true } }
+    });
+    render(<PredictiveInsightsPanel />);
+    await waitFor(() => expect(screen.getByText("7-day occupancy outlook")).toBeTruthy());
+    fireEvent.click(screen.getByRole("tab", { name: "Inventory Demand" }));
+    expect(screen.getByText("Bath towels")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Refresh predictions/ }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/analytics/generate", expect.objectContaining({ method: "POST" })));
+    // Still on Inventory — refresh reloads data without resetting navigation.
+    expect(screen.getByText("Bath towels")).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Inventory Demand" }).getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("keeps every housekeeping and inventory column in the full-width views", async () => {
+    mockFetch({ "/api/analytics/insights": { data: insights } });
+    render(<PredictiveInsightsPanel />);
+    await waitFor(() => expect(screen.getByText("7-day occupancy outlook")).toBeTruthy());
+    fireEvent.click(screen.getByRole("tab", { name: "Housekeeping Forecast" }));
+    const hkTable = screen.getByRole("table", { name: "Housekeeping workload forecast" });
+    expect(within(hkTable).getAllByRole("columnheader")).toHaveLength(9);
+    for (const header of ["Checkout cleans", "Stayover services", "Guest requests", "Inspections", "Total", "Workload", "Est. labor", "Basis"]) {
+      expect(within(hkTable).getByText(header)).toBeTruthy();
+    }
+    fireEvent.click(screen.getByRole("tab", { name: "Inventory Demand" }));
+    const invTable = screen.getByRole("table", { name: "Inventory shortage forecast" });
+    expect(within(invTable).getAllByRole("columnheader")).toHaveLength(8);
+  });
+
+  it("renders the designed empty maintenance state with its disclaimer", async () => {
+    mockFetch({ "/api/analytics/insights": { data: { ...insights, maintenance: { ...insights.maintenance, risks: [], elevatedCount: 0 } } } });
+    render(<PredictiveInsightsPanel />);
+    await waitFor(() => expect(screen.getByText("7-day occupancy outlook")).toBeTruthy());
+    fireEvent.click(screen.getByRole("tab", { name: "Maintenance Risk" }));
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Recurring maintenance risk" })).toBeTruthy());
+    expect(screen.getByText("No rooms show recurring work-order patterns in the last 90 days.")).toBeTruthy();
+    expect(screen.getByText(/not a failure probability/)).toBeTruthy();
+    expect(screen.getByText("0 elevated")).toBeTruthy();
   });
 
   it("surfaces the AI explanation with its disclosure line", async () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Activity, BedDouble, Boxes, RefreshCw, Sparkles, Wrench } from "lucide-react";
 import { usePrefersReducedMotion } from "@/lib/motion/reduced-motion";
@@ -51,6 +51,18 @@ type Explanation = {
   data_quality_note: string;
 };
 
+type ForecastTab = "occupancy" | "housekeeping" | "inventory" | "maintenance";
+
+// Tab order mirrors the previous stacked section order; occupancy first as the
+// broadest hotel-level forecast. Tabs only switch visibility — the forecast
+// data loads once and Refresh never resets the selection.
+const FORECAST_TABS: { key: ForecastTab; label: string; icon: typeof Activity }[] = [
+  { key: "occupancy", label: "Occupancy Outlook", icon: BedDouble },
+  { key: "housekeeping", label: "Housekeeping Forecast", icon: Activity },
+  { key: "inventory", label: "Inventory Demand", icon: Boxes },
+  { key: "maintenance", label: "Maintenance Risk", icon: Wrench }
+];
+
 const AI_DISCLOSURE = "AI-generated operational guidance. Verify important decisions using authoritative HAVEN records.";
 
 const label = (value: unknown) => String(value ?? "—").replaceAll("_", " ");
@@ -96,6 +108,21 @@ export default function PredictiveInsightsPanel() {
   const [toast, setToast] = useState("");
   const [explanation, setExplanation] = useState<{ type: string; data: Explanation } | null>(null);
   const [explaining, setExplaining] = useState(false);
+  const [activeForecastTab, setActiveForecastTab] = useState<ForecastTab>("occupancy");
+  const tabRefs = useRef<Partial<Record<ForecastTab, HTMLButtonElement | null>>>({});
+  // Roving tabindex + arrow/Home/End, mirroring the room-detail tab pattern.
+  const handleTabKeys = (event: React.KeyboardEvent) => {
+    const index = FORECAST_TABS.findIndex((entry) => entry.key === activeForecastTab);
+    let next: number | null = null;
+    if (event.key === "ArrowRight") next = (index + 1) % FORECAST_TABS.length;
+    else if (event.key === "ArrowLeft") next = (index - 1 + FORECAST_TABS.length) % FORECAST_TABS.length;
+    else if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = FORECAST_TABS.length - 1;
+    if (next === null) return;
+    event.preventDefault();
+    setActiveForecastTab(FORECAST_TABS[next].key);
+    tabRefs.current[FORECAST_TABS[next].key]?.focus();
+  };
   // Motion policy: chart draw-in off under prefers-reduced-motion (docs/ui-motion-guidelines.md).
   const chartAnimated = !usePrefersReducedMotion();
 
@@ -228,7 +255,14 @@ export default function PredictiveInsightsPanel() {
         </article>
       </section>
 
-      <article className="panel insights-panel insights-chart-panel">
+      <div className="insights-tabs" role="tablist" aria-label="Forecast views" onKeyDown={handleTabKeys}>
+        {FORECAST_TABS.map(({ key, label: tabLabel, icon: TabIcon }) => (
+          <button key={key} ref={(element) => { tabRefs.current[key] = element; }} type="button" role="tab" id={`forecast-tab-${key}`} aria-selected={activeForecastTab === key} aria-controls={`forecast-panel-${key}`} tabIndex={activeForecastTab === key ? 0 : -1} className={activeForecastTab === key ? "active" : ""} onClick={() => setActiveForecastTab(key)}><TabIcon size={14} aria-hidden="true" />{tabLabel}</button>
+        ))}
+      </div>
+
+      {activeForecastTab === "occupancy" && (
+      <article className="panel insights-panel insights-chart-panel insights-tabpanel" role="tabpanel" id="forecast-panel-occupancy" aria-labelledby="forecast-tab-occupancy" tabIndex={0}>
         <div className="panel-heading">
           <div>
             <h3>7-day occupancy outlook</h3>
@@ -256,8 +290,10 @@ export default function PredictiveInsightsPanel() {
         </p>
         {explanation?.type === "occupancy" && <ExplanationCard explanation={explanation.data} onClose={() => setExplanation(null)} />}
       </article>
+      )}
 
-      <article className="panel insights-panel">
+      {activeForecastTab === "housekeeping" && (
+      <article className="panel insights-panel insights-tabpanel" role="tabpanel" id="forecast-panel-housekeeping" aria-labelledby="forecast-tab-housekeeping" tabIndex={0}>
         <div className="panel-heading">
           <div>
             <h3>Housekeeping workload forecast</h3>
@@ -290,8 +326,10 @@ export default function PredictiveInsightsPanel() {
         <TablePagination {...housekeepingPage} onPageChange={housekeepingPage.setPage} noun="forecast days" note="Calendar order retained for forecast interpretation." />
         {explanation?.type === "housekeeping" && <ExplanationCard explanation={explanation.data} onClose={() => setExplanation(null)} />}
       </article>
+      )}
 
-      <article className="panel insights-panel">
+      {activeForecastTab === "inventory" && (
+      <article className="panel insights-panel insights-tabpanel" role="tabpanel" id="forecast-panel-inventory" aria-labelledby="forecast-tab-inventory" tabIndex={0}>
         <div className="panel-heading">
           <div>
             <h3>Inventory demand forecast</h3>
@@ -328,8 +366,10 @@ export default function PredictiveInsightsPanel() {
         <p className="snapshot-hint">Forecasts use recorded consumption history; items without history are flagged rather than guessed. {data.inventory.notes.join(" ")}</p>
         {explanation?.type === "inventory" && <ExplanationCard explanation={explanation.data} onClose={() => setExplanation(null)} />}
       </article>
+      )}
 
-      <article className="panel insights-panel">
+      {activeForecastTab === "maintenance" && (
+      <article className="panel insights-panel insights-tabpanel" role="tabpanel" id="forecast-panel-maintenance" aria-labelledby="forecast-tab-maintenance" tabIndex={0}>
         <div className="panel-heading">
           <div>
             <h3>Recurring maintenance risk</h3>
@@ -357,6 +397,7 @@ export default function PredictiveInsightsPanel() {
         <p className="snapshot-hint">Risk reflects repeat-incidence patterns — it is not a failure probability. {data.maintenance.notes.join(" ")}</p>
         {explanation?.type === "maintenance" && <ExplanationCard explanation={explanation.data} onClose={() => setExplanation(null)} />}
       </article>
+      )}
 
       <article className="panel insights-panel insights-performance-panel">
         <div className="panel-heading">

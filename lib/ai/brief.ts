@@ -20,6 +20,7 @@ export interface BriefInput {
     arrivalsToday: number;
     departuresToday: number;
     openMaintenanceOrders: number;
+    highRiskSupplies: number;
   };
   occupancyTomorrow: { knownPct: number; predictedPct: number | null; dataQuality: string; basis: string };
   arrivalsTomorrow: number;
@@ -31,6 +32,22 @@ export interface BriefInput {
   guestRequests: { open: number; byDepartment: Record<string, number>; escalated: number };
   transportation: { pending: number };
 }
+
+export interface BriefIndicators {
+  occupiedNow: number;
+  arrivalsTomorrow: number;
+  openGuestRequests: number;
+  highRiskSupplies: number;
+  openMaintenanceItems: number;
+}
+
+export const getBriefIndicators = (input: BriefInput): BriefIndicators => ({
+  occupiedNow: input.operational.occupiedRoomsNow,
+  arrivalsTomorrow: input.arrivalsTomorrow,
+  openGuestRequests: input.guestRequests.open,
+  highRiskSupplies: input.operational.highRiskSupplies,
+  openMaintenanceItems: input.operational.openMaintenanceOrders
+});
 
 export async function buildBriefInput(insights?: InsightsResult): Promise<BriefInput> {
   const inputs = await getAnalyticsInputs();
@@ -56,7 +73,8 @@ export async function buildBriefInput(insights?: InsightsResult): Promise<BriefI
       occupiedRoomsNow: inputs.rooms.filter((room) => room.status === "occupied").length,
       arrivalsToday: countOn("check_in", today),
       departuresToday: countOn("check_out", today),
-      openMaintenanceOrders: inputs.orders.filter((order) => !["resolved", "cancelled"].includes(order.status)).length
+      openMaintenanceOrders: inputs.orders.filter((order) => !["resolved", "completed", "cancelled"].includes(order.status)).length,
+      highRiskSupplies: inventory.items.filter((item) => item.risk === "high").length
     },
     occupancyTomorrow: {
       knownPct: tomorrowOccupancy?.knownOccupancyPct ?? 0,

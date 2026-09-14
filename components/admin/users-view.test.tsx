@@ -43,42 +43,57 @@ const renderView = () => {
 };
 
 const tableRows = () => Array.from(document.querySelectorAll<HTMLTableRowElement>("table tbody tr"));
-const select = (name: string) => screen.getByLabelText(name, { selector: "select" });
+// HavenSelect is a button + listbox (not a native select): open the trigger,
+// then click the option by its visible label.
+const triggerFor = (name: string) => screen.getByRole("button", { name });
+const openHaven = async (name: string) => {
+  fireEvent.click(triggerFor(name));
+  return screen.findByRole("listbox");
+};
+const chooseHaven = async (name: string, option: string | RegExp) => {
+  const menu = await openHaven(name);
+  fireEvent.click(within(menu).getByRole("option", { name: option }));
+};
+const havenOptions = async (name: string) => {
+  const menu = await openHaven(name);
+  const labels = within(menu).getAllByRole("option").map((o) => o.textContent);
+  fireEvent.keyDown(triggerFor(name), { key: "Escape" });
+  return labels;
+};
 
 afterEach(cleanup);
 
 describe("UsersView filters", () => {
-  it("renders every account and derives the role/department options from the data", () => {
+  it("renders every account and derives the role/department options from the data", async () => {
     renderView();
     expect(tableRows()).toHaveLength(4);
-    const roleSelect = select("Role");
-    expect(Array.from(roleSelect.querySelectorAll("option")).map((o) => o.textContent)).toEqual(
+    expect(await havenOptions("Filter by role")).toEqual(
       ["All roles", "front desk", "housekeeping", "guest", "manager"],
     );
-    const departmentSelect = select("Department");
-    expect(Array.from(departmentSelect.querySelectorAll("option")).map((o) => o.textContent)).toEqual(
+    const departmentLabels = await havenOptions("Filter by department");
+    expect(departmentLabels).toEqual(
       ["All departments", "front desk", "housekeeping", "operations"],
     );
     // Departments without a value (guests) never appear.
-    expect(within(departmentSelect).queryByText("—")).toBeNull();
+    expect(departmentLabels?.some((text) => text === "—")).toBe(false);
   });
 
-  it("narrows by role", () => {
+  it("narrows by role", async () => {
     renderView();
-    fireEvent.change(select("Role"), { target: { value: "front_desk" } });
+    await chooseHaven("Filter by role", "front desk");
     expect(tableRows()).toHaveLength(1);
     expect(within(tableRows()[0]).getByText("Ana Reyes")).toBeTruthy();
     expect(screen.getByText("Showing 1 of 4 accounts")).toBeTruthy();
   });
 
-  it("narrows by status and by recovery requirement", () => {
+  it("narrows by status and by recovery requirement", async () => {
     renderView();
-    fireEvent.change(select("Status"), { target: { value: "suspended" } });
+    await chooseHaven("Filter by status", "Suspended");
     expect(tableRows()).toHaveLength(1);
     expect(within(tableRows()[0]).getByText("Dino Tan")).toBeTruthy();
 
-    fireEvent.change(select("Status"), { target: { value: "all" } });
-    fireEvent.change(select("Recovery"), { target: { value: "required" } });
+    await chooseHaven("Filter by status", "All statuses");
+    await chooseHaven("Filter by recovery state", "Recovery required");
     expect(tableRows()).toHaveLength(1);
     expect(within(tableRows()[0]).getByText("Dino Tan")).toBeTruthy();
   });
@@ -127,7 +142,7 @@ describe("UsersView filters", () => {
   it("places search first in the toolbar, ahead of the filter selects", () => {
     renderView();
     const search = screen.getByLabelText("Search accounts");
-    const firstSelect = document.querySelector(".approval-filters select")!;
+    const firstSelect = document.querySelector(".approval-filters .haven-select-trigger")!;
     expect(search.compareDocumentPosition(firstSelect) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

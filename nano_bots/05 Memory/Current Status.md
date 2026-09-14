@@ -21,6 +21,39 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
 
 ## Recently Completed
 
+- **Manager Reports redesign (2026-09-14, Codex start → this session finish)** —
+  inline `Reports` extracted to `components/manager/performance-reports.tsx` and
+  redesigned: header + 3 decision KPIs, accessible 7-day occupancy chart with
+  data-table fallback, room-status breakdown; daily-report review queue kept as
+  a distinct workflow below. Same `DashboardData`, same print export, same
+  role branches. Contract tests updated to the extraction (print invariant now
+  spans both files; overview-copy assertion follows the new subtitle).
+  Verification: typecheck clean, lint 0 errors, **1057/1057 tests (96 files)**,
+  build 62/62 routes, detector clean. Manual browser QA pending (role logins).
+  See [[2026-09-14 - Manager Reports Redesign]].
+
+- **Manager HAVEN AI operational workspace redesign (2026-09-14)** — rebuilt the
+  presentation around the two existing read-only features: Daily Operations Brief and
+  Ask HAVEN. The brief response now exposes five factual indicators projected from the
+  same authoritative `BriefInput` (no extra query and no Gemini-derived metrics). The
+  responsive workspace includes explicit advisory boundaries, conditional warning and
+  forecast treatments, a session-based manager greeting, an anchored Ask composer, and
+  the documented HAVEN data → predictive analytics → Gemini → human-decision flow.
+  Model selection, tool loop/thought signatures, rate limits, RBAC, audit, and every
+  operational workflow remain unchanged. Verification: focused 10/10, **1040/1040 full
+  tests**, typecheck clean, lint 0 errors (69 existing warnings), production build passed,
+  final Impeccable detector clean. Authenticated desktop/mobile browser review remains
+  pending because this repository has no installed browser runner or reusable role session.
+  See [[2026-09-14 - Manager HAVEN AI Workspace]].
+
+- **Client fetch resilience (2026-09-14)** — removed the global NextAuth
+  `SessionProvider` from staff/public pages and scoped it to the customer profile form,
+  the only surface that calls `useSession`. Manager dashboard module loading now catches
+  network and malformed-response failures, preserves successful background data, and
+  presents a retryable error state instead of throwing `Failed to fetch`. Verification:
+  focused regression 2/2, typecheck clean, lint 0 errors (71 existing warnings),
+  **1029/1029 tests**, production build passed.
+
 - **HostForge Docker deployment preparation (2026-09-13)** — added a root
   `Dockerfile` using `node:22-alpine` and the existing
   `npm ci → npm run build → npm run start` lifecycle, plus a secret-safe
@@ -600,6 +633,8 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
 
 ## Recent Sessions
 
+- [[2026-09-14 - Manager Reports Redesign]] — extracted PerformanceReports surface (KPIs, accessible chart + data table, room status); print/review flows preserved; 1057/1057, build + detector clean
+- [[2026-09-14 - Manager HAVEN AI Workspace]] — authoritative KPI strip + redesigned read-only brief/Ask decision workspace; all automated gates green
 - [[2026-09-30 - Commercial Readiness]] — Phase 9 + roadmap finale; manual payments verified honest, OTA columns with zero consumers, 9C/9D documented as deliberate scope decisions
 - [[2026-09-30 - Preventive Maintenance Assets]] — Phase 8 of the post-audit roadmap; derived due dates, real assets only, never blocks a room; governance tests caught an owner/admin overgrant and it was tightened same-phase
 - [[2026-09-30 - Inventory Draft Purchase Orders]] — Phase 7 of the post-audit roadmap; forecast shortage → staff-editable draft PO, no status other than draft is writable

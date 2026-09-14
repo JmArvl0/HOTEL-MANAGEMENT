@@ -900,7 +900,10 @@ persists its own open/closed choices (`localStorage["haven-admin-sidebar-groups"
   (`outputFileTracingIncludes`) bundles `supabase/migrations/**` with the route
   so the local count works on Vercel; when the files are unavailable the module
   degrades to remote-count-only (`unknown` status). The section auto-refreshes
-  silently every minute while open plus a manual "Run checks now" button. Extended
+  silently every minute while open plus a manual "Run checks now" button. It is
+  the single authoritative UI surface for database/Supabase status — no role
+  header shows a database badge (the manager header keeps a "Demo data" pill in
+  demo mode only). Extended
   (Unknown-first, read-only, no secrets): **Application** (environment from `NODE_ENV`,
   `package.json` version, Vercel commit short hash when present — otherwise `Unknown`),
   **Storage** (service-role `list` probe on the `room-photos` bucket — status only, never
@@ -1070,7 +1073,10 @@ server-side categories (`AI_TOOL_CONTEXT_ERROR` for tool-context/signature probl
 bodies, signatures, and keys never reach the browser or the logs. Access is Manager/Owner/Admin
 only (`guardAiSession`, enforced server-side before any data is fetched). Four features:
 **daily brief** (`/api/ai/brief` — Gemini narrates the analytics output into summary, priority
-actions, warnings and forecast notes; cached per hotel day, refresh rate-limited), **Ask HAVEN**
+actions, warnings and forecast notes; cached per hotel day, refresh rate-limited; the response also
+projects five non-AI operational indicators from the same authoritative `BriefInput`: occupied
+rooms now, tomorrow arrivals, open guest requests, high-risk supplies, and open maintenance items),
+**Ask HAVEN**
 (`/api/ai/ask` — tool-calling loop over an explicit read-only tool registry in `lib/ai/tools.ts`;
 **no generic SQL tool**; each tool returns aggregated PII-minimized payloads — "3 arrivals
 require accessibility preparation", never names/rooms; the loop preserves Gemini's full returned
@@ -1090,7 +1096,10 @@ interaction writes an `ai_interactions` audit row (user, role, feature, tool cal
 latency — no prompt/response bodies stored) which also serves as the durable rate-limit counter.
 Every AI surface carries the disclosure line: *"AI-generated operational guidance. Verify important
 decisions using authoritative HAVEN records."* Gemini never predicts, computes forecasts, or
-executes any operation.
+executes any operation. The Manager HAVEN AI workspace presents those factual indicators before a
+two-column Daily Operations Brief / Ask HAVEN decision surface and ends with the explicit
+data → HAVEN predictive analytics → Gemini explanation → human decision boundary. Missing KPI data
+is labeled `Unavailable`, never replaced with a fabricated zero.
 
 **QR-based operations** (`lib/qr/tokens.ts`, `app/api/qr/**`, dashboard scan modal, `/qr-placard/[roomId]`).
 Tokens are opaque 32-byte crypto-random strings; only their **SHA-256 hash** is stored (`qr_tokens`,

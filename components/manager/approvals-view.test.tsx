@@ -145,7 +145,7 @@ describe("ManagerApprovalView", () => {
   it("places search first in the filters row, ahead of the filter selects", () => {
     renderView();
     const search = screen.getByLabelText("Search approvals");
-    const firstSelect = document.querySelector(".approval-filters select")!;
+    const firstSelect = document.querySelector(".approval-filters .haven-select-trigger")!;
     expect(search.compareDocumentPosition(firstSelect) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 

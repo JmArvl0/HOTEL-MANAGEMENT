@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { CalendarDays, CarFront, CarTaxiFront, CheckCircle2, ClipboardCheck, Search, X } from "lucide-react";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
+import { HavenSelect } from "@/components/ui/haven-select";
 import { TablePagination, useTablePagination } from "@/components/ui/table-pagination";
 import type { FormField } from "@/components/ui/FormDialog";
 import { canCancelTransportation, canOperateTransportation } from "@/lib/permissions";
@@ -182,7 +183,7 @@ export default function TransportationPanel({ role }: { role: Role }) {
       { label: "Assigned / in progress", value: trips.filter((trip) => ["ASSIGNED", "IN_PROGRESS"].includes(trip.status)).length, hint: "Driver on the trip", queue: "active", icon: CarFront, tone: "active" },
       { label: "Completed this week", value: trips.filter((trip) => trip.status === "COMPLETED" && trip.completed_at && new Date(trip.completed_at).getTime() >= weekAgo).length, hint: "Last 7 days", queue: "completed", icon: CheckCircle2, tone: "done" },
     ]} activeQueue={queue} onSelect={setQueue} ariaLabel="Transportation summary"/>
-    <div className="tp-toolbar reservation-filters"><div className="tp-queues">{QUEUES.map(([value, text]) => <button key={value} className={queue === value ? "active" : ""} aria-pressed={queue === value} onClick={() => setQueue(value)}>{text}<i className="chip-count">{counts[value]}</i></button>)}</div><label>Service<select value={serviceFilter} onChange={(event) => setServiceFilter(event.target.value)}><option value="all">All services</option><option value="PICKUP">Airport Pickup</option><option value="DROPOFF">Hotel Drop-off</option><option value="ROUND_TRIP">Round Trip</option></select></label></div>
+    <div className="tp-toolbar reservation-filters"><div className="tp-queues">{QUEUES.map(([value, text]) => <button key={value} className={queue === value ? "active" : ""} aria-pressed={queue === value} onClick={() => setQueue(value)}>{text}<i className="chip-count">{counts[value]}</i></button>)}</div><div className="haven-filter"><span>Service</span><HavenSelect value={serviceFilter} onChange={setServiceFilter} ariaLabel="Filter by service type" options={[{ value: "all", label: "All services" }, { value: "PICKUP", label: "Airport Pickup" }, { value: "DROPOFF", label: "Hotel Drop-off" }, { value: "ROUND_TRIP", label: "Round Trip" }]} /></div></div>
     <div className="tp-search-row table-tools"><label><Search size={17}/><input type="search" aria-label="Search transportation requests" placeholder="Search guest, reservation, route, location…" value={search} onChange={(event) => setSearch(event.target.value)}/></label>{hasActiveFilters && <button className="tp-clear" onClick={clearFilters}><X size={13}/>Clear filters</button>}</div>
     <p className="tp-note">Locations are recorded as text — coordinate trips by phone; there is no external mapping or fleet service.</p>
     <div className="data-panel">

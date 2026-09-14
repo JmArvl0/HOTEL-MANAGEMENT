@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Activity, Building2, CircleDollarSign, ClipboardCheck, ClipboardList, Eye, RefreshCw, Search, Users, Wrench, X } from "lucide-react";
+import { Activity, BedDouble, Building2, Calculator, ChevronRight, CircleDollarSign, ClipboardCheck, ClipboardList, ConciergeBell, Eye, Info, Lightbulb, RefreshCw, Search, Settings, Users, Wrench, X, type LucideIcon } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { HavenSelect } from "@/components/ui/haven-select";
 import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination";
 import { STAFF_DUTY_BASIS_NOTE, type StaffDutyMember, type StaffDutySnapshot, type StaffDutyStatus } from "@/lib/staff-duty";
 
@@ -30,6 +31,14 @@ const KIND_LABEL: Record<NonNullable<StaffDutyMember["assignmentKind"]>, string>
   housekeeping: "Housekeeping",
   maintenance: "Maintenance",
   cash: "Cash handling"
+};
+
+const DEPT_ICONS: Record<string, LucideIcon> = {
+  Accounting: Calculator,
+  Maintenance: Wrench,
+  "Front Desk": ConciergeBell,
+  Operations: Settings,
+  Housekeeping: BedDouble
 };
 
 const WorkIcon = ({ source }: { source: StaffDutyMember["activeWork"][number]["source"] }) =>
@@ -112,12 +121,13 @@ export default function StaffDutyPanel() {
 
   return (
     <>
-      <div className="page-title module-title">
-        <div>
-          <p className="eyebrow">Staff operations</p>
+      <div className="sd-hero">
+        <div className="sd-hero-copy">
+          <p className="sd-hero-eyebrow">Staff operations</p>
           <h1>Staff &amp; Duty</h1>
           <p>Who is on duty right now, department coverage, and what each team member is working on — across hotel operations.</p>
         </div>
+        <div className="sd-hero-ring" aria-hidden="true" />
       </div>
 
       {error ? (
@@ -136,61 +146,72 @@ export default function StaffDutyPanel() {
             <div className="sd-kpi info" aria-label="Operational departments"><span>Departments</span><b>{data.summary.departments}</b><small>Operational departments in this view</small><i aria-hidden="true"><Building2 size={16} /></i></div>
           </div>
 
-          <p className="sd-note">{data.basisNote}</p>
+          <div className="sd-workspace">
+            <div className="sd-main">
+              <div className="sd-info-strip" role="note"><Info size={15} aria-hidden="true" /><p>{data.basisNote}</p></div>
 
-          <div className="sd-depts" aria-label="Department coverage">
-            {data.departments.map((dept) => {
-              const onDuty = dept.working + dept.assigned;
-              const activity = Object.entries(dept.activity).filter(([, count]) => count > 0);
-              return (
-                <button type="button" key={dept.name} className={department === dept.name ? "active" : ""} aria-pressed={department === dept.name} onClick={() => setDepartment(department === dept.name ? "all" : dept.name)} title={`Filter to ${dept.name}`}>
-                  <span className="sd-dept-name">{dept.name}</span>
-                  <span className="sd-dept-count"><i>{onDuty}</i> of {dept.total} on duty</span>
-                  <small>{activity.length ? activity.map(([kind, count]) => `${count} ${kind.toLowerCase()}`).join(" · ") : "No active work"}</small>
-                  <span className="sd-dept-meter" aria-hidden="true"><span style={{ width: `${dept.total ? Math.round((onDuty / dept.total) * 100) : 0}%` }} /></span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="table-tools reservation-filters sd-toolbar">
-            <label>
-              <Search size={15} aria-hidden />
-              <span className="sr-only">Search staff</span>
-              <input type="search" placeholder="Search staff, department, assignment…" value={search} onChange={(event) => setSearch(event.target.value)} />
-            </label>
-            <div>
-              <select value={department} onChange={(event) => setDepartment(event.target.value)} aria-label="Filter by department">
-                <option value="all">All departments</option>
-                {data.departments.map((dept) => <option key={dept.name} value={dept.name}>{dept.name}</option>)}
-              </select>
-              <select value={duty} onChange={(event) => setDuty(event.target.value)} aria-label="Filter by duty status">
-                <option value="all">All duty states</option>
-                <option value="working">Working now</option>
-                <option value="assigned">Assigned work</option>
-                <option value="no_active_work">No active work</option>
-              </select>
-              {hasActiveFilters && <button type="button" className="sd-clear" onClick={clearFilters}><X size={13} />Clear filters</button>}
-            </div>
-          </div>
-
-          <div className="data-panel">
-            {data.staff.length === 0 ? (
-              <div className="sd-empty"><span className="sd-empty-icon"><Users size={22} /></span><h3>No staff on record</h3><p>No active operational staff accounts exist yet. Owner/Admin create staff accounts in governance.</p></div>
-            ) : filtered.length === 0 ? (
-              <div className="sd-empty"><span className="sd-empty-icon"><Search size={22} /></span><h3>No matching staff</h3><p>No staff match the current search and filters.</p><button type="button" className="sd-clear" onClick={clearFilters}><X size={13} />Clear filters</button></div>
-            ) : (
-              <>
-                <div className="table-scroll sd-table-wrap">
-                  <table className="sd-table" aria-label="Staff on duty">
-                    <thead><tr><th>Staff</th><th>Department</th><th>Duty</th><th>Current assignment</th><th>Today</th><th /></tr></thead>
-                    <tbody>{page.rows.map(renderRow)}</tbody>
-                  </table>
+              <div className="table-tools reservation-filters sd-toolbar">
+                <label className="sd-search">
+                  <Search size={15} aria-hidden />
+                  <span className="sr-only">Search staff</span>
+                  <input type="search" placeholder="Search staff, department, assignment…" value={search} onChange={(event) => setSearch(event.target.value)} />
+                </label>
+                <div className="sd-filters">
+                  <HavenSelect value={department} onChange={setDepartment} ariaLabel="Filter by department" options={[{ value: "all", label: "All departments" }, ...data.departments.map((dept) => ({ value: dept.name, label: dept.name }))]} />
+                  <HavenSelect value={duty} onChange={setDuty} ariaLabel="Filter by duty status" options={[{ value: "all", label: "All duty states" }, { value: "working", label: "Working now" }, { value: "assigned", label: "Assigned work" }, { value: "no_active_work", label: "No active work" }]} />
+                  {hasActiveFilters && <button type="button" className="sd-clear" onClick={clearFilters}><X size={13} />Clear filters</button>}
                 </div>
-                <div className="sd-cards">{page.rows.map(renderCard)}</div>
-                <TablePagination {...page} onPageChange={page.setPage} noun="staff" allTotal={data.staff.length} note="Alphabetical by staff name · duty is derived from live operational records." />
-              </>
-            )}
+              </div>
+
+              <div className="data-panel">
+                {data.staff.length === 0 ? (
+                  <div className="sd-empty"><span className="sd-empty-icon"><Users size={22} /></span><h3>No staff on record</h3><p>No active operational staff accounts exist yet. Owner/Admin create staff accounts in governance.</p></div>
+                ) : filtered.length === 0 ? (
+                  <div className="sd-empty"><span className="sd-empty-icon"><Search size={22} /></span><h3>No matching staff</h3><p>No staff match the current search and filters.</p><button type="button" className="sd-clear" onClick={clearFilters}><X size={13} />Clear filters</button></div>
+                ) : (
+                  <>
+                    <div className="table-scroll sd-table-wrap">
+                      <table className="sd-table" aria-label="Staff on duty">
+                        <thead><tr><th>Staff</th><th>Department</th><th>Duty</th><th>Current assignment</th><th>Today</th><th><span className="sr-only">Action</span></th></tr></thead>
+                        <tbody>{page.rows.map(renderRow)}</tbody>
+                      </table>
+                    </div>
+                    <div className="sd-cards">{page.rows.map(renderCard)}</div>
+                    <TablePagination {...page} onPageChange={page.setPage} noun="staff" allTotal={data.staff.length} note="Alphabetical by staff name · duty is derived from live operational records." />
+                  </>
+                )}
+              </div>
+            </div>
+
+            <aside className="sd-coverage" aria-label="Department coverage">
+              <div className="sd-coverage-head">
+                <span className="sd-coverage-icon" aria-hidden="true"><Building2 size={16} /></span>
+                <div><h2>Department Coverage</h2><p>Live duty status across hotel departments</p></div>
+              </div>
+              <div className="sd-coverage-list">
+                {data.departments.map((dept) => {
+                  const onDuty = dept.working + dept.assigned;
+                  const pct = dept.total ? Math.round((onDuty / dept.total) * 100) : 0;
+                  const activity = Object.entries(dept.activity).filter(([, count]) => count > 0);
+                  const DeptIcon = DEPT_ICONS[dept.name] ?? Building2;
+                  return (
+                    <button type="button" key={dept.name} className={`sd-cov-item${department === dept.name ? " active" : ""}`} aria-pressed={department === dept.name} onClick={() => setDepartment(department === dept.name ? "all" : dept.name)} title={`Filter to ${dept.name}`}>
+                      <span className="sd-cov-icon" aria-hidden="true"><DeptIcon size={16} /></span>
+                      <span className="sd-cov-body">
+                        <span className="sd-cov-top"><span className="sd-cov-name">{dept.name}</span><ChevronRight size={14} aria-hidden="true" /></span>
+                        <span className="sd-cov-count"><i>{onDuty}</i> of {dept.total} on duty</span>
+                        <span className="sd-cov-act">{activity.length ? activity.map(([kind, count]) => `${count} ${kind.toLowerCase()}`).join(" · ") : "No active work"}</span>
+                        <span className="sd-cov-meter-row"><span className="sd-cov-meter" aria-hidden="true"><span style={{ width: `${pct}%` }} /></span><span className="sd-cov-pct">{pct}%</span></span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="sd-advise">
+                <span className="sd-advise-icon" aria-hidden="true"><Lightbulb size={16} /></span>
+                <div><b>Need additional staff?</b><p>View workload and department coverage to plan staffing needs.</p></div>
+              </div>
+            </aside>
           </div>
         </>
       )}

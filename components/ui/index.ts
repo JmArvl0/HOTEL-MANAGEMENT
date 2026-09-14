@@ -2,6 +2,8 @@ export { Modal, ConfirmDialog, PromptDialog, SelectDialog } from "./Modal";
 export { FormDialog, MultiStepFormDialog, RoomSelectDialog, ChecklistDialog } from "./FormDialog";
 export { StatusBadge, StatusBadgeGroup } from "./StatusBadge";
 export { FormField, Input, Textarea, Select, Checkbox, RadioGroup, ErrorSummary } from "./FormField";
+export { HavenSelect } from "./haven-select";
+export type { HavenSelectOption, HavenSelectGroup } from "./haven-select";
 export { DataTable, createColumnHelper } from "./DataTable";
 export { NavGroup, Sidebar, Breadcrumb, PageHeader } from "./Navigation";
 export { AccessibleChart, LineChart, AreaChart, BarChart, PieChart, VisuallyHidden } from "./AccessibleChart";

@@ -864,7 +864,14 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 
 /* Predictive Insights — a manager decision surface: summary first, evidence
    second, model context last. All styling stays scoped to this module. */
-.app-shell .predictive-insights{display:grid;gap:14px;min-width:0}
+.app-shell .predictive-insights{display:grid;gap:12px;min-width:0}
+.app-shell .insights-tabs{display:flex;gap:6px;flex-wrap:wrap}
+.app-shell .insights-tabs button{display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border:1px solid var(--dl);border-radius:999px;background:var(--ds);color:var(--dm);font:700 10px var(--font-sans);white-space:nowrap;cursor:pointer}
+.app-shell .insights-tabs button:hover{border-color:var(--dg);color:var(--dt)}
+.app-shell .insights-tabs button.active{background:#084b55;border-color:#136573;color:#fff}
+.app-shell .insights-tabs button:focus-visible{outline:2px solid var(--dg);outline-offset:2px}
+.app-shell .insights-tabpanel{animation:insightsTabIn .14s ease-out}
+@keyframes insightsTabIn{from{opacity:0}to{opacity:1}}
 .app-shell .predictive-insights .insights-title{position:relative;align-items:center;overflow:hidden;margin:0;padding:22px 24px;border:1px solid #28505a;border-radius:12px;background:#102f37}
 .app-shell .predictive-insights .insights-title::after{content:"";position:absolute;right:-48px;bottom:-92px;width:250px;height:180px;border:1px solid rgba(133,203,208,.18);border-radius:50%;pointer-events:none}
 .app-shell .predictive-insights .insights-title>div:first-child{position:relative;z-index:1;max-width:720px;min-width:0}
@@ -887,7 +894,7 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .app-shell .insights-state-error>svg{color:#d56b63}
 
 .app-shell .insights-metric-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-.app-shell .insights-metric-card{min-height:128px;padding:17px;border-radius:12px}
+.app-shell .insights-metric-card{min-height:110px;padding:14px;border-radius:12px}
 .app-shell .insights-metric-card::after{display:none}
 .app-shell .insights-metric-card>div{display:flex;min-width:0;flex:1;flex-direction:column}
 .app-shell .insights-metric-card span{font-size:9px;letter-spacing:.02em}
@@ -898,8 +905,8 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .app-shell .insights-metric-card.high>i{border-color:#66363a;background:#301e20;color:#ef858a}
 .app-shell .insights-metric-card.low>i{border-color:#285044;background:#172a21;color:#65d3a5}
 
-.app-shell .insights-panel{min-width:0;padding:20px;border-radius:12px}
-.app-shell .insights-panel>.panel-heading{align-items:center;margin-bottom:16px;padding-bottom:13px;border-bottom:1px solid var(--dl);gap:16px}
+.app-shell .insights-panel{min-width:0;padding:16px;border-radius:12px}
+.app-shell .insights-panel>.panel-heading{align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--dl);gap:16px}
 .app-shell .insights-panel>.panel-heading>div{min-width:0}
 .app-shell .insights-panel>.panel-heading h3{font-size:14px;line-height:1.25}
 .app-shell .insights-panel>.panel-heading p{max-width:75ch;margin-top:5px;line-height:1.55}
@@ -908,16 +915,17 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .app-shell .insights-panel .table-scroll{overflow:auto;border:1px solid var(--dl);border-radius:10px}
 .app-shell .insights-panel .table-scroll table{min-width:820px}
 .app-shell .insights-panel .table-scroll thead{background:var(--ds2)}
+.app-shell .insights-panel .table-scroll th,.app-shell .insights-panel .table-scroll td{padding:9px 10px}
 .app-shell .insights-panel .table-scroll tbody tr{transition:background-color .16s ease}
 .app-shell .insights-panel .table-scroll tbody tr:hover{background:var(--ds2)}
-.app-shell .insights-panel>.snapshot-hint{margin:13px 0 0;padding-top:11px;border-top:1px solid var(--dl);font-size:9px;line-height:1.6}
+.app-shell .insights-panel>.snapshot-hint{margin:10px 0 0;padding-top:9px;border-top:1px solid var(--dl);font-size:9px;line-height:1.6}
 .app-shell .insights-chart-panel .recharts-responsive-container{border-radius:10px;background:var(--ds2)}
 .app-shell .insights-chart-key{display:flex;align-items:center;justify-content:flex-end;gap:16px;margin:-3px 4px 10px;color:var(--dm);font-size:9px}
 .app-shell .insights-chart-key span{display:inline-flex;align-items:center;gap:6px}
 .app-shell .insights-chart-key i{display:block;width:16px;height:8px;border-radius:2px;background:#176773}
 .app-shell .insights-chart-key i.predicted{height:0;border-top:2px dashed #b8860b;border-radius:0;background:transparent}
-.app-shell .insights-performance-panel .snapshot-list{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.app-shell .insights-performance-panel .snapshot-list li{min-height:50px;align-items:center;padding:10px 12px;border-radius:9px}
+.app-shell .insights-performance-panel .snapshot-list{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.app-shell .insights-performance-panel .snapshot-list li{min-height:44px;align-items:center;padding:9px 12px;border-radius:9px}
 .app-shell .insights-performance-panel .snapshot-list li span{line-height:1.35}
 .app-shell .insights-performance-panel .snapshot-list li b{white-space:nowrap}
 .app-shell .predictive-insights .maintenance-risk-grid{gap:10px}
@@ -933,8 +941,58 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .theme-light .app-shell .insights-panel>.panel-heading .btn:hover{background:#eef5f2}
 .theme-light .app-shell .insights-chart-panel .recharts-responsive-container{background:#f7faf8}
 @media(max-width:1180px){.app-shell .predictive-insights .insights-title{align-items:flex-start;flex-direction:column}.app-shell .insights-title-actions{width:100%;justify-content:space-between}.app-shell .insights-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:720px){.app-shell .insights-tabs{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}.app-shell .insights-tabs button{flex:none}}
 @media(max-width:720px){.app-shell .predictive-insights{gap:10px}.app-shell .predictive-insights .insights-title{padding:19px}.app-shell .insights-title-actions{align-items:stretch;flex-direction:column}.app-shell .insights-freshness{padding:0 0 10px;border-inline-end:0;border-bottom:1px solid rgba(201,220,218,.28)}.app-shell .predictive-insights .insights-title .btn{justify-content:center;width:100%;font-size:10px}.app-shell .insights-metric-grid{grid-template-columns:1fr}.app-shell .insights-panel{padding:15px}.app-shell .insights-panel>.panel-heading{align-items:flex-start;flex-direction:column}.app-shell .insights-panel>.panel-heading .btn{width:100%;justify-content:center}.app-shell .insights-performance-panel .snapshot-list{grid-template-columns:1fr}}
-@media(prefers-reduced-motion:reduce){.app-shell .predictive-insights .is-spinning,.app-shell .insights-state-spinner{animation:none}.app-shell .insights-panel .table-scroll tbody tr{transition:none}}
+@media(prefers-reduced-motion:reduce){.app-shell .predictive-insights .is-spinning,.app-shell .insights-state-spinner{animation:none}.app-shell .insights-panel .table-scroll tbody tr{transition:none}.app-shell .insights-tabpanel{animation:none}}
+
+/* Manager performance reports — current operational facts first, detailed
+   trend and inventory evidence second, immutable daily review history last. */
+.app-shell .performance-reports{display:grid;gap:12px;min-width:0}
+.app-shell .performance-reports .reports-title{margin:0}
+.app-shell .report-kpi-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.app-shell .report-kpi-card{display:flex;align-items:flex-start;gap:13px;min-width:0;padding:17px;border:1px solid var(--dl);border-radius:10px;background:var(--ds)}
+.app-shell .report-kpi-icon{display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;border:1px solid #29454d;border-radius:9px;background:#17363f;color:#85cbd0}
+.app-shell .report-kpi-card>div{min-width:0}
+.app-shell .report-kpi-card p{margin:0;color:var(--dm);font-size:9px;font-weight:700}
+.app-shell .report-kpi-card strong{display:block;margin:7px 0 5px;color:var(--dt);font-size:24px;line-height:1;font-variant-numeric:tabular-nums}
+.app-shell .report-kpi-card small{display:block;color:var(--dg);font-size:8px;line-height:1.5}
+.app-shell .report-analysis-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(260px,.75fr);gap:10px;align-items:stretch;min-width:0}
+.app-shell .report-analysis-panel{min-width:0;margin:0;padding:20px;border-radius:10px}
+.app-shell .report-panel-heading{align-items:flex-start;gap:12px;margin-bottom:12px}
+.app-shell .report-panel-heading h2{margin:3px 0 4px;color:var(--dt);font-size:15px;line-height:1.2}
+.app-shell .report-section-label{margin:0;color:var(--dg)!important;font-size:7px!important;font-weight:800;text-transform:uppercase;letter-spacing:1.2px}
+.app-shell .report-change,.app-shell .report-room-total{display:inline-flex;align-items:center;gap:5px;flex:none;padding:6px 8px;border:1px solid #29454d;border-radius:999px;background:#17363f;color:#85cbd0;font-size:8px;font-weight:800;font-variant-numeric:tabular-nums}
+.app-shell .report-change.negative{border-color:#4a2d30;background:#351f21;color:#ef797e}
+.app-shell .report-chart-canvas{min-width:0;padding:9px 5px 0;border:1px solid var(--dl);border-radius:8px;background:#101411}
+.app-shell .report-chart-canvas .recharts-cartesian-grid line{stroke:#29302b}
+.app-shell .report-data-details{margin-top:12px;border-top:1px solid var(--dl);padding-top:10px}
+.app-shell .report-data-details summary{width:max-content;color:var(--dg);font-size:9px;font-weight:800;cursor:pointer}
+.app-shell .report-data-details summary:focus-visible{outline:2px solid var(--dg);outline-offset:4px}
+.app-shell .report-data-details .table-scroll{margin-top:10px;border:1px solid var(--dl);border-radius:7px}
+.app-shell .report-data-details th,.app-shell .report-data-details td{padding:9px 12px}
+.app-shell .report-room-status ul{display:grid;gap:14px;margin:17px 0 0;padding:0;list-style:none}
+.app-shell .report-room-status li>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--dt);font-size:9px}
+.app-shell .report-room-status li>div:first-child>span{display:flex;align-items:center;gap:8px}
+.app-shell .report-room-status li i{width:8px;height:8px;border-radius:50%}
+.app-shell .report-room-status li strong{font-variant-numeric:tabular-nums}
+.app-shell .report-status-track{height:5px;margin:7px 0 5px;overflow:hidden;border-radius:999px;background:#252b27}
+.app-shell .report-status-track span{display:block;height:100%;min-width:2px;border-radius:inherit}
+.app-shell .report-room-status li small{color:var(--dm);font-size:8px}
+.app-shell .performance-reports+.page-title.module-title{align-items:center;min-height:0;margin:32px 0 12px;padding:20px;border-color:var(--dl);border-radius:10px;background:var(--ds)}
+.app-shell .performance-reports+.page-title.module-title::after{display:none}
+.app-shell .performance-reports+.page-title.module-title h1{color:var(--dt);font-size:20px}
+.app-shell .performance-reports+.page-title.module-title>div>p:last-child{color:var(--dm)}
+.theme-light .app-shell .report-kpi-card{background:#fff;box-shadow:0 8px 24px rgba(30,52,41,.04)}
+.theme-light .app-shell .report-kpi-icon{border-color:#c2e0dc;background:#e1eeeb;color:#176773}
+.theme-light .app-shell .report-chart-canvas{border-color:#e1e6e2;background:#f7faf8}
+.theme-light .app-shell .report-chart-canvas .recharts-cartesian-grid line{stroke:#dfe5e1}
+.theme-light .app-shell .report-change,.theme-light .app-shell .report-room-total{border-color:#c2e0dc;background:#e1eeeb;color:#176773}
+.theme-light .app-shell .report-change.negative{border-color:#edcbc8;background:#f9e3e1;color:#a44843}
+.theme-light .app-shell .report-status-track{background:#e5eae6}
+.theme-light .app-shell .performance-reports+.page-title.module-title{background:#fff;box-shadow:0 8px 24px rgba(30,52,41,.04)}
+@media(max-width:1050px){.app-shell .report-analysis-grid{grid-template-columns:1fr}.app-shell .report-room-status ul{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.app-shell .report-kpi-grid{grid-template-columns:1fr}.app-shell .report-analysis-panel{padding:16px}.app-shell .report-panel-heading{flex-direction:column}.app-shell .report-room-status ul{grid-template-columns:1fr}.app-shell .performance-reports+.page-title.module-title{align-items:stretch;flex-direction:column;padding:17px}}
+@media print{.app-shell .performance-reports{gap:10px}.app-shell .report-kpi-grid{grid-template-columns:repeat(3,1fr)}.app-shell .report-analysis-grid{grid-template-columns:1.65fr .75fr}.app-shell .report-data-details{display:none}.app-shell .report-chart-canvas,.app-shell .report-kpi-card,.app-shell .report-analysis-panel{border-color:#d7ddd8!important;background:#fff!important;box-shadow:none!important}.app-shell .report-kpi-card p,.app-shell .report-kpi-card small,.app-shell .report-room-status li small{color:#4f5b54!important}}
 .theme-light .app-shell .ai-brief-summary{color:#2c3931}
 .theme-light .app-shell .ai-brief h4{color:#1c2720}
 .theme-light .app-shell .ai-brief ol,.theme-light .app-shell .ai-brief ul{color:#5c6860}
@@ -958,6 +1016,168 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 @media(max-width:720px){
   .app-shell .ai-ask-form{flex-direction:column}
   .app-shell .ai-turn{max-width:100%}
+}
+
+/* HAVEN AI — one read-only manager workspace. The reading path is context,
+   facts, interpretation, conversation, then the permission boundary. */
+.app-shell .haven-ai-workspace{display:grid;gap:18px;min-width:0}
+.app-shell .haven-ai-hero{position:relative;align-items:center;overflow:hidden;margin:0;padding:24px;border:1px solid #28505a;border-radius:12px;background:#102f37}
+.app-shell .haven-ai-hero::after{content:"";position:absolute;right:-46px;bottom:-94px;width:260px;height:190px;border:1px solid rgba(133,203,208,.18);border-radius:50%;pointer-events:none}
+.app-shell .haven-ai-hero>div{position:relative;z-index:1;max-width:780px;min-width:0}
+.app-shell .haven-ai-hero .eyebrow{color:#78d7c7}
+.app-shell .haven-ai-hero h1{color:#f8f6f1;font-size:30px;letter-spacing:-.02em}
+.app-shell .haven-ai-hero>div>p:last-child{max-width:76ch;color:#c9dcda;font-size:10px;line-height:1.65}
+.app-shell .haven-ai-advisory{position:relative;z-index:1;display:flex;align-items:center;gap:10px;min-width:220px;padding:12px 15px;border-inline-start:1px solid rgba(201,220,218,.24);color:#78d7c7}
+.app-shell .haven-ai-advisory svg{flex:none}
+.app-shell .haven-ai-advisory span{display:grid;gap:2px}
+.app-shell .haven-ai-advisory b{color:#f8f6f1;font-size:10px}
+.app-shell .haven-ai-advisory small{color:#aac1c0;font-size:8.5px;line-height:1.45}
+
+.app-shell .haven-ai-indicators{display:grid;gap:11px}
+.app-shell .haven-ai-section-heading{display:flex;align-items:end;justify-content:space-between;gap:16px}
+.app-shell .haven-ai-section-heading h2{margin:0;color:var(--dt);font:650 15px var(--font-sans);letter-spacing:-.01em}
+.app-shell .haven-ai-section-heading p{margin:0;color:var(--dm);font-size:9px;line-height:1.5}
+.app-shell .haven-ai-kpi-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}
+.app-shell .haven-ai-kpi{display:flex;align-items:flex-start;gap:11px;min-width:0;min-height:100px;padding:14px;border:1px solid var(--dl);border-radius:12px;background:var(--ds)}
+.app-shell .haven-ai-kpi>svg{flex:none;padding:8px;box-sizing:content-box;border-radius:10px;background:#17363f;color:#85cbd0}
+.app-shell .haven-ai-kpi.warning>svg{background:#31261b;color:#e5a864}
+.app-shell .haven-ai-kpi.risk>svg{background:#301e20;color:#ef858a}
+.app-shell .haven-ai-kpi>span{display:grid;min-width:0;gap:4px}
+.app-shell .haven-ai-kpi small{color:var(--dm);font-size:8.5px;font-weight:650;line-height:1.35}
+.app-shell .haven-ai-kpi b{color:var(--dt);font-size:15px;line-height:1.2;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.app-shell .haven-ai-kpi em{color:var(--dm);font-size:8px;font-style:normal;line-height:1.4}
+.app-shell .haven-ai-kpi-skeleton{min-height:100px;border:1px solid var(--dl);border-radius:12px;background:linear-gradient(90deg,var(--ds) 25%,var(--ds2) 50%,var(--ds) 75%);background-size:200% 100%;animation:aiSkeleton 1.2s ease-in-out infinite}
+@keyframes aiSkeleton{to{background-position:-200% 0}}
+
+.app-shell .haven-ai-main-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(310px,.95fr);gap:12px;align-items:stretch;min-width:0}
+.app-shell .haven-ai-main-grid>.panel{min-width:0;margin:0;padding:19px;border-radius:12px}
+.app-shell .haven-ai-main-grid>.panel>.panel-heading{align-items:flex-start;margin-bottom:14px;padding-bottom:13px;border-bottom:1px solid var(--dl);gap:14px}
+.app-shell .haven-ai-main-grid>.panel>.panel-heading>div{min-width:0}
+.app-shell .haven-ai-main-grid>.panel>.panel-heading h2{margin:0;color:var(--dt);font:650 15px var(--font-sans);line-height:1.3}
+.app-shell .haven-ai-main-grid>.panel>.panel-heading p{max-width:66ch;margin:4px 0 0;color:var(--dm);font-size:9px;line-height:1.55}
+.app-shell .ai-brief-controls{display:flex;align-items:center;gap:9px;flex:none}
+.app-shell .ai-brief-controls>small{color:var(--dm);font-size:8px;white-space:nowrap}
+.app-shell .ai-brief-controls .btn{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 12px;border-radius:999px;white-space:nowrap}
+.app-shell .ai-brief-controls .is-spinning{animation:insightsSpin .9s linear infinite}
+.app-shell .ai-brief-loading{display:grid;gap:10px}
+.app-shell .ai-brief-loading i{display:block;height:62px;border-radius:10px;background:linear-gradient(90deg,var(--ds2) 25%,#1a2922 50%,var(--ds2) 75%);background-size:200% 100%;animation:aiSkeleton 1.2s ease-in-out infinite}
+.app-shell .ai-brief-loading i:first-child{height:86px}
+.app-shell .ai-brief{display:grid;gap:11px}
+.app-shell .ai-brief .ai-brief-block{margin:0;padding:14px;border-radius:10px;background:var(--ds2)}
+.app-shell .ai-brief .ai-brief-block h3{display:flex;align-items:center;gap:7px;margin:0 0 9px;color:var(--dt);font:650 10px var(--font-sans)}
+.app-shell .ai-brief .ai-brief-block h3 svg{color:#85cbd0}
+.app-shell .ai-brief .ai-brief-block.summary{background:#17363f}
+.app-shell .ai-brief .ai-brief-block.summary h3{color:#85cbd0}
+.app-shell .ai-brief .ai-brief-summary{margin:0;color:#d0dcda;font-size:10px;line-height:1.68}
+.app-shell .ai-brief .priorities ol{display:grid;gap:9px;margin:0;padding:0;list-style:none}
+.app-shell .ai-brief .priorities li{display:flex;align-items:flex-start;gap:9px;color:var(--dt);line-height:1.55}
+.app-shell .ai-brief .priorities li>span{display:grid;place-items:center;flex:none;width:22px;height:22px;border-radius:7px;background:#31261b;color:#e5a864;font-size:9px;font-weight:750}
+.app-shell .ai-brief .priorities li>div{display:grid;gap:2px}
+.app-shell .ai-brief .priorities li b{font-size:9.5px}
+.app-shell .ai-brief .priorities li small{color:var(--dm);font-size:8.5px;line-height:1.55}
+.app-shell .ai-brief .warnings{border:1px solid #66363a;background:#301e20}
+.app-shell .ai-brief .warnings h3,.app-shell .ai-brief .warnings h3 svg{color:#ef858a}
+.app-shell .ai-brief .warnings ul,.app-shell .ai-brief .forecasts ul{display:grid;gap:6px;margin:0;padding-left:17px;color:#c3cdc7;font-size:9px;line-height:1.55}
+.app-shell .ai-brief .forecasts{background:#172a21}
+.app-shell .ai-brief .forecasts h3,.app-shell .ai-brief .forecasts h3 svg{color:#65d3a5}
+.app-shell .ai-brief .forecasts>p{margin:-3px 0 9px;color:#8eaaa0;font-size:8.5px}
+.app-shell .ai-brief footer{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--dl);color:var(--dm);font-size:7.8px;line-height:1.5}
+.app-shell .ai-unavailable{min-height:150px;align-items:center;justify-content:center;padding:24px;border-radius:10px;text-align:left}
+.app-shell .ai-unavailable div{display:grid;gap:3px}
+.app-shell .ai-unavailable b{color:var(--dt);font-size:10px}
+.app-shell .ai-unavailable p{max-width:48ch;margin:0}
+
+.app-shell .ai-ask-panel{display:flex;min-height:610px;flex-direction:column}
+.app-shell .ai-readonly-chip{display:inline-flex;align-items:center;gap:5px;flex:none;padding:6px 9px;border:1px solid #29454d;border-radius:999px;color:#85cbd0;font-size:8px;font-weight:700;white-space:nowrap}
+.app-shell .ai-conversation{flex:1;max-height:510px;min-height:330px;margin:0;padding:2px 1px 14px;align-content:start}
+.app-shell .ai-conversation-empty{display:grid;place-items:center;align-content:center;min-height:310px;padding:18px;border:0;border-radius:10px;background:var(--ds2);text-align:center}
+.app-shell .ai-conversation-empty>svg{margin-bottom:8px;color:#85cbd0}
+.app-shell .ai-conversation-empty h3{margin:0;color:var(--dt);font:650 14px var(--font-sans)}
+.app-shell .ai-conversation-empty>p{max-width:42ch;margin:6px 0 15px;color:var(--dm);font-size:9px;line-height:1.55}
+.app-shell .ai-suggested{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;width:100%}
+.app-shell .ai-suggested button{display:flex;align-items:center;justify-content:space-between;gap:7px;min-height:54px;padding:9px 10px;border-radius:9px;color:#85cbd0;text-align:left;line-height:1.4}
+.app-shell .ai-suggested button svg{flex:none;transition:transform .16s ease}
+.app-shell .ai-suggested button:hover svg,.app-shell .ai-suggested button:focus-visible svg{transform:translateX(2px)}
+.app-shell .ai-suggested button:focus-visible{outline:2px solid #328d9b;outline-offset:2px}
+.app-shell .ai-turn{border-radius:10px}
+.app-shell .ai-ask-dock{margin-top:auto;padding-top:12px;border-top:1px solid var(--dl)}
+.app-shell .ai-ask-note{margin:0 0 8px;color:#e5a864;font-size:8.5px;line-height:1.5}
+.app-shell .ai-ask-form input{min-height:40px;border-radius:8px}
+.app-shell .ai-ask-form .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:76px;border-radius:8px}
+.app-shell .ai-ask-dock>p:last-child{margin:8px 0 0;color:var(--dm);font-size:7.8px;line-height:1.5;text-align:center}
+
+.app-shell .ai-workflow{display:grid;gap:13px;padding:18px;border:1px solid var(--dl);border-radius:12px;background:var(--ds)}
+.app-shell .ai-workflow-flow{display:flex;align-items:stretch;gap:8px;min-width:0}
+.app-shell .ai-workflow-step{display:flex;align-items:center;gap:9px;flex:1;min-width:0;padding:11px;border-radius:10px;background:var(--ds2)}
+.app-shell .ai-workflow-step>svg{flex:none;color:#85cbd0}
+.app-shell .ai-workflow-step span,.app-shell .ai-workflow-flow aside span{display:grid;min-width:0;gap:2px}
+.app-shell .ai-workflow-step b,.app-shell .ai-workflow-flow aside b{color:var(--dt);font-size:9px}
+.app-shell .ai-workflow-step small,.app-shell .ai-workflow-flow aside small{color:var(--dm);font-size:7.8px;line-height:1.4}
+.app-shell .ai-workflow-arrow{align-self:center;flex:none;color:var(--dm)}
+.app-shell .ai-workflow-flow aside{display:flex;align-items:center;gap:9px;flex:1.2;min-width:0;padding:11px;border:1px solid #285044;border-radius:10px;background:#172a21}
+.app-shell .ai-workflow-flow aside>svg{flex:none;color:#65d3a5}
+
+.theme-light .app-shell .haven-ai-hero{border-color:#2e6670;background:#0d4650}
+.theme-light .app-shell .haven-ai-kpi>svg{background:#e1eeeb;color:#176773}
+.theme-light .app-shell .haven-ai-kpi.warning>svg{background:#fff0dd;color:#a45a22}
+.theme-light .app-shell .haven-ai-kpi.risk>svg{background:#f9e3e1;color:#a44843}
+.theme-light .app-shell .ai-brief-loading i{background:linear-gradient(90deg,#f4f7f5 25%,#e8eeea 50%,#f4f7f5 75%);background-size:200% 100%}
+.theme-light .app-shell .ai-brief .ai-brief-block{background:#f7faf8}
+.theme-light .app-shell .ai-brief .ai-brief-block.summary{background:#e1eeeb}
+.theme-light .app-shell .ai-brief .ai-brief-block.summary h3{color:#176773}
+.theme-light .app-shell .ai-brief .ai-brief-summary{color:#2c3931}
+.theme-light .app-shell .ai-brief .priorities li>span{background:#fff0dd;color:#a45a22}
+.theme-light .app-shell .ai-brief .warnings{border-color:#edcbc8;background:#fff4f2}
+.theme-light .app-shell .ai-brief .warnings h3,.theme-light .app-shell .ai-brief .warnings h3 svg{color:#a44843}
+.theme-light .app-shell .ai-brief .warnings ul,.theme-light .app-shell .ai-brief .forecasts ul{color:#46534b}
+.theme-light .app-shell .ai-brief .forecasts{background:#e8f4ef}
+.theme-light .app-shell .ai-brief .forecasts h3,.theme-light .app-shell .ai-brief .forecasts h3 svg{color:#267056}
+.theme-light .app-shell .ai-brief .forecasts>p{color:#5d776d}
+.theme-light .app-shell .ai-readonly-chip{border-color:#c2e0dc;color:#176773}
+.theme-light .app-shell .ai-conversation-empty{background:#f7faf8}
+.theme-light .app-shell .ai-workflow-step{background:#f7faf8}
+.theme-light .app-shell .ai-workflow-flow aside{border-color:#c4dfd2;background:#e8f4ef}
+
+@media(max-width:1240px){
+  .app-shell .haven-ai-kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .app-shell .haven-ai-kpi:last-child{grid-column:span 2}
+  .app-shell .haven-ai-main-grid{grid-template-columns:minmax(0,1.35fr) minmax(300px,1fr)}
+  .app-shell .ai-workflow-flow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .app-shell .ai-workflow-arrow{display:none}
+  .app-shell .ai-workflow-flow aside{grid-column:1/-1}
+}
+@media(max-width:900px){
+  .app-shell .haven-ai-hero{align-items:flex-start;flex-direction:column}
+  .app-shell .haven-ai-advisory{width:100%;padding:12px 0 0;border-inline-start:0;border-top:1px solid rgba(201,220,218,.24)}
+  .app-shell .haven-ai-main-grid{grid-template-columns:1fr}
+  .app-shell .ai-ask-panel{min-height:560px}
+}
+@media(max-width:680px){
+  .app-shell .haven-ai-workspace{gap:14px}
+  .app-shell .haven-ai-hero{padding:19px}
+  .app-shell .haven-ai-hero h1{font-size:26px}
+  .app-shell .haven-ai-section-heading{align-items:flex-start;flex-direction:column;gap:4px}
+  .app-shell .haven-ai-kpi-grid{grid-template-columns:1fr}
+  .app-shell .haven-ai-kpi:last-child{grid-column:auto}
+  .app-shell .haven-ai-main-grid>.panel{padding:15px}
+  .app-shell .haven-ai-main-grid>.panel>.panel-heading{flex-direction:column}
+  .app-shell .ai-brief-controls{width:100%;justify-content:space-between}
+  .app-shell .ai-brief-controls .btn{justify-content:center}
+  .app-shell .ai-suggested{grid-template-columns:1fr}
+  .app-shell .ai-ask-form{flex-direction:row}
+  .app-shell .ai-workflow{padding:15px}
+  .app-shell .ai-workflow-flow{grid-template-columns:1fr}
+  .app-shell .ai-workflow-flow aside{grid-column:auto}
+}
+@media(max-width:420px){
+  .app-shell .ai-brief-controls{align-items:flex-start;flex-direction:column}
+  .app-shell .ai-brief-controls .btn{width:100%}
+  .app-shell .ai-ask-form{flex-direction:column}
+  .app-shell .ai-ask-form .btn{width:100%}
+}
+@media(prefers-reduced-motion:reduce){
+  .app-shell .haven-ai-kpi-skeleton,.app-shell .ai-brief-loading i,.app-shell .ai-brief-controls .is-spinning{animation:none}
+  .app-shell .ai-suggested button svg{transition:none}
 }
 
 /* ============ Approvals & escalations queue ============================== */
@@ -1030,15 +1250,23 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .theme-light .app-shell .approval-card footer small{color:#747f78}
 
 /* Staff & Duty — read-only operational workforce supervision (Manager).
-   Redesigned 2026-09-08 to the Transportation workspace vocabulary: semantic
-   KPI cards (each toggles its duty filter), a dashed derivation note,
-   department coverage buttons with meter bars, and a sticky-header table
-   with a CSS-gated card twin below 720px. Tokens do the theme lifting
-   (--ds surface, --dl line, --dt text, --dm muted, --dg accent); literal
-   fills get explicit light mirrors at the end. */
+   Redesign 2026-09-14 to the approved reference: teal hero, four equal
+   summary cards, left staff workspace (info strip + toolbar + table) and a
+   right Department Coverage panel with real onDuty/total meters. Duty stays
+   derived from live operational records; login is never a signal. Tokens do
+   the theme lifting (--ds surface, --dl line, --dt text, --dm muted, --dg
+   accent); literal fills get explicit light mirrors at the end. */
+/* Hero — deep HAVEN teal, restrained ring, white type. Pins brand in both themes. */
+.app-shell .sd-hero{position:relative;overflow:hidden;display:flex;align-items:center;margin-bottom:12px;padding:22px 24px;border-radius:12px;background:linear-gradient(120deg,#084b55 0%,#0d5a66 55%,#136573 100%);color:#fff}
+.app-shell .sd-hero-copy{position:relative;z-index:2;max-width:640px}
+.app-shell .sd-hero-eyebrow{margin:0 0 7px;color:#85cbd0;font-size:7px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase}
+.app-shell .sd-hero h1{margin:0;color:#fff;font:600 22px var(--font-sans);letter-spacing:-.35px}
+.app-shell .sd-hero-copy>p:last-child{margin:6px 0 0;color:rgba(255,255,255,.78);font-size:9px;line-height:1.6}
+.app-shell .sd-hero-ring{position:absolute;z-index:1;right:-70px;top:50%;width:250px;height:250px;transform:translateY(-50%);border:26px solid rgba(133,203,208,.14);border-radius:50%}
+.app-shell .sd-hero-ring::after{content:"";position:absolute;inset:28px;border:2px solid rgba(133,203,208,.12);border-radius:50%}
 /* KPI cards — one semantic accent per duty state; Departments is informational. */
-.app-shell .sd-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:12px}
-.app-shell .sd-kpi{position:relative;display:block;padding:13px 14px;border:1px solid var(--dl);border-radius:8px;background:var(--ds);text-align:left;cursor:pointer;transition:border-color .18s ease,background-color .18s ease,box-shadow .18s ease}
+.app-shell .sd-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:12px;align-items:stretch}
+.app-shell .sd-kpi{position:relative;display:block;min-height:110px;padding:13px 14px;border:1px solid var(--dl);border-radius:8px;background:var(--ds);text-align:left;cursor:pointer;transition:border-color .18s ease,background-color .18s ease,box-shadow .18s ease}
 .app-shell .sd-kpi:not(:disabled):hover{border-color:var(--dm)}
 .app-shell .sd-kpi:focus-visible{outline:2px solid var(--dg);outline-offset:2px}
 .app-shell .sd-kpi:disabled{opacity:.55;cursor:default}
@@ -1051,33 +1279,58 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .app-shell .sd-kpi.attention>i{background:#34291c;color:#dfa062}
 .app-shell .sd-kpi.info>i{background:#152132;color:#7fa8d4}
 .app-shell .sd-kpi[aria-pressed="true"]{border-color:var(--dg);background:#141f19;box-shadow:inset 0 0 0 1px var(--dg)}
-/* Derivation note — why these statuses are what they are (dashed, tp-note style). */
-.app-shell .sd-note{margin:0 0 12px;padding:7px 10px;border:1px dashed var(--dl);border-radius:6px;color:var(--dm);font-size:10px;line-height:1.6}
-/* Department coverage — click filters the list; the meter bar fills with on-duty share. */
-.app-shell .sd-depts{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:9px;margin-bottom:12px}
-.app-shell .sd-depts>button{display:grid;gap:5px;padding:12px 14px;border:1px solid var(--dl);border-radius:8px;background:var(--ds);text-align:left;cursor:pointer;transition:border-color .18s ease,background-color .18s ease,box-shadow .18s ease}
-.app-shell .sd-depts>button:hover{border-color:var(--dm)}
-.app-shell .sd-depts>button:focus-visible{outline:2px solid var(--dg);outline-offset:2px}
-.app-shell .sd-depts>button[aria-pressed="true"]{border-color:var(--dg);background:#141f19;box-shadow:inset 0 0 0 1px var(--dg)}
-.app-shell .sd-dept-name{color:var(--dt);font:600 11px var(--font-sans);letter-spacing:.3px;text-transform:uppercase}
-.app-shell .sd-dept-count{color:var(--dm);font-size:10px}
-.app-shell .sd-dept-count i{font-style:normal;font-weight:700;color:var(--dg)}
-.app-shell .sd-depts small{color:#8d9791;font-size:9px}
-.app-shell .sd-dept-meter{height:3px;border-radius:2px;background:var(--dl);overflow:hidden}
-.app-shell .sd-dept-meter>span{display:block;height:100%;border-radius:2px;background:var(--dg);transition:width .3s ease}
-/* Toolbar — search + filters + clear (keeps .table-tools/.reservation-filters
-   for the shared control metrics, touch targets, and ≤760px stacking). */
-.app-shell .sd-toolbar{margin-bottom:10px}
-.app-shell .sd-toolbar>div{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* Workspace — staff table left, coverage right (~75/25). */
+.app-shell .sd-workspace{display:grid;grid-template-columns:minmax(0,3fr) minmax(280px,1fr);gap:12px;align-items:start}
+.app-shell .sd-main{display:grid;gap:10px;min-width:0;align-content:start}
+/* Duty derivation strip — factual info, never warning/error. */
+.app-shell .sd-info-strip{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid #29454d;border-radius:8px;background:#14242b;color:#a9c6c9}
+.app-shell .sd-info-strip svg{flex:0 0 auto;margin-top:1px;color:#85cbd0}
+.app-shell .sd-info-strip p{margin:0;font-size:10px;line-height:1.6}
+/* Toolbar — search owns the majority width; HavenSelect filters hug the right. */
+.app-shell .sd-toolbar{margin-bottom:0}
+.app-shell .sd-toolbar.sd-toolbar{justify-content:flex-start}
+.app-shell .sd-toolbar .sd-search{flex:1 1 320px;min-width:240px;max-width:60%}
+.app-shell .sd-toolbar .sd-filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto}
 .app-shell .sd-clear{display:inline-flex;align-items:center;gap:5px;min-height:36px;padding:8px 13px;border:1px solid var(--dl);border-radius:5px;background:#141815;color:#929c96;font-size:10px;font-weight:700;cursor:pointer;transition:border-color .18s ease,color .18s ease}
 .app-shell .sd-clear:hover{border-color:var(--dm);color:var(--dt)}
 .app-shell .sd-clear:focus-visible{outline:2px solid var(--dg);outline-offset:1px}
-/* Staff table — sticky header, tabular numbers; assignment text may be long. */
+/* Staff table — sticky header, tabular numbers; compact operational density. */
 .app-shell .sd-table{min-width:880px;font-variant-numeric:tabular-nums}
-.app-shell .sd-table th{position:sticky;top:0;z-index:2}
-.app-shell .sd-table .cell-stack b{overflow-wrap:anywhere}
+.app-shell .sd-table th{position:sticky;top:0;z-index:2;padding:10px 12px}
+.app-shell .sd-table td{padding:10px 12px}
+.app-shell .sd-table .cell-stack{display:grid;gap:2px}
+.app-shell .sd-table .cell-stack b{overflow-wrap:anywhere;font-size:10px;color:var(--dt)}
+.app-shell .sd-table .cell-stack small{font-size:9px;color:var(--dm)}
 .app-shell .sd-actions{text-align:right}
 .app-shell .sd-muted{color:var(--dm);font-weight:400}
+/* Department Coverage — vertical panel; rows filter the table (chevron = interactive). */
+.app-shell .sd-coverage{display:grid;gap:12px;align-content:start;padding:14px;border:1px solid var(--dl);border-radius:10px;background:var(--ds)}
+.app-shell .sd-coverage-head{display:flex;gap:10px;align-items:center}
+.app-shell .sd-coverage-icon{flex:0 0 auto;width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:#17363f;color:#85cbd0}
+.app-shell .sd-coverage-head h2{margin:0;color:var(--dt);font:700 11px var(--font-sans)}
+.app-shell .sd-coverage-head p{margin:2px 0 0;color:var(--dm);font-size:9px}
+.app-shell .sd-coverage-list{display:grid;gap:8px}
+.app-shell .sd-cov-item{display:flex;gap:10px;width:100%;min-height:78px;padding:10px 11px;border:1px solid var(--dl);border-radius:8px;background:transparent;text-align:left;cursor:pointer;transition:border-color .18s ease,background-color .18s ease,box-shadow .18s ease}
+.app-shell .sd-cov-item:hover{border-color:var(--dm)}
+.app-shell .sd-cov-item:focus-visible{outline:2px solid var(--dg);outline-offset:2px}
+.app-shell .sd-cov-item.active{border-color:var(--dg);background:#141f19;box-shadow:inset 0 0 0 1px var(--dg)}
+.app-shell .sd-cov-icon{flex:0 0 auto;width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:#17363f;color:#85cbd0}
+.app-shell .sd-cov-body{flex:1;min-width:0;display:grid;gap:3px}
+.app-shell .sd-cov-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.app-shell .sd-cov-name{color:var(--dt);font:700 11px var(--font-sans)}
+.app-shell .sd-cov-top svg{flex:0 0 auto;color:var(--dm)}
+.app-shell .sd-cov-count{color:var(--dm);font-size:10px}
+.app-shell .sd-cov-count i{font-style:normal;font-weight:700;color:var(--dg)}
+.app-shell .sd-cov-act{color:#8d9791;font-size:9px;line-height:1.4;overflow-wrap:anywhere}
+.app-shell .sd-cov-meter-row{display:flex;align-items:center;gap:8px}
+.app-shell .sd-cov-meter{flex:1;height:4px;border-radius:2px;background:var(--dl);overflow:hidden}
+.app-shell .sd-cov-meter>span{display:block;height:100%;border-radius:2px;background:var(--dg);transition:width .3s ease}
+.app-shell .sd-cov-pct{min-width:32px;color:var(--dm);font-size:9px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+/* Advisory card — informational only, never a link. */
+.app-shell .sd-advise{display:flex;gap:10px;padding:12px;border:1px solid #24423c;border-radius:8px;background:#122e2a}
+.app-shell .sd-advise-icon{flex:0 0 auto;width:30px;height:30px;display:grid;place-items:center;border-radius:50%;background:#17363f;color:#7fd6a8}
+.app-shell .sd-advise b{display:block;color:#d7efe4;font-size:10px}
+.app-shell .sd-advise p{margin:3px 0 0;color:#8fb5a6;font-size:9px;line-height:1.5}
 /* Mobile staff cards — the table swaps for these below 720px. */
 .app-shell .sd-cards{display:none;grid-template-columns:1fr;gap:10px;padding:12px}
 .app-shell .sd-card{display:grid;gap:8px;padding:14px;border:1px solid var(--dl);border-radius:8px;background:var(--ds2)}
@@ -1100,12 +1353,25 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .app-shell .sd-skeleton i:nth-child(4){animation-delay:.45s}
 .app-shell .sd-skeleton i:nth-child(5){animation-delay:.6s}
 @keyframes sdPulse{0%,100%{opacity:.5}50%{opacity:1}}
-@media(prefers-reduced-motion:reduce){.app-shell .sd-skeleton i{animation:none}.app-shell .sd-dept-meter>span{transition:none}}
+@media(prefers-reduced-motion:reduce){.app-shell .sd-skeleton i{animation:none}.app-shell .sd-cov-meter>span{transition:none}}
+@media(min-width:1025px){.app-shell .sd-coverage{position:sticky;top:12px}}
+@media(max-width:1024px){
+  .app-shell .sd-workspace{grid-template-columns:1fr}
+  .app-shell .sd-coverage{position:static}
+}
 @media(max-width:720px){
   .app-shell .sd-kpis{grid-template-columns:1fr 1fr}
-  .app-shell .sd-depts{grid-template-columns:1fr 1fr}
   .app-shell .sd-table-wrap{display:none}
   .app-shell .sd-cards{display:grid}
+  .app-shell .sd-toolbar.sd-toolbar{flex-direction:column;align-items:stretch}
+  .app-shell .sd-toolbar .sd-search{max-width:none}
+  .app-shell .sd-toolbar .sd-filters{margin-left:0}
+  .app-shell .sd-toolbar .sd-filters .haven-select{flex:1 1 100%}
+}
+@media(max-width:480px){
+  .app-shell .sd-kpis{grid-template-columns:1fr}
+  .app-shell .sd-hero{padding:18px}
+  .app-shell .sd-hero-ring{right:-110px;opacity:.8}
 }
 /* Detail modal — the shared modal panel renders light in both staff themes,
    so these use the light palette literals, not the app-shell tokens. */
@@ -1131,10 +1397,18 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .theme-light .app-shell .sd-kpi.attention>i{background:#fff0dd;color:#a45a22}
 .theme-light .app-shell .sd-kpi.info>i{background:#eaf1f7;color:#2a5d8f}
 .theme-light .app-shell .sd-kpi[aria-pressed="true"]{background:#e9f2ed}
-.theme-light .app-shell .sd-depts>button{background:#fff}
-.theme-light .app-shell .sd-depts>button[aria-pressed="true"]{background:#e9f2ed}
-.theme-light .app-shell .sd-depts small{color:#74807a}
-.theme-light .app-shell .sd-dept-meter{background:#e1e6e2}
+.theme-light .app-shell .sd-info-strip{background:#eaf3f4;border-color:#cbe0e2;color:#17494f}
+.theme-light .app-shell .sd-info-strip svg{color:#176773}
+.theme-light .app-shell .sd-coverage{background:#fff}
+.theme-light .app-shell .sd-coverage-icon{background:#e1eeeb;color:#176773}
+.theme-light .app-shell .sd-cov-item.active{background:#e9f2ed}
+.theme-light .app-shell .sd-cov-icon{background:#e1eeeb;color:#176773}
+.theme-light .app-shell .sd-cov-act{color:#74807a}
+.theme-light .app-shell .sd-cov-meter{background:#e1e6e2}
+.theme-light .app-shell .sd-advise{background:#e9f2ed;border-color:#cbe6d9}
+.theme-light .app-shell .sd-advise-icon{background:#d3e8e4;color:#176773}
+.theme-light .app-shell .sd-advise b{color:#084b55}
+.theme-light .app-shell .sd-advise p{color:#3d6b66}
 .theme-light .app-shell .sd-clear{background:#fff;border-color:#dce3de;color:#657169}
 .theme-light .app-shell .sd-card{background:#fff}
 .theme-light .app-shell .sd-empty-icon{background:#e9f2ed;color:#267056}
