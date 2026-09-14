@@ -11,6 +11,12 @@ export const departmentRequestFields = "id,reservation_id,request,department,pri
 export async function listForRole(resource: Resource, role: Role): Promise<RecordItem[]> {
   if (!supabase) {
     const records = demoStore[resource];
+    if (resource === "payments") {
+      return records.map((item) => ({
+        ...item,
+        reservation: demoStore.reservations.find((reservation) => reservation.id === item.reservation_id) ?? null,
+      })) as unknown as RecordItem[];
+    }
     if (resource === "guest_requests" && ["housekeeping", "maintenance"].includes(role)) return records.filter((item) => item.department === role);
     if (resource === "reservations" && role === "manager") return decorateManagerAttentionDemo(records);
     return records;

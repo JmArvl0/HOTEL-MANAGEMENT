@@ -103,7 +103,7 @@ export default function StaffDutyPanel() {
       <td><span className={dutyBadge(member.dutyStatus)}>{dutyText(member.dutyStatus)}</span></td>
       <td><div className="cell-stack"><b className={member.currentAssignment ? "" : "sd-muted"}>{member.currentAssignment ?? "No active assignment"}</b>{member.assignmentKind && <small>{KIND_LABEL[member.assignmentKind]}</small>}</div></td>
       <td><div className="cell-stack"><b>{openWork(member.workload)}</b>{member.workload.completedToday > 0 && <small>{member.workload.completedToday} completed today</small>}</div></td>
-      <td className="sd-actions"><button type="button" className="table-action view-action" onClick={() => setViewing(member)}><Eye size={13} /> View</button></td>
+      <td className="sd-actions"><button type="button" className="table-action action-neutral" onClick={() => setViewing(member)}><Eye size={13} /> View</button></td>
     </tr>
   );
 
@@ -115,7 +115,7 @@ export default function StaffDutyPanel() {
       </header>
       <p className={member.currentAssignment ? "sd-card-assignment" : "sd-card-assignment sd-muted"}>{member.currentAssignment ?? "No active assignment"}</p>
       <div className="sd-card-meta"><span>{openWork(member.workload)}</span>{member.workload.completedToday > 0 && <span>{member.workload.completedToday} completed today</span>}</div>
-      <div className="sd-card-actions"><button type="button" className="table-action view-action" onClick={() => setViewing(member)}><Eye size={13} /> View</button></div>
+      <div className="sd-card-actions"><button type="button" className="table-action action-neutral" onClick={() => setViewing(member)}><Eye size={13} /> View</button></div>
     </article>
   );
 

@@ -176,9 +176,9 @@ export default function FrontDeskReportsPanel({ role }: { role: Role }) {
         <td><span className={`badge ${row.status}`}>{label(row.status)}</span></td>
         <td>{row.review_note ? <small>{row.review_note}<br/>{label(row.reviewed_by_name)} · {formatStamp(row.reviewed_at)}</small> : "—"}</td>
         <td><div className="reservation-actions">
-          <button className="table-action view-action" onClick={() => { setViewing(row); setPreview(null); window.scrollTo({ top: 0, behavior: "smooth" }); }}>View snapshot</button>
+          <button className="table-action action-neutral" onClick={() => { setViewing(row); setPreview(null); window.scrollTo({ top: 0, behavior: "smooth" }); }}>View snapshot</button>
           {canGenerate && row.status === "returned" && <button className="table-action" onClick={() => void submit(row.report_date, row.id)}>Resubmit</button>}
-          {canReview && row.status === "submitted" && <><button className="table-action view-action" onClick={() => void review(row, "acknowledge")}>Acknowledge</button><button className="table-action" onClick={() => void review(row, "return")}>Return</button></>}
+          {canReview && row.status === "submitted" && <><button className="table-action action-primary" onClick={() => void review(row, "acknowledge")}>Acknowledge</button><button className="table-action" onClick={() => void review(row, "return")}>Return</button></>}
         </div></td>
       </tr>)}</tbody></table></div>
       {!visible.length && <div className="empty"><FileText/><h3>No reports</h3><p>{status === "all" ? "No daily operations reports have been submitted yet." : `No ${label(status)} reports.`}</p></div>}

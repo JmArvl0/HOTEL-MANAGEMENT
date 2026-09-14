@@ -746,11 +746,41 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .hk-queue-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .hk-queue-actions .table-action{cursor:pointer}
 .hk-queue-actions>span{color:var(--cp-muted);font-size:9px}
+/* Housekeeping hero — compact teal masthead, same voice as the workspace. */
+.hk-hero{padding:20px 22px;border:1px solid var(--cp-line);border-radius:12px;background:linear-gradient(120deg,#084b55,#136573)}
+.hk-hero h1{margin:6px 0 4px;color:#fff;font:500 30px var(--font-display)}
+.hk-hero p{margin:0;color:#c2e0dc;font-size:11px;line-height:1.5}
+.hk-eyebrow{margin:0;color:#85cbd0;font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase}
+/* Guest-service link strip — display only; fulfillment lives in Guest Requests. */
+.hk-guest-strip{display:flex;align-items:center;gap:12px;padding:13px 16px}
+.hk-guest-icon{display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;border-radius:9px;background:var(--cp-panel-2);color:var(--cp-accent)}
+.hk-guest-strip>div{display:grid;gap:2px;min-width:0;flex:1}
+.hk-guest-strip b{color:var(--cp-text);font-size:11px}
+.hk-guest-strip small{color:var(--cp-muted);font-size:9px}
+/* Toolbar: search first, then work filters. */
+.hk-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.hk-toolbar>label{flex:1 1 300px;min-width:240px;max-width:480px}
+.hk-toolbar .haven-select{flex:0 1 200px;min-width:150px}
+/* Typical room-care path — a legend, not a promise every task follows it. */
+.hk-flow{display:flex;align-items:center;gap:0;margin:0;padding:0;list-style:none}
+.hk-flow li{display:flex;align-items:center;gap:8px;color:var(--cp-muted);font-size:9px;font-weight:700;white-space:nowrap}
+.hk-flow li+li::before{content:"→";margin:0 8px;color:var(--cp-line)}
+.hk-flow li:last-child{color:var(--cp-accent)}
+/* Primary action target — the first non-empty work group. */
+.hk-group-primary .hk-queue-card{border-color:var(--cp-accent);box-shadow:0 0 0 1px var(--cp-accent)}
+/* Guest-request fulfillment line on submission cards. */
+.grp-fulfillment{color:var(--cp-muted);font-size:9px;font-weight:700}
 @media(prefers-reduced-motion:reduce){.hk-queue-card,.hk-queue-toggle h3 svg{transition:none}}
 @media(max-width:680px){
   .hk-queue-card{flex-direction:column;align-items:stretch;gap:8px}
   .hk-queue-actions{flex-direction:column-reverse;align-items:stretch}
   .hk-queue-actions .table-action{text-align:center}
+  .hk-hero{padding:16px}
+  .hk-hero h1{font-size:24px}
+  .hk-toolbar>label{flex:1 1 100%;min-width:0;max-width:none}
+  .hk-toolbar .haven-select{flex:1 1 100%}
+  .hk-guest-strip{flex-wrap:wrap}
+  .hk-flow{flex-wrap:wrap;row-gap:6px}
 }
 
 /* ── Walk-in booking & the reservations header split action (2026-09-07) ──
@@ -1774,4 +1804,62 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
  .app-shell .workspace-body .page-title>.title-actions .btn,
  .app-shell .workspace-body .page-title>.btn{justify-content:center;width:100%;font-size:10px}
  .app-shell .workspace-body .page-title>.admin-title-stat{justify-items:start;width:100%;padding:12px 0 0;border-left:0;border-top:1px solid rgba(201,220,218,.28)}
+}
+
+/* Internal action hierarchy — shared only by authenticated staff workspaces.
+   Public, customer, booking, and authentication surfaces sit outside .app-shell. */
+.app-shell .btn{min-height:38px;padding:9px 14px;border-radius:9px;font-size:13px;font-weight:700;gap:7px}
+.app-shell .workspace-body .page-title .btn{border-radius:9px}
+.app-shell .table-action{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:34px;padding:7px 11px;border:1px solid #38514c;border-radius:8px;background:#151f1d;color:#c9dcda;font-size:13px;font-weight:700;line-height:1.15;white-space:nowrap}
+.app-shell .table-action svg{width:15px;height:15px;flex:none}
+.app-shell .table-action:hover,
+.app-shell .table-action.action-secondary:hover{border-color:#69cfc8;background:#1a2c29;color:#f5fbfa}
+.app-shell .table-action.view-action,
+.app-shell .table-action.action-neutral{border-color:#315a61;background:#17363f;color:#b8e1df}
+.app-shell .table-action.view-action:hover,
+.app-shell .table-action.action-neutral:hover{border-color:#69cfc8;background:#1e4a52;color:#fff}
+.app-shell .table-action.action-primary,
+.app-shell .table-action.check-in-action{border-color:#1a7f83;background:#176773;color:#fff}
+.app-shell .table-action.action-primary:hover,
+.app-shell .table-action.check-in-action:hover{border-color:#77d9d2;background:#1a7b83;color:#fff}
+.app-shell .table-action.action-danger,
+.app-shell .table-action.danger-action,
+.app-shell .btn.action-danger{border-color:#9e4c50;background:#351f21;color:#ffaaa8}
+.app-shell .table-action.action-danger:hover,
+.app-shell .table-action.danger-action:hover,
+.app-shell .btn.action-danger:hover{border-color:#ef797e;background:#51282c;color:#fff}
+.app-shell .table-action:disabled,
+.app-shell .btn:disabled{cursor:not-allowed;opacity:.48;transform:none}
+.app-shell .admin-workspace .table-action{min-height:34px;border-radius:8px}
+.app-shell .badge.pending_verification{background:#34291c;color:#dfa062}
+.app-shell .badge.failed{background:#351f21;color:#ef797e}
+.app-shell .payment-identity{display:grid;min-width:190px;gap:3px}
+.app-shell .payment-identity strong{color:var(--dt);font-size:12px;letter-spacing:.01em}
+.app-shell .payment-identity span{color:var(--dt);font-size:12px;font-weight:700}
+.app-shell .payment-identity small{color:var(--dm);font-size:10px;line-height:1.35}
+.app-shell .payment-status{display:flex;align-items:center;flex-wrap:wrap;gap:6px;min-width:128px}
+.app-shell .payment-status small{flex-basis:100%;max-width:24ch;color:var(--dm);line-height:1.35}
+.app-shell .payment-actions{flex-wrap:wrap;min-width:max-content}
+.theme-light .app-shell .table-action{border-color:#b9cbc7;background:#fff;color:#155d65}
+.theme-light .app-shell .table-action:hover,
+.theme-light .app-shell .table-action.action-secondary:hover{border-color:#0f737c;background:#edf7f5;color:#084b55}
+.theme-light .app-shell .table-action.view-action,
+.theme-light .app-shell .table-action.action-neutral{border-color:#a7ceca;background:#e1eeeb;color:#155d65}
+.theme-light .app-shell .table-action.view-action:hover,
+.theme-light .app-shell .table-action.action-neutral:hover{border-color:#0f737c;background:#d2e7e4;color:#083f47}
+.theme-light .app-shell .table-action.action-primary,
+.theme-light .app-shell .table-action.check-in-action{border-color:#084b55;background:#084b55;color:#fff}
+.theme-light .app-shell .table-action.action-primary:hover,
+.theme-light .app-shell .table-action.check-in-action:hover{border-color:#136573;background:#136573;color:#fff}
+.theme-light .app-shell .table-action.action-danger,
+.theme-light .app-shell .table-action.danger-action,
+.theme-light .app-shell .btn.action-danger{border-color:#d88783;background:#fff7f6;color:#a23f3b}
+.theme-light .app-shell .table-action.action-danger:hover,
+.theme-light .app-shell .table-action.danger-action:hover,
+.theme-light .app-shell .btn.action-danger:hover{border-color:#a44843;background:#f9e3e1;color:#802f2c}
+.theme-light .app-shell .badge.pending_verification{background:#fff0dd;color:#8a4c18}
+.theme-light .app-shell .badge.failed{background:#f9e3e1;color:#923c38}
+@media(max-width:760px){
+ .app-shell .reservation-actions.payment-actions{min-width:0}
+ .app-shell .payment-actions .table-action{flex:1 1 auto}
 }

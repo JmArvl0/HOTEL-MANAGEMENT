@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BedDouble, ChevronDown, ClipboardCheck, Search, Sparkles, Wand2, Wrench } from "lucide-react";
+import { BedDouble, Bell, ChevronDown, ClipboardCheck, Search, Sparkles, Wand2, Wrench } from "lucide-react";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
+import { HavenSelect } from "@/components/ui/haven-select";
 import type { AssignmentSuggestion } from "@/lib/housekeeping-suggestions";
 import type { RecordItem, Role } from "@/lib/types";
 
@@ -10,6 +11,8 @@ import type { RecordItem, Role } from "@/lib/types";
 // authoritative housekeeping_tasks rows the previous table showed (same
 // payload, same RPC actions) grouped by what the room needs next — never a
 // derived "available" claim: cards show the room's recorded state only.
+// Guest-service requests are worked in the Guest Requests module; this queue
+// carries only a compact link strip there, never duplicate completion buttons.
 
 const label = (value: unknown) => String(value ?? " ").replaceAll("_", " ");
 const when = (value: unknown) => {
@@ -59,7 +62,7 @@ export const queueTaskOrder = (a: RecordItem, b: RecordItem): number =>
 
 type GroupSpec = { key: QueueGroup; title: string; hint: string; icon: typeof BedDouble };
 
-export default function HousekeepingQueuePanel({ role, userId, items, search, setSearch, housekeepingAction, coordinate, applySuggestion, suggestions = [], onViewMaintenance, onViewRoom }: {
+export default function HousekeepingQueuePanel({ role, userId, items, search, setSearch, housekeepingAction, coordinate, applySuggestion, suggestions = [], onViewMaintenance, onViewRoom, guestRequestOpen = 0, onOpenGuestRequests }: {
   role: Role;
   userId: string;
   items: RecordItem[];
@@ -73,8 +76,14 @@ export default function HousekeepingQueuePanel({ role, userId, items, search, se
   suggestions?: AssignmentSuggestion[];
   onViewMaintenance: () => void;
   onViewRoom: (item: RecordItem) => void;
+  /** Open approved guest-service items routed to Housekeeping (parent's live badge metric) — display only; work happens in Guest Requests. */
+  guestRequestOpen?: number;
+  /** Navigates to the Guest Requests module. Rendered only for the housekeeping role. */
+  onOpenGuestRequests?: () => void;
 }) {
   const [showCompleted, setShowCompleted] = useState(false);
+  const [workType, setWorkType] = useState("all");
+  const [workStatus, setWorkStatus] = useState("all");
   const today = useMemo(() => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date()), []);
   const mine = role === "housekeeping" ? userId : "";
   const canHousekeep = role === "housekeeping";
@@ -91,13 +100,30 @@ export default function HousekeepingQueuePanel({ role, userId, items, search, se
     [canSeeSuggestions, suggestions, items]
   );
 
+  const taskTypes = useMemo(() => Array.from(new Set(items.map((item) => String(item.task_type ?? "")).filter(Boolean))).sort(), [items]);
+  const workStatuses = useMemo(() => Array.from(new Set(items.map((item) => String(item.status ?? "")).filter(Boolean))).sort(), [items]);
+  const queueItems = useMemo(() => items.filter((item) =>
+    (workType === "all" || String(item.task_type) === workType)
+    && (workStatus === "all" || String(item.status) === workStatus)
+  ), [items, workType, workStatus]);
+
   const groups = useMemo(() => {
     const grouped: Record<QueueGroup, RecordItem[]> = { blocked: [], needs_attention: [], my_tasks: [], in_progress: [], waiting_inspection: [], completed_today: [], other_open: [] };
-    for (const item of items) {
+    for (const item of queueItems) {
       const group = groupQueueTask(item, mine, today);
       if (group) grouped[group].push(item);
     }
     for (const key of Object.keys(grouped) as QueueGroup[]) grouped[key].sort(queueTaskOrder);
+    return grouped;
+  }, [queueItems, mine, today]);
+  // Summary cards always describe the whole loaded queue — filters narrow the
+  // sections below, never the snapshot above.
+  const totals = useMemo(() => {
+    const grouped: Record<QueueGroup, number> = { blocked: 0, needs_attention: 0, my_tasks: 0, in_progress: 0, waiting_inspection: 0, completed_today: 0, other_open: 0 };
+    for (const item of items) {
+      const group = groupQueueTask(item, mine, today);
+      if (group) grouped[group] += 1;
+    }
     return grouped;
   }, [items, mine, today]);
 
@@ -110,18 +136,29 @@ export default function HousekeepingQueuePanel({ role, userId, items, search, se
     { key: "other_open", title: "Scheduled open work", hint: "Assigned routine work", icon: ClipboardCheck },
   ];
 
+  // The first non-empty work group is the primary action target — rendered
+  // with emphasis so active work dominates the page.
+  const primaryKey = (["needs_attention", "my_tasks", "in_progress"] as QueueGroup[]).find((key) => groups[key].length > 0) ?? null;
   const actionable = specs.filter((spec) => groups[spec.key].length > 0);
   const completed = groups.completed_today;
+  const showGuestStrip = role === "housekeeping" && onOpenGuestRequests;
 
   return <>
-    <div className="page-title module-title"><div><p className="eyebrow">Hotel operations</p><h1>Housekeeping</h1><p>A live, auditable room-care queue from turnover through inspection and readiness.</p></div></div>
+    <div className="hk-hero">
+      <div><p className="hk-eyebrow">Hotel operations</p><h1>Housekeeping</h1><p>Live room-care queue from turnover through inspection and readiness.</p></div>
+    </div>
     <ModuleSummaryCards cards={[
-      { label: "Needs attention", value: groups.needs_attention.length, hint: "Unassigned or urgent", icon: ClipboardCheck, tone: "attention" },
-      { label: "In progress", value: groups.in_progress.length, hint: "Being cleaned now", icon: BedDouble, tone: "today" },
-      { label: "Waiting for inspection", value: groups.waiting_inspection.length, hint: "Not sellable until passed", icon: Sparkles, tone: "active" },
-      { label: "Blocked by Maintenance", value: groups.blocked.length, hint: "Work order holds the room", icon: Wrench, tone: "attention" },
-      { label: "Completed today", value: groups.completed_today.length, hint: "Finished this hotel day", icon: ClipboardCheck, tone: "done" },
+      { label: "Needs attention", value: totals.needs_attention, hint: "Unassigned or urgent", icon: ClipboardCheck, tone: "attention" },
+      { label: "In progress", value: totals.in_progress, hint: "Being cleaned now", icon: BedDouble, tone: "today" },
+      { label: "Waiting for inspection", value: totals.waiting_inspection, hint: "Not sellable until passed", icon: Sparkles, tone: "active" },
+      { label: "Blocked by Maintenance", value: totals.blocked, hint: "Work order holds the room", icon: Wrench, tone: "attention" },
+      { label: "Completed today", value: totals.completed_today, hint: "Finished this hotel day", icon: ClipboardCheck, tone: "done" },
     ]} ariaLabel="Housekeeping summary"/>
+    {showGuestStrip && <section className="data-panel hk-guest-strip" aria-label="Guest service requests">
+      <span className="hk-guest-icon" aria-hidden="true"><Bell size={16} /></span>
+      <div><b>Guest service requests assigned to Housekeeping</b><small>{guestRequestOpen} open — start and complete them in Guest Requests</small></div>
+      <button type="button" className="table-action action-neutral" onClick={onOpenGuestRequests}>Open Guest Requests</button>
+    </section>}
     {canSeeSuggestions && liveSuggestions.length > 0 && <div className="data-panel hk-queue" aria-label="Suggested assignments">
       <section className="hk-queue-group">
         <header><h3><Wand2 size={14} aria-hidden="true" />Suggested assignments<i>{liveSuggestions.length}</i></h3><p>Suggestion — you decide. A balanced plan from open tasks and current workloads; nothing is assigned automatically.</p></header>
@@ -136,16 +173,19 @@ export default function HousekeepingQueuePanel({ role, userId, items, search, se
             <small>{suggestion.reason}</small>
           </div>
           <div className="hk-queue-actions">
-            {canApplySuggestion && applySuggestion && <button className="table-action view-action" onClick={() => applySuggestion(suggestion)}>{canHousekeep ? "Assign to me" : `Assign to ${suggestion.staffName}`}</button>}
+            {canApplySuggestion && applySuggestion && <button className="table-action action-primary" onClick={() => applySuggestion(suggestion)}>{canHousekeep ? "Assign to me" : `Assign to ${suggestion.staffName}`}</button>}
             {!canApplySuggestion && <span>Suggestion only — coordinate via Prioritize</span>}
           </div>
         </article>)}
       </section>
     </div>}
-    <div className="table-tools"><label><Search size={17} /><input placeholder="Search the room-care queue..." value={search} onChange={(event) => setSearch(event.target.value)} /></label></div>
-    <div className="data-panel hk-queue" aria-label="Room care queue">
-      {items.length === 0 && <div className="empty"><Search /><h3>No records found</h3><p>No matching operational records are available.</p></div>}
-      {actionable.map(({ key, title, hint, icon: Icon }) => <section key={key} className="hk-queue-group" aria-label={title}>
+    <div className="table-tools hk-toolbar"><label><Search size={17} /><input placeholder="Search the room-care queue..." value={search} onChange={(event) => setSearch(event.target.value)} /></label><HavenSelect value={workType} onChange={setWorkType} ariaLabel="Filter by work type" options={[{ value: "all", label: "All work types" }, ...taskTypes.map((type) => ({ value: type, label: label(type) }))]} /><HavenSelect value={workStatus} onChange={setWorkStatus} ariaLabel="Filter by task status" options={[{ value: "all", label: "All statuses" }, ...workStatuses.map((status) => ({ value: status, label: label(status) }))]} /></div>
+    <ol className="hk-flow" aria-label="Typical room-care path">
+      <li>Pending</li><li>In progress</li><li>Inspection</li><li>Ready</li>
+    </ol>
+    <section className="data-panel hk-queue" aria-label="Room care queue">
+      {queueItems.length === 0 && <div className="empty"><Search /><h3>No records found</h3><p>No matching operational records are available.</p></div>}
+      {actionable.map(({ key, title, hint, icon: Icon }) => <section key={key} className={`hk-queue-group${key === primaryKey ? " hk-group-primary" : ""}`} aria-label={title}>
         <header><h3><Icon size={14} aria-hidden="true" />{title}<i>{groups[key].length}</i></h3><p>{hint}</p></header>
         {groups[key].map((item) => <QueueCard key={String(item.id)} item={item} canHousekeep={canHousekeep} canCoordinate={canCoordinate} housekeepingAction={housekeepingAction} coordinate={coordinate} onViewMaintenance={onViewMaintenance} onViewRoom={onViewRoom} />)}
       </section>)}
@@ -153,8 +193,8 @@ export default function HousekeepingQueuePanel({ role, userId, items, search, se
         <header><button className="hk-queue-toggle" aria-expanded={showCompleted} onClick={() => setShowCompleted((value) => !value)}><h3><ClipboardCheck size={14} aria-hidden="true" />Completed today<i>{completed.length}</i><ChevronDown size={14} aria-hidden="true" className={showCompleted ? "open" : ""} /></h3></button><p>Finished work, with inspection outcome. Full history lives in the room detail.</p></header>
         {showCompleted && completed.map((item) => <QueueCard key={String(item.id)} item={item} canHousekeep={canHousekeep} canCoordinate={false} housekeepingAction={housekeepingAction} coordinate={coordinate} onViewMaintenance={onViewMaintenance} onViewRoom={onViewRoom} />)}
       </section>}
-      {items.length > 0 && <div className="table-footer">Showing {items.length} task{items.length !== 1 ? "s" : ""}<span>Readiness is decided by the audited housekeeping workflow, not by this view.</span></div>}
-    </div>
+      {queueItems.length > 0 && <div className="table-footer">Showing {queueItems.length} task{queueItems.length !== 1 ? "s" : ""}<span>Readiness is decided by the audited housekeeping workflow, not by this view.</span></div>}
+    </section>
   </>;
 }
 
@@ -196,15 +236,15 @@ function QueueCard({ item, canHousekeep, canCoordinate, housekeepingAction, coor
       </small>
     </div>
     <div className="hk-queue-actions">
-      {canHousekeep && openTaskStatuses.includes(status) && type !== "inspection" && <button className="table-action view-action" onClick={() => housekeepingAction(item, "assign")}>{item.assigned_user_id ? "Reassign" : "Claim"}</button>}
-      {canHousekeep && openTaskStatuses.includes(status) && type !== "inspection" && <button className="table-action view-action" onClick={() => housekeepingAction(item, "start")}>Start cleaning</button>}
-      {canHousekeep && status === "in_progress" && <button className="table-action view-action" onClick={() => housekeepingAction(item, "complete")}>Complete</button>}
-      {canHousekeep && String(item.inspection_status) === "pending" && <button className="table-action view-action" onClick={() => housekeepingAction(item, "inspect")}>Inspect</button>}
+      {canHousekeep && status === "in_progress" && <button className="table-action action-primary" onClick={() => housekeepingAction(item, "complete")}>Complete Task</button>}
+      {canHousekeep && String(item.inspection_status) === "pending" && <button className="table-action" onClick={() => housekeepingAction(item, "inspect")}>Inspect</button>}
+      {canHousekeep && openTaskStatuses.includes(status) && type !== "inspection" && <button className="table-action action-primary" onClick={() => housekeepingAction(item, "assign")}>{item.assigned_user_id ? "Reassign" : "Claim"}</button>}
+      {canHousekeep && openTaskStatuses.includes(status) && type !== "inspection" && <button className="table-action action-primary" onClick={() => housekeepingAction(item, "start")}>Start cleaning</button>}
       {canHousekeep && status === "in_progress" && ["stayover_cleaning", "guest_request"].includes(type) && <button className="table-action" onClick={() => housekeepingAction(item, "defer")}>Defer</button>}
-      {canHousekeep && status !== "cancelled" && <button className="table-action" onClick={() => housekeepingAction(item, "maintenance")}>Report issue</button>}
+      {canHousekeep && status !== "cancelled" && <button className="table-action" onClick={() => housekeepingAction(item, "maintenance")}>Report Issue</button>}
       {item.maintenance_blocked === true && <button className="table-action" onClick={onViewMaintenance}>View work order</button>}
       {canCoordinate && status !== "completed" && <button className="table-action" onClick={() => coordinate(item)}>Prioritize</button>}
-      <button className="table-action view-action" onClick={() => onViewRoom(item)}>Room details</button>
+      <button className="table-action" onClick={() => onViewRoom(item)}>Room Details</button>
       {!canHousekeep && !canCoordinate && <span>View only</span>}
     </div>
   </article>;

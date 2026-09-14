@@ -205,7 +205,7 @@ function BookingPanel({ detail, onViewReservation, shown, onShowMore }: { detail
             <div className="room-detail-row-side">
               <span className={`badge ${String(reservation.status)}`}>{label(reservation.status)}</span>
               {String(item.status) !== String(reservation.status) && <span className="badge">{label(item.status)}</span>}
-              <button className="table-action view-action" onClick={() => onViewReservation(String(reservation.id))}>View</button>
+              <button className="table-action action-neutral" onClick={() => onViewReservation(String(reservation.id))}>View</button>
             </div>
           </div>;
         })}

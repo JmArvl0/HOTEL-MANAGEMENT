@@ -78,7 +78,7 @@ export default function RoomRosterPanel({ onClose }: { onClose: () => void }) {
     if (creating && draft.number.trim() === "") { notify("Enter a room number."); return; }
     if (draft.type.trim() === "") { notify("Choose a room type."); return; }
     if (draft.floor.trim() === "" || Number(draft.floor) < 0) { notify("Enter a floor."); return; }
-    if (draft.reason.trim().length < 3) { notify("Enter a reason for this change (at least 3 characters)."); return; }
+    if (!creating && draft.reason.trim().length < 3) { notify("Enter a reason for this change (at least 3 characters)."); return; }
     setBusy(true);
     try {
       const payload = {
@@ -88,8 +88,7 @@ export default function RoomRosterPanel({ onClose }: { onClose: () => void }) {
         wing: draft.wing.trim(),
         designation: draft.designation.trim(),
         active: draft.active,
-        reason: draft.reason.trim(),
-        ...(editing ? { version: editing.configuration_version } : {}),
+        ...(editing ? { reason: draft.reason.trim(), version: editing.configuration_version } : {}),
       };
       const response = await fetch(creating ? "/api/catalog/rooms" : `/api/catalog/rooms/${editing!.id}`, {
         method: creating ? "POST" : "PATCH",
@@ -138,7 +137,7 @@ export default function RoomRosterPanel({ onClose }: { onClose: () => void }) {
                       <span className={`badge ${room.status}`}>{label(room.status)}</span>
                       <small>{label(room.housekeeping)} · workflow-owned</small>
                     </div>
-                    <button type="button" className="table-action view-action" onClick={() => openEditor(room)}><Pencil size={13}/> Edit</button>
+                    <button type="button" className="table-action" onClick={() => openEditor(room)}><Pencil size={13}/> Edit</button>
                   </div>
                 ))}
               </section>
@@ -198,12 +197,15 @@ export default function RoomRosterPanel({ onClose }: { onClose: () => void }) {
                 Operational state: {label(editing.status)} · {label(editing.housekeeping)} — set by the Front Desk, Housekeeping, and Maintenance workflows. Not editable here.
               </p>
             )}
+            {editing && (
             <div className="form-field">
               <div className="form-field-wrapper">
                 <label htmlFor="pr-reason" className="form-label">Reason for change <span className="required">*</span></label>
                 <input id="pr-reason" className="form-input" type="text" value={draft.reason} onChange={(event) => set("reason", event.target.value)} placeholder="Audited with every save"/>
+                <small className="muted">Required because changes to existing room configuration are audited.</small>
               </div>
             </div>
+            )}
             <div className="form-actions">
               <button type="button" className="btn btn-soft" onClick={closeEditor}>Cancel</button>
               <button type="button" className="btn btn-accent" onClick={save} disabled={busy}>{busy ? <Loader2 className="spin" size={15}/> : null} {editing ? "Save changes" : "Add room"}</button>

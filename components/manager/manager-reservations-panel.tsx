@@ -114,7 +114,7 @@ export function ManagerReservationsPanel({ items, search, setSearch, viewReserva
               <td><span className={`badge ${status}`}>{label(status)}</span></td>
               <td>{issues.length ? <IssueBadge issues={issues} /> : <span className="mr-issue-none">—</span>}</td>
               <td><div className="reservation-actions">
-                <button className="table-action view-action" onClick={(event) => { event.stopPropagation(); openRow(item); }}><Eye size={13} /> View</button>
+                <button className="table-action action-neutral" onClick={(event) => { event.stopPropagation(); openRow(item); }}><Eye size={13} /> View</button>
                 {item.pending_approval_type && <button className="table-action" onClick={(event) => { event.stopPropagation(); onReviewException(item); }}><ShieldAlert size={13} /> Review Exception</button>}
               </div></td>
             </tr>; })}</tbody>
@@ -133,7 +133,7 @@ export function ManagerReservationsPanel({ items, search, setSearch, viewReserva
           </div>
           {top && <IssueBadge issues={issues} />}
           <footer>
-            <button className="table-action view-action" onClick={(event) => { event.stopPropagation(); openRow(item); }}><Eye size={13} /> View</button>
+            <button className="table-action action-neutral" onClick={(event) => { event.stopPropagation(); openRow(item); }}><Eye size={13} /> View</button>
             {item.pending_approval_type && <button className="table-action" onClick={(event) => { event.stopPropagation(); onReviewException(item); }}><ShieldAlert size={13} /> Review Exception</button>}
           </footer>
         </article>; })}</div>

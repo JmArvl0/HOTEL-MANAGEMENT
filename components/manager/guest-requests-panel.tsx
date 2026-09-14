@@ -11,9 +11,9 @@ import type { Role } from "@/lib/types";
 // Guest-request review workspace. Customer submissions arrive as batches (one
 // portal submission = one batch_id = one Front Desk decision). Front Desk
 // approves or declines; Manager sees the same queue read-only; Housekeeping
-// receives its routed items with operational escalation controls. The inventory
-// panel in the right rail is read-only supply context — stock edits stay with
-// Housekeeping/Maintenance.
+// works its routed items here (start/complete) with operational escalation
+// controls. The inventory panel in the right rail is read-only supply
+// context — stock edits stay with Housekeeping/Maintenance.
 type StaffRequest = {
   id: string; reservation_id: string; guest_id: string | null; request: string; request_type: string | null;
   batch_id: string; approval_status: "pending" | "approved" | "rejected"; approval_note: string | null;
@@ -101,6 +101,26 @@ export default function GuestRequestsPanel({ role, onEscalate }: { role: Role; o
     await onEscalate?.(item);
     await load(true);
   }
+  // Department fulfillment: the owning department starts/completes its own
+  // approved items. Approval never does this — it only authorizes and routes.
+  const canProgress = (item: StaffRequest) =>
+    item.approval_status === "approved"
+    && item.department === role
+    && ["housekeeping", "maintenance", "front_desk"].includes(role);
+  async function progress(item: StaffRequest, action: "start" | "complete") {
+    const response = await fetch(`/api/guest-requests/${item.id}/progress`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
+    const body = await response.json();
+    if (!response.ok) { notify(body.error ?? "Unable to update this request."); return; }
+    notify(action === "start" ? "Request started." : "Request completed.");
+    await load(true);
+  }
+  // Derived fulfillment per batch: approved items done over approved items due.
+  // Nothing stored — the batch row carries approval only.
+  const fulfillment = (batch: Batch) => {
+    const due = batch.items.filter((item) => item.approval_status === "approved");
+    const done = due.filter((item) => item.status === "completed").length;
+    return { done, total: due.length };
+  };
 
   const batches = useMemo(() => groupBatches(requests), [requests]);
   const counts = {
@@ -124,7 +144,7 @@ export default function GuestRequestsPanel({ role, onEscalate }: { role: Role; o
   // content, not the page heading.
   return <div>
     <div className="page-title module-title">
-      <div><p className="eyebrow">Hotel operations</p><h1>Guest requests</h1><p>{role === "housekeeping" ? "Approved guest requests routed to Housekeeping. Review each destination room and escalate unresolved work when coordination is needed." : "Customer submissions grouped as they were filed. Front Desk approves or declines each submission as one decision; approved items route to their department queue."}</p></div>
+      <div><p className="eyebrow">Hotel operations</p><h1>Guest requests</h1><p>{role === "housekeeping" ? "Approved guest requests routed to Housekeeping. Start and complete each item as the work is done; escalate unresolved work when coordination is needed." : "Customer submissions grouped as they were filed. Front Desk approves or declines each submission as one decision; approved items route to their department queue."}</p></div>
     </div>
     {error && <div className="empty"><Bell /><h3>Guest requests unavailable</h3><p>{error}</p></div>}
     {!error && (<>
@@ -139,7 +159,7 @@ export default function GuestRequestsPanel({ role, onEscalate }: { role: Role; o
       <div className={showInventory ? "grp-layout" : undefined}>
         <div className="grp-main">
         <div className="grp-batches">
-          {visible.map((batch) => { const first = batch.items[0]; const roomNumber = first.reservation?.room_number; return (
+          {visible.map((batch) => { const first = batch.items[0]; const roomNumber = first.reservation?.room_number; const fulfilled = fulfillment(batch); const isFulfilled = batch.approval === "approved" && fulfilled.total > 0 && fulfilled.done === fulfilled.total; return (
             <article key={batch.key} className="grp-batch">
               <header>
                 <div>
@@ -153,9 +173,12 @@ export default function GuestRequestsPanel({ role, onEscalate }: { role: Role; o
                       {roomNumber ? `Room ${roomNumber}` : "Room not assigned"}
                     </span>
                     <span className={`badge grp-approval ${batch.approval}`}>{APPROVAL_LABELS[batch.approval]}</span>
+                    {batch.approval === "approved" && (isFulfilled
+                      ? <span className="badge confirmed">Fulfilled</span>
+                      : <span className="grp-fulfillment" title="Share of approved items the department has completed">Fulfillment {fulfilled.done}/{fulfilled.total} completed</span>)}
                   </div>
                   {canReview && batch.approval === "pending" && <div className="reservation-actions">
-                    <button className="table-action view-action" onClick={() => act(batch, "approve")}>Approve</button>
+                    <button className="table-action action-primary" onClick={() => act(batch, "approve")}>Approve</button>
                     <button className="table-action" onClick={() => act(batch, "reject")}>Decline</button>
                   </div>}
                 </div>
@@ -165,6 +188,8 @@ export default function GuestRequestsPanel({ role, onEscalate }: { role: Role; o
                   <div><b>{item.request_type ? requestLabel(item.request_type) : item.request}</b><small>{label(item.department)} · {label(item.status)}</small>{item.approval_status === "rejected" && item.approval_note && <small className="grp-note">{item.approval_note}</small>}</div>
                   <div className="grp-item-actions">
                     <span className={`badge ${item.status}`}>{label(item.status)}</span>
+                    {canProgress(item) && item.status === "open" && <button className="table-action action-primary" onClick={() => void progress(item, "start")}>Start</button>}
+                    {canProgress(item) && ["open", "in_progress"].includes(item.status) && <button className="table-action action-primary" onClick={() => void progress(item, "complete")}>Complete</button>}
                     {canEscalate && item.status !== "completed" && item.escalation_status !== "escalated" && <button className="table-action" onClick={() => void escalate(item)}>Escalate</button>}
                     {canEscalate && item.escalation_status === "escalated" && <span className="badge escalated">Escalated</span>}
                   </div>
