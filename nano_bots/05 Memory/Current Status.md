@@ -21,6 +21,71 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
 
 ## Recently Completed
 
+- **Expected arrival native time input (2026-09-16)** — Guest Details' **Expected arrival**
+  radial clock popover / wheel sheet is gone; it is now a plain native `<input type="time">`,
+  the same control as Need a ride → Pickup time, inheriting the shared `.booking-form-grid
+  input` rule. The picker component, its test, and the dead `.arrival-*` CSS were deleted
+  (repo-wide grep proved one caller). Value semantics unchanged — native time inputs already
+  yield the canonical `HH:MM` `guestDetailsSchema` requires, so no API/DB change. Both times
+  stay independent. Gates: typecheck, lint 0 errors, 1187/1187, build, detector clean.
+  Manual QA A–D pending (live data + logins).
+  See [[2026-09-16 - Expected Arrival Time Input]].
+
+- **Find a Room availability consistency (2026-09-16)** — audit verified the count
+  engine already matches the SQL authority predicate-for-predicate; closed the real
+  gaps: sold-out types stay visible as Unavailable (Select disabled, details page
+  redirects), hotel day uses the policy timezone, stale-on-edit indicator on the
+  search form. Gates: typecheck, lint 0 errors, 1187/1187, build 64/64, detector
+  clean. Manual QA A–D pending (live data + logins).
+  See [[2026-09-16 - Availability Consistency]].
+
+- **Choose-dates availability guidance (2026-09-16)** — browse-card "Choose dates" now
+  smooth-scrolls to Check Availability with one gentle teal pulse, a helper line, and smart
+  focus (Find-a-Room + public search share the handler; no booking/pricing/availability
+  change; reduced-motion static fallback). Gates: typecheck, lint 0 errors, 1173/1173,
+  build. Manual QA A–E pending. See [[2026-09-16 - Choose Dates Guidance]].
+
+- **Room photo lightbox (2026-09-16)** — shared full-screen viewer (`RoomPhotoLightbox`)
+  for Find a Room / public search cards and every View Details gallery photo: dark stage
+  above all modals (`--z-index-lightbox: 1400`), looping nav + arrows, counter, 100–200%
+  zoom with clamped pan, Escape/backdrop close with focus return, Tab trap, scroll-lock
+  restore. Landing Featured photos stay navigation (no fake galleries); mobile ships
+  buttons + drag-pan, no gesture dep. Presentation-only. Gates: typecheck, lint 0 errors,
+  1161/1161, build 64/64, detector clean. Manual browser QA pending (Flows A–D).
+  See [[2026-09-16 - Room Photo Lightbox]].
+
+- **Room photo lightbox (2026-09-16)** — shared full-screen viewer for Find a Room
+  card photos + View Details gallery (looping nav, counter, 100–200% zoom with
+  clamped drag-pan, capture-phase Esc/arrows above the details modal, focus
+  restore, failure fallback). No promo cards exist — that item N/A. Gates:
+  typecheck, lint 0 errors, 1159/1159, build 64/64, detector clean. Manual
+  browser QA pending (guest login).
+  See [[2026-09-16 - Room Photo Lightbox]].
+
+- **Notification history modal (2026-09-15)** — "View all notifications" now opens a
+  shared filterable modal instead of navigating, on the guest bell and the staff operations
+  bell (user-authorized D-013 amendment of D-011: staff reads are per-device UI dismissal,
+  no new table, no second system). Hotel-day filter (Today/Yesterday/specific, Asia/Manila),
+  unread-first then read newest-first, date-scoped "Mark this day as read", View preserving
+  existing targets, single bell badges, sidebar/toast behavior unchanged. Guest
+  `/account/notifications` page kept. Gates: typecheck, lint 0 errors, 1137/1137, build.
+  Manual browser QA pending. See "2026-09-15 - Notification History Modal".
+
+- **Centered notification banner (2026-09-15)** — transient toasts moved from the
+  bottom-right corner to a viewport centered under the header in the main content column
+  (sidebar-aware offset, z-index below modals); new soft-red `error` tone with alert
+  semantics; Admin/Owner shells share the same viewport (ad-hoc corner toast retired).
+  Bell/badges/polling/role-gating untouched. Gates: typecheck, lint 0 errors, 1110/1110,
+  build 62/62, detector clean. Manual browser QA pending (role logins).
+  See [[2026-09-15 - Centered Notification Banner]].
+
+- **Room create reason removal (2026-09-14)** — Add Physical Room no longer
+  requires "Reason for change"; creation stays auto-audited, edits/retire/
+  reactivate still require a reason. Migration `20261002010000` pushed +
+  live-verified (67/67). Gates: typecheck, lint 0 errors, 1067/1067, build,
+  7/7 live probe with zero residue. Manual browser QA pending.
+  See [[2026-09-14 - Room Create Reason Removal]].
+
 - **Manager Reports redesign (2026-09-14, Codex start → this session finish)** —
   inline `Reports` extracted to `components/manager/performance-reports.tsx` and
   redesigned: header + 3 decision KPIs, accessible 7-day occupancy chart with
@@ -633,6 +698,7 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
 
 ## Recent Sessions
 
+- [[2026-09-14 - Room Create Reason Removal]] — create needs no reason, auto-audit kept, edit reason intact; all gates green
 - [[2026-09-14 - Manager Reports Redesign]] — extracted PerformanceReports surface (KPIs, accessible chart + data table, room status); print/review flows preserved; 1057/1057, build + detector clean
 - [[2026-09-14 - Manager HAVEN AI Workspace]] — authoritative KPI strip + redesigned read-only brief/Ask decision workspace; all automated gates green
 - [[2026-09-30 - Commercial Readiness]] — Phase 9 + roadmap finale; manual payments verified honest, OTA columns with zero consumers, 9C/9D documented as deliberate scope decisions

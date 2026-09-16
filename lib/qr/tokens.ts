@@ -65,23 +65,53 @@ const revokeActive = async (resourceType: QrResourceType, resourceId: string) =>
 };
 
 /**
- * Reservation check-in QR. Rotates on every fetch: the previous active token
- * is revoked and a fresh one issued, so only the QR the guest is currently
- * viewing is scannable. Expires at the end of the day after check-out.
+ * Reservation stay-lifecycle QR. One stable identity per active reservation:
+ * ensure returns the existing live token (re-rendered from the
+ * reservations.qr_code mirror) instead of rotating, so the code the guest
+ * sees, downloads, or prints stays scannable for the whole stay. expires_at
+ * stays NULL — the reservation status owns validity and resolve re-checks it
+ * server-side on every scan. Only confirmed/checked_in reservations hold a
+ * QR; terminal states are refused here AND at resolve time.
  */
-export async function issueReservationQrToken(reservationId: string, createdBy: string | null): Promise<{ dataUrl: string; expiresAt: string } | null> {
+export const RESERVATION_QR_ACTIVE_STATUSES = ["confirmed", "checked_in"] as const;
+
+export async function ensureReservationQrToken(reservationId: string, createdBy: string | null): Promise<{ dataUrl: string } | null> {
   if (!supabase) return null;
-  const { data: reservation } = await supabase.from("reservations").select("check_out").eq("id", reservationId).maybeSingle();
-  if (!reservation) return null;
+  const { data: reservation } = await supabase.from("reservations").select("id,status,qr_code").eq("id", reservationId).maybeSingle();
+  if (!reservation || !(RESERVATION_QR_ACTIVE_STATUSES as readonly string[]).includes(reservation.status)) return null;
+  if (reservation.qr_code) {
+    const existing = await findQrToken(reservation.qr_code);
+    if (existing && !existing.revoked_at && existing.resource_type === "reservation" && existing.resource_id === reservationId) {
+      return { dataUrl: await qrDataUrl(reservation.qr_code) };
+    }
+  }
+  // First view after the lifecycle migration, or a superseded mirror: issue
+  // exactly one replacement and revoke every other active row so only one
+  // reservation QR can ever be live.
   await revokeActive("reservation", reservationId);
   const token = generateQrToken();
-  const expiresAt = new Date(Date.parse(`${reservation.check_out}T00:00:00Z`) + 2 * 86_400_000).toISOString();
   const { error } = await supabase.from("qr_tokens").insert({
     token_hash: hashQrToken(token), resource_type: "reservation", resource_id: reservationId,
-    purpose: "check_in", created_by: createdBy, expires_at: expiresAt
+    purpose: "check_in", created_by: createdBy, expires_at: null
   });
   if (error) return null;
-  return { dataUrl: await qrDataUrl(token), expiresAt };
+  const { error: mirrorError } = await supabase.from("reservations").update({ qr_code: token }).eq("id", reservationId);
+  if (mirrorError) return null;
+  return { dataUrl: await qrDataUrl(token) };
+}
+
+/**
+ * Staff-controlled recovery for a compromised active QR: revokes the live
+ * token and issues a fresh stable successor. Terminal reservations stay
+ * refused — rotation can never resurrect a completed stay.
+ */
+export async function rotateReservationQrToken(reservationId: string, createdBy: string | null): Promise<{ dataUrl: string } | null> {
+  if (!supabase) return null;
+  const { data: reservation } = await supabase.from("reservations").select("id,status").eq("id", reservationId).maybeSingle();
+  if (!reservation || !(RESERVATION_QR_ACTIVE_STATUSES as readonly string[]).includes(reservation.status)) return null;
+  await revokeActive("reservation", reservationId);
+  await supabase.from("reservations").update({ qr_code: null }).eq("id", reservationId);
+  return ensureReservationQrToken(reservationId, createdBy);
 }
 
 /**

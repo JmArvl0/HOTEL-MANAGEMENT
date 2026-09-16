@@ -47,11 +47,10 @@ export async function POST(request: NextRequest) {
     await auditor("revoked");
     return fail(410, "revoked", "This QR code was revoked and replaced. Ask the guest to reopen their reservation or reprint the placard.");
   }
-  if (record.expires_at && Date.parse(record.expires_at) < Date.now()) {
-    await auditor("expired");
-    return fail(410, "expired", "This QR code has expired.");
-  }
 
+  // Reservation QRs are lifecycle-bound (expires_at NULL): the reservation
+  // status below owns validity, so no date check applies to them. Room
+  // placards keep their own expiry handling inside resolveRoom.
   return record.resource_type === "reservation"
     ? resolveReservation(record, session.user.id, session.user.role, auditor)
     : resolveRoom(record, session.user.id, session.user.role, auditor);
@@ -74,12 +73,25 @@ async function resolveReservation(record: QrTokenRow, userId: string, role: stri
     return fail(403, "unauthorized", "Your account is not authorized to use reservation QR codes.");
   }
 
-  // Current-state re-check: only a confirmed reservation can initiate check-in.
-  if (reservation.status !== "confirmed") {
+  // Stay-lifecycle re-check: the QR is usable while the reservation is
+  // confirmed or checked in — extensions and room moves change dates/rooms,
+  // never validity. Terminal states are permanently inactive for operational
+  // use. QR identifies the reservation only; it never bypasses check-in rules.
+  if (reservation.status === "checked_out" || reservation.status === "cancelled" || reservation.status === "no_show") {
+    const terminalMessage = reservation.status === "checked_out"
+      ? "This stay has already been checked out. The QR is no longer active."
+      : reservation.status === "cancelled"
+        ? "This reservation was cancelled. The QR is no longer active."
+        : "This reservation is no longer active.";
+    await auditor("expired");
+    return fail(410, "expired", terminalMessage);
+  }
+  if (reservation.status !== "confirmed" && reservation.status !== "checked_in") {
     await auditor("ineligible");
     return fail(409, "ineligible", `This reservation is ${String(reservation.status).replace("_", " ")} and cannot start check-in. QR never bypasses check-in rules — use the normal workflow.`);
   }
 
+  const inHouse = reservation.status === "checked_in";
   await auditor("authorized", "check_in");
   if (isOwner) {
     return NextResponse.json({
@@ -90,7 +102,9 @@ async function resolveReservation(record: QrTokenRow, userId: string, role: stri
         id: reservation.id, confirmationNumber: reservation.confirmation_number, status: reservation.status,
         checkIn: reservation.check_in, checkOut: reservation.check_out, roomType: reservation.room_type
       },
-      message: "Your check-in QR is valid. Present it to the Front Desk on arrival."
+      message: inHouse
+        ? "This QR is active for your current stay. Show it if the Front Desk asks."
+        : "Your check-in QR is valid. Present it to the Front Desk on arrival."
     });
   }
   return NextResponse.json({
@@ -103,7 +117,9 @@ async function resolveReservation(record: QrTokenRow, userId: string, role: stri
       roomType: reservation.room_type, roomId: reservation.room_id, roomNumber: reservation.room_number,
       paymentStatus: reservation.payment_status
     },
-    message: "Verified. Complete check-in through the Assign & Check In workflow — all rules still apply."
+    message: inHouse
+      ? "Verified. This stay is active — continue with the normal stay workflow."
+      : "Verified. Complete check-in through the Assign & Check In workflow — all rules still apply."
   });
 }
 
@@ -114,6 +130,10 @@ async function resolveRoom(record: QrTokenRow, userId: string, role: string, aud
   if (!room || room.administratively_active === false) {
     await auditor("invalid");
     return fail(404, "invalid", "The room this QR code refers to is not active.");
+  }
+  if (record.expires_at && Date.parse(record.expires_at) < Date.now()) {
+    await auditor("expired");
+    return fail(410, "expired", "This QR code has expired.");
   }
 
   if (ROOM_STAFF.has(role)) {

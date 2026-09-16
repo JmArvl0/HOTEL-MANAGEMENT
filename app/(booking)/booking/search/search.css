@@ -99,6 +99,8 @@
 .booking-page .room-availability-chip{display:grid;place-items:center;width:58px;height:58px;padding:7px;border-radius:50%;text-align:center;transition:transform .25s cubic-bezier(.22,1,.36,1),background .2s,color .2s}
 .booking-page .room-photo-count{top:auto;left:auto;right:16px;bottom:16px;background:#092f3cbb;color:#fff;font-weight:650}
 .booking-page .available-room:is(:hover,:focus-within) .room-availability-chip{transform:scale(1.06);background:var(--search-teal);color:#fff}
+.booking-page .room-availability-chip.is-off{background:#e9edea;color:#8a948e}
+.booking-page .available-room:is(:hover,:focus-within) .room-availability-chip.is-off{transform:none;background:#e9edea;color:#8a948e}
 .booking-page .available-room-copy{display:flex;flex-direction:column;padding:30px 32px}
 .booking-page .room-focus-chip{align-self:flex-start;margin:0 0 12px;padding:5px 9px;border:1px solid #b9d6d3;border-radius:99px;background:#e1eeeb;color:#0b5561;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.6px}
 .booking-page .available-room-copy h2{margin:0;font:500 clamp(30px,3vw,40px)/1.05 var(--font-display),Georgia,serif;letter-spacing:-.025em}

@@ -3,6 +3,7 @@ import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight, BedDouble, Check, ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { RoomPhotoFigure, RoomPhotoLightbox } from "@/components/booking/room-photo-lightbox";
 import { formatPeso } from "@/lib/format";
 import { roomPhotosFor } from "@/lib/room-images";
 import type { AvailableRoomType, RoomTypeSummary } from "@/lib/booking";
@@ -12,11 +13,13 @@ import type { AvailableRoomType, RoomTypeSummary } from "@/lib/booking";
  *  Summary rooms (no `availableUnits`) show catalog copy instead of date-dependent notes. */
 export function RoomTypeDetailsBody({ room, note, rateLine }: { room: AvailableRoomType | RoomTypeSummary; note?: ReactNode; rateLine?: ReactNode }) {
   const [pos, setPos] = useState(0);
+  const [lightbox, setLightbox] = useState<number | null>(null);
   const [errored, setErrored] = useState<ReadonlySet<string>>(new Set());
 
   const photos = roomPhotosFor(room.photos, room.name);
   // Drop photos that failed to load; show the first remaining one.
   const live = photos.map((url, i) => (errored.has(url) ? -1 : i)).filter((i) => i !== -1);
+  const livePhotos = live.map((i) => photos[i]);
   const shownPos = Math.min(pos, live.length - 1);
   const src = live.length ? photos[live[shownPos]] : undefined;
 
@@ -35,8 +38,10 @@ export function RoomTypeDetailsBody({ room, note, rateLine }: { room: AvailableR
       <div className="rd-gallery">
         {src ? (
           <>
-            {/* eslint-disable-next-line @next/next/no-img-element -- plain <img>: CDN photos bypass the Next optimizer so they can't fail on allowlist/restart */}
-            <img className="rd-photo" src={src} alt={`${room.name} — room photo ${shownPos + 1} of ${live.length}`} onError={onImgError} loading="eager" />
+            <RoomPhotoFigure photos={livePhotos} roomName={room.name} index={shownPos} onOpen={setLightbox} className="rd-photo-open">
+              {/* eslint-disable-next-line @next/next/no-img-element -- plain <img>: CDN photos bypass the Next optimizer so they can't fail on allowlist/restart */}
+              <img className="rd-photo" src={src} alt={`${room.name} — room photo ${shownPos + 1} of ${live.length}`} onError={onImgError} loading="eager" />
+            </RoomPhotoFigure>
             {live.length > 1 && (
               <>
                 <button type="button" className="rd-arrow rd-arrow--prev" aria-label="Previous photo" onClick={() => step(-1)}>
@@ -61,7 +66,7 @@ export function RoomTypeDetailsBody({ room, note, rateLine }: { room: AvailableR
               type="button"
               className={`rd-thumb${thumb === shownPos ? " is-active" : ""}`}
               aria-label={`View photo ${thumb + 1} of ${room.name}`}
-              onClick={() => setPos(thumb)}
+              onClick={() => setLightbox(thumb)}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={photos[photoIndex]} alt="" loading="lazy" />
@@ -88,6 +93,13 @@ export function RoomTypeDetailsBody({ room, note, rateLine }: { room: AvailableR
           <small>{"availableUnits" in room ? `per night · ${room.nights} night${room.nights !== 1 ? "s" : ""} = ${formatPeso(room.subtotal)}` : "per night · choose dates for your total"}</small>
         </div>
       )}
+      <RoomPhotoLightbox
+        photos={livePhotos}
+        roomName={room.name}
+        index={lightbox}
+        onClose={() => setLightbox(null)}
+        onIndexChange={(next) => { setPos(next); setLightbox(next); }}
+      />
     </>
   );
 }

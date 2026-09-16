@@ -4,7 +4,9 @@ import { ArrowRight, BedDouble, Check, Users } from "lucide-react";
 import { formatPeso } from "@/lib/format";
 import { type AvailableRoomType, type RoomTypeSummary } from "@/lib/booking";
 import { RoomDetailsButton } from "@/components/booking/room-details";
-import { roomPrimary } from "@/lib/room-images";
+import { ChooseDatesButton } from "@/components/booking/choose-dates-button";
+import { RoomPhotoTrigger } from "@/components/booking/room-photo-lightbox";
+import { roomPhotosFor, roomPrimary } from "@/lib/room-images";
 
 /** Availability results shared by the public search page and the portal Find a Room module.
  *  Summary rooms (no `availableUnits`) render as browse cards: catalog rate, no fabricated
@@ -24,6 +26,7 @@ export function RoomResults({
   if (rooms.length === 0) return <div className="booking-empty"><BedDouble/><h2>No rooms available</h2><p>Try different dates or fewer guests. Your search details have been preserved.</p></div>;
   return <div className="availability-grid">{rooms.map((room, index) => {
     const priced = "availableUnits" in room;
+    const soldOut = priced && room.availableUnits <= 0;
     const photo = roomPrimary(room.photos, room.name);
     const focused = focusRoomType === room.name;
     return <article
@@ -33,7 +36,8 @@ export function RoomResults({
     >
       <div className={`available-room-image${photo ? " room-photo" : ""}`}>
         {photo ? <Image src={photo} alt={`${room.name} room`} fill sizes="(max-width: 760px) 100vw, 420px" /> : null}
-        <span className="room-availability-chip">{priced ? `${room.availableUnits} available` : "Check dates"}</span>
+        {photo ? <RoomPhotoTrigger photos={roomPhotosFor(room.photos, room.name)} roomName={room.name} /> : null}
+        <span className={`room-availability-chip${soldOut ? " is-off" : ""}`}>{priced ? (soldOut ? "Unavailable" : `${room.availableUnits} available`) : "Check dates"}</span>
         {room.photos.length > 1 ? <small className="room-photo-count">{room.photos.length} photos</small> : null}
       </div>
       <div className="available-room-copy">
@@ -51,9 +55,13 @@ export function RoomResults({
           <div className="room-actions">
             <RoomDetailsButton room={room} bookHref={hrefFor(room.name)} />
             {priced ? (
-              <Link className="btn btn-accent" href={hrefFor(room.name)}>Select room <ArrowRight size={16} aria-hidden="true"/></Link>
+              soldOut ? (
+                <button type="button" className="btn btn-accent" disabled>Unavailable</button>
+              ) : (
+                <Link className="btn btn-accent" href={hrefFor(room.name)}>Select room <ArrowRight size={16} aria-hidden="true"/></Link>
+              )
             ) : (
-              <Link className="btn btn-accent" href={hrefFor(room.name)}>Choose dates <ArrowRight size={16} aria-hidden="true"/></Link>
+              <ChooseDatesButton />
             )}
           </div>
         </div>

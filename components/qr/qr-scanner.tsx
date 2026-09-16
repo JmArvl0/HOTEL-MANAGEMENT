@@ -245,6 +245,7 @@ export function QrScannerModal({ onClose, onCta }: { onClose: () => void; onCta:
             <dl className="qr-detail">
               <div><dt>Guest</dt><dd>{outcome.reservation.guestName ?? "You"}</dd></div>
               <div><dt>Confirmation</dt><dd>{outcome.reservation.confirmationNumber ?? outcome.reservation.id}</dd></div>
+              <div><dt>Status</dt><dd>{outcome.reservation.status.replace("_", " ")}</dd></div>
               <div><dt>Stay</dt><dd>{outcome.reservation.checkIn} → {outcome.reservation.checkOut}</dd></div>
               <div><dt>Room type</dt><dd>{outcome.reservation.roomType}</dd></div>
               {outcome.reservation.roomNumber && <div><dt>Room</dt><dd>{outcome.reservation.roomNumber}</dd></div>}

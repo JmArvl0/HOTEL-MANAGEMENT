@@ -2,7 +2,9 @@
 // countAvailableUnits is the function getAvailability actually decides with, so these
 // exercise the production rule, not a parallel reimplementation of it.
 import { describe, expect, it } from "vitest";
-import { countAvailableUnits, type ActiveHoldRow, type AvailabilityWindow, type BlockingReservationRow, type InventoryRoomRow } from "@/lib/booking";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { countAvailableUnits, hotelToday, type ActiveHoldRow, type AvailabilityWindow, type BlockingReservationRow, type InventoryRoomRow } from "@/lib/booking";
 
 const TYPE = "Deluxe King";
 const NOW = "2026-09-10T08:00:00.000Z";
@@ -96,4 +98,49 @@ describe("room-type availability arithmetic", () => {
 
   it("reports sold out when the hotel has no rooms of that type at all", () =>
     expect(count(future, { rooms: [room({ type: "Garden Suite" })] })).toBe(0));
+});
+
+describe("staff/customer consistency on one controlled dataset", () => {
+  // The brief's example: 5 sellable − 2 overlapping reservations − 1 active
+  // hold − 1 retired unit = 1 available. Same rows a staff inventory read sees.
+  it("resolves the worked example to exactly 1 available unit", () => {
+    const window: AvailabilityWindow = { checkIn: "2026-09-16", checkOut: "2026-09-17", now: NOW, today: "2026-09-16" };
+    const stock = [...rooms(4), room({ administratively_active: false })];
+    const blocking = [
+      reservation({ check_in: "2026-09-16", check_out: "2026-09-17" }),
+      reservation({ check_in: "2026-09-15", check_out: "2026-09-17" }),
+    ];
+    expect(countAvailableUnits(TYPE, window, { rooms: stock, reservations: blocking, holds: [hold({ check_in: "2026-09-16", check_out: "2026-09-17" })] })).toBe(1);
+  });
+});
+
+describe("hotel-day parity", () => {
+  it("computes today in a configurable zone and falls back on garbage", () => {
+    expect(hotelToday("Asia/Manila")).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(hotelToday("not-a-zone")).toBe(hotelToday("Asia/Manila"));
+  });
+});
+
+describe("TypeScript/SQL availability parity contracts", () => {
+  const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
+  const holdGate = read("supabase/migrations/20260916010000_physical_room_management.sql");
+
+  it("the hold gate revalidates server-side under a per-type lock", () => {
+    expect(holdGate).toContain("pg_advisory_xact_lock");
+    expect(holdGate).toContain("ROOM_TYPE_UNAVAILABLE");
+  });
+
+  it("the hold gate's reserved clause matches the TypeScript pending-website rule", () => {
+    expect(holdGate).toContain("lower(coalesce(r.source,''))<>'website'");
+    expect(holdGate).toContain("r.payment_due_at is null or r.payment_due_at>now()");
+  });
+
+  it("the hold gate's held clause matches the TypeScript hold rule", () => {
+    expect(holdGate).toContain("h.reservation_id is null");
+    expect(holdGate).toContain("h.status in('active','payment_submitted')");
+  });
+
+  it("every inventory count routes through the shared sellability predicate", () => {
+    expect(holdGate).toContain("room_is_sellable");
+  });
 });

@@ -2,13 +2,15 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-import { issueReservationQrToken } from "@/lib/qr/tokens";
+import { ensureReservationQrToken, RESERVATION_QR_ACTIVE_STATUSES } from "@/lib/qr/tokens";
 
 /**
- * Reservation check-in QR for the owning guest (or staff viewing on their
- * behalf). Issues lazily and rotates on every fetch — only the QR currently
- * displayed to the guest is scannable, and each fetch revokes the previous
- * one. Only a CONFIRMED reservation can carry a check-in QR.
+ * Reservation stay-lifecycle QR for the owning guest (or staff viewing on
+ * their behalf). Idempotent: returns the existing stable QR for an active
+ * reservation/stay — viewing never rotates or duplicates it. Only confirmed
+ * and checked-in reservations hold a QR; terminal states (checked_out,
+ * cancelled, no_show) and pending are refused here AND at resolve time, so a
+ * hidden button alone never guards regeneration.
  */
 
 const STAFF = new Set(["front_desk", "manager", "owner", "admin"]);
@@ -26,11 +28,11 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   if (!STAFF.has(session.user.role) && !isOwner) {
     return NextResponse.json({ error: "Not authorized to view this reservation." }, { status: 403 });
   }
-  if (reservation.status !== "confirmed") {
-    return NextResponse.json({ error: "A check-in QR is available once the reservation is confirmed." }, { status: 409 });
+  if (!(RESERVATION_QR_ACTIVE_STATUSES as readonly string[]).includes(reservation.status)) {
+    return NextResponse.json({ error: reservation.status === "pending" ? "A check-in QR is available once the reservation is confirmed." : "This reservation is closed — its QR is permanently inactive and cannot be reissued." }, { status: 409 });
   }
 
-  const issued = await issueReservationQrToken(id, session.user.id);
+  const issued = await ensureReservationQrToken(id, session.user.id);
   if (!issued) return NextResponse.json({ error: "Unable to generate the check-in QR." }, { status: 500 });
   return NextResponse.json({ data: issued });
 }

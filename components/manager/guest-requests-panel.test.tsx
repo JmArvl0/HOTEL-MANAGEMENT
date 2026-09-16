@@ -81,6 +81,70 @@ describe("GuestRequestsPanel render layer", () => {
     expect(screen.getByRole("complementary", { name: "Inventory summary" })).toBeTruthy();
   });
 
+  it("keeps approval and fulfillment separate: approved items stay Open until worked", async () => {
+    mockFetch([
+      submission({ approval_status: "approved" }),
+      submission({ id: "gr2", request: "Extra pillows", approval_status: "approved", status: "completed" }),
+    ], [stock()]);
+    render(<GuestRequestsPanel role="housekeeping" onEscalate={() => {}} />);
+    await waitFor(() => expect(screen.getByText("Extra towels")).toBeTruthy());
+    // Approval badge present, yet the open item still reads Open with a Start action.
+    expect(screen.getByText("Approved", { selector: ".grp-approval" })).toBeTruthy();
+    expect(screen.getByText("Fulfillment 1/2 completed")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Start" })).toBeTruthy();
+    expect(screen.queryByText("Fulfilled")).toBeNull();
+  });
+
+  it("shows Fulfilled when every approved item is completed", async () => {
+    mockFetch([
+      submission({ approval_status: "approved", status: "completed" }),
+      submission({ id: "gr2", request: "Extra pillows", approval_status: "approved", status: "completed" }),
+    ], [stock()]);
+    render(<GuestRequestsPanel role="housekeeping" onEscalate={() => {}} />);
+    await waitFor(() => expect(screen.getByText("Fulfilled")).toBeTruthy());
+    // Nothing left to start or complete.
+    expect(screen.queryByRole("button", { name: "Start" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Complete" })).toBeNull();
+  });
+
+  it("starts and completes the owning department's items through the progress route", async () => {
+    const fetchMock = mockFetch([submission({ approval_status: "approved" })], [stock()]);
+    render(<GuestRequestsPanel role="housekeeping" onEscalate={() => {}} />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Start" })).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Start" }));
+    await waitFor(() => expect(screen.getByText("Request started.")).toBeTruthy());
+    const startCall = fetchMock.mock.calls
+      .map((call) => call as unknown as [string, RequestInit?])
+      .find(([url]) => String(url).includes("/api/guest-requests/gr1/progress"));
+    expect(startCall).toBeTruthy();
+    expect(JSON.parse(String(startCall?.[1]?.body))).toEqual({ action: "start" });
+  });
+
+  it("offers no Start/Complete to other departments, pending items, or managers", async () => {
+    // Front Desk sees a housekeeping-department item: read-only for them.
+    mockFetch([submission({ approval_status: "approved" })], [stock()]);
+    render(<GuestRequestsPanel role="front_desk" />);
+    await waitFor(() => expect(screen.getByText("Extra towels")).toBeTruthy());
+    expect(screen.queryByRole("button", { name: "Start" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Complete" })).toBeNull();
+    cleanup();
+
+    // Pending items have no fulfillment actions even for the owning department.
+    mockFetch([submission()], [stock()]);
+    render(<GuestRequestsPanel role="housekeeping" onEscalate={() => {}} />);
+    await waitFor(() => expect(screen.getByText("Extra towels")).toBeTruthy());
+    expect(screen.queryByRole("button", { name: "Start" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Complete" })).toBeNull();
+    cleanup();
+
+    // Managers stay read-only on approved items too.
+    mockFetch([submission({ approval_status: "approved" })], [stock()]);
+    render(<GuestRequestsPanel role="manager" />);
+    await waitFor(() => expect(screen.getByText("Extra towels")).toBeTruthy());
+    expect(screen.queryByRole("button", { name: "Start" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Complete" })).toBeNull();
+  });
+
   it("renders summary cards that match the queue counts and drive the queue filter", async () => {
     mockFetch([
       submission(),

@@ -209,6 +209,7 @@ export function ConfirmDialog({
   loading = false,
   disabled = false,
 }: ConfirmDialogProps) {
+  const cancelRef = useRef<HTMLButtonElement>(null);
   const handleConfirm = async () => {
     if (disabled) return;
     await onConfirm();
@@ -227,13 +228,14 @@ export function ConfirmDialog({
       onClose={onClose}
       title={title}
       size="sm"
-      initialFocusRef={{ current: document.querySelector('[data-action="cancel"]') as HTMLElement }}
+      initialFocusRef={cancelRef as unknown as React.RefObject<HTMLElement>}
     >
       <div className="confirm-dialog">
         <p className="confirm-message">{message}</p>
         <div className="confirm-actions">
           <button
             type="button"
+            ref={cancelRef}
             className="btn btn-soft"
             data-action="cancel"
             onClick={onClose}

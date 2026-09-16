@@ -10,7 +10,7 @@ export default async function DetailsPage({searchParams}:{searchParams:Promise<R
  const raw=await searchParams;const search=searchSchema.safeParse({checkIn:raw.checkIn,checkOut:raw.checkOut,guests:raw.guests});if(!search.success)redirect("/booking/search");
  const roomType=raw.roomType??"";const returnPath=`/booking/details?${new URLSearchParams({roomType,checkIn:search.data.checkIn,checkOut:search.data.checkOut,guests:String(search.data.guests)})}`;
  const session=await getServerSession(authOptions);if(!session)redirect(`/login?booking=1&callbackUrl=${encodeURIComponent(returnPath)}`);if(session.user.role!=="guest")redirect("/manager_dashboard");
- const room=await getRoomType(roomType,search.data);if(!room)redirect(`/booking/search?${new URLSearchParams({checkIn:search.data.checkIn,checkOut:search.data.checkOut,guests:String(search.data.guests),changed:"1"})}`);
+  const room=await getRoomType(roomType,search.data);if(!room||room.availableUnits<=0)redirect(`/booking/search?${new URLSearchParams({checkIn:search.data.checkIn,checkOut:search.data.checkOut,guests:String(search.data.guests),changed:"1"})}`);
  // Returning from Review: when a valid, unexpired hold for the SAME room/dates/guests is
  // referenced, prefill the form from what the guest entered on that hold (preserves expected
  // arrival, stay preparations, and the transportation request). Any mismatch falls back to

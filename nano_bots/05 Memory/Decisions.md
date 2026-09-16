@@ -434,3 +434,83 @@ now consistent end to end.
 ### Origin
 
 [[2026-09-30 - System Administrator Formalization]]
+
+---
+
+## D-013 — Notification history is a modal with hotel-day filtering; staff read state is per-device UI dismissal
+
+Date: 2026-09-15 (build session — "View all notifications" modal)
+Status: Active (user-authorized amendment of [[D-011]])
+
+### Decision
+
+"View all notifications" opens a shared history modal
+(`components/customer/notification-history-modal.tsx`) instead of navigating, on both the
+guest bell and the staff operations bell. The modal filters by hotel day (Today / Yesterday /
+loaded days / specific date, Asia/Manila bucketing in `lib/notifications.ts`), groups
+unread-first then read (newest-first within each), and offers a date-scoped "Mark this day as
+read". Opening the modal never marks anything read; the guest `/account/notifications` page
+stays intact for direct URLs.
+
+- **Guest:** persistent `read_at` on the existing `notifications` table (now exposed to the UI)
+  plus `GET/POST /api/account/notifications[/read]`; the bell carries one aggregate unread badge.
+- **Staff:** no new table, no fan-out rows, no second fetching system (upholds D-011's core).
+  The modal reuses the already-loaded role-scoped `dashboard.notifications`; read/dismissed ids
+  live in per-device `localStorage` (keyed per user+role, capped at 500). The server alert list
+  stays authoritative, sidebar workload badges never consume read state, and toasts are untouched.
+
+### Reason
+
+D-011 forbade a persistent staff read/unread store as a second notification system. The user
+explicitly requested staff history too while keeping every ban (no duplicate records, no second
+system, no RBAC change, no business-rule change). Per-device dismissal satisfies the visible
+behavior (unread grouping, bell updates, day-scoped mark-read) with zero migration and zero new
+emitters; the small-volume reuse is expressly allowed by the brief.
+
+### Related
+
+[[D-011]] · `SYSTEM.md` §7.3, §7.9 · `lib/notification-history.test.ts` ·
+`components/customer/notification-history-modal.test.tsx` ·
+`components/customer/customer-shell-notifications.test.tsx` ·
+`components/manager/staff-notification-history.test.tsx`
+
+---
+
+## D-014 — Time-of-day entry is a native `<input type="time">`; no custom clock/wheel picker
+
+Date: 2026-09-16 (Guest Details refinement session)
+Status: Active
+
+### Decision
+
+Guest-facing time entry uses the platform's own time control. On **Guest Details**
+(`/booking/details`) the **Expected arrival** field is a plain native
+`<input type="time">` inside the shared `.booking-form-grid` — the same control as
+**Need a ride? → Pickup time** — and the custom radial clock popover / touch wheel sheet
+(`ExpectedArrivalPicker`, ~230 lines plus its CSS block) is deleted outright. Native time
+inputs return canonical 24-hour `HH:MM`, which is exactly what `guestDetailsSchema`
+(`lib/booking.ts`) stores, so there is no normalization layer, and no API, schema, or DB
+change.
+
+- **Expected arrival stays required** — the existing JS guard and its `.booking-error`
+  paragraph are preserved verbatim (no `required` attribute, so no browser bubble).
+- **Expected arrival and Pickup time remain independent fields** with independent state;
+  neither binds to the other. Expected arrival is an *estimate* — it never implies, seeds,
+  or auto-approves an early check-in request.
+- Same rule applies to the other times on the page: Return time and Pickup time were already
+  native inputs; Return date / Pickup date stay native `<input type="date">`.
+
+### Reason
+
+The radial clock consumed a large popover on a two-column guest form and duplicated a control
+the same page already solved better. The project already prefers the native platform feature
+over a custom picker (this is the same call as `<input type="date">` and the room radiogroup),
+and the stored value format was already identical — so the picker was pure presentation cost.
+`DESIGN.md` §11 now states time inputs are out of scope for `HavenSelect`-style restyling.
+
+### Related
+
+`SYSTEM.md` §7.2, §1435 · `DESIGN.md` §11 · `lib/arrival-time-options.ts` (`formatArrival`) ·
+`components/booking/guest-details-form.test.tsx` · `lib/booking.test.ts` ·
+[[2026-09-16 - Expected Arrival Time Input]]
+

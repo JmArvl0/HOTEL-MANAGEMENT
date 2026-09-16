@@ -32,9 +32,11 @@ export const isBlockingReservationStatus = (status: string) =>
 
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
-export const hotelToday = () => {
+export const hotelToday = (timeZone = "Asia/Manila") => {
+  let zone = timeZone;
+  try { Intl.DateTimeFormat("en-US", { timeZone: zone }); } catch { zone = "Asia/Manila"; }
   const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit"
+    timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit"
   }).formatToParts(new Date());
   const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
   return `${value.year}-${value.month}-${value.day}`;
@@ -275,14 +277,21 @@ export async function getAvailability(input: SearchInput, retryTransientAuth = t
   if (!parsed.success || !supabase) return [];
   const { checkIn, checkOut, guests } = parsed.data;
   const now = new Date().toISOString();
-  const [{ data: types, error: typeError }, { data: rooms, error: roomError }, { data: reservations, error: reservationError }, { data: holds, error: holdError }, { data: maintenance, error: maintenanceError }, { data: plans, error: planError }] = await Promise.all([
+  const [{ data: types, error: typeError }, { data: rooms, error: roomError }, { data: reservations, error: reservationError }, { data: holds, error: holdError }, { data: maintenance, error: maintenanceError }, { data: plans, error: planError }, { data: policyRow }] = await Promise.all([
     supabase.from("room_types").select("id,name,description,max_guests,beds,size_sqm,amenities,base_rate,photo_urls").eq("active", true).gte("max_guests", guests),
     supabase.from("rooms").select("id,type,status,housekeeping,administratively_active"),
     supabase.from("reservations").select("room_type,check_in,check_out,status,source,payment_due_at").in("status", [...BLOCKING_RESERVATION_STATUSES]).lt("check_in", checkOut).gt("check_out", checkIn),
     supabase.from("booking_holds").select("room_type,check_in,check_out,status,expires_at,reservation_id").in("status", ["active","payment_submitted"]).gt("expires_at", now).lt("check_in", checkOut).gt("check_out", checkIn),
     supabase.from("maintenance_orders").select("room_id").in("status", ["open","assigned","in_progress","waiting_parts","deferred"]).in("serviceability_impact", ["blocked","out_of_service"]),
     supabase.from("room_rate_plans").select("id,room_type_id,name,start_date,end_date,days_of_week,nightly_rate,status,decided_at").eq("status", "active"),
+    // Hotel timezone is Owner-configurable: the same-day housekeeping rule must use
+    // the policy day, not a hardcoded zone, to match room_is_sellable. A failed
+    // read falls back to the default rather than failing the whole search.
+    supabase.from("hotel_operational_policies").select("hotel_timezone").eq("key", "default").maybeSingle(),
   ]);
+  const hotelTz = typeof (policyRow as { hotel_timezone?: unknown } | null)?.hotel_timezone === "string" && (policyRow as { hotel_timezone: string }).hotel_timezone
+    ? (policyRow as { hotel_timezone: string }).hotel_timezone
+    : "Asia/Manila";
   const queryError = typeError || roomError || reservationError || holdError || maintenanceError || planError;
   if (queryError) {
     if (retryTransientAuth && queryError.code === "PGRST303") {
@@ -292,7 +301,7 @@ export async function getAvailability(input: SearchInput, retryTransientAuth = t
     throw new Error(`Availability query failed${queryError.code ? ` (${queryError.code})` : ""}`);
   }
   const nights = calculateNights(checkIn, checkOut);
-  const window = { checkIn, checkOut, now, today: hotelToday() };
+  const window = { checkIn, checkOut, now, today: hotelToday(hotelTz) };
   const rows = { rooms: rooms ?? [], reservations: reservations ?? [], holds: holds ?? [], blockedRoomIds: new Set((maintenance ?? []).map((row) => row.room_id)) };
   // Estimates only — the create_booking_hold RPC is the pricing authority and
   // freezes the per-night rates it actually charges.
@@ -302,7 +311,9 @@ export async function getAvailability(input: SearchInput, retryTransientAuth = t
     const rate = uniformRate(perNight) ?? Math.min(...perNight.map((night) => night.rate));
     const subtotal = stayTotal(perNight);
     return { id: type.id, name: type.name, description: type.description, maxGuests: type.max_guests, beds: type.beds, sizeSqm: type.size_sqm, amenities: Array.isArray(type.amenities) ? type.amenities.map(String) : [], nightlyRate: rate, nights, subtotal, availableUnits: countAvailableUnits(type.name, window, rows), photos: Array.isArray(type.photo_urls) ? type.photo_urls.map(String) : [] };
-  }).filter((type) => type.availableUnits > 0).sort((a, b) => a.nightlyRate - b.nightlyRate);
+  // Sold-out types stay visible as Unavailable (Select disabled downstream) instead
+  // of vanishing: available first, cheapest first within each group.
+  }).sort((a, b) => Number(b.availableUnits > 0) - Number(a.availableUnits > 0) || a.nightlyRate - b.nightlyRate);
 }
 
 export async function getRoomType(name: string, search: SearchInput) {

@@ -6,6 +6,8 @@
 // (wrapped in act — the dismiss callbacks set state outside fireEvent).
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { ToastStack, useToasts } from "./toast-stack";
 
 type PushOptions = Parameters<ReturnType<typeof useToasts>["push"]>[0];
@@ -119,5 +121,57 @@ describe("toast stack", () => {
     expect(screen.getByText("Needs attention")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Dismiss: Needs attention" }));
     expect(screen.queryByText("Needs attention")).toBeNull();
+  });
+
+  it("keeps an error toast 8 seconds like a warning", async () => {
+    render(<Harness options={[{ id: "e1", title: "Payment verification failed", tone: "error" }]} />);
+    fireEvent.click(screen.getByRole("button", { name: "push" }));
+    await advance(7999);
+    expect(screen.getByText("Payment verification failed")).toBeTruthy();
+    await advance(1);
+    expect(screen.queryByText("Payment verification failed")).toBeNull();
+  });
+
+  it("exposes error as an alert and routine tones as status", () => {
+    render(<Harness options={[{ id: "e1", title: "Payment failed", tone: "error" }]} />);
+    fireEvent.click(screen.getByRole("button", { name: "push" }));
+    expect(screen.getByRole("alert").textContent).toMatch("Payment failed");
+    cleanup();
+    render(<Harness options={[{ id: "i1", title: "Quiet notice" }]} />);
+    fireEvent.click(screen.getByRole("button", { name: "push" }));
+    expect(screen.getByRole("status")).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+});
+
+describe("centered notification viewport contracts", () => {
+  const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
+
+  it("positions the stack centered below the header, under modals", () => {
+    const css = read("app/manager-dashboard-theme.css");
+    expect(css).toContain(".toast-stack{position:fixed;top:calc(58px");
+    expect(css).toContain("translateX(-50%)");
+    expect(css).toContain("z-index:900");
+    expect(css).toContain("width:min(560px");
+    expect(css).toContain(".toast-stack .toast-card.error");
+    expect(css).toContain("prefers-reduced-motion");
+  });
+
+  it("renders the viewport inside the workspace below the header in all shells", () => {
+    for (const path of ["components/manager/manager-dashboard-client.tsx", "components/admin/admin-dashboard-client.tsx", "components/owner/owner-dashboard-client.tsx"]) {
+      const src = read(path);
+      const header = src.indexOf("app-header");
+      const stack = src.indexOf("<ToastStack");
+      const body = src.indexOf("workspace-body");
+      expect(header).toBeGreaterThan(-1);
+      expect(stack).toBeGreaterThan(header);
+      expect(stack).toBeLessThan(body);
+    }
+  });
+
+  it("leaves no ad-hoc corner toast in the governance shells", () => {
+    for (const path of ["components/admin/admin-dashboard-client.tsx", "components/owner/owner-dashboard-client.tsx"]) {
+      expect(read(path)).not.toContain('className="toast"');
+    }
   });
 });

@@ -50,16 +50,23 @@
 .app-shell .notification-center .icon-button{position:relative}
 .app-shell .notification-center .nav-badge{position:absolute;right:-5px;top:-5px;z-index:1;min-width:18px;height:18px;padding:0 5px;border:0;border-radius:9px;background:#3a2d1a;color:#e8b96a;font-size:8px;font-weight:700;font-style:normal;line-height:1;letter-spacing:.3px;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center}
 .theme-light .app-shell .notification-center .nav-badge{background:#f4ead7;color:#90621c}
-/* Transient toast stack — bottom-right, clear of the top-right bell/profile
-   popovers. Surfaces and text come from the dashboard tokens so both themes
-   hold; entrance reuses the shared havenPopIn keyframe (killed by the global
-   reduced-motion switch). */
-.toast-stack{position:fixed;right:25px;bottom:25px;z-index:1100;display:flex;flex-direction:column;gap:9px;width:min(340px,calc(100vw - 32px));pointer-events:none}
-.toast-stack .toast-card{pointer-events:auto;display:flex;align-items:flex-start;gap:10px;padding:12px 12px 12px 14px;background:var(--ds);border:1px solid var(--dl);border-radius:6px;box-shadow:0 14px 38px rgba(0,0,0,.4);animation:havenPopIn .18s ease-out}
+/* Centered transient notification viewport — directly under the top header,
+   centered in the MAIN content column (never over the sidebar or header
+   controls). The rail offset tracks the sidebar via --haven-toast-offset so
+   collapse/expand and the mobile drawer recenter automatically with no JS
+   math. z-index 900 sits above page content and header popovers (40) but
+   below modal/dialog layers (1000/1001). */
+.app-shell{--haven-toast-offset:232px}
+.app-shell.sidebar-collapsed{--haven-toast-offset:72px}
+@media(max-width:1000px){.app-shell,.app-shell.sidebar-collapsed{--haven-toast-offset:0px}}
+.toast-stack{position:fixed;top:calc(58px + 14px);left:calc(var(--haven-toast-offset,232px) + (100vw - var(--haven-toast-offset,232px))/2);transform:translateX(-50%);z-index:900;display:flex;flex-direction:column;gap:8px;width:min(560px,calc(100vw - var(--haven-toast-offset,232px) - 32px));min-width:min(400px,calc(100vw - var(--haven-toast-offset,232px) - 32px));pointer-events:none}
+@keyframes havenToastIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.toast-stack .toast-card{pointer-events:auto;display:flex;align-items:flex-start;gap:10px;padding:12px 12px 12px 14px;background:var(--ds);border:1px solid var(--dl);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.28);animation:havenToastIn .2s ease-out}
 .toast-stack .toast-card .toast-icon{flex:0 0 auto;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;border-radius:5px}
 .toast-stack .toast-card.info .toast-icon{background:#17363f;color:#85cbd0}
 .toast-stack .toast-card.success .toast-icon{background:#173024;color:#65d3a5}
 .toast-stack .toast-card.warning .toast-icon{background:#34291c;color:#dfa062}
+.toast-stack .toast-card.error .toast-icon{background:#351f21;color:#ef797e}
 .toast-stack .toast-card .toast-copy{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}
 .toast-stack .toast-card strong{color:var(--dt);font-size:10px;line-height:1.4}
 .toast-stack .toast-card small{color:var(--dm);font-size:9px;line-height:1.5}
@@ -71,7 +78,10 @@
 .theme-light .toast-stack .toast-card.info .toast-icon{background:#e1eeeb;color:#176773}
 .theme-light .toast-stack .toast-card.success .toast-icon{background:#def1e8;color:#267056}
 .theme-light .toast-stack .toast-card.warning .toast-icon{background:#fff0dd;color:#a45a22}
-@media(max-width:480px){.toast-stack{left:16px;right:16px;bottom:16px;width:auto}}
+.theme-light .toast-stack .toast-card.error .toast-icon{background:#f9e3e1;color:#a44843}
+@media(max-width:720px){.toast-stack{width:min(520px,calc(100vw - var(--haven-toast-offset,232px) - 32px))}}
+@media(max-width:480px){.toast-stack{top:calc(58px + 10px);width:calc(100vw - 24px);min-width:0}}
+@media (prefers-reduced-motion:reduce){.toast-stack .toast-card{animation:none}}
 
 /* COLLAPSIBLE SIDEBAR — shared by every authenticated role. */
 .app-shell{grid-template-columns:232px minmax(0,1fr);transition:grid-template-columns .24s ease}

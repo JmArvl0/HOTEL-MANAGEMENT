@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { calculateNights, countAvailableUnits, guestDetailsSchema, isBlockingReservationStatus, parseSearchIntent, rangesOverlap, safeInternalPath, searchSchema, transportTotal } from "@/lib/booking";
-import { ARRIVAL_TIME_OPTIONS, arrivalFromParts, arrivalParts, arrivalValue, formatArrival, parseArrival } from "@/lib/arrival-time-options";
+import { formatArrival } from "@/lib/arrival-time-options";
 const date=(offset:number)=>{const value=new Date();value.setUTCDate(value.getUTCDate()+offset);return value.toISOString().slice(0,10)};
 describe("guest booking rules",()=>{
   it("calculates nights without timezone drift",()=>expect(calculateNights("2026-09-04","2026-09-07")).toBe(3));
@@ -34,21 +34,10 @@ describe("stored transport lines (historical)",()=>{
   it("sums stored transport lines centavo-safe without rounding drift",()=>{expect(transportTotal(null)).toBe(0);expect(transportTotal([{name:"a",price:0.1},{name:"b",price:0.2}])).toBeCloseTo(0.3,10);expect(transportTotal([{name:"a",price:1850},{name:"b",price:900.5}])).toBe(2750.5)});
 });
 describe("expected arrival",()=>{
-  it("builds 48 canonical half-hour options covering the full 24-hour range",()=>{expect(ARRIVAL_TIME_OPTIONS).toHaveLength(48);expect(ARRIVAL_TIME_OPTIONS[0]).toEqual({value:"00:00",label:"12:00 AM"});expect(ARRIVAL_TIME_OPTIONS[26]).toEqual({value:"13:00",label:"1:00 PM"});expect(ARRIVAL_TIME_OPTIONS[47]).toEqual({value:"23:30",label:"11:30 PM"})});
-  it("round-trips every option label through the stored value",()=>{for(const option of ARRIVAL_TIME_OPTIONS)expect(formatArrival(option.value)).toBe(option.label)});
-  it("round-trips every minute of the day through the picker math, with rollover",()=>{
-    for(let total=0;total<1440;total++)expect(parseArrival(arrivalValue(total))).toBe(total);
-    expect(arrivalParts(0)).toEqual({hour12:12,minute:0,period:"AM"});
-    expect(arrivalParts(797)).toEqual({hour12:1,minute:17,period:"PM"});
-    expect(arrivalParts(719)).toEqual({hour12:11,minute:59,period:"AM"});
-    expect(arrivalValue(arrivalFromParts(1,59,"PM"))).toBe("13:59");
-    expect(arrivalValue(arrivalFromParts(12,0,"AM"))).toBe("00:00");
-    expect(arrivalValue(arrivalFromParts(12,0,"PM"))).toBe("12:00");
-    expect(arrivalValue((839+1)%1440)).toBe("14:00");   // 1:59 PM +1 min → 2:00 PM
-    expect(arrivalValue((1439+1)%1440)).toBe("00:00");  // 11:59 PM +1 min → 12:00 AM
-    expect(parseArrival("1:00pm")).toBeNull();expect(parseArrival("25:00")).toBeNull();expect(parseArrival("13:60")).toBeNull();expect(parseArrival("")).toBeNull();
+  it("renders canonical stored values as hotel-locale 12-hour, and passes anything else through",()=>{
+    expect(formatArrival("00:00")).toBe("12:00 AM");expect(formatArrival("13:00")).toBe("1:00 PM");expect(formatArrival("23:30")).toBe("11:30 PM");
+    expect(formatArrival("Walk-in (at the desk)")).toBe("Walk-in (at the desk)");expect(formatArrival("")).toBe("");
   });
-  it("passes legacy free-text arrival values through unchanged",()=>{expect(formatArrival("Walk-in (at the desk)")).toBe("Walk-in (at the desk)");expect(formatArrival("")).toBe("")});
   it("rejects malformed arrival times at the API boundary",()=>{
     const base={roomType:"King",checkIn:"2026-09-08",checkOut:"2026-09-10",guests:2,firstName:"A",lastName:"B",email:"a@b.co",mobile:"09171234567",address:"123 St",expectedArrival:"",requestOptions:[],specialRequests:""};
     const fill=(value:string)=>({...base,expectedArrival:value});

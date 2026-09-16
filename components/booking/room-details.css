@@ -101,6 +101,59 @@
 .rd-thumb.is-active { border-color: var(--cp-green, #176773); opacity: 1; }
 .rd-thumb:focus-visible { outline: 2px solid var(--cp-green, #176773); outline-offset: 1px; }
 
+/* Clickable gallery imagery — the main photo opens the shared lightbox. */
+.rd-photo-open { display: block; width: 100%; padding: 0; border: 0; background: transparent; cursor: zoom-in; }
+.rd-photo-open:focus-visible { outline: 2px solid #fff; outline-offset: -2px; border-radius: 10px; }
+
+/* Card photo overlay trigger — lives inside the image cell only, so the card
+   copy and booking CTAs are unaffected. */
+.room-photo-open { position: absolute; inset: 0; z-index: 2; display: block; width: 100%; padding: 0; border: 0; background: transparent; cursor: zoom-in; }
+.room-photo-open-hint { position: absolute; right: 12px; bottom: 10px; display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: rgba(0, 0, 0, 0.55); color: #fff; font-size: 11px; font-weight: 750; opacity: 0; transition: opacity 0.18s ease; }
+.available-room-image:is(:hover, :focus-within) .room-photo-open-hint { opacity: 1; }
+.room-photo-open:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
+.room-photo-open:focus-visible .room-photo-open-hint { opacity: 1; }
+
+/* Shared room-photo lightbox — dark photo-viewing stage above every modal.
+   Same backdrop in both themes: viewing benefits from reduced distraction. */
+@keyframes roomLightboxIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes roomLightboxPhotoIn { from { opacity: 0; transform: scale(0.985); } to { opacity: 1; transform: scale(1); } }
+.room-lightbox { position: fixed; inset: 0; z-index: var(--z-index-lightbox, 1400); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "top top top" "prev stage next" "zoom zoom zoom"; align-items: center; justify-items: center; gap: 10px; padding: calc(14px + env(safe-area-inset-top)) 18px calc(14px + env(safe-area-inset-bottom)); overflow: clip; animation: roomLightboxIn 0.18s ease-out; }
+.room-lightbox-backdrop { position: absolute; inset: 0; background: rgba(8, 10, 10, 0.88); }
+.room-lightbox-top { grid-area: top; position: relative; z-index: 1; width: min(1100px, 100%); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.room-lightbox-top p { margin: 0; color: #f2f5f4; font-size: 13px; font-weight: 650; }
+.room-lightbox-close { width: 44px; height: 44px; flex: 0 0 auto; display: grid; place-items: center; border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 50%; background: rgba(255, 255, 255, 0.08); color: #fff; cursor: pointer; }
+.room-lightbox-close:hover { background: rgba(255, 255, 255, 0.18); }
+.room-lightbox-close:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.room-lightbox-arrow { position: relative; z-index: 1; width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 50%; background: rgba(255, 255, 255, 0.08); color: #fff; cursor: pointer; }
+.room-lightbox-arrow:hover:not(:disabled) { background: rgba(255, 255, 255, 0.18); }
+.room-lightbox-arrow:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.room-lightbox-arrow:disabled { opacity: 0.3; cursor: default; }
+.room-lightbox-prev { grid-area: prev; }
+.room-lightbox-next { grid-area: next; }
+.room-lightbox-stage { grid-area: stage; position: relative; z-index: 1; width: min(1100px, 100%); height: 100%; min-height: 0; display: grid; place-items: center; overflow: hidden; touch-action: none; }
+.room-lightbox-stage img { max-width: min(94vw, 100%); max-height: 68vh; object-fit: contain; display: block; border-radius: 8px; user-select: none; animation: roomLightboxPhotoIn 0.16s ease-out; }
+.room-lightbox-fallback { display: grid; place-content: center; gap: 6px; text-align: center; padding: 40px; border: 1px dashed rgba(255, 255, 255, 0.3); border-radius: 12px; color: #f2f5f4; }
+.room-lightbox-fallback p { margin: 0; font-size: 15px; font-weight: 700; }
+.room-lightbox-fallback small { color: #b9c4c1; font-size: 12px; }
+.room-lightbox-stage.is-zoomed { cursor: grab; }
+.room-lightbox-stage.is-zoomed:active { cursor: grabbing; }
+.room-lightbox-zoom { grid-area: zoom; position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.16); }
+.room-lightbox-zoom button { min-width: 44px; min-height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent; color: #fff; font-size: 13px; font-weight: 750; cursor: pointer; }
+.room-lightbox-zoom button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.14); }
+.room-lightbox-zoom button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.room-lightbox-zoom button:disabled { opacity: 0.35; cursor: default; }
+
+@media (max-width: 640px) {
+  .room-lightbox { grid-template-columns: auto minmax(0, 1fr) auto; gap: 6px; padding-left: 10px; padding-right: 10px; }
+  .room-lightbox-arrow { width: 40px; height: 40px; }
+  .room-lightbox-stage img { max-height: 62vh; }
+  .room-photo-open-hint { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .room-lightbox, .room-lightbox-stage img { animation: none; }
+  .room-photo-open-hint { transition: none; }
+}
+
 .rd-facts { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 4px; padding: 0; }
 .rd-facts li {
   display: inline-flex;

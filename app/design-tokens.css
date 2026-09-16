@@ -184,6 +184,7 @@
   --z-index-popover: 1100;
   --z-index-tooltip: 1200;
   --z-index-toast: 1300;
+  --z-index-lightbox: 1400;
 
   /* -- Transition Primitives -- */
   --transition-fast: 100ms ease;
@@ -713,6 +714,7 @@
   .table-tools,
   .dialog-backdrop,
   .dialog,
+  .room-lightbox,
   .toast {
     display: none !important;
   }

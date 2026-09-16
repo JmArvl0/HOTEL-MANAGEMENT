@@ -33,4 +33,18 @@ describe("Booking search", () => {
     expect((screen.getByLabelText("Check out") as HTMLInputElement).value).toBe("2099-09-07");
     expect(intents.at(-1)).toEqual({ checkIn: "2099-09-06", checkOut: "2099-09-07", guests: 2 });
   });
+  it("stays quiet while the fields match the searched stay", () => {
+    render(<BookingSearchForm initial={{ checkIn: "2099-09-06", checkOut: "2099-09-08", guests: 2 }} searched={{ checkIn: "2099-09-06", checkOut: "2099-09-08", guests: 2 }} />);
+    expect(screen.queryByText(/check availability again/)).toBeNull();
+  });
+  it("flags stale results when dates are edited without re-checking", () => {
+    render(<BookingSearchForm initial={{ checkIn: "2099-09-06", checkOut: "2099-09-08", guests: 2 }} searched={{ checkIn: "2099-09-06", checkOut: "2099-09-08", guests: 2 }} />);
+    fireEvent.change(screen.getByLabelText("Check in"), { target: { value: "2099-09-10" } });
+    expect(screen.getByRole("status").textContent).toMatch(/check availability again/);
+  });
+  it("flags stale results when the guest count changes", () => {
+    render(<BookingSearchForm initial={{ checkIn: "2099-09-06", checkOut: "2099-09-08", guests: 2 }} searched={{ checkIn: "2099-09-06", checkOut: "2099-09-08", guests: 2 }} />);
+    fireEvent.change(screen.getByLabelText("Guests"), { target: { value: "4" } });
+    expect(screen.getByRole("status").textContent).toMatch(/check availability again/);
+  });
 });

@@ -11,6 +11,7 @@ import "@/components/booking/room-details.css";
 import "./design-tokens.css";
 import "./ui-primitives.css";
 import "./coastal-theme.css";
+import "@/components/customer/notification-history.css";
 import "./customer-portal.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });

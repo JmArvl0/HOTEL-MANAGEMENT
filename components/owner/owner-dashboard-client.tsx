@@ -5,6 +5,7 @@ import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { Activity, BarChart3, BedDouble, Building2, CarTaxiFront, ChevronDown, ChevronRight, CircleDollarSign, ClipboardCheck, FileText, Image, KeyRound, LogOut, PanelLeftClose, Settings, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { ToastStack, useToasts } from "@/components/ui/toast-stack";
 import { SettingsDialog } from "@/components/ui/SettingsDialog";
 import RoomCatalogPanel from "@/components/catalog/room-catalog-panel";
 import TransportServicesPanel from "@/components/catalog/transport-vehicle-types-panel";
@@ -42,13 +43,13 @@ export default function OwnerDashboardClient({ user }: { user: User }) {
   const [section, setSection] = useState<Section>("overview");
   const [data, setData] = useState<unknown>(null);
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState("");
+  const toastController = useToasts();
   const [collapsed, setCollapsed] = useState(() => typeof window !== "undefined" && window.localStorage.getItem("haven-owner-sidebar-collapsed") === "true");
   const [menu, setMenu] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const toggleGroup = (id: string) => setOpenGroups((prev) => { const next = { ...prev, [id]: !(prev[id] ?? false) }; window.localStorage.setItem("haven-owner-sidebar-groups", JSON.stringify(next)); return next; });
   useEffect(() => { const timer = window.setTimeout(() => { try { const saved: unknown = JSON.parse(window.localStorage.getItem("haven-owner-sidebar-groups") ?? "{}"); if (saved && typeof saved === "object") setOpenGroups(saved as Record<string, boolean>); } catch {} }, 0); return () => window.clearTimeout(timer); }, []);
-  const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 3500); };
+  const notify = (message: string) => { toastController.push({ title: message }); };
   const dialogs = useActionDialogs();
   const load = useCallback(async () => {
     if (section === "room_types" || section === "transport_services" || section === "transportation") { setLoading(false); return; }
@@ -171,9 +172,9 @@ export default function OwnerDashboardClient({ user }: { user: User }) {
         <div className={`nav-group${open ? " open" : ""}`} id={`nav-group-${group.id}`}><div className="nav-group-items">{nav.filter(([key]) => group.sections.includes(key)).map(([key, text, Icon]) => <button key={key} className={section === key ? "active" : ""} onClick={() => { setSection(key); setMenu(false); }} title={text}><Icon size={18}/><span className="nav-label">{text}</span></button>)}</div></div>
       </div>; })}</nav>
     </aside>
-    <main className="workspace"><header className="app-header"><button className="menu-btn brand-menu-btn" onClick={() => setMenu(true)} aria-label="Open navigation"><span className="brand-mark"><Sparkles size={16}/></span></button><div><p>{nav.find((item) => item[0] === section)?.[1]}</p><small>Provisional Owner / Super Admin Governance Baseline</small></div><div className="header-actions"><ThemeToggle/><div className="profile-menu-wrap" ref={profileMenu}><button className="profile-menu-btn" onClick={() => setProfileOpen((value) => !value)} aria-expanded={profileOpen} aria-haspopup="menu" aria-label="Account menu"><b>{(user.name ?? "OW").slice(0, 2).toUpperCase()}</b><span>{user.name}</span><ChevronDown size={14}/></button>{profileOpen && <div className="popover-gap"><div className="profile-popover"><p><strong>{user.name}</strong><small>{user.email}</small><small>Owner / Super Admin</small></p><button onClick={() => { setProfileOpen(false); setSettingsOpen(true); }}><Settings size={15}/>Settings</button><button onClick={() => signOut({ callbackUrl: "/" })}><LogOut size={15}/>Sign Out</button></div></div>}</div></div></header>
+    <main className="workspace"><header className="app-header"><button className="menu-btn brand-menu-btn" onClick={() => setMenu(true)} aria-label="Open navigation"><span className="brand-mark"><Sparkles size={16}/></span></button><div><p>{nav.find((item) => item[0] === section)?.[1]}</p><small>Provisional Owner / Super Admin Governance Baseline</small></div><div className="header-actions"><ThemeToggle/><div className="profile-menu-wrap" ref={profileMenu}><button className="profile-menu-btn" onClick={() => setProfileOpen((value) => !value)} aria-expanded={profileOpen} aria-haspopup="menu" aria-label="Account menu"><b>{(user.name ?? "OW").slice(0, 2).toUpperCase()}</b><span>{user.name}</span><ChevronDown size={14}/></button>{profileOpen && <div className="popover-gap"><div className="profile-popover"><p><strong>{user.name}</strong><small>{user.email}</small><small>Owner / Super Admin</small></p><button onClick={() => { setProfileOpen(false); setSettingsOpen(true); }}><Settings size={15}/>Settings</button><button onClick={() => signOut({ callbackUrl: "/" })}><LogOut size={15}/>Sign Out</button></div></div>}</div></div></header><ToastStack controller={toastController} />
       <div className="workspace-body">{section === "room_types" ? <RoomCatalogPanel role="owner"/> : section === "transport_services" ? <TransportServicesPanel/> : section === "transportation" ? <TransportationPanel role="owner"/> : loading ? <div className="empty"><Activity/><h3>Loading executive records…</h3></div> : section === "overview" ? <Overview data={data as ExecutiveData} setSection={setSection}/> : section === "operations" ? <Operations data={data as { metrics: Record<string, number>; departmentSummary: Record<string, Record<string, number>>; risks: Record<string, Row[]>; trend: Row[] }}/> : section === "financial" ? <Financial data={data as Row}/> : section === "departments" ? <Departments data={data as { departmentSummary: Record<string, Record<string, number>>; risks: Record<string, Row[]> }}/> : section === "admins" ? <Admins rows={rows} currentId={user.id} createAdmin={createAdmin} action={adminAction}/> : section === "roles" ? <Roles data={data as { catalogue: Record<string, string[]>; ownerPrinciples: string[] }}/> : section === "policy" ? <Policy item={data as Row} edit={editPolicy}/> : section === "exceptions" ? <Exceptions rows={rows} review={reviewException}/> : section === "audit" || section === "security" ? <Audit rows={rows} security={section === "security"}/> : <Reports data={data as ExecutiveData}/>}</div>
-    </main>{settingsOpen && <SettingsDialog isOpen onClose={()=>setSettingsOpen(false)}/>}{toast && <div className="toast"><ShieldCheck size={18}/>{toast}</div>}{dialogs.view}
+    </main>{settingsOpen && <SettingsDialog isOpen onClose={()=>setSettingsOpen(false)}/>}{dialogs.view}
   </div>;
 }
 

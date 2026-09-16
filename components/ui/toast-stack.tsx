@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CheckCircle2, Info, TriangleAlert, X } from "lucide-react";
 
-export type ToastTone = "info" | "success" | "warning";
+export type ToastTone = "info" | "success" | "warning" | "error";
 export interface ToastOptions {
   id?: string;
   title: string;
@@ -25,10 +25,10 @@ interface ActiveToast extends ToastOptions {
   startedAt: number;
 }
 
-export const TOAST_DURATION: Record<ToastTone, number> = { info: 6000, success: 6000, warning: 8000 };
+export const TOAST_DURATION: Record<ToastTone, number> = { info: 6000, success: 6000, warning: 8000, error: 8000 };
 const MAX_VISIBLE = 3;
 
-const TONE_ICONS: Record<ToastTone, React.ElementType> = { info: Info, success: CheckCircle2, warning: TriangleAlert };
+const TONE_ICONS: Record<ToastTone, React.ElementType> = { info: Info, success: CheckCircle2, warning: TriangleAlert, error: TriangleAlert };
 
 export interface ToastController {
   toasts: ActiveToast[];
@@ -104,7 +104,7 @@ export function ToastStack({ controller }: { controller: ToastController }) {
   return <div className="toast-stack" role="log" aria-live="polite" aria-label="Notifications">
     {toasts.map((toast) => {
       const Icon = TONE_ICONS[toast.tone ?? "info"];
-      return <div className={`toast-card ${toast.tone ?? "info"}`} key={toast.id} role="status"
+      return <div className={`toast-card ${toast.tone ?? "info"}`} key={toast.id} role={toast.tone === "error" ? "alert" : "status"}
         onMouseEnter={() => pause(toast.id)} onMouseLeave={() => resume(toast.id)}
         onFocusCapture={() => pause(toast.id)} onBlurCapture={() => resume(toast.id)}>
         <span className="toast-icon"><Icon size={17} aria-hidden="true"/></span>

@@ -329,8 +329,12 @@ by type name (`badge_color_key` / `badgeColorKey`).
 unit, not the product: number, floor, wing, administrative designation, room type, and the
 `administratively_active` inventory switch. Nothing else is configurable, and none of it duplicates
 room-type marketing content. Two RPCs own the whole surface, both audited under
-`entity_type='room'` with a required reason and both reached through Manager's
-`/api/catalog/rooms*` and Governance's `/api/admin/rooms/[id]` routes:
+`entity_type='room'` and both reached through Manager's
+`/api/catalog/rooms*` and Governance's `/api/admin/rooms/[id]` routes.
+Creation takes no user-entered reason (a room that does not exist yet has no
+prior configuration to explain); the `admin_create_room` audit row itself is
+the record, carrying the supplied reason only when one was given. Updates
+require a reason:
 
 - `admin_create_room` — number must be free (`ROOM_NUMBER_TAKEN`, backed by `rooms_number_key` for
   the race), type must exist (`ROOM_TYPE_NOT_FOUND`). `rate` is copied from `room_types.base_rate`
@@ -404,8 +408,11 @@ Confirmation**, wired through search-params → a server-issued **hold token** �
    in the past, check-out after check-in, 1–8 guests. Availability is computed server-side
    (`lib/booking.getAvailability` → `countAvailableUnits`): per room type, `inventory − blocking
    reservations − active holds`, counting only administratively active rooms and excluding
-   maintenance-blocked/out-of-service rooms and (for tonight) not-yet-clean ones. Only types with
-   `availableUnits > 0` are offered, cheapest first. **The SQL gates apply the same four
+   maintenance-blocked/out-of-service rooms and (for tonight) not-yet-clean ones. Types with
+   `availableUnits > 0` are offered first, cheapest first; sold-out types stay visible as
+   Unavailable with booking disabled (details page redirects them back to search). The
+   hotel day for the same-day rule comes from the `hotel_timezone` policy, matching
+   `hotel_today(policy)`. **The SQL gates apply the same four
    predicates**: every inventory count in Postgres goes through `room_is_sellable(room_id,
    check_in, policy)` — `create_booking_hold`, `customer_request_reservation_change`,
    `front_desk_create_reservation`, `front_desk_execute_manager_approval`,
@@ -433,7 +440,12 @@ Confirmation**, wired through search-params → a server-issued **hold token** �
    guests are redirected to `/account/find-room` with all params (including `roomType`)
    forwarded, and that page derives modes identically.
 2. **Room details** — type facts + photos; per-night rate × nights = subtotal (rates from the
-   rate-plan resolver §6 — per-night when a weekend/seasonal plan varies them).
+   rate-plan resolver §6 — per-night when a weekend/seasonal plan varies them). Every room
+   photo (result card, View Details gallery) opens one shared full-screen viewer
+   (`RoomPhotoLightbox`, `--z-index-lightbox: 1400` above every modal): looping prev/next +
+   arrow keys, `Photo N of M`, 100–200% zoom with clamped drag-pan and double-click toggle,
+   Escape/backdrop close returning focus to the exact trigger. Presentation-only — no
+   booking, availability, pricing, or auth change.
 3. **Guest details** (`/booking/details`) — names, email, mobile, address, nationality, expected
    arrival, **structured multi-select request options** (`request_options`, up to 12), free-text
    special requests, and an **optional transportation preference** (service type, locations, dates,
@@ -497,7 +509,14 @@ Self-service actions and their constraints:
   pending request with a reason.
 - **Notifications** — durable, user-scoped event rows from deposit/stay-payment review,
   guest-request review, and transportation schedule/cancellation actions. The customer shell reads
-  the newest events from `notifications`; optional Resend delivery is a non-blocking copy, so
+  the newest events from `notifications` (bell dropdown, 5-item seed, single aggregate unread
+  badge); "View all notifications" opens the notification-history modal
+  (`components/customer/notification-history-modal.tsx`) instead of navigating — hotel-day filter
+  (Today / Yesterday / loaded days / specific date, Asia/Manila bucketing), unread-first then
+  read grouping (newest-first), per-day "Mark this day as read"
+  (`POST /api/account/notifications/read`, `GET /api/account/notifications` for fuller history);
+  opening the modal never marks anything read. The standalone `/account/notifications` page is
+  kept for direct URLs. Optional Resend delivery is a non-blocking copy, so
   email failure never rolls back the completed hotel action. The deposit-verified confirmation
   email also carries the guest count and a payment-state line (remaining balance or "Fully paid").
 - **Reminders** — daily automated guest communication (§7.13): a **pre-arrival** email/notification
@@ -831,23 +850,38 @@ customer portal have none):
    can render the same aging chips).
 2. **Header bell = live derived alerts.** The existing popover over `dashboard.notifications` —
    role-scoped alerts computed per request in `getDashboard` (§5). Deliberately *not* a persistent
-   read/unread inbox: no `staff_notifications` table exists, alerts resolve with the underlying work,
+   server-side read/unread inbox: no `staff_notifications` table exists, alerts resolve with the underlying work,
    and no schema change was made. The bell button shows the live alert count.
+   The popover's "View all notifications" opens the shared notification-history modal
+   (`components/customer/notification-history-modal.tsx`, also used by the guest bell) instead of
+   navigating away: hotel-day filter (Today / Yesterday / loaded days / specific date, Asia/Manila
+   bucketing via `lib/notifications.ts`), unread-first then read grouping (newest-first),
+   per-day "Mark this day as read", and View jumping to the alert's module. Staff
+   read/dismissed ids are per-device UI state (`localStorage`, keyed per user+role, capped) —
+   the server alert list stays authoritative, opening the modal never clears anything, and
+   sidebar workload badges are untouched by reads.
 3. **Transient in-app toast = new-event alert** (`components/ui/toast-stack.tsx`). The client diffs
    the polled notification list by id: the first poll after load seeds silently (a refresh never
-   replays history as toasts), and only alerts appearing later pop a bottom-right toast (info 6 s /
-   warning 8 s; hover or focus pauses the timer; max 3 visible with overflow queued; "View" jumps to
+   replays history as toasts), and only alerts appearing later pop a centered-below-header toast
+   (info/success 6 s, warning/error 8 s; hover or focus pauses the timer; max 3 visible with overflow queued; "View" jumps to
    the alert's module; × removes only the popup). Local action feedback (`notify()`) uses the same
-   stack with a success tone. A toast's disappearance never resolves anything — the bell keeps
+   stack with a success tone. Admin/Owner governance shells render the same centered viewport for
+   local action feedback (their former ad-hoc corner `.toast` is retired). A toast's disappearance never resolves anything — the bell keeps
    listing the alert and the badge keeps counting the work until it is genuinely handled.
 
 Refresh architecture: no Supabase Realtime exists anywhere (the browser never talks to Supabase —
 service-role-only, §13 — and realtime would require anon-key policies). Instead the operational
 client polls `/api/manager_dashboard` every 30 s even on non-Overview sections (a dedicated
-`refreshAlerts` interval) so badges, bell, and toasts stay live everywhere — the same cadence as the
-section-data poll, never faster. Contract tests: `lib/staff-notification-badges.test.ts` (count
-definitions, role gating, silent seed, id dedup); behavior tests: `components/ui/toast-stack.test.tsx`
-and the sidebar badge cases in `manager-sidebar-nav.test.tsx`.
+   `refreshAlerts` interval) so badges, bell, and toasts stay live everywhere — the same cadence as the
+   section-data poll, never faster. Contract tests: `lib/staff-notification-badges.test.ts` (count
+   definitions, role gating, silent seed, id dedup); history tests: `lib/notification-history.test.ts`
+   (Manila day bucketing, day resolution, unread-first grouping, guest read scoping),
+   `components/customer/notification-history-modal.test.tsx` (filtering, sorting, counts, empty
+   states, day-scoped mark-read, Escape), `components/customer/customer-shell-notifications.test.tsx`
+   (guest bell badge, modal-without-navigation, focus return),
+   `components/manager/staff-notification-history.test.tsx` (View-all wiring, module jump,
+   per-user read key); behavior tests: `components/ui/toast-stack.test.tsx`
+   and the sidebar badge cases in `manager-sidebar-nav.test.tsx`.
 
 Admin and Owner get dedicated governance screens (§7.10).
 
@@ -1398,7 +1432,8 @@ Maintenance, transportation, guest-request batches/catalogue, physical rooms, ro
 manager attention/staff duty, approval display, durable notifications, auth/environment, theme,
 analytics, advisory AI guards/tools/audit, and hashed QR tokens. Component coverage includes the
 arrival and walk-in dialogs, Manager reservations/approvals/guest requests/staff duty/transportation,
-predictive insights, HAVEN AI, booking arrival-time selection, QR scanning, breadcrumbs, and modal
+predictive insights, HAVEN AI, booking expected-arrival and Pickup-time entry (both native
+`<input type="time">`), QR scanning, breadcrumbs, and modal
 focus behavior.
 
 `lib/fake-supabase.ts` provides the in-memory query-builder subset used by domain tests.

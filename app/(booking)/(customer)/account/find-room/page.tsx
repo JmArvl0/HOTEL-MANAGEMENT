@@ -1,4 +1,5 @@
 import { BookingSearchForm } from "@/components/booking/booking-search-form";
+import { AvailabilityGuide } from "@/components/booking/availability-guide";
 import { RoomResults } from "@/components/booking/room-results";
 import { RoomFocus } from "@/components/booking/room-focus";
 import { getAvailability, getRoomCatalog, parseSearchIntent, type AvailableRoomType, type RoomTypeSummary } from "@/lib/booking";
@@ -52,7 +53,7 @@ export default async function FindRoomPage({ searchParams }: { searchParams: Pro
   return <><section className="customer-page-title"><p className="eyebrow">Reserve your stay</p><h1>Find a Room</h1><p>{availability ? "Live availability from Haven's room inventory." : "Browse Haven's room types, then choose your dates to see live availability."}</p></section>
   {intent.mode === "browse" && intent.notice && <p className="booking-notice">Your search needs attention — {intent.notice.toLowerCase()}. Pick dates below to see live availability.</p>}
   {focusNotice && <p className="booking-notice">{focusNotice}</p>}
-  <div id="book-form"><BookingSearchForm compact action={FIND_ROOM_PATH} initial={formInitial}/></div>
+  <AvailabilityGuide id="book-form"><BookingSearchForm compact action={FIND_ROOM_PATH} initial={formInitial} searched={availability ? { checkIn: availability.checkIn, checkOut: availability.checkOut, guests: availability.guests } : undefined}/></AvailabilityGuide>
   {focusRoomType && <RoomFocus roomType={focusRoomType} searchKey={JSON.stringify(raw)}/>}
   <RoomResults rooms={rooms} error={lookupError} hrefFor={details} focusRoomType={focusRoomType}/></>;
 }

@@ -6,6 +6,7 @@ import { ArrowRight, CalendarDays, Check, ChevronRight, Clock3, Headphones, Shie
 import { authOptions } from "@/lib/auth";
 import { LandingNav } from "@/components/landing/landing-nav";
 import { BookingSearchForm } from "@/components/booking/booking-search-form";
+import { AvailabilityGuide } from "@/components/booking/availability-guide";
 import { BackButton } from "@/components/booking/back-button";
 import { RoomResults } from "@/components/booking/room-results";
 import { RoomFocus } from "@/components/booking/room-focus";
@@ -106,14 +107,14 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             </ol>
           </div>
         </div>
-        <div className="booking-search-summary" id="book-form">
+        <AvailabilityGuide id="book-form" className="booking-search-summary">
           <BookingSearchForm compact initial={formInitial} />
           {availability && <div className="booking-active-filters" aria-label="Current search filters">
             <span className="booking-filter-chip"><CalendarDays size={14} aria-hidden="true" /> {availability.checkIn} → {availability.checkOut} · {nights} night{nights !== 1 ? "s" : ""}</span>
             <span className="booking-filter-chip"><Users size={14} aria-hidden="true" /> {availability.guests} guest{availability.guests !== 1 ? "s" : ""}</span>
             <span className="booking-filter-chip"><Waves size={14} aria-hidden="true" />{rooms.length ? `${rooms.length} room type${rooms.length !== 1 ? "s" : ""} · ${totalUnits} room${totalUnits !== 1 ? "s" : ""} available` : "No rooms available for these dates"}</span>
           </div>}
-        </div>
+        </AvailabilityGuide>
       </section>
 
       <div className="booking-content--premium">

@@ -8,6 +8,7 @@ export function BookingSearchForm({
   action = "/booking/search",
   emptyDates = false,
   onIntentChange,
+  searched,
 }: {
   initial?: { checkIn?: string; checkOut?: string; guests?: number; roomType?: string };
   compact?: boolean;
@@ -16,6 +17,10 @@ export function BookingSearchForm({
   emptyDates?: boolean;
   /** Live form values for surfaces that link elsewhere with the current search (landing featured cards). */
   onIntentChange?: (intent: { checkIn: string; checkOut: string; guests: number }) => void;
+  /** The search the visible results were computed for. When the fields drift from
+   *  it, the results are stale until the guest checks again. Absent = no results
+   *  on screen (browse/landing), so no staleness signal. */
+  searched?: { checkIn: string; checkOut: string; guests: number };
 }) {
   const id = useId();
   const today = useMemo(() => {
@@ -43,6 +48,8 @@ export function BookingSearchForm({
   const nextDate = new Date(`${checkIn || today}T00:00:00Z`);
   nextDate.setUTCDate(nextDate.getUTCDate() + 1);
   const earliestCheckout = Number.isNaN(nextDate.getTime()) ? tomorrow : nextDate.toISOString().slice(0, 10);
+  const stale = searched !== undefined
+    && (checkIn !== searched.checkIn || checkOut !== searched.checkOut || guests !== searched.guests);
   return (
     <form
       className={compact ? "booking-search compact" : "booking-bar"}
@@ -51,6 +58,7 @@ export function BookingSearchForm({
       aria-label="Check availability"
       onSubmit={() => setSubmitting(true)}
     >
+      {stale && !submitting ? <p className="booking-notice" role="status">Your dates changed — check availability again for current counts.</p> : null}
       {initial?.roomType ? <input type="hidden" name="roomType" value={initial.roomType} /> : null}
       <label htmlFor={`${id}-checkin`}>
         Check in

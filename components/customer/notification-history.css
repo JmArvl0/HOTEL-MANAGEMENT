@@ -1,0 +1,280 @@
+/* Bell badge (guest header) — exactly one aggregate unread pill, mirroring
+   the staff header rule. The header link is the positioning context. */
+.customer-content-header .customer-header-link {
+  position: relative;
+}
+
+.customer-bell-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #084b55;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  font-style: normal;
+  line-height: 1;
+}
+
+/* The dropdown's View-all control is now a button (opens the modal instead
+   of navigating); keep the established row look. */
+.customer-notifications-popover button.customer-notifications-all {
+  width: 100%;
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--cp-line);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+/* Staff dropdown View-all row — same slot as the guest row, themed with the
+   operations popover (dark shell by default, light mirror below). */
+.notification-popover .notification-view-all {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  border: 0;
+  border-top: 1px solid var(--dl, #e5eae6);
+  border-radius: 0 0 6px 6px;
+  background: transparent;
+  color: #85cbd0;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+}
+
+.notification-popover .notification-view-all:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.theme-light .app-shell .notification-popover .notification-view-all {
+  color: #176773;
+  border-top-color: #e5eae6;
+}
+
+.theme-light .app-shell .notification-popover .notification-view-all:hover {
+  background: #f5f8f6;
+}
+
+/* Notification history modal — detailed-history surface shared by the guest
+   bell and the staff operations bell. Sizing honors the brief: desktop
+   min(880px, 100vw-48px) at 80-85vh with an internally scrolling body;
+   mobile near full-width at 90vh with the close button always reachable. */
+
+.nh-modal.modal-xl {
+  width: min(880px, calc(100vw - 48px));
+  max-height: 85vh;
+}
+
+.nh-filters {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+  background: var(--cp-panel, #fff);
+}
+
+.nh-filters .haven-select {
+  min-width: 200px;
+}
+
+.nh-date {
+  padding: 10px 12px;
+  border: 1px solid var(--cp-line, #e3e5df);
+  border-radius: 8px;
+  background: var(--cp-panel, #fff);
+  color: var(--cp-text, #103e48);
+  font: inherit;
+  font-size: 14px;
+}
+
+.nh-date:focus {
+  outline: none;
+  border-color: var(--cp-green, #176773);
+  box-shadow: 0 0 0 3px rgba(8, 75, 85, 0.15);
+}
+
+.nh-mark {
+  margin-left: auto;
+  padding: 10px 14px;
+  border: 1px solid var(--cp-line, #e3e5df);
+  border-radius: 8px;
+  background: var(--cp-panel-2, #f7f9f6);
+  color: var(--cp-text, #103e48);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.nh-mark:hover:not(:disabled) {
+  border-color: var(--cp-green, #176773);
+  color: var(--cp-green, #176773);
+}
+
+.nh-mark:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.nh-showing {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--cp-muted, #6d7971);
+}
+
+.nh-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--cp-muted, #6d7971);
+}
+
+.nh-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--cp-panel-2, #f7f9f6);
+  border: 1px solid var(--cp-line, #e3e5df);
+  color: var(--cp-text, #103e48);
+  font-size: 11px;
+  letter-spacing: 0;
+}
+
+.nh-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nh-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--cp-line, #e3e5df);
+  border-radius: 10px;
+  background: var(--cp-panel, #fff);
+}
+
+.nh-item.is-unread {
+  background: #eef5f4;
+  border-color: #cfdeda;
+}
+
+.nh-icon {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--cp-panel-2, #f7f9f6);
+  color: var(--cp-green, #176773);
+  border: 1px solid var(--cp-line, #e3e5df);
+}
+
+.nh-item.is-unread .nh-icon {
+  background: #dcebe8;
+  border-color: #bccfd8;
+}
+
+.nh-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.nh-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cp-text, #103e48);
+}
+
+.nh-item:not(.is-unread) .nh-title {
+  font-weight: 500;
+}
+
+.nh-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cp-green, #176773);
+}
+
+.nh-detail {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--cp-text, #103e48);
+}
+
+.nh-meta {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--cp-muted, #6d7971);
+}
+
+.nh-view {
+  flex: 0 0 auto;
+  align-self: center;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--cp-line, #e3e5df);
+  background: var(--cp-panel-2, #f7f9f6);
+  color: var(--cp-green, #176773);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.nh-view:hover {
+  border-color: var(--cp-green, #176773);
+}
+
+.nh-empty {
+  margin: 8px 0;
+  font-size: 13px;
+  color: var(--cp-muted, #6d7971);
+}
+
+@media (max-width: 680px) {
+  .nh-modal.modal-xl {
+    width: calc(100vw - 16px);
+    max-height: 90vh;
+  }
+
+  .nh-mark {
+    margin-left: 0;
+    width: 100%;
+  }
+}

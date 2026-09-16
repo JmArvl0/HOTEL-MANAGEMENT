@@ -3,7 +3,6 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, CarTaxiFront } from "lucide-react";
 import { preArrivalOptions } from "@/lib/request-options";
-import { ExpectedArrivalPicker } from "@/components/booking/expected-arrival-picker";
 
 type TransportationPreferences = { serviceType: "PICKUP" | "DROPOFF" | "ROUND_TRIP"; pickupLocation?: string; dropoffLocation?: string; pickupDate: string; pickupTime: string; returnLocation?: string; returnDate?: string; returnTime?: string; passengerCount: number; specialInstructions?: string };
 
@@ -21,14 +20,14 @@ export function GuestDetailsForm({ roomType, checkIn, checkOut, guests, checkInF
   // REQUESTED row for the Front Desk workflow once the reservation is confirmed.
   const [needRide, setNeedRide] = useState(Boolean(initialTransport));
   const [serviceType, setServiceType] = useState<string>(initialTransport?.serviceType ?? "PICKUP");
-  // Canonical "HH:MM" from the arrival picker; the hidden input keeps the FormData pipeline untouched.
-  const [arrival, setArrival] = useState(initialArrival);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setLoading(true); setError("");
-    if (!arrival) { setError("Select your expected arrival time."); setLoading(false); return; }
     const form = new FormData(event.currentTarget);
     const field = (key: string) => String(form.get(key) ?? "");
+    // Expected arrival stays required. The native time input yields canonical "HH:MM" — the same
+    // value the old picker committed — so the guard reads it straight off the form.
+    if (!field("expectedArrival")) { setError("Select your expected arrival time."); setLoading(false); return; }
     const payload: Record<string, unknown> = {
       roomType: field("roomType"), checkIn: field("checkIn"), checkOut: field("checkOut"),
       guests: Number(field("guests")), firstName: field("firstName"), lastName: field("lastName"),
@@ -54,7 +53,7 @@ export function GuestDetailsForm({ roomType, checkIn, checkOut, guests, checkInF
   }
   return <form className="booking-form-card" onSubmit={submit}>
     <input type="hidden" name="roomType" value={roomType}/><input type="hidden" name="checkIn" value={checkIn}/><input type="hidden" name="checkOut" value={checkOut}/><input type="hidden" name="guests" value={guests}/>
-    <div className="booking-form-grid"><label>First name<input name="firstName" defaultValue={defaults.firstName} required maxLength={80}/></label><label>Last name<input name="lastName" defaultValue={defaults.lastName} required maxLength={80}/></label><label>Email<input name="email" type="email" defaultValue={defaults.email} required maxLength={200}/></label><label>Mobile number<input name="mobile" type="tel" defaultValue={defaults.mobile} required maxLength={30}/></label><label className="wide">Address<input name="address" defaultValue={defaults.address} required maxLength={300}/></label><label>Nationality (optional)<input name="nationality" defaultValue={defaults.nationality} maxLength={80}/></label><div className="arrival-field"><span>Expected arrival</span><ExpectedArrivalPicker value={arrival} onChange={setArrival}/><input type="hidden" name="expectedArrival" value={arrival}/><small className="arrival-note">Helps Front Desk prepare — your room follows check-in from {checkInFrom}, not this time. Early check-in is a separate request.</small></div></div>
+    <div className="booking-form-grid"><label>First name<input name="firstName" defaultValue={defaults.firstName} required maxLength={80}/></label><label>Last name<input name="lastName" defaultValue={defaults.lastName} required maxLength={80}/></label><label>Email<input name="email" type="email" defaultValue={defaults.email} required maxLength={200}/></label><label>Mobile number<input name="mobile" type="tel" defaultValue={defaults.mobile} required maxLength={30}/></label><label className="wide">Address<input name="address" defaultValue={defaults.address} required maxLength={300}/></label><label>Nationality (optional)<input name="nationality" defaultValue={defaults.nationality} maxLength={80}/></label><div className="arrival-field"><label htmlFor="expected-arrival">Expected arrival</label><input id="expected-arrival" name="expectedArrival" type="time" defaultValue={initialArrival}/><small className="arrival-note">Helps Front Desk prepare — your room follows check-in from {checkInFrom}, not this time. Early check-in is a separate request.</small></div></div>
     <div className="booking-form-options">
       <span className="booking-form-option-heading">What can we prepare before you arrive? <small>Optional — choose as many as you like. Each will be filed with the right team once your stay is confirmed.</small></span>
       <div className="request-options-list">{preArrivalOptions().map((option) => <label className="request-option" key={option.value}><input type="checkbox" name="requestOption" value={option.value} defaultChecked={initialRequests.includes(option.value)}/><span>{option.label}</span></label>)}</div>

@@ -8,7 +8,7 @@ import {
   FileText, ReceiptText, RotateCcw, Users,
 } from "lucide-react";
 import { formatPeso } from "@/lib/format";
-import { CheckInQr } from "@/components/customer/check-in-qr";
+import { CheckInQr, CheckInQrExpired } from "@/components/customer/check-in-qr";
 import { ReservationActions } from "@/components/customer/reservation-actions";
 import {
   SERVICE_TYPE_LABELS, isAssignmentVisible,
@@ -184,7 +184,8 @@ export function ReservationDetailView({ data }: { data: ReservationDetailViewDat
         )}
       </section>
 
-      {data.status === "confirmed" && <CheckInQr reservationId={data.id} confirmationNumber={data.confirmationNumber} />}
+      {(data.status === "confirmed" || data.status === "checked_in") && <CheckInQr reservationId={data.id} confirmationNumber={data.confirmationNumber} />}
+      {(data.status === "checked_out" || terminal(data.status)) && <CheckInQrExpired completed={data.status === "checked_out"} />}
 
       <section className="crd-folio-strip" aria-label="Payment summary">
         <div className="crd-folio-figures">

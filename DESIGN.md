@@ -226,8 +226,10 @@ Radix/shadcn — banned in `docs/ui-motion-guidelines.md`).
   `.haven-filter` div (filters) or `.arrival-field.haven-field` div (forms)
   with the trigger's stable `aria-label` as the accessible name.
 - **Out of scope by design:** action menus (⋮/profile/New-reservation),
-  date/time inputs, the arrival time wheel, and the room radiogroup keep
-  their own semantics and share only radius/type/shadow.
+  date/time inputs and the room radiogroup keep
+  their own semantics and share only radius/type/shadow. Expected arrival is
+  exactly such an input — a native `<input type="time">` beside Nationality,
+  the same control as Pickup time under Need a ride.
 
 ## 12. Performance reports surface (staff Reports section)
 

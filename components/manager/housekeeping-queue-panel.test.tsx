@@ -2,8 +2,8 @@
 // Render-layer smoke test for the Housekeeping queue summary cards: the counts
 // must come from the same groupQueueTask grouping the visible queue renders, so
 // card == queue by construction (same pattern as module-summary.test.tsx).
-import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import HousekeepingQueuePanel, { groupQueueTask } from "./housekeeping-queue-panel";
 import type { RecordItem } from "@/lib/types";
 
@@ -62,5 +62,82 @@ describe("HousekeepingQueuePanel summary cards", () => {
     renderPanel([task({ id: "t1", status: "cancelled" })]);
     const cards = Array.from(screen.getByRole("group", { name: "Housekeeping summary" }).querySelectorAll("article")).map((card) => card.querySelector("b")?.textContent);
     expect(cards).toEqual(["0", "0", "0", "0", "0"]);
+  });
+});
+
+describe("HousekeepingQueuePanel workspace", () => {
+  it("renders the hero, the typical-path legend, and prominent active work", () => {
+    renderPanel([task({ status: "in_progress", assigned_user_id: "u1" })]);
+    expect(screen.getByRole("heading", { name: "Housekeeping" })).toBeTruthy();
+    const flow = screen.getByRole("list", { name: "Typical room-care path" });
+    expect(flow.textContent).toContain("Pending");
+    expect(flow.textContent).toContain("Ready");
+    // The non-empty work group carries primary emphasis.
+    expect(document.querySelector(".hk-group-primary")).toBeTruthy();
+    // Complete Task leads the actions on an in-progress card.
+    const card = document.querySelector(".hk-group-primary .hk-queue-card")!;
+    const actions = Array.from(card.querySelectorAll("button")).map((b) => b.textContent);
+    expect(actions[0]).toBe("Complete Task");
+  });
+
+  it("filters the queue by work type and status while cards stay global", () => {
+    renderPanel([
+      task({ id: "t1", task_type: "checkout_cleaning", status: "pending" }),
+      task({ id: "t2", task: "Stayover tidy", task_type: "stayover_cleaning", status: "in_progress", assigned_user_id: null, assigned_to: "Unassigned" }),
+    ]);
+    // Narrow to stayover work: only the stayover card remains listed.
+    fireEvent.click(screen.getByRole("button", { name: "Filter by work type" }));
+    fireEvent.click(screen.getByRole("option", { name: "stayover cleaning" }));
+    const queue = screen.getByRole("region", { name: "Room care queue" });
+    expect(within(queue).queryByText("checkout cleaning")).toBeNull();
+    expect(within(queue).getByText("stayover cleaning")).toBeTruthy();
+    // Cards still describe the whole loaded queue.
+    const cards = Array.from(screen.getByRole("group", { name: "Housekeeping summary" }).querySelectorAll("article")).map((card) => card.querySelector("b")?.textContent);
+    expect(cards).toEqual(["1", "1", "0", "0", "0"]);
+  });
+
+  it("links to Guest Requests with the live open count and no duplicate actions", () => {
+    const open = vi.fn();
+    render(<HousekeepingQueuePanel
+      role="housekeeping" userId="u1" items={[task()]} search="" setSearch={noop}
+      housekeepingAction={noop} coordinate={noop} onViewMaintenance={noop} onViewRoom={noop}
+      guestRequestOpen={4} onOpenGuestRequests={open}
+    />);
+    const strip = screen.getByRole("region", { name: "Guest service requests" });
+    expect(strip.textContent).toContain("4 open");
+    expect(within(strip).queryByRole("button", { name: "Start" })).toBeNull();
+    expect(within(strip).queryByRole("button", { name: "Complete" })).toBeNull();
+    fireEvent.click(within(strip).getByRole("button", { name: "Open Guest Requests" }));
+    expect(open).toHaveBeenCalledOnce();
+  });
+
+  it("hides the guest strip without a navigator and for other roles", () => {
+    renderPanel([task()]);
+    expect(screen.queryByRole("region", { name: "Guest service requests" })).toBeNull();
+    cleanup();
+    render(<HousekeepingQueuePanel
+      role="manager" userId="u1" items={[task()]} search="" setSearch={noop}
+      housekeepingAction={noop} coordinate={noop} onViewMaintenance={noop} onViewRoom={noop}
+      guestRequestOpen={4} onOpenGuestRequests={noop}
+    />);
+    expect(screen.queryByRole("region", { name: "Guest service requests" })).toBeNull();
+  });
+
+  it("keeps completed history collapsible and the maintenance block explicit", () => {
+    renderPanel([
+      task({ id: "t1", status: "completed", inspection_status: "passed", completed_at: nowIso }),
+      task({ id: "t2", task: "Stayover tidy", maintenance_blocked: true }),
+    ]);
+    // Completed-today starts collapsed behind its toggle (task text lives in
+    // the card body, so assert on the section's content, not a bare text node).
+    const completedSection = () => screen.getByRole("region", { name: "Completed today" });
+    expect(completedSection().textContent).not.toContain("Turnover clean");
+    const toggle = screen.getByRole("button", { name: /Completed today/ });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(toggle);
+    expect(completedSection().textContent).toContain("Turnover clean");
+    // Blocked work names the blocker (card + section) and links the work order.
+    expect(screen.getAllByText("Blocked by Maintenance")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "View work order" })).toBeTruthy();
   });
 });
