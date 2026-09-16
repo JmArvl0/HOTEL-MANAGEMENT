@@ -21,6 +21,21 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
 
 ## Recently Completed
 
+- **Pre-arrival inventory options (2026-09-16)** — Guest Details amenities are live
+  Manager-linked inventory (in-stock only, no dummy fallback, no exposed quantities);
+  pre-arrival governance is Manager-only ([[D-015]]), in-stay catalog unchanged,
+  consumption stays at fulfillment (exact FK). Gates: typecheck, lint 0 errors,
+  1215/1215, build, db push + 8/8 live probe. Manual QA A–F pending.
+  See [[2026-09-16 - Pre-Arrival Inventory Options]].
+
+- **Find a Room hover overlay fix (2026-09-16)** — hover no longer covers the photo
+  with a white block: generic `.available-room-image span` re-scoped to the
+  availability chip (root cause), plus restrained hover (14% tint, 1.02 scale, View
+  photo pill fade). Presentation-only, lightbox untouched. Gates: targeted 29/29,
+  1215/1215, lint 0 errors, build 64/64, detector clean. Typecheck blocked by a
+  parallel session's 3 pre-existing errors in `request-types-panel.tsx` (untouched).
+  Manual browser hover check pending. See [[2026-09-16 - Find a Room Hover Fix]].
+
 - **Expected arrival native time input (2026-09-16)** — Guest Details' **Expected arrival**
   radial clock popover / wheel sheet is gone; it is now a plain native `<input type="time">`,
   the same control as Need a ride → Pickup time, inheriting the shared `.booking-form-grid

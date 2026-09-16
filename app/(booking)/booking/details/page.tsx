@@ -6,6 +6,7 @@ import { BookingSummary } from "@/components/booking/booking-shell";
 import { GuestDetailsForm } from "@/components/booking/guest-details-form";
 import { getGuestProfile, getOwnedHold, getRoomType, searchSchema } from "@/lib/booking";
 import { displayTime, getOperationalPolicy } from "@/lib/hotel-policy";
+import { getPreArrivalOptions } from "@/lib/inventory-request-options";
 export default async function DetailsPage({searchParams}:{searchParams:Promise<Record<string,string|undefined>>}){
  const raw=await searchParams;const search=searchSchema.safeParse({checkIn:raw.checkIn,checkOut:raw.checkOut,guests:raw.guests});if(!search.success)redirect("/booking/search");
  const roomType=raw.roomType??"";const returnPath=`/booking/details?${new URLSearchParams({roomType,checkIn:search.data.checkIn,checkOut:search.data.checkOut,guests:String(search.data.guests)})}`;
@@ -21,7 +22,8 @@ export default async function DetailsPage({searchParams}:{searchParams:Promise<R
  const defaults=usableHold?{firstName:usableHold.first_name,lastName:usableHold.last_name,email:usableHold.email,mobile:usableHold.mobile,address:usableHold.address??"",nationality:usableHold.nationality??"",specialRequests:usableHold.special_requests??""}:profileDefaults;
  const initialRequests=usableHold&&Array.isArray(usableHold.request_options)?(usableHold.request_options as string[]):[];
  const initialArrival=usableHold?.expected_arrival??"";const initialTransport=usableHold?(usableHold.transportation_preferences as Parameters<typeof GuestDetailsForm>[0]["initialTransport"]):null;
- const policy=await getOperationalPolicy();
+  const policy=await getOperationalPolicy();
+  const preArrival=await getPreArrivalOptions();
  const breadcrumb=[{label:"Find a Room",href:`/account/find-room?${new URLSearchParams({checkIn:search.data.checkIn,checkOut:search.data.checkOut,guests:String(search.data.guests)})}`},{label:"Guest details",current:true}];
- return <BookingPageFrame session={session} step="Guest details" breadcrumb={breadcrumb}><section className="booking-stage customer-booking-stage-inner"><div><p className="eyebrow">Almost yours</p><h1>Tell us about your stay.</h1><p>We&apos;ll use these details for your reservation and arrival preparation.</p><GuestDetailsForm roomType={room.name} checkIn={search.data.checkIn} checkOut={search.data.checkOut} guests={search.data.guests} checkInFrom={displayTime(policy.checkInTime)} defaults={defaults} initialRequests={initialRequests} initialArrival={initialArrival} initialTransport={initialTransport}/></div><BookingSummary roomType={room.name} checkIn={search.data.checkIn} checkOut={search.data.checkOut} guests={search.data.guests} nights={room.nights} rate={room.nightlyRate} total={room.subtotal}/></section></BookingPageFrame>;
+ return <BookingPageFrame session={session} step="Guest details" breadcrumb={breadcrumb}><section className="booking-stage customer-booking-stage-inner"><div><p className="eyebrow">Almost yours</p><h1>Tell us about your stay.</h1><p>We&apos;ll use these details for your reservation and arrival preparation.</p><GuestDetailsForm roomType={room.name} checkIn={search.data.checkIn} checkOut={search.data.checkOut} guests={search.data.guests} checkInFrom={displayTime(policy.checkInTime)} defaults={defaults} initialRequests={initialRequests} initialArrival={initialArrival} initialTransport={initialTransport} preArrival={preArrival}/></div><BookingSummary roomType={room.name} checkIn={search.data.checkIn} checkOut={search.data.checkOut} guests={search.data.guests} nights={room.nights} rate={room.nightlyRate} total={room.subtotal}/></section></BookingPageFrame>;
 }

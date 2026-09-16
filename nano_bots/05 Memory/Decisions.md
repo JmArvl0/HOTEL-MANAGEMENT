@@ -514,3 +514,42 @@ and the stored value format was already identical — so the picker was pure pre
 `components/booking/guest-details-form.test.tsx` · `lib/booking.test.ts` ·
 [[2026-09-16 - Expected Arrival Time Input]]
 
+---
+
+## D-015 — Pre-arrival inventory options are Manager-governed, in-stock-only, fulfillment-consumed
+
+Date: 2026-09-16 (build session — inventory-backed Guest Details options)
+Status: Active
+
+### Decision
+
+Amenities under Guest Details "What can we prepare before you arrive?" come from live
+inventory through `guest_request_catalog` rows carrying an explicit,
+independent `pre_arrival_requestable` flag plus `inventory_item_id`. Offered iff the row
+is active AND pre-arrival-enabled AND the linked item's `quantity > 0`
+(`inventory.quantity` is authoritative; `status` is staff-maintained display state with
+no trigger, so gating ignores it). Quantities never reach the customer; empty shelves
+render "Request items are temporarily unavailable." — never dummy items.
+
+- **Governance is Manager-only** for the two new columns (DB-verified role in the PATCH
+  route; Owner/Admin keep generic catalog administration but gain no pre-arrival toggle —
+  SYSTEM.md grants Owner no such operational capability, and the System Administrator
+  role is excluded). In-stay portal behavior (`active` only) is unchanged by either flag.
+- **No reservation:** selecting an option reserves nothing; consumption stays at
+  fulfillment, where `guest_requests.inventory_item_id` (stamped by
+  `file_booking_guest_requests`) drives exact consumption with the legacy name-match as
+  fallback for old rows. Holds revalidate every selection against the live offering.
+- High floor / early check-in / celebration stay structured service constants, never
+  inventory rows.
+
+### Reason
+
+User corrections: generic catalog roles must not leak into booking visibility;
+in-stay and pre-arrival visibility must be independently governable; stale status must
+not gate; requests must not reserve stock.
+
+### Related
+
+`SYSTEM.md` §7.2, §7.7 · `supabase/migrations/20261005010000_pre_arrival_inventory_requests.sql` ·
+`lib/inventory-request-options.ts` · [[2026-09-16 - Pre-Arrival Inventory Options]]
+

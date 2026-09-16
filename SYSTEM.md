@@ -449,7 +449,10 @@ Confirmation**, wired through search-params → a server-issued **hold token** �
 3. **Guest details** (`/booking/details`) — names, email, mobile, address, nationality, expected
    arrival, **structured multi-select request options** (`request_options`, up to 12), free-text
    special requests, and an **optional transportation preference** (service type, locations, dates,
-   times, passengers — see §7.11). The Review page's back link, breadcrumb, and "Edit details"
+   times, passengers — see §7.11). Pre-arrival amenities shown there are Manager-linked live
+   inventory (active catalog row + `pre_arrival_requestable` + quantity > 0, revalidated at
+   hold creation; quantities never shown to guests), while high floor / early check-in /
+   celebration stay structured service constants — see §7.7. The Review page's back link, breadcrumb, and "Edit details"
    action link here with `hold=<token>`; the page then prefills the form from that hold (same
    room/dates/guests, active and unexpired) so entered guest info, expected arrival, preparations,
    and the transportation request survive the round-trip. Resubmitting creates a **new** hold —
@@ -672,7 +675,10 @@ Chosen at booking (`request_options`) and auto-filed when a website reservation 
 live by a guest (`customer_submit_guest_requests`, up to 12 picks per submission, each submission a
 batch). A single router `guest_request_route(type)` maps every type to a department — front desk,
 housekeeping, maintenance, … — and auto-creates the matching housekeeping task / maintenance order.
-Requests carry priority/severity and can be escalated to a Manager.
+Requests carry priority/severity and can be escalated to a Manager. Filed rows stamp
+`inventory_item_id` when their catalog type links an inventory item, and fulfillment
+consumes that exact item (legacy rows without the FK keep name-matching); nothing is
+reserved or decremented at request time.
 
 **Batch approval.** `guest_requests` carry `batch_id` + `approval_status ∈ {pending, approved,
 rejected}` (+ `approved_by/at/note`). A customer submission (or a booking's auto-filed batch) starts

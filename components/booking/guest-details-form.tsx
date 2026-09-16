@@ -2,11 +2,11 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, CarTaxiFront } from "lucide-react";
-import { preArrivalOptions } from "@/lib/request-options";
+import { preArrivalServices, type PreArrivalOptions } from "@/lib/inventory-request-options";
 
 type TransportationPreferences = { serviceType: "PICKUP" | "DROPOFF" | "ROUND_TRIP"; pickupLocation?: string; dropoffLocation?: string; pickupDate: string; pickupTime: string; returnLocation?: string; returnDate?: string; returnTime?: string; passengerCount: number; specialInstructions?: string };
 
-type Props = { roomType: string; checkIn: string; checkOut: string; guests: number; checkInFrom: string; defaults: Record<string, string>; initialRequests?: string[]; initialArrival?: string; initialTransport?: TransportationPreferences | null };
+type Props = { roomType: string; checkIn: string; checkOut: string; guests: number; checkInFrom: string; defaults: Record<string, string>; initialRequests?: string[]; initialArrival?: string; initialTransport?: TransportationPreferences | null; preArrival?: PreArrivalOptions };
 
 const SERVICE_OPTIONS = [
   { value: "PICKUP", label: "Pickup to Hotel (e.g. airport pickup)" },
@@ -14,8 +14,12 @@ const SERVICE_OPTIONS = [
   { value: "ROUND_TRIP", label: "Round Trip (pickup + return drop-off)" },
 ] as const;
 
-export function GuestDetailsForm({ roomType, checkIn, checkOut, guests, checkInFrom, defaults, initialRequests = [], initialArrival = "", initialTransport = null }: Props) {
+export function GuestDetailsForm({ roomType, checkIn, checkOut, guests, checkInFrom, defaults, initialRequests = [], initialArrival = "", initialTransport = null, preArrival }: Props) {
   const router = useRouter(); const [error, setError] = useState(""); const [loading, setLoading] = useState(false);
+  // Amenities come from live Manager-linked inventory (server-supplied); services stay
+  // structured constants. No hardcoded amenity fallback ever renders here.
+  const amenities = preArrival?.amenities ?? [];
+  const services = preArrival?.services ?? preArrivalServices();
   // Optional transportation request: pure client state, no pricing, no fetch. Filed as a
   // REQUESTED row for the Front Desk workflow once the reservation is confirmed.
   const [needRide, setNeedRide] = useState(Boolean(initialTransport));
@@ -56,7 +60,14 @@ export function GuestDetailsForm({ roomType, checkIn, checkOut, guests, checkInF
     <div className="booking-form-grid"><label>First name<input name="firstName" defaultValue={defaults.firstName} required maxLength={80}/></label><label>Last name<input name="lastName" defaultValue={defaults.lastName} required maxLength={80}/></label><label>Email<input name="email" type="email" defaultValue={defaults.email} required maxLength={200}/></label><label>Mobile number<input name="mobile" type="tel" defaultValue={defaults.mobile} required maxLength={30}/></label><label className="wide">Address<input name="address" defaultValue={defaults.address} required maxLength={300}/></label><label>Nationality (optional)<input name="nationality" defaultValue={defaults.nationality} maxLength={80}/></label><div className="arrival-field"><label htmlFor="expected-arrival">Expected arrival</label><input id="expected-arrival" name="expectedArrival" type="time" defaultValue={initialArrival}/><small className="arrival-note">Helps Front Desk prepare — your room follows check-in from {checkInFrom}, not this time. Early check-in is a separate request.</small></div></div>
     <div className="booking-form-options">
       <span className="booking-form-option-heading">What can we prepare before you arrive? <small>Optional — choose as many as you like. Each will be filed with the right team once your stay is confirmed.</small></span>
-      <div className="request-options-list">{preArrivalOptions().map((option) => <label className="request-option" key={option.value}><input type="checkbox" name="requestOption" value={option.value} defaultChecked={initialRequests.includes(option.value)}/><span>{option.label}</span></label>)}</div>
+      <p className="request-options-subhead">Amenities &amp; items</p>
+      {amenities.length ? (
+        <div className="request-options-list">{amenities.map((option) => <label className="request-option" key={option.value}><input type="checkbox" name="requestOption" value={option.value} defaultChecked={initialRequests.includes(option.value)}/><span>{option.label}</span></label>)}</div>
+      ) : (
+        <p className="request-options-unavailable">Request items are temporarily unavailable.</p>
+      )}
+      <p className="request-options-subhead">Special requests</p>
+      <div className="request-options-list">{services.map((option) => <label className="request-option" key={option.value}><input type="checkbox" name="requestOption" value={option.value} defaultChecked={initialRequests.includes(option.value)}/><span>{option.label}</span></label>)}</div>
     </div>
     <div className="booking-form-options">
       <span className="booking-form-option-heading"><span className="transport-title"><CarTaxiFront size={14}/> Need a ride?</span><small>Optional — request hotel transportation. Our Front Desk reviews and schedules it once your stay is confirmed; the fare is settled with the hotel directly.</small></span>

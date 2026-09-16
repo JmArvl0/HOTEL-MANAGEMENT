@@ -101,17 +101,24 @@
 .rd-thumb.is-active { border-color: var(--cp-green, #176773); opacity: 1; }
 .rd-thumb:focus-visible { outline: 2px solid var(--cp-green, #176773); outline-offset: 1px; }
 
+/* Card photo micro-interaction: the photograph stays the focus — a barely-there
+   scale plus the trigger's own dark tint. Scoped below the search page's
+   stronger zoom (its higher-specificity rule still wins there). */
+.available-room-image { overflow: clip; }
+.available-room-image img { transition: transform 0.2s ease; }
+.available-room-image:is(:hover, :focus-within) img { transform: scale(1.02); }
 /* Clickable gallery imagery — the main photo opens the shared lightbox. */
 .rd-photo-open { display: block; width: 100%; padding: 0; border: 0; background: transparent; cursor: zoom-in; }
 .rd-photo-open:focus-visible { outline: 2px solid #fff; outline-offset: -2px; border-radius: 10px; }
 
 /* Card photo overlay trigger — lives inside the image cell only, so the card
    copy and booking CTAs are unaffected. */
-.room-photo-open { position: absolute; inset: 0; z-index: 2; display: block; width: 100%; padding: 0; border: 0; background: transparent; cursor: zoom-in; }
-.room-photo-open-hint { position: absolute; right: 12px; bottom: 10px; display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: rgba(0, 0, 0, 0.55); color: #fff; font-size: 11px; font-weight: 750; opacity: 0; transition: opacity 0.18s ease; }
-.available-room-image:is(:hover, :focus-within) .room-photo-open-hint { opacity: 1; }
+.room-photo-open { position: absolute; inset: 0; z-index: 2; display: block; width: 100%; padding: 0; border: 0; background: transparent; cursor: zoom-in; transition: background-color 0.18s ease; }
+.room-photo-open-hint { position: absolute; right: 12px; bottom: 10px; display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: rgba(0, 0, 0, 0.55); color: #fff; font-size: 11px; font-weight: 750; opacity: 0; transform: translateY(3px); transition: opacity 0.18s ease, transform 0.18s ease; }
+.available-room-image:is(:hover, :focus-within) .room-photo-open { background: rgba(0, 0, 0, 0.14); }
+.available-room-image:is(:hover, :focus-within) .room-photo-open-hint { opacity: 1; transform: none; }
 .room-photo-open:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
-.room-photo-open:focus-visible .room-photo-open-hint { opacity: 1; }
+.room-photo-open:focus-visible .room-photo-open-hint { opacity: 1; transform: none; }
 
 /* Shared room-photo lightbox — dark photo-viewing stage above every modal.
    Same backdrop in both themes: viewing benefits from reduced distraction. */
@@ -151,7 +158,9 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .room-lightbox, .room-lightbox-stage img { animation: none; }
-  .room-photo-open-hint { transition: none; }
+  .room-photo-open, .room-photo-open-hint, .available-room-image img { transition: none; }
+  .room-photo-open-hint { transform: none; }
+  .available-room-image:is(:hover, :focus-within) img { transform: none; }
 }
 
 .rd-facts { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 4px; padding: 0; }

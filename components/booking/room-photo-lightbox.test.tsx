@@ -285,3 +285,40 @@ describe("lightbox presentation contracts", () => {
     expect(read("app/design-tokens.css")).toContain(".room-lightbox,");
   });
 });
+
+describe("card hover overlay regression", () => {
+  it("never styles the trigger hint with an opaque light block", () => {
+    const portal = read("app/guest-booking.css");
+    expect(portal).not.toMatch(/\.available-room-image span\{[^}]*background:#fff/);
+    // The availability chip keeps its explicit scoped rule.
+    expect(portal).toContain(".available-room-image .room-availability-chip{");
+  });
+
+  it("keeps the full-photo trigger transparent with a subtle dark hover tint", () => {
+    const css = read("components/booking/room-details.css");
+    expect(css).toContain("inset: 0;");
+    expect(css).toContain("background: transparent; cursor: zoom-in;");
+    expect(css).toContain("rgba(0, 0, 0, 0.14)");
+    expect(css).not.toMatch(/\.room-photo-open[^{]*\{[^}]*background:\s*#fff/);
+  });
+
+  it("shows a compact dark View-photo cue that fades in without covering the photo", () => {
+    const css = read("components/booking/room-details.css");
+    expect(css).toContain("background: rgba(0, 0, 0, 0.55);");
+    expect(css).toContain("translateY(3px)");
+    expect(css).toContain("transform 0.18s ease");
+  });
+
+  it("scales the card photo barely and kills the motion under reduced motion", () => {
+    const css = read("components/booking/room-details.css");
+    expect(css).toContain("transform: scale(1.02);");
+    expect(css).toContain(".room-photo-open, .room-photo-open-hint, .available-room-image img { transition: none; }");
+  });
+
+  it("keeps the whole card photo clickable into the existing viewer", () => {
+    render(<RoomResults rooms={[room]} hrefFor={() => "#book-form"} />);
+    fireEvent.click(screen.getByRole("button", { name: "Open Deluxe King photo gallery" }));
+    expect(screen.getByRole("dialog", { name: "Deluxe King photo gallery" })).toBeTruthy();
+    expect(screen.getByAltText("Deluxe King room photo 1").getAttribute("src")).toBe(PHOTOS[0]);
+  });
+});

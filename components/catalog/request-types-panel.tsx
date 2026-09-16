@@ -7,12 +7,16 @@ import { TablePagination, sortTableRows, useTablePagination } from "@/components
 // Manager-maintained guest request catalog. What is active here is exactly
 // what the portal Requests module offers guests — nothing else can be
 // submitted (the /api/account/requests route validates against this table).
-type RequestType = { id: string; value: string; label: string; department: string; active: boolean; sort_order: number };
-type Draft = { label: string; department: string; active: boolean };
+// The Booking column is the independent pre-arrival (checkout) signal: a row
+// linked to an in-stock inventory item with pre-arrival enabled is offered in
+// Guest Details. Toggling it never changes in-stay visibility.
+type RequestType = { id: string; value: string; label: string; department: string; active: boolean; sort_order: number; inventory_item_id: string | null; pre_arrival_requestable: boolean };
+type Draft = { label: string; department: string; active: boolean; inventory_item_id: string | null; pre_arrival_requestable: boolean };
+type InventoryItem = { id: string; name: string; quantity: number | string };
 
 const DEPARTMENTS = [["front_desk", "Front Desk"], ["housekeeping", "Housekeeping"], ["maintenance", "Maintenance"]] as const;
 const departmentLabel = (value: string) => DEPARTMENTS.find(([key]) => key === value)?.[1] ?? value;
-const emptyDraft = (): Draft => ({ label: "", department: "front_desk", active: true });
+const emptyDraft = (): Draft => ({ label: "", department: "front_desk", active: true, inventory_item_id: null, pre_arrival_requestable: false });
 
 export default function RequestTypesPanel() {
   const [items, setItems] = useState<RequestType[]>([]);
@@ -24,6 +28,7 @@ export default function RequestTypesPanel() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState("");
   const [error, setError] = useState("");
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
 
   const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 3000); };
   const load = async () => {
@@ -35,10 +40,26 @@ export default function RequestTypesPanel() {
     setLoading(false);
   };
   useEffect(() => { void load(); }, []);
+  // Inventory names for the pre-arrival link picker (quantities shown for context only).
+  useEffect(() => {
+    void fetch("/api/resources/inventory", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((body) => {
+        if (Array.isArray(body?.data)) {
+          setInventory(
+            (body.data as Record<string, unknown>[])
+              .filter((item) => typeof item.id === "string" && typeof item.name === "string")
+              .map((item) => ({ id: String(item.id), name: String(item.name), quantity: Number(item.quantity) || 0 }))
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const visible = useMemo(() => sortTableRows(items.filter((item) => JSON.stringify(item).toLowerCase().includes(search.toLowerCase())), (item) => item.label), [items, search]);
   const page = useTablePagination(visible);
   const close = () => { setEditing(null); setCreating(false); setDraft(null); };
+  const inventoryName = (id: string | null) => inventory.find((item) => item.id === id)?.name ?? id ?? "—";
 
   const save = async () => {
     if (!draft || draft.label.trim().length < 2) { notify("Enter a request type label."); return; }
@@ -46,7 +67,7 @@ export default function RequestTypesPanel() {
     const response = await fetch(editing ? `/api/catalog/request-types/${editing.id}` : "/api/catalog/request-types", {
       method: editing ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(editing ? { label: draft.label.trim(), department: draft.department, active: draft.active } : { label: draft.label.trim(), department: draft.department }),
+      body: JSON.stringify(editing ? { label: draft.label.trim(), department: draft.department, active: draft.active, inventory_item_id: draft.inventory_item_id, pre_arrival_requestable: draft.pre_arrival_requestable } : { label: draft.label.trim(), department: draft.department }),
     });
     const body = await response.json();
     setSaving(false);
@@ -94,7 +115,7 @@ export default function RequestTypesPanel() {
         <div className="data-panel">
           <div className="table-scroll">
             <table>
-              <thead><tr>{["Request type", "Form key", "Routed to", "Status", "Actions"].map((x, i) => <th key={i}>{x}</th>)}</tr></thead>
+              <thead><tr>{["Request type", "Form key", "Routed to", "Status", "Booking", "Actions"].map((x, i) => <th key={i}>{x}</th>)}</tr></thead>
               <tbody>
                 {page.rows.map((item) => (
                   <tr key={item.id}>
@@ -102,10 +123,11 @@ export default function RequestTypesPanel() {
                     <td><code>{item.value}</code></td>
                     <td>{departmentLabel(item.department)}</td>
                     <td><span className={`badge ${item.active ? "active" : "inactive"}`}>{item.active ? "Offered" : "Hidden"}</span></td>
+                    <td>{item.pre_arrival_requestable && item.inventory_item_id ? <span className="badge active">Pre-arrival · {inventoryName(item.inventory_item_id)}</span> : <span className="badge inactive">Not at booking</span>}</td>
                     <td className="rt-actions">
                       <div className="reservation-actions">
                         <button className="table-action view-action" onClick={() => toggleActive(item)}>{item.active ? <><EyeOff size={14}/> Hide</> : <><Eye size={14}/> Offer</>}</button>
-                        <button className="table-action view-action" onClick={() => { setEditing(item); setCreating(false); setDraft({ label: item.label, department: item.department, active: item.active }); }}><Pencil size={14}/> Edit</button>
+                        <button className="table-action view-action" onClick={() => { setEditing(item); setCreating(false); setDraft({ label: item.label, department: item.department, active: item.active, inventory_item_id: item.inventory_item_id ?? null, pre_arrival_requestable: item.pre_arrival_requestable ?? false }); }}><Pencil size={14}/> Edit</button>
                         <button className="table-action danger-action" onClick={() => remove(item)}><Trash2 size={14}/> Delete</button>
                       </div>
                     </td>
@@ -144,6 +166,25 @@ export default function RequestTypesPanel() {
                   <span>Offered to guests</span>
                 </label>
               </div>
+            )}
+            {editing && (
+              <>
+                <div className="form-field">
+                  <div className="form-field-wrapper">
+                    <label htmlFor="rt-inventory" className="form-label">Booking inventory item</label>
+                    <select id="rt-inventory" className="form-input" value={draft.inventory_item_id ?? ""} onChange={(e) => setDraft({ ...draft, inventory_item_id: e.target.value || null, pre_arrival_requestable: e.target.value ? draft.pre_arrival_requestable : false })}>
+                      <option value="">None — service request, not an inventory item</option>
+                      {inventory.map((item) => <option key={item.id} value={item.id}>{item.name} (stock: {item.quantity})</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="form-field">
+                  <label className="checkbox-option">
+                    <input type="checkbox" checked={draft.pre_arrival_requestable} disabled={!draft.inventory_item_id} onChange={(e) => setDraft({ ...draft, pre_arrival_requestable: e.target.checked })}/>
+                    <span>Offer at booking when in stock</span>
+                  </label>
+                </div>
+              </>
             )}
             <div className="form-actions">
               <button type="button" className="btn btn-soft" onClick={close}>Cancel</button>

@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { formatPeso } from "@/lib/format";
-import { CHECKOUT_REQUEST_VALUES } from "@/lib/request-options";
 import { supabase } from "@/lib/supabase";
 import { nightlyRates, stayTotal, uniformRate, fromRate, type RatePlan } from "@/lib/rate-plans";
 
@@ -107,7 +106,10 @@ export const guestDetailsSchema = z.object({
   address: z.string().trim().min(1, "Provide your home address.").max(300),
   nationality: z.string().trim().max(80).optional().default(""),
   expectedArrival: z.string().trim().regex(timePattern, "Select a valid arrival time.").max(40),
-  requestOptions: z.array(z.enum(CHECKOUT_REQUEST_VALUES)).max(12).optional().default([]),
+  // Values are validated against the live pre-arrival offering in the holds
+  // route (Manager-linked inventory + service allowlist) — the enum here only
+  // enforces shape so Manager-configured custom types are accepted.
+  requestOptions: z.array(z.string().trim().min(1).max(40)).max(12).optional().default([]),
   specialRequests: z.string().trim().max(1000).optional().default(""),
   transportationPreferences: transportationPreferencesSchema.optional(),
 });

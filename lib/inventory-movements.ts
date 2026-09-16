@@ -49,7 +49,25 @@ const REQUEST_CONSUMPTION: Record<string, { match: RegExp; quantity: number }> =
  */
 export async function logGuestRequestConsumption(guestRequestId: string, staffUserId: string): Promise<void> {
   if (!supabase) return;
-  const { data: request } = await supabase.from("guest_requests").select("request_type").eq("id", guestRequestId).maybeSingle();
+  const { data: request } = await supabase.from("guest_requests").select("request_type,inventory_item_id").eq("id", guestRequestId).maybeSingle();
+  if (!request) return;
+  // Exact reference filed at confirmation — consumes the linked item, no name guessing.
+  if (request.inventory_item_id) {
+    const { data: item } = await supabase.from("inventory").select("id,quantity").eq("id", request.inventory_item_id).maybeSingle();
+    if (!item || !(Number(item.quantity) > 0)) return; // stock changed since booking — operational flow handles it
+    await supabase.from("inventory").update({ quantity: Number(item.quantity) - 1, updated_at: new Date().toISOString() }).eq("id", item.id);
+    await recordInventoryMovement({
+      itemId: item.id,
+      quantity: 1,
+      direction: "consumption",
+      sourceType: "guest_request",
+      sourceId: guestRequestId,
+      recordedBy: staffUserId,
+      note: `Consumed fulfilling guest request (${request.request_type})`
+    });
+    return;
+  }
+  // Legacy rows without the FK keep the name-matching fallback.
   const mapping = request?.request_type ? REQUEST_CONSUMPTION[request.request_type] : undefined;
   if (!mapping) return;
 

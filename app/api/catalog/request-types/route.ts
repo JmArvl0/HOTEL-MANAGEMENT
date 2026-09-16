@@ -5,7 +5,7 @@ import { guardCatalog, adminGuardFailed } from "@/lib/admin-route";
 // Manager-maintained guest request catalog. Plain guarded table CRUD — unlike
 // the fare/room catalogs this has no money or versioning concerns, so it skips
 // the RPC/audit machinery; every mutation still re-checks the session here.
-const columns = "id,value,label,department,active,sort_order,created_at";
+const columns = "id,value,label,department,active,sort_order,inventory_item_id,pre_arrival_requestable,created_at";
 
 export async function GET() {
   const c = await guardCatalog();
