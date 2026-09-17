@@ -290,6 +290,16 @@ function Reports({data}:{data:Overview}){const m=data?.metrics??{};const total=N
  </div></>}
 // Exported for the jsdom render test (system-health-view.test.tsx). All
 // figures arrive server-computed; the view only formats them. Auto-refreshes
+// Payment configuration health: Owner-controlled business values are masked
+// and read-only here; System Administration maintains only the technical
+// integration status below. No control exists on this panel that could
+// redirect customer funds.
+function PaymentHealthPanel({payments}:{payments:SystemHealth["payments"]}){
+ if(!payments)return <div className="data-panel"><div className="panel-heading"><div><h3>Payment configuration</h3><p>Payment health is still loading.</p></div></div></div>;
+ return <div className="data-panel"><div className="panel-heading"><div><h3>Payment configuration</h3><p>Customer payment destination is controlled by the Owner. Technical integration and payment-provider connectivity are maintained by System Administration.</p></div><span className={`badge ${payments.status==="Active"?"paid":"expired"}`}>{payments.status}</span></div>
+  <ul className="admin-config-list"><li><span>Business destination (Owner-controlled, read-only)</span><b>{payments.accountName} · {payments.mobileNumber}</b></li><li><span>QR image</span><b>{payments.qrImage}</b></li><li><span>Configured by</span><b>{payments.configuredBy??"Unknown"}</b></li><li><span>Last updated</span><b>{payments.lastUpdated?new Date(payments.lastUpdated).toLocaleString("en-PH",{dateStyle:"medium",timeStyle:"short"}):"Unknown"}</b></li><li><span>Verification mode</span><b>Manual Accounting Verification</b></li><li><span>Customer method</span><b>GCash</b></li><li><span>QR storage</span><b>{payments.qrStorage}</b></li><li><span>Configuration</span><b>{payments.configuration}</b></li><li><span>Webhook integration</span><b>Not configured</b></li><li><span>Provider integration</span><b>Not configured</b></li><li><span>Automatic verification</span><b>Disabled</b></li></ul></div>;
+}
+
 // every minute while the section is open (AdminDashboardClient interval).
 export function SystemHealthView({data,onRefresh}:{data:SystemHealth;onRefresh:()=>void}){
  // Shape-safe: during a section switch the view renders once with the previous
@@ -323,6 +333,7 @@ export function SystemHealthView({data,onRefresh}:{data:SystemHealth;onRefresh:(
   </div>
   {!db.live&&db.checkedAt&&<div className="data-panel" role="alert"><div className="panel-heading"><div><h3>Database unreachable</h3><p>{db.error??"The live database did not respond to the health probe."}</p></div></div></div>}
   {status==="remote_behind"&&<div className="data-panel" role="alert"><div className="panel-heading"><div><h3>Deployment drift</h3><p>{behind} local migration{behind===1?" is":"s are"} not applied to the live database — run <code>supabase db push</code> before relying on new features.</p></div></div></div>}
-  {automations.length>0&&<div className="data-panel"><div className="panel-heading"><div><h3>Scheduled automations</h3><p>Jobs that exist · last run is untracked</p></div></div><div className="table-scroll"><table aria-label="Scheduled automations"><thead><tr><th>Job</th><th>Schedule</th><th>Last run</th></tr></thead><tbody>{automations.map(job=><tr key={job.name}><td><strong>{job.name}</strong></td><td>{job.schedule}</td><td>Unknown</td></tr>)}</tbody></table></div></div>}
-  {issues.length>0&&<div className="data-panel"><div className="panel-heading"><div><h3>Recent technical issues</h3><p>Derived from live probes — no sensitive detail</p></div></div><ul className="admin-config-list">{issues.map(issue=><li key={issue}><span>{issue}</span></li>)}</ul></div>}
+   {automations.length>0&&<div className="data-panel"><div className="panel-heading"><div><h3>Scheduled automations</h3><p>Jobs that exist · last run is untracked</p></div></div><div className="table-scroll"><table aria-label="Scheduled automations"><thead><tr><th>Job</th><th>Schedule</th><th>Last run</th></tr></thead><tbody>{automations.map(job=><tr key={job.name}><td><strong>{job.name}</strong></td><td>{job.schedule}</td><td>Unknown</td></tr>)}</tbody></table></div></div>}
+   <PaymentHealthPanel payments={data?.payments}/>
+   {issues.length>0&&<div className="data-panel"><div className="panel-heading"><div><h3>Recent technical issues</h3><p>Derived from live probes — no sensitive detail</p></div></div><ul className="admin-config-list">{issues.map(issue=><li key={issue}><span>{issue}</span></li>)}</ul></div>}
  <div className="data-panel"><div className="panel-heading"><div><h3>Applied migrations</h3><p>Newest first — the live supabase migration ledger, read server-side</p></div><span className={`badge ${status==="in_sync"?"healthy":status==="remote_behind"?"pending":""}`}>{label(status)}</span></div><div className="table-scroll"><table aria-label="Applied migrations"><thead><tr><th>Version</th><th>Name</th></tr></thead><tbody>{page.rows.map(row=><tr key={row.version}><td><strong>{row.version}</strong></td><td>{label(row.name)}</td></tr>)}</tbody></table></div><TablePagination {...page} onPageChange={page.setPage} noun={`applied migration${appliedCount!==1?"s":""}`} note={`Last checked ${checked} · auto-refresh every minute`}/></div></>}

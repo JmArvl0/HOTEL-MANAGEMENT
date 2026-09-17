@@ -3,6 +3,7 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { guardAdmin,adminGuardFailed } from "@/lib/admin-route";
 import { ROLE_CAPABILITIES } from "@/lib/admin";
+import { isPaymentDestinationComplete, maskGcashNumber } from "@/lib/payment-destination";
 import { migrationStatus, type SystemHealth } from "@/lib/system-health";
 
 export async function GET(request:Request){const context=await guardAdmin();if(adminGuardFailed(context))return context;const section=new URL(request.url).searchParams.get("section")??"overview";const db=context.client;
@@ -62,5 +63,25 @@ async function systemHealth(db:AdminDbClient):Promise<SystemHealth>{
    {name:"Guest reminders",schedule:"Daily 01:05 UTC",lastRun:null,status:"unknown"},
    {name:"Analytics generation",schedule:"Daily 18:35 UTC",lastRun:null,status:"unknown"},
   ];
-  return{db:{live,latencyMs,checkedAt,error:dbError},activity:{lastAuditAt,auditEvents24h,pendingApprovals},migrations:{applied,appliedCount,localCount,status},application:{environment,version:appVersion,commit},storage,email,automations,deployment:{provider:"Vercel",status:"unknown"},domain:{status:"not_connected"},issues};
+  // Payment configuration health: Owner-controlled business values (masked,
+  // read-only) plus the technical integration status System Administration
+  // maintains. No secrets exist in this payload by construction.
+  let payments:NonNullable<SystemHealth["payments"]>|undefined;
+  if(live){
+   try{
+    const{data:policy}=await db.from("hotel_operational_policies").select("gcash_account_name,gcash_mobile_number,gcash_qr_storage_path,gcash_enabled,updated_at").eq("key","default").maybeSingle();
+    const row=(policy??{}) as Record<string,unknown>;
+    const qrPath=typeof row.gcash_qr_storage_path==="string"?row.gcash_qr_storage_path:"";
+    const mobile=typeof row.gcash_mobile_number==="string"?row.gcash_mobile_number:null;
+    const name=typeof row.gcash_account_name==="string"?row.gcash_account_name:"";
+    const enabled=Boolean(row.gcash_enabled);
+    let qrStorage:NonNullable<SystemHealth["payments"]>["qrStorage"]="Unknown";
+    if(qrPath){try{const listed=await db.storage.from("payment-qr").list("gcash");qrStorage=Array.isArray(listed.data)&&listed.data.some((object)=>`gcash/${object.name}`===qrPath)?"Healthy":"Unavailable"}catch{qrStorage="Unknown"}}
+    const{data:latest}=await db.from("audit_logs").select("created_at,user_id").eq("entity_type","hotel_payment_destination").order("created_at",{ascending:false}).limit(1).maybeSingle();
+    let configuredBy:string|null=null;
+    if(latest?.user_id){const{data:actor}=await db.from("user_accounts").select("name,role").eq("id",String(latest.user_id)).maybeSingle();configuredBy=actor?`${actor.name??"Unknown"} (${actor.role==="admin"?"System Administrator":actor.role})`:null}
+    payments={status:enabled?"Active":"Inactive",accountName:name||"Not configured",mobileNumber:maskGcashNumber(mobile),qrImage:qrPath?"Configured":"Missing",configuredBy,lastUpdated:latest?.created_at?String(latest.created_at):row.updated_at?String(row.updated_at):null,qrStorage,configuration:!enabled?"Disabled":isPaymentDestinationComplete({accountName:name||null,mobileNumber:mobile,qrStoragePath:qrPath||null,enabled})?"Complete":"Incomplete"};
+   }catch{payments=undefined}
+  }
+  return{db:{live,latencyMs,checkedAt,error:dbError},activity:{lastAuditAt,auditEvents24h,pendingApprovals},migrations:{applied,appliedCount,localCount,status},application:{environment,version:appVersion,commit},storage,email,automations,deployment:{provider:"Vercel",status:"unknown"},domain:{status:"not_connected"},payments,issues};
 }

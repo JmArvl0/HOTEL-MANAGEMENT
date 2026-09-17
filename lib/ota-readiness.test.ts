@@ -44,9 +44,10 @@ describe("9B — OTA-readiness columns (migration 20260934010000)", () => {
 });
 
 describe("9A — payment boundary stays manual and honest", () => {
-  it("offers only manual GCash/bank transfer as guest payment methods", () => {
+  it("offers only manual GCash as the new-booking deposit method", () => {
     const booking = read("lib/booking.ts");
-    expect(booking).toContain('z.enum(["manual_bank_transfer", "manual_gcash"])');
+    expect(booking).toContain('paymentMethod: z.literal("manual_gcash")');
+    expect(booking).not.toContain('z.enum(["manual_bank_transfer", "manual_gcash"])');
   });
 
   it("never shows a fake Pay-online UI", () => {
@@ -60,7 +61,7 @@ describe("9A — payment boundary stays manual and honest", () => {
     expect(existsSync(join(process.cwd(), "lib/payment-provider.ts"))).toBe(false);
   });
 
-  it("tells guests the truth: transfers are verified manually", () => {
-    expect(read("app/(booking)/booking/payment/[token]/page.tsx")).toContain("verifies GCash and bank transfers manually");
+  it("tells guests the truth: GCash deposits are verified manually", () => {
+    expect(read("app/(booking)/booking/payment/[token]/page.tsx")).toContain("verifies every GCash deposit manually");
   });
 });

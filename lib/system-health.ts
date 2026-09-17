@@ -24,6 +24,19 @@ export type SystemHealth = {
   deployment?: { provider: string; status: "unknown" };
   domain?: { status: "not_connected" };
   issues?: string[];
+  // Payment configuration health (Owner-controlled destination, read-only and
+  // masked here; technical integration status maintained by System
+  // Administration). Presence flags only — never secrets, never full numbers.
+  payments?: {
+    status: "Active" | "Inactive";
+    accountName: string;
+    mobileNumber: string;
+    qrImage: "Configured" | "Missing";
+    configuredBy: string | null;
+    lastUpdated: string | null;
+    qrStorage: "Healthy" | "Unavailable" | "Unknown";
+    configuration: "Complete" | "Incomplete" | "Disabled";
+  };
 };
 
 export type MigrationStatus = "in_sync" | "remote_behind" | "unknown";

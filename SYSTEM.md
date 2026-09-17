@@ -234,6 +234,7 @@ function body**, reading `user_accounts where id = p_staff_user_id and active`.
 | `canViewGuestContact` | `owner`, `manager`, `front_desk` |
 | `canViewReservationFinancials` | `owner`, `manager`, `front_desk`, `accounting` |
 | `canVerifyDeposit` (deposit + stay-payment proof review) | `accounting` **only** — front desk collects money but never blesses the proof |
+| GCash payment-destination edit (account name, number, QR, enabled flag) | `owner` **only** — enforced in `owner_update_payment_destination` (`PAYMENT_DESTINATION_OWNER_ONLY`); System Administration is read-only, Accounting has no access |
 | `canCollectPayment` / `canOperateCashShift` / `canIssueFinancialDocument` | `front_desk`, `accounting` |
 | `canPostFolioCharge` | `front_desk` |
 | `canProcessRefund` / `canAdjustFolio` / `canAcceptOverpayment` / `canReconcileFinancials` | `accounting` |
@@ -469,8 +470,10 @@ route — the filer fills it from `hotel_operational_policies`), then calls `cre
 which prices the stay — per-night through `room_nightly_rates` (§6 rate plans), freezing the agreed
 nightly breakdown and total onto the hold — and takes a **15-minute booking hold** (`booking_holds`,
 `expires_at now() + hold_minutes`). The deposit policy (§8) fixes how much must be paid; the guest
-then submits a deposit proof (`POST …/[token]/confirm` → `submit_reservation_deposit`): payment
-methods are whitelisted manual transfers (**bank transfer or GCash**), and BOTH a transaction
+then submits a deposit proof (`POST …/[token]/confirm` → `submit_reservation_deposit`): new
+online reservation deposits are **GCash-only** (`manual_gcash`; the confirm route rejects any
+other method and refuses while the Owner's GCash destination is disabled or incomplete), and
+BOTH a transaction
 reference AND a payment-proof screenshot (JPEG/PNG/WebP, ≤5 MB) are required — the RPC rejects a
 manual submission without proof (`PROOF_REQUIRED`). No card/gateway. The proof workflow: the guest
 first stages the image (`POST …/[token]/proof` → private `payment-proofs` Supabase Storage bucket,
@@ -487,6 +490,25 @@ website reservation into `confirmed`. Holds expire defensively (`expire_booking_
 the top of every inventory recount); an unpaid website `pending` past its payment deadline releases
 its inventory and its hold/payment are expired. Payment proofs are never sent to the AI layer
 (Gemini reads only rooms/guest_requests/transportation aggregates).
+
+**GCash payment destination (Owner-controls-where).** The deposit page shows the
+Owner-configured destination — account name, mobile number with Copy, official QR
+(220–280px, `object-contain`), exact deposit amount, and an 8-step how-to-pay guide —
+read live from `hotel_operational_policies` (`gcash_account_name`,
+`gcash_mobile_number`, `gcash_qr_storage_path`, `gcash_enabled`; nothing hardcoded in
+the page). The Owner manages it in Owner → Governance → **Payment Settings**
+(`PATCH /api/owner/payment-destination`, `POST/DELETE /api/owner/payment-qr`):
+staged QR upload (magic-sniffed, 5 MB) goes live only on Save behind an explicit
+"changing the destination affects where customers send deposits" confirmation;
+replacing the QR retires the old object; every change is audited as
+`owner_update_payment_destination` with the number masked (`09******8211`).
+Writes run through the `owner_update_payment_destination` RPC, which refuses
+non-Owner actors (`PAYMENT_DESTINATION_OWNER_ONLY`) — the System Administrator
+sees the same values masked and read-only plus technical health (QR storage,
+completeness, webhook/provider `Not configured`, auto-verify `Disabled`) in
+Admin → System Health → **Payment configuration**. Historical `manual_bank_transfer`
+rows and the portal stay-payment form (remaining balance on settled stays) keep
+both method labels; only *new* online deposits are GCash-only.
 
 ### 7.3 Customer self-service portal (`/my-reservations`, `/account/*`)
 
@@ -1550,10 +1572,10 @@ Honest inventory of what is **not** wired up yet (not prescriptions). Full split
 - **Payments/refunds are manual, not gateway-backed.** Deposits and stay payments are staff-verified
   proof-of-transfer; refunds are recorded attempts with a transaction reference. No real card/gateway
   or actual money movement. `payments.status` has no `paid`→gateway-confirmed automatic path.
-  **This is deliberate (roadmap Phase 9A, 2026-09-30):** the guest-facing methods are exactly
-  `manual_gcash` / `manual_bank_transfer` with reference + proof, the payment page states transfers
-  are verified manually, and **no "Pay online" UI exists or may exist** (contract-tested in
-  `lib/ota-readiness.test.ts`). A gateway integration adds a real provider module only when the
+  **This is deliberate (roadmap Phase 9A, 2026-09-30; GCash-only for new deposits,
+  2026-09-16):** new online deposits accept exactly `manual_gcash` with reference +
+  proof, the payment page states deposits are verified manually, and **no "Pay online"
+  UI exists or may exist** (contract-tested in `lib/ota-readiness.test.ts`). A gateway integration adds a real provider module only when the
   hotel selects one — no provider abstraction was created speculatively.
 - **OTA/channel-manager integration is column-ready, nothing more (roadmap Phase 9B, 2026-09-30).**
   `reservations.external_channel` / `external_reference` / `external_synced_at` are nullable,

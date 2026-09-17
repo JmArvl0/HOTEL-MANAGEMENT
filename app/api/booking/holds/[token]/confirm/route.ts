@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { depositSubmissionSchema } from "@/lib/booking";
+import { isPaymentDestinationComplete } from "@/lib/payment-destination";
 import { supabase } from "@/lib/supabase";
 import { PROOF_BUCKET, PROOF_MAX_BYTES, proofMime, sanitizeProofName, sniffProofKind, stagedProofPathPattern } from "@/lib/payment-proof";
 
@@ -13,11 +14,27 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   const { token } = await params;
   if (!z.string().uuid().safeParse(token).success) return NextResponse.json({ error: "Invalid booking reference." }, { status: 400 });
   try {
-    const parsed = depositSubmissionSchema.safeParse(await request.json());
+    const raw = await request.json();
+    if (raw?.paymentMethod && raw.paymentMethod !== "manual_gcash") return NextResponse.json({ error: "Reservation deposits are accepted through GCash only." }, { status: 400 });
+    const parsed = depositSubmissionSchema.safeParse(raw);
     if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Check the payment reference and proof." }, { status: 400 });
     const { proofPath, proofOriginalName } = parsed.data;
     // The path must belong to THIS hold — a path staged against another hold is rejected.
     if (!stagedProofPathPattern(token).test(proofPath)) return NextResponse.json({ error: "Upload a payment screenshot." }, { status: 400 });
+
+    // GCash acceptance is Owner-controlled: a disabled or incomplete
+    // destination blocks submissions server-side, whatever the page showed.
+    const { data: policy } = await supabase.from("hotel_operational_policies")
+      .select("gcash_account_name,gcash_mobile_number,gcash_qr_storage_path,gcash_enabled")
+      .eq("key", "default").maybeSingle();
+    const destination = {
+      accountName: typeof policy?.gcash_account_name === "string" ? policy.gcash_account_name : null,
+      mobileNumber: typeof policy?.gcash_mobile_number === "string" ? policy.gcash_mobile_number : null,
+      qrStoragePath: typeof policy?.gcash_qr_storage_path === "string" ? policy.gcash_qr_storage_path : null,
+      enabled: Boolean(policy?.gcash_enabled),
+    };
+    if (!destination.enabled) return NextResponse.json({ error: "Online reservation deposits are temporarily unavailable. Please contact the hotel for assistance." }, { status: 409 });
+    if (!isPaymentDestinationComplete(destination)) return NextResponse.json({ error: "Payment details are being updated. Please try again shortly." }, { status: 409 });
 
     // Re-validate the stored object: resolve it via the service role, re-sniff
     // magic bytes, re-measure size. Never trust what the browser sent.

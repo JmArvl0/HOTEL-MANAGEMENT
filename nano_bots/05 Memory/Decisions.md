@@ -553,3 +553,41 @@ not gate; requests must not reserve stock.
 `SYSTEM.md` §7.2, §7.7 · `supabase/migrations/20261005010000_pre_arrival_inventory_requests.sql` ·
 `lib/inventory-request-options.ts` · [[2026-09-16 - Pre-Arrival Inventory Options]]
 
+---
+
+## D-016 — Owner controls WHERE customer money goes; System Administration controls HOW payments work
+
+Date: 2026-09-16 (build session — GCash-only customer deposits)
+Status: Active
+
+### Decision
+
+New online reservation deposits are **GCash-only** (`manual_gcash`). Payment
+responsibility splits three ways, each enforced server-side:
+
+- **Owner** edits the customer-facing GCash destination (account name, mobile
+  number, official QR, enabled flag) through the dedicated
+  `owner_update_payment_destination` RPC, which refuses every non-Owner actor
+  (`PAYMENT_DESTINATION_OWNER_ONLY`). Destination columns live on
+  `hotel_operational_policies`; changes are version-checked and audited with
+  the number masked (`09******8211`).
+- **System Administrator** sees the same values masked and read-only, plus
+  technical health (QR storage, completeness, webhook/provider `Not
+  configured`, auto-verify `Disabled`). No editable copy exists anywhere.
+- **Accounting** verifies submitted proofs; it cannot touch the destination.
+
+Staged QR uploads go live only on Save behind an explicit money-redirection
+confirmation; replacing the QR retires the old object. Historical
+`manual_bank_transfer` rows and the portal stay-payment form keep both labels.
+
+### Reason
+
+User business decision: changing where customers send deposits must require
+Owner authority with an audit trail, while technical integration stays with
+System Administration. One authoritative source prevents divergent copies.
+
+### Related
+
+`SYSTEM.md` §6, §7.2 · `supabase/migrations/20261006010000_gcash_payment_destination.sql` ·
+`lib/payment-destination.ts` · [[2026-09-16 - GCash Deposit Flow]]
+

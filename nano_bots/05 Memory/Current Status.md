@@ -21,6 +21,27 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
 
 ## Recently Completed
 
+- **GCash-only customer deposits + Owner destination config (2026-09-16)** — new
+  online deposits accept `manual_gcash` only against the Owner-configured
+  destination (name/number/QR/enabled, `owner_update_payment_destination`,
+  masked audit); Owner Payment Settings panel, Admin System Health payment
+  block (read-only), customer QR/number/copy/amount page with safe states.
+  Migration `20261006010000` pushed + live-verified (guards probed, 0
+  residue). GCash currently DISABLED — Owner must configure + enable.
+  Gates: typecheck, lint 0 errors, 1270/1270, build, detector clean. Manual
+  role QA pending. See [[2026-09-16 - GCash Deposit Flow]] and [[D-016]].
+
+- **Booking Review redesign + wide-workspace correction (2026-09-16)** — customer
+  `/booking/review/[token]` rebuilt to the approved reference hierarchy
+  (`components/booking/booking-review.tsx`: guest-profile header, 5
+  descriptor/value sections, deposit tiles, deep-teal Stay card with DB photo +
+  shared-lightbox reuse, teal fallback) then corrected to the 1320px premium
+  workspace (larger type, full-width name block, no mid-word email breaks, 9px
+  prep rects, 170px photo, cream eyebrow, 21px total). Presentation-only; all
+  booking/pricing/deposit/hold logic unchanged. Gates: typecheck, lint 0 errors,
+  2426/2426, build 64/64, detector clean. Manual browser QA pending (guest login
+  + live hold). See [[2026-09-16 - Booking Review Redesign]].
+
 - **Pre-arrival inventory options (2026-09-16)** — Guest Details amenities are live
   Manager-linked inventory (in-stock only, no dummy fallback, no exposed quantities);
   pre-arrival governance is Manager-only ([[D-015]]), in-stay catalog unchanged,

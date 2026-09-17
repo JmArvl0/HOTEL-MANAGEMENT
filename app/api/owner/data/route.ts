@@ -31,6 +31,48 @@ export async function GET(request: Request) {
       if (error) throw error;
       return NextResponse.json({ data });
     }
+    if (section === "payments") {
+      const { data: policy, error: policyError } = await db.from("hotel_operational_policies")
+        .select("gcash_account_name,gcash_mobile_number,gcash_qr_storage_path,gcash_enabled,version,updated_at")
+        .eq("key", "default").maybeSingle();
+      if (policyError) throw policyError;
+      const row = (policy ?? {}) as Row;
+      let qrDataUrl: string | null = null;
+      if (typeof row.gcash_qr_storage_path === "string" && row.gcash_qr_storage_path) {
+        const { data: object } = await db.storage.from("payment-qr").download(String(row.gcash_qr_storage_path));
+        if (object) {
+          const bytes = Buffer.from(await object.arrayBuffer());
+          const mime = String(row.gcash_qr_storage_path).endsWith(".png") ? "image/png"
+            : String(row.gcash_qr_storage_path).endsWith(".webp") ? "image/webp" : "image/jpeg";
+          qrDataUrl = `data:${mime};base64,${bytes.toString("base64")}`;
+        }
+      }
+      const { data: trail } = await db.from("audit_logs")
+        .select("id,user_id,action,created_at,after_data").eq("entity_type", "hotel_payment_destination")
+        .order("created_at", { ascending: false }).limit(20);
+      const actors = [...new Set(((trail ?? []) as Row[]).map((entry) => String(entry.user_id || "")).filter(Boolean))];
+      const { data: users } = actors.length
+        ? await db.from("user_accounts").select("id,name,role").in("id", actors)
+        : { data: [] };
+      const latest = ((trail ?? []) as Row[])[0];
+      return NextResponse.json({ data: {
+        destination: {
+          accountName: row.gcash_account_name ?? null,
+          mobileNumber: row.gcash_mobile_number ?? null,
+          qrStoragePath: row.gcash_qr_storage_path ?? null,
+          enabled: Boolean(row.gcash_enabled),
+          version: row.version ?? 1,
+        },
+        qrDataUrl,
+        qrHealthy: qrDataUrl !== null || !row.gcash_qr_storage_path,
+        lastUpdated: latest?.created_at ?? row.updated_at ?? null,
+        lastUpdatedBy: users?.find((u) => u.id === latest?.user_id)?.name ?? null,
+        trail: (trail ?? []).map((entry) => ({
+          ...entry,
+          actorName: users?.find((u) => u.id === entry.user_id)?.name ?? "Unknown",
+        })),
+      } });
+    }
     if (section === "audit" || section === "security") {
       let query = db.from("audit_logs").select("id,user_id,action,entity_type,entity_id,before_data,after_data,ip_address,created_at").order("created_at", { ascending: false }).limit(150);
       if (section === "security") query = query.or("action.ilike.admin_%,action.ilike.owner_%,action.ilike.%recovery%,action.ilike.%password%,action.ilike.%role%,action.ilike.%status%");

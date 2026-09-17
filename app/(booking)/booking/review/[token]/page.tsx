@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
-import { ArrowRight, Clock3, PencilLine } from "lucide-react";
+import { ArrowRight, Clock3 } from "lucide-react";
 import { authOptions } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 import { BookingPageFrame } from "@/components/booking/booking-page-frame";
-import { BookingSummary } from "@/components/booking/booking-shell";
+import { ReviewDepositTiles, ReviewGuestCard, ReviewStayCard } from "@/components/booking/booking-review";
 import { HoldCountdown } from "@/components/booking/hold-countdown";
-import { calculateNights, depositPolicyLabel, formatPeso, getOwnedHold, policyFromSnapshot, transportTotal } from "@/lib/booking";
+import { calculateNights, depositPolicyLabel, getOwnedHold, policyFromSnapshot, transportTotal } from "@/lib/booking";
 import { parseFrozenRates } from "@/lib/rate-plans";
-import { formatArrival } from "@/lib/arrival-time-options";
 import { requestLabel } from "@/lib/request-options";
 
 type TransportLineRow = { name: string; price: number | string; note?: string | null };
@@ -35,11 +35,17 @@ export default async function ReviewPage({ params }: { params: Promise<{ token: 
     { label: "Guest details", href: detailsHref },
     { label: "Review", current: true },
   ];
+  // Display-only room photo: DB photo_urls for the held room type, teal fallback when none.
+  let stayPhotos: string[] = [];
+  if (supabase) {
+    const { data } = await supabase.from("room_types").select("photo_urls").eq("name", hold.room_type).eq("active", true).maybeSingle();
+    const urls = (data as { photo_urls?: unknown } | null)?.photo_urls;
+    if (Array.isArray(urls)) stayPhotos = urls.map(String).filter((url) => url.trim() !== "");
+  }
   return <BookingPageFrame session={session} step="Review" breadcrumb={breadcrumb}><section className="booking-stage customer-booking-stage-inner review-stage"><div><p className="eyebrow">Review booking</p><h1>Does everything look right?</h1><p className="review-lede">Review your guest details, stay, and deposit before continuing.</p><div className="review-card">
-    <section className="review-section review-guest-section"><header className="review-section-heading"><div><p>Guest profile</p><h2>Guest details</h2></div><Link className="review-edit-link" href={detailsHref}><PencilLine size={13} aria-hidden="true"/>Edit details</Link></header><dl className="review-details review-guest-details"><div className="review-detail review-detail--name"><dt>Name</dt><dd>{hold.first_name} {hold.last_name}</dd></div><div className="review-detail review-detail--email"><dt>Email</dt><dd>{hold.email}</dd></div><div className="review-detail review-detail--mobile"><dt>Mobile</dt><dd>{hold.mobile}</dd></div>{hold.address&&<div className="review-detail review-detail--address"><dt>Address</dt><dd>{hold.address}</dd></div>}{hold.nationality&&<div className="review-detail review-detail--nationality"><dt>Nationality</dt><dd>{hold.nationality}</dd></div>}{hold.expected_arrival&&<div className="review-detail review-detail--arrival"><dt>Expected arrival</dt><dd>{formatArrival(hold.expected_arrival)}</dd></div>}</dl></section>
-    <section className="review-section"><header className="review-section-heading"><h2>Stay preparations</h2></header><dl className="review-details">{requested.length>0&&<div className="review-preparations"><dt>We will prepare</dt><dd><ul className="review-chips">{requested.map((item: string)=><li key={item}>{item}</li>)}</ul></dd></div>}{requested.length===0&&<div><dt>We will prepare</dt><dd className="review-none">Nothing requested</dd></div>}{hold.special_requests&&<div className="review-preparations"><dt>Anything else?</dt><dd><blockquote className="review-quote">{hold.special_requests}</blockquote></dd></div>}</dl></section>
+    <ReviewGuestCard firstName={hold.first_name} lastName={hold.last_name} email={hold.email} mobile={hold.mobile} address={hold.address} expectedArrival={hold.expected_arrival} requested={requested} specialRequests={hold.special_requests} detailsHref={detailsHref}/>
     {ride&&<section className="review-section"><header className="review-section-heading"><h2>Transportation request</h2></header><ul className="review-transport-list"><li><span className="review-transport-name">{SERVICE_LABELS[ride.serviceType]} · {ride.serviceType==="DROPOFF"?`Hotel → ${ride.dropoffLocation}`:`${ride.pickupLocation} → Hotel`}{ride.serviceType==="ROUND_TRIP"&&ride.returnLocation?` · Hotel → ${ride.returnLocation}`:""}</span>{ride.specialInstructions?<small>{ride.specialInstructions}</small>:null}<strong>{ride.passengerCount} passenger{ride.passengerCount!==1?"s":""} · {ride.pickupDate} {ride.pickupTime}{ride.returnDate?` · return ${ride.returnDate} ${ride.returnTime}`:""}</strong></li></ul><p className="review-note">This is a request — our Front Desk reviews and schedules it once your reservation is confirmed. No fare is charged to this booking; transportation is settled with the hotel directly.</p></section>}
-    <section className="review-section"><header className="review-section-heading"><h2>Reservation deposit</h2></header><dl className="review-finance"><div><dt>Deposit due now</dt><dd>{formatPeso(hold.deposit_required)}</dd><small>{depositPolicyLabel(policy)} of your stay total, required before this online reservation can be confirmed.</small></div><div><dt>Remaining balance</dt><dd>{formatPeso(Number(hold.total)-Number(hold.deposit_required))}</dd><small>Due {policy.remainingBalanceDue.toLowerCase()}.</small></div></dl></section>
+    <ReviewDepositTiles depositRequired={hold.deposit_required} remainingBalance={Number(hold.total)-Number(hold.deposit_required)} depositLabel={depositPolicyLabel(policy)} remainingNote={`Due ${policy.remainingBalanceDue.toLowerCase()}.`}/>
     <footer className="review-actions"><HoldCountdown expiresAt={hold.expires_at} recoveryUrl={recovery}/><Link className="btn btn-accent" href={`/booking/payment/${token}`}>Continue to reservation deposit <ArrowRight size={17}/></Link></footer>
-  </div></div><BookingSummary roomType={hold.room_type} checkIn={hold.check_in} checkOut={hold.check_out} guests={hold.guest_count} nights={nights} rate={hold.nightly_rate==null?null:Number(hold.nightly_rate)} total={Number(hold.total)} nightly={parseFrozenRates(hold.nightly_rates)} lines={transport.length>0?[{label:"Hotel transfer",amount:transportTotal(transport)}]:undefined}/></section></BookingPageFrame>;
+  </div></div><ReviewStayCard roomType={hold.room_type} checkIn={hold.check_in} checkOut={hold.check_out} guests={hold.guest_count} nights={nights} rate={hold.nightly_rate==null?null:Number(hold.nightly_rate)} total={Number(hold.total)} nightly={parseFrozenRates(hold.nightly_rates)} lines={transport.length>0?[{label:"Hotel transfer",amount:transportTotal(transport)}]:undefined} photos={stayPhotos}/></section></BookingPageFrame>;
 }

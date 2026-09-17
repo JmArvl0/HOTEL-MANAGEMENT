@@ -13,7 +13,7 @@ describe("owner/admin sidebar category grouping", () => {
     for (const group of OWNER_GROUPS) expect(group.sections.length).toBeGreaterThan(0);
     expect(all).toHaveLength(new Set(all).size);
     expect([...all].sort()).toEqual(["admins", "audit", "departments", "exceptions", "financial",
-      "operations", "overview", "policy", "reports", "roles", "room_types", "security",
+      "operations", "overview", "payments", "policy", "reports", "roles", "room_types", "security",
       "transport_services", "transportation"]);
   });
   it("covers every Admin module exactly once", () => {

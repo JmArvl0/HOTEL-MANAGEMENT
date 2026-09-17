@@ -34,7 +34,8 @@ describe("online deposit submission validation",()=>{
  it("accepts only supported manual verification methods",()=>expect(depositSubmissionSchema.safeParse({paymentMethod:"manual_gcash",paymentReference:"GC-1234",proofPath:"pending/0f0f0f0f-0f0f-0f0f-0f0f-0f0f0f0f0f0f/1f1f1f1f-1f1f-1f1f-1f1f-1f1f1f1f1f1f.jpg"}).success).toBe(true));
  it("rejects pay-at-hotel as an online confirmation method",()=>expect(depositSubmissionSchema.safeParse({paymentMethod:"pay_at_hotel",paymentReference:"TEST",proofPath:"pending/0f0f0f0f-0f0f-0f0f-0f0f-0f0f0f0f0f0f/1f1f1f1f-1f1f-1f1f-1f1f-1f1f1f1f1f1f.jpg"}).success).toBe(false));
  it("rejects cash guarantee at arrival",()=>expect(depositSubmissionSchema.safeParse({paymentMethod:"cash_guarantee",paymentReference:"TEST",proofPath:"pending/0f0f0f0f-0f0f-0f0f-0f0f-0f0f0f0f0f0f/1f1f1f1f-1f1f-1f1f-1f1f-1f1f1f1f1f1f.jpg"}).success).toBe(false));
- it("requires an external payment reference",()=>expect(depositSubmissionSchema.safeParse({paymentMethod:"manual_bank_transfer",paymentReference:""}).success).toBe(false));
+  it("requires an external payment reference",()=>expect(depositSubmissionSchema.safeParse({paymentMethod:"manual_gcash",paymentReference:""}).success).toBe(false));
+  it("rejects bank transfer for new online deposits even with a valid reference",()=>expect(depositSubmissionSchema.safeParse({paymentMethod:"manual_bank_transfer",paymentReference:"BANK-1234",proofPath:"pending/0f0f0f0f-0f0f-0f0f-0f0f-0f0f0f0f0f0f/1f1f1f1f-1f1f-1f1f-1f1f-1f1f1f1f1f1f.jpg"}).success).toBe(false));
  it("does not accept a browser supplied amount as an authoritative field",()=>expect(Object.keys(depositSubmissionSchema.parse({paymentMethod:"manual_gcash",paymentReference:"GC-1234",proofPath:"pending/0f0f0f0f-0f0f-0f0f-0f0f-0f0f0f0f0f0f/1f1f1f1f-1f1f-1f1f-1f1f-1f1f1f1f1f1f.jpg",amount:1}))).toEqual(["paymentMethod","paymentReference","proofPath"]));
 });
 
@@ -61,7 +62,7 @@ describe("staff verification has no time limit",()=>{
 
 describe("end-to-end UI and authorization wiring",()=>{
  it("shows a reservation deposit screen",()=>expect(paymentPage).toContain("Reservation deposit"));
- it("states that manual submission is not automatic payment success",()=>expect(paymentPage).toContain("verifies GCash and bank transfers manually"));
+  it("states that manual submission is not automatic payment success",()=>expect(paymentPage).toContain("verifies every GCash deposit manually"));
  it("never offers obsolete online guarantees",()=>{expect(paymentPage).not.toContain("Pay at the hotel");expect(paymentPage).not.toContain("Cash guarantee")});
  it("uses the server submission RPC without accepting an amount",()=>{expect(submitRoute).toContain("submit_reservation_deposit");expect(submitRoute).not.toContain("p_amount")});
  it("requires guest ownership for deposit submission",()=>expect(submitRoute).toContain('session.user.role !== "guest"'));
@@ -105,7 +106,7 @@ describe("payment proof viewing is private and narrow",()=>{
 });
 
 describe("proof upload form wiring",()=>{
- it("disables submission until reference and proof are both present",()=>expect(confirmForm).toContain("disabled={loading || uploading || !staged}"));
+  it("disables submission until reference, proof, and the official QR are all present",()=>expect(confirmForm).toContain("disabled={loading || uploading || !staged || !qrDataUrl}"));
  it("validates type and size on the client before uploading",()=>{expect(confirmForm).toContain("PROOF_TYPES.includes(file.type)");expect(confirmForm).toContain("file.size > PROOF_MAX_BYTES")});
  it("uploads to the hold-scoped proof endpoint, then confirms with the staged path",()=>{expect(confirmForm).toContain("/api/booking/holds/${token}/proof");expect(confirmForm).toContain("proofPath")});
  it("releases the staged upload when the hold fails permanently",()=>expect(confirmForm).toContain("discardStaged()"));
