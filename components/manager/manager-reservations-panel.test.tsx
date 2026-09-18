@@ -89,7 +89,8 @@ describe("ManagerReservationsPanel", () => {
     expect(active.textContent).toContain("All");
     expect(active.textContent).toContain("5");
     expect(rows()).toHaveLength(5);
-    expect(screen.getByText("Attention Required").textContent).toContain("3");
+    const attention = chips().find((chip) => chip.textContent?.includes("Attention Required"))!;
+    expect(attention.textContent).toContain("3");
   });
 
   it("shows the manager oversight subtitle, not the Front Desk queue copy", () => {

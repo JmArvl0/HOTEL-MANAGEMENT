@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { BookingPageFrame } from "@/components/booking/booking-page-frame";
-import { BookingSummary } from "@/components/booking/booking-shell";
+import { BookingStaySummary } from "@/components/booking/booking-stay-summary";
 import { GuestDetailsForm } from "@/components/booking/guest-details-form";
 import { getGuestProfile, getOwnedHold, getRoomType, searchSchema } from "@/lib/booking";
 import { displayTime, getOperationalPolicy } from "@/lib/hotel-policy";
@@ -25,5 +25,5 @@ export default async function DetailsPage({searchParams}:{searchParams:Promise<R
   const policy=await getOperationalPolicy();
   const preArrival=await getPreArrivalOptions();
  const breadcrumb=[{label:"Find a Room",href:`/account/find-room?${new URLSearchParams({checkIn:search.data.checkIn,checkOut:search.data.checkOut,guests:String(search.data.guests)})}`},{label:"Guest details",current:true}];
- return <BookingPageFrame session={session} step="Guest details" breadcrumb={breadcrumb}><section className="booking-stage customer-booking-stage-inner"><div><p className="eyebrow">Almost yours</p><h1>Tell us about your stay.</h1><p>We&apos;ll use these details for your reservation and arrival preparation.</p><GuestDetailsForm roomType={room.name} checkIn={search.data.checkIn} checkOut={search.data.checkOut} guests={search.data.guests} checkInFrom={displayTime(policy.checkInTime)} defaults={defaults} initialRequests={initialRequests} initialArrival={initialArrival} initialTransport={initialTransport} preArrival={preArrival}/></div><BookingSummary roomType={room.name} checkIn={search.data.checkIn} checkOut={search.data.checkOut} guests={search.data.guests} nights={room.nights} rate={room.nightlyRate} total={room.subtotal}/></section></BookingPageFrame>;
+ return <BookingPageFrame session={session} step="Guest details" breadcrumb={breadcrumb}><section className="booking-stage customer-booking-stage-inner"><div><p className="eyebrow">Almost yours</p><h1>Tell us about your stay.</h1><p>We&apos;ll use these details for your reservation and arrival preparation.</p><GuestDetailsForm roomType={room.name} checkIn={search.data.checkIn} checkOut={search.data.checkOut} guests={search.data.guests} checkInFrom={displayTime(policy.checkInTime)} defaults={defaults} initialRequests={initialRequests} initialArrival={initialArrival} initialTransport={initialTransport} preArrival={preArrival}/></div><BookingStaySummary roomType={room.name} checkIn={search.data.checkIn} checkOut={search.data.checkOut} guests={search.data.guests} nights={room.nights} rate={room.nightlyRate} total={room.subtotal} photos={room.photos}/></section></BookingPageFrame>;
 }

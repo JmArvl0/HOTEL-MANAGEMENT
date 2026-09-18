@@ -1,7 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, CalendarDays, Search, Users } from "lucide-react";
-import { StatusBadge } from "@/components/ui";
+import { HavenEmptyState, StatusBadge } from "@/components/ui";
+import { ReservationHistoryToolbar } from "@/components/customer/reservation-history-toolbar";
 import { calculateFinancialState, calculateNights, formatPeso, getGuestReservations } from "@/lib/booking";
 import {
   filterReservationHistory,
@@ -16,24 +17,13 @@ import { roomPrimary } from "@/lib/room-images";
 
 const statusFilters: { value: ReservationHistoryStatus; label: string; heading: string; category?: ReservationCategory }[] = [
   { value: "all", label: "All reservations", heading: "All reservations" },
-  { value: "upcoming", label: "Upcoming", heading: "Upcoming reservations", category: "upcoming" },
   { value: "current", label: "Current stay", heading: "Current stay", category: "current" },
+  { value: "upcoming", label: "Upcoming", heading: "Upcoming reservations", category: "upcoming" },
   { value: "completed", label: "Completed", heading: "Completed reservations", category: "past" },
   { value: "cancelled", label: "Cancelled", heading: "Cancelled reservations", category: "cancelled" },
 ];
 
 const first = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] : value;
-
-function filterHref(raw: Record<string, string | string[] | undefined>, status: ReservationHistoryStatus) {
-  const params = new URLSearchParams();
-  const query = first(raw.q)?.trim();
-  const sort = first(raw.sort);
-  if (status !== "all") params.set("status", status);
-  if (query) params.set("q", query);
-  if (sort && sort !== "recommended") params.set("sort", sort);
-  const suffix = params.toString();
-  return suffix ? `/my-reservations?${suffix}` : "/my-reservations";
-}
 
 export default async function MyReservationsPage({
   searchParams,
@@ -53,8 +43,6 @@ export default async function MyReservationsPage({
   const visible = filterReservationHistory(reservations, { query, status, sort });
   const totals = groupReservations(reservations);
   const activeFilter = statusFilters.find((filter) => filter.value === status)!;
-  const hasFilters = Boolean(query || status !== "all" || sort !== "recommended");
-
   return (
     <div className="customer-reservations-page">
       <section className="customer-page-title split">
@@ -67,72 +55,36 @@ export default async function MyReservationsPage({
       </section>
 
       {reservations.length === 0 ? (
-        <div className="customer-empty">
-          <CalendarDays />
-          <h2>No stays yet</h2>
-          <p>Your reservations will appear here after a deposit is submitted.</p>
-          <Link className="btn btn-accent" href="/account/find-room">Find a room</Link>
-        </div>
+        <HavenEmptyState
+          variant="customer"
+          icon={<CalendarDays />}
+          title="No stays yet"
+          body="Your reservations will appear here after a deposit is submitted."
+          action={<Link className="btn btn-accent" href="/account/find-room">Find a room</Link>}
+        />
       ) : (
         <>
-          <section className="reservation-history-controls" aria-label="Reservation history filters">
-            <nav className="reservation-filter-chips" aria-label="Filter reservations by status">
-              {statusFilters.map((filter) => {
-                const count = filter.category ? totals[filter.category].length : reservations.length;
-                const active = status === filter.value;
-                return (
-                  <Link
-                    key={filter.value}
-                    className={`reservation-filter-chip${active ? " is-active" : ""}`}
-                    href={filterHref(raw, filter.value)}
-                    aria-current={active ? "page" : undefined}
-                    scroll={false}
-                  >
-                    {filter.label}<b>{count}</b>
-                  </Link>
-                );
-              })}
-            </nav>
-
-            <form className="reservation-filter-form" action="/my-reservations">
-              {status !== "all" && <input type="hidden" name="status" value={status} />}
-              <label className="reservation-search-field">
-                <span>Search reservations</span>
-                <Search aria-hidden="true" size={17} />
-                <input
-                  type="search"
-                  name="q"
-                  defaultValue={query}
-                  placeholder="Reference, room, or guest"
-                  autoComplete="off"
-                />
-              </label>
-              <label className="reservation-sort-field">
-                <span>Sort by</span>
-                <select name="sort" defaultValue={sort}>
-                  <option value="recommended">Recommended</option>
-                  <option value="stay-oldest">Stay date: oldest first</option>
-                  <option value="stay-newest">Stay date: newest first</option>
-                  <option value="booked-newest">Recently booked</option>
-                </select>
-              </label>
-              <button className="btn btn-accent reservation-filter-submit" type="submit">Apply</button>
-              {hasFilters && <Link className="reservation-filter-reset" href="/my-reservations">Clear filters</Link>}
-            </form>
-          </section>
-
-          <div className="reservation-results-summary" aria-live="polite">
-            <span>{visible.length} reservation{visible.length === 1 ? "" : "s"}</span>
-            {query && <small>matching {query}</small>}
-          </div>
+          <ReservationHistoryToolbar
+            key={`${query}:${status}:${sort}`}
+            initialQuery={query}
+            initialStatus={status}
+            initialSort={sort}
+            statusOptions={statusFilters.map((filter) => ({
+              value: filter.value,
+              label: filter.label,
+              count: filter.category ? totals[filter.category].length : reservations.length,
+            }))}
+            resultCount={visible.length}
+          />
 
           {visible.length === 0 ? (
-            <div className="customer-empty reservation-history-empty">
-              <Search />
-              <h2>No matching reservations</h2>
-              <p>Try another reference, room name, guest name, or reservation status.</p>
-              <Link className="btn btn-soft" href="/my-reservations">Clear filters</Link>
-            </div>
+            <HavenEmptyState
+              variant="customer"
+              icon={<Search />}
+              title="No reservations match your search"
+              body="Try another reference, room name, or reservation status."
+              action={<Link className="btn btn-soft" href="/my-reservations">Clear filters</Link>}
+            />
           ) : (
             <div className="customer-reservation-groups">
               <section className="reservation-history-section">
@@ -168,7 +120,7 @@ export default async function MyReservationsPage({
                             <h3>{reservation.room_type}</h3>
                             <div className="reservation-card-facts">
                               <span><CalendarDays size={15} />{formatStayRange(reservation.check_in, reservation.check_out)}</span>
-                              <span><Users size={15} />{reservation.guests} guest{reservation.guests !== 1 ? "s" : ""} � {nights} night{nights !== 1 ? "s" : ""}</span>
+                              <span><Users size={15} />{reservation.guests} guest{reservation.guests !== 1 ? "s" : ""} · {nights} night{nights !== 1 ? "s" : ""}</span>
                             </div>
                           </div>
                           <div className="reservation-card-finance">

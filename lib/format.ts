@@ -12,6 +12,23 @@ export function formatPeso(value: number | string) {
   return new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Number(value));
 }
 
+export const HOTEL_TIME_ZONE = "Asia/Manila";
+
+/** Consistent human-readable timestamp for ordinary customer and staff UI. */
+export function formatHotelDateTime(value: Date | string | number | null | undefined, timeZone = HOTEL_TIME_ZONE) {
+  if (value === null || value === undefined || value === "") return "—";
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString("en-PH", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone,
+  });
+}
+
 /** Refund states an operator may still act on. Shared with the dashboard client. */
 export const REFUND_RETRYABLE_STATUSES = ["pending", "failed"] as const;
 export const isRefundActionable = (status: string) => (REFUND_RETRYABLE_STATUSES as readonly string[]).includes(status);

@@ -3,12 +3,15 @@ import { FormEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Copy, Check, ImageUp, ShieldCheck, Smartphone } from "lucide-react";
 import { formatPeso } from "@/lib/format";
+import type { DepositPolicy } from "@/lib/booking";
+import type { OperationalPolicy } from "@/lib/hotel-policy";
+import { DepositPolicyPanel } from "./deposit-policy-panel";
 
 const PROOF_MAX_BYTES = 5 * 1024 * 1024;
 const PROOF_TYPES = ["image/jpeg", "image/png", "image/webp"];
 type Staged = { path: string; name: string; size: number };
 
-export function ConfirmBookingForm({ token, deposit, accountName, mobileNumber, qrDataUrl }: { token: string; deposit: number; accountName: string; mobileNumber: string; qrDataUrl: string | null }) {
+export function ConfirmBookingForm({ token, deposit, accountName, mobileNumber, qrDataUrl, depositPolicy, cancelPolicy, remainingBalance, checkIn }: { token: string; deposit: number; accountName: string; mobileNumber: string; qrDataUrl: string | null; depositPolicy: DepositPolicy; cancelPolicy: OperationalPolicy; remainingBalance: number; checkIn: string }) {
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
@@ -112,6 +115,7 @@ export function ConfirmBookingForm({ token, deposit, accountName, mobileNumber, 
         <li>Submit for verification.</li>
       </ol>
     </section>
+    <DepositPolicyPanel depositPolicy={depositPolicy} cancelPolicy={cancelPolicy} depositRequired={deposit} remainingBalance={remainingBalance} checkIn={checkIn} />
     <label className="deposit-reference">GCash reference number<input name="paymentReference" required minLength={4} maxLength={120} autoComplete="off" placeholder="Enter your GCash reference" /></label>
     <div className="proof-field">
       <span className="proof-label">GCash payment receipt</span>

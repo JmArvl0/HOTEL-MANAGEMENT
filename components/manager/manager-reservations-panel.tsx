@@ -4,6 +4,7 @@ import { BedDouble, CalendarDays, Eye, LogIn, LogOut, QrCode, Search, ShieldAler
 import { byAttentionThenStay, deriveReservationAttention, needsAttention, type AttentionRow } from "@/lib/manager-attention";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { TablePagination, useTablePagination } from "@/components/ui/table-pagination";
+import { HavenDataToolbar, HavenEmptyState, HavenFilterBadges, HavenSearchInput } from "@/components/ui";
 import type { RecordItem } from "@/lib/types";
 
 const peso = (value: unknown) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 }).format(Number(value || 0));
@@ -91,10 +92,25 @@ export function ManagerReservationsPanel({ items, search, setSearch, viewReserva
       {onScan && <div className="title-actions"><button className="btn btn-soft" onClick={onScan}><QrCode size={17} /> Scan QR</button></div>}
     </div>
     <ModuleSummaryCards cards={summaryCards} activeQueue={queue} onSelect={setQueue} ariaLabel="Reservations summary"/>
-    <div className="reservation-filters">
-      <div>{QUEUES.map(([value, text]) => <button key={value} className={queue === value ? "active" : ""} aria-pressed={queue === value} onClick={() => setQueue(value)}>{text}<i className="chip-count">{counts.get(value) ?? 0}</i></button>)}</div>
-    </div>
-    <div className="table-tools"><label><Search size={17} /><input placeholder="Search reservations..." value={search} onChange={(event) => setSearch(event.target.value)} aria-label="Search reservations" /></label></div>
+    <HavenDataToolbar
+      variant="internal"
+      label="Reservation search and filters"
+      search={<HavenSearchInput value={search} onValueChange={setSearch} label="Search reservations" placeholder="Search reservations…" />}
+      quickFilters={
+        <div className="reservation-filters">
+          <HavenFilterBadges
+            value={queue}
+            onChange={setQueue}
+            label="Reservation queue"
+            options={QUEUES.map(([value, text]) => ({ value, label: text, count: counts.get(value) ?? 0 }))}
+          />
+        </div>
+      }
+      resultCount={visible.length}
+      resultNoun="reservations"
+      onClearFilters={() => { setSearch(""); setQueue("all"); }}
+      hasActiveFilters={Boolean(search || queue !== "all")}
+    />
     <div className="data-panel">
       <div className="table-scroll mr-table-wrap">
         <table className="reservations-table mr-table" aria-label="Manager reservations oversight">
@@ -137,7 +153,7 @@ export function ManagerReservationsPanel({ items, search, setSearch, viewReserva
             {item.pending_approval_type && <button className="table-action" onClick={(event) => { event.stopPropagation(); onReviewException(item); }}><ShieldAlert size={13} /> Review Exception</button>}
           </footer>
         </article>; })}</div>
-      {visible.length === 0 && <div className="empty">{queue === "attention" ? <><CalendarDays /><h3>No reservations need attention</h3><p>Every active reservation is on track. Switch filters to browse the full list.</p></> : <><Search /><h3>No records found</h3><p>No matching operational records are available.</p></>}</div>}
+      {visible.length === 0 && <HavenEmptyState icon={queue === "attention" ? <CalendarDays /> : <Search />} title={queue === "attention" ? "No reservations need attention" : "No reservations match your search"} body={queue === "attention" ? "Every active reservation is on track. Switch filters to browse the full list." : "Try clearing the search or selecting another queue."} />}
       <TablePagination {...page} onPageChange={page.setPage} noun="reservations" note="Issues retain operational priority and are derived from live reservation, room, approval, and payment data." />
     </div>
   </>;

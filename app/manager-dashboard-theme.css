@@ -1873,3 +1873,190 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
  .app-shell .reservation-actions.payment-actions{min-width:0}
  .app-shell .payment-actions .table-action{flex:1 1 auto}
 }
+
+/* Owner executive workspace
+   Owner views carry denser cross-department information than operational
+   queues, so their layout uses balanced decision surfaces instead of the
+   generic primary-panel/sidebar split. */
+.app-shell.owner-workspace .owner-module{display:grid;align-content:start;gap:18px}
+.app-shell.owner-workspace .owner-module>.page-title,
+.app-shell.owner-workspace .owner-module>.metric-grid,
+.app-shell.owner-workspace .owner-module>.dashboard-grid,
+.app-shell.owner-workspace .owner-module>.data-panel,
+.app-shell.owner-workspace .owner-module>.panel,
+.app-shell.owner-workspace .owner-module>.owner-department-layout,
+.app-shell.owner-workspace .owner-module>.owner-payment-settings{margin-top:0;margin-bottom:0}
+.app-shell.owner-workspace .owner-title{margin:0}
+.app-shell.owner-workspace .owner-title-action{position:relative;z-index:1;display:flex;align-items:center;gap:8px;flex:none}
+.app-shell.owner-workspace .owner-title-action .btn{min-width:150px;justify-content:center}
+.app-shell.owner-workspace .owner-metric-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.app-shell.owner-workspace .owner-metric-grid .metric-card{min-width:0;min-height:124px;padding:18px;border-radius:12px}
+.app-shell.owner-workspace .owner-metric-grid .metric-card::after{display:none}
+.app-shell.owner-workspace .owner-metric-grid .metric-card>div{min-width:0}
+.app-shell.owner-workspace .owner-metric-grid .metric-card b{font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.app-shell.owner-workspace .owner-metric-grid .metric-card small{max-width:30ch;line-height:1.45}
+.app-shell.owner-workspace .owner-insight-grid{grid-template-columns:minmax(0,1.15fr) minmax(360px,.85fr);gap:16px;margin:0}
+.app-shell.owner-workspace .owner-dual-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:0}
+.app-shell.owner-workspace .owner-role-grid{grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin:0}
+.app-shell.owner-workspace .owner-role-card{display:grid;align-content:start;gap:8px;min-height:160px;padding:18px;border-radius:12px}
+.app-shell.owner-workspace .owner-role-card h3{padding-bottom:11px;border-bottom:1px solid var(--dl)}
+.app-shell.owner-workspace .owner-role-card p{position:relative;margin:0;padding:8px 10px 8px 24px;border-radius:7px;background:var(--ds2);line-height:1.45}
+.app-shell.owner-workspace .owner-role-card p::before{content:"";position:absolute;left:10px;top:14px;width:5px;height:5px;border-radius:50%;background:#4fc7ba}
+.app-shell.owner-workspace .owner-boundaries{display:grid;gap:8px;padding:18px;border-radius:12px}
+.app-shell.owner-workspace .owner-boundaries h3{margin-bottom:4px}
+.app-shell.owner-workspace .owner-boundaries p{margin:0;padding:10px 12px;border-left:3px solid #4fc7ba;background:var(--ds2);line-height:1.5}
+.app-shell.owner-workspace .owner-department-layout,
+.app-shell.owner-workspace .owner-risk-stack{display:grid;gap:16px;min-width:0}
+.app-shell.owner-workspace .owner-summary-panel{min-width:0;padding:0;border-radius:12px;overflow:hidden}
+.app-shell.owner-workspace .owner-summary-panel>.panel-heading{margin:0;padding:16px 18px;border-bottom:1px solid var(--dl)}
+.app-shell.owner-workspace .owner-summary-grid{grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;padding:14px}
+.app-shell.owner-workspace .owner-summary-grid>div{min-width:0;padding:14px;border:1px solid var(--dl);border-radius:10px;background:var(--ds2)}
+.app-shell.owner-workspace .owner-summary-grid h4{margin-bottom:9px}
+.app-shell.owner-workspace .owner-summary-grid p{display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin:0;padding:7px 0;border-top:1px solid var(--dl)}
+.app-shell.owner-workspace .owner-summary-grid p:first-of-type{border-top:0}
+.app-shell.owner-workspace .owner-summary-grid span{min-width:0;color:var(--dm)}
+.app-shell.owner-workspace .owner-summary-grid strong{flex:none;font-variant-numeric:tabular-nums}
+.app-shell.owner-workspace .owner-module .data-panel,
+.app-shell.owner-workspace .owner-module>.panel{min-width:0;border-radius:12px;overflow:hidden}
+.app-shell.owner-workspace .owner-table{min-width:0;margin:0}
+.app-shell.owner-workspace .owner-table>.panel-heading{margin:0;padding:16px 18px;border-bottom:1px solid var(--dl)}
+.app-shell.owner-workspace .owner-table .table-scroll{max-width:100%;margin:0}
+.app-shell.owner-workspace .owner-table th,
+.app-shell.owner-workspace .owner-table td{padding-inline:14px}
+.app-shell.owner-workspace .owner-payment-settings{display:grid;gap:18px;min-width:0}
+.app-shell.owner-workspace .owner-payment-grid{grid-template-columns:minmax(280px,.78fr) minmax(0,1.22fr);gap:16px;margin:0}
+.app-shell.owner-workspace .owner-setting-panel{display:grid;align-content:start;gap:14px;padding:0 18px 18px}
+.app-shell.owner-workspace .owner-setting-panel>.panel-heading{margin-inline:-18px;padding:16px 18px;border-bottom:1px solid var(--dl)}
+.app-shell.owner-workspace .owner-setting-panel label{display:grid;gap:7px}
+.app-shell.owner-workspace .owner-payment-preview{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:10px;padding:0 18px 18px}
+.app-shell.owner-workspace .owner-payment-preview>.panel-heading{grid-column:1/-1;margin-inline:-18px;padding:16px 18px;border-bottom:1px solid var(--dl)}
+.app-shell.owner-workspace .owner-payment-preview img{grid-column:2;grid-row:2/span 2;max-width:180px;width:100%;height:auto;border:1px solid var(--dl);border-radius:10px;background:#fff;padding:8px}
+.app-shell.owner-workspace .owner-payment-actions{margin:0;justify-content:flex-end}
+.app-shell.owner-workspace .owner-payment-actions .btn{min-width:170px;justify-content:center}
+.app-shell.owner-workspace .owner-payment-history>.panel-heading{margin:0;padding:16px 18px;border-bottom:1px solid var(--dl)}
+.theme-light .app-shell.owner-workspace .owner-role-card p,
+.theme-light .app-shell.owner-workspace .owner-boundaries p,
+.theme-light .app-shell.owner-workspace .owner-summary-grid>div{background:#f6f8f6}
+
+@media(max-width:1200px){
+ .app-shell.owner-workspace .owner-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .app-shell.owner-workspace .owner-insight-grid,
+ .app-shell.owner-workspace .owner-dual-grid,
+ .app-shell.owner-workspace .owner-finance-grid,
+ .app-shell.owner-workspace .owner-chart-grid,
+ .app-shell.owner-workspace .owner-payment-grid{grid-template-columns:1fr}
+}
+@media(max-width:760px){
+ .app-shell.owner-workspace .owner-module,
+ .app-shell.owner-workspace .owner-payment-settings{gap:14px}
+ .app-shell.owner-workspace .owner-title-action{align-items:stretch;width:100%}
+ .app-shell.owner-workspace .owner-title-action .btn{width:100%}
+ .app-shell.owner-workspace .owner-metric-grid,
+ .app-shell.owner-workspace .owner-role-grid,
+ .app-shell.owner-workspace .owner-role-top,
+ .app-shell.owner-workspace .owner-boundaries-grid,
+ .app-shell.owner-workspace .owner-policy-groups dl,
+ .app-shell.owner-workspace .owner-summary-grid{grid-template-columns:1fr}
+ .app-shell.owner-workspace .owner-metric-grid .metric-card{min-height:108px}
+ .app-shell.owner-workspace .owner-summary-grid{padding:10px}
+ .app-shell.owner-workspace .owner-payment-preview{grid-template-columns:1fr}
+ .app-shell.owner-workspace .owner-payment-preview img{grid-column:1;grid-row:auto;max-width:150px}
+ .app-shell.owner-workspace .owner-payment-actions .btn{width:100%}
+}
+@media(prefers-reduced-motion:reduce){
+ .app-shell.owner-workspace .owner-role-card{transition:none}
+}
+/* Owner command-center redesign: hero, KPI tones, universal toolbar, tabs,
+   collapsibles, role/policy/payment/audit/report patterns. All scoped to
+   .app-shell.owner-workspace so manager/admin/catalog modules are untouched. */
+.app-shell.owner-workspace .owner-title{margin:0;padding:20px 22px;border:1px solid var(--dl);border-radius:12px;background:linear-gradient(135deg,var(--ds2),var(--ds))}
+.app-shell.owner-workspace .owner-title h1{font-size:clamp(24px,2.2vw,30px);line-height:1.12;letter-spacing:-.4px}
+.app-shell.owner-workspace .owner-metric-grid .metric-card.tone-good{box-shadow:inset 3px 0 #65d3a5}
+.app-shell.owner-workspace .owner-metric-grid .metric-card.tone-warn{box-shadow:inset 3px 0 #e8b96a}
+.app-shell.owner-workspace .owner-metric-grid .metric-card.tone-bad{box-shadow:inset 3px 0 #ef797e}
+.app-shell.owner-workspace .owner-metric-grid .metric-card.tone-good small{color:#65d3a5}
+.app-shell.owner-workspace .owner-metric-grid .metric-card.tone-warn small{color:#e8b96a}
+.app-shell.owner-workspace .owner-metric-grid .metric-card.tone-bad small{color:#ef797e}
+.app-shell.owner-workspace .owner-toolbar{display:grid;gap:10px;padding:14px 16px;border:1px solid var(--dl);border-radius:12px;background:var(--ds)}
+.app-shell.owner-workspace .owner-search{display:flex;align-items:center;gap:9px;min-height:42px;padding:0 12px;border:1px solid var(--dl);border-radius:8px;background:var(--ds2)}
+.app-shell.owner-workspace .owner-search svg{flex:none;color:#6c766f}
+.app-shell.owner-workspace .owner-search input{flex:1;min-width:0;border:0;background:transparent;color:inherit;font:inherit;font-size:12px;padding:10px 0;outline:none}
+.app-shell.owner-workspace .owner-search input::placeholder{color:#6c766f}
+.app-shell.owner-workspace .owner-search input[type="search"]::-webkit-search-cancel-button{cursor:pointer}
+.app-shell.owner-workspace .owner-filters{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px}
+.app-shell.owner-workspace .owner-filters .haven-filter{display:grid;gap:5px;min-width:150px;flex:1 1 150px;max-width:230px}
+.app-shell.owner-workspace .owner-filters .haven-filter>span{font-size:8px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#6c766f}
+.app-shell.owner-workspace .owner-result-count{margin-left:auto;align-self:center;font-size:10px;color:#8d9791;white-space:nowrap}
+.app-shell.owner-workspace .owner-section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin:4px 0 -4px}
+.app-shell.owner-workspace .owner-section-head h2{margin:0;font-size:16px;font-weight:750;letter-spacing:-.2px}
+.app-shell.owner-workspace .owner-section-head p{margin:4px 0 0;font-size:10px;color:#8d9791}
+.app-shell.owner-workspace .owner-empty{padding:44px 24px;border:1px dashed var(--dl);border-radius:12px}
+.app-shell.owner-workspace .owner-tabs{display:flex;flex-wrap:wrap;gap:8px}
+.app-shell.owner-workspace .owner-tabs button{display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:8px 14px;border:1px solid var(--dl);border-radius:999px;background:var(--ds);color:#a7b0aa;font-size:11px;font-weight:750;cursor:pointer}
+.app-shell.owner-workspace .owner-tabs button:hover{border-color:#176773;color:#dfe5e1}
+.app-shell.owner-workspace .owner-tabs button.active{background:#17363f;border-color:#176773;color:#fff}
+.app-shell.owner-workspace .owner-count{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:#1c231e;color:#e8b96a;font-size:10px;font-weight:800}
+.app-shell.owner-workspace .owner-tabs button.active .owner-count{background:#4d3b1e;color:#f2c983}
+.app-shell.owner-workspace .owner-collapse{border:1px solid var(--dl);border-radius:12px;background:var(--ds);overflow:hidden}
+.app-shell.owner-workspace .owner-collapse summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;cursor:pointer;list-style:none}
+.app-shell.owner-workspace .owner-collapse summary::-webkit-details-marker{display:none}
+.app-shell.owner-workspace .owner-collapse summary strong{font-size:12px}
+.app-shell.owner-workspace .owner-collapse summary:hover strong{color:#fff}
+.app-shell.owner-workspace .owner-collapse-body{border-top:1px solid var(--dl);padding:0 0 6px}
+.app-shell.owner-workspace .owner-collapse-body .table-scroll{max-height:340px;overflow:auto}
+.app-shell.owner-workspace .owner-collapse-note{margin:0;padding:14px 16px;font-size:11px;color:#8d9791}
+.app-shell.owner-workspace .owner-role-top{grid-template-columns:repeat(2,minmax(0,1fr))}
+.app-shell.owner-workspace .owner-role-featured{border-color:#176773}
+.app-shell.owner-workspace .owner-role-card header{display:flex;align-items:center;gap:10px;padding-bottom:11px;border-bottom:1px solid var(--dl)}
+.app-shell.owner-workspace .owner-role-card header>div{flex:1;min-width:0}
+.app-shell.owner-workspace .owner-role-card header small{display:block;margin-top:2px;font-size:9px;color:#8d9791;line-height:1.4}
+.app-shell.owner-workspace .owner-role-icon{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:9px;background:#17363f;color:#85cbd0}
+.app-shell.owner-workspace .owner-role-count{flex:none;display:grid;place-items:center;min-width:28px;height:28px;padding:0 8px;border-radius:999px;background:var(--ds2);font-size:11px;font-weight:800;color:#e8b96a}
+.app-shell.owner-workspace .owner-role-card ul{list-style:none;display:grid;gap:6px;margin:4px 0 0;padding:0}
+.app-shell.owner-workspace .owner-role-card li{position:relative;margin:0;padding:7px 10px 7px 24px;border-radius:7px;background:var(--ds2);font-size:10px;line-height:1.45;color:#c9d2cd}
+.app-shell.owner-workspace .owner-role-card li::before{content:"";position:absolute;left:10px;top:13px;width:5px;height:5px;border-radius:50%;background:#4fc7ba}
+.app-shell.owner-workspace .owner-boundaries-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:4px}
+.app-shell.owner-workspace .owner-boundaries ul{list-style:none;display:grid;gap:8px;margin:0;padding:0}
+.app-shell.owner-workspace .owner-boundaries li{margin:0;padding:10px 12px 10px 30px;border-radius:8px;background:var(--ds2);line-height:1.5;position:relative}
+.app-shell.owner-workspace .owner-boundaries li::before{position:absolute;left:12px;top:10px;font-weight:800}
+.app-shell.owner-workspace .owner-boundaries li.is-allow::before{content:"✓";color:#65d3a5}
+.app-shell.owner-workspace .owner-boundaries li.is-deny::before{content:"–";color:#e8b96a}
+.app-shell.owner-workspace .owner-policy-meta{margin:0 0 4px;font-size:10px;color:#8d9791}
+.app-shell.owner-workspace .owner-policy-groups{display:grid;gap:14px}
+.app-shell.owner-workspace .owner-policy-groups section{padding:0 18px 18px}
+.app-shell.owner-workspace .owner-policy-groups .panel-heading{margin-inline:-18px}
+.app-shell.owner-workspace .owner-policy-groups dl{margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 28px}
+.app-shell.owner-workspace .owner-policy-groups dl>div{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid var(--dl)}
+.app-shell.owner-workspace .owner-policy-groups dt{font-size:11px;color:#a7b0aa}
+.app-shell.owner-workspace .owner-policy-groups dd{margin:0;font-size:12px;font-weight:750;text-align:right;font-variant-numeric:tabular-nums}
+.app-shell.owner-workspace .owner-finance-grid{grid-template-columns:minmax(0,1.9fr) minmax(0,1.1fr)}
+.app-shell.owner-workspace .owner-chart-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.app-shell.owner-workspace .owner-record-id{font-variant-numeric:tabular-nums;color:#8d9791;overflow-wrap:anywhere}
+.app-shell.owner-workspace .owner-protected{color:#8d9791;font-size:10px}
+.app-shell.owner-workspace .owner-audit-detail{margin:0;display:grid;gap:0}
+.app-shell.owner-workspace .owner-audit-detail>div{display:grid;grid-template-columns:130px minmax(0,1fr);gap:12px;padding:9px 0;border-bottom:1px solid var(--dl);font-size:11px}
+.app-shell.owner-workspace .owner-audit-detail dt{color:#8d9791}
+.app-shell.owner-workspace .owner-audit-detail dd{margin:0;overflow-wrap:anywhere}
+.app-shell.owner-workspace .owner-audit-detail pre{margin:4px 0 0;padding:10px;border:1px solid var(--dl);border-radius:8px;background:var(--ds2);font-size:10px;line-height:1.5;white-space:pre-wrap;word-break:break-word;max-height:220px;overflow:auto}
+.app-shell.owner-workspace .owner-setting-panel .proof-staged img{width:200px}
+.app-shell.owner-workspace .owner-setting-panel .proof-upload{min-height:120px}
+.app-shell.owner-workspace .owner-payment-preview img{max-width:220px}
+.theme-light .app-shell.owner-workspace .owner-title{background:linear-gradient(135deg,#eef4f1,#e2ede9);border-color:#d7e2dc}
+.theme-light .app-shell.owner-workspace .owner-title h1{color:#103e48}
+.theme-light .app-shell.owner-workspace .owner-toolbar{background:#fff;border-color:#dfe5e1}
+.theme-light .app-shell.owner-workspace .owner-search{background:#f4f6f4;border-color:#dfe5e1}
+.theme-light .app-shell.owner-workspace .owner-metric-grid .metric-card.tone-good{box-shadow:inset 3px 0 #267056}
+.theme-light .app-shell.owner-workspace .owner-metric-grid .metric-card.tone-warn{box-shadow:inset 3px 0 #a45a22}
+.theme-light .app-shell.owner-workspace .owner-metric-grid .metric-card.tone-bad{box-shadow:inset 3px 0 #a44843}
+.theme-light .app-shell.owner-workspace .owner-metric-grid .metric-card.tone-good small{color:#267056}
+.theme-light .app-shell.owner-workspace .owner-metric-grid .metric-card.tone-warn small{color:#a45a22}
+.theme-light .app-shell.owner-workspace .owner-metric-grid .metric-card.tone-bad small{color:#a44843}
+.theme-light .app-shell.owner-workspace .owner-tabs button{background:#fff;border-color:#dfe5e1;color:#536058}
+.theme-light .app-shell.owner-workspace .owner-tabs button.active{background:#084b55;border-color:#084b55;color:#fff}
+.theme-light .app-shell.owner-workspace .owner-count{background:#e9f2ed;color:#0b5561}
+.theme-light .app-shell.owner-workspace .owner-tabs button.active .owner-count{background:#ffffff2e;color:#fff}
+.theme-light .app-shell.owner-workspace .owner-collapse{background:#fff;border-color:#dfe5e1}
+.theme-light .app-shell.owner-workspace .owner-role-icon{background:#e1eeeb;color:#176773}
+.theme-light .app-shell.owner-workspace .owner-role-count{background:#eef4f1;color:#0b5561}
+.theme-light .app-shell.owner-workspace .owner-role-card li{background:#f4f6f4;color:#3c4a43}
+.theme-light .app-shell.owner-workspace .owner-boundaries li{background:#f4f6f4;color:#3c4a43}

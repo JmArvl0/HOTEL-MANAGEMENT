@@ -3,25 +3,19 @@ import {
   BedDouble,
   CalendarDays,
   CreditCard,
-  LogIn,
-  LogOut,
   Mail,
   MapPin,
   MessageSquare,
-  Moon,
   PencilLine,
-  ReceiptText,
-  Tag,
   UserRound,
-  Users,
   Wallet,
 } from "lucide-react";
 import { formatArrival } from "@/lib/arrival-time-options";
 import { formatPeso } from "@/lib/format";
-import type { NightlyRate } from "@/lib/rate-plans";
-import { RoomPhotoTrigger } from "@/components/booking/room-photo-lightbox";
 
-export type StayLine = { label: string; amount: number };
+/** Shared stay-summary card lives in booking-stay-summary; Review renders it
+ *  unchanged via this alias so existing imports keep working. */
+export { BookingStaySummary as ReviewStayCard, type StayLine } from "./booking-stay-summary";
 
 export function ReviewGuestCard({
   firstName,
@@ -204,109 +198,5 @@ export function ReviewDepositTiles({
         </div>
       </dl>
     </section>
-  );
-}
-
-export function ReviewStayCard({
-  roomType,
-  checkIn,
-  checkOut,
-  guests,
-  nights,
-  rate,
-  total,
-  lines,
-  nightly,
-  photos,
-}: {
-  roomType: string;
-  checkIn: string;
-  checkOut: string;
-  guests: number;
-  nights: number;
-  rate: number | null;
-  total: number;
-  lines?: StayLine[];
-  nightly?: NightlyRate[];
-  photos: string[];
-}) {
-  const varied = nightly && nightly.length > 0 && nightly.some((night) => night.rate !== nightly[0].rate);
-  const photo = photos.length > 0 ? photos[0] : undefined;
-  return (
-    <aside className="review-stay-card" aria-label={`Your stay in the ${roomType}`}>
-      <div className={`review-stay-photo${photo ? "" : " review-stay-photo--fallback"}`}>
-        {photo ? (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element -- DB photo URL, same rationale as the shared lightbox */}
-            <img src={photo} alt="" aria-hidden="true" loading="lazy" />
-            <RoomPhotoTrigger photos={photos} roomName={roomType} className="review-stay-photo-open" />
-          </>
-        ) : (
-          <span className="review-stay-fallback-mark" aria-hidden="true">
-            Haven
-          </span>
-        )}
-      </div>
-      <div className="review-stay-body">
-        <p className="review-stay-eyebrow">Your stay</p>
-        <h2>{roomType}</h2>
-        <dl>
-          <div>
-            <dt>
-              <LogIn size={14} aria-hidden="true" /> Check-in
-            </dt>
-            <dd>{checkIn}</dd>
-          </div>
-          <div>
-            <dt>
-              <LogOut size={14} aria-hidden="true" /> Check-out
-            </dt>
-            <dd>{checkOut}</dd>
-          </div>
-          <div>
-            <dt>
-              <Users size={14} aria-hidden="true" /> Guests
-            </dt>
-            <dd>{guests}</dd>
-          </div>
-          <div>
-            <dt>
-              <Moon size={14} aria-hidden="true" /> Nights
-            </dt>
-            <dd>{nights}</dd>
-          </div>
-          {varied
-            ? nightly!.map((night) => (
-                <div key={night.date}>
-                  <dt>
-                    <Tag size={14} aria-hidden="true" /> {night.date}
-                  </dt>
-                  <dd>{formatPeso(night.rate)}</dd>
-                </div>
-              ))
-            : rate != null && (
-                <div>
-                  <dt>
-                    <Tag size={14} aria-hidden="true" /> Nightly rate
-                  </dt>
-                  <dd>{formatPeso(rate)}</dd>
-                </div>
-              )}
-          {(lines ?? []).map((line) => (
-            <div key={line.label}>
-              <dt>
-                <ReceiptText size={14} aria-hidden="true" /> {line.label}
-              </dt>
-              <dd>{formatPeso(line.amount)}</dd>
-            </div>
-          ))}
-          <div className="review-stay-total">
-            <dt>Stay total</dt>
-            <dd>{formatPeso(total)}</dd>
-          </div>
-        </dl>
-        <small>Taxes and service charges are currently included at ₱0 under the configured hotel policy.</small>
-      </div>
-    </aside>
   );
 }

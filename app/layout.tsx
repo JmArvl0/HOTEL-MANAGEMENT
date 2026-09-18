@@ -7,6 +7,7 @@ import "./manager-dashboard-theme.css";
 import "./responsive.css";
 import "@/components/ui/Modal.css";
 import "@/components/ui/haven-select.css";
+import "@/components/ui/haven-data-controls.css";
 import "@/components/booking/room-details.css";
 import "./design-tokens.css";
 import "./ui-primitives.css";

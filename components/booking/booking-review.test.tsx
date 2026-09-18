@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ReviewDepositTiles, ReviewGuestCard, ReviewStayCard } from "./booking-review";
+import { roomPhotosFor } from "@/lib/room-images";
 import { HoldCountdown } from "./hold-countdown";
 
 vi.mock("next/navigation", () => ({
@@ -118,7 +119,7 @@ describe("ReviewDepositTiles + ReviewStayCard passthrough", () => {
     // Nightly rate and stay total agree on a uniform single-night stay.
     expect(screen.getAllByText(byFullText("₱8,900")).length).toBe(2);
   });
-  it("renders a teal fallback (no broken image) when no photo exists", () => {
+  it("renders the type stock photo (no broken image, no fallback) when DB photos are empty", () => {
     const { container } = render(
       <ReviewStayCard
         roomType="Ocean Suite"
@@ -131,8 +132,10 @@ describe("ReviewDepositTiles + ReviewStayCard passthrough", () => {
         photos={[]}
       />,
     );
-    expect(container.querySelector("img")).toBeNull();
-    expect(container.querySelector(".review-stay-photo--fallback")).toBeTruthy();
+    expect(container.querySelector(".review-stay-photo img")?.getAttribute("src")).toBe(
+      roomPhotosFor([], "Ocean Suite")[0],
+    );
+    expect(container.querySelector(".review-stay-photo--fallback")).toBeNull();
   });
   it("renders per-night rows when frozen rates vary", () => {
     render(

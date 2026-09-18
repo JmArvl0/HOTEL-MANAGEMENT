@@ -5,6 +5,12 @@ their outcome is captured in [[Current Status]], [[Decisions]], or a session not
 
 ## Immediate
 
+- [ ] Authenticated visual QA of the universal UI foundation at desktop, tablet, and
+      390px: My Reservations; Manager Reservations; one Front Desk, Accounting,
+      Housekeeping, Maintenance, Owner, and System Administrator searchable module;
+      verify light/dark contrast, search-first order, All-first/default, no Apply,
+      HavenSelect keyboard behavior, clear controls, and no page-level overflow.
+
 - [ ] Manual UI verification of the staff notification surfaces: Manager approvals badge + toast
       on a new exception, accounting-only Deposit Verification/Refunds badges (Front Desk gains
       none), housekeeping badge decrement on task completion, toast auto-dismiss leaves bell +

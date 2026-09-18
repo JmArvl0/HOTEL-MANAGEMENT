@@ -193,16 +193,14 @@ hint, 13–14px padding — dense enough to read as a snapshot above a table.
    percent) with a fallback group so schema additions are never hidden. Admin CSS lives in
    the `admin-*` block of `manager-dashboard-theme.css` (dark + `.theme-light` mirrors).
 
-- **Data toolbar convention (search-first).** Every combined search/filter row leads
-  with search: `[Search…] [Filter ▾] [Filter ▾]` on desktop, never filters-first with
-  search stretched across the remainder. Search is the widest single control but
-  bounded (`flex:1 1 300px`, `min-width:240px`, `max-width:480px`; standalone
-  `.table-tools` rows keep `width:min(360px,60%)`); selects stay compact. Status
-  pills/chips keep their own row above the filters row (cards → chips → search →
-  table). ≤720px stacks full-width: search, then one filter per row; touch
-  min-heights (40/44px) and the 16px iOS zoom guard are preserved. Search inputs
-  carry `aria-label`s (placeholders are never the only label); filtering,
-  pagination, and RBAC behavior are untouched by toolbar layout.
+- **Data toolbar convention (search-first).** Every combined search/filter surface
+  follows the same DOM and visual order: search → quick-filter badges → advanced
+  filters → results. Search updates after a 350ms debounce and never needs Apply;
+  quick filters and `HavenSelect` changes apply immediately. `All` is first and is
+  the default unless the workflow explicitly opens a scoped queue. ≤720px keeps
+  the same order while stacking full-width; customer touch targets rise to 44px.
+  Search inputs carry accessible labels and clear controls. See
+  `docs/HAVEN_UI_STANDARDS.md` for the canonical primitives and migration rules.
 
 ## 11. Dropdowns & selects — one Haven language, two mechanisms
 
@@ -261,3 +259,12 @@ visually distinct second workflow, never a competing page header.
   `.eyebrow`, `.brand`, focus-visible, `scroll-padding-top`).
 - **`.customer-status` vs `StatusBadge`** convergence on the guest portal: documented as the guest
   surface's own pill; convergence deferred.
+
+## 14. Universal interaction foundation
+
+`HavenDataToolbar`, `HavenSearchInput`, `HavenFilterBadges`, `HavenEmptyState`,
+`HavenButton`, `HavenSelect`, `StatusBadge`, `Modal`, and `TablePagination` form
+the shared behavior layer. Customer and internal contexts keep different density
+and surfaces while sharing keyboard, focus, state, responsive-order, and feedback
+semantics. The complete contract and reference consumers are documented in
+`docs/HAVEN_UI_STANDARDS.md`.

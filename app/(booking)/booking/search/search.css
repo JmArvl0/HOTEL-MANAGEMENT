@@ -195,3 +195,14 @@
 @media(prefers-reduced-motion:reduce){
   .booking-page *{scroll-behavior:auto!important;animation:none!important;transition:none!important}
 }
+
+/* Premium room-card refinement (presentational only — class hooks added in
+   RoomResults; all logic selectors above unchanged). Keeps the horizontal
+   image-left pattern: title → 2-line description → fact chips → amenities
+   preview → price left / actions right. */
+.booking-page .room-title{text-wrap:balance}
+.booking-page .room-description{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.booking-page .room-facts span svg{flex:none}
+.booking-page .room-amenities-more{color:var(--search-teal);font-weight:750;list-style:none}
+.booking-page .room-price-nightly{font-variant-numeric:tabular-nums}
+.booking-page .room-price-total{margin-top:2px;font-variant-numeric:tabular-nums}

@@ -519,13 +519,33 @@ and issued documents (`lib/customer` financial query bundle).
 
 Self-service actions and their constraints:
 
-- **Cancel** — `customer_request_reservation_change`/cancel path computes refund basis points from the
-  *booking's frozen policy snapshot* (Asia/Manila day count): full refund within the full-refund
-  window, partial within the partial window, none after. Website cancels are subject to the snapshot.
-- **Change request** — date/room/guests/special-requests. Self-executes when the change is far enough
-  ahead (> `selfServiceModificationDays` by the hotel's local day) and inventory permits; otherwise it
-  files a **manager approval**. A reservation carrying priced **transport** cannot be self-modified
-  (`TRANSPORT_REQUIRES_STAFF`) because a silent recompute would drop the charge.
+- **Cancel** — one modal (`ReservationActions`): a server-authoritative read-only preview
+  (`GET /api/account/reservations/[id]/cancel/preview`, snapshot-derived eligibility/amount/summary
+  via `lib/cancellation-preview`, never trusted for settlement) plus a required free-text reason
+  (textarea, min 3 / max 500, client and server). `POST .../cancel` sends only `{reason}`;
+  `cancel_reservation` re-verifies ownership/status, recomputes entitlement from the *booking's
+  frozen policy snapshot* (Asia/Manila day count) against settled `reservation_deposit` payments,
+  cancels atomically, releases the assignment via trigger, and inserts exactly one
+  `refund_requests` row when eligible > 0 (retry on cancelled returns existing state — idempotent).
+  Website cancels are subject to the snapshot. Success fires a shared ToastStack confirmation and
+  a persistent `reservation_cancelled` bell entry (migration `20261008010000`, per-reservation
+  dedupe index; never fails the response). The cancelled detail page shows a REFUND section
+  (eligible amount, processing status, `View refund status` → `/account/payments?stay=cancelled&pay=refund`);
+  there is no manual Request Refund step — Accounting processes the auto-created request, and
+  Manager authorization applies only to policy exceptions (`refund_exception`).
+- **Change request** — one complete modal (new dates via date pickers, requested room type via
+  HavenSelect over live inventory for the chosen dates through `GET
+  /api/account/reservations/[id]/room-options`, required reason ≤500 chars). Self-executes when
+  the change is far enough ahead (> `selfServiceModificationDays` by the hotel's local day) and
+  inventory permits; otherwise it files a **manager approval** (`reservation_modification`,
+  Manager authorizes, Front Desk executes — approval never executes). A reservation carrying
+  priced **transport** cannot be self-modified (`TRANSPORT_REQUIRES_STAFF`) because a silent
+  recompute would drop the charge. **One unresolved request per reservation** (`pending` /
+  `approved`): the RPC refuses a second open request (`CHANGE_ALREADY_OPEN`, 409), the UI
+  replaces the button with a non-action "Change request under review" state plus a status panel,
+  and submission carries one idempotency key per modal with a double-submit guard. Success
+  records a `reservation_change_submitted` notification (per-request deduped) and a centered
+  success toast.
 - **Payments** — submit a stay-payment proof; Accounting verifies it.
 - **Guest requests** — submitted as a **batch** (§7.7): up to 12 structured picks per submission,
   routed to departments only after Front Desk approves the batch.

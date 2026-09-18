@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { formatPeso } from "@/lib/format";
 import { CheckInQr, CheckInQrExpired } from "@/components/customer/check-in-qr";
-import { ReservationActions } from "@/components/customer/reservation-actions";
+import { ReservationActions, type OpenChangeRequest } from "@/components/customer/reservation-actions";
 import {
   SERVICE_TYPE_LABELS, isAssignmentVisible,
   type CustomerTransportationRequest,
@@ -53,7 +53,7 @@ export type ReservationDetailViewData = {
   charges: { id: string; description: string; category: string; amount: number; status: string; createdAt: string }[];
   payments: { id: string; amount: number; method: string; purpose: string; status: string; createdAt: string }[];
   refunds: { id: string; reason: string; eligibleAmount: number; status: string; createdAt: string }[];
-  changeRequests: { id: string; reason: string; status: string; createdAt: string }[];
+  changeRequests: { id: string; reason: string; status: string; executionStatus: string; requestedCheckIn: string | null; requestedCheckOut: string | null; requestedRoomType: string | null; createdAt: string }[];
   transportation: CustomerTransportationRequest[];
 };
 
@@ -66,6 +66,22 @@ const formatStamp = (value: string) =>
 
 const STATUS_STEPS = ["pending", "confirmed", "checked_in", "checked_out"] as const;
 const STEP_LABELS: Record<string, string> = { pending: "Pending", confirmed: "Confirmed", checked_in: "Checked in", checked_out: "Checked out" };
+
+// Presentation mapping only — database statuses are never renamed for display.
+const CHANGE_STATUS_LABEL: Record<string, string> = {
+  pending: "Under review",
+  approved: "Approved — preparing your update",
+  executed: "Change completed",
+  rejected: "Change request declined",
+  cancelled: "Change request withdrawn",
+};
+// Presentation mapping only — database refund statuses are never renamed.
+const REFUND_STATUS_LABEL: Record<string, string> = {
+  pending: "Pending processing",
+  processed: "Completed",
+  failed: "Failed",
+};
+const openChangeStatus = (status: string) => ["pending", "approved"].includes(status);
 const terminal = (status: string) => ["cancelled", "no_show"].includes(status);
 
 type TabKey = "stay" | "folio" | "transportation" | "policy";
@@ -139,6 +155,22 @@ export function ReservationDetailView({ data }: { data: ReservationDetailViewDat
 
   const money = data.money;
   const paidRatio = money.folioTotal > 0 ? Math.min(100, Math.round((money.paid / money.folioTotal) * 100)) : 0;
+  // Newest first from the server; the first unresolved row is the active one.
+  const openRequestRow = data.changeRequests.find((request) => openChangeStatus(request.status)) ?? null;  const openRequest: OpenChangeRequest | null = openRequestRow
+    ? {
+        requestedCheckIn: openRequestRow.requestedCheckIn,
+        requestedCheckOut: openRequestRow.requestedCheckOut,
+        requestedRoomType: openRequestRow.requestedRoomType,
+        reason: openRequestRow.reason,
+      }
+    : null;
+  // The active refund outcome for a cancelled stay: prefer an actionable
+  // request, otherwise the most recent row. Policy refunds are created
+  // automatically on cancellation — the UI offers tracking, never a new claim.
+  const activeRefund =
+    data.refunds.find((refund) => refund.status === "pending" || refund.status === "processed") ??
+    data.refunds[0] ??
+    null;
 
   return (
     <div className="customer-reservation-detail">
@@ -165,7 +197,18 @@ export function ReservationDetailView({ data }: { data: ReservationDetailViewDat
               <span><small>Reservation</small><span className={`customer-status ${data.status}`}>{friendly(data.status)}</span></span>
               <span><small>Payment</small><span className={`customer-status ${data.paymentStatus}`}>{friendly(data.paymentStatus)}</span></span>
             </div>
-            <ReservationActions id={data.id} status={data.status} />
+            <ReservationActions id={data.id} status={data.status} checkIn={data.checkIn} checkOut={data.checkOut} roomType={data.roomType} openRequest={openRequest} />
+            {openRequestRow && (
+              <section className="crd-change-status" aria-label="Reservation change request status">
+                <p className="crd-change-eyebrow">Reservation change request</p>
+                <p className="crd-change-state">{CHANGE_STATUS_LABEL[openRequestRow.status] ?? friendly(openRequestRow.status)}</p>
+                <dl>
+                  <div><dt>Requested</dt><dd>{openRequestRow.requestedCheckIn && openRequestRow.requestedCheckOut ? `${formatStayDate(openRequestRow.requestedCheckIn)} – ${formatStayDate(openRequestRow.requestedCheckOut)}` : "—"}{openRequestRow.requestedRoomType ? ` · ${openRequestRow.requestedRoomType}` : ""}</dd></div>
+                  <div><dt>Submitted</dt><dd>{formatStamp(openRequestRow.createdAt)}</dd></div>
+                  <div><dt>Reason</dt><dd>&ldquo;{openRequestRow.reason}&rdquo;</dd></div>
+                </dl>
+              </section>
+            )}
           </div>
         </div>
         {!terminal(data.status) && (
@@ -181,6 +224,26 @@ export function ReservationDetailView({ data }: { data: ReservationDetailViewDat
         )}
         {terminal(data.status) && (
           <p className={`crd-terminal customer-status ${data.status}`}>{friendly(data.status)} — {data.cancellationReason ? data.cancellationReason : "this reservation will not proceed."}</p>
+        )}
+        {data.status === "cancelled" && (
+          <section className="crd-refund-status" aria-label="Refund status">
+            <p className="crd-change-eyebrow">Refund</p>
+            {activeRefund ? (
+              <>
+                <p className="crd-change-state">Eligible refund {formatPeso(activeRefund.eligibleAmount)}</p>
+                <dl>
+                  <div><dt>Status</dt><dd>{REFUND_STATUS_LABEL[activeRefund.status] ?? friendly(activeRefund.status)}</dd></div>
+                </dl>
+                <p>Your eligible refund has been sent to Accounting for processing.</p>
+                <Link className="customer-inline-action" href="/account/payments?stay=cancelled&pay=refund"><ReceiptText size={15} />View refund status</Link>
+              </>
+            ) : (
+              <>
+                <p className="crd-change-state">No refund due</p>
+                <p>This cancellation is not eligible for a refund under the policy that applies to this reservation.</p>
+              </>
+            )}
+          </section>
         )}
       </section>
 
@@ -283,7 +346,7 @@ export function ReservationDetailView({ data }: { data: ReservationDetailViewDat
             {data.changeRequests.map((request) => (
               <div key={request.id} className="crd-activity-row">
                 <TimelineDot tone="change" />
-                <div><b>{request.reason}</b><small>{friendly(request.status)} · {formatStamp(request.createdAt)}</small></div>
+                <div><b>{request.reason}</b><small>{CHANGE_STATUS_LABEL[request.status] ?? friendly(request.status)} · {formatStamp(request.createdAt)}</small></div>
                 <span>—</span>
               </div>
             ))}

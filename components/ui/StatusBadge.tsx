@@ -174,15 +174,15 @@ function PauseIcon({ className }: { className?: string }) {
 }
 
 const sizeClasses = {
-  sm: "px-2 py-0.5 text-xs gap-1",
-  md: "px-3 py-1 text-sm gap-1.5",
-  lg: "px-4 py-1.5 text-base gap-2",
+  sm: "haven-status--sm",
+  md: "haven-status--md",
+  lg: "haven-status--lg",
 };
 
 const variantClasses = {
   default: "",
-  outline: "bg-transparent border-current",
-  soft: "bg-opacity-10",
+  outline: "is-outline",
+  soft: "is-soft",
 };
 
 export function StatusBadge({ 
@@ -197,7 +197,7 @@ export function StatusBadge({
   const Icon = icon || statusIcons[normalizedStatus];
   const label = statusLabels[normalizedStatus] || String(status).replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
   
-  const baseClasses = "inline-flex items-center font-medium rounded-full border transition-colors";
+  const baseClasses = "haven-status";
   const sizeClass = sizeClasses[size];
   const variantClass = variantClasses[variant];
   
@@ -251,11 +251,20 @@ export function StatusBadge({
     refunded: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
   };
 
-  const colorClass = statusColorClasses[normalizedStatus] || "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600";
+  const legacyTone = statusColorClasses[normalizedStatus] || "";
+  const colorClass = legacyTone.includes("green")
+    ? "haven-status--success"
+    : legacyTone.includes("blue")
+      ? "haven-status--info"
+      : legacyTone.includes("amber") || legacyTone.includes("orange")
+        ? "haven-status--warning"
+        : legacyTone.includes("red")
+          ? "haven-status--danger"
+          : "haven-status--neutral";
 
   return (
     <span className={`${baseClasses} ${sizeClass} ${variantClass} ${colorClass} ${className}`}>
-      {showIcon && Icon && <span className="flex-shrink-0" aria-hidden="true">{Icon}</span>}
+      {showIcon && Icon && <span aria-hidden="true">{Icon}</span>}
       <span>{label}</span>
     </span>
   );
@@ -263,7 +272,7 @@ export function StatusBadge({
 
 export function StatusBadgeGroup({ statuses, size = "md", ...props }: { statuses: string[]; size?: "sm" | "md" | "lg" } & Omit<StatusBadgeProps, "status">) {
   return (
-    <div className="flex flex-wrap gap-1.5" role="group" aria-label="Status badges">
+    <div className="haven-status-group" role="group" aria-label="Status badges">
       {statuses.map((status) => (
         <StatusBadge key={status} status={status} size={size} {...props} />
       ))}

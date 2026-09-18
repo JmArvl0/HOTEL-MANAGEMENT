@@ -4,6 +4,39 @@ Lightweight decision log. Each entry records a choice that constrains future dev
 Trivial implementation details do not belong here. Historical sessions never override the
 current system or `SYSTEM.md` — see [[AI Session Handoff]] for the authority order.
 
+## D-017 — One interaction system with customer and internal presentation contexts
+
+Date: 2026-09-18
+Status: Active
+
+### Decision
+
+Shared HAVEN controls use one behavior contract with two density contexts: `customer`
+(spacious, consumer-facing, approximately 44px controls) and `internal` (compact,
+operational). Combined data controls always follow search → quick filters → advanced
+filters → results in both DOM and visual order. Search is automatically debounced (350ms
+default), ordinary filters apply immediately, and quick-filter groups put `All` first and
+use it as the default unless a workflow explicitly opens a scoped queue.
+
+`HavenSelect`, `Modal`, `TablePagination`, `ToastStack`, `HavenLoader`, and
+`RoomTypeBadge` remain the canonical existing implementations. New shared search/filter,
+button, status, empty-state, and hotel-time helpers extend rather than replace them.
+Presentation standardization must never alter hotel workflow, authority, calculations,
+or stored state.
+
+### Reason
+
+Customer and staff pages need consistent keyboard behavior, feedback, and filter semantics
+without collapsing their intentionally different information density or duplicating
+control architectures.
+
+### Related
+
+`docs/HAVEN_UI_STANDARDS.md` · `DESIGN.md` §10/§14 ·
+[[2026-09-18 - Universal UI Foundation]]
+
+---
+
 ## D-001 — Migrations are applied with `supabase db push`, never `npm run migrate`
 
 Date: 2026-08-30 (observed)
@@ -591,3 +624,69 @@ System Administration. One authoritative source prevents divergent copies.
 `SYSTEM.md` §6, §7.2 · `supabase/migrations/20261006010000_gcash_payment_destination.sql` ·
 `lib/payment-destination.ts` · [[2026-09-16 - GCash Deposit Flow]]
 
+---
+
+## D-017 — One unresolved reservation-change request per reservation, single modal, per-request notification
+
+Date: 2026-10-07 (build session — customer Request-a-Change redesign)
+Status: Active
+
+### Decision
+
+- **One unresolved request at a time.** `customer_request_reservation_change` already refused a
+  second open row (`CHANGE_ALREADY_OPEN` on `status IN ('pending','approved')`, race-safe behind
+  the reservation `FOR UPDATE` lock); this work keeps that guard as the authority and mirrors it
+  in the UI (non-action "Change request under review" button + status panel). Resolved
+  (executed/rejected/cancelled) rows never block a future request.
+- **One complete modal.** Dates (native date pickers), room type (HavenSelect over the
+  `room-options` endpoint — same `getAvailability` engine, name+units projection), and the
+  required reason (textarea, server floor min 3 / max 500) submit once with one idempotency key
+  per modal open plus a synchronous double-submit guard.
+- **Exactly-once bell entry.** `reservation_change_submitted` notification type (migration
+  `20261007010000`) addressed per change request behind a partial unique index, so idempotent
+  replays collapse instead of duplicating; `recordNotification` never fails the response.
+- **Shared ToastStack in the customer shell** (`CustomerToastProvider`) for the transient
+  success confirmation — no second toast architecture.
+
+### Reason
+
+The two-step modal hid the required reason, the free-text room type bypassed inventory, and
+the action button stayed live on open requests. All fixes reuse existing authorities (RPC
+guard, approval engine, toast component) instead of inventing parallel ones.
+
+### Related
+
+`SYSTEM.md` §7.3 · `supabase/migrations/20261007010000_change_request_notifications.sql` ·
+`components/customer/reservation-actions.tsx` · `lib/change-request-redesign.test.ts`
+
+## D-018 — Customer cancellation preview, auto-refund, and exactly-once cancel notification
+
+Date: 2026-09-18
+Status: Active
+
+### Decision
+
+- Cancellation reason is required free text (textarea, client/server floor min 3 / max 500).
+  There is no reason dropdown anywhere in the cancel flow.
+- One cancel modal shows a server-authoritative, read-only refund preview
+  (`GET .../cancel/preview`, snapshot-derived via `lib/cancellation-preview`) before commit;
+  execution always recalculates inside `cancel_reservation` and the browser never sends amounts.
+- A normal policy-compliant cancellation auto-creates exactly one Accounting refund request
+  when eligible > 0. The customer never presses a second Request Refund button.
+- One persistent `reservation_cancelled` bell entry per cancelled reservation (migration
+  `20261008010000`, partial unique index on user+href); recording never fails the response.
+- Reservations carry no version column, so cancellation concurrency relies on the RPC row
+  lock plus idempotent retry on the cancelled state — no invented version protocol.
+
+### Reason
+
+Customers cancelled blindly (no preview), could lose refunds by missing a second action that
+never needed to exist, and received no persistent confirmation. All fixes reuse existing
+authorities (snapshot policy, RPC settlement, toast + notification systems) instead of
+inventing parallel ones.
+
+### Related
+
+`SYSTEM.md` §7.3 · `supabase/migrations/20261008010000_reservation_cancelled_notifications.sql` ·
+`app/api/account/reservations/[id]/cancel/route.ts` · `lib/cancellation-preview.ts` ·
+`components/customer/reservation-actions.tsx` · `lib/cancel-reservation.test.tsx`

@@ -22,7 +22,9 @@ Last implemented and deployed: 2026-08-28. These values are provisional, central
 
 ## Connected source of truth
 
-All staff and website bookings use `reservations`; no second customer reservation store exists. Website inventory uses room type and blocking stays with half-open overlap `[check_in, check_out)`. A server-issued hold protects inventory during payment. Deposit verification confirms that same reservation. Guest records are linked to the authenticated account and deduplicated by account/email.
+All staff and website bookings use `reservations`; no second customer reservation store exists. Website inventory uses room type and blocking stays with half-open overlap `[check_in, check_out)`. A server-issued hold protects inventory during payment. Deposit verification confirms that same reservation.
+
+Before submitting a reservation deposit, HAVEN presents the applicable deposit procedure, cancellation/refund policy, and remaining-balance settlement terms to the customer. Displayed policy terms come from the authoritative configured or booking-time snapshot applicable to the reservation. Guest records are linked to the authenticated account and deduplicated by account/email.
 
 ## Operational lifecycle
 

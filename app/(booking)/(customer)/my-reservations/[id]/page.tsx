@@ -80,7 +80,7 @@ export default async function ReservationPage({ params }: { params: Promise<{ id
         charges: reservation.charges.map((charge) => ({ id: charge.id, description: charge.description, category: charge.category, amount: Number(charge.amount), status: charge.status, createdAt: String(charge.created_at) })),
         payments: reservation.payments.map((payment) => ({ id: payment.id, amount: Number(payment.amount), method: payment.method, purpose: payment.purpose, status: payment.status, createdAt: String(payment.created_at) })),
         refunds: reservation.refunds.map((refund) => ({ id: refund.id, reason: refund.reason, eligibleAmount: Number(refund.eligible_amount), status: refund.status, createdAt: String(refund.created_at) })),
-        changeRequests: reservation.changeRequests.map((request) => ({ id: request.id, reason: request.reason, status: request.status, createdAt: String(request.created_at) })),
+        changeRequests: reservation.changeRequests.map((request) => ({ id: request.id, reason: request.reason, status: request.status, executionStatus: String(request.execution_status ?? ""), requestedCheckIn: request.requested_check_in ? String(request.requested_check_in) : null, requestedCheckOut: request.requested_check_out ? String(request.requested_check_out) : null, requestedRoomType: request.requested_room_type ? String(request.requested_room_type) : null, createdAt: String(request.created_at) })),
         transportation: transportation.filter((request) => request.reservation_id === id),
       }}
     />

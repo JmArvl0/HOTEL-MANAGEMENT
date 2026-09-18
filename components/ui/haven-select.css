@@ -48,6 +48,18 @@
   --select-shadow: 0 12px 32px rgba(16, 62, 72, 0.14);
   --select-ring: rgba(23, 103, 115, 0.18);
 }
+.customer-shell {
+  --select-bg: var(--cp-panel-2);
+  --select-border: var(--cp-line);
+  --select-border-hover: var(--cp-green);
+  --select-border-focus: var(--cp-green);
+  --select-text: var(--cp-text);
+  --select-muted: var(--cp-muted);
+  --select-hover: color-mix(in srgb, var(--cp-green) 9%, var(--cp-panel-2));
+  --select-selected: color-mix(in srgb, var(--cp-green) 15%, var(--cp-panel-2));
+  --select-selected-text: var(--cp-text);
+  --select-ring: color-mix(in srgb, var(--cp-green) 22%, transparent);
+}
 
 /* ---- HavenSelect custom listbox ---- */
 .haven-select { position: relative; display: inline-flex; min-width: 0; }

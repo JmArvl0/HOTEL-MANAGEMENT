@@ -21,6 +21,48 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
 
 ## Recently Completed
 
+- **Customer cancel-reservation workflow fix (2026-09-18)** — one cancel modal with a
+  server-authoritative read-only preview (`GET .../cancel/preview`, snapshot-derived via new
+  `lib/cancellation-preview`; execution still recalculates in `cancel_reservation`) plus a
+  required free-text reason textarea (min 3 / max 500, no dropdown anywhere in the flow);
+  success fires the shared ToastStack and a persistent `reservation_cancelled` bell entry
+  (migration `20261008010000` with per-reservation dedupe index, never fails the response);
+  cancelled detail shows a REFUND section (eligible amount, processing status, View refund
+  status → `/account/payments?stay=cancelled&pay=refund`) with no manual Request Refund step.
+  Auto-refund, idempotent retry, snapshot policy, hotel-tz math, inventory/transport triggers,
+  audit, RBAC, and the Manager-exception boundary unchanged. Reservations have no version
+  column — concurrency relies on the RPC row lock (documented in D-018). Gates: typecheck,
+  lint 0 errors, full suite green, build. Manual browser QA pending (refundable +
+  non-refundable + snapshot-pinned reservations, Accounting queue check).
+  See [[D-018]].
+
+- **Request-a-Change redesign + duplicate protection (2026-10-07)** — customer
+  reservation-detail change flow is now one complete modal (native date pickers,
+  HavenSelect over live inventory via new `GET room-options`, required reason
+  textarea, one idempotency key per modal + double-submit guard); one unresolved
+  request per reservation (existing `CHANGE_ALREADY_OPEN` guard kept as
+  authority, UI shows non-action under-review button + status panel with
+  presentation-only status mapping); `reservation_change_submitted` bell entry
+  via migration `20261007010000` (pushed + ledger-verified) with per-request
+  dedupe index; shared ToastStack mounted in the customer shell. Self-service
+  path, Manager-approval routing, Front Desk execution, and
+  TRANSPORT_REQUIRES_STAFF preserved. Gates: typecheck, lint 0 errors, full
+  suite green, build, detector clean. Follow-up deltas (same day): current-stay
+  summary in modal, "Keep current room type" default wording, explicit
+  no-alternatives message, required markers on date fields. Manual browser QA
+  pending (Flows A–C).
+  See [[D-017]].
+
+- **Universal HAVEN UI foundation (2026-09-18)** — shared search/filter toolbar,
+  debounced search, All-first quick filters, semantic buttons/statuses, empty states,
+  and hotel-time formatting now define one behavior system with customer/internal
+  density variants. My Reservations, Manager Reservations, and Owner modules are the
+  first reference consumers; existing select/modal/pagination/toast/loader systems were
+  reused. No workflow/RBAC/data logic changed. Gates: changed-file lint clean, typecheck,
+  1334/1334 tests, build, detector clean; authenticated visual cross-role QA remains
+  manual. See [[2026-09-18 - Universal UI Foundation]], [[D-017]], and
+  `docs/HAVEN_UI_STANDARDS.md`.
+
 - **GCash-only customer deposits + Owner destination config (2026-09-16)** — new
   online deposits accept `manual_gcash` only against the Owner-configured
   destination (name/number/QR/enabled, `owner_update_payment_destination`,

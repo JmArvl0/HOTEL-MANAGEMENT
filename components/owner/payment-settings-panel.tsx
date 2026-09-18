@@ -100,8 +100,8 @@ export default function PaymentSettingsPanel({ notify }: { notify: (message: str
 
   if (loading || !loaded) return <div className="empty"><QrCode /><h3>Loading payment settings…</h3></div>;
   return (
-    <div>
-      <div className="page-title">
+    <div className="owner-payment-settings">
+      <div className="page-title owner-title">
         <div>
           <p className="admin-section-context">Business configuration</p>
           <h1>Payment Settings</h1>
@@ -110,13 +110,13 @@ export default function PaymentSettingsPanel({ notify }: { notify: (message: str
         <span className={`badge ${enabled ? "paid" : "expired"}`}>{enabled ? "Active" : "Inactive"}</span>
       </div>
       {error && <p className="booking-error" role="alert">{error}</p>}
-      <div className="dashboard-grid">
-        <section className="data-panel" aria-labelledby="pay-method">
+      <div className="dashboard-grid owner-payment-grid">
+        <section className="data-panel owner-setting-panel" aria-labelledby="pay-method">
           <div className="panel-heading"><div><h3 id="pay-method">Customer deposit method</h3><p>The single method offered for new online reservation deposits.</p></div></div>
           <p><strong>GCash</strong> — manual transfer verified by Accounting.</p>
           <label className="choice"><input type="checkbox" checked={enabled} onChange={(event) => setEnabled(event.target.checked)} /><span><strong>Accept GCash deposits</strong><small>While off, guests see a temporarily-unavailable notice and cannot submit.</small></span></label>
         </section>
-        <section className="data-panel" aria-labelledby="pay-destination">
+        <section className="data-panel owner-setting-panel" aria-labelledby="pay-destination">
           <div className="panel-heading"><div><h3 id="pay-destination">GCash payment destination</h3><p>Exactly what customers pay into. No PINs, passwords, or secrets belong here.</p></div></div>
           <label>Account / display name<input type="text" value={name} maxLength={80} onChange={(event) => setName(event.target.value)} placeholder="HAVEN Hotel & Residences" autoComplete="off" /></label>
           <label>GCash mobile number<input type="tel" value={mobile} maxLength={30} onChange={(event) => setMobile(event.target.value)} placeholder="09XX XXX XXXX" autoComplete="off" inputMode="tel" /></label>
@@ -131,7 +131,7 @@ export default function PaymentSettingsPanel({ notify }: { notify: (message: str
           <label>Reason for change<textarea value={reason} maxLength={500} onChange={(event) => setReason(event.target.value)} placeholder="Record the business reason — it is stored in the audit trail…" /></label>
         </section>
       </div>
-      <section className="data-panel" aria-labelledby="pay-preview">
+      <section className="data-panel owner-payment-preview" aria-labelledby="pay-preview">
         <div className="panel-heading"><div><h3 id="pay-preview">Customer-facing preview</h3><p>This is what customers will see on the deposit page.</p></div><Smartphone size={18} aria-hidden="true" /></div>
         <p><strong>{name.trim() || "—"}</strong></p>
         <p>{mobile.trim() || "—"}</p>
@@ -140,8 +140,8 @@ export default function PaymentSettingsPanel({ notify }: { notify: (message: str
             <img src={qrPreview} alt="Customer QR preview" width={220} style={{ objectFit: "contain" }} />
           : <p>No QR configured.</p>}
       </section>
-      <div className="form-actions"><button type="button" className="btn btn-accent" disabled={saving} onClick={save}>{saving ? "Saving…" : "Save changes"}</button></div>
-      <section className="data-panel" aria-labelledby="pay-history">
+      <div className="form-actions owner-payment-actions"><button type="button" className="btn btn-accent" disabled={saving} onClick={save}>{saving ? "Saving…" : "Save changes"}</button></div>
+      <section className="data-panel owner-payment-history" aria-labelledby="pay-history">
         <div className="panel-heading"><div><h3 id="pay-history">Configuration history</h3><p>{loaded.lastUpdated ? `Last updated ${new Date(loaded.lastUpdated).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" })}${loaded.lastUpdatedBy ? ` by ${loaded.lastUpdatedBy}` : ""}` : "No destination changes recorded yet."}</p></div></div>
         {loaded.trail.length > 0 && (
           <div className="table-scroll"><table aria-label="Payment destination changes">

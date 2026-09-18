@@ -1,12 +1,15 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, BedDouble, Check, Users } from "lucide-react";
+import { ArrowRight, BedDouble, Check, Ruler, Users } from "lucide-react";
 import { formatPeso } from "@/lib/format";
 import { type AvailableRoomType, type RoomTypeSummary } from "@/lib/booking";
 import { RoomDetailsButton } from "@/components/booking/room-details";
 import { ChooseDatesButton } from "@/components/booking/choose-dates-button";
 import { RoomPhotoTrigger } from "@/components/booking/room-photo-lightbox";
 import { roomPhotosFor, roomPrimary } from "@/lib/room-images";
+
+/** Max amenities shown on the card; overflow collapses to a "+N more" note. */
+const CARD_AMENITY_LIMIT = 4;
 
 /** Availability results shared by the public search page and the portal Find a Room module.
  *  Summary rooms (no `availableUnits`) render as browse cards: catalog rate, no fabricated
@@ -29,6 +32,7 @@ export function RoomResults({
     const soldOut = priced && room.availableUnits <= 0;
     const photo = roomPrimary(room.photos, room.name);
     const focused = focusRoomType === room.name;
+    const extraAmenities = Math.max(0, room.amenities.length - CARD_AMENITY_LIMIT);
     return <article
       className={`available-room room-${(index % 3) + 1}${focused ? " is-focused" : ""}`}
       key={room.id}
@@ -42,15 +46,15 @@ export function RoomResults({
       </div>
       <div className="available-room-copy">
         {focused && <p className="room-focus-chip">Selected from homepage</p>}
-        <h2>{room.name}</h2>
-        <p>{room.description}</p>
-        <div className="room-facts"><span><Users size={15}/>Up to {room.maxGuests}</span><span><BedDouble size={15}/>{room.beds}</span>{room.sizeSqm && <span>{room.sizeSqm} m²</span>}</div>
-        <ul>{room.amenities.slice(0, 4).map((amenity) => <li key={amenity}><Check size={13}/>{amenity}</li>)}</ul>
+        <h2 className="room-title">{room.name}</h2>
+        <p className="room-description">{room.description}</p>
+        <div className="room-facts"><span><Users size={15} aria-hidden="true" />Up to {room.maxGuests}</span><span><BedDouble size={15} aria-hidden="true" />{room.beds}</span>{room.sizeSqm && <span><Ruler size={15} aria-hidden="true" />{room.sizeSqm} m²</span>}</div>
+        <ul className="room-amenities" aria-label={`${room.name} amenities preview`}>{room.amenities.slice(0, CARD_AMENITY_LIMIT).map((amenity) => <li key={amenity}><Check size={13} aria-hidden="true" />{amenity}</li>)}{extraAmenities > 0 && <li className="room-amenities-more">+{extraAmenities} more</li>}</ul>
         <div className="room-rate">
           {priced ? (
-            <span><small>{room.nights} night{room.nights !== 1 ? "s" : ""}</small><strong>{formatPeso(room.nightlyRate)}</strong> / night<br/><em>{formatPeso(room.subtotal)} estimated total</em></span>
+            <span className="room-price"><small className="room-price-nights">{room.nights} night{room.nights !== 1 ? "s" : ""}</small><strong className="room-price-nightly">{formatPeso(room.nightlyRate)}</strong> / night<br /><em className="room-price-total">{formatPeso(room.subtotal)} estimated total</em></span>
           ) : (
-            <span><small>From</small><strong>{formatPeso(room.nightlyRate)}</strong> / night</span>
+            <span className="room-price"><small className="room-price-nights">From</small><strong className="room-price-nightly">{formatPeso(room.nightlyRate)}</strong> / night</span>
           )}
           <div className="room-actions">
             <RoomDetailsButton room={room} bookHref={hrefFor(room.name)} />
