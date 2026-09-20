@@ -1,0 +1,732 @@
+/* =============================================================================
+   HAVEN STAFF OPS THEME — Organization Executive Dashboard design language
+   =============================================================================
+   Scoped override layer for STAFF surfaces only. Every rule below is scoped
+   under `.app-shell` (dark base) or `.theme-light .app-shell` (light default),
+   so the landing page, customer portal, booking flow, and auth screens are
+   unreachable by construction. This file loads LAST in app/layout.tsx and wins
+   at equal specificity over manager-dashboard-theme.css and earlier layers.
+
+   Authority: reference/design.mdd (1).txt (FleetOps Executive Dashboard),
+   adapted to HAVEN hotel operations. Supersedes the deep-teal band hero and
+   dark-green shell for staff pages (see DESIGN.md §16, D-025).
+   Never copy fleet/vehicle content here — tokens and grammar only.
+   ============================================================================= */
+
+/* ── 1. OPS TOKENS (scoped; do not leak to :root) ── */
+.app-shell {
+  --ops-ink: #111827;
+  --ops-paper: #f3f3f3;
+  --ops-surface: #ffffff;
+  --ops-border: #d1d5db;
+  --ops-text-2: #4b5563;
+  --ops-text-3: #6b7280;
+  --ops-success: #10b981;
+  --ops-success-ink: #047857;
+  --ops-success-tint: #e7f8f1;
+  --ops-warning: #f59e0b;
+  --ops-warning-ink: #b45309;
+  --ops-warning-tint: #fdf3e2;
+  --ops-danger: #ef4444;
+  --ops-danger-ink: #b91c1c;
+  --ops-danger-tint: #fdeeee;
+  --ops-info: #3b82f6;
+  --ops-info-ink: #1d4ed8;
+  --ops-info-tint: #e9f1fd;
+  --ops-navy: #0b132b;
+  --ops-r-control: 12px;
+  --ops-r-card: 16px;
+  --ops-r-stat: 24px;
+  --ops-r-micro: 6px;
+  --ops-shadow-rest: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+  --ops-shadow-lift: 0 1px 3px 0 rgb(0 0 0 / 0.04);
+  --ops-shadow-float: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+  --ops-shadow-deep: 0 12px 28px -8px rgb(17 24 39 / 0.22);
+  --ops-ease-tactile: cubic-bezier(0.32, 0.72, 0, 1);
+  --ops-tnum: tabular-nums;
+}
+
+/* ── 2. SHELL BASE — light default (Cool Paper floor, ink text, Inter only) ── */
+.theme-light .app-shell {
+  background: var(--ops-paper);
+  color: var(--ops-ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+.theme-light .app-shell .workspace { background: var(--ops-paper); }
+.theme-light .app-shell .workspace-body { max-width: 1440px; padding: 24px; }
+
+/* ── 3. SIDEBAR — white surface, slate structure, ink active item ── */
+.theme-light .app-shell .sidebar {
+  background: var(--ops-surface);
+  border-right: 1px solid var(--ops-border);
+  color: var(--ops-text-2);
+}
+.theme-light .app-shell .sidebar .brand { color: var(--ops-ink); font-size: 13px; font-weight: 600; letter-spacing: 1.2px; }
+.theme-light .app-shell .sidebar .brand-mark { border-color: var(--ops-border); color: var(--ops-ink); }
+.theme-light .app-shell .sidebar .brand small { color: var(--ops-text-3); font-size: 10px; }
+.theme-light .app-shell .property-pill { background: var(--ops-paper); border-color: var(--ops-border); }
+.theme-light .app-shell .property-pill > span { background: var(--ops-ink); color: #fff; }
+.theme-light .app-shell .nav-caption { color: var(--ops-text-3); font-size: 11px; letter-spacing: 1.2px; }
+.theme-light .app-shell .sidebar nav button {
+  font-size: 13px; font-weight: 500; border-radius: var(--ops-r-control);
+  color: var(--ops-text-2);
+}
+.theme-light .app-shell .sidebar nav button:hover { background: var(--ops-paper); color: var(--ops-ink); }
+.theme-light .app-shell .sidebar nav button.active {
+  background: var(--ops-ink); color: #fff; box-shadow: none;
+}
+.theme-light .app-shell .sidebar nav button.active svg { color: #fff; }
+.theme-light .app-shell .sidebar nav i { background: var(--ops-paper); color: var(--ops-text-2); }
+.theme-light .app-shell .sidebar nav button.active i { background: rgb(255 255 255 / 0.14); color: #fff; }
+.theme-light .app-shell .sidebar .nav-group-header { color: var(--ops-text-3); font-size: 11px; border-radius: var(--ops-r-micro); }
+.theme-light .app-shell .sidebar .nav-group-header:hover { background: var(--ops-paper); color: var(--ops-ink); }
+.theme-light .app-shell .sidebar .nav-group-header:focus-visible { outline: 2px solid var(--ops-ink); outline-offset: 2px; }
+.theme-light .app-shell .sidebar-bottom,
+.theme-light .app-shell .profile { border-color: var(--ops-border); }
+.theme-light .app-shell .profile { background: var(--ops-paper); border-radius: var(--ops-r-card); }
+.theme-light .app-shell .profile > span,
+.theme-light .app-shell .avatar { background: var(--ops-ink); color: #fff; }
+.theme-light .app-shell .sidebar nav button .nav-badge { background: var(--ops-warning-tint); color: var(--ops-warning-ink); font-size: 11px; }
+.theme-light .app-shell .sidebar nav button.active .nav-badge { background: rgb(255 255 255 / 0.2); color: #fff; }
+.theme-light .app-shell .brand-menu-btn .brand-mark { color: var(--ops-ink); border-color: var(--ops-border); }
+
+/* ── 4. TOP HEADER, POPOVERS, PROFILE ── */
+.theme-light .app-shell .app-header {
+  background: var(--ops-surface); border-bottom: 1px solid var(--ops-border);
+  height: 60px; box-shadow: none;
+}
+.theme-light .app-shell .app-header p { color: var(--ops-ink); font-size: 14px; font-weight: 600; }
+.theme-light .app-shell .app-header small { color: var(--ops-text-3); font-size: 11px; }
+.theme-light .app-shell .icon-button,
+.theme-light .app-shell .menu-btn {
+  background: var(--ops-surface); border: 1px solid var(--ops-border);
+  color: var(--ops-text-2); border-radius: var(--ops-r-control);
+}
+.theme-light .app-shell .icon-button:hover,
+.theme-light .app-shell .menu-btn:hover { background: var(--ops-paper); color: var(--ops-ink); }
+.theme-light .app-shell .mode-pill { background: var(--ops-info-tint); border: 1px solid var(--ops-border); color: var(--ops-info-ink); font-size: 11px; }
+.theme-light .app-shell .shift-pill.closed { background: var(--ops-paper); border-color: var(--ops-border); color: var(--ops-text-2); }
+.theme-light .app-shell .notification-center .nav-badge { background: var(--ops-danger); color: #fff; font-size: 11px; }
+.theme-light .app-shell .notification-popover,
+.theme-light .app-shell .profile-popover {
+  border-radius: var(--ops-r-card); box-shadow: var(--ops-shadow-float);
+}
+.theme-light .app-shell .profile-menu-btn { border-radius: 999px; }
+.theme-light .app-shell .profile-menu-btn b { background: var(--ops-ink); color: #fff; }
+
+/* ── 5. EXECUTIVE PAGE HEADER — replaces the deep-teal band on staff pages ── */
+.theme-light .app-shell .page-title { margin-bottom: 20px; }
+.theme-light .app-shell .page-title h1 {
+  color: var(--ops-ink); font-size: 22px; font-weight: 600; letter-spacing: -0.01em;
+}
+.theme-light .app-shell .page-title > div > p:last-child { color: var(--ops-text-2); font-size: 13px; }
+.theme-light .app-shell .eyebrow {
+  color: var(--ops-text-3); font-size: 11px; font-weight: 500;
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.theme-light .app-shell .page-header {
+  background: var(--ops-surface); border: 1px solid var(--ops-border);
+  border-radius: var(--ops-r-card); box-shadow: var(--ops-shadow-rest);
+  padding: 20px 24px; margin-bottom: 20px;
+}
+.theme-light .app-shell .page-header.band {
+  background: var(--ops-surface); color: var(--ops-ink);
+}
+.theme-light .app-shell .page-header.band .page-header-eyebrow { color: var(--ops-text-3); }
+.theme-light .app-shell .page-header.band .page-header-title { color: var(--ops-ink); font-size: 22px; font-weight: 600; }
+.theme-light .app-shell .page-header.band .page-header-subtitle,
+.theme-light .app-shell .page-header.band .breadcrumb-link,
+.theme-light .app-shell .page-header.band .breadcrumb-current { color: var(--ops-text-2); }
+.theme-light .app-shell .page-header-eyebrow {
+  color: var(--ops-text-3); font-size: 11px; font-weight: 500;
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.theme-light .app-shell .page-header-title { color: var(--ops-ink); font-size: 22px; font-weight: 600; }
+.theme-light .app-shell .page-header-subtitle { color: var(--ops-text-2); font-size: 14px; }
+
+/* ── 6. KPI STAT CARDS — org grammar: 24px, tinted chip, 30px value ── */
+.theme-light .app-shell .metric-grid { gap: 16px; }
+.theme-light .app-shell .metric-card {
+  background: var(--ops-surface); border: 1px solid var(--ops-border);
+  border-radius: var(--ops-r-stat); box-shadow: var(--ops-shadow-rest);
+  padding: 20px; min-height: 0;
+}
+.theme-light .app-shell .metric-card::after { content: none; }
+.theme-light .app-shell .metric-card > span {
+  color: var(--ops-text-2); font-size: 12px; font-weight: 500;
+}
+.theme-light .app-shell .metric-card > b {
+  color: var(--ops-ink); font-size: 30px; font-weight: 600;
+  font-variant-numeric: var(--ops-tnum); margin: 8px 0 4px;
+}
+.theme-light .app-shell .metric-card > small { color: var(--ops-text-3); font-size: 11px; }
+.theme-light .app-shell .metric-card > i {
+  width: 40px; height: 40px; border-radius: 16px;
+  background: var(--ops-paper); border: 1px solid var(--ops-border);
+  color: var(--ops-ink);
+}
+.theme-light .app-shell .metric-card > i svg { width: 20px; height: 20px; }
+/* mod-kpi snapshot strip — same grammar, compact */
+.theme-light .app-shell .mod-kpis { gap: 16px; }
+.theme-light .app-shell .mod-kpi {
+  background: var(--ops-surface); border: 1px solid var(--ops-border);
+  border-radius: var(--ops-r-stat); box-shadow: var(--ops-shadow-rest);
+  padding: 16px 18px;
+}
+.theme-light .app-shell .mod-kpi span { color: var(--ops-text-2); font-size: 12px; font-weight: 500; }
+.theme-light .app-shell .mod-kpi b {
+  color: var(--ops-ink); font-size: 24px; font-weight: 600;
+  font-variant-numeric: var(--ops-tnum);
+}
+.theme-light .app-shell .mod-kpi small { color: var(--ops-text-3); font-size: 11px; }
+.theme-light .app-shell .mod-kpi > i { border-radius: 12px; width: 32px; height: 32px; }
+.theme-light .app-shell .mod-kpi > i.attention { background: var(--ops-warning-tint); color: var(--ops-warning-ink); }
+.theme-light .app-shell .mod-kpi > i.today { background: var(--ops-info-tint); color: var(--ops-info-ink); }
+.theme-light .app-shell .mod-kpi > i.active { background: var(--ops-info-tint); color: var(--ops-info-ink); }
+.theme-light .app-shell .mod-kpi > i.done { background: var(--ops-success-tint); color: var(--ops-success-ink); }
+.theme-light .app-shell button.mod-kpi,
+.theme-light .app-shell .metric-card {
+  transition: transform 280ms var(--ops-ease-tactile), box-shadow 280ms var(--ops-ease-tactile), border-color 280ms var(--ops-ease-tactile);
+}
+.theme-light .app-shell button.mod-kpi:hover { border-color: var(--ops-ink); box-shadow: var(--ops-shadow-lift); transform: translateY(-1px); }
+.theme-light .app-shell button.mod-kpi:active { transform: translateY(0) scale(0.995); }
+.theme-light .app-shell button.mod-kpi[aria-pressed="true"] { border-color: var(--ops-ink); box-shadow: 0 0 0 1px var(--ops-ink); }
+.theme-light .app-shell .mod-kpi:focus-visible { outline: 2px solid var(--ops-ink); outline-offset: 2px; }
+
+/* ── 7. PANELS — 16px, flat rest, honest feed states ── */
+.theme-light .app-shell .dashboard-grid { gap: 16px; margin-top: 16px; }
+.theme-light .app-shell .panel {
+  background: var(--ops-surface); border: 1px solid var(--ops-border);
+  border-radius: var(--ops-r-card); box-shadow: var(--ops-shadow-rest);
+  padding: 20px;
+}
+.theme-light .app-shell .panel-heading { margin-bottom: 16px; }
+.theme-light .app-shell .panel-heading h3 { color: var(--ops-ink); font-size: 15px; font-weight: 600; }
+.theme-light .app-shell .panel-heading p { color: var(--ops-text-2); font-size: 12px; }
+.theme-light .app-shell .panel-heading button { color: var(--ops-ink); font-size: 12px; font-weight: 600; }
+.theme-light .app-shell .panel-heading button:hover { text-decoration: underline; }
+.theme-light .app-shell .trend { background: var(--ops-paper); color: var(--ops-text-2); font-size: 11px; }
+.theme-light .app-shell .chart-panel { min-height: 260px; }
+.theme-light .app-shell .chart-h-sm { height: 220px; }
+.theme-light .app-shell .chart-h-md { height: 260px; }
+.theme-light .app-shell .chart-h-lg { height: 300px; }
+.theme-light .app-shell .recharts-cartesian-axis-tick-value { fill: var(--ops-text-3); font-size: 11px; }
+.theme-light .app-shell .recharts-default-tooltip {
+  background: var(--ops-surface) !important; border: 1px solid var(--ops-border) !important;
+  color: var(--ops-ink) !important; border-radius: 8px; font-size: 12px;
+}
+.theme-light .app-shell .donut-wrap p,
+.theme-light .app-shell .arrival-row b,
+.theme-light .app-shell .quick-panel b { color: var(--ops-ink); font-size: 14px; }
+.theme-light .app-shell .donut-wrap p span,
+.theme-light .app-shell .arrival-row small,
+.theme-light .app-shell .quick-panel small { color: var(--ops-text-2); font-size: 12px; }
+.theme-light .app-shell .arrival-row { border-color: var(--ops-border); }
+.theme-light .app-shell .quick-panel > button {
+  color: var(--ops-ink); background: var(--ops-surface);
+  border: 1px solid var(--ops-border); border-radius: var(--ops-r-control);
+  font-size: 13px;
+}
+.theme-light .app-shell .quick-panel > button:hover { background: var(--ops-paper); border-color: var(--ops-ink); }
+.theme-light .app-shell .quick-icon.amber { background: var(--ops-warning-tint); color: var(--ops-warning-ink); }
+.theme-light .app-shell .quick-icon.green { background: var(--ops-success-tint); color: var(--ops-success-ink); }
+.theme-light .app-shell .quick-icon.rose { background: var(--ops-danger-tint); color: var(--ops-danger-ink); }
+.theme-light .app-shell .empty { color: var(--ops-text-2); font-size: 13px; }
+.theme-light .app-shell .empty h3 { color: var(--ops-ink); font-size: 15px; }
+.theme-light .app-shell .feed-error {
+  background: var(--ops-danger-tint); border: 1px solid var(--ops-danger);
+  color: var(--ops-danger-ink); border-radius: var(--ops-r-card);
+  padding: 16px; font-size: 13px;
+}
+
+/* ── 8. TABLES + STATUS — white container, slate structure, AA-safe pills ── */
+.theme-light .app-shell .data-panel {
+  background: var(--ops-surface); border: 1px solid var(--ops-border);
+  border-radius: var(--ops-r-card); box-shadow: var(--ops-shadow-rest);
+}
+.theme-light .app-shell table { font-size: 13px; font-variant-numeric: var(--ops-tnum); }
+.theme-light .app-shell th {
+  color: var(--ops-text-2); background: var(--ops-paper);
+  border-bottom: 1px solid var(--ops-border);
+  font-size: 12px; font-weight: 500; text-align: left;
+}
+.theme-light .app-shell td { color: var(--ops-text-2); border-bottom: 1px solid var(--ops-border); }
+.theme-light .app-shell td strong { color: var(--ops-ink); }
+.theme-light .app-shell tbody tr:hover { background: var(--ops-paper); }
+.theme-light .app-shell .table-footer { color: var(--ops-text-3); font-size: 12px; }
+.theme-light .app-shell .table-tools label {
+  background: var(--ops-surface); border: 1px solid var(--ops-border);
+  color: var(--ops-text-2); border-radius: var(--ops-r-control); font-size: 13px;
+}
+.theme-light .app-shell .table-tools input { color: var(--ops-ink); font-size: 14px; }
+/* legacy .badge state families → 10%-tint + 700-level text */
+.theme-light .app-shell .badge { font-size: 12px; font-weight: 500; border-radius: 999px; }
+.theme-light .app-shell .badge.confirmed, .theme-light .app-shell .badge.available,
+.theme-light .app-shell .badge.paid, .theme-light .app-shell .badge.completed,
+.theme-light .app-shell .badge.resolved, .theme-light .app-shell .badge.healthy,
+.theme-light .app-shell .badge.on_duty, .theme-light .app-shell .badge.scheduled,
+.theme-light .app-shell .badge.assigned, .theme-light .app-shell .badge.clean,
+.theme-light .app-shell .badge.reconciled { background: var(--ops-success-tint); color: var(--ops-success-ink); }
+.theme-light .app-shell .badge.sla-attention { background: var(--ops-warning-tint); color: var(--ops-warning-ink); }
+.theme-light .app-shell .badge.checked_in, .theme-light .app-shell .badge.in_progress,
+.theme-light .app-shell .badge.deposit, .theme-light .app-shell .badge.partial,
+.theme-light .app-shell .badge.reserved, .theme-light .app-shell .badge.requested,
+.theme-light .app-shell .badge.reviewed { background: var(--ops-info-tint); color: var(--ops-info-ink); }
+.theme-light .app-shell .badge.cancelled, .theme-light .app-shell .badge.urgent,
+.theme-light .app-shell .badge.out, .theme-light .app-shell .badge.maintenance,
+.theme-light .app-shell .badge.rejected, .theme-light .app-shell .badge.no_show,
+.theme-light .app-shell .badge.sla-breach { background: var(--ops-danger-tint); color: var(--ops-danger-ink); }
+.theme-light .app-shell .badge.dirty, .theme-light .app-shell .badge.low,
+.theme-light .app-shell .badge.pending, .theme-light .app-shell .badge.open,
+.theme-light .app-shell .badge.unpaid { background: var(--ops-warning-tint); color: var(--ops-warning-ink); }
+.theme-light .app-shell .badge.closed { background: var(--ops-paper); color: var(--ops-text-2); border: 1px solid var(--ops-border); }
+/* shared haven-status pills → org tokens */
+.theme-light .app-shell .haven-status { font-size: 12px; font-weight: 500; }
+.theme-light .app-shell .haven-status--success { --status-bg: var(--ops-success-tint); --status-fg: var(--ops-success-ink); --status-border: var(--ops-success); }
+.theme-light .app-shell .haven-status--info { --status-bg: var(--ops-info-tint); --status-fg: var(--ops-info-ink); --status-border: var(--ops-info); }
+.theme-light .app-shell .haven-status--warning { --status-bg: var(--ops-warning-tint); --status-fg: var(--ops-warning-ink); --status-border: var(--ops-warning); }
+.theme-light .app-shell .haven-status--danger { --status-bg: var(--ops-danger-tint); --status-fg: var(--ops-danger-ink); --status-border: var(--ops-danger); }
+.theme-light .app-shell .haven-status--neutral { --status-bg: var(--ops-paper); --status-fg: var(--ops-text-2); --status-border: var(--ops-border); }
+/* reservations table specifics */
+.theme-light .app-shell .reservations-table tbody tr:hover,
+.theme-light .app-shell .reservations-table tbody tr:focus-visible { background: var(--ops-paper); box-shadow: inset 2px 0 0 var(--ops-ink); }
+.theme-light .app-shell .cell-stack b, .theme-light .app-shell .stay-cell b { color: var(--ops-ink); font-size: 13px; }
+.theme-light .app-shell .cell-stack small, .theme-light .app-shell .stay-cell small { color: var(--ops-text-2); font-size: 12px; }
+.theme-light .app-shell .stay-cell b i { color: var(--ops-info-ink); }
+.theme-light .app-shell .stay-cell.today b { color: var(--ops-success-ink); }
+.theme-light .app-shell .stay-cell.today b::before { background: var(--ops-success); }
+.theme-light .app-shell .balance-due { color: var(--ops-warning-ink); }
+.theme-light .app-shell .balance-clear { color: var(--ops-success-ink); }
+.theme-light .app-shell .table-action { border-radius: 8px; font-size: 12px; }
+.theme-light .app-shell .table-action:hover { background: var(--ops-paper); border-color: var(--ops-ink); color: var(--ops-ink); }
+.theme-light .app-shell .table-action:focus-visible { outline: 2px solid var(--ops-ink); outline-offset: 1px; }
+.theme-light .app-shell .table-action.view-action { background: var(--ops-success-tint); border-color: var(--ops-success); color: var(--ops-success-ink); }
+.theme-light .app-shell .table-action.view-action:hover { background: var(--ops-success-tint); color: var(--ops-success-ink); border-color: var(--ops-success-ink); }
+.theme-light .app-shell .table-action.check-in-action { background: var(--ops-ink); border-color: var(--ops-ink); color: #fff; }
+.theme-light .app-shell .table-action.check-in-action:hover { background: #1f2937; color: #fff; }
+/* rooms grid */
+.theme-light .app-shell .room-card {
+  background: var(--ops-surface); border: 1px solid var(--ops-border);
+  border-radius: var(--ops-r-card); box-shadow: var(--ops-shadow-rest);
+}
+.theme-light .app-shell .room-card header b { color: var(--ops-ink); font-variant-numeric: var(--ops-tnum); }
+.theme-light .app-shell .room-card dl > div { border-bottom: 1px solid var(--ops-border); font-size: 13px; }
+
+/* ── 9. BUTTONS + FORM CONTROLS ── */
+.theme-light .app-shell .btn {
+  min-height: 36px; padding: 8px 16px; border-radius: var(--ops-r-control);
+  font-size: 13px; font-weight: 600;
+  transition: background-color 280ms var(--ops-ease-tactile), border-color 280ms var(--ops-ease-tactile), transform 120ms ease;
+}
+.theme-light .app-shell .btn:active { transform: translateY(1px); }
+.theme-light .app-shell .btn:focus-visible { outline: 2px solid var(--ops-ink); outline-offset: 2px; }
+.theme-light .app-shell .btn-accent { background: var(--ops-ink); color: #fff; }
+.theme-light .app-shell .btn-accent:hover { background: #1f2937; }
+.theme-light .app-shell .btn-soft {
+  background: var(--ops-surface); border: 1px solid var(--ops-border); color: var(--ops-ink);
+}
+.theme-light .app-shell .btn-soft:hover { background: var(--ops-paper); border-color: var(--ops-ink); }
+.theme-light .app-shell .reservation-filters button { border-radius: 8px; font-size: 12px; font-weight: 500; }
+.theme-light .app-shell .reservation-filters button.active { background: var(--ops-ink); color: #fff; }
+.theme-light .app-shell .form-input,
+.theme-light .app-shell .modal-content textarea,
+.theme-light .app-shell .modal-content select,
+.theme-light .app-shell .reservation-filters select {
+  border-radius: var(--ops-r-control); font-size: 14px;
+}
+.theme-light .app-shell .form-input:focus,
+.theme-light .app-shell .modal-content textarea:focus,
+.theme-light .app-shell .modal-content select:focus {
+  outline: 2px solid var(--ops-ink); outline-offset: 1px; border-color: var(--ops-ink);
+}
+/* HavenSelect + toolbar primitives inside staff */
+.theme-light .app-shell .haven-select-trigger { border-radius: var(--ops-r-control); font-size: 13px; }
+.theme-light .app-shell .haven-select-trigger:focus-visible { outline: 2px solid var(--ops-ink); outline-offset: 2px; }
+.theme-light .app-shell .haven-select-menu { border-radius: var(--ops-r-card); box-shadow: var(--ops-shadow-float); }
+.theme-light .app-shell .haven-select-item.is-selected { background: var(--ops-paper); }
+.theme-light .app-shell .haven-filter-badge { border-radius: 999px; font-size: 12px; font-weight: 500; }
+.theme-light .app-shell .haven-filter-badge[aria-pressed="true"] { background: var(--ops-ink); color: #fff; border-color: var(--ops-ink); }
+.theme-light .app-shell .haven-filter-badge:focus-visible,
+.theme-light .app-shell .haven-clear-filters:focus-visible,
+.theme-light .app-shell .haven-search-clear:focus-visible { outline: 2px solid var(--ops-ink); outline-offset: 2px; }
+.theme-light .app-shell .haven-search-input input { font-size: 14px; }
+.theme-light .app-shell .haven-empty-state :is(h2, h3) { color: var(--ops-ink); font-size: 15px; }
+.theme-light .app-shell .haven-empty-state p { color: var(--ops-text-2); font-size: 13px; }
+
+/* ── 10. MODALS (staff-scoped) ── */
+.theme-light .app-shell .modal-content {
+  border-radius: var(--ops-r-card); box-shadow: var(--ops-shadow-deep);
+}
+.theme-light .app-shell .modal-title { color: var(--ops-ink); font-size: 18px; font-weight: 600; }
+.theme-light .app-shell .modal-description { color: var(--ops-text-2); font-size: 13px; }
+.theme-light .app-shell .modal-branded .modal-header { background: var(--ops-ink); border-color: var(--ops-ink); }
+.theme-light .app-shell .modal-branded .modal-title { color: #fff; }
+.theme-light .app-shell .modal-branded .modal-description { color: #cbd2dc; }
+.theme-light .app-shell .modal-branded .modal-close { border-color: rgb(255 255 255 / 0.25); background: rgb(255 255 255 / 0.08); color: #fff; }
+.theme-light .app-shell .modal-branded .modal-close:hover { background: rgb(255 255 255 / 0.16); }
+.theme-light .app-shell .modal-branded .modal-close:focus-visible { outline: 2px solid #fff; }
+.theme-light .app-shell .form-label { font-size: 12px; font-weight: 500; color: var(--ops-ink); }
+.theme-light .app-shell .form-error { font-size: 12px; color: var(--ops-danger-ink); }
+.theme-light .app-shell .form-help, .theme-light .app-shell .form-hint { font-size: 12px; color: var(--ops-text-2); }
+
+/* ── 11. TOASTS + NOTIFICATIONS ── */
+.theme-light .app-shell .toast { background: var(--ops-ink); color: #fff; }
+.theme-light .toast-stack .toast-card { border-radius: var(--ops-r-card); box-shadow: var(--ops-shadow-float); }
+.theme-light .toast-stack .toast-card strong { font-size: 13px; }
+.theme-light .toast-stack .toast-card small { font-size: 12px; }
+.theme-light .toast-stack .toast-card.success .toast-icon { background: var(--ops-success-tint); color: var(--ops-success-ink); }
+.theme-light .toast-stack .toast-card.warning .toast-icon { background: var(--ops-warning-tint); color: var(--ops-warning-ink); }
+.theme-light .toast-stack .toast-card.error .toast-icon { background: var(--ops-danger-tint); color: var(--ops-danger-ink); }
+.theme-light .toast-stack .toast-card.info .toast-icon { background: var(--ops-info-tint); color: var(--ops-info-ink); }
+
+/* ── 12. AI WORKSPACE — Analyst grammar; navy reserved for intelligence pill ── */
+.theme-light .app-shell .haven-ai-workspace {
+  background: var(--ops-surface); border: 1px solid var(--ops-border);
+  border-radius: var(--ops-r-card);
+}
+.theme-light .app-shell .haven-ai-section-heading { color: var(--ops-ink); font-size: 15px; font-weight: 600; }
+.theme-light .app-shell .haven-ai-advisory,
+.theme-light .app-shell .ai-readonly-chip {
+  background: var(--ops-navy); color: #fff;
+  border-radius: 999px; font-size: 11px; font-weight: 600;
+}
+.theme-light .app-shell .ai-brief,
+.theme-light .app-shell .ai-conversation { background: var(--ops-paper); border-radius: var(--ops-r-card); }
+.theme-light .app-shell .haven-ai-kpi-grid { gap: 16px; }
+.theme-light .app-shell .haven-ai-kpi {
+  background: var(--ops-surface); border: 1px solid var(--ops-border);
+  border-radius: var(--ops-r-stat); font-variant-numeric: var(--ops-tnum);
+}
+
+/* ── 13. ADMIN + OWNER MODULES — same panel grammar ── */
+.theme-light .app-shell .admin-overview,
+.theme-light .app-shell .admin-health-section,
+.theme-light .app-shell .admin-quick-section,
+.theme-light .app-shell .admin-policy-groups,
+.theme-light .app-shell .owner-section-head {
+  font-size: 13px;
+}
+.theme-light .app-shell .owner-tabs button.active { background: var(--ops-ink); color: #fff; border-color: var(--ops-ink); }
+.theme-light .app-shell .report-banner {
+  background: var(--ops-surface); border: 1px solid var(--ops-border);
+  border-radius: var(--ops-r-card); color: var(--ops-text-2);
+}
+.theme-light .app-shell .report-banner h2 { color: var(--ops-ink); font-size: 18px; font-weight: 600; }
+
+/* ── 14. REFINED DARK VARIANT (opt-in; light remains default) ── */
+.app-shell {
+  --db: #0d1320; --ds: #131b2c; --ds2: #182134; --dl: #263049;
+  --dt: #e8ecf3; --dm: #9aa4b5; --dg: #7ea4e8;
+  background: var(--db); color: var(--dt);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+.app-shell .sidebar { background: #0b1120; border-right: 1px solid var(--dl); color: #aeb7c6; }
+.app-shell .sidebar .brand { color: #f2f5fa; }
+.app-shell .sidebar .brand small { color: #7c8698; font-size: 10px; }
+.app-shell .sidebar .brand-mark { border-color: #33405a; color: #dbe3f0; }
+.app-shell .property-pill { background: #111a2e; border-color: var(--dl); }
+.app-shell .property-pill > span { background: #1c2740; color: #dbe3f0; }
+.app-shell .nav-caption { color: #7c8698; font-size: 11px; }
+.app-shell .sidebar nav button { font-size: 13px; font-weight: 500; border-radius: var(--ops-r-control); color: #c3cad7; }
+.app-shell .sidebar nav button:hover { background: #16203a; color: #fff; }
+.app-shell .sidebar nav button.active { background: #f3f4f6; color: var(--ops-ink); box-shadow: none; }
+.app-shell .sidebar nav button.active svg { color: var(--ops-ink); }
+.app-shell .sidebar nav i { background: #1a2440; color: #aeb9cf; }
+.app-shell .sidebar nav button.active i { background: rgb(17 24 39 / 0.1); color: var(--ops-ink); }
+.app-shell .sidebar .nav-group-header { color: #7c8698; font-size: 11px; }
+.app-shell .sidebar .nav-group-header:hover { background: #16203a; color: #dbe3f0; }
+.app-shell .sidebar-bottom, .app-shell .profile { border-color: #232f4a; }
+.app-shell .profile { background: #111a2e; border-radius: var(--ops-r-card); }
+.app-shell .profile > span, .app-shell .avatar { background: #f3f4f6; color: var(--ops-ink); }
+.app-shell .workspace { background: var(--db); }
+.app-shell .app-header { background: #0b1120; border-bottom: 1px solid var(--dl); height: 60px; box-shadow: none; }
+.app-shell .app-header p { color: #eef1f7; font-size: 14px; }
+.app-shell .app-header small { color: #8b95a8; font-size: 11px; }
+.app-shell .icon-button, .app-shell .menu-btn { background: #131b2c; border-color: var(--dl); color: #c3cad7; border-radius: var(--ops-r-control); }
+.app-shell .icon-button:hover, .app-shell .menu-btn:hover { color: #fff; border-color: #3b4a6b; }
+.app-shell .mode-pill { background: #16233f; border-color: #2c3d63; color: #8fb4ec; font-size: 11px; }
+.app-shell .page-title h1 { color: #f2f5fa; font-size: 22px; font-weight: 600; }
+.app-shell .page-title > div > p:last-child { color: #9aa4b5; font-size: 13px; }
+.app-shell .eyebrow { color: #8b95a8; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+.app-shell .page-header { background: var(--ds); border: 1px solid var(--dl); border-radius: var(--ops-r-card); box-shadow: var(--ops-shadow-rest); padding: 20px 24px; margin-bottom: 20px; }
+.app-shell .page-header.band { background: var(--ds); color: var(--dt); }
+.app-shell .page-header.band .page-header-title { color: #f2f5fa; font-size: 22px; }
+.app-shell .page-header.band .page-header-eyebrow { color: #8b95a8; }
+.app-shell .page-header.band .page-header-subtitle,
+.app-shell .page-header.band .breadcrumb-link,
+.app-shell .page-header.band .breadcrumb-current { color: #9aa4b5; }
+.app-shell .page-header-eyebrow { color: #8b95a8; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+.app-shell .page-header-title { color: #f2f5fa; font-size: 22px; font-weight: 600; }
+.app-shell .page-header-subtitle { color: #9aa4b5; font-size: 14px; }
+.app-shell .btn { min-height: 36px; padding: 8px 16px; border-radius: var(--ops-r-control); font-size: 13px; font-weight: 600; }
+.app-shell .btn-accent { background: #f3f4f6; color: var(--ops-ink); }
+.app-shell .btn-accent:hover { background: #fff; }
+.app-shell .btn-soft { background: var(--ds); border-color: var(--dl); color: #c3cad7; }
+.app-shell .btn-soft:hover { border-color: #3b4a6b; color: #fff; }
+.app-shell .btn:focus-visible, .app-shell .mod-kpi:focus-visible,
+.app-shell .table-action:focus-visible, .app-shell .icon-button:focus-visible { outline: 2px solid #8fb4ec; outline-offset: 2px; }
+.app-shell .metric-grid { gap: 16px; }
+.app-shell .metric-card { background: var(--ds); border: 1px solid var(--dl); border-radius: var(--ops-r-stat); box-shadow: var(--ops-shadow-rest); padding: 20px; min-height: 0; }
+.app-shell .metric-card::after { content: none; }
+.app-shell .metric-card span { color: #9aa4b5; font-size: 12px; font-weight: 500; }
+.app-shell .metric-card b { color: #f2f5fa; font-size: 30px; font-weight: 600; font-variant-numeric: var(--ops-tnum); margin: 8px 0 4px; }
+.app-shell .metric-card small { color: #8b95a8; font-size: 11px; }
+.app-shell .metric-card > i { width: 40px; height: 40px; border-radius: 16px; background: #1a2440; border: 1px solid #2c3a5c; color: #b9c6de; }
+.app-shell .mod-kpis { gap: 16px; }
+.app-shell .mod-kpi { background: var(--ds); border: 1px solid var(--dl); border-radius: var(--ops-r-stat); box-shadow: var(--ops-shadow-rest); padding: 16px 18px; }
+.app-shell .mod-kpi span { color: #9aa4b5; font-size: 12px; font-weight: 500; }
+.app-shell .mod-kpi b { color: #f2f5fa; font-size: 24px; font-weight: 600; font-variant-numeric: var(--ops-tnum); }
+.app-shell .mod-kpi small { color: #8b95a8; font-size: 11px; }
+.app-shell button.mod-kpi { transition: transform 280ms var(--ops-ease-tactile), box-shadow 280ms var(--ops-ease-tactile), border-color 280ms var(--ops-ease-tactile); }
+.app-shell button.mod-kpi:hover { border-color: #8fb4ec; transform: translateY(-1px); }
+.app-shell button.mod-kpi:active { transform: translateY(0) scale(0.995); }
+.app-shell button.mod-kpi[aria-pressed="true"] { border-color: #8fb4ec; box-shadow: 0 0 0 1px #8fb4ec; }
+.app-shell .mod-kpi > i.attention { background: #3a2d1a; color: #e8b96a; }
+.app-shell .mod-kpi > i.today, .app-shell .mod-kpi > i.active { background: #16233f; color: #8fb4ec; }
+.app-shell .mod-kpi > i.done { background: #173024; color: #65d3a5; }
+.app-shell .panel { background: var(--ds); border: 1px solid var(--dl); border-radius: var(--ops-r-card); box-shadow: var(--ops-shadow-rest); padding: 20px; }
+.app-shell .dashboard-grid { gap: 16px; margin-top: 16px; }
+.app-shell .panel-heading h3 { color: #e8ecf3; font-size: 15px; font-weight: 600; }
+.app-shell .panel-heading p { color: #8b95a8; font-size: 12px; }
+.app-shell .panel-heading button { color: #b9c6de; font-size: 12px; font-weight: 600; }
+.app-shell .trend { background: #1a2440; color: #b9c6de; font-size: 11px; }
+.app-shell .chart-h-sm { height: 220px; }
+.app-shell .chart-h-md { height: 260px; }
+.app-shell .chart-h-lg { height: 300px; }
+.app-shell .recharts-cartesian-axis-tick-value { fill: #8b95a8; font-size: 11px; }
+.app-shell .recharts-default-tooltip { background: #131b2c !important; border: 1px solid #2c3a5c !important; color: #e8ecf3 !important; border-radius: 8px; font-size: 12px; }
+.app-shell table { font-size: 13px; font-variant-numeric: var(--ops-tnum); }
+.app-shell th { color: #9aa4b5; font-size: 12px; font-weight: 500; }
+.app-shell td { color: #c3cad7; }
+.app-shell td strong, .app-shell .cell-stack b, .app-shell .stay-cell b { color: #eef1f7; font-size: 13px; }
+.app-shell .cell-stack small, .app-shell .stay-cell small { color: #8b95a8; font-size: 12px; }
+.app-shell .data-panel { border-radius: var(--ops-r-card); }
+.app-shell .badge { font-size: 12px; font-weight: 500; }
+.app-shell .haven-status { font-size: 12px; font-weight: 500; }
+.app-shell .haven-status--neutral { --status-bg: #1a2440; --status-fg: #b9c6de; --status-border: #2c3a5c; }
+.app-shell .modal-content { border-radius: var(--ops-r-card); box-shadow: var(--ops-shadow-deep); }
+.app-shell .modal-title { font-size: 18px; font-weight: 600; }
+.app-shell .modal-branded .modal-header { background: var(--ops-ink); border-color: var(--ops-ink); }
+.app-shell .form-label { font-size: 12px; font-weight: 500; }
+.app-shell .form-error { font-size: 12px; }
+.app-shell .form-help, .app-shell .form-hint { font-size: 12px; }
+.app-shell .form-input, .app-shell .modal-content textarea, .app-shell .modal-content select { border-radius: var(--ops-r-control); font-size: 14px; }
+.app-shell .haven-select-trigger { border-radius: var(--ops-r-control); font-size: 13px; }
+.app-shell .haven-select-menu { border-radius: var(--ops-r-card); }
+.app-shell .haven-filter-badge { border-radius: 999px; font-size: 12px; font-weight: 500; }
+.app-shell .haven-filter-badge[aria-pressed="true"] { background: #f3f4f6; color: var(--ops-ink); border-color: #f3f4f6; }
+.app-shell .haven-search-input input { font-size: 14px; }
+.app-shell .haven-empty-state :is(h2, h3) { font-size: 15px; }
+.app-shell .haven-empty-state p { font-size: 13px; }
+.app-shell .haven-ai-workspace { border-radius: var(--ops-r-card); }
+.app-shell .haven-ai-advisory, .app-shell .ai-readonly-chip { background: var(--ops-navy); color: #fff; border-radius: 999px; font-size: 11px; font-weight: 600; }
+.app-shell .haven-ai-kpi { border-radius: var(--ops-r-stat); font-variant-numeric: var(--ops-tnum); }
+.app-shell .report-banner { border-radius: var(--ops-r-card); }
+.app-shell .report-banner h2 { font-size: 18px; font-weight: 600; }
+.app-shell .toast-stack .toast-card strong { font-size: 13px; }
+.app-shell .toast-stack .toast-card small { font-size: 12px; }
+
+/* ── 15. MOTION — tactile, restrained, reduced-motion safe ── */
+.app-shell .workspace-body { animation: opsPageIn 0.6s var(--ops-ease-tactile) both; }
+@keyframes opsPageIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .workspace-body { animation: none; }
+  .theme-light .app-shell button.mod-kpi, .app-shell button.mod-kpi,
+  .theme-light .app-shell .metric-card, .app-shell .metric-card,
+  .theme-light .app-shell .btn, .app-shell .btn,
+  .theme-light .app-shell .table-action, .app-shell .table-action { transition: none; transform: none; }
+}
+
+/* ── 16. CROSS-ROLE MODULE HEADERS — teal band → executive header ── */
+.theme-light .app-shell .workspace-body .page-title {
+  min-height: 0; background: var(--ops-surface);
+  border: 1px solid var(--ops-border); border-radius: var(--ops-r-card);
+  box-shadow: var(--ops-shadow-rest); padding: 20px 24px;
+}
+.theme-light .app-shell .workspace-body .page-title::after { content: none; }
+.theme-light .app-shell .workspace-body .page-title h1 {
+  color: var(--ops-ink); font-size: 22px; font-weight: 600; letter-spacing: -0.01em;
+}
+.theme-light .app-shell .workspace-body .page-title > div > p:last-child { color: var(--ops-text-2); font-size: 13px; }
+.theme-light .app-shell .workspace-body .page-title .eyebrow,
+.theme-light .app-shell .workspace-body .page-title .admin-section-context {
+  color: var(--ops-text-3); font-size: 11px; font-weight: 500; letter-spacing: 0.08em;
+}
+.theme-light .app-shell .workspace-body .page-title .btn { min-height: 36px; border-radius: var(--ops-r-control); }
+.theme-light .app-shell .workspace-body .page-title .btn-accent { background: var(--ops-ink); border-color: var(--ops-ink); color: #fff; }
+.theme-light .app-shell .workspace-body .page-title .btn-accent:hover { background: #1f2937; color: #fff; }
+.theme-light .app-shell .workspace-body .page-title .btn-soft { border-color: var(--ops-border); background: var(--ops-surface); color: var(--ops-ink); }
+.theme-light .app-shell .workspace-body .page-title .btn-soft:hover { background: var(--ops-paper); border-color: var(--ops-ink); color: var(--ops-ink); }
+.theme-light .app-shell .workspace-body .page-title .admin-title-stat { border-color: var(--ops-border); color: var(--ops-text-2); font-size: 11px; }
+.theme-light .app-shell .workspace-body .page-title .admin-title-stat b { color: var(--ops-ink); font-size: 24px; font-variant-numeric: var(--ops-tnum); }
+/* admin command band + workspace titles */
+.theme-light .app-shell .admin-overview-title { background: var(--ops-surface); border-color: var(--ops-border); }
+.theme-light .app-shell .admin-overview-title::after { content: none; }
+.theme-light .app-shell .page-title.admin-overview-title h1 { color: var(--ops-ink); font-size: 22px; }
+.theme-light .app-shell .page-title.admin-overview-title > div:first-child > p:last-child { color: var(--ops-text-2); font-size: 13px; }
+.theme-light .app-shell .admin-overview-title .admin-posture { border-left: 1px solid var(--ops-border); }
+.theme-light .app-shell .admin-overview-title .admin-posture strong { color: var(--ops-ink); }
+.theme-light .app-shell .admin-overview-title .admin-posture small { color: var(--ops-text-2); }
+.theme-light .app-shell .admin-overview-title .admin-posture button { border-color: var(--ops-ink); background: var(--ops-ink); color: #fff; }
+.theme-light .app-shell .admin-overview-title .admin-posture button:hover { background: #1f2937; color: #fff; }
+.theme-light .app-shell .admin-workspace { --admin-accent: var(--ops-ink); --admin-accent-soft: var(--ops-paper); --admin-focus: var(--ops-ink); }
+.theme-light .app-shell .admin-workspace > .page-title:not(.admin-overview-title),
+.theme-light .app-shell .admin-workspace .workspace-body-inner > .page-title { min-height: 0; background: var(--ops-surface); border-color: var(--ops-border); }
+.theme-light .app-shell .admin-workspace > .page-title:not(.admin-overview-title)::before,
+.theme-light .app-shell .admin-workspace .workspace-body-inner > .page-title::before { content: none; }
+.theme-light .app-shell .admin-workspace > .page-title:not(.admin-overview-title) h1,
+.theme-light .app-shell .admin-workspace .workspace-body-inner > .page-title h1 { font-size: 22px; color: var(--ops-ink); }
+.theme-light .app-shell .admin-workspace .admin-section-context,
+.theme-light .app-shell .admin-workspace .workspace-body-inner > .page-title .eyebrow { color: var(--ops-text-3); font-size: 11px; }
+.theme-light .app-shell .admin-workspace .admin-title-stat b { font-size: 24px; }
+/* staff-duty + housekeeping heroes → flat panels */
+.theme-light .app-shell .sd-hero {
+  background: var(--ops-surface); border: 1px solid var(--ops-border);
+  border-radius: var(--ops-r-card); box-shadow: var(--ops-shadow-rest);
+  color: var(--ops-ink); padding: 20px 24px;
+}
+.theme-light .app-shell .sd-hero-ring { display: none; }
+.theme-light .app-shell .sd-hero-eyebrow { color: var(--ops-text-3); font-size: 11px; }
+.theme-light .app-shell .sd-hero h1 { color: var(--ops-ink); font-size: 22px; }
+.theme-light .app-shell .sd-hero-copy > p:last-child { color: var(--ops-text-2); font-size: 13px; }
+.theme-light .app-shell .hk-hero {
+  background: var(--ops-surface); border: 1px solid var(--ops-border);
+  border-radius: var(--ops-r-card); box-shadow: var(--ops-shadow-rest); padding: 20px 22px;
+}
+.theme-light .app-shell .hk-hero h1 { color: var(--ops-ink); font-family: var(--font-sans); font-size: 22px; font-weight: 600; }
+.theme-light .app-shell .hk-hero p { color: var(--ops-text-2); font-size: 13px; }
+.theme-light .app-shell .hk-eyebrow { color: var(--ops-text-3); font-size: 11px; }
+/* staff-duty KPI cards → stat grammar */
+.theme-light .app-shell .sd-kpis { gap: 16px; }
+.theme-light .app-shell .sd-kpi {
+  background: var(--ops-surface); border: 1px solid var(--ops-border);
+  border-radius: var(--ops-r-stat); box-shadow: var(--ops-shadow-rest);
+  padding: 16px 18px; min-height: 0;
+  transition: transform 280ms var(--ops-ease-tactile), border-color 280ms var(--ops-ease-tactile), box-shadow 280ms var(--ops-ease-tactile);
+}
+.theme-light .app-shell .sd-kpi:not(:disabled):hover { border-color: var(--ops-ink); transform: translateY(-1px); }
+.theme-light .app-shell .sd-kpi:focus-visible { outline: 2px solid var(--ops-ink); outline-offset: 2px; }
+.theme-light .app-shell .sd-kpi span { color: var(--ops-text-2); font-size: 12px; font-weight: 500; }
+.theme-light .app-shell .sd-kpi b { color: var(--ops-ink); font-size: 24px; font-weight: 600; }
+.theme-light .app-shell .sd-kpi small { color: var(--ops-text-3); font-size: 11px; }
+.theme-light .app-shell .sd-kpi > i { border-radius: 12px; width: 32px; height: 32px; background: var(--ops-paper); color: var(--ops-ink); }
+.theme-light .app-shell .sd-kpi.done > i { background: var(--ops-success-tint); color: var(--ops-success-ink); }
+.theme-light .app-shell .sd-kpi.attention > i { background: var(--ops-warning-tint); color: var(--ops-warning-ink); }
+.theme-light .app-shell .sd-kpi.info > i { background: var(--ops-info-tint); color: var(--ops-info-ink); }
+.theme-light .app-shell .sd-kpi[aria-pressed="true"] { border-color: var(--ops-ink); background: var(--ops-surface); box-shadow: 0 0 0 1px var(--ops-ink); }
+.theme-light .app-shell .sd-info-strip { background: var(--ops-info-tint); border-color: var(--ops-info); color: var(--ops-info-ink); font-size: 12px; border-radius: var(--ops-r-control); }
+/* table-action variants → org treatments */
+.theme-light .app-shell .table-action { border-color: var(--ops-border); background: var(--ops-surface); color: var(--ops-ink); border-radius: 8px; min-height: 34px; }
+.theme-light .app-shell .table-action.view-action, .theme-light .app-shell .table-action.action-neutral { background: var(--ops-success-tint); border-color: var(--ops-success); color: var(--ops-success-ink); }
+.theme-light .app-shell .table-action.view-action:hover, .theme-light .app-shell .table-action.action-neutral:hover { border-color: var(--ops-success-ink); color: var(--ops-success-ink); }
+.theme-light .app-shell .table-action.action-primary, .theme-light .app-shell .table-action.check-in-action { background: var(--ops-ink); border-color: var(--ops-ink); color: #fff; }
+.theme-light .app-shell .table-action.action-primary:hover, .theme-light .app-shell .table-action.check-in-action:hover { background: #1f2937; color: #fff; }
+.theme-light .app-shell .table-action.action-danger, .theme-light .app-shell .table-action.danger-action, .theme-light .app-shell .btn.action-danger { background: var(--ops-danger-tint); border-color: var(--ops-danger); color: var(--ops-danger-ink); }
+.theme-light .app-shell .table-action.action-danger:hover, .theme-light .app-shell .table-action.danger-action:hover, .theme-light .app-shell .btn.action-danger:hover { border-color: var(--ops-danger-ink); color: var(--ops-danger-ink); }
+.theme-light .app-shell .badge.pending_verification { background: var(--ops-warning-tint); color: var(--ops-warning-ink); }
+.theme-light .app-shell .badge.failed { background: var(--ops-danger-tint); color: var(--ops-danger-ink); }
+.theme-light .app-shell .payment-identity strong, .theme-light .app-shell .payment-identity span { font-size: 13px; }
+.theme-light .app-shell .payment-identity small, .theme-light .app-shell .payment-status small { font-size: 12px; }
+
+/* ── 17. OWNER WORKSPACE — flat title, chip-tinted tones (no severity bars) ── */
+.theme-light .app-shell.owner-workspace .owner-title { background: var(--ops-surface); border-color: var(--ops-border); }
+.theme-light .app-shell.owner-workspace .owner-title h1 { color: var(--ops-ink); font-size: 22px; }
+.theme-light .app-shell.owner-workspace .owner-metric-grid .metric-card { border-radius: var(--ops-r-stat); }
+.theme-light .app-shell.owner-workspace .owner-metric-grid .metric-card.tone-good,
+.theme-light .app-shell.owner-workspace .owner-metric-grid .metric-card.tone-warn,
+.theme-light .app-shell.owner-workspace .owner-metric-grid .metric-card.tone-bad { box-shadow: var(--ops-shadow-rest); }
+.theme-light .app-shell.owner-workspace .owner-metric-grid .metric-card.tone-good > i { background: var(--ops-success-tint); color: var(--ops-success-ink); }
+.theme-light .app-shell.owner-workspace .owner-metric-grid .metric-card.tone-warn > i { background: var(--ops-warning-tint); color: var(--ops-warning-ink); }
+.theme-light .app-shell.owner-workspace .owner-metric-grid .metric-card.tone-bad > i { background: var(--ops-danger-tint); color: var(--ops-danger-ink); }
+.theme-light .app-shell.owner-workspace .owner-metric-grid .metric-card.tone-good small { color: var(--ops-success-ink); }
+.theme-light .app-shell.owner-workspace .owner-metric-grid .metric-card.tone-warn small { color: var(--ops-warning-ink); }
+.theme-light .app-shell.owner-workspace .owner-metric-grid .metric-card.tone-bad small { color: var(--ops-danger-ink); }
+.theme-light .app-shell.owner-workspace .owner-toolbar { background: var(--ops-surface); border-color: var(--ops-border); border-radius: var(--ops-r-card); }
+.theme-light .app-shell.owner-workspace .owner-search { background: var(--ops-paper); border-color: var(--ops-border); border-radius: var(--ops-r-control); }
+.theme-light .app-shell.owner-workspace .owner-search input { font-size: 14px; }
+.theme-light .app-shell.owner-workspace .owner-filters .haven-filter > span { font-size: 11px; color: var(--ops-text-3); }
+.theme-light .app-shell.owner-workspace .owner-result-count { font-size: 12px; color: var(--ops-text-3); }
+.theme-light .app-shell.owner-workspace .owner-section-head h2 { font-size: 18px; font-weight: 600; color: var(--ops-ink); }
+.theme-light .app-shell.owner-workspace .owner-section-head p { font-size: 12px; color: var(--ops-text-2); }
+.theme-light .app-shell.owner-workspace .owner-tabs button { background: var(--ops-surface); border-color: var(--ops-border); color: var(--ops-text-2); font-size: 12px; }
+.theme-light .app-shell.owner-workspace .owner-tabs button:hover { border-color: var(--ops-ink); color: var(--ops-ink); }
+.theme-light .app-shell.owner-workspace .owner-tabs button.active { background: var(--ops-ink); border-color: var(--ops-ink); color: #fff; }
+.theme-light .app-shell.owner-workspace .owner-count { background: var(--ops-paper); color: var(--ops-text-2); font-size: 11px; }
+.theme-light .app-shell.owner-workspace .owner-tabs button.active .owner-count { background: rgb(255 255 255 / 0.2); color: #fff; }
+.theme-light .app-shell.owner-workspace .owner-collapse { background: var(--ops-surface); border-color: var(--ops-border); border-radius: var(--ops-r-card); }
+.theme-light .app-shell.owner-workspace .owner-collapse summary strong { font-size: 13px; }
+.theme-light .app-shell.owner-workspace .owner-collapse-note { font-size: 12px; color: var(--ops-text-2); }
+.theme-light .app-shell.owner-workspace .owner-role-icon { background: var(--ops-paper); color: var(--ops-ink); }
+.theme-light .app-shell.owner-workspace .owner-role-count { background: var(--ops-paper); color: var(--ops-text-2); }
+.theme-light .app-shell.owner-workspace .owner-role-card li { font-size: 12px; }
+.theme-light .app-shell.owner-workspace .owner-role-card header small { font-size: 11px; }
+.theme-light .app-shell.owner-workspace .owner-policy-groups dt { font-size: 12px; }
+.theme-light .app-shell.owner-workspace .owner-policy-groups dd { font-size: 13px; }
+.theme-light .app-shell.owner-workspace .owner-audit-detail > div { font-size: 12px; }
+.theme-light .app-shell.owner-workspace .owner-record-id, .theme-light .app-shell.owner-workspace .owner-protected { font-size: 12px; }
+
+/* ── 18. DARK MIRRORS for converted heroes/titles/actions ── */
+.app-shell .workspace-body .page-title {
+  min-height: 0; background: var(--ds); border: 1px solid var(--dl);
+  border-radius: var(--ops-r-card); box-shadow: var(--ops-shadow-rest); padding: 20px 24px;
+}
+.app-shell .workspace-body .page-title::after { content: none; }
+.app-shell .workspace-body .page-title h1 { color: #f2f5fa; font-size: 22px; font-weight: 600; }
+.app-shell .workspace-body .page-title > div > p:last-child { color: #9aa4b5; font-size: 13px; }
+.app-shell .workspace-body .page-title .eyebrow,
+.app-shell .workspace-body .page-title .admin-section-context { color: #8b95a8; font-size: 11px; letter-spacing: 0.08em; }
+.app-shell .workspace-body .page-title .btn { min-height: 36px; border-radius: var(--ops-r-control); }
+.app-shell .workspace-body .page-title .btn-accent { background: #f3f4f6; border-color: #f3f4f6; color: var(--ops-ink); }
+.app-shell .workspace-body .page-title .admin-title-stat b { font-size: 24px; }
+.app-shell .admin-overview-title { background: var(--ds); border-color: var(--dl); }
+.app-shell .admin-overview-title::after { content: none; }
+.app-shell .page-title.admin-overview-title h1 { color: #f2f5fa; font-size: 22px; }
+.app-shell .page-title.admin-overview-title > div:first-child > p:last-child { color: #9aa4b5; font-size: 13px; }
+.app-shell .admin-workspace > .page-title:not(.admin-overview-title),
+.app-shell .admin-workspace .workspace-body-inner > .page-title { min-height: 0; }
+.app-shell .admin-workspace > .page-title:not(.admin-overview-title)::before,
+.app-shell .admin-workspace .workspace-body-inner > .page-title::before { content: none; }
+.app-shell .admin-workspace > .page-title:not(.admin-overview-title) h1,
+.app-shell .admin-workspace .workspace-body-inner > .page-title h1 { font-size: 22px; }
+.app-shell .admin-workspace .admin-section-context,
+.app-shell .admin-workspace .workspace-body-inner > .page-title .eyebrow { font-size: 11px; }
+.app-shell .sd-hero { background: var(--ds); border: 1px solid var(--dl); border-radius: var(--ops-r-card); color: var(--dt); }
+.app-shell .sd-hero-ring { display: none; }
+.app-shell .sd-hero-eyebrow { font-size: 11px; }
+.app-shell .sd-hero h1 { font-size: 22px; }
+.app-shell .sd-hero-copy > p:last-child { font-size: 13px; }
+.app-shell .hk-hero { background: var(--ds); border: 1px solid var(--dl); border-radius: var(--ops-r-card); }
+.app-shell .hk-hero h1 { font-family: var(--font-sans); font-size: 22px; font-weight: 600; }
+.app-shell .hk-hero p { font-size: 13px; }
+.app-shell .hk-eyebrow { font-size: 11px; }
+.app-shell .sd-kpis { gap: 16px; }
+.app-shell .sd-kpi { border-radius: var(--ops-r-stat); padding: 16px 18px; min-height: 0; }
+.app-shell .sd-kpi span { font-size: 12px; font-weight: 500; }
+.app-shell .sd-kpi b { font-size: 24px; }
+.app-shell .sd-kpi small { font-size: 11px; }
+.app-shell .sd-kpi[aria-pressed="true"] { border-color: #8fb4ec; box-shadow: 0 0 0 1px #8fb4ec; }
+.app-shell .table-action.action-primary, .app-shell .table-action.check-in-action { background: #f3f4f6; border-color: #f3f4f6; color: var(--ops-ink); }
+.app-shell .table-action.action-primary:hover, .app-shell .table-action.check-in-action:hover { background: #fff; color: var(--ops-ink); }
+.app-shell .badge.pending_verification { background: #3a2d1a; color: #e8b96a; }
+.app-shell .badge.failed { background: #351f21; color: #ef797e; }
+.app-shell.owner-workspace .owner-title { background: var(--ds); border-color: var(--dl); }
+.app-shell.owner-workspace .owner-title h1 { font-size: 22px; }
+.app-shell.owner-workspace .owner-metric-grid .metric-card.tone-good,
+.app-shell.owner-workspace .owner-metric-grid .metric-card.tone-warn,
+.app-shell.owner-workspace .owner-metric-grid .metric-card.tone-bad { box-shadow: var(--ops-shadow-rest); }
+.app-shell.owner-workspace .owner-tabs button { font-size: 12px; }
+.app-shell.owner-workspace .owner-tabs button.active { background: #f3f4f6; border-color: #f3f4f6; color: var(--ops-ink); }
+.app-shell.owner-workspace .owner-section-head h2 { font-size: 18px; }
+.app-shell.owner-workspace .owner-section-head p { font-size: 12px; }
+
+/* ── 19. STAFF RESPONSIVE TOUCH-UPS (order + density preserved) ── */
+@media (max-width: 720px) {
+  .theme-light .app-shell .workspace-body, .app-shell .workspace-body { padding: 16px; }
+  .theme-light .app-shell .metric-card > b, .app-shell .metric-card > b { font-size: 26px; }
+  .theme-light .app-shell .page-header, .app-shell .page-header { padding: 16px; }
+  .theme-light .app-shell .workspace-body .page-title, .app-shell .workspace-body .page-title { padding: 16px; }
+}
+@media print {
+  .app-shell, .app-shell .workspace, .app-shell .panel, .app-shell .data-panel,
+  .app-shell .metric-card, .app-shell .mod-kpi { background: #fff !important; color: #111 !important; }
+}
