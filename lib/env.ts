@@ -75,7 +75,11 @@ export function resolveEnv(raw: RawEnv = process.env): Env {
 
   const url = value.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = value.SUPABASE_SERVICE_ROLE_KEY;
-  if (Boolean(url) !== Boolean(serviceRoleKey)) {
+  // The pairing rule is a RUNTIME invariant. During `next build` only one
+  // credential may be visible (hosts commonly inject secrets at serve time),
+  // and the built server re-evaluates this module at boot — so a half-present
+  // pair must not fail compilation. Runtime keeps the strict rule below.
+  if (!isBuildPhase && Boolean(url) !== Boolean(serviceRoleKey)) {
     problems.push("NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set together, or both left blank to run in demo mode.");
   }
   const databaseMode: DatabaseMode = url && serviceRoleKey ? "supabase" : "demo";

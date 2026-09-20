@@ -68,3 +68,29 @@ describe("resolveEnv — production refuses insecure configuration", () => {
     vi.unstubAllEnvs();
   });
 });
+
+describe("resolveEnv — build phase tolerates partial credentials, runtime does not", () => {
+  const BUILD = { NODE_ENV: "production", NEXT_PHASE: "phase-production-build" } as const;
+  const RUNTIME = { NODE_ENV: "production" } as const;
+
+  it("resolves demo mode at build time with only the URL present (secret injected at serve time)", () => {
+    const env = resolveEnv({ ...BUILD, NEXT_PUBLIC_SUPABASE_URL: SUPABASE.NEXT_PUBLIC_SUPABASE_URL });
+    expect(env.databaseMode).toBe("demo");
+    expect(env.supabase).toBeNull();
+  });
+
+  it("resolves demo mode at build time with only the service key present", () => {
+    const env = resolveEnv({ ...BUILD, SUPABASE_SERVICE_ROLE_KEY: SUPABASE.SUPABASE_SERVICE_ROLE_KEY });
+    expect(env.databaseMode).toBe("demo");
+    expect(env.supabase).toBeNull();
+  });
+
+  it("still rejects a half-configured pair at runtime", () => {
+    expect(() => resolveEnv({ ...RUNTIME, NEXT_PUBLIC_SUPABASE_URL: SUPABASE.NEXT_PUBLIC_SUPABASE_URL, NEXTAUTH_SECRET: PROD_SECRET })).toThrow(
+      /must be set together/
+    );
+    expect(() => resolveEnv({ ...RUNTIME, SUPABASE_SERVICE_ROLE_KEY: SUPABASE.SUPABASE_SERVICE_ROLE_KEY, NEXTAUTH_SECRET: PROD_SECRET })).toThrow(
+      /must be set together/
+    );
+  });
+});
