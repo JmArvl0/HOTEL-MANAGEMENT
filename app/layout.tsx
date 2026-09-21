@@ -15,6 +15,7 @@ import "./coastal-theme.css";
 import "@/components/customer/notification-history.css";
 import "./customer-portal.css";
 import "./staff-ops-theme.css";
+import "@/components/auth/session-expiry.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-display" });

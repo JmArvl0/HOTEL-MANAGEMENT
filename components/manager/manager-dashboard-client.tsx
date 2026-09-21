@@ -1,4 +1,7 @@
-"use client"; import { useCallback, useEffect, useMemo, useRef, useState } from "react"; import { signOut } from "next-auth/react"; import Link from "next/link"; import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis } from "recharts"; import { Activity, AlertTriangle, BedDouble, Bell, Boxes, Building2, CalendarCheck, CalendarDays, CarTaxiFront, CheckCircle2, ChevronDown, ChevronRight, CircleDollarSign, ClipboardCheck, Clock, DoorClosed, Eye, FileText, Gauge, Landmark, ListChecks, LogIn, LogOut, PanelLeftClose, Plus, QrCode, ReceiptText, Scale, Search, Settings, Sparkles, TrendingUp, Users, Wallet, Wrench } from "lucide-react"; import { approvalKind, compareApprovalUrgency, formatDetail, waitingSince } from "@/lib/approval-display"; import { ROOM_TYPE_CHANGE_REASONS, roomTypeChangeReasonLabel, financialDifference, type RoomTypeChangeFinancials } from "@/lib/room-type-change-reasons"; import { requestLabel } from "@/lib/request-options"; import { parseFrozenRates } from "@/lib/rate-plans"; import { depositAgeBand, depositAgeMinutes, formatDepositAge, DEFAULT_DEPOSIT_SLA_HOURS } from "@/lib/deposit-sla"; import { formatPaymentSubmittedAt, paymentSearchText } from "@/lib/payment-display"; import { ASSET_DUE_WINDOWS, assetDueWindow, daysUntil, type MaintenanceAsset } from "@/lib/maintenance-assets"; import { ThemeToggle } from "@/components/theme-toggle"; import { NotificationHistoryModal } from "@/components/customer/notification-history-modal"; import { Modal } from "@/components/ui/Modal"; import { RoomTypeBadge } from "@/components/ui/RoomTypeBadge"; import { QrScannerModal } from "@/components/qr/qr-scanner"; import { SettingsDialog } from "@/components/ui/SettingsDialog"; import { isRefundActionable, ratePercent } from "@/lib/accounting"; import type { AccountingLedger } from "@/lib/accounting"; import type { AccountingSection, DashboardData, ManagerSection, RecordItem, Resource, Role } from "@/lib/types"; import { useActionDialogs } from "@/components/ui/action-dialogs"; import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination"; import RoomCatalogPanel from "@/components/catalog/room-catalog-panel"; import TransportServicesPanel from "@/components/catalog/transport-vehicle-types-panel"; import RequestTypesPanel from "@/components/catalog/request-types-panel"; import TransportationPanel from "@/components/manager/transportation-panel"; import FrontDeskReportsPanel from "@/components/manager/front-desk-reports-panel"; import Reports from "@/components/manager/performance-reports"; import GuestRequestsPanel from "@/components/manager/guest-requests-panel"; import RoomDetailModal from "@/components/manager/room-detail-modal"; import RoomRosterPanel from "@/components/manager/room-roster-panel"; import HousekeepingQueuePanel from "@/components/manager/housekeeping-queue-panel"; import type { AssignmentSuggestion } from "@/lib/housekeeping-suggestions"; import FrontDeskArrivalDialog, { type ArrivalProgress } from "@/components/manager/front-desk-arrival-dialog"; import WalkInDialog from "@/components/manager/walk-in-dialog"; import ExtendStayDialog from "@/components/manager/extend-stay-dialog"; import PredictiveInsightsPanel from "@/components/manager/predictive-insights-panel"; import HavenAiPanel from "@/components/manager/haven-ai-panel"; import StaffDutyPanel from "@/components/manager/staff-duty-panel"; import { ManagerReservationsPanel } from "@/components/manager/manager-reservations-panel"; import { ModuleSummaryCards, type ModuleSummaryCard } from "@/components/manager/module-summary-cards"; import { ToastStack, useToasts } from "@/components/ui/toast-stack"; import { HavenSelect } from "@/components/ui/haven-select"; type ReservationDetail = { reservation: RecordItem; guest: RecordItem | null; invoice: RecordItem | null; payments: RecordItem[]; charges: RecordItem[]; adjustments: RecordItem[]; refunds: RecordItem[]; refundAttempts: RecordItem[]; documents: RecordItem[]; changeRequests: RecordItem[]; assignments: RecordItem[]; requests: RecordItem[]; room: RecordItem | null; maintenance: RecordItem[]; transportation?: RecordItem[]; approvals?: RecordItem[]; turnover?: RecordItem | null; }; // Read-only consolidated guest profile (GET /api/staff/guests/[id]) — identity,
+"use client"; import { useCallback, useEffect, useMemo, useRef, useState } from "react"; import { signOut } from "next-auth/react"; import Link from "next/link"; import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis } from "recharts"; import { Activity, AlertTriangle, BedDouble, Bell, Boxes, Building2, CalendarCheck, CalendarDays, CarTaxiFront, CheckCircle2, ChevronDown, ChevronRight, CircleDollarSign, ClipboardCheck, Clock, DoorClosed, Eye, FileText, Gauge, Landmark, ListChecks, LogIn, LogOut, PanelLeftClose, Plus, QrCode, ReceiptText, Scale, Search, Settings, Sparkles, TrendingUp, Users, Wallet, Wrench } from "lucide-react"; import { approvalKind, compareApprovalUrgency, formatDetail, waitingSince } from "@/lib/approval-display"; import { ROOM_TYPE_CHANGE_REASONS, roomTypeChangeReasonLabel, financialDifference, type RoomTypeChangeFinancials } from "@/lib/room-type-change-reasons"; import { requestLabel } from "@/lib/request-options"; import { parseFrozenRates } from "@/lib/rate-plans"; import { depositAgeBand, depositAgeMinutes, formatDepositAge, DEFAULT_DEPOSIT_SLA_HOURS } from "@/lib/deposit-sla"; import { formatPaymentSubmittedAt, paymentSearchText } from "@/lib/payment-display"; import { ASSET_DUE_WINDOWS, assetDueWindow, daysUntil, type MaintenanceAsset } from "@/lib/maintenance-assets"; import { ThemeToggle } from "@/components/theme-toggle"; import { NotificationHistoryModal } from "@/components/customer/notification-history-modal"; import { Modal } from "@/components/ui/Modal"; import { RoomTypeBadge } from "@/components/ui/RoomTypeBadge"; import { HavenActionItem } from "@/components/ui/haven-action-item"; import { QrScannerModal } from "@/components/qr/qr-scanner"; import { SettingsDialog } from "@/components/ui/SettingsDialog"; import { isRefundActionable, ratePercent } from "@/lib/accounting"; import type { AccountingLedger } from "@/lib/accounting"; import type { AccountingSection, DashboardData, ManagerSection, RecordItem, Resource, Role } from "@/lib/types"; import { useActionDialogs } from "@/components/ui/action-dialogs"; import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination"; import RoomCatalogPanel from "@/components/catalog/room-catalog-panel"; import TransportServicesPanel from "@/components/catalog/transport-vehicle-types-panel"; import RequestTypesPanel from "@/components/catalog/request-types-panel"; import TransportationPanel from "@/components/manager/transportation-panel"; import FrontDeskReportsPanel from "@/components/manager/front-desk-reports-panel"; import Reports from "@/components/manager/performance-reports"; import GuestRequestsPanel from "@/components/manager/guest-requests-panel"; import RoomDetailModal from "@/components/manager/room-detail-modal"; import RoomRosterPanel from "@/components/manager/room-roster-panel"; import HousekeepingQueuePanel from "@/components/manager/housekeeping-queue-panel"; import type { AssignmentSuggestion } from "@/lib/housekeeping-suggestions"; import FrontDeskArrivalDialog, { type ArrivalProgress } from "@/components/manager/front-desk-arrival-dialog"; import WalkInDialog from "@/components/manager/walk-in-dialog"; import ExtendStayDialog from "@/components/manager/extend-stay-dialog"; import PredictiveInsightsPanel from "@/components/manager/predictive-insights-panel"; import HavenAiPanel from "@/components/manager/haven-ai-panel"; import StaffDutyPanel from "@/components/manager/staff-duty-panel"; import { ManagerReservationsPanel } from "@/components/manager/manager-reservations-panel"; import { ModuleSummaryCards, type ModuleSummaryCard } from "@/components/manager/module-summary-cards"; import { ToastStack, useToasts } from "@/components/ui/toast-stack"; import { HavenSelect } from "@/components/ui/haven-select"; import { ALL_LOYALTY_TIERS, loyaltyTierOptions, matchesLoyaltyTier } from "@/lib/guest-loyalty"; import { HavenSearchInput } from "@/components/ui/haven-data-controls"; type ReservationDetail = { reservation: RecordItem; guest: RecordItem | null; invoice: RecordItem | null; payments: RecordItem[]; charges: RecordItem[]; adjustments: RecordItem[]; refunds: RecordItem[]; refundAttempts: RecordItem[]; documents: RecordItem[]; changeRequests: RecordItem[]; assignments: RecordItem[]; requests: RecordItem[]; room: RecordItem | null; maintenance: RecordItem[]; transportation?: RecordItem[]; approvals?: RecordItem[]; turnover?: RecordItem | null; }; // Read-only consolidated guest profile (GET /api/staff/guests/[id]) — identity,
+import { HavenNotificationBell as SharedNotificationBell, HavenNotificationPopover } from "@/components/ui/haven-notifications";
+import { PageHeader } from "@/components/ui/Navigation";
+import { SessionExpiryGuard } from "@/components/auth/session-expiry-guard";
 // stay history, service history, explicit preferences, and a financial summary
 // that only roles allowed to see reservation financials ever receive.
 type GuestProfile = { guest: RecordItem; stays: RecordItem[]; stayCounts: { current: number; upcoming: number; completed: number; cancelled: number; noShow: number; }; requests: RecordItem[]; transportation: RecordItem[]; assignments: RecordItem[]; approvals: RecordItem[]; invoices: RecordItem[]; financial: { billed: number; paid: number; outstanding: number; } | null; requestOptions: string[]; financialVisible: boolean; }; type User = { id: string; name?: string | null; email?: string | null; role: Role; }; // Roadmap Phase 7 — forecast shortage suggestion (GET /api/inventory/purchase-orders).
@@ -18,12 +21,7 @@ export function badgeLabel(count: number) { return count > 99 ? "99+" : String(c
 export function countUniqueNotifications(notifications: readonly { id: unknown; }[] | null | undefined) { const seen = new Set<string>(); for (const notice of notifications ?? []) seen.add(String(notice?.id)); return seen.size; } // Header notification bell — exactly ONE badge for the aggregate live-alert
 // count, never one pill per notification source. The numeral is aria-hidden;
 // the button label carries the count for screen readers.
-export function HeaderNotificationBell({ count, expanded, onToggle, buttonRef }: { count: number; expanded: boolean; onToggle: () => void; buttonRef?: React.RefObject<HTMLButtonElement>; }) { return <button ref={buttonRef} className="icon-button" aria-label={count ? `Notifications, ${count} current` : "Notifications"} aria-expanded={expanded} onClick={onToggle}>
-      <Bell size={19} />
-      {count > 0 && <i className="nav-badge" aria-hidden="true">
-          {badgeLabel(count)}
-        </i>}
-    </button>; } // Alert-id prefixes that carry operational risk or a decision waiting →
+export function HeaderNotificationBell({ count, expanded, onToggle, buttonRef }: { count: number; expanded: boolean; onToggle: () => void; buttonRef?: React.RefObject<HTMLButtonElement>; }) { return <SharedNotificationBell count={count} expanded={expanded} onToggle={onToggle} buttonRef={buttonRef} className="icon-button" badgeClassName="nav-badge" />; } // Alert-id prefixes that carry operational risk or a decision waiting →
 // warning tone (longer auto-dismiss) instead of plain info.
 const ALERT_TOAST_TONES = ["manager-maintenance-", "manager-escalation-", "manager-room-risk-", "manager-approval-", "refund-", "balance-", "room-block-"]; export function ManagerSidebarNav({ items, section, onSelect, badges }: { items: typeof nav; section: Section; onSelect: (section: Section) => void; badges: Partial<Record<Section, number>>; }) { const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({}); useEffect(() => { // Collapsed/expanded categories persist like the sidebar rail toggle does.
 window.setTimeout(() => { try { const saved: unknown = JSON.parse(window.localStorage.getItem("haven-sidebar-groups") ?? "{}"); if (saved && typeof saved === "object") setOpenGroups(saved as Record<string, boolean>); } catch {} }, 0); }, []); return <nav aria-label="Modules">
@@ -77,7 +75,7 @@ export function moduleSummary(resource: Resource, items: RecordItem[], today: st
 const approvalTypeGroups: [string, string[]][] = [["Operational", ["room_upgrade", "room_type_exception", "reservation_modification", "early_check_in", "late_checkout", "stay_extension"]], ["Financial", ["guest_compensation", "refund_exception", "checkout_exception"]], ["Escalation", ["guest_escalation"]]]; const access: Record<Role, Section[]> = { owner: [], admin: [], manager:["overview", "reservations", "rooms", "guests", "guest_requests", "transportation", "room_types", "transport_services", "request_types", "staff_duty", "housekeeping_tasks", "maintenance_orders", "inventory", "approvals", "reports", "insights", "ai"], front_desk: ["overview", "reservations", "rooms", "guests", "guest_requests", "transportation", "housekeeping_tasks", "invoices", "payments", "transactions", "folios", "cash_shifts", "documents", "approvals", "reports"], housekeeping: ["overview", "rooms", "guest_requests", "housekeeping_tasks", "inventory", "approvals"], maintenance: ["overview", "rooms", "guest_requests", "maintenance_orders", "inventory", "approvals"], accounting: ["overview", "reservations", "invoices", "payments", "refunds", "reports", "transactions", "folios", "cash_shifts", "reconciliation", "documents", "approvals"], guest: ["overview", "reservations", "invoices"] }; // Validators + option builders shared by the in-app dialog forms. FormDialog is
 // noValidate and only validates fields that carry an explicit .validation callback,
 // so every "required" field in these forms must supply one (see FormDialog.tsx).
-const required = (message = "This field is required.") => (v: string | number | boolean) => String(v ?? "").trim() ? null : message; const positive = (message = "Amount must be greater than zero.") => (v: string | number | boolean) => { const s = String(v ?? "").trim(); const n = Number(s); return s !== "" && Number.isFinite(n) && n > 0 ? null : message; }; const nonNegative = (message = "Amount cannot be negative.") => (v: string | number | boolean) => { const s = String(v ?? "").trim(); const n = Number(s); return s !== "" && Number.isFinite(n) && n >= 0 ? null : message; }; const dateField = (message = "Enter a valid date (YYYY-MM-DD).") => (v: string | number | boolean) => /^\d{4}-\d{2}-\d{2}$/.test(String(v ?? "").trim()) ? null : message; const options = (...values: string[]) => values.map(value => ({ value, label: label(value) })); export default function ManagerDashboardClient({ user }: { user: User; }) { const [section, setSection] = useState<Section>("overview"); const [dashboard, setDashboard] = useState<DashboardData | null>(null); const [ledger, setLedger] = useState<AccountingLedger | null>(null); const [items, setItems] = useState<RecordItem[]>([]); const [mode, setMode] = useState("demo"); const [loading, setLoading] = useState(true); const [loadError, setLoadError] = useState(""); const [search, setSearch] = useState(""); const [modal, setModal] = useState(false); const [menu, setMenu] = useState(false); // Transient toast stack — one controller for both surfaces: new-alert toasts
+const required = (message = "This field is required.") => (v: string | number | boolean) => String(v ?? "").trim() ? null : message; const positive = (message = "Amount must be greater than zero.") => (v: string | number | boolean) => { const s = String(v ?? "").trim(); const n = Number(s); return s !== "" && Number.isFinite(n) && n > 0 ? null : message; }; const nonNegative = (message = "Amount cannot be negative.") => (v: string | number | boolean) => { const s = String(v ?? "").trim(); const n = Number(s); return s !== "" && Number.isFinite(n) && n >= 0 ? null : message; }; const dateField = (message = "Enter a valid date (YYYY-MM-DD).") => (v: string | number | boolean) => /^\d{4}-\d{2}-\d{2}$/.test(String(v ?? "").trim()) ? null : message; const options = (...values: string[]) => values.map(value => ({ value, label: label(value) })); export default function ManagerDashboardClient({ user, sessionExpiresAt }: { user: User; sessionExpiresAt?: string | null; }) { const [section, setSection] = useState<Section>("overview"); const [dashboard, setDashboard] = useState<DashboardData | null>(null); const [ledger, setLedger] = useState<AccountingLedger | null>(null); const [items, setItems] = useState<RecordItem[]>([]); const [mode, setMode] = useState("demo"); const [loading, setLoading] = useState(true); const [loadError, setLoadError] = useState(""); const [search, setSearch] = useState(""); const [modal, setModal] = useState(false); const [menu, setMenu] = useState(false); // Transient toast stack — one controller for both surfaces: new-alert toasts
 // (from the dashboard poll diff) and local action feedback (notify()).
 const toastController = useToasts(); const [notificationsHover, setNotificationsHover] = useState(false); const [notificationsPinned, setNotificationsPinned] = useState(false); const [historyOpen, setHistoryOpen] = useState(false); const staffBellBtn = useRef<HTMLButtonElement>(null); const staffReadKey = `haven-staff-read:${user.id}:${user.role}`; const [staffReadIds, setStaffReadIds] = useState<Set<string>>(() => { try { const raw = window.localStorage.getItem(staffReadKey); const parsed: unknown = raw ? JSON.parse(raw) : []; return new Set(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : []); } catch { return new Set<string>(); } }); const [profileOpen, setProfileOpen] = useState(false); const [settingsOpen, setSettingsOpen] = useState(false); const [detail, setDetail] = useState<ReservationDetail | null>(null); const [guestProfile, setGuestProfile] = useState<GuestProfile | null>(null); const [roomDetail, setRoomDetail] = useState<RecordItem | null>(null); const [roster, setRoster] = useState(false); const [arrival, setArrival] = useState<{ item: RecordItem; exceptionType?: string | null; } | null>(null); // Wizard progress per reservation so closing and reopening Assign & Check In resumes
 // where the front desk left off (in-memory only; cleared on successful check-in).
@@ -213,24 +211,19 @@ async function signOutGuarded() { if (cashHandling) { try { const response = awa
             {cashHandling && myShift && <span className={`mode-pill shift-pill ${myShift.open ? "open" : "closed"}`} title={myShift.open ? `Cash shift open${myShift.location ? ` at ${myShift.location}` : ""}${myShift.opened_at ? ` since ${new Date(myShift.opened_at).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" })}` : ""}` : undefined}>
                 Cash shift: {myShift.open ? "Open" : "Closed"}
               </span>}
+            <SessionExpiryGuard expiresAt={sessionExpiresAt} />
             <ThemeToggle />
-            <div className="notification-center" ref={notificationCenter} onMouseEnter={() => setNotificationsHover(true)} onMouseLeave={() => setNotificationsHover(false)}>
+            <div className="notification-center" ref={notificationCenter}>
               <HeaderNotificationBell count={unreadBellCount} expanded={notificationsVisible} onToggle={toggleNotifications} buttonRef={staffBellBtn} />
               {notificationsVisible && <div className="popover-gap">
-                  <div className="notification-popover">
-                    <div>
-                      <b>Operations alerts</b>
-                      <small>{unreadBellCount} current</small>
-                    </div>
-                    {dashboard?.notifications.length ? dashboard.notifications.map(notice => <button key={notice.id} onClick={() => { setSection(notice.section); closeNotifications(); }}>
-                          <strong>{notice.title}</strong>
-                          <span>{notice.detail}</span>
-                        </button>) : <p>No new operational alerts.</p>}
-                    <button className="notification-view-all" onClick={openStaffHistory}>
-                      <Bell size={15} />
-                      View all notifications
-                    </button>
-                  </div>
+                  <HavenNotificationPopover
+                    density="internal"
+                    items={(dashboard?.notifications ?? []).map((notice) => ({ id: String(notice.id), title: notice.title, detail: notice.detail, createdAt: typeof notice.createdAt === "string" ? notice.createdAt : "", readAt: staffReadIds.has(String(notice.id)) ? "read" : null, type: String(notice.section) }))}
+                    unreadCount={unreadBellCount}
+                    onOpenItem={(item) => { markStaffRead([item.id]); const target = (dashboard?.notifications ?? []).find((notice) => String(notice.id) === item.id); closeNotifications(); if (target) { setSection(target.section); setMenu(false); } }}
+                    onMarkAllRead={() => markStaffRead(unreadStaffNotifications.map((notice) => String(notice.id)))}
+                    onViewAll={openStaffHistory}
+                  />
                 </div>}
             </div>
             <div className="profile-menu-wrap" ref={profileMenu}>
@@ -261,13 +254,13 @@ async function signOutGuarded() { if (cashHandling) { try { const response = awa
             </div>
           </div>
         </header>
-        {historyOpen && <NotificationHistoryModal open onClose={() => setHistoryOpen(false)} items={(dashboard?.notifications ?? []).map((notice) => ({ id: String(notice.id), title: notice.title, detail: notice.detail, createdAt: typeof notice.createdAt === "string" ? notice.createdAt : new Date().toISOString(), readAt: staffReadIds.has(String(notice.id)) ? "read" : null }))} onOpenItem={(item) => { markStaffRead([item.id]); const target = (dashboard?.notifications ?? []).find((entry) => String(entry.id) === item.id); setHistoryOpen(false); if (target) { setSection(target.section); setMenu(false); } }} onMarkDayRead={(_dayKey, ids) => markStaffRead(ids)} returnFocusRef={staffBellBtn} />}
+        {historyOpen && <NotificationHistoryModal open onClose={() => setHistoryOpen(false)} density="internal" items={(dashboard?.notifications ?? []).map((notice) => ({ id: String(notice.id), title: notice.title, detail: notice.detail, createdAt: typeof notice.createdAt === "string" ? notice.createdAt : "", readAt: staffReadIds.has(String(notice.id)) ? "read" : null, type: String(notice.section) }))} onOpenItem={(item) => { markStaffRead([item.id]); const target = (dashboard?.notifications ?? []).find((entry) => String(entry.id) === item.id); setHistoryOpen(false); if (target) { setSection(target.section); setMenu(false); } }} onMarkAllRead={(ids) => markStaffRead(ids)} returnFocusRef={staffBellBtn} />}
       <ToastStack controller={toastController} />
         <div className="workspace-body">
           {section === "room_types" ? <RoomCatalogPanel role={user.role} /> : section === "transport_services" ? <TransportServicesPanel /> : section === "request_types" ? <RequestTypesPanel /> : section === "transportation" ? <TransportationPanel role={user.role} /> : section === "insights" ? <PredictiveInsightsPanel /> : section === "ai" ? <HavenAiPanel userName={user.name} /> : section === "staff_duty" ? <StaffDutyPanel /> : section === "guest_requests" && ["front_desk", "manager", "housekeeping"].includes(user.role) ? <GuestRequestsPanel role={user.role} onEscalate={user.role === "housekeeping" ? request => escalateGuestRequest(request as unknown as RecordItem) : undefined} /> : loading ? <Loading /> : loadError ? <LoadFailure message={loadError} retry={() => void load()} /> : section === "overview" ? <Overview data={dashboard!} setSection={setSection} allowed={access[user.role]} role={user.role} onScan={() => setScanOpen(true)} /> : section === "reports" ? user.role === "front_desk" ? <FrontDeskReportsPanel role={user.role} /> : user.role === "accounting" ? <Reports data={dashboard!} role={user.role} /> : <>
                 <Reports data={dashboard!} role={user.role} />
                 <FrontDeskReportsPanel role={user.role} />
-              </> : section === "approvals" ? <ManagerApprovalView items={filtered} search={search} setSearch={setSearch} review={reviewManagerApproval} execute={executeManagerApproval} financialExecute={executeManagerFinancialApproval} escalateOwner={escalateOwner} executeException={executeException} canReview={user.role === "manager"} canExecute={operational} canFinancialExecute={financialAuthority} /> : isAccountingSection(section) ? <AccountingView section={section} ledger={ledger} search={search} setSearch={setSearch} rejectDeposit={rejectDeposit} reverseCharge={reverseCharge} recordAdjustment={recordAdjustment} openCashShift={openCashShift} closeCashShift={closeCashShift} reconcileCashShift={reconcileCashShift} recordReconciliation={recordReconciliation} generateDocument={generateDocument} canVerify={financialAuthority} canAdjust={financialAuthority} canReconcile={financialAuthority} canOperateShift={cashHandling} canIssueDocument={cashHandling} actorId={user.id} /> : section === "housekeeping_tasks" ? <HousekeepingQueuePanel role={user.role} userId={user.id} items={filtered} search={search} setSearch={setSearch} housekeepingAction={operateHousekeeping} coordinate={coordinateHousekeeping} applySuggestion={applySuggestion} suggestions={suggestions} onViewMaintenance={() => setSection("maintenance_orders")} onViewRoom={item => setRoomDetail({ id: String(item.room_id), number: item.room_number, type: item.room_type, floor: null, status: item.room_status, housekeeping: item.room_housekeeping })} guestRequestOpen={user.role === "housekeeping" ? dashboard?.metrics?.departmentRequests ?? 0 : 0} onOpenGuestRequests={() => setSection("guest_requests")} /> : section === "reservations" && user.role === "manager" ? <ManagerReservationsPanel items={filtered} search={search} setSearch={setSearch} viewReservation={viewReservation} onReviewException={reviewReservationException} onScan={() => setScanOpen(true)} /> : <ResourceView resource={section} items={filtered} depositSlaHours={dashboard?.metrics?.depositSlaHours ?? DEFAULT_DEPOSIT_SLA_HOURS} replenishment={replenishmentRoles ? replenishment : null} createDraftPo={createDraftPo} assets={assetRoles ? maintenanceAssets : null} registerAsset={registerAsset} assetAction={assetAction} search={search} setSearch={setSearch} open={section === "maintenance_orders" ? createMaintenance : () => setModal(true)} advance={advance} checkIn={openArrival} verifyDeposit={verifyDeposit} rejectDeposit={rejectDeposit} viewReservation={viewReservation} viewRoom={item => setRoomDetail(item)} viewGuest={item => viewGuestProfile(String(item.id))} processRefund={processRefund} failRefund={failRefund} canProcessRefund={financialAuthority} canVerify={financialAuthority} canCheckIn={operational} requestApproval={requestManagerApproval} escalateGuestRequest={escalateGuestRequest} progressGuestRequest={progressGuestRequest} canProgressGuestRequest={canProgressGuestRequest} coordinateHousekeeping={coordinateHousekeeping} coordinateMaintenance={coordinateMaintenance} housekeepingAction={operateHousekeeping} maintenanceAction={operateMaintenance} createReservation={createReservation} openWalkIn={openWalkInDialog} canMaintain={user.role === "maintenance"} canAssignOthers={false} canHousekeep={user.role === "housekeeping"} canCoordinate={user.role === "manager"} canRequestApproval={user.role === "front_desk" || user.role === "housekeeping" || user.role === "maintenance" || user.role === "accounting"} manageRooms={catalogAuthority ? () => setRoster(true) : null} onScan={section === "reservations" ? () => setScanOpen(true) : null} canCreate={section !== "maintenance_orders" && user.role !== "accounting" && user.role !== "manager" && !(user.role === "front_desk" && ["rooms", "guests", "housekeeping_tasks", "invoices", "payments"].includes(section))} canAdvance={section !== "maintenance_orders" && user.role !== "manager" && !(user.role === "front_desk" && ["rooms", "housekeeping_tasks", "invoices"].includes(section))} />}
+              </> : section === "approvals" ? <ManagerApprovalView items={filtered} search={search} setSearch={setSearch} review={reviewManagerApproval} execute={executeManagerApproval} financialExecute={executeManagerFinancialApproval} escalateOwner={escalateOwner} executeException={executeException} canReview={user.role === "manager"} canExecute={operational} canFinancialExecute={financialAuthority} /> : isAccountingSection(section) ? <AccountingView section={section} ledger={ledger} search={search} setSearch={setSearch} rejectDeposit={rejectDeposit} reverseCharge={reverseCharge} recordAdjustment={recordAdjustment} openCashShift={openCashShift} closeCashShift={closeCashShift} reconcileCashShift={reconcileCashShift} recordReconciliation={recordReconciliation} generateDocument={generateDocument} canVerify={financialAuthority} canAdjust={financialAuthority} canReconcile={financialAuthority} canOperateShift={cashHandling} canIssueDocument={cashHandling} actorId={user.id} /> : section === "housekeeping_tasks" ? <HousekeepingQueuePanel role={user.role} userId={user.id} items={filtered} search={search} setSearch={setSearch} housekeepingAction={operateHousekeeping} coordinate={coordinateHousekeeping} applySuggestion={applySuggestion} suggestions={suggestions} onViewMaintenance={() => setSection("maintenance_orders")} onViewRoom={item => setRoomDetail({ id: String(item.room_id), number: item.room_number, type: item.room_type, floor: null, status: item.room_status, housekeeping: item.room_housekeeping })} guestRequestOpen={user.role === "housekeeping" ? dashboard?.metrics?.departmentRequests ?? 0 : 0} onOpenGuestRequests={() => setSection("guest_requests")} /> : section === "reservations" && user.role === "manager" ? <ManagerReservationsPanel items={filtered} search={search} setSearch={setSearch} viewReservation={viewReservation} onReviewException={reviewReservationException} onScan={() => setScanOpen(true)} /> : <ResourceView resource={section} items={filtered} allItems={items} depositSlaHours={dashboard?.metrics?.depositSlaHours ?? DEFAULT_DEPOSIT_SLA_HOURS} replenishment={replenishmentRoles ? replenishment : null} createDraftPo={createDraftPo} assets={assetRoles ? maintenanceAssets : null} registerAsset={registerAsset} assetAction={assetAction} search={search} setSearch={setSearch} open={section === "maintenance_orders" ? createMaintenance : () => setModal(true)} advance={advance} checkIn={openArrival} verifyDeposit={verifyDeposit} rejectDeposit={rejectDeposit} viewReservation={viewReservation} viewRoom={item => setRoomDetail(item)} viewGuest={item => viewGuestProfile(String(item.id))} processRefund={processRefund} failRefund={failRefund} canProcessRefund={financialAuthority} canVerify={financialAuthority} canCheckIn={operational} requestApproval={requestManagerApproval} escalateGuestRequest={escalateGuestRequest} progressGuestRequest={progressGuestRequest} canProgressGuestRequest={canProgressGuestRequest} coordinateHousekeeping={coordinateHousekeeping} coordinateMaintenance={coordinateMaintenance} housekeepingAction={operateHousekeeping} maintenanceAction={operateMaintenance} createReservation={createReservation} openWalkIn={openWalkInDialog} canMaintain={user.role === "maintenance"} canAssignOthers={false} canHousekeep={user.role === "housekeeping"} canCoordinate={user.role === "manager"} canRequestApproval={user.role === "front_desk" || user.role === "housekeeping" || user.role === "maintenance" || user.role === "accounting"} manageRooms={catalogAuthority ? () => setRoster(true) : null} onScan={section === "reservations" ? () => setScanOpen(true) : null} canCreate={section !== "rooms" && section !== "maintenance_orders" && user.role !== "accounting" && user.role !== "manager" && !(user.role === "front_desk" && ["rooms", "guests", "housekeeping_tasks", "invoices", "payments"].includes(section))} canAdvance={section !== "rooms" && section !== "maintenance_orders" && user.role !== "manager" && !(user.role === "front_desk" && ["rooms", "housekeeping_tasks", "invoices"].includes(section))} />}
         </div>
       </main>
       {modal && isResourceSection(section) && <CreateModal resource={section} close={() => setModal(false)} submit={add} />}
@@ -282,31 +275,23 @@ async function signOutGuarded() { if (cashHandling) { try { const response = awa
       {walkIn && <WalkInDialog key="walk-in" guests={guestProfiles} hotelToday={new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date())} onClose={() => setWalkIn(false)} onCreated={handleWalkInCreated} />}
       {extendStayOpen && <ExtendStayDialog reservation={extendStayOpen.reservation} transportation={extendStayOpen.transportation} onClose={() => setExtendStayOpen(null)} onDone={async message => { notify(message); await viewReservation(extendStayOpen.reservation); await load(true); }} />}
       {dialogs.view}
-    </div>; } function Overview({ data, setSection, allowed, role, onScan }: { data: DashboardData; setSection: (s: Section) => void; allowed: Section[]; role: Role; onScan: () => void; }) { const m = data.metrics; const trend = data.occupancyTrend; const delta = trend.length > 1 ? trend[trend.length - 1].occupancy - trend[0].occupancy : 0; const cards = role === "manager" ? [{ label: "Occupancy today", value: `${m.occupancy}%`, hint: `${m.inHouse} in-house guests`, icon: BedDouble }, { label: "Arrivals / departures", value: `${m.arrivals} / ${m.departures}`, hint: `${m.unassignedArrivals} arrivals unassigned`, icon: CalendarDays }, { label: "Rooms ready", value: m.availableRooms, hint: `${m.dirtyRooms} dirty · ${m.outOfServiceRooms} out of service`, icon: BedDouble }, { label: "Pending approvals", value: m.pendingApprovals, hint: `${m.escalatedIssues} escalated guest issues`, icon: ClipboardCheck }, { label: "Critical Maintenance", value: m.criticalMaintenance, hint: `${m.openMaintenance} open work orders`, icon: Wrench }, { label: "Overdue workload", value: m.overdueHousekeeping + m.overdueRequests, hint: `${m.overdueHousekeeping} Housekeeping · ${m.overdueRequests} requests`, icon: Activity }, { label: "Collections today", value: peso(m.collectionsToday), hint: `${peso(m.depositsReceived)} deposits`, icon: CircleDollarSign }, { label: "Outstanding balances", value: peso(m.outstandingBalances), hint: `${peso(m.refundSummary)} refunds today`, icon: ReceiptText }] : role === "front_desk" ? [{ label: "Arrivals today", value: m.arrivals, hint: `${m.unassignedArrivals} need room assignment`, icon: CalendarDays }, { label: "Departures today", value: m.departures, hint: `${m.balancesAttention} balances need attention`, icon: LogOut }, { label: "In-house guests", value: m.inHouse, hint: `${m.openRequests} open guest requests`, icon: Users }, { label: "Rooms ready", value: m.availableRooms, hint: `${m.dirtyRooms} awaiting readiness`, icon: BedDouble }, { label: "Cash this shift", value: peso(m.cashThisShift ?? 0), hint: m.shiftOpen ? `Open shift · float ${peso(m.shiftFloat ?? 0)} · closes into expected cash` : "No shift open — open one in Cash & Shifts before collecting cash", icon: CircleDollarSign }] : role === "housekeeping" ? [{ label: "Dirty rooms", value: m.dirtyRooms, hint: `${m.openTasks} open room-care tasks`, icon: BedDouble }, { label: "Cleaning now", value: m.roomsCleaning, hint: "Exclusive active tasks", icon: ClipboardCheck }, { label: "Awaiting inspection", value: m.roomsAwaitingInspection, hint: `${m.overdueHousekeeping} overdue tasks`, icon: Search }, { label: "Rooms ready", value: m.availableRooms, hint: `${m.openMaintenance} maintenance blocks`, icon: Sparkles }] : role === "maintenance" ? [{ label: "Active work orders", value: m.openMaintenance, hint: `${m.criticalMaintenance} urgent or critical`, icon: Wrench }, { label: "Rooms technically blocked", value: m.outOfServiceRooms, hint: "Based on Maintenance diagnosis", icon: BedDouble }, { label: "Maintenance guest requests", value: m.openRequests, hint: "Routed operational requests", icon: Bell }, { label: "Rooms ready", value: m.availableRooms, hint: "Clean and technically serviceable", icon: Sparkles }] : [{ label: "Occupancy", value: `${m.occupancy}%`, hint: "Across all rooms", icon: BedDouble }, { label: "Arrivals today", value: m.arrivals, hint: "Expected check-ins", icon: CalendarDays }, { label: "Departures", value: m.departures, hint: "Due to check out", icon: LogOut }, { label: "Revenue collected", value: peso(m.revenue), hint: "Current folios", icon: CircleDollarSign }]; return <>
-      <div className="page-title">
-        <div>
-          <p className="eyebrow">
-            {role === "manager" ? "Management command center" : role === "housekeeping" ? "Housekeeping operations" : role === "maintenance" ? "Maintenance operations" : "Operations overview"}
-          </p>
-          <h1>
-            {role === "manager" ? "What is at risk right now?" : role === "housekeeping" ? "Room readiness for this shift" : role === "maintenance" ? "Technical serviceability for this shift" : "Here's what's happening today."}
-          </h1>
-          <p>
-            {role === "manager" ? "Cross-department exceptions, readiness, workload, and authorized summaries." : role === "maintenance" ? "Claim, diagnose, repair, and restore assets through an auditable workflow." : "Everything your team needs for a smooth shift."}
-          </p>
-        </div>
-        {allowed.includes("reservations") && <div className="title-actions">
-            <button className="btn btn-soft" onClick={onScan}>
-              <QrCode size={17} /> Scan QR
-            </button>
-            <button className="btn btn-accent" onClick={() => setSection("reservations")}>
-              <Plus size={17} /> New reservation
-            </button>
-          </div>}
-        {!allowed.includes("reservations") && <button className="btn btn-soft" onClick={onScan}>
+    </div>; } // Role-based Overview composition (exported for the jsdom composition test;
+// the dashboard itself uses it internally).
+export function Overview({ data, setSection, allowed, role, onScan }: { data: DashboardData; setSection: (s: Section) => void; allowed: Section[]; role: Role; onScan: () => void; }) { const m = data.metrics; const trend = data.occupancyTrend; const delta = trend.length > 1 ? trend[trend.length - 1].occupancy - trend[0].occupancy : 0; const cards = role === "manager" ? [{ label: "Occupancy today", value: `${m.occupancy}%`, hint: `${m.inHouse} in-house guests`, icon: BedDouble }, { label: "Arrivals / departures", value: `${m.arrivals} / ${m.departures}`, hint: `${m.unassignedArrivals} arrivals unassigned`, icon: CalendarDays }, { label: "Rooms ready", value: m.availableRooms, hint: `${m.dirtyRooms} dirty · ${m.outOfServiceRooms} out of service`, icon: BedDouble }, { label: "Pending approvals", value: m.pendingApprovals, hint: `${m.escalatedIssues} escalated guest issues`, icon: ClipboardCheck }, { label: "Critical Maintenance", value: m.criticalMaintenance, hint: `${m.openMaintenance} open work orders`, icon: Wrench }, { label: "Overdue workload", value: m.overdueHousekeeping + m.overdueRequests, hint: `${m.overdueHousekeeping} Housekeeping · ${m.overdueRequests} requests`, icon: Activity }, { label: "Collections today", value: peso(m.collectionsToday), hint: `${peso(m.depositsReceived)} deposits`, icon: CircleDollarSign }, { label: "Outstanding balances", value: peso(m.outstandingBalances), hint: `${peso(m.refundSummary)} refunds today`, icon: ReceiptText }] : role === "front_desk" ? [{ label: "Arrivals today", value: m.arrivals, hint: `${m.unassignedArrivals} need room assignment`, icon: CalendarDays }, { label: "Departures today", value: m.departures, hint: `${m.balancesAttention} balance${m.balancesAttention === 1 ? "" : "s"} need${m.balancesAttention === 1 ? "s" : ""} attention`, icon: LogOut }, { label: "In-house guests", value: m.inHouse, hint: `${m.openRequests} open guest requests`, icon: Users }, { label: "Rooms ready", value: m.availableRooms, hint: `${m.dirtyRooms} awaiting readiness`, icon: BedDouble }, { label: "Cash this shift", value: peso(m.cashThisShift ?? 0), hint: m.shiftOpen ? `Open shift · float ${peso(m.shiftFloat ?? 0)} · closes into expected cash` : "No shift open — open one in Cash & Shifts before collecting cash", icon: CircleDollarSign }] : role === "housekeeping" ? [{ label: "Dirty rooms", value: m.dirtyRooms, hint: `${m.openTasks} open room-care tasks`, icon: BedDouble }, { label: "Cleaning now", value: m.roomsCleaning, hint: "Exclusive active tasks", icon: ClipboardCheck }, { label: "Awaiting inspection", value: m.roomsAwaitingInspection, hint: `${m.overdueHousekeeping} overdue task${m.overdueHousekeeping === 1 ? "" : "s"}`, icon: Search }, { label: "Rooms ready", value: m.availableRooms, hint: `${m.openMaintenance} maintenance blocks`, icon: Sparkles }] : role === "maintenance" ? [{ label: "Active work orders", value: m.openMaintenance, hint: `${m.criticalMaintenance} urgent or critical`, icon: Wrench }, { label: "Rooms technically blocked", value: m.outOfServiceRooms, hint: "Based on Maintenance diagnosis", icon: BedDouble }, { label: "Maintenance guest requests", value: m.openRequests, hint: "Routed operational requests", icon: Bell }, { label: "Rooms ready", value: m.availableRooms, hint: "Clean and technically serviceable", icon: Sparkles }] : role === "accounting" ? [{ label: "Pending verifications", value: m.pendingVerifications ?? 0, hint: (m.oldestPendingVerificationMinutes ?? 0) > 0 ? `Oldest waiting ${formatDepositAge(m.oldestPendingVerificationMinutes ?? 0)}` : "No deposits awaiting review", icon: ClipboardCheck }, { label: "Past SLA", value: m.pendingPastSla ?? 0, hint: `Verification target ${m.depositSlaHours ?? 4}h`, icon: AlertTriangle }, { label: "Pending refunds", value: m.pendingRefundCount ?? 0, hint: "Awaiting Accounting action", icon: CircleDollarSign }, { label: "Collections today", value: peso(m.collectionsToday), hint: `${peso(m.depositsReceived)} deposits`, icon: Wallet }, { label: "Outstanding balances", value: peso(m.outstandingBalances), hint: "Across open folios", icon: ReceiptText }, { label: "Refunds today", value: peso(m.refundSummary), hint: "Settled refund amounts", icon: Scale }] : [{ label: "Occupancy", value: `${m.occupancy}%`, hint: "Across all rooms", icon: BedDouble }, { label: "Arrivals today", value: m.arrivals, hint: "Expected check-ins", icon: CalendarDays }, { label: "Departures", value: m.departures, hint: "Due to check out", icon: LogOut }, { label: "Revenue collected", value: peso(m.revenue), hint: "Current folios", icon: CircleDollarSign }]; return <>
+      <PageHeader
+        variant="default"
+        eyebrow={role === "manager" ? "Management command center" : role === "accounting" ? "Accounting operations" : role === "housekeeping" ? "Housekeeping operations" : role === "maintenance" ? "Maintenance operations" : "Operations overview"}
+        title={role === "manager" ? "What is at risk right now?" : role === "accounting" ? "What needs financial action?" : role === "housekeeping" ? "Room readiness for this shift" : role === "maintenance" ? "Technical serviceability for this shift" : "Here's what's happening today."}
+        subtitle={role === "manager" ? "Cross-department exceptions, readiness, workload, and authorized summaries." : role === "accounting" ? "Verifications, refunds, collections, and reconciliation — actionable work first." : role === "maintenance" ? "Claim, diagnose, repair, and restore assets through an auditable workflow." : "Everything your team needs for a smooth shift."}
+        actions={<>
+          <button className="btn btn-soft" onClick={onScan}>
             <QrCode size={17} /> Scan QR
+          </button>
+          {allowed.includes("reservations") && <button className="btn btn-accent" onClick={() => setSection("reservations")}>
+            <Plus size={17} /> New reservation
           </button>}
-      </div>
+        </>}
+      />
       <div className="metric-grid">
         {cards.map(({ label: txt, value, hint, icon: Icon }) => <article className="metric-card" key={txt}>
             <div>
@@ -319,8 +304,8 @@ async function signOutGuarded() { if (cashHandling) { try { const response = awa
             </i>
           </article>)}
       </div>
-      <div className="dashboard-grid">
-        <article className="panel chart-panel">
+      <div className={`dashboard-grid overview-role-${role}`}>
+        {role === "manager" ? <article className="panel chart-panel">
           <div className="panel-heading">
             <div>
               <h3>Occupancy this week</h3>
@@ -345,7 +330,34 @@ async function signOutGuarded() { if (cashHandling) { try { const response = awa
               <Area type="monotone" dataKey="occupancy" stroke="#176773" strokeWidth={2.5} fill="url(#fill)" />
             </AreaChart>
           </ResponsiveContainer>
-        </article>
+        </article> : <article className="panel ops-queue-panel">
+          <div className="panel-heading">
+            <div>
+              <h3>{role === "front_desk" ? "Today's arrivals & departures" : role === "accounting" ? "Pending financial actions" : role === "housekeeping" ? "Priority tasks this shift" : "Work orders needing attention"}</h3>
+              <p>{role === "front_desk" ? "Guests moving today, and the rooms they need" : role === "accounting" ? "Verifications, refunds, and reconciliation queues" : role === "housekeeping" ? "Rooms that need your hands first" : "Repairs ranked by guest and safety impact"}</p>
+            </div>
+          </div>
+          {role === "front_desk" ? <div className="haven-action-list">
+              <HavenActionItem icon={CalendarDays} tone="amber" title={<>{m.unassignedArrivals} arrivals need rooms</>} description="Confirmed arrivals without a room assignment" quiet={m.unassignedArrivals === 0} onAction={() => setSection("reservations")} />
+              <HavenActionItem icon={LogIn} tone="green" title={<>{m.arrivals} arrivals today</>} description="Expected check-ins" quiet={m.arrivals === 0} onAction={() => setSection("reservations")} />
+              <HavenActionItem icon={LogOut} tone="neutral" title={<>{m.departures} departures today</>} description={<>{m.balancesAttention} balance{m.balancesAttention === 1 ? "" : "s"} need{m.balancesAttention === 1 ? "s" : ""} attention</>} quiet={m.departures === 0} onAction={() => setSection("reservations")} />
+              <HavenActionItem icon={Users} tone="amber" title={<>{m.openRequests} open guest requests</>} description="Across all departments" quiet={m.openRequests === 0} onAction={() => setSection("guest_requests")} />
+            </div> : role === "accounting" ? <div className="haven-action-list">
+              <HavenActionItem icon={ClipboardCheck} tone="amber" title={<>{m.pendingVerifications ?? 0} deposits awaiting verification</>} description={(m.pendingPastSla ?? 0) > 0 ? `${m.pendingPastSla} past the ${m.depositSlaHours ?? 4}h target` : "Oldest first in Deposit Verification"} quiet={(m.pendingVerifications ?? 0) === 0} onAction={() => setSection("payments")} />
+              <HavenActionItem icon={CircleDollarSign} tone="rose" title={<>{m.pendingRefundCount ?? 0} refund{(m.pendingRefundCount ?? 0) === 1 ? "" : "s"} awaiting action</>} description="Failed refunds need a retry decision" quiet={(m.pendingRefundCount ?? 0) === 0} onAction={() => setSection("refunds")} />
+              <HavenActionItem icon={Scale} tone="neutral" title="Reconciliation & documents" description={`${peso(m.outstandingBalances)} outstanding across open folios`} onAction={() => setSection("reconciliation")} />
+            </div> : role === "housekeeping" ? <div className="haven-action-list">
+              <HavenActionItem icon={BedDouble} tone="amber" title={<>{m.dirtyRooms} dirty rooms</>} description={`${m.openTasks} open room-care tasks`} quiet={m.dirtyRooms === 0} onAction={() => setSection("housekeeping_tasks")} />
+              <HavenActionItem icon={ClipboardCheck} tone="green" title={<>{m.roomsCleaning} cleaning in progress</>} description="Claimed and being worked now" quiet={m.roomsCleaning === 0} onAction={() => setSection("housekeeping_tasks")} />
+              <HavenActionItem icon={Search} tone="amber" title={<>{m.roomsAwaitingInspection} awaiting inspection</>} description={<>{m.overdueHousekeeping} overdue task{m.overdueHousekeeping === 1 ? "" : "s"}</>} quiet={m.roomsAwaitingInspection === 0} onAction={() => setSection("housekeeping_tasks")} />
+              <HavenActionItem icon={Wrench} tone="rose" title={<>{m.outOfServiceRooms} technically blocked room{m.outOfServiceRooms === 1 ? "" : "s"}</>} description="Visible for coordination; Maintenance owns repair" quiet={m.outOfServiceRooms === 0} onAction={() => setSection("rooms")} />
+            </div> : <div className="haven-action-list">
+              <HavenActionItem icon={AlertTriangle} tone="rose" title={<>{m.criticalMaintenance} urgent or critical</>} description="Safety and guest-impact first" quiet={m.criticalMaintenance === 0} onAction={() => setSection("maintenance_orders")} />
+              <HavenActionItem icon={Wrench} tone="amber" title={<>{m.openMaintenance} active work orders</>} description="Claim, diagnose, repair, restore" quiet={m.openMaintenance === 0} onAction={() => setSection("maintenance_orders")} />
+              <HavenActionItem icon={BedDouble} tone="rose" title={<>{m.outOfServiceRooms} room{m.outOfServiceRooms === 1 ? "" : "s"} technically blocked</>} description="Based on Maintenance diagnosis" quiet={m.outOfServiceRooms === 0} onAction={() => setSection("rooms")} />
+              <HavenActionItem icon={Bell} tone="neutral" title={<>{m.departmentRequests ?? 0} routed guest requests</>} description="Approved requests for Maintenance" quiet={(m.departmentRequests ?? 0) === 0} onAction={() => setSection("guest_requests")} />
+            </div>}
+        </article>}
         <article className="panel room-mix">
           <div className="panel-heading">
             <div>
@@ -392,119 +404,33 @@ async function signOutGuarded() { if (cashHandling) { try { const response = awa
                 </div>
                 <span className={`badge ${r.status}`}>{label(r.status)}</span>
               </div>)}
-          </article> : <article className="panel quick-panel room-activity-panel">
+          </article> : role === "housekeeping" || role === "maintenance" ? null : <article className="panel room-activity-panel">
             <div className="panel-heading">
               <div>
                 <h3>Room readiness activity</h3>
                 <p>
-                  {role === "housekeeping" ? "Room-care states requiring action" : "Live room states requiring attention"}
+                  Live room states requiring attention
                 </p>
               </div>
               <button onClick={() => setSection("rooms")}>View rooms</button>
             </div>
-            {role === "housekeeping" ? <>
-                <button onClick={() => setSection("rooms")}>
-                  <span className="quick-icon amber">
-                    <BedDouble />
-                  </span>
-                  <span>
-                    <b>{m.dirtyRooms} dirty rooms</b>
-                    <small>Waiting for cleaning or recleaning</small>
-                  </span>
-                  <ChevronDown />
-                </button>
-                <button onClick={() => setSection("housekeeping_tasks")}>
-                  <span className="quick-icon green">
-                    <ClipboardCheck />
-                  </span>
-                  <span>
-                    <b>{m.roomsCleaning} cleaning in progress</b>
-                    <small>Currently claimed room-care work</small>
-                  </span>
-                  <ChevronDown />
-                </button>
-                <button onClick={() => setSection("housekeeping_tasks")}>
-                  <span className="quick-icon amber">
-                    <Search />
-                  </span>
-                  <span>
-                    <b>{m.roomsAwaitingInspection} awaiting inspection</b>
-                    <small>Completed rooms waiting for release</small>
-                  </span>
-                  <ChevronDown />
-                </button>
-                <button onClick={() => setSection("rooms")}>
-                  <span className="quick-icon rose">
-                    <Wrench />
-                  </span>
-                  <span>
-                    <b>{m.outOfServiceRooms} technically blocked rooms</b>
-                    <small>
-                      Visible for coordination; Maintenance owns repair
-                    </small>
-                  </span>
-                  <ChevronDown />
-                </button>
-              </> : data.roomMix.filter(item => item.name !== "Available").map(item => <button key={item.name} onClick={() => setSection("rooms")}>
-                    <span className="quick-icon amber">
-                      <BedDouble />
-                    </span>
-                    <span>
-                      <b>
-                        {item.value} {item.name.toLowerCase()} rooms
-                      </b>
-                      <small>Open the room inventory for details</small>
-                    </span>
-                    <ChevronDown />
-                  </button>)}
-          </article>}
-        <article className="panel quick-panel">
+            {<div className="haven-action-list">{data.roomMix.filter(item => item.name !== "Available").map(item => <HavenActionItem key={item.name} icon={BedDouble} tone="amber" title={<>{item.value} {item.name.toLowerCase()} rooms</>} description="Open the room inventory for details" quiet={item.value === 0} onAction={() => setSection("rooms")} />)}</div>}</article>}
+        <article className="panel panel-needs-attention">
           <div className="panel-heading">
             <div>
-              <h3>Needs attention</h3>
-              <p>Priority actions for this shift</p>
+              <h3>{role === "manager" ? "Decisions & exceptions" : role === "accounting" ? "Financial follow-ups" : "Needs attention"}</h3>
+              <p>{role === "manager" ? "Items waiting on management authority" : role === "accounting" ? "Queues that close the books" : "Priority actions for this shift"}</p>
             </div>
           </div>
-          {allowed.includes("housekeeping_tasks") && <button onClick={() => setSection("housekeeping_tasks")}>
-              <span className="quick-icon amber">
-                <ClipboardCheck />
-              </span>
-              <span>
-                <b>{m.openTasks} housekeeping tasks</b>
-                <small>Open room-care work</small>
-              </span>
-              <ChevronDown />
-            </button>}
-          {allowed.includes("rooms") && <button onClick={() => setSection("rooms")}>
-              <span className="quick-icon green">
-                <BedDouble />
-              </span>
-              <span>
-                <b>{m.availableRooms} rooms ready</b>
-                <small>Available for assignment now</small>
-              </span>
-              <ChevronDown />
-            </button>}
-          {allowed.includes("maintenance_orders") && <button onClick={() => setSection("maintenance_orders")}>
-              <span className="quick-icon rose">
-                <Wrench />
-              </span>
-              <span>
-                <b>Maintenance work orders</b>
-                <small>Review open repair priorities</small>
-              </span>
-              <ChevronDown />
-            </button>}
-          {allowed.includes("approvals") && <button onClick={() => setSection("approvals")}>
-              <span className="quick-icon rose">
-                <ClipboardCheck />
-              </span>
-              <span>
-                <b>{m.pendingApprovals} pending approvals</b>
-                <small>{m.escalatedIssues} escalated guest issues</small>
-              </span>
-              <ChevronDown />
-            </button>}
+          <div className="haven-action-list">
+          {allowed.includes("housekeeping_tasks") && role !== "housekeeping" && <HavenActionItem icon={ClipboardCheck} tone="amber" title={<>{m.openTasks} housekeeping tasks</>} description="Open room-care work" quiet={m.openTasks === 0} onAction={() => setSection("housekeeping_tasks")} />}
+          {allowed.includes("rooms") && role !== "housekeeping" && role !== "maintenance" && <HavenActionItem icon={BedDouble} tone="green" title={<>{m.availableRooms} rooms ready</>} description="Available for assignment now" quiet={m.availableRooms === 0} onAction={() => setSection("rooms")} />}
+          {allowed.includes("maintenance_orders") && role !== "maintenance" && <HavenActionItem icon={Wrench} tone="rose" title="Maintenance work orders" description="Review open repair priorities" onAction={() => setSection("maintenance_orders")} />}
+          {allowed.includes("approvals") && <HavenActionItem icon={ClipboardCheck} tone="rose" title={<>{m.pendingApprovals} pending approvals</>} description={<>{m.escalatedIssues} escalated guest issue{m.escalatedIssues === 1 ? "" : "s"}</>} quiet={m.pendingApprovals === 0} onAction={() => setSection("approvals")} />}
+          {allowed.includes("insights") && <HavenActionItem icon={TrendingUp} tone="neutral" title="Predictive insights" description="Demand, staffing, and maintenance forecasts" onAction={() => setSection("insights")} />}
+          {allowed.includes("reconciliation") && <HavenActionItem icon={Scale} tone="neutral" title="Reconciliation" description="Match statements against recorded collections" onAction={() => setSection("reconciliation")} />}
+          {allowed.includes("documents") && <HavenActionItem icon={FileText} tone="neutral" title="Financial documents" description="Issued receipts and folio statements" onAction={() => setSection("documents")} />}
+          </div>
         </article>
       </div>
     </>; } // Queue predicates shared by the reservation filter chips (counts) and the
@@ -513,21 +439,21 @@ function queueFilter(item: RecordItem, queue: string, source: string, today: str
 // channels. "New reservation" covers front-desk/phone bookings for future dates;
 // "Walk-in guest" opens the staged same-day flow. Source is set by the chosen
 // workflow, never typed. Closes on outside pointer, Escape, and selection.
-function NewReservationMenu({ onNew, onWalkIn }: { onNew: () => void; onWalkIn: () => void; }) { const [open, setOpen] = useState(false); const ref = useRef<HTMLDivElement>(null); useEffect(() => { if (!open) return; const outside = (event: PointerEvent) => { if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false); }; const escape = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); }; document.addEventListener("pointerdown", outside); document.addEventListener("keydown", escape); return () => { document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", escape); }; }, [open]); return <div className="new-reservation-menu" ref={ref}>
-      <button className="btn btn-accent" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(value => !value)}>
+export function NewReservationMenu({ onNew, onWalkIn }: { onNew: () => void; onWalkIn: () => void; }) { const [open, setOpen] = useState(false); const ref = useRef<HTMLDivElement>(null); const triggerRef = useRef<HTMLButtonElement>(null); const itemRefs = useRef<Array<HTMLButtonElement | null>>([]); const openMenu = (itemIndex: number) => { setOpen(true); requestAnimationFrame(() => itemRefs.current[itemIndex]?.focus()); }; const closeMenu = (restoreFocus = false) => { setOpen(false); if (restoreFocus) requestAnimationFrame(() => triggerRef.current?.focus()); }; const handleTriggerKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => { if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); openMenu(event.key === "ArrowDown" ? 0 : 1); } else if (event.key === "Escape" && open) { event.preventDefault(); closeMenu(true); } }; const handleMenuKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => { const currentIndex = itemRefs.current.indexOf(document.activeElement as HTMLButtonElement); if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); const direction = event.key === "ArrowDown" ? 1 : -1; const nextIndex = (currentIndex + direction + itemRefs.current.length) % itemRefs.current.length; itemRefs.current[nextIndex]?.focus(); } else if (event.key === "Home" || event.key === "End") { event.preventDefault(); itemRefs.current[event.key === "Home" ? 0 : itemRefs.current.length - 1]?.focus(); } else if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); closeMenu(true); } else if (event.key === "Tab") setOpen(false); }; useEffect(() => { if (!open) return; const outside = (event: PointerEvent) => { if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false); }; document.addEventListener("pointerdown", outside); return () => document.removeEventListener("pointerdown", outside); }, [open]); return <div className="new-reservation-menu" ref={ref}>
+      <button ref={triggerRef} type="button" className="btn btn-accent" aria-haspopup="menu" aria-expanded={open} aria-controls="new-reservation-actions" onKeyDown={handleTriggerKeyDown} onClick={() => setOpen(value => !value)}>
         <Plus size={17} /> New reservation{" "}
         <ChevronDown size={15} className="menu-chevron" />
       </button>
       {open && <div className="popover-gap">
-          <div className="new-reservation-popover" role="menu" aria-label="Create a reservation">
-            <button role="menuitem" onClick={() => { setOpen(false); onNew(); }}>
+          <div id="new-reservation-actions" className="new-reservation-popover" role="menu" aria-label="Create a reservation" onKeyDown={handleMenuKeyDown}>
+            <button ref={node => { itemRefs.current[0] = node; }} type="button" role="menuitem" onClick={() => { setOpen(false); onNew(); }}>
               <CalendarDays size={16} />
               <span>
                 <b>New reservation</b>
                 <small>Front desk or phone booking for future dates</small>
               </span>
             </button>
-            <button role="menuitem" onClick={() => { setOpen(false); onWalkIn(); }}>
+            <button ref={node => { itemRefs.current[1] = node; }} type="button" role="menuitem" onClick={() => { setOpen(false); onWalkIn(); }}>
               <LogIn size={16} />
               <span>
                 <b>Walk-in guest</b>
@@ -615,7 +541,7 @@ function ReservationsTable({ items, canCheckIn, canRequestApproval, viewReservat
       </tbody>
     </table>; } // Operational scan order for the rooms grid: sellable first, turnover/blockers next,
 // committed and in-use last; room number ascending inside each group.
-const roomStatusRank: Record<string, number> = { available: 0, dirty: 1, maintenance: 2, reserved: 3, occupied: 4 }; function ResourceView({ resource, items, depositSlaHours, replenishment, createDraftPo, assets, registerAsset, assetAction, search, setSearch, open, advance, checkIn, verifyDeposit, rejectDeposit, viewReservation, viewRoom, viewGuest, processRefund, failRefund, requestApproval, escalateGuestRequest, progressGuestRequest, canProgressGuestRequest, coordinateHousekeeping, coordinateMaintenance, housekeepingAction, maintenanceAction, createReservation, openWalkIn, canMaintain, canAssignOthers, canHousekeep, canCheckIn, canVerify, canProcessRefund, canCreate, canAdvance, canCoordinate, canRequestApproval, manageRooms, onScan }: { resource: Resource; items: RecordItem[]; depositSlaHours: number; replenishment: { suggestions: ReplenishmentSuggestion[]; drafts: RecordItem[]; } | null; createDraftPo: (s: ReplenishmentSuggestion) => void; assets: MaintenanceAsset[] | null; registerAsset: () => void; assetAction: (a: MaintenanceAsset, action: "record-service" | "update" | "deactivate") => void; search: string; setSearch: (s: string) => void; open: () => void; advance: (x: RecordItem) => void; checkIn: (x: RecordItem) => void; verifyDeposit: (x: RecordItem) => void; rejectDeposit: (x: RecordItem) => void; viewReservation: (x: RecordItem) => void; viewRoom: (x: RecordItem) => void; viewGuest: (x: RecordItem) => void; processRefund: (x: RecordItem) => void; failRefund: (x: RecordItem) => void; requestApproval: (x: RecordItem) => void; escalateGuestRequest: (x: RecordItem) => void; progressGuestRequest: (x: RecordItem, action: "start" | "complete") => void; canProgressGuestRequest: (x: RecordItem) => boolean; coordinateHousekeeping: (x: RecordItem) => void; coordinateMaintenance: (x: RecordItem) => void; housekeepingAction: (x: RecordItem, action: "assign" | "start" | "complete" | "inspect" | "defer" | "maintenance") => void; maintenanceAction: (x: RecordItem, action: "assign" | "start" | "diagnose" | "defer" | "progress" | "resolve" | "close" | "cancel") => void; createReservation: () => void; openWalkIn: () => void; canMaintain: boolean; canAssignOthers: boolean; canHousekeep: boolean; canCheckIn: boolean; canVerify: boolean; canProcessRefund: boolean; canCreate: boolean; canAdvance: boolean; canCoordinate: boolean; canRequestApproval: boolean; manageRooms: (() => void) | null; onScan: (() => void) | null; }) { const c = config[resource]; const [queue, setQueue] = useState("all"); const [source, setSource] = useState("all"); const [roomType, setRoomType] = useState("all"); const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date()); const sources = resource === "reservations" ? Array.from(new Set(items.map(item => String(item.source || "Direct")))) : []; const roomTypes = resource === "rooms" ? Array.from(new Set(items.map(item => String(item.type)))).sort() : []; const queueCounts = resource === "reservations" ? new Map([["all", items.length], ...[["upcoming"], ["arrivals"], ["departures"], ["in_house"], ["cancelled"], ["no_show"]].map(([value]) => [value as string, items.filter(item => queueFilter(item, value as string, "all", today)).length] as [string, number])]) : null; const matched = resource !== "reservations" ? resource === "rooms" ? items.filter(item => roomType === "all" || String(item.type) === roomType).sort((a, b) => (roomStatusRank[String(a.status)] ?? 9) - (roomStatusRank[String(b.status)] ?? 9) || String(a.number).localeCompare(String(b.number), undefined, { numeric: true })) : items : items.filter(item => queueFilter(item, queue, source, today)); const ordered = ["guests", "inventory"].includes(resource) ? sortTableRows(matched, item => String(item.name ?? item.number ?? item.id)) : matched; const page = useTablePagination(ordered); const visible = page.rows; return <>
+const roomStatusRank: Record<string, number> = { available: 0, dirty: 1, maintenance: 2, reserved: 3, occupied: 4 }; function ResourceView({ resource, items, depositSlaHours, replenishment, createDraftPo, assets, registerAsset, assetAction, search, setSearch, open, advance, checkIn, verifyDeposit, rejectDeposit, viewReservation, viewRoom, viewGuest, processRefund, failRefund, requestApproval, escalateGuestRequest, progressGuestRequest, canProgressGuestRequest, coordinateHousekeeping, coordinateMaintenance, housekeepingAction, maintenanceAction, createReservation, openWalkIn, canMaintain, canAssignOthers, canHousekeep, canCheckIn, canVerify, canProcessRefund, canCreate, canAdvance, canCoordinate, canRequestApproval, manageRooms, onScan, allItems }: { resource: Resource; items: RecordItem[]; depositSlaHours: number; replenishment: { suggestions: ReplenishmentSuggestion[]; drafts: RecordItem[]; } | null; createDraftPo: (s: ReplenishmentSuggestion) => void; assets: MaintenanceAsset[] | null; registerAsset: () => void; assetAction: (a: MaintenanceAsset, action: "record-service" | "update" | "deactivate") => void; search: string; setSearch: (s: string) => void; open: () => void; advance: (x: RecordItem) => void; checkIn: (x: RecordItem) => void; verifyDeposit: (x: RecordItem) => void; rejectDeposit: (x: RecordItem) => void; viewReservation: (x: RecordItem) => void; viewRoom: (x: RecordItem) => void; viewGuest: (x: RecordItem) => void; processRefund: (x: RecordItem) => void; failRefund: (x: RecordItem) => void; requestApproval: (x: RecordItem) => void; escalateGuestRequest: (x: RecordItem) => void; progressGuestRequest: (x: RecordItem, action: "start" | "complete") => void; canProgressGuestRequest: (x: RecordItem) => boolean; coordinateHousekeeping: (x: RecordItem) => void; coordinateMaintenance: (x: RecordItem) => void; housekeepingAction: (x: RecordItem, action: "assign" | "start" | "complete" | "inspect" | "defer" | "maintenance") => void; maintenanceAction: (x: RecordItem, action: "assign" | "start" | "diagnose" | "defer" | "progress" | "resolve" | "close" | "cancel") => void; createReservation: () => void; openWalkIn: () => void; canMaintain: boolean; canAssignOthers: boolean; canHousekeep: boolean; canCheckIn: boolean; canVerify: boolean; canProcessRefund: boolean; canCreate: boolean; canAdvance: boolean; canCoordinate: boolean; canRequestApproval: boolean; manageRooms: (() => void) | null; onScan: (() => void) | null; allItems: RecordItem[]; }) { const c = config[resource]; const [queue, setQueue] = useState("all"); const [source, setSource] = useState("all"); const [roomType, setRoomType] = useState("all"); const [loyaltyTier, setLoyaltyTier] = useState(ALL_LOYALTY_TIERS); const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date()); const sources = resource === "reservations" ? Array.from(new Set(items.map(item => String(item.source || "Direct")))) : []; const roomTypes = resource === "rooms" ? Array.from(new Set(items.map(item => String(item.type)))).sort() : []; const loyaltyTiers = resource === "guests" ? loyaltyTierOptions(allItems) : []; const queueCounts = resource === "reservations" ? new Map([["all", items.length], ...[["upcoming"], ["arrivals"], ["departures"], ["in_house"], ["cancelled"], ["no_show"]].map(([value]) => [value as string, items.filter(item => queueFilter(item, value as string, "all", today)).length] as [string, number])]) : null; const matched = resource !== "reservations" ? resource === "rooms" ? items.filter(item => roomType === "all" || String(item.type) === roomType).sort((a, b) => (roomStatusRank[String(a.status)] ?? 9) - (roomStatusRank[String(b.status)] ?? 9) || String(a.number).localeCompare(String(b.number), undefined, { numeric: true })) : resource === "guests" ? items.filter(item => matchesLoyaltyTier(item, loyaltyTier)) : items : items.filter(item => queueFilter(item, queue, source, today)); const ordered = ["guests", "inventory"].includes(resource) ? sortTableRows(matched, item => String(item.name ?? item.number ?? item.id)) : matched; const page = useTablePagination(ordered); const visible = page.rows; return <>
       <div className="page-title module-title">
         <div>
           <p className="eyebrow">Hotel operations</p>
@@ -787,9 +713,18 @@ const roomStatusRank: Record<string, number> = { available: 0, dirty: 1, mainten
                       </article>; })}
                 </section>; })}
         </div>}
+      <div className="table-tools">
+        <HavenSearchInput value={search} onValueChange={setSearch} label={resource === "payments" ? "Search deposit verification records" : `Search ${c.title.toLowerCase()}`} placeholder={resource === "payments" ? "Search by guest name, reservation code, or reference number..." : `Search ${c.title.toLowerCase()}...`} />
+      </div>
+      {resource === "guests" && <div className="reservation-filters">
+          <div className="haven-filter">
+            <span>Loyalty tier</span>
+            <HavenSelect value={loyaltyTier} onChange={setLoyaltyTier} ariaLabel="Filter by loyalty tier" options={loyaltyTiers} />
+          </div>
+        </div>}
       {resource === "reservations" && <div className="reservation-filters">
           <div>
-            {[["all", "All"], ["upcoming", "Upcoming"], ["arrivals", "Arrivals today"], ["departures", "Departures today"], ["in_house", "In-house"], ["cancelled", "Cancelled"], ["no_show", "No-shows"]].map(([value, text]) => <button key={value} className={queue === value ? "active" : ""} onClick={() => setQueue(value)}>
+            {[["all", "All"], ["upcoming", "Upcoming"], ["arrivals", "Arrivals today"], ["departures", "Departures today"], ["in_house", "In-house"], ["cancelled", "Cancelled"], ["no_show", "No-shows"]].map(([value, text]) => <button key={value} className={queue === value ? "active" : ""} aria-pressed={queue === value} onClick={() => setQueue(value)}>
                 {text}
                 {queueCounts && <i className="chip-count">{queueCounts.get(value) ?? 0}</i>}
               </button>)}
@@ -801,7 +736,7 @@ const roomStatusRank: Record<string, number> = { available: 0, dirty: 1, mainten
         </div>}
       {resource === "rooms" && <div className="reservation-filters">
           <div>
-            {[["all", "All types"], ...roomTypes.map(value => [value, label(value)] as [string, string])].map(([value, text]) => <button key={value} className={roomType === value ? "active" : ""} onClick={() => setRoomType(value)}>
+            {[["all", "All types"], ...roomTypes.map(value => [value, label(value)] as [string, string])].map(([value, text]) => <button key={value} className={roomType === value ? "active" : ""} aria-pressed={roomType === value} onClick={() => setRoomType(value)}>
                 {text}
               </button>)}
           </div>
@@ -809,12 +744,6 @@ const roomStatusRank: Record<string, number> = { available: 0, dirty: 1, mainten
               <DoorClosed size={15} /> Manage rooms
             </button>}
         </div>}
-      <div className="table-tools">
-        <label>
-          <Search size={17} />
-          <input aria-label={resource === "payments" ? "Search deposit verification records" : `Search ${c.title.toLowerCase()}`} placeholder={resource === "payments" ? "Search by guest name, reservation code, or reference number..." : `Search ${c.title.toLowerCase()}...`} value={search} onChange={event => setSearch(event.target.value)} />
-        </label>
-      </div>
       {resource === "rooms" && <div className="data-panel">
           <div className="room-card-grid" aria-label="Rooms records">
             {visible.map(item => <article key={item.id} className={`room-card ${String(item.status)}`} role="button" tabIndex={0} aria-label={`View room details for Room ${label(item.number)}`} onClick={() => viewRoom(item)} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); viewRoom(item); } }}>
@@ -1019,8 +948,9 @@ return band === "normal" ? null : <span className={`badge sla-${band}`} title={`
           </div>
           {visible.length === 0 && <div className="empty">
               <Search />
-              <h3>No records found</h3>
-              <p>No matching operational records are available.</p>
+              <h3>{resource === "guests" && loyaltyTier !== ALL_LOYALTY_TIERS ? "No guests found for the selected loyalty tier" : "No records found"}</h3>
+              <p>{resource === "guests" && loyaltyTier !== ALL_LOYALTY_TIERS ? "Try a different tier or clear the search to see more guests." : "No matching operational records are available."}</p>
+              {resource === "guests" && loyaltyTier !== ALL_LOYALTY_TIERS && <button className="btn btn-soft" onClick={() => { setLoyaltyTier(ALL_LOYALTY_TIERS); setSearch(""); }}>Reset filters</button>}
             </div>}
           <div className="table-footer">
             Showing {visible.length} record{visible.length !== 1 ? "s" : ""}
@@ -1047,61 +977,64 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) { cons
 // only exist once the reservation is confirmed, so this is the only view for pending ones.
 const requestOptions = (Array.isArray(reservation.request_options) ? reservation.request_options : []).map(String); // Frozen nightly rates (rate plans) — uniform stays show one rate, mixed-rate
 // stays show each night. Legacy rows have none and fall back to the total.
-const frozenNightly = parseFrozenRates(reservation.nightly_rates); const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date()); const arrivalToday = String(reservation.check_in) === today && ["confirmed", "checked_in"].includes(String(reservation.status)); const departureToday = String(reservation.check_out) === today && ["confirmed", "checked_in"].includes(String(reservation.status)); return <Modal isOpen onClose={close} title={label(reservation.confirmation_number || reservation.id)} description={`${label(reservation.source)} reservation`} size="xl" headerVariant="branded" className="reservation-detail-modal" footer={<div className="reservation-detail-actions">
-          {viewGuestProfile && reservation.guest_id && <button className="btn btn-soft" onClick={() => viewGuestProfile(String(reservation.guest_id))}>
+const frozenNightly = parseFrozenRates(reservation.nightly_rates); const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date()); const arrivalToday = String(reservation.check_in) === today && ["confirmed", "checked_in"].includes(String(reservation.status)); const departureToday = String(reservation.check_out) === today && ["confirmed", "checked_in"].includes(String(reservation.status)); return <Modal isOpen onClose={close} title={label(reservation.confirmation_number || reservation.id)} description={`${label(reservation.source)} reservation`}   size="xl" headerVariant="branded" className="reservation-detail-modal" footer={<div className="reservation-detail-actions">
+          {viewGuestProfile && reservation.guest_id && <button className="btn btn-soft rd-action" onClick={() => viewGuestProfile(String(reservation.guest_id))}>
               Guest profile
             </button>}
+          {canManage && confirmed && <button className="btn btn-soft rd-action" onClick={() => assignRoom(reservation)}>
+              {reservation.room_number ? "Reassign room" : "Pre-assign room"}
+            </button>}
+          {canManage && ["confirmed", "checked_in"].includes(String(reservation.status)) && <button className="btn btn-soft rd-action" onClick={() => updateGuest(reservation)}>
+                Update guest details
+              </button>}
+          {canManage && ["confirmed", "checked_in"].includes(String(reservation.status)) && <button className="btn btn-soft rd-action" onClick={() => routeRequest(reservation)}>
+                Route request
+              </button>}
+          {canFinancial && inHouse && balance > 0 && <button className="btn btn-soft rd-action" onClick={() => collectPayment(reservation)}>
+              Collect payment
+            </button>}
+          {canManage && inHouse && <button className="btn btn-soft rd-action" onClick={() => postCharge(reservation)}>
+              Post charge
+            </button>}
+          {canAdjust && <button className="btn btn-soft rd-action" onClick={() => recordAdjustment(String(reservation.id))}>
+              Adjust folio
+            </button>}
+          {canIssueDocument && detail.invoice && <button className="btn btn-soft rd-action" onClick={() => generateDocument({ documentType: "folio", reservationId: String(reservation.id) })}>
+              Folio statement
+            </button>}
+          {canManage && inHouse && <button className="btn btn-soft rd-action" onClick={() => changeRoom(reservation)}>
+              Change room
+            </button>}
+          {canManage && inHouse && <button className="btn btn-soft rd-action" onClick={() => extendStay(reservation)}>
+              Extend stay
+            </button>}
           {canManage && active && <>
-              <button className="btn btn-soft danger-action" onClick={() => closeReservation("cancelled")}>
+              <button className="btn btn-soft danger-action rd-action-danger" onClick={() => closeReservation("cancelled")}>
                 Cancel reservation
               </button>
-              {confirmed && <button className="btn btn-soft" onClick={() => closeReservation("no_show")}>
+              {confirmed && <button className="btn btn-soft rd-action" onClick={() => closeReservation("no_show")}>
                   Mark no-show
                 </button>}
             </>}
-          {canManage && confirmed && <button className="btn btn-soft" onClick={() => assignRoom(reservation)}>
-              {reservation.room_number ? "Reassign room" : "Pre-assign room"}
-            </button>}
-          {canManage && ["confirmed", "checked_in"].includes(String(reservation.status)) && <button className="btn btn-soft" onClick={() => updateGuest(reservation)}>
-                Update guest details
-              </button>}
-          {canManage && ["confirmed", "checked_in"].includes(String(reservation.status)) && <button className="btn btn-soft" onClick={() => routeRequest(reservation)}>
-                Route request
-              </button>}
-          {canFinancial && inHouse && balance > 0 && <button className="btn btn-soft" onClick={() => collectPayment(reservation)}>
-              Collect payment
-            </button>}
-          {canManage && inHouse && <button className="btn btn-soft" onClick={() => postCharge(reservation)}>
-              Post charge
-            </button>}
-          {canAdjust && <button className="btn btn-soft" onClick={() => recordAdjustment(String(reservation.id))}>
-              Adjust folio
-            </button>}
-          {canIssueDocument && detail.invoice && <button className="btn btn-soft" onClick={() => generateDocument({ documentType: "folio", reservationId: String(reservation.id) })}>
-              Folio statement
-            </button>}
-          {canManage && confirmed && <button className="btn btn-accent" onClick={() => checkIn(reservation)}>
+          {canManage && confirmed && <button className="btn btn-accent rd-action-primary" onClick={() => checkIn(reservation)}>
               Assign & check in
             </button>}
-          {canManage && inHouse && <button className="btn btn-soft" onClick={() => changeRoom(reservation)}>
-              Change room
-            </button>}
-          {canManage && inHouse && <button className="btn btn-soft" onClick={() => extendStay(reservation)}>
-              Extend stay
-            </button>}
-          {canManage && inHouse && <button className="btn btn-accent" onClick={() => checkOut(reservation)}>
+          {canManage && inHouse && <button className="btn btn-accent rd-action-primary" onClick={() => checkOut(reservation)}>
               Complete checkout
             </button>}
         </div>}>
-      <span className={`badge ${reservation.status}`}>
-        {label(reservation.status)}
-      </span>
-      {arrivalToday && <span className="arrival-chip warn">Arrival today</span>}
-      {departureToday && <span className="arrival-chip warn">Departure today</span>}
+      <div className="rd-meta">
+        <span className="rd-eyebrow">Reservation</span>
+        <span className={`badge ${reservation.status}`}>
+          {label(reservation.status)}
+        </span>
+        {arrivalToday && <span className="arrival-chip warn">Arrival today</span>}
+        {departureToday && <span className="arrival-chip warn">Departure today</span>}
+      </div>
       {oversight && <ReservationLifecycle detail={detail} />}
-      <div className="reservation-detail-grid">
-        <section>
-          <h3>Stay summary</h3>
+      <div className="reservation-detail-grid rd-grid">
+        <section className="rd-card">
+          <h3><BedDouble size={15} aria-hidden="true" /> Stay summary</h3>
           <dl>
             <div>
               <dt>Guest</dt>
@@ -1146,8 +1079,8 @@ const frozenNightly = parseFrozenRates(reservation.nightly_rates); const today =
             </div>
           </dl>
         </section>
-        {detail.guest && <section>
-            <h3>Guest contact</h3>
+        {detail.guest && <section className="rd-card">
+            <h3><Users size={15} aria-hidden="true" /> Guest contact</h3>
             <dl>
               <div>
                 <dt>Email</dt>
@@ -1175,8 +1108,8 @@ const frozenNightly = parseFrozenRates(reservation.nightly_rates); const today =
               </div>
             </dl>
           </section>}
-        <section>
-          <h3>Payment summary</h3>
+        <section className="rd-card">
+          <h3><Wallet size={15} aria-hidden="true" /> Payment summary</h3>
           <dl>
             <div>
               <dt>Original stay total</dt>
@@ -1212,8 +1145,8 @@ const frozenNightly = parseFrozenRates(reservation.nightly_rates); const today =
             </div>
           </dl>
         </section>
-        <section>
-          <h3>Requests and notes</h3>
+        <section className="rd-card">
+          <h3><ClipboardCheck size={15} aria-hidden="true" /> Requests and notes</h3>
           {requestOptions.length > 0 && <div className="detail-request-chips">
               <b>Requested at booking:</b>
               <ul className="chip-row">
@@ -1229,196 +1162,241 @@ const frozenNightly = parseFrozenRates(reservation.nightly_rates); const today =
             </p>}
         </section>
       </div>
-      {detail.charges.length > 0 && <section className="reservation-payment-history">
-          <h3>Folio charges</h3>
-          {detail.charges.map(charge => <p key={charge.id}>
-              <span>
-                {label(charge.description)} - {label(charge.category)}
-              </span>
-              <strong>{peso(charge.amount)}</strong>
-              <span className={`badge ${charge.status ?? "posted"}`}>
-                {label(charge.status ?? "posted")}
-              </span>
-              {canAdjust && charge.status !== "reversed" && <button className="table-action" onClick={() => reverseCharge(charge)}>
-                  Reverse
-                </button>}
-            </p>)}
+      {detail.charges.length > 0 && <section className="reservation-payment-history rd-list">
+          <h3><ReceiptText size={15} aria-hidden="true" /> Folio charges</h3>
+          {detail.charges.map(charge => <div className="rd-row" key={charge.id}>
+              <div className="rd-row-main">
+                <span className="rd-row-title">
+                  {label(charge.description)} <span className="rd-row-sub">· {label(charge.category)}</span>
+                </span>
+                <strong className="rd-amount">{peso(charge.amount)}</strong>
+              </div>
+              <div className="rd-row-foot">
+                <span className={`badge ${charge.status ?? "posted"}`}>
+                  {label(charge.status ?? "posted")}
+                </span>
+                {canAdjust && charge.status !== "reversed" && <button className="btn btn-soft rd-mini" onClick={() => reverseCharge(charge)}>
+                    Reverse
+                  </button>}
+              </div>
+            </div>)}
         </section>}
-      {detail.adjustments.length > 0 && <section className="reservation-payment-history">
-          <h3>Adjustments, credits and write-offs</h3>
-          {detail.adjustments.map(adjustment => <p key={adjustment.id}>
-              <span>
-                {label(adjustment.transaction_type)} -{" "}
-                {label(adjustment.reason)}
-              </span>
-              <strong>
-                {adjustment.direction === "credit" ? "-" : "+"}
-                {pesoExact(adjustment.amount)}
-              </strong>
-            </p>)}
+      {detail.adjustments.length > 0 && <section className="reservation-payment-history rd-list">
+          <h3><Scale size={15} aria-hidden="true" /> Adjustments, credits and write-offs</h3>
+          {detail.adjustments.map(adjustment => <div className="rd-row" key={adjustment.id}>
+              <div className="rd-row-main">
+                <span className="rd-row-title">
+                  {label(adjustment.transaction_type)} <span className="rd-row-sub">· {label(adjustment.reason)}</span>
+                </span>
+                <strong className="rd-amount">
+                  {adjustment.direction === "credit" ? "-" : "+"}
+                  {pesoExact(adjustment.amount)}
+                </strong>
+              </div>
+            </div>)}
         </section>}
-      {detail.payments.length > 0 && <section className="reservation-payment-history">
-          <h3>Payment history</h3>
-          {detail.payments.map(payment => <p key={payment.id}>
-              <span>
-                {label(payment.purpose)} - {label(payment.method)} -{" "}
-                {label(payment.reference)}
-                {payment.decision_reason ? ` - ${label(payment.decision_reason)}` : ""}
-              </span>
-              <strong>
-                {payment.purpose === "refund" ? "-" : ""}
-                {peso(payment.amount)}
-              </strong>
-              <span className={`badge ${payment.status}`}>
-                {label(payment.status)}
-              </span>
-              {canIssueDocument && payment.status === "paid" && <button className="table-action" onClick={() => generateDocument({ documentType: "receipt", paymentId: String(payment.id) })}>
-                  Receipt
-                </button>}
-            </p>)}
+      {detail.payments.length > 0 && <section className="reservation-payment-history rd-list">
+          <h3><Wallet size={15} aria-hidden="true" /> Payment history</h3>
+          {detail.payments.map(payment => <div className="rd-row" key={payment.id}>
+              <div className="rd-row-main">
+                <span className="rd-row-title">
+                  {label(payment.purpose)} <span className="rd-row-sub">· {label(payment.method)} · {label(payment.reference)}</span>
+                  {(payment.submitted_at || payment.created_at) && <span className="rd-row-sub rd-row-date"> · {formatPaymentSubmittedAt(String(payment.submitted_at ?? payment.created_at))}</span>}
+                  {payment.decision_reason ? <span className="rd-row-sub"> — {label(payment.decision_reason)}</span> : ""}
+                </span>
+                <strong className="rd-amount">
+                  {payment.purpose === "refund" ? "-" : ""}
+                  {peso(payment.amount)}
+                </strong>
+              </div>
+              <div className="rd-row-foot">
+                <span className={`badge ${payment.status}`}>
+                  {label(payment.status)}
+                </span>
+                {canIssueDocument && payment.status === "paid" && <button className="btn btn-soft rd-mini" onClick={() => generateDocument({ documentType: "receipt", paymentId: String(payment.id) })}>
+                    View receipt
+                  </button>}
+              </div>
+            </div>)}
         </section>}
-      {detail.refunds.length > 0 && <section className="reservation-payment-history">
-          <h3>Refunds</h3>
-          {detail.refunds.map(refund => <p key={refund.id}>
-              <span>
-                {label(refund.reference || "Awaiting Accounting reference")}
-              </span>
-              <strong>{peso(refund.eligible_amount)}</strong>
-              <span className={`badge ${refund.status}`}>
-                {label(refund.status)}
-              </span>
-            </p>)}
-          {detail.refundAttempts.map(attempt => <p key={attempt.id}>
-              <span>
-                Attempt -{" "}
-                {label(attempt.reason || attempt.reference || "recorded")}
-              </span>
-              <span>{label(attempt.attempted_at)}</span>
-              <span className={`badge ${attempt.status}`}>
-                {label(attempt.status)}
-              </span>
-            </p>)}
+      {detail.refunds.length > 0 && <section className="reservation-payment-history rd-list">
+          <h3><CircleDollarSign size={15} aria-hidden="true" /> Refunds</h3>
+          {detail.refunds.map(refund => <div className="rd-row" key={refund.id}>
+              <div className="rd-row-main">
+                <span className="rd-row-title">
+                  {label(refund.reference || "Awaiting Accounting reference")}
+                </span>
+                <strong className="rd-amount">{peso(refund.eligible_amount)}</strong>
+              </div>
+              <div className="rd-row-foot">
+                <span className={`badge ${refund.status}`}>
+                  {label(refund.status)}
+                </span>
+              </div>
+            </div>)}
+          {detail.refundAttempts.map(attempt => <div className="rd-row" key={attempt.id}>
+              <div className="rd-row-main">
+                <span className="rd-row-title">
+                  Attempt <span className="rd-row-sub">· {label(attempt.reason || attempt.reference || "recorded")}</span>
+                </span>
+                <span className="rd-row-sub">{label(attempt.attempted_at)}</span>
+              </div>
+              <div className="rd-row-foot">
+                <span className={`badge ${attempt.status}`}>
+                  {label(attempt.status)}
+                </span>
+              </div>
+            </div>)}
         </section>}
-      {detail.documents.length > 0 && <section className="reservation-payment-history">
-          <h3>Financial documents</h3>
-          {detail.documents.map(document => <p key={document.id}>
-              <span>
-                {label(document.document_number)} -{" "}
-                {label(document.document_type)}
-              </span>
-              <span>{label(document.created_at)}</span>
-            </p>)}
+      {detail.documents.length > 0 && <section className="reservation-payment-history rd-list rd-docs">
+          <h3><FileText size={15} aria-hidden="true" /> Financial documents</h3>
+          {detail.documents.map(document => <div className="rd-row rd-doc-row" key={document.id}>
+              <div className="rd-row-main">
+                <span className="rd-row-title">
+                  {label(document.document_number)} <span className="rd-row-sub">· {label(document.document_type)}</span>
+                </span>
+                <span className="rd-row-sub">{label(document.created_at)}</span>
+              </div>
+            </div>)}
         </section>}
-      {detail.changeRequests.length > 0 && <section className="reservation-payment-history">
-          <h3>Guest change requests</h3>
-          {detail.changeRequests.map(request => <p key={request.id}>
-              <span>
-                {label(request.reason)} ·{" "}
-                {label(request.requested_check_in || "same check-in")} to{" "}
-                {label(request.requested_check_out || "same check-out")} ·{" "}
-                {label(request.requested_room_type || "same room type")}
-              </span>
-              <span className={`badge ${request.status}`}>
-                {label(request.status)}
-              </span>
-            </p>)}
+      {detail.changeRequests.length > 0 && <section className="reservation-payment-history rd-list">
+          <h3><CalendarCheck size={15} aria-hidden="true" /> Guest change requests</h3>
+          {detail.changeRequests.map(request => <div className="rd-row" key={request.id}>
+              <div className="rd-row-main">
+                <span className="rd-row-title">
+                  {label(request.reason)} <span className="rd-row-sub">· {label(request.requested_check_in || "same check-in")} to{" "}
+                  {label(request.requested_check_out || "same check-out")} ·{" "}
+                  {label(request.requested_room_type || "same room type")}</span>
+                </span>
+              </div>
+              <div className="rd-row-foot">
+                <span className={`badge ${request.status}`}>
+                  {label(request.status)}
+                </span>
+              </div>
+            </div>)}
         </section>}
-      {detail.assignments.length > 0 && <section className="reservation-payment-history">
-          <h3>Room assignment history</h3>
-          {detail.assignments.map(assignment => <p key={assignment.id}>
-              <span>
-                {label(assignment.room_id)} ·{" "}
-                {label(assignment.reason || "Room assignment")}
-              </span>
-              <span>
-                {label(assignment.check_in)} to {label(assignment.check_out)}
-              </span>
-              <span className={`badge ${assignment.status}`}>
-                {label(assignment.status)}
-              </span>
-            </p>)}
+      {detail.assignments.length > 0 && <section className="reservation-payment-history rd-list">
+          <h3><DoorClosed size={15} aria-hidden="true" /> Room assignment history</h3>
+          {detail.assignments.map(assignment => <div className="rd-row" key={assignment.id}>
+              <div className="rd-row-main">
+                <span className="rd-row-title">
+                  {label(assignment.room_id)} <span className="rd-row-sub">· {label(assignment.reason || "Room assignment")} ·{" "}
+                  {label(assignment.check_in)} to {label(assignment.check_out)}</span>
+                </span>
+              </div>
+              <div className="rd-row-foot">
+                <span className={`badge ${assignment.status}`}>
+                  {label(assignment.status)}
+                </span>
+              </div>
+            </div>)}
         </section>}
-      {detail.requests.length > 0 && <section className="reservation-payment-history">
-          <h3>Guest requests</h3>
-          {detail.requests.map(request => <p key={request.id}>
-              <span>
-                {label(request.department)} · {label(request.request)}
-              </span>
-              <span className={`badge ${request.status}`}>
-                {label(request.status)}
-              </span>
-            </p>)}
+      {detail.requests.length > 0 && <section className="reservation-payment-history rd-list">
+          <h3><Bell size={15} aria-hidden="true" /> Guest requests</h3>
+          {detail.requests.map(request => <div className="rd-row" key={request.id}>
+              <div className="rd-row-main">
+                <span className="rd-row-title">
+                  {label(request.request)} <span className="rd-row-sub">· {label(request.department)}</span>
+                </span>
+              </div>
+              <div className="rd-row-foot">
+                <span className={`badge ${request.status}`}>
+                  {label(request.status)}
+                </span>
+              </div>
+            </div>)}
         </section>}
-      {oversight && <section className="reservation-payment-history">
-          <h3>Room &amp; readiness</h3>
-          <p>
-            <span>Reserved type: {label(reservation.room_type)}</span>
-          </p>
-          <p>
-            <span>
-              Physical room:{" "}
-              {reservation.room_number ? `Room ${label(reservation.room_number)} · ${label(detail.room?.housekeeping ?? "unknown housekeeping")}` : "Not assigned"}
-            </span>
-            {reservation.room_number && detail.room && <span className={`badge ${detail.room.status}`}>
+      {oversight && <section className="reservation-payment-history rd-list">
+          <h3><BedDouble size={15} aria-hidden="true" /> Room &amp; readiness</h3>
+          <div className="rd-row">
+            <div className="rd-row-main">
+              <span className="rd-row-title">Reserved type <span className="rd-row-sub">· {label(reservation.room_type)}</span></span>
+            </div>
+          </div>
+          <div className="rd-row">
+            <div className="rd-row-main">
+              <span className="rd-row-title">
+                Physical room <span className="rd-row-sub">· {reservation.room_number ? `Room ${label(reservation.room_number)} · ${label(detail.room?.housekeeping ?? "unknown housekeeping")}` : "Not assigned"}</span>
+              </span>
+            </div>
+            {reservation.room_number && detail.room && <div className="rd-row-foot">
+              <span className={`badge ${detail.room.status}`}>
                 {label(detail.room.status)}
-              </span>}
-          </p>
-          {detail.maintenance.map(order => <p key={order.id}>
-              <span>Maintenance block: {label(order.issue)}</span>
+              </span>
+            </div>}
+          </div>
+          {detail.maintenance.map(order => <div className="rd-row" key={order.id}>
+            <div className="rd-row-main">
+              <span className="rd-row-title">Maintenance block <span className="rd-row-sub">· {label(order.issue)}</span></span>
+            </div>
+            <div className="rd-row-foot">
               <span className={`badge ${order.status}`}>
                 {label(order.status)}
               </span>
-            </p>)}
+            </div>
+          </div>)}
         </section>}
-      {oversight && canViewTransportation && detail.transportation && detail.transportation.length > 0 && <section className="reservation-payment-history">
-            <h3>Transportation</h3>
-            {detail.transportation.map(trip => <p key={trip.id}>
-                <span>
-                  {label(trip.service_type)} · {label(trip.pickup_location)} →{" "}
-                  {label(trip.dropoff_location)} · {label(trip.pickup_date)}
-                  {trip.pickup_time ? ` ${label(trip.pickup_time)}` : ""}
-                </span>
-                <span>
-                  {label(trip.driver_name || "No driver assigned")}
-                  {Number(trip.fare_amount || 0) > 0 ? ` · ${peso(trip.fare_amount)}` : ""}
-                </span>
-                <span className={`badge ${String(trip.status).toLowerCase()}`}>
-                  {label(trip.status)}
-                </span>
-              </p>)}
+      {oversight && canViewTransportation && detail.transportation && detail.transportation.length > 0 && <section className="reservation-payment-history rd-list">
+            <h3><CarTaxiFront size={15} aria-hidden="true" /> Transportation</h3>
+            {detail.transportation.map(trip => <div className="rd-row" key={trip.id}>
+                <div className="rd-row-main">
+                  <span className="rd-row-title">
+                    {label(trip.service_type)} <span className="rd-row-sub">· {label(trip.pickup_location)} →{" "}
+                    {label(trip.dropoff_location)} · {label(trip.pickup_date)}
+                    {trip.pickup_time ? ` ${label(trip.pickup_time)}` : ""} · {label(trip.driver_name || "No driver assigned")}
+                    {Number(trip.fare_amount || 0) > 0 ? ` · ${peso(trip.fare_amount)}` : ""}</span>
+                  </span>
+                </div>
+                <div className="rd-row-foot">
+                  <span className={`badge ${String(trip.status).toLowerCase()}`}>
+                    {label(trip.status)}
+                  </span>
+                </div>
+              </div>)}
           </section>}
-      {oversight && detail.approvals && detail.approvals.length > 0 && <section className="reservation-payment-history">
-          <h3>Manager approvals</h3>
-          {detail.approvals.map(request => <p key={request.id}>
-              <span>
-                {label(request.request_type)} · {label(request.reason || "—")}
-              </span>
-              <span>{fmtStamp(request.requested_at)}</span>
-              <span className={`badge ${request.status}`}>
-                {label(request.status)}
-              </span>
-              {request.status === "pending" && onReviewException && <button className="table-action" onClick={() => onReviewException(reservation)}>
-                  <Eye size={13} /> Review Exception
-                </button>}
-            </p>)}
+      {oversight && detail.approvals && detail.approvals.length > 0 && <section className="reservation-payment-history rd-list">
+            <h3><ClipboardCheck size={15} aria-hidden="true" /> Manager approvals</h3>
+            {detail.approvals.map(request => <div className="rd-row" key={request.id}>
+              <div className="rd-row-main">
+                <span className="rd-row-title">
+                  {label(request.request_type)} <span className="rd-row-sub">· {label(request.reason || "—")} · {fmtStamp(request.requested_at)}</span>
+                </span>
+              </div>
+              <div className="rd-row-foot">
+                <span className={`badge ${request.status}`}>
+                  {label(request.status)}
+                </span>
+                {request.status === "pending" && onReviewException && <button className="btn btn-soft rd-mini" onClick={() => onReviewException(reservation)}>
+                    <Eye size={13} /> Review Exception
+                  </button>}
+              </div>
+            </div>)}
         </section>}
-      {detail.room && <section className="reservation-payment-history">
-          <h3>Assigned room readiness</h3>
-          <p>
-            <span>
-              Room {label(detail.room.number)} ·{" "}
-              {label(detail.room.housekeeping)}
-            </span>
-            <span className={`badge ${detail.room.status}`}>
-              {label(detail.room.status)}
-            </span>
-          </p>
-          {detail.maintenance.map(order => <p key={order.id}>
-              <span>Maintenance block: {label(order.issue)}</span>
+      {detail.room && <section className="reservation-payment-history rd-list">
+          <h3><DoorClosed size={15} aria-hidden="true" /> Assigned room readiness</h3>
+          <div className="rd-row">
+            <div className="rd-row-main">
+              <span className="rd-row-title">
+                Room {label(detail.room.number)} <span className="rd-row-sub">· {label(detail.room.housekeeping)}</span>
+              </span>
+            </div>
+            <div className="rd-row-foot">
+              <span className={`badge ${detail.room.status}`}>
+                {label(detail.room.status)}
+              </span>
+            </div>
+          </div>
+          {detail.maintenance.map(order => <div className="rd-row" key={order.id}>
+            <div className="rd-row-main">
+              <span className="rd-row-title">Maintenance block <span className="rd-row-sub">· {label(order.issue)}</span></span>
+            </div>
+            <div className="rd-row-foot">
               <span className={`badge ${order.status}`}>
                 {label(order.status)}
               </span>
-            </p>)}
+            </div>
+          </div>)}
         </section>}
     </Modal>; } // Exported for the jsdom render test (approvals-view.test.tsx); the dashboard
 // itself uses it internally.
@@ -1437,16 +1415,15 @@ const allQueue = status === "pending" ? [...visible].sort(compareApprovalUrgency
       </div>
       <ModuleSummaryCards cards={[{ label: "Pending", value: pending.length, hint: "Awaiting a decision", icon: ClipboardCheck, tone: "attention", queue: "pending" }, { label: "High priority", value: highPending, hint: "High or critical severity", icon: AlertTriangle, tone: "attention" }, { label: "Escalations", value: openEscalations, hint: "Guest issues raised to Manager", icon: Bell, tone: "today" }, { label: "Awaiting Accounting", value: awaitingAccounting, hint: "Approved, not yet executed", icon: CircleDollarSign, tone: "active" }, { label: "Oldest waiting", value: oldestWaiting, hint: "Longest pending request", icon: Activity, tone: "today" }]} activeQueue={status === "pending" || status === "approved" || status === "rejected" ? status : undefined} onSelect={target => setStatus(target)} ariaLabel="Approvals queue summary" />
       <div className="reservation-filters approval-toolbar">
+        <div className="table-tools approval-search-row">
+          <HavenSearchInput value={search} onValueChange={setSearch} label="Search approvals" placeholder="Search reservation, guest, reason, type, or requester..." />
+        </div>
         <div className="approval-pills" role="group" aria-label="Filter by status">
-          {["pending", "approved", "rejected", "all"].map(value => <button key={value} className={status === value ? "active" : ""} aria-pressed={status === value} onClick={() => setStatus(value)}>
-              {label(value)}
+          {["all", "pending", "approved", "rejected"].map(value => <button key={value} className={status === value ? "active" : ""} aria-pressed={status === value} onClick={() => setStatus(value)}>
+              {value === "all" ? "All" : label(value)}
             </button>)}
         </div>
         <div className="approval-filters">
-          <label className="approval-search">
-            <Search size={15} />
-            <input value={search} onChange={event => setSearch(event.target.value)} aria-label="Search approvals" placeholder="Search reservation, guest, reason, type, or requester..." />
-          </label>
           <div className="haven-filter">
             <span>Type</span>
             <HavenSelect value={type} onChange={setType} ariaLabel="Filter by approval type" groups={[{ label: "All", options: [{ value: "all", label: "All types" }] }, ...approvalTypeGroups.map(([group, values]) => ({ label: group, options: values.filter(value => types.includes(value)).map(value => ({ value, label: label(value) })) }))]} />
@@ -1894,10 +1871,7 @@ const isStayExtension = String(item.request_type) === "stay_extension"; const st
       </div>
       <ModuleSummaryCards cards={cards[section].map(card => ({ label: card.label, value: card.value, hint: card.hint }))} ariaLabel={`${view.title} summary`} />
       <div className="table-tools">
-        <label>
-          <Search size={17} />
-          <input placeholder={`Search ${view.title.toLowerCase()}...`} value={search} onChange={event => setSearch(event.target.value)} />
-        </label>
+        <HavenSearchInput value={search} onValueChange={setSearch} label={`Search ${view.title.toLowerCase()}`} placeholder={`Search ${view.title.toLowerCase()}...`} />
       </div>
       <div className="data-panel">
         <div className="table-scroll">

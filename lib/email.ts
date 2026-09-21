@@ -26,6 +26,8 @@ export interface EmailMessage {
   to: string;
   subject: string;
   html: string;
+  /** Base64 file payloads (Resend's own shape). Optional — most mail has none. */
+  attachments?: { filename: string; content: string }[];
 }
 
 export async function sendEmail(message: EmailMessage): Promise<EmailResult> {
@@ -36,7 +38,13 @@ export async function sendEmail(message: EmailMessage): Promise<EmailResult> {
     const response = await fetch(RESEND_ENDPOINT, {
       method: "POST",
       headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
-      body: JSON.stringify({ from: fromAddress(), to: message.to, subject: message.subject, html: message.html }),
+      body: JSON.stringify({
+        from: fromAddress(),
+        to: message.to,
+        subject: message.subject,
+        html: message.html,
+        ...(message.attachments?.length ? { attachments: message.attachments } : {})
+      }),
       signal: AbortSignal.timeout(TIMEOUT_MS)
     });
     // The response body is never forwarded anywhere; only the status decides.

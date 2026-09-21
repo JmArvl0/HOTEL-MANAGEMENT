@@ -6,28 +6,44 @@
   --hc-text:var(--dt,#103e48);
   --hc-muted:var(--dm,#53676b);
   --hc-accent:var(--dg,#176773);
-  display:grid;gap:14px;min-width:0;padding:14px;border:1px solid var(--hc-line);
-  border-radius:12px;background:var(--hc-surface)
+  display:grid;gap:14px;min-width:0;padding:0;border:0;border-radius:0;
+  background:transparent;box-shadow:none;
 }
+/* Universal standard: the combined search/filter wrapper stays visually
+   quiet — transparent, borderless, shadowless. Inputs, chips, and selects
+   keep their own surfaces; the results table/cards keep their containers. */
 .customer-shell .haven-data-toolbar{
   --hc-surface:var(--cp-panel);--hc-surface-soft:var(--cp-panel-2);
   --hc-line:var(--cp-line);--hc-text:var(--cp-text);--hc-muted:var(--cp-muted);
   --hc-accent:var(--cp-green)
 }
-.haven-data-toolbar.is-customer{gap:16px;padding:18px;border-radius:14px}
+.haven-data-toolbar.is-customer{gap:16px;padding:0;border:0;border-radius:0;background:transparent}
 .app-shell .haven-data-toolbar{margin-bottom:12px}
+/* Staff ops mapping (canonical — the only place staff search tokens are set):
+   light floor is Cool Paper (#f3f3f3), so the input keeps a solid white
+   surface + slate border; dark keeps its own dark surface/line. */
+.theme-light .app-shell{
+  --hc-surface:var(--ops-surface,#ffffff);
+  --hc-surface-soft:var(--ops-surface,#ffffff);
+  --hc-line:var(--ops-border,#d1d5db);
+  --hc-text:var(--ops-ink,#111827);
+  --hc-muted:var(--ops-text-2,#4b5563);
+  --hc-accent:var(--dg,#176773);
+}
 .haven-toolbar-section{display:grid;gap:7px;min-width:0}
 .haven-toolbar-label{color:var(--hc-muted);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
 .haven-search-input{position:relative;display:flex;align-items:center;width:min(100%,560px);min-width:0;color:var(--hc-muted)}
 .haven-search-input>svg{position:absolute;left:13px;pointer-events:none}
 .haven-search-input input{
   width:100%;min-height:40px;padding:9px 42px 9px 40px;border:1px solid var(--hc-line);
-  border-radius:9px;background:var(--hc-surface-soft);color:var(--hc-text);font:inherit;
+  border-radius:12px;background:var(--hc-surface,var(--hc-surface-soft,#fff));color:var(--hc-text);font:inherit;
   font-size:13px;line-height:1.4;transition:border-color .16s ease,box-shadow .16s ease,background-color .16s ease
 }
-.haven-search-input.is-customer input{min-height:44px;border-radius:10px;font-size:14px}
-.haven-search-input input::placeholder{color:var(--hc-muted);opacity:.86}
-.haven-search-input input:focus-visible{outline:2px solid var(--hc-accent);outline-offset:2px}
+.haven-search-input input:hover{border-color:var(--hc-accent)}
+.haven-search-input.is-customer input{min-height:44px;border-radius:12px;font-size:14px}
+.haven-search-input input::placeholder{color:var(--hc-muted);opacity:.9}
+.haven-search-input input:focus-visible{outline:none;border-color:var(--hc-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--hc-accent) 30%,transparent)}
+.haven-search-input input:disabled{background:var(--hc-surface-soft);border-color:var(--hc-line);opacity:.6;cursor:not-allowed}
 .haven-search-clear{
   position:absolute;right:5px;display:grid;place-items:center;width:32px;height:32px;padding:0;
   border:0;border-radius:8px;background:transparent;color:var(--hc-muted);cursor:pointer
@@ -102,7 +118,7 @@
 .haven-status-group{display:flex;flex-wrap:wrap;gap:6px}
 
 @media(max-width:720px){
-  .haven-data-toolbar,.haven-data-toolbar.is-customer{padding:14px}
+  /* The wrapper stays transparent at every width — no padding is reintroduced here. */
   .haven-search-input{width:100%}
   .haven-filter-badges{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
   .haven-filter-badge{justify-content:space-between;min-height:44px}

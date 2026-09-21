@@ -216,21 +216,10 @@
   color: var(--ops-ink) !important; border-radius: 8px; font-size: 12px;
 }
 .theme-light .app-shell .donut-wrap p,
-.theme-light .app-shell .arrival-row b,
-.theme-light .app-shell .quick-panel b { color: var(--ops-ink); font-size: 14px; }
+.theme-light .app-shell .arrival-row b { color: var(--ops-ink); font-size: 14px; }
 .theme-light .app-shell .donut-wrap p span,
-.theme-light .app-shell .arrival-row small,
-.theme-light .app-shell .quick-panel small { color: var(--ops-text-2); font-size: 12px; }
+.theme-light .app-shell .arrival-row small { color: var(--ops-text-2); font-size: 12px; }
 .theme-light .app-shell .arrival-row { border-color: var(--ops-border); }
-.theme-light .app-shell .quick-panel > button {
-  color: var(--ops-ink); background: var(--ops-surface);
-  border: 1px solid var(--ops-border); border-radius: var(--ops-r-control);
-  font-size: 13px;
-}
-.theme-light .app-shell .quick-panel > button:hover { background: var(--ops-paper); border-color: var(--ops-ink); }
-.theme-light .app-shell .quick-icon.amber { background: var(--ops-warning-tint); color: var(--ops-warning-ink); }
-.theme-light .app-shell .quick-icon.green { background: var(--ops-success-tint); color: var(--ops-success-ink); }
-.theme-light .app-shell .quick-icon.rose { background: var(--ops-danger-tint); color: var(--ops-danger-ink); }
 .theme-light .app-shell .empty { color: var(--ops-text-2); font-size: 13px; }
 .theme-light .app-shell .empty h3 { color: var(--ops-ink); font-size: 15px; }
 .theme-light .app-shell .feed-error {
@@ -238,6 +227,54 @@
   color: var(--ops-danger-ink); border-radius: var(--ops-r-card);
   padding: 16px; font-size: 13px;
 }
+
+/* ── 7b. OPERATIONAL ACTION ITEMS — one card family across staff roles ──
+   Shared HavenActionItem layout: icon | title + description | chevron.
+   Vertical rhythm follows the 8px scale; the 4px title/description gap is
+   the single deliberate exception (one value, everywhere). */
+.theme-light .app-shell .haven-action-list { display: grid; gap: 8px; }
+.theme-light .app-shell .haven-action-item {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center; gap: 16px; width: 100%; min-height: 64px;
+  padding: 12px 16px; text-align: left;
+  background: var(--ops-surface); border: 1px solid var(--ops-border);
+  border-radius: var(--ops-r-control); box-shadow: var(--ops-shadow-rest);
+  color: var(--ops-ink); font-family: inherit;
+}
+.theme-light .app-shell button.haven-action-item {
+  cursor: pointer;
+  transition: background-color 280ms var(--ops-ease-tactile),
+    border-color 280ms var(--ops-ease-tactile),
+    transform 280ms var(--ops-ease-tactile),
+    box-shadow 280ms var(--ops-ease-tactile);
+}
+.theme-light .app-shell button.haven-action-item:hover {
+  background: var(--ops-paper); border-color: var(--ops-ink);
+  transform: translateY(-1px); box-shadow: var(--ops-shadow-lift);
+}
+.theme-light .app-shell button.haven-action-item:active { transform: translateY(0); box-shadow: var(--ops-shadow-rest); }
+.theme-light .app-shell .haven-action-item:focus-visible { outline: 2px solid var(--ops-ink); outline-offset: 2px; }
+.theme-light .app-shell .haven-action-item-icon {
+  width: 36px; height: 36px; flex: none; display: grid; place-items: center;
+  border-radius: 8px;
+}
+.theme-light .app-shell .haven-action-item[data-tone="amber"] .haven-action-item-icon { background: var(--ops-warning-tint); color: var(--ops-warning-ink); }
+.theme-light .app-shell .haven-action-item[data-tone="green"] .haven-action-item-icon { background: var(--ops-success-tint); color: var(--ops-success-ink); }
+.theme-light .app-shell .haven-action-item[data-tone="rose"] .haven-action-item-icon { background: var(--ops-danger-tint); color: var(--ops-danger-ink); }
+.theme-light .app-shell .haven-action-item[data-tone="neutral"] .haven-action-item-icon { background: var(--ops-paper); color: var(--ops-text-2); }
+.theme-light .app-shell .haven-action-item.is-quiet .haven-action-item-icon { background: var(--ops-paper); color: var(--ops-text-3); }
+.theme-light .app-shell .haven-action-item-copy { display: grid; gap: 4px; min-width: 0; }
+.theme-light .app-shell .haven-action-item-copy > strong { color: var(--ops-ink); font-size: 14px; font-weight: 600; }
+.theme-light .app-shell .haven-action-item-copy > small {
+  color: var(--ops-text-2); font-size: 12px; line-height: 1.45;
+  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.theme-light .app-shell .haven-action-item.is-quiet .haven-action-item-copy > strong { color: var(--ops-text-2); font-weight: 500; }
+.theme-light .app-shell .haven-action-item-chevron { flex: none; align-self: center; color: var(--ops-text-3); transition: transform 280ms var(--ops-ease-tactile), color 280ms var(--ops-ease-tactile); }
+.theme-light .app-shell button.haven-action-item:hover .haven-action-item-chevron { color: var(--ops-ink); transform: translateX(2px); }
+.theme-light .app-shell .haven-action-item--stat { min-height: 104px; }
+.theme-light .app-shell .haven-action-item--stat .haven-action-item-copy > strong { font-size: 22px; font-variant-numeric: var(--ops-tnum); }
+.theme-light .app-shell .haven-action-item--stat .haven-action-item-copy > em { color: var(--ops-text-2); font-size: 12px; font-style: normal; line-height: 1.45; }
 
 /* ── 8. TABLES + STATUS — white container, slate structure, AA-safe pills ── */
 .theme-light .app-shell .data-panel {
@@ -254,7 +291,7 @@
 .theme-light .app-shell td strong { color: var(--ops-ink); }
 .theme-light .app-shell tbody tr:hover { background: var(--ops-paper); }
 .theme-light .app-shell .table-footer { color: var(--ops-text-3); font-size: 12px; }
-.theme-light .app-shell .table-tools label {
+.theme-light .app-shell .table-tools label:not(.haven-search-input) {
   background: var(--ops-surface); border: 1px solid var(--ops-border);
   color: var(--ops-text-2); border-radius: var(--ops-r-control); font-size: 13px;
 }
@@ -326,7 +363,7 @@
   background: var(--ops-surface); border: 1px solid var(--ops-border); color: var(--ops-ink);
 }
 .theme-light .app-shell .btn-soft:hover { background: var(--ops-paper); border-color: var(--ops-ink); }
-.theme-light .app-shell .reservation-filters button { border-radius: 8px; font-size: 12px; font-weight: 500; }
+.theme-light .app-shell .reservation-filters button { border-radius: 999px; font-size: 12px; font-weight: 500; }
 .theme-light .app-shell .reservation-filters button.active { background: var(--ops-ink); color: #fff; }
 .theme-light .app-shell .form-input,
 .theme-light .app-shell .modal-content textarea,
@@ -486,9 +523,52 @@
 .app-shell .mod-kpi > i.done { background: #173024; color: #65d3a5; }
 .app-shell .panel { background: var(--ds); border: 1px solid var(--dl); border-radius: var(--ops-r-card); box-shadow: var(--ops-shadow-rest); padding: 20px; }
 .app-shell .dashboard-grid { gap: 16px; margin-top: 16px; }
+/* Role-based overview composition: the manager grid leads visually with
+   decisions & exceptions (DOM order unchanged, so keyboard and
+   screen-reader order stay stable). Other roles keep queue-first DOM order. */
+.app-shell .overview-role-manager > .panel-needs-attention { order: -1; }
 .app-shell .panel-heading h3 { color: #e8ecf3; font-size: 15px; font-weight: 600; }
 .app-shell .panel-heading p { color: #8b95a8; font-size: 12px; }
 .app-shell .panel-heading button { color: #b9c6de; font-size: 12px; font-weight: 600; }
+.app-shell .haven-action-list { display: grid; gap: 8px; }
+.app-shell .haven-action-item {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center; gap: 16px; width: 100%; min-height: 64px;
+  padding: 12px 16px; text-align: left;
+  background: var(--ds); border: 1px solid var(--dl);
+  border-radius: var(--ops-r-control); box-shadow: var(--ops-shadow-rest);
+  color: var(--dt); font-family: inherit;
+}
+.app-shell button.haven-action-item {
+  cursor: pointer;
+  transition: background-color 280ms var(--ops-ease-tactile),
+    border-color 280ms var(--ops-ease-tactile),
+    transform 280ms var(--ops-ease-tactile);
+}
+.app-shell button.haven-action-item:hover { background: var(--ds2); border-color: #3b4a6b; transform: translateY(-1px); }
+.app-shell button.haven-action-item:active { transform: translateY(0); }
+.app-shell .haven-action-item:focus-visible { outline: 2px solid #8fb4ec; outline-offset: 2px; }
+.app-shell .haven-action-item-icon {
+  width: 36px; height: 36px; flex: none; display: grid; place-items: center;
+  border-radius: 8px;
+}
+.app-shell .haven-action-item[data-tone="amber"] .haven-action-item-icon { background: #3a2d1a; color: #e8b96a; }
+.app-shell .haven-action-item[data-tone="green"] .haven-action-item-icon { background: #173024; color: #65d3a5; }
+.app-shell .haven-action-item[data-tone="rose"] .haven-action-item-icon { background: #3a1e22; color: #e88a8f; }
+.app-shell .haven-action-item[data-tone="neutral"] .haven-action-item-icon { background: #1a2440; color: #b9c6de; }
+.app-shell .haven-action-item.is-quiet .haven-action-item-icon { background: #1a2440; color: #7c8698; }
+.app-shell .haven-action-item-copy { display: grid; gap: 4px; min-width: 0; }
+.app-shell .haven-action-item-copy > strong { color: #eef1f7; font-size: 14px; font-weight: 600; }
+.app-shell .haven-action-item-copy > small {
+  color: #9aa4b5; font-size: 12px; line-height: 1.45;
+  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.app-shell .haven-action-item.is-quiet .haven-action-item-copy > strong { color: #9aa4b5; font-weight: 500; }
+.app-shell .haven-action-item-chevron { flex: none; align-self: center; color: #7c8698; transition: transform 280ms var(--ops-ease-tactile), color 280ms var(--ops-ease-tactile); }
+.app-shell button.haven-action-item:hover .haven-action-item-chevron { color: #eef1f7; transform: translateX(2px); }
+.app-shell .haven-action-item--stat { min-height: 104px; }
+.app-shell .haven-action-item--stat .haven-action-item-copy > strong { font-size: 22px; font-variant-numeric: var(--ops-tnum); }
+.app-shell .haven-action-item--stat .haven-action-item-copy > em { color: #9aa4b5; font-size: 12px; font-style: normal; line-height: 1.45; }
 .app-shell .trend { background: #1a2440; color: #b9c6de; font-size: 11px; }
 .app-shell .chart-h-sm { height: 220px; }
 .app-shell .chart-h-md { height: 260px; }
@@ -534,7 +614,11 @@
   .theme-light .app-shell button.mod-kpi, .app-shell button.mod-kpi,
   .theme-light .app-shell .metric-card, .app-shell .metric-card,
   .theme-light .app-shell .btn, .app-shell .btn,
+  .theme-light .app-shell button.haven-action-item, .app-shell button.haven-action-item,
   .theme-light .app-shell .table-action, .app-shell .table-action { transition: none; transform: none; }
+  .theme-light .app-shell button.haven-action-item:hover .haven-action-item-chevron,
+  .app-shell button.haven-action-item:hover .haven-action-item-chevron { transform: none; }
+  .theme-light .app-shell button.haven-action-item:hover, .app-shell button.haven-action-item:hover { transform: none; }
 }
 
 /* ── 16. CROSS-ROLE MODULE HEADERS — teal band → executive header ── */
@@ -641,7 +725,6 @@
 .theme-light .app-shell.owner-workspace .owner-metric-grid .metric-card.tone-good small { color: var(--ops-success-ink); }
 .theme-light .app-shell.owner-workspace .owner-metric-grid .metric-card.tone-warn small { color: var(--ops-warning-ink); }
 .theme-light .app-shell.owner-workspace .owner-metric-grid .metric-card.tone-bad small { color: var(--ops-danger-ink); }
-.theme-light .app-shell.owner-workspace .owner-toolbar { background: var(--ops-surface); border-color: var(--ops-border); border-radius: var(--ops-r-card); }
 .theme-light .app-shell.owner-workspace .owner-search { background: var(--ops-paper); border-color: var(--ops-border); border-radius: var(--ops-r-control); }
 .theme-light .app-shell.owner-workspace .owner-search input { font-size: 14px; }
 .theme-light .app-shell.owner-workspace .owner-filters .haven-filter > span { font-size: 11px; color: var(--ops-text-3); }
@@ -719,7 +802,115 @@
 .app-shell.owner-workspace .owner-section-head h2 { font-size: 18px; }
 .app-shell.owner-workspace .owner-section-head p { font-size: 12px; }
 
-/* ── 19. STAFF RESPONSIVE TOUCH-UPS (order + density preserved) ── */
+/* ── 20. CONTENT FITTING — sidebar brand, nav, headers, cards ──
+   Structural rules (no color) apply to both themes. Type sizes untouched. */
+
+/* Brand: HAVEN stays one line; the role label wraps to a second line
+   instead of clipping (fixes SYSTEM ADMINISTRATI… at 232px). */
+.app-shell .sidebar .brand-copy { min-width: 0; flex: 1; }
+.app-shell .sidebar .brand-copy small {
+  display: block; white-space: normal; line-height: 1.5; letter-spacing: 1.2px;
+}
+.app-shell .sidebar .brand { gap: 10px; }
+/* Nav labels: flexible, never under the absolute badge. */
+.app-shell .sidebar nav button { gap: 10px; }
+.app-shell .sidebar nav button .nav-label { flex: 1; min-width: 0; }
+.app-shell .sidebar nav button:has(.nav-badge) .nav-label { padding-right: 24px; }
+/* Profile + property copies: ellipsis with full text in title attributes. */
+.app-shell .profile-copy, .app-shell .property-copy { min-width: 0; flex: 1; overflow: hidden; }
+.app-shell .profile-copy b, .app-shell .profile-copy small,
+.app-shell .property-copy b, .app-shell .property-copy small {
+  display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* Headers: title block shrinks, actions wrap as a unit. */
+.app-shell .workspace-body .page-title,
+.app-shell .page-header { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+.app-shell .workspace-body .page-title > div:first-child,
+.app-shell .page-header-content { flex: 1 1 240px; min-width: 0; }
+.app-shell .workspace-body .page-title h1,
+.app-shell .page-header-title { overflow-wrap: break-word; }
+.app-shell .workspace-body .page-title > .title-actions,
+.app-shell .workspace-body .page-title > .btn,
+.app-shell .page-header-actions { flex: none; display: flex; flex-wrap: wrap; gap: 8px; }
+/* KPI values: grow vertically, wrap extreme figures, keep tabular numerals. */
+.app-shell .mod-kpi b, .app-shell .metric-card b,
+.app-shell .sd-kpi b, .app-shell .haven-ai-kpi {
+  overflow-wrap: anywhere; min-width: 0;
+}
+/* Panels: heading text shrinks, View action never overlaps. */
+.app-shell .panel-heading { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.app-shell .panel-heading > div:first-child { flex: 1 1 200px; min-width: 0; }
+.app-shell .panel-heading button { flex: none; }
+
+/* ── 21. CONTENT FITTING — tables, forms, modals, header, popovers ── */
+.app-shell .table-scroll { overflow-x: auto; max-width: 100%; }
+.app-shell table { max-width: 100%; }
+.app-shell td { overflow-wrap: anywhere; }
+.app-shell .stay-cell, .app-shell .stay-cell b, .app-shell .cell-stack b { overflow-wrap: normal; }
+.app-shell .modal-footer { flex-wrap: wrap; }
+.app-shell .haven-select-menu { max-width: calc(100vw - 32px); }
+.app-shell .haven-select-value { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-shell .form-input, .app-shell .modal-content textarea,
+.app-shell .modal-content select { max-width: 100%; }
+.app-shell .app-header > div:nth-child(2) { min-width: 0; overflow: hidden; }
+.app-shell .app-header p, .app-shell .app-header small {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.app-shell .header-actions { flex: none; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.app-shell .notification-popover { max-width: calc(100vw - 32px); }
+.app-shell .profile-popover { max-width: calc(100vw - 32px); }
+
+/* Page-title action menus must escape the legacy decorative clipping layer. */
+.app-shell .workspace-body .page-title:has(.new-reservation-menu) {
+  overflow: visible;
+  z-index: var(--z-index-dropdown, 100);
+}
+.app-shell .new-reservation-menu { z-index: 1; }
+.app-shell .new-reservation-menu .popover-gap {
+  top: calc(100% + 8px); padding-top: 0;
+}
+.app-shell .new-reservation-popover {
+  width: min(320px, calc(100vw - 32px)); max-height: min(60vh, 320px);
+  overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
+  border-radius: var(--ops-r-control); box-shadow: var(--ops-shadow-float);
+}
+.app-shell .new-reservation-popover button {
+  min-height: 58px; padding: 12px 14px; gap: 12px;
+}
+.app-shell .new-reservation-popover b { font: 600 13px/1.35 var(--font-sans); }
+.app-shell .new-reservation-popover small { margin-top: 3px; font-size: 11px; line-height: 1.4; }
+.app-shell .new-reservation-popover button:focus-visible {
+  outline: 2px solid #8fb4ec; outline-offset: -3px; box-shadow: none;
+}
+.theme-light .app-shell .new-reservation-popover {
+  background: var(--ops-surface); border-color: var(--ops-border); color: var(--ops-text);
+}
+.theme-light .app-shell .new-reservation-popover button { color: var(--ops-text); }
+.theme-light .app-shell .new-reservation-popover button + button { border-color: var(--ops-border); }
+.theme-light .app-shell .new-reservation-popover button:hover,
+.theme-light .app-shell .new-reservation-popover button:focus-visible { background: var(--ops-paper); }
+.theme-light .app-shell .new-reservation-popover button:focus-visible { outline-color: var(--ops-ink); }
+.theme-light .app-shell .new-reservation-popover svg { color: var(--ops-ink); }
+.theme-light .app-shell .new-reservation-popover small { color: var(--ops-text-2); }
+
+/* ── 22. FITTING AT NARROW WIDTHS (project breakpoints preserved) ── */
+@media (max-width: 1000px) {
+  /* The staff 2-column overview grid keeps its desktop columns past the
+     shared 1000px breakpoint (specificity), crushing panels at phone widths.
+     Stack it like every other staff surface. */
+  .app-shell .dashboard-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 720px) {
+  .app-shell .modal-footer .btn { flex: 1 1 100%; }
+  .app-shell .mode-pill, .app-shell .shift-pill { padding: 4px 8px; }
+  .app-shell .header-actions { gap: 6px; }
+  .app-shell .page-title .new-reservation-menu,
+  .app-shell .page-title .new-reservation-menu > .btn { width: 100%; }
+  .app-shell .new-reservation-menu .popover-gap { left: 0; right: 0; }
+  .app-shell .new-reservation-popover { width: 100%; max-width: none; }
+}
+
+/* ── 23. BASE RESPONSIVE + PRINT (pre-existing, kept) ── */
 @media (max-width: 720px) {
   .theme-light .app-shell .workspace-body, .app-shell .workspace-body { padding: 16px; }
   .theme-light .app-shell .metric-card > b, .app-shell .metric-card > b { font-size: 26px; }

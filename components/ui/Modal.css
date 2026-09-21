@@ -2007,6 +2007,30 @@
   flex-shrink: 0;
 }
 
+/* Band variant — the deep-teal hero treatment for dashboards and major module
+   landings (compact default covers forms/settings/dense screens). A fixed
+   self-contained dark surface like the branded modal header: identical in
+   light and dark themes by design, so no .theme-light mirror is needed. */
+.page-header.band {
+  align-items: center;
+  padding: 28px 30px;
+  border: 0;
+  border-radius: var(--radius-2xl, 16px);
+  background: linear-gradient(115deg, var(--hero-bg, #0a4953), var(--hero-bg-deep, #082f39));
+  color: var(--hero-fg, #fff);
+  box-shadow: var(--shadow-md, 0 4px 6px -1px rgb(0 0 0 / 0.1));
+}
+.page-header.band .page-header-eyebrow { color: var(--hero-muted, #a9c6c3); }
+.page-header.band .page-header-title {
+  color: var(--hero-fg, #fff);
+  font-size: clamp(28px, 3.4vw, 40px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.page-header.band .page-header-subtitle { color: var(--hero-muted, #c2e0dc); }
+.page-header.band .breadcrumb-link,
+.page-header.band .breadcrumb-current { color: var(--hero-muted, #c2e0dc); }
+
 /* Responsive */
 @media (max-width: 768px) {
   .sidebar {

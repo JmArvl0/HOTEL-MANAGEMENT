@@ -1,2 +1,16 @@
-import{getServerSession}from"next-auth";import{redirect}from"next/navigation";import{authOptions}from"@/lib/auth";import{CustomerShell}from"@/components/customer/customer-shell";import{getCustomerOverview}from"@/lib/customer";import{getCustomerNotifications}from"@/lib/notifications";
-export default async function CustomerLayout({children}:{children:React.ReactNode}){const session=await getServerSession(authOptions);if(!session)redirect(`/login?callbackUrl=${encodeURIComponent("/account")}`);if(session.user.role!=="guest")redirect("/manager_dashboard");const[overview,notifications]=await Promise.all([getCustomerOverview(session.user.id),getCustomerNotifications(session.user.id,5)]);return <CustomerShell user={session.user} notifications={notifications}>{children}</CustomerShell>}
+import { CustomerShell } from "@/components/customer/customer-shell";
+import { requireCustomerSession } from "@/lib/customer-auth";
+import { countUnreadNotifications, getCustomerNotifications } from "@/lib/notifications";
+
+export default async function CustomerLayout({ children }: { children: React.ReactNode }) {
+  const session = await requireCustomerSession();
+  const [notifications, unreadCount] = await Promise.all([
+    getCustomerNotifications(session.user.id, 7),
+    countUnreadNotifications(session.user.id),
+  ]);
+  return (
+    <CustomerShell user={session.user} notifications={notifications} initialUnreadCount={unreadCount} sessionExpiresAt={session.sessionExpiresAt}>
+      {children}
+    </CustomerShell>
+  );
+}

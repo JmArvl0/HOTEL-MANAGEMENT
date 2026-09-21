@@ -1,5 +1,8 @@
 import { supabase } from "@/lib/supabase";
 import { calculateNights, hotelToday } from "@/lib/booking";
+import { inclusiveTaxBreakdown, ratePercent } from "@/lib/accounting";
+import { getOperationalPolicy } from "@/lib/hotel-policy";
+import { buildReceiptDocument, receiptEligible, type ReceiptDocument } from "@/lib/receipt";
 import { getCustomerTransportation, type CustomerTransportationRequest } from "@/lib/transportation";
 
 export type ReservationCategory = "current" | "upcoming" | "past" | "cancelled";
@@ -63,6 +66,31 @@ export async function getCustomerFinancials(userId:string){
     supabase.from("financial_documents").select("id,document_number,document_type,reservation_id,payment_id,created_at").in("reservation_id",ids).order("created_at",{ascending:false})
   ]);
   return(reservations??[]).map((reservation)=>{const invoice=(invoices??[]).find((item)=>item.reservation_id===reservation.id);return{...reservation,invoice:invoice??null,payments:invoice?(paymentResult.data??[]).filter((payment)=>payment.invoice_id===invoice.id):[],charges:invoice?(chargeResult.data??[]).filter((charge)=>charge.invoice_id===invoice.id):[],refunds:(refundResult.data??[]).filter((refund)=>refund.reservation_id===reservation.id),changeRequests:(changeResult.data??[]).filter((request)=>request.reservation_id===reservation.id),adjustments:(adjustmentResult.data??[]).filter((adjustment)=>adjustment.reservation_id===reservation.id),documents:(documentResult.data??[]).filter((document)=>document.reservation_id===reservation.id)}});
+}
+/* The ONLY data door for a customer receipt. Ownership and eligibility are
+   enforced here, server-side, for every caller — the preview modal, the JSON
+   route, the printable page and the email route. Hiding a button is not the
+   control: an id belonging to another guest returns null here and 404 upstream. */
+export async function getCustomerReceipt(userId:string,paymentId:string):Promise<ReceiptDocument|null>{
+  if(!supabase)return null;
+  const{data:payment}=await supabase.from("payments").select("id,reservation_id,amount,currency,method,reference,purpose,status,verified_at,created_at").eq("id",paymentId).maybeSingle();
+  // Eligibility is checked in code rather than in the query so the refund case is
+  // explicit — the same predicate accounting_generate_document applies.
+  if(!payment||!receiptEligible(payment))return null;
+  // Ownership: the payment must belong to one of THIS user's reservations.
+  const{data:reservation}=await supabase.from("reservations").select("id,confirmation_number,guest_name,room_type,check_in,check_out,operational_policy_snapshot").eq("id",payment.reservation_id).eq("user_id",userId).maybeSingle();
+  if(!reservation)return null;
+  // A real RCP- number when Accounting has issued one, null otherwise. An
+  // invented number would be fabricated data, so absent stays absent.
+  const{data:document}=await supabase.from("financial_documents").select("document_number").eq("payment_id",paymentId).eq("document_type","receipt").maybeSingle();
+  // Frozen policy snapshot first, current policy as the fallback for reservations
+  // created before tax configuration — unchanged from the original receipt page.
+  const snapshot=(reservation.operational_policy_snapshot??{})as Record<string,unknown>;
+  const policy=await getOperationalPolicy();
+  const vatRateBp=typeof snapshot.vatRateBp==="number"?snapshot.vatRateBp:policy.vatRateBp;
+  const serviceChargeBp=typeof snapshot.serviceChargeBp==="number"?snapshot.serviceChargeBp:policy.serviceChargeBp;
+  const tax=inclusiveTaxBreakdown(payment.amount,vatRateBp,serviceChargeBp);
+  return buildReceiptDocument({payment,reservation,labels:{purpose:friendlyStatus(payment.purpose),method:friendlyStatus(payment.method)},tax:tax?{netSubtotal:tax.netSubtotal,serviceCharge:tax.serviceCharge,vatAmount:tax.vatAmount,grossTotal:tax.grossTotal,serviceChargeRate:ratePercent(tax.serviceChargeBp),vatRate:ratePercent(tax.vatRateBp)}:null,documentNumber:document?.document_number??null});
 }
 export async function getCustomerRequests(userId:string){if(!supabase)return[];const{data:reservations,error}=await supabase.from("reservations").select("id,confirmation_number,room_type,status,guest_id").eq("user_id",userId);if(error)throw error;const ids=(reservations??[]).map((item)=>item.id);if(!ids.length)return[];const{data,error:requestError}=await supabase.from("guest_requests").select("id,reservation_id,request,request_type,batch_id,approval_status,approval_note,approved_at,department,priority,severity,escalation_status,status,created_at").in("reservation_id",ids).order("created_at",{ascending:false});if(requestError)throw requestError;return(data??[]).map((request)=>({...request,reservation:(reservations??[]).find((item)=>item.id===request.reservation_id)??null}))}
 export async function getCustomerOverview(userId:string){const[financials,requests,transportation]=await Promise.all([getCustomerFinancials(userId),getCustomerRequests(userId),getCustomerTransportation(userId)]);const groups=groupReservations(financials);const primary=groups.current[0]??groups.upcoming[0]??null;return{groups,primary,financial:primary,requests:requests.slice(0,3),notifications:buildNotifications(financials,requests,transportation).slice(0,5)}}

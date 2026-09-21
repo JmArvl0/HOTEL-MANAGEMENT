@@ -62,10 +62,7 @@
 .customer-shell .customer-account-popover>p small{font-size:10px}
 .customer-shell .customer-account-popover a,.customer-shell .customer-account-popover button{font-size:11px}
 .customer-shell .customer-notifications-heading{font-size:11px;font-weight:600}
-.customer-shell .customer-notifications-popover a{font-size:11px}
-.customer-shell .customer-notifications-popover a b{font-size:11px}
-.customer-shell .customer-notifications-popover a time{font-size:10px}
-.customer-shell .customer-notifications-all{font-size:11px;font-weight:700}
+/* Notification dropdown skin lives in components/customer/notification-history.css */
 .customer-shell .eyebrow{font-size:10px;letter-spacing:1.6px;color:var(--cp-gold)}
 .customer-shell .customer-card-heading p{font-size:10px;letter-spacing:.8px;text-transform:uppercase}
 .customer-shell .customer-card dl>div{font-size:12px}
@@ -198,8 +195,7 @@
   background:var(--cp-panel);border-color:var(--cp-line);
   box-shadow:0 18px 48px rgba(8,16,12,.4);
 }
-.theme-light .customer-shell .customer-account-popover,
-.theme-light .customer-shell .customer-notifications-popover{box-shadow:0 18px 48px rgba(31,58,52,.14)}
+.theme-light .customer-shell .customer-account-popover{box-shadow:0 18px 48px rgba(31,58,52,.14)}
 
 /* ============ 5. Status pills — one token-driven system ============ */
 /* 5a. .customer-status — adds a status dot via ::before (markup untouched). */
@@ -391,7 +387,7 @@
 /* My Reservations: searchable card history */
 .customer-shell .customer-reservations-page{max-width:1160px;margin-inline:auto}
 .customer-shell .reservation-history-controls{margin-bottom:16px;padding:18px;background:var(--cp-panel);border:1px solid var(--cp-line);border-radius:var(--cp-card-radius);box-shadow:var(--cp-shadow)}
-.customer-shell .customer-reservations-page>.haven-data-toolbar{margin-bottom:16px;box-shadow:var(--cp-shadow)}
+.customer-shell .customer-reservations-page>.haven-data-toolbar{margin-bottom:16px}
 .customer-shell .reservation-filter-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
 .customer-shell .reservation-filter-chip{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:8px 13px;border:1px solid var(--cp-line);border-radius:999px;background:var(--cp-panel-2);color:var(--cp-muted);font-size:11px;font-weight:650;transition:background .18s ease,border-color .18s ease,color .18s ease}
 .customer-shell .reservation-filter-chip b{min-width:20px;padding:2px 6px;border-radius:999px;background:var(--cp-panel);color:var(--cp-text);font-size:10px;text-align:center;font-variant-numeric:tabular-nums}
@@ -559,3 +555,88 @@
 .stay-review-error{font-size:12px;color:#b3261e}
 .stay-review .btn{margin-top:10px}
 .stay-review .btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ============ 9. Receipt document + payment-row actions ============ */
+/* One receipt layout, rendered from lib/receipt's receiptRows() by both the
+   preview modal and /account/receipts/[id]. Because the sheet is also the
+   printable artefact it carries its own surface, so it reads as a document in
+   either theme and on either entry point. */
+.receipt-sheet{
+  max-width:720px;margin:0 auto;padding:28px;
+  background:var(--cp-panel,#fff);border:1px solid var(--cp-line,#e3e5df);
+  border-radius:var(--cp-card-radius,14px);
+  color:var(--cp-text,#103e48);
+}
+.receipt-sheet h1{margin:6px 0 2px;font:500 30px/1.15 var(--font-display,Georgia,serif);color:var(--cp-text,#103e48)}
+.receipt-sheet>p{margin:0;color:var(--cp-muted,#6d7971);font-size:12px}
+.receipt-sheet dl{margin:20px 0 0}
+.receipt-sheet dl>div{display:flex;justify-content:space-between;align-items:baseline;gap:18px;padding:10px 0;border-bottom:1px solid var(--cp-line,#e3e5df)}
+.receipt-sheet dt{color:var(--cp-muted,#6d7971);font-size:12px}
+.receipt-sheet dd{margin:0;max-width:65%;text-align:right;font-size:13px;line-height:1.45;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.receipt-sheet .detail-balance{margin-top:12px;padding:14px 12px;background:var(--cp-panel-2,#f7f9f6);border-bottom:0;border-radius:8px}
+.receipt-sheet .detail-balance dt{font-weight:700;color:var(--cp-text,#103e48)}
+.receipt-sheet .detail-balance dd{font-size:18px;font-weight:700;color:var(--cp-green,#176773)}
+.receipt-sheet>p:last-child{margin-top:20px;font-size:12px;line-height:1.6}
+/* Inside the modal the panel already supplies the surface — the sheet drops its
+   own chrome so it doesn't nest a card within a card. */
+.modal-body .receipt-sheet{background:transparent;border:0;border-radius:0;padding:0;box-shadow:none}
+
+.receipt-page{max-width:720px;margin:0 auto}
+.receipt-page .receipt-sheet{max-width:none}
+.receipt-page-back{margin-top:22px}
+
+/* Receipt actions in the modal footer: the email-unavailable note takes the
+   free space, the buttons hold the right edge. */
+.receipt-footer{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:10px;width:100%}
+.receipt-footer-note{margin-right:auto;font-size:12px;color:var(--cp-muted,#6d7971)}
+.receipt-download{position:relative}
+.receipt-download-menu{
+  position:absolute;bottom:calc(100% + 8px);right:0;z-index:10;
+  min-width:236px;padding:6px;display:flex;flex-direction:column;gap:2px;
+  background:var(--cp-panel,#fff);border:1px solid var(--cp-line,#e3e5df);
+  border-radius:10px;box-shadow:0 18px 40px rgba(20,45,35,.2);
+}
+.receipt-download-menu button{
+  display:flex;flex-direction:column;gap:2px;text-align:left;min-height:44px;
+  padding:10px 12px;border:0;border-radius:7px;background:transparent;cursor:pointer;
+  color:var(--cp-text,#103e48);
+}
+.receipt-download-menu button:hover{background:var(--cp-panel-2,#f7f9f6)}
+.receipt-download-menu button:focus-visible{outline:2px solid var(--cp-green,#176773);outline-offset:-2px}
+.receipt-download-menu b{font-size:13px;font-weight:600}
+.receipt-download-menu small{font-size:11px;color:var(--cp-muted,#6d7971)}
+
+.receipt-state{display:flex;align-items:center;justify-content:center;gap:10px;padding:40px 0;color:var(--cp-muted,#6d7971);font-size:13px}
+.receipt-spin{animation:receiptSpin 1s linear infinite}
+@keyframes receiptSpin{to{transform:rotate(360deg)}}
+
+/* The row action is a real button now, not the 9px underline it replaced. It
+   keeps HavenButton's 44px customer touch floor and only adopts the portal's
+   pill radius. */
+.customer-shell .payment-transaction-controls{flex-wrap:wrap;gap:10px}
+.customer-shell .payment-transaction-controls .receipt-trigger{border-radius:999px;padding:10px 16px;font-size:12px}
+.customer-shell .payment-transaction-note{color:var(--cp-accent);font-weight:600}
+/* "View reservation" became a bordered secondary button — give it the same
+   touch floor the rest of the portal uses. */
+.customer-shell .customer-financial-list>article>footer .btn{min-height:44px}
+.customer-shell .customer-financial-list>article>footer{align-items:center;gap:12px;flex-wrap:wrap}
+
+/* Print: the receipt is the only thing on the paper. Printing from the preview
+   modal keeps the portaled .dialog — a direct <body> child, which is what makes
+   `body:has(> .dialog) > *` a complete isolation rule. Printing
+   /account/receipts/[id] directly takes the second branch instead. */
+@media print{
+  body:has(> .dialog)>*:not(.dialog){display:none!important}
+  .dialog{display:flex!important;position:static;inset:auto;padding:0;animation:none}
+  .dialog-backdrop,.modal-header,.modal-footer,.modal-close,
+  .customer-sidebar,.customer-content-header,.customer-mobile-menu,
+  .customer-drawer-backdrop,.toast-stack,.receipt-page-back{display:none!important}
+  .modal-content{box-shadow:none;border:0;border-radius:0;max-height:none;overflow:visible}
+  .modal-body{padding:0;overflow:visible}
+  .customer-shell,.customer-main,.customer-content{display:block!important;background:#fff!important}
+  .customer-main{margin-left:0!important;padding:0!important}
+  .receipt-sheet{max-width:none;margin:0;padding:0;border:0;background:#fff;color:#103e48}
+  .receipt-sheet dl>div{break-inside:avoid}
+}
+@page{margin:14mm}
+@media (prefers-reduced-motion: reduce){.receipt-spin{animation:none}}

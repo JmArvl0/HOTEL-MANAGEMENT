@@ -66,7 +66,7 @@ describe("TransportationPanel render layer", () => {
     render(<TransportationPanel role="front_desk" />);
     await loaded();
     fireEvent.change(screen.getByLabelText("Search transportation requests"), { target: { value: "nowhere" } });
-    expect(screen.getByText("No requests match the current filters or search.")).toBeTruthy();
+    expect(await screen.findByText("No requests match the current filters or search.")).toBeTruthy();
     fireEvent.click(screen.getAllByRole("button", { name: /Clear filters/ })[0]);
     await loaded();
   });

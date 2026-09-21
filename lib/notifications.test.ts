@@ -13,7 +13,7 @@ vi.mock("@/lib/supabase", async () => {
 });
 const fetchMock = vi.hoisted(() => vi.fn());
 
-const { recordNotification, getCustomerNotifications, countUnreadNotifications, notifyWithOptionalEmail } = await import("@/lib/notifications");
+const { recordNotification, getCustomerNotifications, countUnreadNotifications, markAllNotificationsRead, notifyWithOptionalEmail } = await import("@/lib/notifications");
 const { sendEmail, emailConfigured, guestEmailHtml } = await import("@/lib/email");
 
 const A = "11111111-1111-1111-1111-111111111111";
@@ -62,12 +62,32 @@ describe("recordNotification", () => {
     expect(JSON.stringify(rows)).not.toContain("bravo");
   });
 
+  it("pages with offset for Load-more without overlapping the first window", async () => {
+    for (let index = 0; index < 6; index += 1) {
+      await recordNotification({ userId: A, type: "payment_link", title: `row-${index}` });
+      fake.db.notifications[fake.db.notifications.length - 1].created_at = `2026-09-0${index + 1}T00:00:00Z`;
+    }
+    const firstPage = await getCustomerNotifications(A, 4);
+    const secondPage = await getCustomerNotifications(A, 4, 4);
+    expect(firstPage.map((row) => row.title)).toEqual(["row-5", "row-4", "row-3", "row-2"]);
+    expect(secondPage.map((row) => row.title)).toEqual(["row-1", "row-0"]);
+  });
+
   it("counts unread as rows without read_at", async () => {
     await recordNotification({ userId: A, type: "payment_link", title: "a" });
     await recordNotification({ userId: A, type: "payment_link", title: "b" });
     fake.db.notifications[0].read_at = "2026-09-01T00:00:00Z";
     expect(await countUnreadNotifications(A)).toBe(1);
     expect(await countUnreadNotifications(B)).toBe(0);
+  });
+
+  it("marks every unread notification for only the requesting customer", async () => {
+    await recordNotification({ userId: A, type: "payment_link", title: "a" });
+    await recordNotification({ userId: A, type: "payment_link", title: "b" });
+    await recordNotification({ userId: B, type: "payment_link", title: "private" });
+    await markAllNotificationsRead(A);
+    expect(await countUnreadNotifications(A)).toBe(0);
+    expect(await countUnreadNotifications(B)).toBe(1);
   });
 });
 

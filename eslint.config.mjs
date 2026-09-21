@@ -7,7 +7,9 @@ import reactHooks from "eslint-plugin-react-hooks";
 const config = [
   ...next,
   ...nextTypescript,
-  { ignores: ["nano_bots/**"] },
+  // Local agent worktrees are separate checkouts with their own lint state;
+  // scanning them from the primary checkout creates duplicate, stale findings.
+  { ignores: ["nano_bots/**", ".kilo/worktrees/**"] },
   {
     // Downgraded, not silenced: the two current violations are the fetch-on-mount
     // and theme-restore effects in the dashboard client, which the dashboard

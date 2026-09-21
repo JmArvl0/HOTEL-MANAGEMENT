@@ -1,6 +1,9 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
 import { CalendarDays } from "lucide-react";
 import { HavenDataToolbar, HavenEmptyState, HavenFilterBadges, HavenSearchInput } from "./haven-data-controls";
 import { StatusBadge } from "./StatusBadge";
@@ -73,6 +76,69 @@ describe("HavenDataToolbar", () => {
     const advanced = container.querySelector(".haven-toolbar-advanced")!;
     expect(search.compareDocumentPosition(quick) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(quick.compareDocumentPosition(advanced) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("renders a transparent wrapper — controls keep their surfaces, the card does not", () => {
+    const css = readFileSync(join(process.cwd(), "components/ui/haven-data-controls.css"), "utf8");
+    const block = css.match(/\.haven-data-toolbar\s*\{[^}]*\}/)![0];
+    // The wrapper contributes no surface at all: no fill, border, radius, shadow or padding.
+    expect(block).toMatch(/background:\s*transparent/);
+    expect(block).toMatch(/border:\s*0/);
+    expect(block).toMatch(/border-radius:\s*0/);
+    expect(block).toMatch(/box-shadow:\s*none/);
+    expect(block).toMatch(/padding:\s*0/);
+    // ...while the search input keeps its own surface, border and radius.
+    const input = css.match(/\.haven-search-input input\s*\{[^}]*\}/)![0];
+    expect(input).toMatch(/border:\s*1px solid/);
+    expect(input).toMatch(/background:/);
+    expect(input).toMatch(/border-radius:/);
+  });
+
+  it("gives the light staff search input a solid surface distinct from the page floor", () => {
+    const css = readFileSync(join(process.cwd(), "components/ui/haven-data-controls.css"), "utf8");
+    // Canonical staff mapping is the only place staff search tokens are set.
+    const staff = css.match(/\.theme-light \.app-shell\s*\{[^}]*--hc-surface[^}]*\}/)![0];
+    expect(staff).toMatch(/--hc-surface/);
+    expect(staff).toMatch(/--hc-line/);
+    // The input itself paints the solid surface (not the soft wash that
+    // blended into the Cool Paper floor) with a visible focus ring.
+    const input = css.match(/\.haven-search-input input\s*\{[^}]*\}/)![0];
+    expect(input).toMatch(/background:\s*var\(--hc-surface/);
+    expect(input).toMatch(/border-radius:\s*12px/);
+    expect(css).toMatch(/\.haven-search-input input:hover\s*\{[^}]*border-color/);
+    expect(css).toMatch(/\.haven-search-input input:focus-visible\s*\{[^}]*box-shadow/);
+  });
+
+  // The standard only holds if no other stylesheet re-draws the card around the
+  // toolbar. These selectors all select a wrapper element itself (the wrapper class
+  // is the last part of the selector, so child rules like `.reservation-filters button`
+  // are excluded), which means a surface or padding declaration on one would silently
+  // reintroduce the outer card. This caught the light-theme and customer-portal rules.
+  it("no stylesheet gives a toolbar wrapper a background, border, shadow or padding", () => {
+    const wrapper = /\.(haven-data-toolbar|reservation-filters|owner-toolbar|tp-toolbar|hk-toolbar|sd-toolbar|approval-toolbar|table-tools)([.:][\w-]+)?$/;
+    const surfaceProps = new Set(["background", "border", "border-color", "border-width", "box-shadow", "padding"]);
+    const inert = /^(0|none|transparent|0 0)$/;
+    const offenders: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(join(process.cwd(), dir), { withFileTypes: true })) {
+        if (entry.isDirectory()) { walk(`${dir}/${entry.name}`); continue; }
+        if (!entry.name.endsWith(".css")) continue;
+        const file = `${dir}/${entry.name}`;
+        const css = readFileSync(join(process.cwd(), file), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+        for (const [, selector, body] of css.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
+          if (!selector.split(",").some((part) => wrapper.test(part.trim()))) continue;
+          const drawn = body.split(";").some((declaration) => {
+            const [prop, ...rest] = declaration.split(":");
+            const value = rest.join(":").trim();
+            return surfaceProps.has(prop.trim()) && !!value && !inert.test(value);
+          });
+          if (drawn) offenders.push(`${file}: ${selector.trim()}`);
+        }
+      }
+    };
+    walk("app");
+    walk("components");
+    expect(offenders).toEqual([]);
   });
 });
 

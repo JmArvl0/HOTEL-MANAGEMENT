@@ -6,9 +6,10 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const params = await searchParams;
   const callbackUrl = safeInternalPath(params.callbackUrl, "/auth/continue");
   const booking = params.booking === "1";
+  const expired = params.expired === "1";
   return (
     <AuthVaultShell mode="login" callbackUrl={callbackUrl} booking={booking}>
-      <LoginForm callbackUrl={callbackUrl} booking={booking} />
+      <LoginForm callbackUrl={callbackUrl} booking={booking} expired={expired} />
     </AuthVaultShell>
   );
 }

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Activity, BedDouble, Building2, Calculator, ChevronRight, CircleDollarSign, ClipboardCheck, ClipboardList, ConciergeBell, Eye, Info, Lightbulb, RefreshCw, Search, Settings, Users, Wrench, X, type LucideIcon } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { HavenSelect } from "@/components/ui/haven-select";
+import { HavenSearchInput } from "@/components/ui/haven-data-controls";
 import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination";
 import { STAFF_DUTY_BASIS_NOTE, type StaffDutyMember, type StaffDutySnapshot, type StaffDutyStatus } from "@/lib/staff-duty";
 
@@ -151,11 +152,7 @@ export default function StaffDutyPanel() {
               <div className="sd-info-strip" role="note"><Info size={15} aria-hidden="true" /><p>{data.basisNote}</p></div>
 
               <div className="table-tools reservation-filters sd-toolbar">
-                <label className="sd-search">
-                  <Search size={15} aria-hidden />
-                  <span className="sr-only">Search staff</span>
-                  <input type="search" placeholder="Search staff, department, assignment…" value={search} onChange={(event) => setSearch(event.target.value)} />
-                </label>
+                <HavenSearchInput value={search} onValueChange={setSearch} label="Search staff" placeholder="Search staff, department, assignment…"/>
                 <div className="sd-filters">
                   <HavenSelect value={department} onChange={setDepartment} ariaLabel="Filter by department" options={[{ value: "all", label: "All departments" }, ...data.departments.map((dept) => ({ value: dept.name, label: dept.name }))]} />
                   <HavenSelect value={duty} onChange={setDuty} ariaLabel="Filter by duty status" options={[{ value: "all", label: "All duty states" }, { value: "working", label: "Working now" }, { value: "assigned", label: "Assigned work" }, { value: "no_active_work", label: "No active work" }]} />

@@ -86,6 +86,12 @@ Impact:
 Use jsdom component tests for logic, and hand the user a manual checklist for visual/flow
 verification.
 
+For **CSS/cascade** standards specifically there is a usable substitute: parse the
+stylesheets and assert the rule that must not exist (see the wrapper guard in
+`components/ui/haven-data-controls.test.tsx`, D-026). This catches "some stylesheet
+re-draws the card" but proves nothing about how the page actually looks — it does not
+discharge the manual checklist.
+
 ---
 
 ## KI-006 — Several Level-1 vault docs predate the current system
@@ -103,3 +109,107 @@ are current. `SYSTEM.md` remains authoritative wherever they disagree.
 Impact:
 Treat the stale notes as historical; do not rely on them for current behavior. Refresh is
 queued in [[Next Tasks]].
+
+---
+
+## KI-007 — Pre-existing lint error in `customer-notification-row.tsx`
+
+Status: Open
+Area: Lint
+
+Description:
+`npm run lint` reports one error, `react-hooks/static-components` ("Cannot create components
+during render") at `components/customer/customer-notification-row.tsx:45`, because
+`notificationIcon(item.type)` returns a component that the render then mounts. The identical
+code is present at HEAD (`git show HEAD:components/customer/customer-notification-row.tsx`), so
+this predates the receipt work — it is not a regression.
+
+Impact:
+`npm run lint` cannot exit 0 while this stands. The rule wants the type→icon mapping expressed as
+a returned element rather than a component reference. Touching it was out of scope for the
+receipt task (and the file is being edited by a parallel session).
+
+---
+
+## KI-008 — Notification-history tests red in the shared working tree
+
+Status: Open
+Area: Tests
+
+Description:
+`npm test` reports 4 failing cases — `lib/notification-display.test.ts` (two `relativeTime`
+expectations that disagree with the shipped thresholds: a 5-minute gap is expected to read
+"Just now" but the implementation's window is < 60 s, and a 12-hour gap is expected to fall back
+to the Manila clock), `components/customer/notification-history-modal.test.tsx`
+(`within(today).getByRole("time")` matches three rows — should be `getAllByRole`), and
+`components/customer/customer-shell-notifications.test.tsx` (the bell's "Try again" retry state
+never appears when the history fetch fails).
+
+Impact:
+None for the receipt surface: no receipt module appears in any of those files' import graphs, and
+the files were being rewritten during the receipt session by a concurrently active session in the
+same working tree (their mtimes advanced without any write from this session). Fix them in the
+notification-history stream, not here.
+
+---
+
+## KI-009 — Session callback neutralized every login while the policy migration was unapplied
+
+Status: Resolved (2026-10-09)
+Area: Auth / session security
+
+Description:
+After the Security Configuration work, `lib/auth.ts` treated a `last_seen_at`
+select returning no row as "unknown account" and neutralized the session
+(`disabled` + guest + blank id). With `20261009010000` not yet pushed, the
+column did not exist, so the select errored on every request and every role —
+including System Administrator — fell into a silent login loop
+(`/auth/continue` → `/account` → `/login`). Credentials were always accepted;
+the session was rejected one step later.
+
+Resolution:
+`resolveSessionEnforcement` in `lib/security-policy.ts` separates query error
+(fail-open: proves nothing about the account) from a cleanly absent row or an
+expired verdict (neutralize); the session callback routes through it, and
+`/auth/continue` bounces neutralized sessions straight to `/login`. Both
+pending migrations (`20261008010000`, `20261009010000`) were reviewed for order
+and compatibility, pushed, and ledger-verified; live probe confirmed the policy
+row, the `last_seen_at` column, and an active, recovery-free `admin` account.
+The Codex empty-UUID customer guard was unrelated and is unchanged.
+
+Related:
+[[D-021]] · `lib/security-policy.test.ts` (decision matrix + surface contracts)
+
+---
+
+## KI-010 — Requested staff conversions are blocked by protected roles or guest history
+
+Status: Partially resolved 2026-09-20 (1/5 converted; 4/5 still blocked, safe refusal, no data corruption)
+Area: Account governance / test accounts
+
+Description:
+Of the five exact Gmail test accounts requested for staff OTP testing, four own
+reservation, hold, and payment history. The one history-free account is assigned
+to the protected `admin` role, which a System Administrator cannot grant.
+
+Impact:
+All five remain guest accounts. No staff-login or real-email OTP receipt test can
+be claimed for them. Converting the four history-bearing accounts would strand
+guest business history on current staff identities; converting the history-free
+account requires a legitimate authenticated Owner action and subsequent recovery.
+
+Update 2026-09-20: `arvild10.4@gmail.com` was converted guest → `admin`
+(Owner-authorized, user-approved, live-verified: inactive + recovery-required,
+auth v2, staff mirror, audited). The remaining four are still blocked as
+described above; Track B (identity/history model proposal) is the user's
+chosen next step.
+
+Safe options:
+Use fresh Gmail `+` aliases with `admin_create_staff`; have an authenticated Owner
+convert the history-free account through the guarded workflow; or first approve a
+separate identity/history model before attempting any history-bearing conversion.
+Never detach or rewrite reservations merely to pass the conversion gate.
+
+Related:
+[[D-023]] · `supabase/migrations/20261012010000_guest_to_staff_conversion.sql` ·
+`supabase/migrations/20261012020000_guest_to_staff_conversion_input_hardening.sql`

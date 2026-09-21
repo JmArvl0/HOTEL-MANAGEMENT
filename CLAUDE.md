@@ -101,3 +101,11 @@ If implementation changes alter documented system behavior, update
 `SYSTEM.md` as part of the same work.
 
 Do not create unnecessary memory entries for trivial work.
+
+## Shared multi-AI rules
+
+`AGENTS.md` (repo root) is the canonical tool-neutral operating guide shared
+with OpenCode and Codex — same memory files, same authority order, same
+safety rules. This file stays Claude Code's entry point; where the two
+overlap, they agree by design. Point OpenCode/Codex collaborators here only
+via `AGENTS.md`, never by duplicating these rules.

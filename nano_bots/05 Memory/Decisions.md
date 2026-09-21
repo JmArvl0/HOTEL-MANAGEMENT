@@ -477,12 +477,13 @@ Status: Active (user-authorized amendment of [[D-011]])
 
 ### Decision
 
-"View all notifications" opens a shared history modal
-(`components/customer/notification-history-modal.tsx`) instead of navigating, on both the
+"View all notifications" opens the shared `HavenNotificationModal`
+(`components/ui/haven-notifications.tsx`) instead of navigating, on both the
 guest bell and the staff operations bell. The modal filters by hotel day (Today / Yesterday /
 loaded days / specific date, Asia/Manila bucketing in `lib/notifications.ts`), groups
-unread-first then read (newest-first within each), and offers a date-scoped "Mark this day as
-read". Opening the modal never marks anything read; the guest `/account/notifications` page
+notifications by recency, supports All / Unread / Read and Newest / Oldest controls, and offers
+"Mark visible as read" for the current filtered result. Opening the modal never marks anything
+read; the guest `/account/notifications` page
 stays intact for direct URLs.
 
 - **Guest:** persistent `read_at` on the existing `notifications` table (now exposed to the UI)
@@ -492,12 +493,29 @@ stays intact for direct URLs.
   live in per-device `localStorage` (keyed per user+role, capped at 500). The server alert list
   stays authoritative, sidebar workload badges never consume read state, and toasts are untouched.
 
+### Amendment (2026-09-19 — customer dropdown + View-All modal redesign, user-authorized continuation)
+
+Guest bell is **click-to-open** (hover = tooltip/highlight only). The dropdown previews ≤ 7
+events from the same authoritative source — unread-first (newest) then an "Earlier" read group —
+with per-row semantic icons (`NOTIFICATION_TYPE_ICONS`, `reservation_cancelled` included),
+relative Manila times, an accessible unread dot, one-row optimistic mark-read, and
+server-authoritative "Mark all as read" (`POST /read` with `{all:true}`), plus
+loading/empty/error states. The modal adds
+**All / Unread / Read quick-filter tabs** (All first, default; the hotel-day filter is retained
+alongside, defaulting to "All days" per the user's choice) plus a Newest/Oldest sort,
+recency grouping (Today / Yesterday / Earlier this week / Earlier, hotel days), and "Load more"
+paging via additive `?offset=` on `GET /api/account/notifications` (100-row windows, cap 200,
+dedupe on append) so the complete history stays reachable without an unbounded fetch. Rows in
+both surfaces render through one shared `HavenNotificationItem`, so dropdown and modal can
+never disagree on content. Staff triad (sidebar badges / derived bell / toasts) and D-011's
+no-second-system rule are untouched.
+
 ### Reason
 
 D-011 forbade a persistent staff read/unread store as a second notification system. The user
 explicitly requested staff history too while keeping every ban (no duplicate records, no second
 system, no RBAC change, no business-rule change). Per-device dismissal satisfies the visible
-behavior (unread grouping, bell updates, day-scoped mark-read) with zero migration and zero new
+behavior (unread grouping, bell updates, filtered-result mark-read) with zero migration and zero new
 emitters; the small-volume reuse is expressly allowed by the brief.
 
 ### Related
@@ -690,3 +708,347 @@ inventing parallel ones.
 `SYSTEM.md` §7.3 · `supabase/migrations/20261008010000_reservation_cancelled_notifications.sql` ·
 `app/api/account/reservations/[id]/cancel/route.ts` · `lib/cancellation-preview.ts` ·
 `components/customer/reservation-actions.tsx` · `lib/cancel-reservation.test.tsx`
+
+---
+
+## D-019 — One canonical customer receipt document; eligibility mirrors the staff document RPC
+
+Date: 2026-09-18
+Status: Active
+
+### Decision
+
+- Exactly one server-authoritative receipt exists per settled payment. `getCustomerReceipt(userId,
+  paymentId)` in `lib/customer` assembles it; the modal, the printable page, the PNG, the PDF and
+  the email body all render that same `ReceiptDocument`. No surface may re-derive a value.
+- Eligibility is `payments.status = 'paid' and payments.purpose <> 'refund'` — the exact predicate
+  `accounting_generate_document` applies. A refund is money leaving the guest, not a payment to
+  them, so it never carries a receipt.
+- A `financial_documents` `RCP-` number is included only when one was actually issued, and is
+  labelled **Receipt number**; the payment's own UUID is labelled **Payment reference**. The two
+  are never conflated and a number is never synthesised.
+- Payment awaiting verification is **not** a receipt. Payment proof is the customer's upload;
+  a HAVEN-issued receipt requires a settled, staff-verified payment.
+- PDF and PNG downloads are authorisation-checked server-side through
+  `GET /api/account/receipts/[paymentId]`, not by hiding buttons. A foreign, unsettled or refund
+  id all return 404 so the response is not a probing oracle.
+- Receipt email goes to `session.user.email` only. No address is read from the request body, and
+  no address is ever hardcoded. With no mail provider configured the endpoint reports
+  `EMAIL_UNAVAILABLE` (503) rather than claiming success.
+- Receipt generation adds no dependency: `lib/receipt-pdf.ts` is a hand-written base-14 A4 text PDF
+  and `lib/receipt-image.ts` paints the document onto a canvas.
+
+### Reason
+
+The customer surface previously offered `View receipt` for a paid refund row (an action the staff
+RPC refuses), labelled a raw payment UUID "Receipt reference", and had no way to take a receipt
+away at all. Two representations (live-derived page vs. staff `financial_documents` snapshot) could
+disagree. One model, one predicate, one row list removes both the defect and the drift.
+
+### Related
+
+`SYSTEM.md` §7.3 · §7.9 · §11 · `lib/receipt.ts` · `lib/receipt-pdf.ts` · `lib/receipt-image.ts` ·
+`lib/customer.ts` (`getCustomerReceipt`) · `app/api/account/receipts/[paymentId]/route.ts` ·
+`components/customer/receipt-action.tsx` · `lib/receipt.test.ts` · `lib/receipt-route.test.ts` ·
+[[2026-09-18 - Customer Receipt Surface]]
+
+---
+
+## D-020 — One notification presentation family; data authority remains role-specific
+
+Date: 2026-09-19
+Status: Active
+
+### Decision
+
+`HavenNotificationBell`, `HavenNotificationPopover`, `HavenNotificationItem`, and
+`HavenNotificationModal` are the canonical presentation family for every role that currently
+has a persistent/current notification source. Customer uses durable, user-scoped
+`public.notifications`; operational staff use the existing role-filtered
+`dashboard.notifications` list. Popover and modal receive the same in-memory records and read
+state. Sidebar workload badges and transient ToastStack events remain separate.
+
+Customer mark-all is a server-authoritative update of every unread row for the signed-in user.
+Operational staff dismissal stays per-device under D-011 because there is no staff notification
+table. Owner and System Administrator have no persistent notification source today; audit logs,
+health records, and governance records must not be synthesized into a bell inbox merely to make
+the header look uniform.
+
+### Reason
+
+The previous customer and operational dropdowns had incompatible dimensions, grouping, labels,
+and View-All behavior. Sharing presentation fixes that drift without changing RBAC, introducing
+duplicate notification records, or weakening the service-role-only database architecture.
+
+### Related
+
+[[D-011]] · [[D-013]] · `docs/HAVEN_UI_STANDARDS.md` · `SYSTEM.md` §7.3 and §7.9 ·
+`components/ui/haven-notifications.tsx`
+
+---
+
+## D-024 — Official redesign direction: Modern Luxury Hospitality SaaS
+Date: 2026-09-19
+Status: Active
+
+### Decision
+
+The reference dashboard images in `reference/` plus the written brief are the
+official system-wide visual authority for every role and module. One token
+family, two densities (D-017); dark toggle kept with light default; teal hero
+band on dashboards/major landings only, compact headers elsewhere.
+`PageHeader` (band/default variants) is the single hero; `ModuleSummaryCards`
+is the canonical KPI grammar. Reference content (figures, mascot, sample
+modules) is never reproduced — figures always come from authoritative sources.
+
+### Related
+
+`DESIGN.md` §15 · `reference/` · [[2026-09-19 - Redesign Phase 1 Tokens]]
+
+---
+
+## D-021 — Session security policy: own table, live enforcement, passcodes deferred
+
+Date: 2026-10-09
+Status: Active
+
+### Decision
+
+- Session security policy lives in its own `security_policies` table (migration
+  `20261009010000`), never in `hotel_operational_policies` — operational columns
+  freeze into every booking's `operational_policy_snapshot`, and authentication
+  values must never be frozen into a reservation.
+- Enforcement is live in the NextAuth `session` callback (`lib/auth.ts`), because
+  `getToken` only decodes: `callbacks.jwt` does not run per request. The callback
+  reads the policy (60 s in-memory cache) plus `user_accounts.last_seen_at` and
+  neutralizes expired sessions in one place (`disabled` + guest role + blank id).
+- Idle timeout uses server-side `last_seen_at` (stamped at sign-in, throttled to
+  one write per minute); absolute lifetime uses the token `iat`. Standard sign-in
+  is bound by the inactivity window; Remember Me (offered only when the toggle is
+  on) extends to the configured maximum. A never-stamped account is grandfathered
+  once so a policy deploy can never silently log everyone out.
+- Mutation is System Administrator (`admin` role) only — enforced in the
+  `admin_update_security_policy` RPC (`SECURITY_ADMIN_ONLY`) and at the route.
+  Owner holds no edit path (read-only Owner visibility is a follow-up).
+- Passcode policy is deferred, not faked: the audit proved HAVEN has no
+  one-time-passcode/MFA flow (only one-time hashed recovery links), so no
+  passcode values are stored or surfaced as configurable. Recovery links are
+  untouched. No step-up MFA was invented for this task.
+
+### Reason
+
+A second auth mechanism or an inert "OTP policy" would be configuration theatre:
+values with no enforcement path mislead administrators about what is protected.
+The session half is fully enforced; the passcode half waits for a real flow.
+
+### Related
+
+`SYSTEM.md` §6 · `lib/security-policy.ts` · `lib/auth.ts` ·
+`app/api/admin/security-policy/route.ts` · `app/api/security-policy/public/route.ts` ·
+`supabase/migrations/20261009010000_security_policy.sql` · `lib/security-policy.test.ts`
+
+---
+
+## D-022 — Genuine email login OTP inside NextAuth; D-021's deferral is superseded
+
+Date: 2026-10-10
+Status: Active (supersedes the OTP-deferral half of [[D-021]]; the session-policy
+half of D-021 stands unchanged)
+
+### Decision
+
+- Login OTP is a second stage of the existing Credentials flow, not a second
+  system: password verified → pending token (`otpPending` + `challengeId`, no
+  role, no id, disabled) → emailed 6-digit code → atomic `auth_otp_verify`
+  consumes the challenge → the full session cookie is minted through NextAuth's
+  own encode. A correct password alone reaches no protected page while OTP is
+  required, and no client flag can complete verification.
+- Codes use `crypto.randomInt`; storage holds only
+  `HMAC(OTP_HASH_SECRET, challengeId:code)`; resend rotates with a
+  server-side cooldown; attempts, hourly issue caps, and failed-password
+  lockout are database-backed (no in-memory counters, no `Math.random`).
+- One global toggle covers all roles (no weaker backdoor tier). It ships
+  **off**: SMTP failure fails closed, existing sessions expire naturally on
+  Off→On (emergency = `auth_version` rotation), and recovery links are a
+  separate untouched flow.
+- Nodemailer is the OTP mailer (server-only `lib/otp-transport.ts`); Resend
+  keeps its notification-copy role. Delivery status is factual
+  (Configured/Unknown/Ready only after a passing test, test-email to the
+  requester's own address, latest `smtp_connection_tested` audit row as the
+  "last checked" source).
+
+### Reason
+
+D-021 deferred passcode policy because no flow existed; inventing values then
+would have been configuration theatre. The flow now exists with its
+enforcement, so the policy, storage, UI, and audit are real — while the same
+honesty rule keeps the toggle off until delivery is proven.
+
+### Related
+
+`SYSTEM.md` §6 · §7.10 · §15 · `lib/auth-otp.ts` · `lib/otp-email.ts` ·
+`lib/otp-transport.ts` · `lib/otp-flow.ts` · `app/api/auth/otp/*` ·
+`app/(auth)/verify/page.tsx` · `supabase/migrations/20261010010000_login_otp.sql` ·
+`lib/auth-otp.test.ts` · `.env.example` (SMTP block)
+
+---
+
+## D-023 — Guest-to-staff is an onboarding conversion, not a role-label update
+
+Date: 2026-10-12
+Status: Active
+
+### Decision
+
+- `admin_change_user_role` may change roles only within the same guest/staff side of
+  the identity boundary. A guest becoming staff must use
+  `admin_convert_guest_to_staff`.
+- Conversion requires an exact locked ID+email match and zero booking holds or
+  reservations, whether the reservation points directly to `user_accounts` or through
+  `guests`. This transitively protects linked payments, invoices, refunds, requests,
+  transportation, and stay history from being stranded on a current staff identity.
+- A successful conversion preserves the user ID, email, name, guest profile, and audit
+  trail; creates the staff mirror; forces inactive + recovery-required; replaces the
+  prior password with the recovery sentinel; invalidates open OTP challenges and prior
+  JWT authority; creates a hashed one-hour recovery token; and audits the transition in
+  the same transaction.
+- Existing protected-role boundaries stand: Admin may assign operational roles only;
+  an authenticated Owner is required for Owner/Admin targets. Service-role possession
+  is not permission to impersonate an Owner for a conversion.
+
+### Reason
+
+A role-only update left no staff record, silently retained a guest password, skipped
+recovery onboarding, and could make live guest reservations appear to belong to a staff
+identity. Atomic conversion makes those invalid intermediate states impossible and
+preserves HAVEN's history and least-privilege rules.
+
+### Related
+
+`SYSTEM.md` §6 · `supabase/migrations/20261012010000_guest_to_staff_conversion.sql` ·
+`supabase/migrations/20261012020000_guest_to_staff_conversion_input_hardening.sql` ·
+`app/api/admin/users/[id]/action/route.ts` · `components/admin/admin-dashboard-client.tsx` ·
+`lib/guest-staff-conversion.test.ts`
+
+---
+
+## D-024 — History-carrying guest-to-staff conversion is owner-only and audited
+
+Date: 2026-10-13
+Status: Active
+
+### Decision
+
+- The base converter keeps its zero-history rule unchanged. A separate
+  `admin_convert_guest_to_staff_with_history` RPC (migration
+  `20261013010000`) permits conversion carrying holds/reservations, with
+  identical onboarding (staff mirror, sentinel password, inactive +
+  recovery-required, session/OTP invalidation, version bump).
+- Actor must be an active, non-recovery **Owner**; admin actors are refused
+  (`OWNER_AUTHORITY_REQUIRED`). The owner allowlist covers all roles
+  including owner.
+- Carried history is censused into the audit row
+  (`convertedWithHistory`, `holdsCarried`, `reservationsCarried`); no
+  reservation, hold, payment, refund, notification, or audit row is
+  rewritten. The staff mirror carries `converted_with_guest_history` as the
+  hook for future segregation-of-duties guards.
+- Guest-portal access is lost by the existing role gate, so converted staff
+  cannot continue guest workflows; operational self-dealing on own live
+  stays is a disclosed residual risk, not a blocked one.
+
+### Reason
+
+Owner-authorized onboarding of real accounts whose test history cannot be
+deleted. Least-privilege preserved everywhere except the single explicit
+owner decision, which is fully audited.
+
+### Related
+
+`SYSTEM.md` §6 · `supabase/migrations/20261013010000_guest_to_staff_with_history.sql` ·
+`app/api/admin/users/[id]/action/route.ts` (`withHistory`) ·
+`lib/guest-staff-conversion-with-history.test.ts`
+
+---
+
+## D-025 — Organization Executive Dashboard theme governs staff pages
+
+Date: 2026-09-20
+Status: Active (supersedes D-024's staff styling only; landing/customer/auth keep their systems)
+
+### Decision
+
+- `reference/design.mdd (1).txt` (FleetOps Executive Dashboard language —
+  tokens and grammar only, never fleet content) is the visual authority for
+  every staff surface under `.app-shell`.
+- Delivered as `app/staff-ops-theme.css` (last import in `app/layout.tsx`),
+  every rule staff-scoped: Midnight Ink primary, Cool Paper light floor,
+  12/16/24px radii, Inter-only type scale, 10%-tint AA-safe status pills,
+  24px stat-card grammar, flat executive headers (teal band retired on
+  staff), tactile 280ms motion with reduced-motion gates.
+- Dark staff variant is kept + refined (user choice), same token names.
+- Landing, customer portal, booking flow, and auth screens are out of scope
+  by construction (scoping, not discipline).
+
+### Reason
+
+One unified professional operations platform per the organization's spec;
+the prior teal-band direction conflicts with it on staff pages.
+
+### Related
+
+`DESIGN.md` §16 · `app/staff-ops-theme.css` · `reference/design.mdd (1).txt`
+
+---
+
+## D-026 — Universal search/filter standard: transparent wrapper, enforced by stylesheet walk
+
+Date: 2026-09-20
+Status: Active
+
+### Decision
+
+- One search/filter layout system-wide: **search → quick filter chips →
+  advanced filters → results**, in that DOM order, at every width. The order
+  never changes on mobile.
+- The combined toolbar **wrapper is transparent at every width and in both
+  themes**: no background, border, radius, shadow, or padding. It is a layout
+  row, not a card. Individual controls inside it keep their own surfaces
+  (search input fill/border/radius/icon/clear, chips, `HavenSelect`); one
+  surface per control, never a box around the box. The **results** container
+  (`.data-panel`, tables, room cards, KPI cards, `.table-scroll`) is a separate
+  element and keeps its container.
+- Two chip families are permitted and must stay visually identical: shared
+  `HavenFilterBadges` and modules whose bespoke chip row already matches the
+  approved pill (`.reservation-filters`, `.owner-toolbar`). Aligned, **not
+  migrated** — the approved Reservations markup is the reference. Pill radius,
+  subtle inactive border, unmistakable active fill, visible focus ring.
+- `All` is first and is the default unless a workflow is intentionally scoped to
+  a queue. Counts are real counts from the module's own data.
+- Customer surfaces share the **pattern**, not the palette: they keep `--cp-*`
+  tokens and their own control density. Midnight Ink is not imposed on them.
+- The public booking flow is reviewed against this standard, not converted into
+  a filter toolbar. The landing page is out of scope and unchanged.
+- **Enforcement:** because wrapper transparency is a cascade property that jsdom
+  cannot see, `components/ui/haven-data-controls.test.tsx` walks every stylesheet
+  under `app/` and `components/` and fails if any rule selecting a toolbar
+  wrapper (`.haven-data-toolbar`, `.reservation-filters`, `.owner-toolbar`,
+  `.tp-toolbar`, `.hk-toolbar`, `.sd-toolbar`, `.approval-toolbar`,
+  `.table-tools`) declares a non-inert `background`, `border`, `border-color`,
+  `border-width`, `box-shadow`, or `padding`.
+
+### Reason
+
+The first attempt at this standard appended de-card **overrides** to the
+last-loaded stylesheet instead of fixing the source rules. The overrides were
+4-class selectors and the light-theme rules they targeted were 5-class, so
+specificity beat load order and the white card still rendered in light theme —
+the standard was documented as met while being visibly violated. Two rules of
+thumb follow: **fix the source rule, never append a broader override**, and
+when a visual property lives in the cascade, assert it against the cascade
+rather than trusting a component test.
+
+### Related
+
+`docs/HAVEN_UI_STANDARDS.md` (§ Data toolbar) · `docs/DESIGN.md` (Data toolbar row) ·
+`components/ui/haven-data-controls.{tsx,css,test.tsx}` ·
+[[2026-09-20 - Universal Search Filter Standard]]

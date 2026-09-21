@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { BedDouble, Bell, Boxes, ClipboardCheck, Search } from "lucide-react";
+import { HavenSearchInput } from "@/components/ui/haven-data-controls";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
 import { canAccess } from "@/lib/permissions";
@@ -26,7 +27,7 @@ type Batch = { key: string; items: StaffRequest[]; approval: "pending" | "approv
 
 const label = (value: unknown) => String(value ?? "—").replaceAll("_", " ");
 const APPROVAL_LABELS: Record<Batch["approval"], string> = { pending: "Awaiting approval", approved: "Approved", rejected: "Declined" };
-const QUEUES: [string, string][] = [["pending", "Awaiting approval"], ["approved", "Approved"], ["rejected", "Declined"], ["open", "Open work"], ["all", "All"]];
+const QUEUES: [string, string][] = [["all", "All"], ["pending", "Awaiting approval"], ["approved", "Approved"], ["rejected", "Declined"], ["open", "Open work"]];
 
 function groupBatches(requests: StaffRequest[]): Batch[] {
   const groups = new Map<string, StaffRequest[]>();
@@ -154,8 +155,8 @@ export default function GuestRequestsPanel({ role, onEscalate }: { role: Role; o
         { label: "Approved", value: counts.approved, hint: "Granted submissions", icon: ClipboardCheck, tone: "done", queue: "approved" },
         { label: "Declined", value: counts.rejected, hint: "Refused submissions", icon: Bell, queue: "rejected" },
       ]} activeQueue={queue} onSelect={setQueue} ariaLabel="Guest requests summary"/>
-      <div className="reservation-filters"><div>{QUEUES.map(([value, text]) => <button key={value} className={queue === value ? "active" : ""} onClick={() => setQueue(value)}>{text} <b>{counts[value as keyof typeof counts]}</b></button>)}</div></div>
-      <div className="table-tools"><label><Search size={17} /><input placeholder="Search guest, reservation, request..." value={search} onChange={(event) => setSearch(event.target.value)} /></label></div>
+      <div className="table-tools"><HavenSearchInput value={search} onValueChange={setSearch} label="Search guest requests" placeholder="Search guest, reservation, request..."/></div>
+      <div className="reservation-filters"><div>{QUEUES.map(([value, text]) => <button key={value} className={queue === value ? "active" : ""} aria-pressed={queue === value} onClick={() => setQueue(value)}>{text} <b>{counts[value as keyof typeof counts]}</b></button>)}</div></div>
       <div className={showInventory ? "grp-layout" : undefined}>
         <div className="grp-main">
         <div className="grp-batches">

@@ -4,7 +4,7 @@
 // existing filters, and the policy view groups and formats the raw columns.
 // Pure render; no fetches.
 import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { AuditView, normalizeRoleCapabilities, PolicyView, RolesView, RoomsView } from "./admin-dashboard-client";
 import type { RecordItem } from "@/lib/types";
 
@@ -89,11 +89,11 @@ describe("RoomsView", () => {
     expect(within(tableRows()[0]).getByText("201")).toBeTruthy();
     await chooseHaven("Filter by wing", "All wings");
     fireEvent.change(screen.getByLabelText("Search rooms"), { target: { value: "corner" } });
-    expect(tableRows()).toHaveLength(1);
+    await waitFor(() => expect(tableRows()).toHaveLength(1));
     fireEvent.change(screen.getByLabelText("Search rooms"), { target: { value: "no such room" } });
-    expect(screen.getByText("No rooms match these filters")).toBeTruthy();
+    expect(await screen.findByText("No rooms match these filters")).toBeTruthy();
     fireEvent.click(screen.getByText("Clear filters"));
-    expect(tableRows()).toHaveLength(3);
+    await waitFor(() => expect(tableRows()).toHaveLength(3));
   });
 
   it("places search first in the toolbar, ahead of the filter selects", () => {
@@ -117,11 +117,11 @@ describe("AuditView", () => {
     expect(tableRows()).toHaveLength(2);
     await chooseHaven("Filter by action", "All actions");
     fireEvent.change(screen.getByLabelText("Search events"), { target: { value: "u-2" } });
-    expect(tableRows()).toHaveLength(1);
+    await waitFor(() => expect(tableRows()).toHaveLength(1));
     fireEvent.change(screen.getByLabelText("Search events"), { target: { value: "nothing" } });
-    expect(screen.getByText("No events match these filters")).toBeTruthy();
+    expect(await screen.findByText("No events match these filters")).toBeTruthy();
     fireEvent.click(screen.getByText("Clear filters"));
-    expect(tableRows()).toHaveLength(3);
+    await waitFor(() => expect(tableRows()).toHaveLength(3));
   });
 
   it("places search first in the toolbar, ahead of the filter selects", () => {

@@ -56,6 +56,13 @@ describe("physical room roster surface", () => {
     expect(dashboard).toContain('catalogAuthority = ["owner","admin","manager"]');
     expect(dashboard).toContain("manageRooms={catalogAuthority?");
   });
+  it("offers no generic Add/Advance control on rooms to any dashboard role", () => {
+    // Physical rooms are created/edited only through the roster modal behind
+    // catalog authority; the generic resource controls would only 403.
+    // Maintenance and housekeeping previously saw a dead "Add rooms" button.
+    expect(dashboard).toContain('canCreate={section !== "rooms"');
+    expect(dashboard).toContain('canAdvance={section !== "rooms"');
+  });
 });
 
 describe("catalog room routes carry no authority of their own", () => {
@@ -136,5 +143,29 @@ describe("error copy", () => {
     expect(adminRoute).toContain("ROOM_HAS_FUTURE_COMMITMENT");
     expect(adminRoute).toContain("ROOM_NUMBER_TAKEN");
     expect(adminRoute).toContain("Reassign those guests");
+  });
+});
+
+describe("room-inventory permission boundary", () => {
+  it("reserves creation and metadata writes to owner, admin, and manager", () => {
+    expect(migration).toContain("actor not in('owner','admin','manager')");
+    expect(roomsRoute).toContain("guardCatalog");
+    expect(idRoute).toContain("guardCatalog");
+    expect(adminRoute).toContain('role==="owner"||role==="admin"||role==="manager"');
+  });
+  it("refuses maintenance room writes on the generic resource routes", () => {
+    const resources = readFileSync("app/api/resources/[resource]/route.ts", "utf8");
+    // Maintenance may create only maintenance_orders; every other create —
+    // rooms included — hits the protected-workflow refusal.
+    expect(resources).toContain('(role==="maintenance"&&resource==="maintenance_orders")');
+    expect(resources).toContain("!departmentWriteAllowed(");
+    expect(resources).toContain("must be created through its protected workflow");
+    expect(resources).toContain("cannot change those fields");
+  });
+  it("keeps maintenance workflows and front-desk assignment wired", () => {
+    expect(dashboard).toContain('canMaintain={user.role === "maintenance"}');
+    expect(dashboard).toContain("maintenanceAction={operateMaintenance}");
+    expect(dashboard).toContain("canCheckIn={operational}");
+    expect(dashboard).toContain("checkIn={openArrival}");
   });
 });

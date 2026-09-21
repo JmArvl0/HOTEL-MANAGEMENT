@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { BedDouble, Bell, ChevronDown, ClipboardCheck, Search, Sparkles, Wand2, Wrench } from "lucide-react";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { HavenSelect } from "@/components/ui/haven-select";
+import { HavenSearchInput } from "@/components/ui/haven-data-controls";
 import type { AssignmentSuggestion } from "@/lib/housekeeping-suggestions";
 import type { RecordItem, Role } from "@/lib/types";
 
@@ -179,7 +180,7 @@ export default function HousekeepingQueuePanel({ role, userId, items, search, se
         </article>)}
       </section>
     </div>}
-    <div className="table-tools hk-toolbar"><label><Search size={17} /><input placeholder="Search the room-care queue..." value={search} onChange={(event) => setSearch(event.target.value)} /></label><HavenSelect value={workType} onChange={setWorkType} ariaLabel="Filter by work type" options={[{ value: "all", label: "All work types" }, ...taskTypes.map((type) => ({ value: type, label: label(type) }))]} /><HavenSelect value={workStatus} onChange={setWorkStatus} ariaLabel="Filter by task status" options={[{ value: "all", label: "All statuses" }, ...workStatuses.map((status) => ({ value: status, label: label(status) }))]} /></div>
+    <div className="table-tools hk-toolbar"><HavenSearchInput value={search} onValueChange={setSearch} label="Search the room-care queue" placeholder="Search the room-care queue..."/><HavenSelect value={workType} onChange={setWorkType} ariaLabel="Filter by work type" options={[{ value: "all", label: "All work types" }, ...taskTypes.map((type) => ({ value: type, label: label(type) }))]} /><HavenSelect value={workStatus} onChange={setWorkStatus} ariaLabel="Filter by task status" options={[{ value: "all", label: "All statuses" }, ...workStatuses.map((status) => ({ value: status, label: label(status) }))]} /></div>
     <ol className="hk-flow" aria-label="Typical room-care path">
       <li>Pending</li><li>In progress</li><li>Inspection</li><li>Ready</li>
     </ol>

@@ -372,6 +372,12 @@ export interface PageHeaderProps {
   actions?: ReactNode;
   breadcrumb?: BreadcrumbItem[];
   className?: string;
+  /**
+   * "default" is the compact premium header (forms, settings, dense screens).
+   * "band" is the full deep-teal hero treatment (dashboards, major module
+   * landings). Same markup either way — only the surface changes.
+   */
+  variant?: "default" | "band";
 }
 
 export function PageHeader({
@@ -381,9 +387,10 @@ export function PageHeader({
   actions,
   breadcrumb,
   className = "",
+  variant = "default",
 }: PageHeaderProps) {
   return (
-    <header className={`page-header ${className}`}>
+    <header className={`page-header${variant === "band" ? " band" : ""} ${className}`}>
       {breadcrumb && <Breadcrumb items={breadcrumb} />}
       <div className="page-header-content">
         {eyebrow && <p className="page-header-eyebrow">{eyebrow}</p>}

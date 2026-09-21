@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { ReceiptText } from "lucide-react";
 import { PaymentSubmissionForm } from "@/components/customer/payment-submission-form";
+import { ReceiptAction } from "@/components/customer/receipt-action";
 import { requireCustomerSession } from "@/lib/customer-auth";
+import { emailConfigured } from "@/lib/email";
 import { formatPeso } from "@/lib/booking";
+import { receiptEligible } from "@/lib/receipt";
 import {
   FOLIO_PAY_FILTERS,
   FOLIO_STAY_FILTERS,
@@ -76,6 +79,9 @@ export default async function PaymentsPage({
 }) {
   const session = await requireCustomerSession();
   const records = await getCustomerFinancials(session.user.id);
+  // Decided once per render: whether the receipt email path has a provider.
+  // When it does not, the action says so instead of failing on click.
+  const emailAvailable = emailConfigured();
   const raw = await searchParams;
   const param = (key: string) => {
     const value = raw[key];
@@ -262,17 +268,20 @@ export default async function PaymentsPage({
                                 {friendlyStatus(payment.method)}
                                 {payment.reference ? ` - Ref ${payment.reference}` : ""}
                               </small>
+                              {/* The state a customer most needs named: their proof is in, Accounting has not verified it yet. */}
+                              {payment.status === "pending_verification" && (
+                                <small className="payment-transaction-note">Payment proof submitted — awaiting verification.</small>
+                              )}
                             </span>
                             <span className="payment-transaction-summary">
-                              <b>{payment.purpose === "refund" ? "-" : ""}{formatPeso(payment.amount)}</b>
+                              <b>
+                                {payment.purpose === "refund" ? "-" : ""}
+                                {formatPeso(payment.amount)}
+                              </b>
                               <span className="payment-transaction-controls">
                                 <em className={`customer-status ${payment.status}`}>{friendlyStatus(payment.status)}</em>
-                                {payment.status === "paid" && (
-                                  <Link className="customer-receipt-link" href={`/account/receipts/${payment.id}`}>
-                                    <ReceiptText size={14} aria-hidden="true" />
-                                    View receipt
-                                  </Link>
-                                )}
+                                {/* Eligibility mirrors accounting_generate_document: settled, and not a refund. */}
+                                {receiptEligible(payment) && <ReceiptAction paymentId={payment.id} emailAvailable={emailAvailable} />}
                               </span>
                             </span>
                           </div>
@@ -299,7 +308,10 @@ export default async function PaymentsPage({
                     )}
                     <footer>
                       <span>Incidentals due: {policy.incidentalsDue}</span>
-                      <Link href={`/my-reservations/${record.id}`}>View reservation</Link>
+                      {/* A real secondary action: border, padding, 44px hit area — it was a bare text link. */}
+                      <Link className="btn btn-soft" href={`/my-reservations/${record.id}`}>
+                        View reservation
+                      </Link>
                     </footer>
                   </article>
                 );

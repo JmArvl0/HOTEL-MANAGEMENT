@@ -8,7 +8,7 @@ const client = readFileSync("components/manager/manager-dashboard-client.tsx", "
 
 describe("staff notification history wiring", () => {
   it("adds a View-all entry point that opens the modal, not a route", () => {
-    expect(client).toContain("View all notifications");
+    expect(client).toContain("HavenNotificationPopover");
     expect(client).toContain("openStaffHistory");
     expect(client).toContain("NotificationHistoryModal");
     expect(client).not.toContain("/account/notifications");
@@ -24,8 +24,8 @@ describe("staff notification history wiring", () => {
     expect(client).toContain("setHistoryOpen(false)");
   });
 
-  it("marks the visible day as read without touching workload state", () => {
-    expect(client).toContain("onMarkDayRead");
+  it("marks the visible notification set as read without touching workload state", () => {
+    expect(client).toContain("onMarkAllRead");
     expect(client).toContain("markStaffRead");
     // Read tracking is per-user UI dismissal; sidebar badges keep their own metrics.
     expect(client).toContain("haven-staff-read:${user.id}");

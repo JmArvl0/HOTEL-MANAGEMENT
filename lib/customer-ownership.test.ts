@@ -19,7 +19,7 @@ vi.mock("next/navigation", () => ({
   redirect: (path: string) => { nav.redirected.push(path); throw new Error(`NEXT_REDIRECT:${path}`); },
 }));
 
-const { getCustomerFinancials, getCustomerRequests, getCustomerReservationDetail, buildNotifications } = await import("@/lib/customer");
+const { getCustomerFinancials, getCustomerReceipt, getCustomerRequests, getCustomerReservationDetail, buildNotifications } = await import("@/lib/customer");
 const { getGuestReservation, getGuestReservations, getOwnedHold, getGuestProfile } = await import("@/lib/booking");
 const { requireCustomerSession } = await import("@/lib/customer-auth");
 const { getServerSession } = await import("next-auth");
@@ -74,6 +74,12 @@ describe("customer session guard", () => {
 
   it("refuses a disabled customer session", async () => {
     vi.mocked(getServerSession).mockResolvedValue({ user: { id: A, role: "guest", disabled: true } } as never);
+    await expect(requireCustomerSession()).rejects.toThrow(/NEXT_REDIRECT/);
+    expect(nav.redirected).toEqual(["/login?callbackUrl=%2Faccount"]);
+  });
+
+  it("refuses a neutralized customer session with no account id", async () => {
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: "", role: "guest", disabled: false } } as never);
     await expect(requireCustomerSession()).rejects.toThrow(/NEXT_REDIRECT/);
     expect(nav.redirected).toEqual(["/login?callbackUrl=%2Faccount"]);
   });
@@ -165,5 +171,62 @@ describe("customer data ownership", () => {
     for (const secret of ["password_hash", "session_token", "service_role", "staff_note", "internal_note"]) {
       expect(detail).not.toContain(secret);
     }
+  });
+});
+
+// The single authorized door for a receipt: an id goes in, a document or null
+// comes out. Ownership AND eligibility are both decided here, so a customer
+// cannot change an id in a URL — or in the JSON route — to reach another
+// guest's receipt, or to reach one for money that was never settled.
+describe("customer receipt authorization", () => {
+  it("issues the owning customer their own receipt", async () => {
+    const receipt = await getCustomerReceipt(A, "pay-alfa");
+    expect(receipt).toMatchObject({ paymentReference: "pay-alfa", reservationNumber: "HVN-alfa", amount: 9000 });
+    // A real financial_documents number, carried through rather than invented.
+    expect(receipt?.documentNumber).toBe("DOC-alfa");
+  });
+
+  it("refuses another customer's payment id", async () => {
+    await expect(getCustomerReceipt(A, "pay-BRAVO")).resolves.toBeNull();
+    await expect(getCustomerReceipt(B, "pay-BRAVO")).resolves.toMatchObject({ paymentReference: "pay-BRAVO" });
+  });
+
+  it("refuses a payment whose reservation belongs to someone else", async () => {
+    // pay-alfa points at res-BRAVO: the payment row is reachable, the stay is not.
+    fake.db.payments[0].reservation_id = "res-BRAVO";
+    await expect(getCustomerReceipt(A, "pay-alfa")).resolves.toBeNull();
+  });
+
+  it("refuses an unsettled payment, so no receipt exists for unverified money", async () => {
+    for (const status of ["pending_verification", "failed", "expired", "refunded"]) {
+      fake.db.payments[0].status = status;
+      await expect(getCustomerReceipt(A, "pay-alfa")).resolves.toBeNull();
+    }
+  });
+
+  it("refuses a refund, which the staff document RPC refuses too", async () => {
+    fake.db.payments[0].purpose = "refund";
+    await expect(getCustomerReceipt(A, "pay-alfa")).resolves.toBeNull();
+  });
+
+  it("returns null for an id that does not exist, rather than throwing", async () => {
+    await expect(getCustomerReceipt(A, "00000000-0000-0000-0000-000000000000")).resolves.toBeNull();
+  });
+
+  it("carries no other customer's value anywhere in the document", async () => {
+    const receipt = JSON.stringify(await getCustomerReceipt(A, "pay-alfa"));
+    expect(receipt).not.toContain("BRAVO");
+    // Payment proof is deliberately absent: the receipt is not the upload.
+    for (const proof of ["proof_original_name", "proof_path", "proof_url", "signedUrl"]) {
+      expect(receipt).not.toContain(proof);
+    }
+  });
+
+  it("leaves the document number null when no receipt was ever issued", async () => {
+    fake.db.financial_documents = [];
+    const receipt = await getCustomerReceipt(A, "pay-alfa");
+    expect(receipt?.documentNumber).toBeNull();
+    // The payment's own id still identifies it; the two are never conflated.
+    expect(receipt?.paymentReference).toBe("pay-alfa");
   });
 });

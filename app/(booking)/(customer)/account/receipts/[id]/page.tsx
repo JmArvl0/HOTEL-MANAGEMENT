@@ -1,9 +1,31 @@
-import Link from"next/link";import{notFound}from"next/navigation";import{requireCustomerSession}from"@/lib/customer-auth";import{supabase}from"@/lib/supabase";import{formatPeso}from"@/lib/booking";import{friendlyStatus}from"@/lib/customer";import{inclusiveTaxBreakdown,ratePercent}from"@/lib/accounting";import{getOperationalPolicy}from"@/lib/hotel-policy";
-export default async function CustomerReceiptPage({params}:{params:Promise<{id:string}>}){const session=await requireCustomerSession();const{id}=await params;if(!supabase)notFound();const{data:payment}=await supabase.from("payments").select("id,reservation_id,amount,currency,method,reference,purpose,status,verified_at,created_at").eq("id",id).eq("status","paid").maybeSingle();if(!payment)notFound();const{data:reservation}=await supabase.from("reservations").select("id,confirmation_number,guest_name,room_type,check_in,check_out,user_id,operational_policy_snapshot").eq("id",payment.reservation_id).eq("user_id",session.user.id).maybeSingle();if(!reservation)notFound();
-// VAT-inclusive breakdown, derived server-side. Rates come from the reservation's
-// frozen policy snapshot; legacy reservations created before tax configuration fall
-// back to the hotel's current rates.
-const snapshot=(reservation.operational_policy_snapshot??{})as Record<string,unknown>;const policy=await getOperationalPolicy();const vatRateBp=typeof snapshot.vatRateBp==="number"?snapshot.vatRateBp:policy.vatRateBp;const serviceChargeBp=typeof snapshot.serviceChargeBp==="number"?snapshot.serviceChargeBp:policy.serviceChargeBp;const tax=inclusiveTaxBreakdown(payment.amount,vatRateBp,serviceChargeBp);
-return <section className="customer-detail-card customer-receipt"><p className="eyebrow">Official payment record</p><h1>Payment receipt</h1><p>HAVEN Hotel &amp; Residences</p><dl><div><dt>Receipt reference</dt><dd>{payment.id}</dd></div><div><dt>Reservation</dt><dd>{reservation.confirmation_number??reservation.id}</dd></div><div><dt>Guest</dt><dd>{reservation.guest_name}</dd></div><div><dt>Stay</dt><dd>{reservation.check_in} to {reservation.check_out}</dd></div><div><dt>Payment</dt><dd>{friendlyStatus(payment.purpose)}</dd></div><div><dt>Method</dt><dd>{friendlyStatus(payment.method)}</dd></div><div><dt>Reference</dt><dd>{payment.reference??"—"}</dd></div><div><dt>Verified</dt><dd>{new Date(payment.verified_at??payment.created_at).toLocaleString("en-PH")}</dd></div><div className="detail-balance"><dt>Amount</dt><dd>{formatPeso(payment.amount)}</dd></div>
-{tax&&<><div><dt>Net subtotal</dt><dd>{formatPeso(tax.netSubtotal)}</dd></div><div><dt>Service charge ({ratePercent(tax.serviceChargeBp)})</dt><dd>{formatPeso(tax.serviceCharge)}</dd></div><div><dt>VAT ({ratePercent(tax.vatRateBp)})</dt><dd>{formatPeso(tax.vatAmount)}</dd></div><div className="detail-balance"><dt>Gross total</dt><dd>{formatPeso(tax.grossTotal)}</dd></div></>}</dl>
-<p>{tax?"Rates are VAT-inclusive — service charge and VAT are itemised above and already included in the amount paid.":"This receipt is generated from Haven&apos;s settled, immutable payment record."}</p><Link className="customer-inline-action" href="/account/payments">Back to payments</Link></section>}
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ReceiptDocumentView } from "@/components/customer/receipt-document-view";
+import { requireCustomerSession } from "@/lib/customer-auth";
+import { getCustomerReceipt } from "@/lib/customer";
+
+/**
+ * The canonical receipt document route.
+ *
+ * The preview modal is the usual way in; this page remains the addressable,
+ * printable, linkable version of the same document. Both render
+ * ReceiptDocumentView from the same model, so there is one receipt layout in the
+ * codebase rather than one per entry point.
+ *
+ * Ownership and eligibility live in getCustomerReceipt — an id belonging to
+ * another guest, an unsettled payment or a refund all land on notFound().
+ */
+export default async function CustomerReceiptPage({ params }: { params: Promise<{ id: string }> }) {
+  const session = await requireCustomerSession();
+  const { id } = await params;
+  const receipt = await getCustomerReceipt(session.user.id, id);
+  if (!receipt) notFound();
+  return (
+    <div className="receipt-page">
+      <ReceiptDocumentView document={receipt} />
+      <Link className="btn btn-soft receipt-page-back" href="/account/payments">
+        Back to payments
+      </Link>
+    </div>
+  );
+}

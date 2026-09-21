@@ -63,19 +63,19 @@ describe("HeaderNotificationBell", () => {
     expect(badges[0].textContent).toBe("3");
     // The numeral is presentational; the button label carries the count.
     expect(badges[0].getAttribute("aria-hidden")).toBe("true");
-    expect(screen.getByRole("button", { name: "Notifications, 3 current" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Notifications, 3 unread" })).toBeTruthy();
   });
 
   it("caps triple-digit counts at 99+", () => {
     const { container } = render(<HeaderNotificationBell count={100} expanded={false} onToggle={() => {}} />);
     expect(container.querySelector(".nav-badge")?.textContent).toBe("99+");
-    expect(screen.getByRole("button", { name: "Notifications, 100 current" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Notifications, 100 unread" })).toBeTruthy();
   });
 
   it("toggles the popover on click without touching any count", () => {
     const onToggle = vi.fn();
     render(<HeaderNotificationBell count={2} expanded={false} onToggle={onToggle} />);
-    fireEvent.click(screen.getByRole("button", { name: "Notifications, 2 current" }));
+    fireEvent.click(screen.getByRole("button", { name: "Notifications, 2 unread" }));
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
 });

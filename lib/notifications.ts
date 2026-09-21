@@ -2,14 +2,20 @@ import { supabase } from "@/lib/supabase";
 import { sendEmail, guestEmailHtml } from "@/lib/email";
 import {
   Bell,
+  BedDouble,
+  Boxes,
   CalendarCheck,
   CalendarClock,
+  CalendarX,
   CarTaxiFront,
   CreditCard,
+  ClipboardCheck,
   Link2,
   MessageSquare,
   RefreshCw,
   TriangleAlert,
+  Users,
+  Wrench,
   type LucideIcon,
 } from "lucide-react";
 
@@ -109,6 +115,15 @@ export interface HistoryItemLike {
   readAt?: string | null;
 }
 
+/** Bell dropdown preview size: recent unread + read, never the whole history. */
+export const BELL_PREVIEW_LIMIT = 7;
+
+/** Bell preview set: unread first (newest), then read (newest), capped. */
+export function previewNotifications<T extends HistoryItemLike>(items: readonly T[], cap: number = BELL_PREVIEW_LIMIT): T[] {
+  const { unread, read } = splitUnreadRead(items);
+  return [...unread, ...read].slice(0, Math.max(0, cap));
+}
+
 /** Keep only items created on the given hotel day (missing dates never match). */
 export function filterNotificationsByHotelDay<T extends HistoryItemLike>(items: readonly T[], dayKey: string): T[] {
   if (!dayKey) return [];
@@ -137,9 +152,9 @@ export function relativeTime(value: unknown, now: Date = new Date()): string {
   const dayKey = hotelDayKey(date);
   const today = hotelTodayKey(now);
   if (dayKey === today) {
-    if (diffMs >= 0 && diffMs < 3_600_000) return `${Math.max(1, Math.floor(diffMs / 60_000))}m ago`;
-    if (diffMs >= 0 && diffMs < 86_400_000) return `${Math.floor(diffMs / 3_600_000)}h ago`;
-    return new Intl.DateTimeFormat("en-PH", { hour: "numeric", minute: "2-digit", timeZone: NOTIFICATION_HOTEL_TIME_ZONE }).format(date);
+    // Same hotel day is always < 24h old, so minutes/hours cover everything.
+    if (diffMs >= 0) return diffMs < 3_600_000 ? `${Math.max(1, Math.floor(diffMs / 60_000))}m ago` : `${Math.floor(diffMs / 3_600_000)}h ago`;
+    return new Intl.DateTimeFormat("en-PH", { month: "short", day: "numeric", timeZone: NOTIFICATION_HOTEL_TIME_ZONE }).format(date);
   }
   if (dayKey === resolveNotificationDay("yesterday", today)) return "Yesterday";
   return new Intl.DateTimeFormat("en-PH", { month: "short", day: "numeric", timeZone: NOTIFICATION_HOTEL_TIME_ZONE }).format(date);
@@ -176,7 +191,7 @@ export function groupNotificationsByRecency<T extends HistoryItemLike>(
 }
 
 /** One semantic icon per notification type — the single source for the bell dropdown and history modal. */
-export const NOTIFICATION_TYPE_ICONS: Record<NotificationType, LucideIcon> = {
+export const NOTIFICATION_TYPE_ICONS: Record<string, LucideIcon> = {
   reservation_confirmed: CalendarCheck,
   deposit_verified: CreditCard,
   stay_payment_verified: CreditCard,
@@ -189,11 +204,26 @@ export const NOTIFICATION_TYPE_ICONS: Record<NotificationType, LucideIcon> = {
   pre_arrival_reminder: CalendarClock,
   pre_departure_reminder: CalendarClock,
   reservation_change_submitted: RefreshCw,
+  reservation_cancelled: CalendarX,
+  reservations: CalendarCheck,
+  rooms: BedDouble,
+  guests: Users,
+  guest_requests: MessageSquare,
+  transportation: CarTaxiFront,
+  approvals: ClipboardCheck,
+  housekeeping_tasks: BedDouble,
+  maintenance_orders: Wrench,
+  inventory: Boxes,
+  invoices: CreditCard,
+  payments: CreditCard,
+  refunds: RefreshCw,
+  transactions: CreditCard,
+  folios: CreditCard,
 };
 
 export function notificationIcon(type: unknown): LucideIcon {
   return (typeof type === "string" && type in NOTIFICATION_TYPE_ICONS
-    ? NOTIFICATION_TYPE_ICONS[type as NotificationType]
+    ? NOTIFICATION_TYPE_ICONS[type]
     : Bell) as LucideIcon;
 }
 
@@ -227,14 +257,20 @@ export async function notifyWithOptionalEmail(
   if (!result.ok && result.reason === "failed") console.error("guest email failed", input.type, result.message);
 }
 
-export async function getCustomerNotifications(userId: string, limit = 50): Promise<CustomerNotification[]> {
+export async function getCustomerNotifications(userId: string, limit = 50, offset = 0): Promise<CustomerNotification[]> {
   if (!supabase) return [];
-  const { data, error } = await supabase
+  const safeLimit = Number.isFinite(limit) ? Math.min(Math.max(Math.floor(limit), 1), 200) : 50;
+  const safeOffset = Number.isFinite(offset) ? Math.max(Math.floor(offset), 0) : 0;
+  const query = supabase
     .from("notifications")
     .select("id,type,title,detail,href,read_at,created_at")
     .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(limit);
+    .order("created_at", { ascending: false });
+  // offset>0 pages through the full history for the modal's Load more;
+  // offset 0 keeps the plain limit( ) shape every existing caller uses.
+  const { data, error } = await (safeOffset > 0
+    ? query.range(safeOffset, safeOffset + safeLimit - 1)
+    : query.limit(safeLimit));
   if (error) throw error;
   return (data ?? []).map((row: CustomerNotificationRow) => ({
     id: row.id,
@@ -261,4 +297,14 @@ export async function countUnreadNotifications(userId: string): Promise<number> 
 export async function markNotificationsRead(userId: string, ids: string[]): Promise<void> {
   if (!supabase || !ids.length) return;
   await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("user_id", userId).in("id", ids);
+}
+
+export async function markAllNotificationsRead(userId: string): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase
+    .from("notifications")
+    .update({ read_at: new Date().toISOString() })
+    .eq("user_id", userId)
+    .is("read_at", null);
+  if (error) throw error;
 }

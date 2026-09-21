@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BedDouble, Building2, CalendarRange, Check, Eye, ImagePlus, Images, Loader2, Pencil, Plus, RefreshCw, Search, Trash2, Upload, Users, X } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { HavenSearchInput } from "@/components/ui/haven-data-controls";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
 import { RoomTypeDetailsBody } from "@/components/booking/room-details";
 import { roomPrimary } from "@/lib/room-images";
@@ -431,7 +432,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
         </div>
       </div>
       <div className="table-tools">
-        <label><Search size={17}/><input aria-label="Search room types" placeholder="Search room types..." value={search} onChange={(e) => setSearch(e.target.value)} /></label>
+        <HavenSearchInput value={search} onValueChange={setSearch} label="Search room types" placeholder="Search room types..." />
       </div>
       {loading ? (
         <div className="empty"><Loader2 className="spin"/><h3>Loading room catalog…</h3></div>

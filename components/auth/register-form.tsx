@@ -1,6 +1,6 @@
 "use client";
 import { FormEvent, useRef, useState } from "react";
-import { signIn } from "next-auth/react";
+import { getSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
@@ -33,6 +33,12 @@ export function RegisterForm({ callbackUrl }: { callbackUrl: string }) {
     setLoading(false);
     if (result?.error) {
       setError("Account created, but sign-in failed. Please sign in.");
+      return;
+    }
+    const fresh = await getSession();
+    if (fresh?.user.otpPending) {
+      router.push(`/verify?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+      router.refresh();
       return;
     }
     router.push(result?.url ?? callbackUrl);

@@ -1,8 +1,8 @@
 # Current Status
 
-Last Updated: 2026-09-30
-Current Development Area: Post-audit improvement roadmap — COMPLETE (Phases 2–9, 2026-09-30)
-Current Feature: Roadmap COMPLETE — Phase 9 commercial readiness (2026-09-30)
+Last Updated: 2026-10-12
+Current Development Area: Official system-wide redesign (Modern Luxury Hospitality SaaS) — COMPLETE (2026-09-19); guest-to-staff conversion boundary deployed (2026-10-12); org staff theme implemented (2026-09-20)
+Current Feature: Unified PageHeader band hero on staff overview + all owner sections; every role verified against the reference
 Current Branch: `main`
 Latest Relevant Commit: `e91ee55` (TomTom-priced hotel transfers)
 
@@ -20,6 +20,208 @@ foundation, 9 commercial readiness (9A/9B/9C/9D). The final overall report was d
 in-session. Remaining: manual UI verification (role logins) and committing the tree.
 
 ## Recently Completed
+
+- **Authenticated header session countdown (2026-09-21)** — Customer and all
+  staff roles now receive the earliest authoritative idle/absolute deadline
+  and display only the compact time in the top-right header group. Background
+  polling no longer counts as activity; meaningful pointer/keyboard activity
+  is throttled through a dedicated endpoint. Normal/warning/critical colors
+  use HAVEN tokens, and expiration opens a blocking Sign in again dialog.
+  Focused tests 43/43, full suite 1568/1568, typecheck, touched ESLint,
+  production build, and UI detector green. See
+  [[2026-09-21 - Session Countdown and Expiration]].
+
+
+- **Universal search/filter standard completed (2026-09-20)** — the
+  search-first → chips → advanced → results order was already in place; this
+  fixed what made it not actually true. Root cause of the light-theme outer card
+  was a **specificity loss**, not a missing rule: the de-card overrides appended
+  to `staff-ops-theme.css` were 4-class and lost to the 5-class
+  `.theme-light .app-shell …` rules, so the white card still rendered in light
+  theme. Fixed at the source and the redundant override block deleted. Also
+  removed a second surface box that `.table-tools label` (0,1,1) was drawing
+  around the shared `.haven-search-input` (0,1,0), and one of those rules was
+  nulling the input's own fill. Chip radius unified on the pill, false "all"
+  lowercase chip and a non-All-first queue list corrected, `aria-pressed` added
+  to four bespoke chip rows. New stylesheet-walking test
+  (`haven-data-controls.test.tsx`) fails if ANY stylesheet gives a toolbar
+  wrapper a background/border/shadow/padding — the transparency is a cascade
+  property that jsdom cannot otherwise protect. Gates: typecheck, eslint 0
+  errors, **135 files / 1553 tests**, build, `git diff --check`.
+  Browser visual QA not performed (no runner, KI-005). See
+  [[2026-09-20 - Universal Search Filter Standard]].
+
+- **Action-card standardization via HavenActionItem (2026-09-20)** —
+  shared `icon | title + description | chevron` primitive
+  (`components/ui/haven-action-item.tsx`, row + stat variants, quiet
+  zero-count state, button-vs-div semantics) with staff-scoped light/dark
+  CSS in `staff-ops-theme.css` §7b; manager Overview quick-panels (serves
+  front_desk/housekeeping/maintenance/accounting/manager) and admin
+  quick-actions + system-health cards migrated; legacy `.quick-panel`/
+  `.quick-icon` and admin card CSS deleted. D-025 presentation family.
+  Gates: typecheck, eslint 0 errors, **1552/1552 tests**, build.
+  Per-role browser QA pending (no runner).
+
+- **Staff content fitting & layout refinement (2026-09-20)** — screenshot
+  root cause (admin `SYSTEM ADMINISTRATION` clipped by `nowrap` +
+  `overflow:hidden` at 232px) fixed by two-line role-label wrap, plus a
+  staff-wide fitting layer (`staff-ops-theme.css` §§20–23, all
+  `.app-shell`-scoped): nav badge reserve, wrapping header actions,
+  wrapping KPI values, contained table scroll, wrapping modal footers,
+  viewport-capped popovers. No type reductions, no logic changes. Gates:
+  typecheck, eslint 0 errors, **1543/1543 tests**, build. Browser QA
+  pending (no runner). Landing/customer/auth unchanged.
+
+- **Organization Executive Dashboard theme on staff pages (2026-09-20)** —
+  org spec (`reference/design.mdd (1).txt`) implemented as
+  `app/staff-ops-theme.css`, a last-import override layer with every rule
+  scoped under `.app-shell` (light default + refined dark kept per user
+  choice): ink/Cool Paper palette, 10%-tint AA-safe status pills, 24px stat
+  cards, flat executive headers (teal band retired at both staff call
+  sites), tactile motion with reduced-motion gates. Landing/customer/auth
+  untouched (diff + class-usage verified). Gates: typecheck, eslint
+  0 errors, **1531/1531 tests**, build (72 routes). Manual per-role browser
+  QA pending. See [[D-025]], DESIGN.md §16.
+
+- **Maintenance room-creation exposure removed (2026-10-12)** — the generic
+  `ResourceView` offered a dead "Add rooms" button (and status-advance control) to
+  Maintenance/Housekeeping on Rooms & Availability; both now gate off for the rooms
+  resource dashboard-wide (`canCreate`/`canAdvance`), since all room-inventory writes
+  go through the catalog-authority roster modal and every backend path already
+  refused them (guardCatalog + RPC triple + generic-route refusals, all
+  contract-tested). No server, RPC, or Front Desk-assignment change. Gates green:
+  **1519/1519 tests**, typecheck/lint/build clean. Manual browser QA pending.
+
+- **Guest-to-staff conversion executed 1/5 (2026-09-20)** — with explicit user
+  approval in build mode, `arvild10.4@gmail.com` (`0f059847-…`) was converted
+  guest → `admin` via the authorized `admin_convert_guest_to_staff` RPC (Owner
+  actor `owner@haven.test`; ID+email+version pre-verified). Result read back
+  live: role `admin`, inactive + recovery-required, auth v2, staff mirror
+  (System Administration, off_duty), password sentinel, 1-hour recovery token
+  minted, one conversion audit row (audit_logs 147→148; every other table
+  count unchanged). Recovery link handed to user; pre-recovery scripted checks
+  pass (old creds dead). The other four remain active guests at v1, blocked by
+  `GUEST_BUSINESS_HISTORY_CONFLICT` (doubiru 2 holds + 2 confirmed; ry4nl3369
+  3 holds + 2 reservations; akristyrose 1 hold + 1 confirmed;
+  arevalojohnmichael24 9 holds + 3 reservations, plus protected `owner` role).
+  User chose Track B: identity/history model proposal next — the four stay
+  guests until that model is approved and deployed.
+
+- **Guarded guest-to-staff conversion (2026-10-12)** — migrations `20261012010000`
+  + `20261012020000`
+  adds the only supported guest/staff boundary: exact ID+email match, zero hold/reservation
+  history, protected-role authority, staff-mirror creation, forced inactive recovery,
+  password/OTP/session invalidation, and immutable audit in one transaction. The legacy
+  role RPC now refuses guest↔staff changes. Live re-verification found John Arevalo
+  history-free but assigned to protected `admin` (Owner authority required); the other
+  four exact accounts own reservations/holds/payments. Therefore **0/5 were converted**,
+  all remain active guests at auth version 1, and no partial staff rows exist. Migration
+  ledger is in sync; focused 25/25, full 1515/1515, typecheck, lint (0 errors), and build pass.
+
+- **Test-guest cleanup verdict (2026-10-11)** — impact probe of the 5 authorized
+  guests: #1 empty, #2–5 own live reservations/holds/payments. Deletion proved
+  structurally impossible (audit immutability trigger blocks the `SET NULL` on
+  `audit_logs.user_id`; rollback verified clean, zero net writes). All five
+  preserved. End-to-end staff creation proven live via the real API
+  (`arvild10.4+otp@gmail.com` → 201, front_desk, inactive + recovery-required,
+  audited) after stamping admin activity (58-min idle had correctly neutralized
+  the harness token — policy working as designed). Backup at Temp
+  `haven-test-account-backup.json`. OTP testing proceeds on `+` aliases with
+  global OTP still off.
+
+- **Staff-creation duplicate-email diagnosis (2026-10-11)** — "Unable to create the
+  staff account." was an unmapped Postgres unique-violation: the address already
+  belonged to an active guest, and the route had no `EMAIL_TAKEN` mapping. Live RPC
+  body verified identical to file (no drift); new migration `20261011010000` adds an
+  explicit pre-insert `EMAIL_TAKEN` guard (uniqueness unchanged) plus route mappings
+  for `EMAIL_TAKEN`/`INVALID_STAFF_ACCOUNT`; pushed + ledger-verified; live RPC probe
+  raises `EMAIL_TAKEN` with zero writes and no duplicate row. For OTP testing use a
+  fresh address (e.g. a Gmail `+` alias), never the existing guest address. Gates:
+  typecheck, lint 0 errors, **1509/1509 tests**, build, `diff --check` clean. Manual
+  browser creation still pending.
+
+- **Email login OTP via Nodemailer + Security Configuration redesign (2026-10-10)** —
+  genuine two-stage login inside NextAuth (password → pending role-less/id-less token →
+  emailed 6-digit code → atomic `auth_otp_verify` → full cookie via NextAuth encode);
+  HMAC-only storage, resend rotation, DB-backed attempt/cooldown/issue-cap/password
+  lockout; `security_policies` OTP columns + `auth_otp_challenges` + issue/verify RPCs
+  (migration `20261010010000`, pushed + ledger + live-verified); SMTP transport with
+  factual delivery panel (Unknown until a passing test) and own-address test email;
+  redesigned admin workspace (session/OTP/delivery/enforced/history sections) with
+  OTP-activation warning in the confirm flow; recovery links untouched; OTP ships
+  default-Off. Gates: typecheck, lint 0 errors, **1508/1508 tests (129 files)**,
+  build, detector clean. Manual browser + real-email QA pending (SMTP unconfigured).
+  See [[D-022]].
+
+- **Admin login-lockout fix (2026-10-09)** — the session callback conflated query
+  error with missing account, neutralizing every session while `20261009010000` was
+  unapplied (silent login loop for all roles). New `resolveSessionEnforcement`
+  helper (error fail-open, absent/expired neutralize) + `/auth/continue` bounces
+  dead sessions to `/login`; both pending migrations reviewed, pushed, and
+  ledger-verified; live probe confirmed policy row, `last_seen_at`, and an active
+  recovery-free `admin` account. Codex customer guard untouched. Gates: typecheck,
+  lint 0 errors, **1490/1490 tests (128 files)**, build, `diff --check` clean.
+  Manual browser logins still pending. See [[KI-009]].
+
+- **System Administrator Security Configuration — session policy (2026-10-09)** — new
+  Governance module (`security_config`) with status cards, session/cookie panel, enforced-flags
+  note, and an honestly deferred passcode panel. Own `security_policies` table + admin-only
+  `admin_update_security_policy` RPC (migration `20261009010000`, dry-run clean, NOT yet pushed);
+  live idle/absolute enforcement in the NextAuth `session` callback (server `last_seen_at`,
+  token `iat`, Remember Me tiering, one-time grandfathering, 24 h cookie backstop); conditional
+  login checkbox + `?expired=1` notice; confirm modal with diff + required reason + `POLICY_STALE`
+  handling; `security_policy_updated` audit with safe values only. Passcode policy deferred per
+  [[D-021]] (no flow exists — recovery links untouched); Owner read-only snapshot and session
+  revocation are follow-ups. Gates: typecheck, lint 0 errors, **1482/1482 tests (128 files)**,
+  build clean, detector clean. Manual browser QA pending (Admin edit flow, session expiry,
+  login checkbox). Migration push pending (also pushes `20261008010000`, same dry-run).
+
+- **System-wide notification presentation standardization (2026-09-19)** — Customer and the
+  operational Manager, Front Desk, Accounting, Housekeeping, and Maintenance roles now render one
+  component family from `components/ui/haven-notifications.tsx`: a single aggregate unread
+  badge, 380–430px click-only preview (maximum seven, unread first), semantic notification row,
+  and 760px internally scrolling View-All modal with All/Unread/Read/date/sort controls.
+  Customer unread totals are counted independently of the seven-row seed and mark-all is
+  server-authoritative. Staff retain the role-filtered `dashboard.notifications` source and
+  per-device dismissal state. Sidebar workload badges and ToastStack semantics are unchanged.
+  Owner/Admin still have no persistent notification source and therefore retain ToastStack only
+  rather than a fabricated bell inbox. Gates: Impeccable detector clean, typecheck clean, lint
+  0 errors (75 baseline warnings), **1461/1461 tests (127 files)**, production build clean.
+
+- **Customer notification dropdown + View-All modal redesign (2026-09-19)** — guest bell is
+  click-to-open (hover = tooltip only) with a ≤7 preview (unread-first, then "Earlier"),
+  semantic per-type icons, accessible unread dots, one-row optimistic mark-read, "Mark all
+  read" (reuses `POST /read`), and loading/empty/error states. "View all notifications" still
+  opens the shared modal (no navigation), now with All/Unread/Read tabs (All first, default),
+  Newest/Oldest sort, retained hotel-day filter (now defaulting to All days, per user choice),
+  Today/Yesterday/Earlier-this-week/Earlier recency grouping, and offset-based Load more
+  (additive `?offset=` on `GET /api/account/notifications`; fake-supabase gained `range()`).
+  Rows render through one shared `CustomerNotificationRow` so dropdown and modal can never
+  disagree; staff triad, unread semantics (`read_at`), toasts, and sidebar badges untouched;
+  manager consumer stays source-compatible (new modal props optional). Reservation-cancelled
+  icon added to the type map. Gates: typecheck clean, lint 0 errors (148 warnings, baseline),
+  **1457/1457 tests (126 files)**, build OK. Manual browser QA pending (guest login: hover,
+  click, mark one/all, View-all modal tabs/sort/day filter/Load more, mobile widths).
+  See [[D-013]] amendment and [[2026-09-19 - Customer Notification Redesign]].
+- **Customer receipt surface — preview, download, print, email (2026-09-18)** — `/account/payments`
+  payment rows now name their state (a `pending_verification` row reads "Payment proof submitted —
+  awaiting verification" with **no** receipt action) and, when settled, carry a real **View Receipt**
+  button that opens the receipt in a **modal** (no navigation) with `Email receipt` / `Print` /
+  `Download` (PDF + PNG). One server-authoritative document backs every surface:
+  `getCustomerReceipt(userId, paymentId)` decides ownership *and* eligibility
+  (`paid` and not `refund`, mirroring `accounting_generate_document`), and `lib/receipt`'s
+  `receiptRows()` is walked by the modal, the print sheet, the zero-dependency text PDF
+  (`lib/receipt-pdf.ts`, also the email attachment) and the canvas PNG (`lib/receipt-image.ts`), so
+  no format can disagree about a number. `GET /api/account/receipts/[paymentId]` is the only
+  authorized door — a foreign, unsettled or refund id all return 404; `POST .../email` sends to
+  `session.user.email` only (no address is read from the body) and reports `EMAIL_UNAVAILABLE`
+  instead of faking a send. **Fixed a live defect**: a `paid` refund-purpose payment used to offer
+  `View receipt`, which the staff document RPC refuses. `View reservation` is now a real secondary
+  button (border/padding/44px hit area), route unchanged. Gates: typecheck clean, targeted 66/66,
+  build clean; full suite 1447/1451 — the 4 failures are in the concurrently-edited
+  notification-history stream and touch no receipt module; lint has one pre-existing error in
+  `customer-notification-row.tsx` (present at HEAD). Manual browser QA pending.
+  See [[2026-09-18 - Customer Receipt Surface]].
 
 - **Customer cancel-reservation workflow fix (2026-09-18)** — one cancel modal with a
   server-authoritative read-only preview (`GET .../cancel/preview`, snapshot-derived via new

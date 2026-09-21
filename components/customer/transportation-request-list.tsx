@@ -83,7 +83,7 @@ export function TransportationRequestList({ requests }: { requests: CustomerTran
     <div className="customer-request-list-wrap ctr-list">
       <div className="ctr-filters" role="group" aria-label="Filter transportation requests">
         {chips.map((chip) => (
-          <button key={chip.key} type="button" className={filter === chip.key ? "active" : ""} onClick={() => setFilter(chip.key)}>
+          <button key={chip.key} type="button" className={filter === chip.key ? "active" : ""} aria-pressed={filter === chip.key} onClick={() => setFilter(chip.key)}>
             {chip.label}<b>{counts[chip.key]}</b>
           </button>
         ))}

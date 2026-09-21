@@ -1,6 +1,6 @@
 "use client";
-import { FormEvent, useRef, useState } from "react";
-import { signIn } from "next-auth/react";
+import { FormEvent, useEffect, useRef, useState } from "react";
+import { getSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
@@ -8,28 +8,52 @@ import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 export default function LoginForm({
   callbackUrl = "/manager_dashboard",
   booking = false,
+  expired = false,
 }: {
   callbackUrl?: string;
   booking?: boolean;
+  expired?: boolean;
 }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(false);
+  const [rememberOffered, setRememberOffered] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const errorRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    let live = true;
+    fetch("/api/security-policy/public", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body) => {
+        if (live) setRememberOffered(body?.data?.persistentSessionEnabled === true);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     setLoading(true);
     setError("");
-    const result = await signIn("credentials", { email, password, callbackUrl, redirect: false });
+    const result = await signIn("credentials", { email, password, remember: rememberOffered && remember ? "1" : "0", callbackUrl, redirect: false });
     setLoading(false);
     if (result?.error) {
       setError("That email or password doesn’t match our records.");
       requestAnimationFrame(() => errorRef.current?.focus());
     } else {
+      // Password accepted but OTP pending: the session is still unauthenticated.
+      const fresh = await getSession();
+      if (fresh?.user.otpPending) {
+        router.push(`/verify?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+        router.refresh();
+        return;
+      }
       router.push(result?.url ?? callbackUrl);
       router.refresh();
     }
@@ -44,6 +68,12 @@ export default function LoginForm({
         <h1>{booking ? "Sign in to continue your reservation" : "Sign in to your Haven account"}</h1>
         <p>{booking ? "Your selected room and stay details are waiting." : "Access your dashboard, reservations, and stay details securely."}</p>
       </div>
+
+      {expired && !error && (
+        <p role="status" className="haven-vault__notice">
+          Your session has expired. Please sign in again.
+        </p>
+      )}
 
       {error && (
         <div ref={errorRef} tabIndex={-1} role="alert" className="haven-vault__error">
@@ -95,6 +125,18 @@ export default function LoginForm({
             {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
           </button>
         </div>
+
+        {rememberOffered && (
+          <label className="haven-vault__remember" htmlFor="haven-remember">
+            <input
+              id="haven-remember"
+              type="checkbox"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+            />
+            <span>Keep me signed in on this device</span>
+          </label>
+        )}
 
         <button className="haven-vault__submit" disabled={loading} aria-busy={loading}>
           {loading ? "Signing in…" : "Sign in"} <ArrowRight size={15} aria-hidden="true" />

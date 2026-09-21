@@ -650,6 +650,12 @@
   --toast-padding: var(--space-4);
   --toast-gap: var(--space-3);
   --toast-border-radius: var(--radius-lg);
+
+  /* -- Hero (PageHeader band variant) -- */
+  --hero-bg: #0a4953;
+  --hero-bg-deep: #082f39;
+  --hero-fg: #fff;
+  --hero-muted: #a9c6c3;
 }
 
 /* =============================================================================

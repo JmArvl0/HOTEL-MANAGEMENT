@@ -24,12 +24,12 @@ const nights = (checkIn: unknown, checkOut: unknown) => Math.max(0, Math.round((
  */
 
 const QUEUES: [string, string][] = [
+  ["all", "All"],
   ["attention", "Attention Required"],
   ["arrivals", "Arrivals Today"],
   ["departures", "Departures Today"],
   ["in_house", "In-House"],
   ["upcoming", "Upcoming"],
-  ["all", "All"],
   ["closed", "Closed"],
 ];
 const CLOSED_STATUSES = ["checked_out", "cancelled", "no_show"];

@@ -1,17 +1,20 @@
 "use client";
-import{useCallback,useEffect,useRef,useState}from"react";import{signOut}from"next-auth/react";import Link from"next/link";import{Activity,BedDouble,Building2,CarTaxiFront,ChevronDown,ChevronRight,ClipboardCheck,CircleDollarSign,Crown,FileText,HeartPulse,KeyRound,LogOut,PanelLeftClose,Search,Settings,ShieldCheck,Sparkles,User,Users,Wrench}from"lucide-react";import{ThemeToggle}from"@/components/theme-toggle";import{ToastStack,useToasts}from"@/components/ui/toast-stack";import{SettingsDialog}from"@/components/ui/SettingsDialog";import type{RecordItem,Role}from"@/lib/types";
+import{useCallback,useEffect,useRef,useState}from"react";import{signOut}from"next-auth/react";import Link from"next/link";import{Activity,BedDouble,Building2,CarTaxiFront,ChevronDown,ChevronRight,ClipboardCheck,CircleDollarSign,Crown,FileText,HeartPulse,KeyRound,LogOut,MailCheck,PanelLeftClose,Search,Send,Settings,ShieldCheck,Sparkles,User,Users,Wrench}from"lucide-react";import{ThemeToggle}from"@/components/theme-toggle";import{ToastStack,useToasts}from"@/components/ui/toast-stack";import{SettingsDialog}from"@/components/ui/SettingsDialog";import type{RecordItem,Role}from"@/lib/types";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { HavenSelect } from "@/components/ui/haven-select";
+import { HavenSearchInput } from "@/components/ui/haven-data-controls";
+import { HavenActionItem, type HavenActionItemTone } from "@/components/ui/haven-action-item";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
 import type { FormField } from "@/components/ui/FormDialog";
 import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination";
 import RoomCatalogPanel from "@/components/catalog/room-catalog-panel";
 import TransportServicesPanel from "@/components/catalog/transport-vehicle-types-panel";
 import { migrationStatus, type SystemHealth } from "@/lib/system-health";
-type Section="overview"|"users"|"roles"|"rooms"|"room_types"|"transport_services"|"policy"|"audit"|"security"|"reports"|"system";type User={id:string;name?:string|null;email?:string|null;role:Role};type Overview={metrics:Record<string,number>;roleCounts:Record<string,number>;recentAudit:RecordItem[]};
-const nav:[Section,string,React.ElementType][]=[["overview","Overview",Activity],["users","Users & Staff",Users],["roles","Roles & Permissions",ShieldCheck],["rooms","Room Configuration",Building2],["room_types","Room Types",Building2],["transport_services","Transfer Vehicles",CarTaxiFront],["policy","Hotel Policies",Settings],["audit","Audit Logs",FileText],["security","Security",KeyRound],["reports","Admin Reports",ClipboardCheck],["system","System Health",HeartPulse]];
+import { SessionExpiryGuard } from "@/components/auth/session-expiry-guard";
+type Section="overview"|"users"|"roles"|"rooms"|"room_types"|"transport_services"|"policy"|"audit"|"security"|"security_config"|"reports"|"system";type User={id:string;name?:string|null;email?:string|null;role:Role};type Overview={metrics:Record<string,number>;roleCounts:Record<string,number>;recentAudit:RecordItem[]};
+const nav:[Section,string,React.ElementType][]=[["overview","Overview",Activity],["users","Users & Staff",Users],["roles","Roles & Permissions",ShieldCheck],["rooms","Room Configuration",Building2],["room_types","Room Types",Building2],["transport_services","Transfer Vehicles",CarTaxiFront],["policy","Hotel Policies",Settings],["audit","Audit Logs",FileText],["security","Security events",KeyRound],["security_config","Security Configuration",ShieldCheck],["reports","Admin Reports",ClipboardCheck],["system","System Health",HeartPulse]];
 // Presentational grouping only — admin sees every module; no RBAC filtering on this client.
-export const NAV_GROUPS:{id:string;label:string;sections:Section[]}[]=[{id:"workspace",label:"Workspace",sections:["overview"]},{id:"accounts",label:"Accounts",sections:["users","roles"]},{id:"configuration",label:"Configuration",sections:["rooms","room_types","transport_services","policy"]},{id:"governance",label:"Governance",sections:["audit","security","reports","system"]}];
+export const NAV_GROUPS:{id:string;label:string;sections:Section[]}[]=[{id:"workspace",label:"Workspace",sections:["overview"]},{id:"accounts",label:"Accounts",sections:["users","roles"]},{id:"configuration",label:"Configuration",sections:["rooms","room_types","transport_services","policy"]},{id:"governance",label:"Governance",sections:["audit","security","security_config","reports","system"]}];
 const label=(value:unknown)=>String(value??"—").replaceAll("_"," ");
 // System Administrator display name: internal role id stays "admin"; only
 // user-facing role renders use this.
@@ -26,14 +29,14 @@ const STATUS_OPTIONS=[["active","Active"],["inactive","Inactive"],["suspended","
 // re-renders only the sidebar, not the whole admin workspace (the root-level
 // state made the dropdowns feel unresponsive on click).
 function AdminSidebarNav({section,onSelect}:{section:Section;onSelect:(section:Section)=>void}){const[openGroups,setOpenGroups]=useState<Record<string,boolean>>({});const toggleGroup=(id:string)=>setOpenGroups(prev=>{const next={...prev,[id]:!(prev[id]??false)};localStorage.setItem("haven-admin-sidebar-groups",JSON.stringify(next));return next});useEffect(()=>{const timer=setTimeout(()=>{try{const saved:unknown=JSON.parse(localStorage.getItem("haven-admin-sidebar-groups")??"{}");if(saved&&typeof saved==="object")setOpenGroups(saved as Record<string,boolean>)}catch{}},0);return()=>clearTimeout(timer)},[]);return <nav aria-label="Modules">{NAV_GROUPS.map(group=>{const open=(openGroups[group.id]??false)||group.sections.includes(section);return <div className="nav-group-wrap" key={group.id}><button className="nav-caption nav-group-header" aria-expanded={open} aria-controls={`nav-group-${group.id}`} onClick={()=>toggleGroup(group.id)}><span className="nav-group-label">{group.label}</span><ChevronRight size={13} className="nav-group-chevron" aria-hidden="true"/></button><div className={`nav-group${open?" open":""}`} id={`nav-group-${group.id}`}><div className="nav-group-items">{nav.filter(([key])=>group.sections.includes(key)).map(([key,text,Icon])=><button key={key} className={section===key?"active":""} onClick={()=>onSelect(key)} title={text}><Icon size={18}/><span className="nav-label">{text}</span></button>)}</div></div></div>})}</nav>}
-export default function AdminDashboardClient({user}:{user:User}){const[section,setSection]=useState<Section>("overview"),[data,setData]=useState<unknown>(null),[loadedSection,setLoadedSection]=useState<Section|null>(null),[loading,setLoading]=useState(true),[collapsed,setCollapsed]=useState(()=>typeof window!=="undefined"&&localStorage.getItem("haven-admin-sidebar-collapsed")==="true"),[menu,setMenu]=useState(false),[profileOpen,setProfileOpen]=useState(false),[settingsOpen,setSettingsOpen]=useState(false);const profileMenu=useRef<HTMLDivElement>(null);const loadRequest=useRef(0);
+export default function AdminDashboardClient({user,sessionExpiresAt}:{user:User;sessionExpiresAt?:string|null}){const[section,setSection]=useState<Section>("overview"),[data,setData]=useState<unknown>(null),[loadedSection,setLoadedSection]=useState<Section|null>(null),[loading,setLoading]=useState(true),[loadError,setLoadError]=useState(""),[collapsed,setCollapsed]=useState(()=>typeof window!=="undefined"&&localStorage.getItem("haven-admin-sidebar-collapsed")==="true"),[menu,setMenu]=useState(false),[profileOpen,setProfileOpen]=useState(false),[settingsOpen,setSettingsOpen]=useState(false);const profileMenu=useRef<HTMLDivElement>(null);const loadRequest=useRef(0);
 useEffect(()=>{if(!profileOpen)return;const outside=(event:Event)=>{if(profileMenu.current&&!profileMenu.current.contains(event.target as Node))setProfileOpen(false)};const escape=(event:KeyboardEvent)=>{if(event.key==="Escape")setProfileOpen(false)};document.addEventListener("pointerdown",outside);document.addEventListener("keydown",escape);return()=>{document.removeEventListener("pointerdown",outside);document.removeEventListener("keydown",escape)}},[profileOpen]);
 
   const dialogs = useActionDialogs();
 
   const toastController=useToasts();const notify=(message:string)=>{toastController.push({title:message})};
 
-  const load=useCallback(async(silent=false)=>{const requestedSection=section;const requestId=++loadRequest.current;if(requestedSection==="room_types"||requestedSection==="transport_services"){setLoadedSection(requestedSection);setLoading(false);return}if(!silent)setLoading(true);const response=await fetch(`/api/admin/data?section=${requestedSection}`,{cache:"no-store"}),body=await response.json();if(requestId!==loadRequest.current)return;if(response.ok){setData(body.data);setLoadedSection(requestedSection)}else{setData(null);setLoadedSection(requestedSection);notify(body.error??"Unable to load administrative data.")}if(!silent)setLoading(false)},[section]);useEffect(()=>{const timer=setTimeout(()=>load(),0);return()=>clearTimeout(timer)},[load]);
+  const load=useCallback(async(silent=false)=>{const requestedSection=section;const requestId=++loadRequest.current;if(requestedSection==="room_types"||requestedSection==="transport_services"){setLoadedSection(requestedSection);setLoadError("");setLoading(false);return}if(!silent){setLoading(true);setLoadError("")}const url=requestedSection==="security_config"?"/api/admin/security-policy":`/api/admin/data?section=${requestedSection}`;try{const response=await fetch(url,{cache:"no-store"}),body=await response.json().catch(()=>({}));if(requestId!==loadRequest.current)return;if(!response.ok)throw new Error(body.error??"Unable to load administrative data.");setData(body.data);setLoadedSection(requestedSection);setLoadError("")}catch(cause){if(requestId!==loadRequest.current||silent)return;setLoadError(cause instanceof Error&&cause.message!=="Failed to fetch"?cause.message:"Unable to reach the administration service. Check your connection and try again.")}finally{if(requestId===loadRequest.current&&!silent)setLoading(false)}},[section]);useEffect(()=>{const timer=setTimeout(()=>load(),0);return()=>clearTimeout(timer)},[load]);
  // System Health re-probes every minute while open; the silent flag keeps the
  // loading state off so the refresh does not blank the cards.
  useEffect(()=>{if(section!=="system")return;const timer=setInterval(()=>{load(true)},60000);return()=>clearInterval(timer)},[section,load]);
@@ -59,12 +62,17 @@ useEffect(()=>{if(!profileOpen)return;const outside=(event:Event)=>{if(profileMe
   if(body)notify(`Staff account created inactive. Initiate recovery for ${email} to set a password.`)
 }
  async function userAction(item:RecordItem,action:"status"|"role"|"metadata"|"recovery"){
-  const title=action==="status"?"Change account status":action==="role"?"Change account role":action==="metadata"?"Edit account metadata":"Reset account access";
-  const description=`${item.name} · ${item.email}`;
+  const converting=action==="role"&&String(item.role)==="guest";
+  const title=action==="status"?"Change account status":converting?"Convert guest to staff":action==="role"?"Change account role":action==="metadata"?"Edit account metadata":"Reset account access";
+  const description=converting?`${item.name} · ${item.email}. Conversion creates an inactive staff account and a one-hour recovery link; accounts with booking or financial history need the Owner-only history-carrying conversion.`:`${item.name} · ${item.email}`;
   const reason:FormField={key:"reason",label:"Reason",type:"textarea",required:true,validation:requiredText("Reason")};
   let fields:FormField[]=[reason];
   if(action==="status")fields=[{key:"status",label:"New status",type:"select",required:true,defaultValue:String(item.account_status),options:STATUS_OPTIONS},reason];
-  if(action==="role")fields=[{key:"role",label:"New role",type:"select",required:true,defaultValue:String(item.role),options:ROLE_OPTIONS},reason];
+  if(action==="role")fields=[
+    {key:"role",label:"New role",type:"select",required:true,defaultValue:converting?"front_desk":String(item.role),options:ROLE_OPTIONS},
+    ...(converting?[{key:"department",label:"Department",type:"text",helpText:"Leave blank to use the department assigned to this role."} as FormField,{key:"employeeReference",label:"Employee reference (optional)",type:"text"} as FormField,{key:"withHistory",label:"Carry existing booking history (Owner only)",type:"checkbox",helpText:"Converts despite holds/reservations; history is preserved and audited. Requires an active Owner session."} as FormField]:[]),
+    reason
+  ];
   if(action==="metadata")fields=[
     {key:"name",label:"Name",type:"text",required:true,defaultValue:String(item.name??""),validation:requiredText("Name")},
     {key:"phone",label:"Phone",type:"tel",defaultValue:String(item.phone??"")},
@@ -74,9 +82,10 @@ useEffect(()=>{if(!profileOpen)return;const outside=(event:Event)=>{if(profileMe
   ];
   const data=await dialogs.askForm({title,description,submitText:"Apply change",fields});
   if(!data)return;
-  const payload:Record<string,unknown>={action,reason:String(data.reason),version:item.auth_version};
+  const payload:Record<string,unknown>={action:converting?"convert":action,reason:String(data.reason),version:item.auth_version};
   if(action==="status")payload.status=String(data.status);
   if(action==="role")payload.role=String(data.role);
+  if(converting){payload.expectedEmail=item.email;payload.department=String(data.department??"");payload.employeeReference=String(data.employeeReference??"");payload.withHistory=Boolean(data.withHistory)}
   if(action==="metadata"){
     payload.name=String(data.name??"");
     payload.phone=String(data.phone??"");
@@ -84,8 +93,8 @@ useEffect(()=>{if(!profileOpen)return;const outside=(event:Event)=>{if(profileMe
     payload.employeeReference=String(data.employeeReference??"");
   }
   const body=await post(`/api/admin/users/${item.id}/action`,payload);
-  if(body&&action==="recovery"){await navigator.clipboard.writeText(body.data.recoveryUrl);notify(`Recovery link copied. It expires at ${new Date(body.data.expiresAt).toLocaleString()}.`)}
-}
+  if(body&&(action==="recovery"||converting)){await navigator.clipboard.writeText(body.data.recoveryUrl);notify(`${converting?"Guest converted to inactive staff. ":""}Recovery link copied. It expires at ${new Date(body.data.expiresAt).toLocaleString()}.`)}
+ }
  async function editRoom(item:RecordItem){
   const data=await dialogs.askForm({
     title:`Configure room ${item.number}`,
@@ -132,7 +141,47 @@ useEffect(()=>{if(!profileOpen)return;const outside=(event:Event)=>{if(profileMe
   const body=await patch("/api/admin/policy",{hotelTimezone:String(data.hotelTimezone),checkInTime:String(data.checkInTime),checkOutTime:String(data.checkOutTime),noShowCutoffTime:String(data.noShowCutoffTime),validIdRequired:Boolean(item.valid_id_required),minimumBookingAge:Number(data.minimumBookingAge),cancellationFullRefundDays:Number(data.full),cancellationPartialRefundDays:Number(data.partial),cancellationPartialRefundBasisPoints:Math.round(Number(data.percent)*100),selfServiceModificationDays:Number(data.modification),earlyCheckInAllowed:Boolean(item.early_check_in_allowed),housekeepingInspectionRequired:Boolean(item.housekeeping_inspection_required),vatRateBp:Math.round(Number(data.vat)*100),serviceChargeBp:Math.round(Number(data.serviceCharge)*100),depositSlaHours:Number(data.depositSla),reason:String(data.reason),version:item.version});
   if(body)notify("Policy updated for future transactions; existing reservation snapshots were unchanged.")
 }
- const rows=Array.isArray(data)?data as RecordItem[]:[];const contentLoading=loading||loadedSection!==section;return <div className={`app-shell${collapsed?" sidebar-collapsed":""}`}><aside id="admin-navigation" className={`sidebar${menu?" open":""}${collapsed?" collapsed":""}`}><div className="sidebar-top"><div className="brand"><button className="brand-mark sidebar-brand-toggle" onClick={()=>{if(window.matchMedia("(max-width: 1000px)").matches){setMenu(false)}else{const next=!collapsed;setCollapsed(next);localStorage.setItem("haven-admin-sidebar-collapsed",String(next))}}} aria-label={collapsed?"Expand navigation":"Collapse navigation"} aria-controls="admin-navigation" aria-expanded={!collapsed} title={collapsed?"Expand navigation":"Collapse navigation"}><Sparkles size={17}/></button><Link href="/" className="brand-copy" aria-label="Hotel homepage" title="Hotel homepage">HAVEN<small>SYSTEM ADMINISTRATION</small></Link><button className="sidebar-collapse-button" onClick={()=>{if(!window.matchMedia("(max-width: 1000px)").matches){const next=!collapsed;setCollapsed(next);localStorage.setItem("haven-admin-sidebar-collapsed",String(next))}}} aria-label="Collapse navigation" aria-controls="admin-navigation" aria-expanded={!collapsed} title="Collapse navigation"><PanelLeftClose size={16}/></button></div></div><div className="property-pill"><span>HV</span><div className="property-copy"><b>Haven Makati</b><small>System Administration</small></div><ChevronDown size={15}/></div><AdminSidebarNav section={section} onSelect={(key)=>{setSection(key);setMenu(false)}}/></aside><main className="workspace"><header className="app-header"><button className="menu-btn brand-menu-btn" onClick={()=>setMenu(true)}><span className="brand-mark"><Sparkles size={16}/></span></button><div><p>{nav.find(x=>x[0]===section)?.[1]}</p><small>Secure hotel governance workspace</small></div><div className="header-actions"><ThemeToggle/><div className="profile-menu-wrap" ref={profileMenu}><button className="profile-menu-btn" onClick={()=>setProfileOpen((value)=>!value)} aria-expanded={profileOpen} aria-haspopup="menu" aria-label="Account menu"><b>{(user.name??"A").slice(0,2).toUpperCase()}</b><span>{user.name}</span><ChevronDown size={14}/></button>{profileOpen&&<div className="popover-gap"><div className="profile-popover"><p><strong>{user.name}</strong><small>{user.email}</small><small>{roleLabel(user.role)}</small></p><button onClick={()=>{setProfileOpen(false);setSettingsOpen(true)}}><Settings size={15}/>Settings</button><button onClick={()=>signOut({callbackUrl:"/"})}><LogOut size={15}/>Sign Out</button></div></div>}</div></div></header><ToastStack controller={toastController}/><div className={`workspace-body admin-workspace admin-section-${section}`} aria-busy={contentLoading}>{contentLoading?<div className="empty admin-loading"><Activity/><h3>Loading governance data…</h3><p>Preparing the {nav.find(x=>x[0]===section)?.[1].toLowerCase()} workspace.</p></div>:section==="overview"?<Overview data={data as Overview} setSection={setSection}/>:section==="users"?<UsersView rows={rows} create={createStaff} action={userAction}/>:section==="rooms"?<RoomsView rows={rows} configure={editRoom}/>:section==="room_types"?<RoomCatalogPanel role="admin"/>:section==="transport_services"?<TransportServicesPanel/>:section==="policy"?<PolicyView item={data as RecordItem} edit={editPolicy}/>:section==="roles"?<RolesView data={data}/>:section==="audit"||section==="security"?<AuditView security={section==="security"} rows={rows}/>:section==="system"?<SystemHealthView data={data as SystemHealth} onRefresh={()=>load()} />:<Reports data={data as Overview}/>}</div></main>{settingsOpen&&<SettingsDialog isOpen onClose={()=>setSettingsOpen(false)}/>}{dialogs.view}</div>}
+ async function saveSecurityPolicy(item:RecordItem){
+  const idleOpts=[["10","10 minutes"],["15","15 minutes"],["30","30 minutes"],["45","45 minutes"],["60","1 hour"],["120","2 hours"],["240","4 hours"],["480","8 hours"]].map(([value,optLabel])=>({value,label:optLabel}));
+  const absoluteOpts=[["60","1 hour"],["120","2 hours"],["240","4 hours"],["480","8 hours"],["720","12 hours"],["1440","24 hours"]].map(([value,optLabel])=>({value,label:optLabel}));
+  const data=await dialogs.askForm({
+    title:"Update security configuration",
+    description:"Takes effect at the next session validation and for new sign-ins. Existing sessions are never silently revoked.",
+    size:"lg",
+    submitText:"Review changes",
+    fields:[
+      {key:"persistent",label:"Persistent login / Remember Me",type:"select",required:true,defaultValue:item.persistent_session_enabled?"on":"off",options:[{value:"on",label:"On — offer Keep me signed in"},{value:"off",label:"Off — standard sessions only"}]},
+      {key:"idle",label:"Inactivity timeout",type:"select",required:true,defaultValue:String(item.idle_timeout_minutes??30),options:idleOpts},
+      {key:"absolute",label:"Maximum session lifetime",type:"select",required:true,defaultValue:String(item.absolute_session_minutes??480),options:absoluteOpts},
+      {key:"otp",label:"Require email OTP at login",type:"select",required:true,defaultValue:item.login_otp_enabled?"on":"off",options:[{value:"on",label:"On — password plus emailed code"},{value:"off",label:"Off — password only"}]},
+      {key:"ttl",label:"OTP validity",type:"select",required:true,defaultValue:String(item.otp_ttl_seconds??300),options:[["180","3 minutes"],["300","5 minutes"],["600","10 minutes"]].map(([value,optLabel])=>({value,label:optLabel}))},
+      {key:"cooldown",label:"Resend cooldown",type:"select",required:true,defaultValue:String(item.otp_resend_cooldown_seconds??60),options:[["30","30 seconds"],["60","60 seconds"],["120","120 seconds"]].map(([value,optLabel])=>({value,label:optLabel}))},
+      {key:"attempts",label:"Maximum attempts",type:"select",required:true,defaultValue:String(item.otp_max_attempts??5),options:[["3","3 attempts"],["5","5 attempts"],["10","10 attempts"]].map(([value,optLabel])=>({value,label:optLabel}))},
+      {key:"reason",label:"Reason for change",type:"textarea",required:true,validation:requiredText("Reason for change")},
+    ],
+  });
+  if(!data)return;
+  const persistent=String(data.persistent)==="on",idle=Number(data.idle),absolute=Number(data.absolute);
+  const otp=String(data.otp)==="on",ttl=Number(data.ttl),cooldown=Number(data.cooldown),attempts=Number(data.attempts);
+  if(!Number.isInteger(idle)||!Number.isInteger(absolute)||absolute<idle){notify("Maximum session lifetime must not be shorter than the inactivity timeout.");return}
+  const fmt=(minutes:number)=>minutes<60?`${minutes} min`:`${minutes/60} h`;
+  const changes:string[]=[];
+  if(persistent!==Boolean(item.persistent_session_enabled))changes.push(`Persistent login\n${item.persistent_session_enabled?"On":"Off"} → ${persistent?"On":"Off"}`);
+  if(idle!==Number(item.idle_timeout_minutes))changes.push(`Inactivity timeout\n${fmt(Number(item.idle_timeout_minutes))} → ${fmt(idle)}`);
+  if(absolute!==Number(item.absolute_session_minutes))changes.push(`Maximum session lifetime\n${fmt(Number(item.absolute_session_minutes))} → ${fmt(absolute)}`);
+  const ttlFmt=(s:number)=>`${s/60} min`;
+  if(otp!==Boolean(item.login_otp_enabled))changes.push(`Login OTP\n${item.login_otp_enabled?"On":"Off"} → ${otp?"On":"Off"}`);
+  if(ttl!==Number(item.otp_ttl_seconds??300))changes.push(`OTP validity\n${ttlFmt(Number(item.otp_ttl_seconds??300))} → ${ttlFmt(ttl)}`);
+  if(cooldown!==Number(item.otp_resend_cooldown_seconds??60))changes.push(`Resend cooldown\n${Number(item.otp_resend_cooldown_seconds??60)} sec → ${cooldown} sec`);
+  if(attempts!==Number(item.otp_max_attempts??5))changes.push(`Maximum attempts\n${Number(item.otp_max_attempts??5)} → ${attempts}`);
+  if(!changes.length){notify("No security changes to apply.");return}
+  const enablingOtp=otp&&!item.login_otp_enabled;
+  const ok=await dialogs.askConfirm({title:"Update security configuration?",message:`These changes affect authentication and session behavior for HAVEN users.\n\nSummary:\n\n${changes.join("\n\n")}${enablingOtp?"\n\nEnable login OTP only after SMTP is configured and the connection test passes — without delivery, nobody can sign in.":""}`,confirmText:"Confirm update",variant:"warning"});
+  if(!ok)return;
+  const body=await patch("/api/admin/security-policy",{persistentSessionEnabled:persistent,idleTimeoutMinutes:idle,absoluteSessionMinutes:absolute,loginOtpEnabled:otp,otpTtlSeconds:ttl,otpResendCooldownSeconds:cooldown,otpMaxAttempts:attempts,reason:String(data.reason),version:item.version});
+  if(body)notify("Security configuration updated and audited.")
+}
+ const rows=Array.isArray(data)?data as RecordItem[]:[];const contentLoading=loading||(!loadError&&loadedSection!==section);return <div className={`app-shell${collapsed?" sidebar-collapsed":""}`}><aside id="admin-navigation" className={`sidebar${menu?" open":""}${collapsed?" collapsed":""}`}><div className="sidebar-top"><div className="brand"><button className="brand-mark sidebar-brand-toggle" onClick={()=>{if(window.matchMedia("(max-width: 1000px)").matches){setMenu(false)}else{const next=!collapsed;setCollapsed(next);localStorage.setItem("haven-admin-sidebar-collapsed",String(next))}}} aria-label={collapsed?"Expand navigation":"Collapse navigation"} aria-controls="admin-navigation" aria-expanded={!collapsed} title={collapsed?"Expand navigation":"Collapse navigation"}><Sparkles size={17}/></button><Link href="/" className="brand-copy" aria-label="Hotel homepage" title="Hotel homepage">HAVEN<small>SYSTEM ADMINISTRATION</small></Link><button className="sidebar-collapse-button" onClick={()=>{if(!window.matchMedia("(max-width: 1000px)").matches){const next=!collapsed;setCollapsed(next);localStorage.setItem("haven-admin-sidebar-collapsed",String(next))}}} aria-label="Collapse navigation" aria-controls="admin-navigation" aria-expanded={!collapsed} title="Collapse navigation"><PanelLeftClose size={16}/></button></div></div><div className="property-pill"><span>HV</span><div className="property-copy"><b>Haven Makati</b><small>System Administration</small></div><ChevronDown size={15}/></div><AdminSidebarNav section={section} onSelect={(key)=>{setSection(key);setMenu(false)}}/></aside><main className="workspace"><header className="app-header"><button className="menu-btn brand-menu-btn" onClick={()=>setMenu(true)}><span className="brand-mark"><Sparkles size={16}/></span></button><div><p>{nav.find(x=>x[0]===section)?.[1]}</p><small>Secure hotel governance workspace</small></div><div className="header-actions"><SessionExpiryGuard expiresAt={sessionExpiresAt}/><ThemeToggle/><div className="profile-menu-wrap" ref={profileMenu}><button className="profile-menu-btn" onClick={()=>setProfileOpen((value)=>!value)} aria-expanded={profileOpen} aria-haspopup="menu" aria-label="Account menu"><b>{(user.name??"A").slice(0,2).toUpperCase()}</b><span>{user.name}</span><ChevronDown size={14}/></button>{profileOpen&&<div className="popover-gap"><div className="profile-popover"><p><strong>{user.name}</strong><small>{user.email}</small><small>{roleLabel(user.role)}</small></p><button onClick={()=>{setProfileOpen(false);setSettingsOpen(true)}}><Settings size={15}/>Settings</button><button onClick={()=>signOut({callbackUrl:"/"})}><LogOut size={15}/>Sign Out</button></div></div>}</div></div></header><ToastStack controller={toastController}/><div className={`workspace-body admin-workspace admin-section-${section}`} aria-busy={contentLoading}>{contentLoading?<div className="empty admin-loading"><Activity/><h3>Loading governance data…</h3><p>Preparing the {nav.find(x=>x[0]===section)?.[1].toLowerCase()} workspace.</p></div>:loadError?<div className="empty admin-loading" role="alert"><Activity/><h3>Administrative data unavailable</h3><p>{loadError}</p><button className="btn btn-accent" onClick={()=>void load()}>Try again</button></div>:section==="overview"?<Overview data={data as Overview} setSection={setSection}/>:section==="users"?<UsersView rows={rows} create={createStaff} action={userAction}/>:section==="rooms"?<RoomsView rows={rows} configure={editRoom}/>:section==="room_types"?<RoomCatalogPanel role="admin"/>:section==="transport_services"?<TransportServicesPanel/>:section==="security_config"?<SecurityConfigView item={data as RecordItem} save={saveSecurityPolicy} notify={notify}/>:section==="policy"?<PolicyView item={data as RecordItem} edit={editPolicy}/>:section==="roles"?<RolesView data={data}/>:section==="audit"||section==="security"?<AuditView security={section==="security"} rows={rows}/>:section==="system"?<SystemHealthView data={data as SystemHealth} onRefresh={()=>load()} />:<Reports data={data as Overview}/>}</div></main>{settingsOpen&&<SettingsDialog isOpen onClose={()=>setSettingsOpen(false)}/>}{dialogs.view}</div>}
 function Overview({data,setSection}:{data:Overview;setSection:(s:Section)=>void}){
  const m=data.metrics??{},attention=Number(m.attention??0);
  const quickActions:{label:string;detail:string;section:Section;Icon:React.ElementType}[]=[
@@ -141,6 +190,7 @@ function Overview({data,setSection}:{data:Overview;setSection:(s:Section)=>void}
   {label:"Configure rooms",detail:"Maintain room metadata and status",section:"rooms",Icon:Building2},
   {label:"Update hotel policy",detail:"Control rules for future bookings",section:"policy",Icon:Settings},
   {label:"Review security",detail:"Inspect access and recovery events",section:"security",Icon:KeyRound},
+  {label:"Security configuration",detail:"Control session and verification safeguards",section:"security_config",Icon:ShieldCheck},
  ];
  const health:{label:string;value:number;detail:string;section:Section;Icon:React.ElementType;tone:string}[]=[
   {label:"Needs attention",value:attention,detail:"Suspended or recovery-required",section:"security",Icon:KeyRound,tone:attention>0?"attention":"healthy"},
@@ -152,11 +202,13 @@ function Overview({data,setSection}:{data:Overview;setSection:(s:Section)=>void}
   {label:"Guest accounts",value:Number(m.guestAccounts??0),detail:"Customer portal users",section:"users",Icon:Users,tone:"neutral"},
   {label:"Room types",value:Number(m.roomTypes??0),detail:"Room categories in the catalogue",section:"room_types",Icon:Building2,tone:"neutral"},
  ];
- const roles=Object.entries(data.roleCounts??{}).sort((a,b)=>b[1]-a[1]),maxRole=Math.max(1,...roles.map(([,count])=>count));
+  const healthTone=(tone:string):HavenActionItemTone=>tone==="attention"?"rose":tone==="caution"?"amber":tone==="healthy"?"green":"neutral";
+  const healthQuiet=(tone:string,value:number)=>value===0&&(tone==="attention"||tone==="caution");
+  const roles=Object.entries(data.roleCounts??{}).sort((a,b)=>b[1]-a[1]),maxRole=Math.max(1,...roles.map(([,count])=>count));
  return <div className="admin-overview">
   <div className="page-title admin-overview-title"><div><h1>Governance at a glance</h1><p>Live account health, hotel configuration, and immutable administrative activity.</p></div><div className={`admin-posture ${attention>0?"attention":"healthy"}`}><ShieldCheck size={19}/><span><strong>{attention>0?`${attention} account${attention===1?"":"s"} need review`:"Account access is clear"}</strong><small>Based on suspension and recovery flags</small></span><button type="button" onClick={()=>setSection("security")}>Review<ChevronRight size={15}/></button></div></div>
-  <section className="admin-quick-section" aria-labelledby="admin-quick-title"><div className="admin-section-heading"><div><h2 id="admin-quick-title">Quick actions</h2><p>Open the most-used administration tools.</p></div></div><div className="admin-quick-actions">{quickActions.map(({label:actionLabel,detail,section:target,Icon})=><button type="button" key={target} onClick={()=>setSection(target)} aria-label={`${actionLabel}: ${detail}`}><Icon size={18}/><span><strong>{actionLabel}</strong><small>{detail}</small></span><ChevronRight size={16}/></button>)}</div></section>
-  <section className="admin-health-section" aria-labelledby="admin-health-title"><div className="admin-section-heading"><div><h2 id="admin-health-title">System health</h2><p>Select an indicator to open its source module.</p></div><span>Live Supabase records</span></div><div className="admin-health-grid">{health.map(({label:metricLabel,value,detail,section:target,Icon,tone})=><button type="button" className={`admin-health-card ${tone}`} key={metricLabel} onClick={()=>setSection(target)} aria-label={`${metricLabel}: ${value}. Open ${nav.find(([key])=>key===target)?.[1]??target}`}><span className="admin-health-copy"><small>{metricLabel}</small><strong>{value}</strong><em>{detail}</em></span><i><Icon size={18}/></i><ChevronRight className="admin-health-arrow" size={15}/></button>)}</div></section>
+   <section className="admin-quick-section" aria-labelledby="admin-quick-title"><div className="admin-section-heading"><div><h2 id="admin-quick-title">Quick actions</h2><p>Open the most-used administration tools.</p></div></div><div className="admin-quick-actions">{quickActions.map(({label:actionLabel,detail,section:target,Icon})=><HavenActionItem key={target} icon={Icon} tone="neutral" title={actionLabel} description={detail} onAction={()=>setSection(target)} />)}</div></section>
+   <section className="admin-health-section" aria-labelledby="admin-health-title"><div className="admin-section-heading"><div><h2 id="admin-health-title">System health</h2><p>Select an indicator to open its source module.</p></div><span>Live Supabase records</span></div><div className="admin-health-grid">{health.map(({label:metricLabel,value,detail,section:target,Icon,tone})=><HavenActionItem key={metricLabel} variant="stat" icon={Icon} tone={healthTone(tone)} quiet={healthQuiet(tone,Number(value))} title={metricLabel} value={value} description={detail} onAction={()=>setSection(target)} actionLabel={`${metricLabel}: ${value}. Open ${nav.find(([key])=>key===target)?.[1]??target}`} />)}</div></section>
   <div className="admin-overview-lower">
    <section className="panel admin-role-panel" aria-labelledby="admin-role-title"><div className="panel-heading"><div><h3 id="admin-role-title">Account distribution</h3><p>Current accounts by assigned role</p></div><button type="button" onClick={()=>setSection("roles")}>Review permissions</button></div><div className="admin-role-list">{roles.map(([role,count])=><div className="admin-role-row" key={role}><span><strong>{roleLabel(role)}</strong><small>{count} account{count===1?"":"s"}</small></span><div className="admin-role-meter" aria-hidden="true"><i style={{width:`${Math.max(4,count/maxRole*100)}%`}}/></div><b>{count}</b></div>)}</div></section>
    <section className="data-panel admin-audit-panel" aria-labelledby="admin-audit-title"><div className="panel-heading"><div><h3 id="admin-audit-title">Recent governance activity</h3><p>Latest immutable administrative events</p></div><button type="button" onClick={()=>setSection("audit")}>View audit log</button></div><AuditRows rows={data.recentAudit??[]}/></section>
@@ -185,7 +237,7 @@ export function UsersView({rows,create,action}:{rows:RecordItem[];create:()=>voi
   {label:"Recovery required",value:counts.recovery,hint:"Awaiting an access reset",icon:KeyRound,tone:"today",queue:"recovery:required"},
   {label:"Staff accounts",value:counts.staff,hint:"Operational and governance roles",icon:Users},
  ]}/>
- <div className="reservation-filters approval-toolbar"><div className="approval-filters"><label className="approval-search"><Search size={15}/><input value={search} onChange={event=>setSearch(event.target.value)} aria-label="Search accounts" placeholder="Search name, email, department, or reference..."/></label><div className="haven-filter"><span>Role</span><HavenSelect value={role} onChange={setRole} ariaLabel="Filter by role" options={[{ value: "all", label: "All roles" }, ...roles.map(value=>({ value, label: roleLabel(value) }))]} /></div><div className="haven-filter"><span>Status</span><HavenSelect value={status} onChange={setStatus} ariaLabel="Filter by status" options={[{ value: "all", label: "All statuses" }, ...STATUS_OPTIONS.map(option=>({ value: option.value, label: option.label }))]} /></div><div className="haven-filter"><span>Recovery</span><HavenSelect value={recovery} onChange={setRecovery} ariaLabel="Filter by recovery state" options={[{ value: "all", label: "All accounts" }, { value: "required", label: "Recovery required" }, { value: "no", label: "No recovery needed" }]} /></div><div className="haven-filter"><span>Department</span><HavenSelect value={department} onChange={setDepartment} ariaLabel="Filter by department" options={[{ value: "all", label: "All departments" }, ...departments.map(value=>({ value, label: label(value) }))]} /></div></div></div>
+ <div className="reservation-filters approval-toolbar"><div className="approval-filters">   <HavenSearchInput value={search} onValueChange={setSearch} label="Search accounts" placeholder="Search name, email, department, or reference..."/><div className="haven-filter"><span>Role</span><HavenSelect value={role} onChange={setRole} ariaLabel="Filter by role" options={[{ value: "all", label: "All roles" }, ...roles.map(value=>({ value, label: roleLabel(value) }))]} /></div><div className="haven-filter"><span>Status</span><HavenSelect value={status} onChange={setStatus} ariaLabel="Filter by status" options={[{ value: "all", label: "All statuses" }, ...STATUS_OPTIONS.map(option=>({ value: option.value, label: option.label }))]} /></div><div className="haven-filter"><span>Recovery</span><HavenSelect value={recovery} onChange={setRecovery} ariaLabel="Filter by recovery state" options={[{ value: "all", label: "All accounts" }, { value: "required", label: "Recovery required" }, { value: "no", label: "No recovery needed" }]} /></div><div className="haven-filter"><span>Department</span><HavenSelect value={department} onChange={setDepartment} ariaLabel="Filter by department" options={[{ value: "all", label: "All departments" }, ...departments.map(value=>({ value, label: label(value) }))]} /></div></div></div>
  <div className="data-panel"><div className="table-scroll"><table aria-label="Staff accounts"><thead><tr>{["Name","Email","Role","Department","Status","Recovery","Version","Actions"].map(x=><th key={x}>{x}</th>)}</tr></thead><tbody>{page.rows.map(item=><tr key={item.id}><td><strong>{item.name}</strong></td><td>{item.email}</td><td>{roleLabel(item.role)}</td><td>{label(item.department)}</td><td><span className={`badge ${item.account_status}`}>{label(item.account_status)}</span></td><td>{item.recovery_required?"Required":"No"}</td><td>{item.auth_version}</td><td><div className="reservation-actions"><button className="table-action" onClick={()=>action(item,"metadata")}>Edit</button><button className="table-action" onClick={()=>action(item,"role")}>Role</button><button className="table-action" onClick={()=>action(item,"status")}>Lifecycle</button><button className="table-action" onClick={()=>action(item,"recovery")}>Recovery</button></div></td></tr>)}</tbody></table></div>
  {visible.length===0&&<div className="empty"><Search/><h3>No accounts match these filters</h3><p>Try clearing the filters to see every account.</p><button className="table-action" onClick={clearFilters}>Clear filters</button></div>}
  <TablePagination {...page} onPageChange={page.setPage} noun={`account${rows.length!==1?"s":""}`} allTotal={rows.length} note="Every lifecycle, role, and recovery change is server-authorized and audited."/></div></>}
@@ -207,7 +259,7 @@ export function RoomsView({rows,configure}:{rows:RecordItem[];configure:(x:Recor
   {label:"Floors",value:floors,hint:"Distinct floor levels",icon:Building2,tone:"today"},
  ]}/>
  <div className="reservation-filters approval-toolbar"><div className="approval-filters">
-  <label className="approval-search"><Search size={15}/><input value={search} onChange={event=>setSearch(event.target.value)} aria-label="Search rooms" placeholder="Search number, type, wing, or designation..."/></label>
+   <HavenSearchInput value={search} onValueChange={setSearch} label="Search rooms" placeholder="Search number, type, wing, or designation..."/>
   <div className="haven-filter"><span>Status</span><HavenSelect value={active} onChange={setActive} ariaLabel="Filter by administrative status" options={[{ value: "all", label: "All statuses" }, { value: "active", label: "Administratively active" }, { value: "inactive", label: "Administratively inactive" }]} /></div>
   <div className="haven-filter"><span>Type</span><HavenSelect value={type} onChange={setType} ariaLabel="Filter by room type" options={[{ value: "all", label: "All types" }, ...types.map(value=>({ value, label: value }))]} /></div>
   <div className="haven-filter"><span>Wing</span><HavenSelect value={wing} onChange={setWing} ariaLabel="Filter by wing" options={[{ value: "all", label: "All wings" }, ...wings.map(value=>({ value, label: label(value) }))]} /></div>
@@ -236,7 +288,7 @@ export function AuditView({security,rows}:{security:boolean;rows:RecordItem[]}){
   {label:"Latest event",value:latest?latest.split(", ")[0]:"—",hint:latest?`Recorded ${latest}`:"No events yet",icon:Activity},
  ]}/>
  <div className="reservation-filters approval-toolbar"><div className="approval-filters">
-  <label className="approval-search"><Search size={15}/><input value={search} onChange={event=>setSearch(event.target.value)} aria-label="Search events" placeholder="Search action, entity, or record..."/></label>
+   <HavenSearchInput value={search} onValueChange={setSearch} label="Search events" placeholder="Search action, entity, or record..."/>
   <div className="haven-filter"><span>Action</span><HavenSelect value={action} onChange={setAction} ariaLabel="Filter by action" options={[{ value: "all", label: "All actions" }, ...actions.map(value=>({ value, label: label(value) }))]} /></div>
   <div className="haven-filter"><span>Entity</span><HavenSelect value={entity} onChange={setEntity} ariaLabel="Filter by entity" options={[{ value: "all", label: "All entities" }, ...entities.map(value=>({ value, label: label(value) }))]} /></div>
  </div></div>
@@ -271,6 +323,80 @@ const POLICY_GROUPS:{title:string;note:string;fields:[string,string][]}[]=[
 const policyValue=(key:string,value:unknown)=>{if(key==="cancellation_partial_refund_basis_points"||key==="vat_rate_bp"||key==="service_charge_bp")return `${Number(value)/100}%`;if(typeof value==="boolean")return value?"Yes":"No";if(key.endsWith("_time"))return String(value??"").slice(0,5);return label(value)};
 // Exported for the jsdom render test (admin-views.test.tsx).
 export function PolicyView({item,edit}:{item:RecordItem;edit:(x:RecordItem)=>void}){const entries=Object.entries(item??{}).filter(([key])=>!["key","version"].includes(key));const known=new Set(POLICY_GROUPS.flatMap(group=>group.fields.map(([key])=>key)));const extras=entries.filter(([key])=>!known.has(key)&&key!=="updated_at");const groups=[...POLICY_GROUPS,...extras.length?[{title:"Additional settings",note:"Recorded on the policy row",fields:extras.map(([key])=>[key,label(key).replace(/^./,c=>c.toUpperCase())] as [string,string])}]:[]];return <><div className="page-title"><div><p className="admin-section-context">Future operations</p><h1>Operational policy</h1><p>Updates affect future transactions. Existing reservation snapshots remain unchanged.</p></div><button className="btn btn-accent" onClick={()=>edit(item)}>Update policy</button></div><div className="data-panel admin-policy-panel">{item?.updated_at&&<p className="admin-policy-meta">Version {label(item.version)} · updated {new Date(String(item.updated_at)).toLocaleString("en-PH",{dateStyle:"medium",timeStyle:"short"})}</p>}<div className="admin-policy-groups">{groups.map(group=><section key={group.title}><h4>{group.title}</h4><p>{group.note}</p><dl>{group.fields.filter(([key])=>key in (item??{})).map(([key,name])=><div key={key}><dt>{name}</dt><dd>{policyValue(key,item?.[key])}</dd></div>)}</dl></section>)}</div></div></>}
+// Security Configuration: the unified authentication and session-security
+// workspace. Editable policy (session + email OTP) is interactive; enforced
+// protections and delivery status are read-only facts, never styled as inputs.
+type DeliveryStatus={configured:boolean;sender:string|null;lastChecked:string|null;lastResult:string|null;otpReady:boolean};
+function EmailDeliveryPanel({notify}:{notify:(message:string)=>void}){
+ const[status,setStatus]=useState<DeliveryStatus|null>(null);
+ const[busy,setBusy]=useState<"verify"|"send"|null>(null);
+ const load=useCallback(async()=>{const response=await fetch("/api/admin/email-delivery",{cache:"no-store"});const body=await response.json().catch(()=>null);if(response.ok&&body?.data)setStatus(body.data)},[]);
+ useEffect(()=>{void load()},[load]);
+ async function act(action:"verify"|"send"){
+  setBusy(action);
+  const response=await fetch("/api/admin/email-delivery",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action})});
+  const body=await response.json().catch(()=>null);
+  setBusy(null);
+  if(response.ok){notify(action==="verify"?"SMTP connection passed.":"Test email sent to your address.");await load()}
+  else notify(body?.error??"Delivery check failed.");
+ }
+ const tone=status?(status.otpReady?"paid":status.configured?"pending":"expired"):"";
+ const state=status?(status.otpReady?"Ready":status.configured?(status.lastResult==="passed"?"Configured":"Not verified"):"Not configured"):"Checking…";
+ const checked=status?.lastChecked?new Date(status.lastChecked).toLocaleString("en-PH",{dateStyle:"medium",timeStyle:"short"}):"Never";
+ return <section><h4>Email delivery</h4><p>Real delivery state — Ready appears only after a passing connection test.</p><dl>
+  <div><dt>SMTP configuration</dt><dd>{status?(status.configured?"Configured":"Not configured"):state}</dd></div>
+  <div><dt>Connection test</dt><dd>{status?(status.lastResult==="passed"?"Passed":status.lastResult==="failed"?"Failed":"Not yet tested"):state}</dd></div>
+  <div><dt>Last checked</dt><dd>{checked}</dd></div>
+  <div><dt>OTP delivery</dt><dd><span className={`badge ${tone}`}>{state}</span></dd></div>
+ </dl>
+ {status&&!status.configured&&<p className="admin-policy-warn">Configure SMTP before enabling login OTP — without delivery, nobody can sign in.</p>}
+ <div className="reservation-actions"><button className="table-action" onClick={()=>act("verify")} disabled={busy!==null}>{busy==="verify"?"Testing…":"Test connection"}</button><button className="table-action" onClick={()=>act("send")} disabled={busy!==null}>{busy==="send"?"Sending…":"Send test email"}</button></div></section>;
+}
+export function SecurityConfigView({item,save,notify}:{item:RecordItem;save:(x:RecordItem)=>void;notify:(message:string)=>void}){
+ const fmt=(minutes:number)=>Number.isFinite(minutes)?(minutes<60?`${minutes} min`:`${minutes/60} h`):"—";
+ if(!item||item.idle_timeout_minutes==null)return <><div className="page-title"><div><p className="admin-section-context">Authentication & session security</p><h1>Security configuration</h1><p>Manage how HAVEN protects account access.</p></div></div><div className="empty admin-module-empty"><ShieldCheck/><h3>Security configuration unavailable</h3><p>The security policy could not be read. Refresh the module to try again.</p></div></>;
+ const persistent=item.persistent_session_enabled===true;
+ const idle=Number(item.idle_timeout_minutes),absolute=Number(item.absolute_session_minutes);
+ const otp=item.login_otp_enabled===true;
+ const ttlMin=Math.round(Number(item.otp_ttl_seconds??300)/60),cooldownSec=Number(item.otp_resend_cooldown_seconds??60),attempts=Number(item.otp_max_attempts??5);
+ const history=(item.history??null) as null|{updatedAt?:unknown;updatedBy?:unknown;reason?:unknown;version?:unknown;changes?:{label?:unknown;from?:unknown;to?:unknown}[]};
+ const historyChanges=Array.isArray(history?.changes)?(history?.changes??[]).filter((c)=>c&&typeof c.label==="string"):[];
+ return <><div className="page-title"><div><p className="admin-section-context">Authentication & session security</p><h1>Security configuration</h1><p>Manage how HAVEN protects account access.</p></div><button className="btn btn-accent" onClick={()=>save(item)}>Save security configuration</button></div>
+ <ModuleSummaryCards ariaLabel="Security summary" cards={[
+  {label:"Session policy",value:"Configured",hint:`Version ${label(item.version)}`,icon:ShieldCheck,tone:"done"},
+  {label:"Persistent login",value:persistent?"On":"Off",hint:persistent?"Keep me signed in is offered":"Standard sessions only",icon:KeyRound,tone:persistent?"today":"active"},
+  {label:"Idle timeout",value:fmt(idle),hint:"Inactivity limit",icon:Activity},
+  {label:"Maximum lifetime",value:fmt(absolute),hint:"Absolute session limit",icon:Activity,tone:"active"},
+  {label:"Login OTP",value:otp?"On":"Off",hint:otp?`${ttlMin} min code · ${attempts} attempts`:"Password only",icon:MailCheck,tone:otp?"today":"active"},
+  {label:"Email delivery",value:"See below",hint:"Live status in the panel",icon:Send},
+ ]}/>
+ <div className="data-panel admin-policy-panel"><div className="admin-policy-groups">
+  <section><h4>Session & cookie security</h4><p>The authentication cookie itself is mandatory — this panel governs persistence and timeouts only.</p><dl>
+   <div><dt>Persistent login / Remember Me</dt><dd>{persistent?"On — eligible users may remain signed in longer":"Off"}</dd></div>
+   <div><dt>Inactivity timeout</dt><dd>{fmt(idle)}</dd></div>
+   <div><dt>Maximum session lifetime</dt><dd>{fmt(absolute)}</dd></div>
+  </dl></section>
+  <section><h4>Email OTP security</h4><p>Password plus a single-use emailed code at login. Account recovery links stay separate.</p><dl>
+   <div><dt>Require email OTP at login</dt><dd>{otp?"On":"Off"}</dd></div>
+   <div><dt>OTP validity</dt><dd>{ttlMin} min</dd></div>
+   <div><dt>Resend cooldown</dt><dd>{cooldownSec} sec</dd></div>
+   <div><dt>Maximum attempts</dt><dd>{attempts}</dd></div>
+  </dl></section>
+  <EmailDeliveryPanel notify={notify}/>
+  <section><h4>Enforced security protections</h4><p>Always on. No administrator control can disable these.</p><dl>
+   <div><dt>HttpOnly</dt><dd>Enforced</dd></div>
+   <div><dt>Secure</dt><dd>Enforced in production</dd></div>
+   <div><dt>SameSite</dt><dd>Enforced</dd></div>
+   <div><dt>Password hashing</dt><dd>bcrypt</dd></div>
+   <div><dt>Server-side verification</dt><dd>Enforced</dd></div>
+  </dl></section>
+  <section><h4>Configuration history</h4><p>Latest audited security-policy change.</p><dl>
+   <div><dt>Last updated</dt><dd>{history?.updatedAt?new Date(String(history.updatedAt)).toLocaleString("en-PH",{dateStyle:"medium",timeStyle:"short"}):"No changes recorded yet"}</dd></div>
+   {history&&<><div><dt>Updated by</dt><dd>{String(history.updatedBy??"—")}</dd></div><div><dt>Reason</dt><dd>{String(history.reason??"—")}</dd></div><div><dt>Version</dt><dd>{String(history.version??"—")}</dd></div></>}
+  </dl>
+  {historyChanges.length>0&&<ul className="admin-config-list">{historyChanges.map((c)=><li key={String(c.label)}><span>{String(c.label)}</span><b>{`${String(c.from)} → ${String(c.to)}`}</b></li>)}</ul>}</section>
+ </div></div></>
+}
 function AuditRows({rows}:{rows:RecordItem[]}){const page=useTablePagination(rows,5);if(!rows.length)return <div className="admin-audit-empty"><FileText size={22}/><h3>No governance activity yet</h3><p>Administrative and security changes will appear here as they are recorded.</p></div>;return <><div className="table-scroll"><table aria-label="Activity log"><thead><tr><th>Time</th><th>Action</th><th>Entity</th><th>Record</th></tr></thead><tbody>{page.rows.map(item=><tr key={item.id}><td>{new Date(String(item.created_at)).toLocaleString()}</td><td>{label(item.action)}</td><td>{label(item.entity_type)}</td><td>{label(item.entity_id)}</td></tr>)}</tbody></table></div><TablePagination {...page} onPageChange={page.setPage} noun="events" note="Newest governance activity first."/></>}
 // Governance report over the same overview payload the landing section uses:
 // account totals, role distribution with shares, and configuration state.

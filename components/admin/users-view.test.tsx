@@ -4,7 +4,7 @@
 // with the visible table and the footer count, and Clear filters restores
 // everything. Pure render; no fetches.
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { UsersView } from "./admin-dashboard-client";
 import type { RecordItem } from "@/lib/types";
 
@@ -98,17 +98,17 @@ describe("UsersView filters", () => {
     expect(within(tableRows()[0]).getByText("Dino Tan")).toBeTruthy();
   });
 
-  it("searches name, email, and employee reference case-insensitively", () => {
+  it("searches name, email, and employee reference case-insensitively", async () => {
     renderView();
     const search = screen.getByLabelText("Search accounts");
     fireEvent.change(search, { target: { value: "ana" } });
-    expect(tableRows()).toHaveLength(1);
+    await waitFor(() => expect(tableRows()).toHaveLength(1));
     fireEvent.change(search, { target: { value: "CARLA@MAIL" } });
-    expect(tableRows()).toHaveLength(1);
+    await waitFor(() => expect(tableRows()).toHaveLength(1));
     fireEvent.change(search, { target: { value: "FD-001" } });
-    expect(tableRows()).toHaveLength(1);
+    await waitFor(() => expect(tableRows()).toHaveLength(1));
     fireEvent.change(search, { target: { value: "no such person" } });
-    expect(tableRows()).toHaveLength(0);
+    await waitFor(() => expect(tableRows()).toHaveLength(0));
   });
 
   it("renders summary cards that match the filter counts and drive the filters", () => {
@@ -130,12 +130,12 @@ describe("UsersView filters", () => {
     expect(screen.getByText("Showing 1 of 4 accounts")).toBeTruthy();
   });
 
-  it("shows the clear-filters empty state and restores every row", () => {
+  it("shows the clear-filters empty state and restores every row", async () => {
     renderView();
     fireEvent.change(screen.getByLabelText("Search accounts"), { target: { value: "no such person" } });
-    expect(screen.getByText("No accounts match these filters")).toBeTruthy();
+    expect(await screen.findByText("No accounts match these filters")).toBeTruthy();
     fireEvent.click(screen.getByText("Clear filters"));
-    expect(tableRows()).toHaveLength(4);
+    await waitFor(() => expect(tableRows()).toHaveLength(4));
     expect(screen.getByText("Showing 4 of 4 accounts")).toBeTruthy();
   });
 

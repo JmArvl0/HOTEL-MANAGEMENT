@@ -21,7 +21,7 @@ describe("owner/admin sidebar category grouping", () => {
     for (const group of ADMIN_GROUPS) expect(group.sections.length).toBeGreaterThan(0);
     expect(all).toHaveLength(new Set(all).size);
     expect([...all].sort()).toEqual(["audit", "overview", "policy", "reports", "roles",
-      "room_types", "rooms", "security", "system", "transport_services", "users"]);
+      "room_types", "rooms", "security", "security_config", "system", "transport_services", "users"]);
   });
 });
 

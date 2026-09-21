@@ -12,6 +12,8 @@ interface Builder extends PromiseLike<{ data: Row[]; error: null; count: number 
   select(...columns: unknown[]): Builder;
   order(...args: unknown[]): Builder;
   limit(count: number): Builder;
+  /** PostgREST range: inclusive [from, to] window over the filtered+sorted rows. */
+  range(from: number, to: number): Builder;
   eq(column: string, value: unknown): Builder;
   neq(column: string, value: unknown): Builder;
   in(column: string, values: unknown[]): Builder;
@@ -40,6 +42,7 @@ function build(rows: Row[]): Builder {
       return builder;
     },
     limit: (count) => { result = result.slice(0, count); return builder; },
+    range: (from, to) => { result = result.slice(Math.max(0, from), to + 1); return builder; },
     eq: (column, value) => keep((row) => row[column] === value),
     neq: (column, value) => keep((row) => row[column] !== value),
     in: (column, values) => keep((row) => values.includes(row[column])),

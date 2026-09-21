@@ -1,0 +1,52 @@
+.session-countdown {
+  min-width: 70px; height: 32px; padding: 0 9px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  flex: 0 0 auto; border: 1px solid var(--cp-line, var(--color-border));
+  border-radius: 10px; background: var(--cp-panel, var(--surface-card));
+  color: var(--cp-accent, var(--color-info-fg));
+  font: 650 12px/1 var(--font-sans); font-variant-numeric: tabular-nums;
+  letter-spacing: .02em; white-space: nowrap;
+}
+.session-countdown--warning {
+  border-color: var(--color-warning-border); background: var(--color-warning-bg); color: var(--color-warning-fg);
+}
+.session-countdown--critical {
+  border-color: var(--color-danger-border); background: var(--color-danger-bg); color: var(--color-danger-fg);
+}
+.app-shell .session-countdown { border-color: var(--color-border); background: var(--color-bg-elevated); color: var(--color-info-fg); }
+.app-shell .session-countdown--warning { border-color: var(--color-warning-border); background: var(--color-warning-bg); color: var(--color-warning-fg); }
+.app-shell .session-countdown--critical { border-color: var(--color-danger-border); background: var(--color-danger-bg); color: var(--color-danger-fg); }
+.theme-light .app-shell .session-countdown { border-color: var(--ops-border); background: var(--ops-paper); color: var(--ops-info-ink); }
+.theme-light .app-shell .session-countdown--warning { border-color: var(--ops-warning); background: var(--ops-warning-tint); color: var(--ops-warning-ink); }
+.theme-light .app-shell .session-countdown--critical { border-color: var(--ops-danger); background: var(--ops-danger-tint); color: var(--ops-danger-ink); }
+
+.session-expired-backdrop {
+  position: fixed; z-index: var(--z-index-modal, 1000); inset: 0;
+  display: grid; place-items: center; padding: 24px;
+  background: rgb(11 19 43 / .68); backdrop-filter: blur(8px);
+}
+.session-expired-dialog {
+  width: min(440px, 100%); padding: 32px; text-align: center;
+  border: 1px solid var(--color-border); border-radius: 16px;
+  background: var(--surface-card); color: var(--color-fg);
+  box-shadow: 0 24px 70px rgb(11 19 43 / .25);
+}
+.session-expired-icon {
+  width: 48px; height: 48px; margin: 0 auto 18px;
+  display: grid; place-items: center; border-radius: 14px;
+  background: var(--color-danger-bg); color: var(--color-danger-fg);
+}
+.session-expired-icon svg { width: 22px; height: 22px; }
+.session-expired-dialog .eyebrow { margin: 0 0 8px; color: var(--color-danger-fg); }
+.session-expired-dialog h2 { margin: 0; font: 600 26px/1.15 var(--font-sans); }
+.session-expired-dialog > p:not(.eyebrow) { margin: 12px auto 24px; max-width: 34ch; color: var(--color-fg-muted); font-size: 14px; line-height: 1.6; }
+.session-expired-dialog .btn { width: 100%; justify-content: center; }
+
+@media (max-width: 720px) {
+  .session-countdown { min-width: 54px; height: 31px; padding: 0 7px; font-size: 11px; }
+  .session-countdown > svg { display: none; }
+  .session-expired-dialog { padding: 26px 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .session-expired-backdrop { backdrop-filter: none; }
+}

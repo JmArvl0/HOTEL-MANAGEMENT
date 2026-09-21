@@ -112,6 +112,10 @@ lib/          domain layer, pure and unit-tested (see §5)
   transportation-route.ts      transportation.ts  transportation-display.ts
   front-desk-reports.ts        request-batches.ts  request-catalog.ts
   notifications.ts             email.ts            staff-duty.ts  approval-display.ts
+  receipt.ts                   the customer receipt model: eligibility, ReceiptDocument,
+                               the ordered receiptRows() every renderer walks (§7.3)
+  receipt-pdf.ts               dependency-free A4 text PDF (isomorphic: browser + email attachment)
+  receipt-image.ts             canvas PNG painter ("use client"; receipt document only, no page capture)
   analytics/  occupancy, housekeeping, inventory, maintenance, runner, data
               (Predictive Analytics engine — HAVEN's own forecasts, §7.13)
   ai/         gemini-client, guard, prompts, schemas, tools, audit, brief, explain
@@ -216,12 +220,71 @@ mints a one-time hashed token (public `/recover/[token]` → `complete_account_r
 unauthenticated by design — the token is the credential). An account must be `active` **and**
 `recovery_required = false` to sign in.
 
+**Guest-to-staff conversion.** A guest role is never changed to staff through the generic
+`admin_change_user_role` RPC. `admin_convert_guest_to_staff` is the only supported boundary:
+it locks and matches the exact account ID + email, refuses any booking hold or reservation
+(including reservations linked through the guest profile), preserves the account/guest/audit rows,
+creates the required `staff` mirror, replaces the prior password with the recovery sentinel, starts
+the account inactive + recovery-required, invalidates pending OTP challenges and prior JWT authority
+(`auth_version` rotation), mints one hashed one-hour recovery token, and writes one conversion audit
+event atomically. System Administrators may assign only the five operational staff roles; only an
+authenticated Owner may assign protected Owner/Admin roles. Accounts with guest business history
+remain guests unless a future explicit identity/history model is approved—records are never detached
+or rewritten merely to make conversion pass (migrations `20261012010000` +
+`20261012020000`, [[D-023]]). The approved model is
+`admin_convert_guest_to_staff_with_history` (migration `20261013010000`,
+[[D-024]]): an **owner-only** variant with identical onboarding that carries
+holds/reservations untouched, censuses them into the conversion audit row
+(`convertedWithHistory`, `holdsCarried`, `reservationsCarried`), and flags the
+staff mirror (`converted_with_guest_history`). Converted accounts lose
+guest-portal access through the existing role gates; operating on one's own
+live stays through staff powers remains a disclosed, audited residual risk.
+
 **Per-request re-validation.** `callbacks.jwt` re-reads the account row each request; a deactivated
 account, or a changed `auth_version`, marks the token `disabled` and forces the role to `guest`. Route
 guards (`guardAdmin`, `guardCatalog`, `guardOwner`, `guardManager`, `guardHousekeeping`,
 `guardFinancial`, `guardTransportation`) additionally re-query `user_accounts` and return 401 when
 the session no longer matches. Every privileged RPC **re-checks the actor's role inside the
 function body**, reading `user_accounts where id = p_staff_user_id and active`.
+
+**Session security policy** (System Administration → Security Configuration, D-021,
+migration `20261009010000`). One authoritative `security_policies` row (persistent-login
+toggle, inactivity timeout 10–480 min, absolute lifetime from 1/2/4/8/12/24 h with
+absolute ≥ idle, versioned, reasoned, audited as `security_policy_updated`) — deliberately
+separate from `hotel_operational_policies` so auth values never freeze into booking
+snapshots. Enforcement is live in the NextAuth `session` callback (which runs on every
+`getServerSession`; `callbacks.jwt` does not run per request): idle timeout against
+server-side `user_accounts.last_seen_at` (stamped at sign-in, throttled to one write per
+minute), absolute lifetime against the token `iat`. Standard sign-in is bound by the
+inactivity window; Remember Me (offered on `/login` only while the toggle is on) extends
+to the configured maximum. Expired sessions are neutralized centrally (`disabled` + guest
+role + blank id). Never-stamped accounts are grandfathered once, so a policy deploy can
+never silently log everyone out; the cookie backstop is `maxAge` 24 h + 5 min. Cookie
+protections (`HttpOnly`, `Secure` in production, `SameSite=lax`) are hardcoded with no
+disable path. Mutation is System Administrator (`admin`) only, at both the route and the
+RPC (`SECURITY_ADMIN_ONLY`); Owner has no edit path.
+
+Authenticated shells receive `sessionExpiresAt`, the earliest idle or absolute
+server deadline. Background dashboard polling and non-mutating
+`GET /api/auth/session-status` checks never extend inactivity; only the throttled
+`POST` made after explicit pointer or keyboard activity updates
+`user_accounts.last_seen_at`. Customer and staff headers display the deadline as a
+compact countdown. On expiry, the server neutralizes the session before the client
+shows a blocking Session Expired dialog whose only recovery is **Sign in again**.
+
+**Email login OTP** (D-022, migration `20261010010000`, Nodemailer SMTP,
+server-side only) is a single global toggle (`login_otp_enabled`, default off)
+for all roles. When on, `authorize` verifies the password, then mints only a
+pending token (`otpPending` + `challengeId` — no role, no user id, disabled, so
+every guard and page rejects it) and emails a 6-digit code; `POST
+/api/auth/otp/verify` checks the code through the atomic `auth_otp_verify` RPC
+(row lock: expiry, attempts, single-use consume) and only then mints the full
+session cookie through NextAuth's own encode. Codes come from
+`crypto.randomInt`; PostgreSQL stores only an HMAC verifier (`OTP_HASH_SECRET`,
+per-challenge); resend rotates with a server-side cooldown; failed passwords
+are audit-logged with a per-account lockout threshold. Policy holds TTL
+(3/5/10 min), cooldown (30/60/120 s), and attempts (3/5/10). SMTP failure fails
+closed. One-hour single-use recovery links are a separate, untouched flow.
 
 **The 8 roles:** `owner`, `admin`, `manager`, `front_desk`, `housekeeping`, `maintenance`,
 `accounting`, `guest`.
@@ -553,24 +616,56 @@ Self-service actions and their constraints:
   active reservation (locations are free text; hotel-side endpoints come from policy), and cancel a
   pending request with a reason.
 - **Notifications** — durable, user-scoped event rows from deposit/stay-payment review,
-  guest-request review, and transportation schedule/cancellation actions. The customer shell reads
-  the newest events from `notifications` (bell dropdown, 5-item seed, single aggregate unread
-  badge); "View all notifications" opens the notification-history modal
-  (`components/customer/notification-history-modal.tsx`) instead of navigating — hotel-day filter
-  (Today / Yesterday / loaded days / specific date, Asia/Manila bucketing), unread-first then
-  read grouping (newest-first), per-day "Mark this day as read"
-  (`POST /api/account/notifications/read`, `GET /api/account/notifications` for fuller history);
-  opening the modal never marks anything read. The standalone `/account/notifications` page is
-  kept for direct URLs. Optional Resend delivery is a non-blocking copy, so
-  email failure never rolls back the completed hotel action. The deposit-verified confirmation
-  email also carries the guest count and a payment-state line (remaining balance or "Fully paid").
+  guest-request review, and transportation schedule/cancellation actions. The bell is
+  **click-to-open** (hover shows only the tooltip/header highlight) and shows one aggregate unread
+  badge (exact 1–99, `99+` above, hidden at 0). The dropdown previews at most 7 events from the
+  same authoritative source as the modal — unread first (newest), then an "Earlier" read group —
+  each row rendered by the shared `HavenNotificationItem` (semantic per-type icon from
+  `NOTIFICATION_TYPE_ICONS`, relative Manila time, accessible unread dot), with "Mark all read"
+  (server-authoritative `POST /api/account/notifications/read` with `{all:true}`) plus loading/
+  empty/error states. Row click marks that one read optimistically and routes to its `href` when
+  present. "View all notifications" opens the history modal
+  (`HavenNotificationModal` in `components/ui/haven-notifications.tsx`) instead of navigating — **All / Unread /
+  Read quick-filter tabs** (All first and default, counts from the loaded set), a
+  Newest/Oldest sort, the retained hotel-day filter (All days / Today / Yesterday / loaded days /
+  custom date, Asia/Manila bucketing), and **recency grouping** (Today / Yesterday / Earlier
+  this week / Earlier) for the full-history view with a "Showing all N" footer. The modal loads
+  100 rows and pages through the complete history via additive `?offset=` on
+  `GET /api/account/notifications` ("Load more"; cap 200/window, deduped on append). The modal's
+  "Mark visible as read" action affects only the unread rows in the current filter result.
+  Opening either surface never marks anything read by
+  itself; transient ToastStack feedback stays separate from persistent history. The legacy standalone
+  `/account/notifications` page is kept for direct URLs. Optional Resend delivery is a
+  non-blocking copy, so email failure never rolls back the completed hotel action. The
+  deposit-verified confirmation email also carries the guest count and a payment-state line
+  (remaining balance or "Fully paid").
 - **Reminders** — daily automated guest communication (§7.13): a **pre-arrival** email/notification
   ~24 h before check-in (confirmation, room type, stay + guests, check-in time from the policy
   snapshot, approved early check-in, scheduled transportation) and a **pre-departure** reminder
   ~24 h before checkout (checkout time, outstanding balance when > 0, scheduled transportation).
   One delivery per reservation per kind — `guest_reminder_deliveries` unique index makes cron
   retries, redeploys, and manual re-runs no-ops.
-- **Receipts** (`/account/receipts/[id]`), profile/password/settings, and a public find-room view.
+- **Receipts** — the customer-facing receipt surface (2026-09-18). A payment row on
+  `/account/payments` shows its settlement state and, when settled, a **View Receipt** action;
+  the receipt opens in a **modal** (no navigation) with `Email receipt` / `Print` / `Download`
+  (PDF, PNG). One server-authoritative document is the only source: `getCustomerReceipt(userId,
+  paymentId)` in `lib/customer` decides ownership *and* eligibility, returning `null` — which both
+  routes surface as `404` — unless the payment is settled and not a refund. `lib/receipt` builds
+  the `ReceiptDocument` and its ordered `receiptRows()`; the modal/print sheet
+  (`components/customer/receipt-document-view.tsx`), the canvas PNG painter
+  (`lib/receipt-image.ts`), the dependency-free text PDF (`lib/receipt-pdf.ts`) and the email body
+  all walk that same row list, so no format can disagree about a number (the PDF spells the
+  currency `PHP` because base-14 fonts have no `₱`). **A payment awaiting verification shows
+  "Payment proof submitted — awaiting verification" and no receipt action** — payment proof is the
+  customer's upload, not a HAVEN-issued document. A `financial_documents` `RCP-` number appears
+  only when one was actually issued (never synthesised) and is labelled *Receipt number*, distinct
+  from the *Payment reference*. `GET /api/account/receipts/[paymentId]` is the only authorized
+  door; `POST .../email` sends to `session.user.email` only (no address is read from the request
+  body) with the PDF attached, and reports `EMAIL_UNAVAILABLE` rather than faking a send when
+  `RESEND_API_KEY` is unset. `/account/receipts/[id]` remains the canonical linkable/printable
+  route and renders the same component. Route-level ownership and unwrapped page navigation are
+  asserted in `lib/receipt-route.test.ts` and `lib/customer-ownership.test.ts`. Profile/password/
+  settings and a public find-room view live alongside.
 - **Stay reviews** — after checkout (`checked_out` only), the reservation detail page offers one
   review per stay (`stay_reviews`, UNIQUE on `reservation_id`; `customer_submit_stay_review` RPC
   enforces ownership + completion: `NOT_BOOKED` / `STAY_NOT_COMPLETED` / `ALREADY_REVIEWED`).
@@ -873,11 +968,16 @@ external-statement totals and only record variance. Documents (receipts `RCP-`, 
 (net subtotal / service charge / VAT / gross, §8) derived at issue time from the reservation's
 frozen tax rates — the lines always sum exactly to the gross (the VAT line absorbs rounding).
 Issued documents are immutable: a later tax-rate change never rewrites them, and documents
-issued while both rates are 0 carry no breakdown at all.
+issued while both rates are 0 carry no breakdown at all. A customer never reaches these tables
+directly: `getCustomerReceipt` re-derives the same VAT-inclusive breakdown for the *customer's*
+receipt from the reservation's frozen snapshot (falling back to `getOperationalPolicy()`), and
+attaches an `RCP-` number only when a `financial_documents` row already exists for that payment.
 
-**Staff notification surfaces (2026-09-11)** — three complementary mechanisms with distinct
-meanings, all confined to `ManagerDashboardClient` (Admin/Owner governance dashboards and the
-customer portal have none):
+**Staff notification surfaces (standardized 2026-09-19)** — three complementary mechanisms with
+distinct meanings. Operational roles (Manager, Front Desk, Accounting, Housekeeping, Maintenance)
+share the same visual notification component family as the customer portal. Owner and System
+Administrator retain shared transient toasts but have no persistent notification source; audit,
+health, and governance records are not repurposed as notifications.
 
 1. **Sidebar module badge = pending actionable workload.** A compact amber pill (`nav-badge`,
    capped `99+`, absent at 0) on a module whose queue holds work the *current role can act on*:
@@ -896,15 +996,18 @@ customer portal have none):
    metrics (`depositSlaHours`, `oldestPendingVerificationMinutes`, `pendingPastSla` — accounting
    aging aggregates; the threshold is fetched for financial roles so Front Desk's read-only queue
    can render the same aging chips).
-2. **Header bell = live derived alerts.** The existing popover over `dashboard.notifications` —
+2. **Header bell = live derived alerts.** The shared `HavenNotificationBell` and
+   `HavenNotificationPopover` render `dashboard.notifications` —
    role-scoped alerts computed per request in `getDashboard` (§5). Deliberately *not* a persistent
    server-side read/unread inbox: no `staff_notifications` table exists, alerts resolve with the underlying work,
    and no schema change was made. The bell button shows the live alert count.
-   The popover's "View all notifications" opens the shared notification-history modal
-   (`components/customer/notification-history-modal.tsx`, also used by the guest bell) instead of
-   navigating away: hotel-day filter (Today / Yesterday / loaded days / specific date, Asia/Manila
-   bucketing via `lib/notifications.ts`), unread-first then read grouping (newest-first),
-   per-day "Mark this day as read", and View jumping to the alert's module. Staff
+   The popover is click-only, previews at most seven unread-first records, and shows one aggregate
+   unread badge. "View all notifications" opens the shared `HavenNotificationModal` instead of
+   navigating away: All/Unread/Read quick-filter tabs, a Newest/Oldest sort, the hotel-day filter
+   (Today / Yesterday / loaded days / custom date, Asia/Manila bucketing via
+   `lib/notifications.ts`), recency-grouped full-history sections, visible-result mark-read,
+   and rows rendered through the shared `HavenNotificationItem` with semantic module icons.
+   View jumps to the alert's authorized module. Staff
    read/dismissed ids are per-device UI state (`localStorage`, keyed per user+role, capped) —
    the server alert list stays authoritative, opening the modal never clears anything, and
    sidebar workload badges are untouched by reads.
@@ -925,7 +1028,7 @@ client polls `/api/manager_dashboard` every 30 s even on non-Overview sections (
    definitions, role gating, silent seed, id dedup); history tests: `lib/notification-history.test.ts`
    (Manila day bucketing, day resolution, unread-first grouping, guest read scoping),
    `components/customer/notification-history-modal.test.tsx` (filtering, sorting, counts, empty
-   states, day-scoped mark-read, Escape), `components/customer/customer-shell-notifications.test.tsx`
+   states, visible-result mark-read, Escape), `components/customer/customer-shell-notifications.test.tsx`
    (guest bell badge, modal-without-navigation, focus return),
    `components/manager/staff-notification-history.test.tsx` (View-all wiring, module jump,
    per-user read key); behavior tests: `components/ui/toast-stack.test.tsx`
@@ -948,16 +1051,28 @@ persists its own open/closed choices (`localStorage["haven-admin-sidebar-groups"
   operations role and does not bypass department authority (no check-in/out, no payment
   verification, no housekeeping/maintenance execution, no transport operation, no Manager
   approvals). Scope: staff account lifecycle
-  (`admin_create_staff`, status changes, role changes, metadata), **secure account recovery** tokens,
-  room/room-type/policy editing. The Users & Staff module carries a client-side filter toolbar
+   (`admin_create_staff` — a taken email raises speakable `EMAIL_TAKEN`, email stays unique,
+   status changes, role changes, metadata), **secure account recovery** tokens,
+   room/room-type/policy editing, plus **Security Configuration** (Governance group,
+   `GET/PATCH /api/admin/security-policy`, `SecurityConfigView`): the unified
+   authentication and session-security workspace — status summary cards, the session/cookie
+   panel, the email-OTP panel (toggle, validity, cooldown, attempts), a live **email
+   delivery** panel (Configured/Not configured, connection test, last checked, Ready only
+   after a passing test, plus admin-only test-email to the requester's own address via
+   `GET/POST /api/admin/email-delivery`), read-only enforced protections (HttpOnly, Secure,
+   SameSite, bcrypt, server-side verification), and configuration history (last change with
+   actor, reason, version, and field diff, served with the policy read). Enabling login OTP
+   is gated behind an explicit SMTP warning in the confirm modal. Saves go through a values
+   form, a confirm modal with a field diff, and a required reason; the RPC is
+   version-checked (`POLICY_STALE`) and audited with safe old/new values. The Users & Staff module carries a client-side filter toolbar
   (role / status / recovery-required / department / search over the loaded rows, with a clear-filters
   empty state and a showing-count footer — same pattern as the approvals queue) plus
   summary cards (Accounts on record / Active / Suspended / Recovery required / Staff; the
   status and recovery cards activate the matching selects). The other governance modules follow
   the same presentation layer (all client-side over loaded rows, no API change): **Room
   Configuration** shows summary cards, type/wing/status filters, search, and badges for
-  administrative + read-only operational/housekeeping state; **Audit Logs** and **Security**
-  share one `AuditView` (cards, action/entity filters, search, `en-PH` formatted timestamps);
+   administrative + read-only operational/housekeeping state; **Audit Logs** and **Security
+   events** share one `AuditView` (cards, action/entity filters, search, `en-PH` formatted timestamps);
   **Roles & Permissions** renders the fixed `ROLE_CAPABILITIES` catalogue as role cards with
   capability chips; **Hotel Policies** groups the raw policy columns into labeled, formatted
   sections (times as `HH:MM`, booleans as Yes/No, basis points as a percent, unknown keys under
@@ -1384,7 +1499,11 @@ handler).
 **Customer self-service** (`/api/account`): `PATCH profile`, `PATCH password`,
 `POST requests` (guest-request batch), `POST reservations/[id]/cancel`,
 `POST reservations/[id]/change-request`, `POST reservations/[id]/payments` (submit stay-payment
-proof); **Transportation**: `GET/POST /account/transportation` (list own / submit request),
+proof), `GET receipts/[paymentId]` (the one authorized door to a customer receipt — 401/403/503
+guards, `404` for a foreign, unsettled or refund id alike), `POST receipts/[paymentId]/email`
+(emails the receipt PDF to `session.user.email`; `503 EMAIL_UNAVAILABLE` when no provider is
+configured, `409 NO_ACCOUNT_EMAIL` when the account has none); **Transportation**:
+`GET/POST /account/transportation` (list own / submit request),
 `POST /account/transportation/[id]/cancel`.
 
 **Front desk** (`/api/front-desk`): `GET availability`, `POST reservations`, `POST check-in`,
@@ -1472,6 +1591,19 @@ failing cases. The failures are stale UI expectations in `manager-reservations-p
 ordering/label assertions) and `predictive-insights-panel.test.tsx` (one missing “Booked (fact)”
 label assertion). `node scripts/system-test.mjs` was not run in this documentation-only audit because it
 requires the configured live database; its design is described below.
+
+**Receipt-surface gates (run 2026-09-18):** `npm run typecheck` passes and `npm run build`
+succeeds. `npm run lint` reports 1 error / 146 warnings; the error is a pre-existing
+`react-hooks/static-components` finding in `components/customer/customer-notification-row.tsx`
+(the same code is present at HEAD and is untouched by this work). `npm test` reports 4 failing
+cases, all inside the in-flight notification-history redesign
+(`lib/notification-display.test.ts`, `components/customer/notification-history-modal.test.tsx`,
+`components/customer/customer-shell-notifications.test.tsx`) — none of those files imports any
+receipt module. Receipt coverage: `lib/receipt.test.ts` (eligibility matrix, row ordering and
+emphasis, value identity between model and PDF, filename sanitisation, xref well-formedness),
+`lib/receipt-route.test.ts` (404 for another guest's id, for unsettled money and for refunds;
+email sent to the account address with the PDF attached; `EMAIL_UNAVAILABLE` never fakes a send),
+plus `getCustomerReceipt` ownership cases in `lib/customer-ownership.test.ts`.
 
 **Automated suite:** 54 files / 674 cases combine domain tests, migration/route contract tests, and
 jsdom component tests. Domain coverage includes booking/availability, customer ownership and
@@ -1640,6 +1772,22 @@ Honest inventory of what is **not** wired up yet (not prescriptions). Full split
   it. Some live function bodies therefore exist only in the deployed database (memory:
   `db-function-drift-live-definitions`). Read the live body via `DIRECT_URL` before recreating any
   existing RPC.
+- **Email login OTP is implemented but ships disabled (D-022, 2026-10-10).** The flow,
+  policy columns, challenge table, RPCs, SMTP transport, and admin controls are live and
+  migration-verified, but `login_otp_enabled` defaults off and delivery reports `Unknown`
+  until SMTP (`SMTP_HOST/PORT/USER/PASSWORD/FROM`, `OTP_HASH_SECRET`) is configured and
+  the admin connection test passes. Working SMTP on localhost does not guarantee delivery
+  from Vercel — verify from the deployment environment before enabling. Enabling without
+  delivery fails closed (nobody can sign in), which is the safe posture, not a defect.
+- **Owner read-only security visibility is a follow-up.** The `security_policy_updated`
+  audit trail already records every change, but the Owner dashboard has no security
+  snapshot card yet. Owner mutation of low-level auth configuration is out of scope
+  by design.
+- **No per-session revocation control exists.** Sessions are stateless JWTs: changing
+  timeout policy never corrupts or revokes existing sessions (grandfathered, then
+  enforced at the next validation), and there is no "revoke all sessions" action —
+  emergency invalidation remains `auth_version` rotation, which disables tokens at the
+  next check.
 - **`rooms.rate` and `rooms.amenities` are vestigial.** `rate` is read by no SQL function and only
   displayed in the staff room card / detail modal; `amenities` is already shadowed by the room
   type's. `admin_create_room` copies `base_rate` in only to satisfy the NOT NULL, so the copy goes
@@ -1675,7 +1823,10 @@ Honest inventory of what is **not** wired up yet (not prescriptions). Full split
 - `HAVEN-FINAL-DEPLOYMENT-REPORT.md` — deployment detail, env wiring, SSO/Vercel notes.
 - `SYSTEM-TEST-REPORT.md` — recorded results of the live system test (§12).
 - `DESIGN-STATUS.md` / `DESIGN.md` / `design-system/haven-hotel/` — the UI design system and its
-  current status.
+  current status. `docs/HAVEN_UI_STANDARDS.md` is the binding interaction contract for shared
+  controls — including the system-wide search/filter layout (search → quick chips → advanced →
+  results, transparent wrapper, one surface per control, results containers retained) recorded
+  as D-026.
 - `docs/ui-motion-guidelines.md` — area-based UI motion policy: intensity matrix, motion tokens,
   reduced-motion contract, and bundle rules (GSAP in landing + auth chunks only).
 - `research-paper/` — an earlier snapshot of the design (07 chapters; older than the current tree).

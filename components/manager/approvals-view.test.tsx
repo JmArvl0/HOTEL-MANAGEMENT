@@ -134,7 +134,7 @@ describe("ManagerApprovalView", () => {
 
   it("defaults to All, then orders the pending queue severity-first and keeps decided rows off it", () => {
     renderView();
-    expect(screen.getByRole("button", { name: "all" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "All" }).getAttribute("aria-pressed")).toBe("true");
     expect(tableRows()).toHaveLength(4);
     fireEvent.click(screen.getByRole("button", { name: "pending" }));
     const refs = tableRows().map((row) => within(row).getAllByText(/HV-100\d/)[0].textContent);

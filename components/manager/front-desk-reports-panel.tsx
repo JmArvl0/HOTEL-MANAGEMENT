@@ -167,7 +167,7 @@ export default function FrontDeskReportsPanel({ role }: { role: Role }) {
       { label: "Returned", value: rows.filter((row) => row.status === "returned").length, hint: "Needs resubmission", icon: FileText, tone: "today", queue: "returned" },
       { label: "On record", value: rows.length, hint: "All stored snapshots", icon: CalendarDays },
     ]} activeQueue={["submitted", "acknowledged", "returned"].includes(status) ? status : undefined} onSelect={(target) => setStatus(target)} ariaLabel="Report history summary"/>
-    <div className="reservation-filters"><div>{["all", "submitted", "acknowledged", "returned"].map((value) => <button key={value} className={status === value ? "active" : ""} onClick={() => setStatus(value)}>{label(value)}</button>)}</div></div>
+    <div className="reservation-filters"><div>{["all", "submitted", "acknowledged", "returned"].map((value) => <button key={value} className={status === value ? "active" : ""} aria-pressed={status === value} onClick={() => setStatus(value)}>{value === "all" ? "All" : label(value)}</button>)}</div></div>
     <div className="data-panel"><div className="table-scroll"><table aria-label="Front desk report history"><thead><tr><th>Report date</th><th>Submitted</th><th>By</th><th>Status</th><th>Review</th><th>Actions</th></tr></thead>
       <tbody>{visible.map((row) => <tr key={row.id}>
         <td><strong>{formatDate(row.report_date)}</strong>{row.supersedes && <><br/><small>Resubmission</small></>}</td>

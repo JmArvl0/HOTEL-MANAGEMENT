@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff, ListChecks, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { HavenSearchInput } from "@/components/ui/haven-data-controls";
 import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination";
 
 // Manager-maintained guest request catalog. What is active here is exactly
@@ -105,7 +106,7 @@ export default function RequestTypesPanel() {
         <button className="btn btn-accent" onClick={() => { setCreating(true); setEditing(null); setDraft(emptyDraft()); }}><Plus size={16}/> Add request type</button>
       </div>
       <div className="table-tools">
-        <label><Search size={17}/><input aria-label="Search request types" placeholder="Search request types..." value={search} onChange={(e) => setSearch(e.target.value)} /></label>
+        <HavenSearchInput value={search} onValueChange={setSearch} label="Search request types" placeholder="Search request types..." />
       </div>
       {loading ? (
         <div className="empty"><Loader2 className="spin"/><h3>Loading request types…</h3></div>

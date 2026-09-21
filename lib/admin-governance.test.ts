@@ -100,12 +100,24 @@ describe("Admin lifecycle and configuration invariants", () => {
     expect(dashboard).not.toContain("Demo data");
   });
 
+  it("reports duplicate staff emails with a speakable error instead of raw SQL", () => {
+    const emailTaken = read("supabase/migrations/20261011010000_staff_email_taken.sql");
+    expect(emailTaken).toMatch(/if exists\(select 1 from user_accounts where email=lower\(trim\(p_email\)\)\)then raise exception'EMAIL_TAKEN'/);
+    expect(emailTaken).toContain("grant execute on function public.admin_create_staff(text,text,text,text,text,text,text,uuid,uuid)to service_role");
+    expect(adminGuard).toContain('EMAIL_TAKEN:"An account with that email already exists."');
+    expect(adminGuard).toContain('INVALID_STAFF_ACCOUNT:"Enter valid staff details and reason."');
+    // Uniqueness itself is untouched — only the diagnosis changed.
+    expect(emailTaken).toMatch(/UNIQUE \(email\)|user_accounts_email_key|exists\(select 1 from user_accounts where email/);
+    expect(adminUsers).toContain("admin_create_staff");
+  });
+
   it("provides an actionable, live-data-driven Admin overview", () => {
     for (const action of ["Manage accounts", "Review permissions", "Configure rooms", "Update hotel policy", "Review security"]) {
       expect(dashboard).toContain(action);
     }
     expect(dashboard).toContain("admin-quick-actions");
-    expect(dashboard).toContain("admin-health-card");
+    expect(dashboard).toContain("admin-health-grid");
+    expect(dashboard).toContain("HavenActionItem");
     expect(dashboard).toContain("Account distribution");
     expect(dashboard).toContain("Recent governance activity");
     expect(dashboard).toContain("No governance activity yet");

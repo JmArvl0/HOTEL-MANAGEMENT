@@ -24,7 +24,8 @@ This doc and `app/ui-primitives.css` are the current system.
 | 6 | `components/booking/room-details.css` | Room detail sheets |
 | 7 | `app/design-tokens.css` | Legacy token re-map (trimmed 2026-09-05 — no dead `--md-*`) |
 | 8 | `app/ui-primitives.css` | **Normalization layer** — shared control metrics + action-row spacing |
-| 9 | `app/coastal-theme.css` | **Coastal brand palette override (2026-09-09) — last import, wins the cascade**; includes a dark-mode `@media` block for the shell. `landing.css` remains page-scoped (loads with the landing chunk) |
+| 9 | `app/coastal-theme.css` | **Coastal brand palette override (2026-09-09)** — wins the cascade for public/guest/customer surfaces; includes a dark-mode `@media` block for the shell. `landing.css` remains page-scoped (loads with the landing chunk) |
+| 10 | `app/staff-ops-theme.css` | **Org Executive Dashboard theme (2026-09-20, §16) — last import, wins for staff only**; every rule scoped under `.app-shell`, so landing/customer/auth are unreachable |
 
 Page-scoped sheets import with their chunk: `(landing-page)/landing.css`,
 `(booking)/booking/search/search.css`, `components/auth/login.css`, `auth-vault.css`,
@@ -268,3 +269,117 @@ the shared behavior layer. Customer and internal contexts keep different density
 and surfaces while sharing keyboard, focus, state, responsive-order, and feedback
 semantics. The complete contract and reference consumers are documented in
 `docs/HAVEN_UI_STANDARDS.md`.
+
+## 15. Modern Luxury Hospitality SaaS (official direction, approved 2026-09-19)
+
+Reference: `reference/` (Executive Overview + Executive Operations images) plus
+the written brief. One token family, two densities (D-017); dark toggle kept
+with light default. Reproduce the reference's visual language, never its sample
+content — KPI figures always come from authoritative sources, never fabricated.
+
+- **Page hero.** `PageHeader` (`components/ui/Navigation.tsx`) is the single hero:
+  `variant="default"` is the compact premium header (forms, settings, dense
+  screens); `variant="band"` is the full deep-teal band (dashboards, major
+  module landings). Same markup either way. Band tokens `--hero-*` live in
+  `design-tokens.css`; the band is a fixed self-contained surface (both themes).
+- **KPI cards.** `ModuleSummaryCards` (`components/manager/module-summary-cards.tsx`)
+  is the canonical card grammar (label / value / hint / icon chip, queue-click
+  where a filter exists). Deltas render only from computed comparison data.
+- **Tables.** One grammar: white rounded container, small-caps gray headers,
+  hairline dividers, pastel status pills, right-aligned text row-actions,
+  footer "View full…" link. The unused TanStack `DataTable` was deleted
+  (2026-09-19); surfaces keep their existing tables until converged onto this
+  grammar phase by phase.
+- **New CSS uses tokens.** The repo-wide hardcoded-hex sweep is deferred to the
+  final consistency phase; all new rules reference `design-tokens.css` tokens.
+
+## 16. Organization Executive Dashboard theme — staff pages (2026-09-20, D-025)
+
+Authoritative spec: `reference/design.mdd (1).txt` (FleetOps Executive
+Dashboard language, adapted to hotel operations — tokens and grammar only,
+never fleet content). Applies to **staff pages only** (every role dashboard,
+module, table, form, modal, report, notification surface under `.app-shell`,
+plus staff-only `qr-placard`). Landing, customer portal, booking flow, and
+auth screens are explicitly out of scope and untouched.
+
+- **Delivery mechanism:** `app/staff-ops-theme.css`, imported last in
+  `app/layout.tsx`. Every rule is scoped under `.app-shell` (dark base) or
+  `.theme-light .app-shell` (light default) and wins by import order at equal
+  specificity — no shared-file edits, no `!important` sprawl.
+- **Palette:** Midnight Ink `#111827` (primary buttons, active nav, primary
+  text), Cool Paper `#f3f3f3` (light floor), Surface `#ffffff`, Slate border
+  `#d1d5db`, secondary `#4b5563`, muted `#6b7280`, status
+  `#10b981/#f59e0b/#ef4444/#3b82f6`, Deep Navy `#0b132b` reserved for the
+  HAVEN AI intelligence pill. Small status text uses 700-level variants
+  (`#047857`, `#b45309`, `#b91c1c`, `#1d4ed8`) over ~10% tints.
+- **Type:** Inter only on staff (no serif display); Display 22/600, Title
+  18/600, panel title 15/600, Body 14/400 (tables 13), Label 12/500, Caption
+  11/400; tabular numerals for financial/room/date/ID/report figures.
+- **Shapes:** controls 12px, cards/panels/modals 16px, KPI/stat cards 24px,
+  micro 4–8px. Shadows structural only (rest/lift/float); KPI hover lifts
+  `translateY(-1px)` on a 280ms tactile curve; page entrance is a single
+  0.6s fade-up; all gated on `prefers-reduced-motion`.
+- **Headers:** the deep-teal `PageHeader variant="band"` hero is retired on
+  staff (manager overview + all 10 owner sections now `variant="default"`);
+  cross-role `.page-title` bands, the admin command band, and the
+  staff-duty/housekeeping heroes are flat executive headers in the override
+  layer. The `.band` variant itself is untouched for other consumers.
+- **Cards/panels/tables/badges/buttons/forms/modals/charts/AI:**
+  ModuleSummaryCards and overview `metric-card`s share the 24px stat grammar
+  (tinted icon chip, 30px/24px semibold tabular value, note + muted trend;
+  linked cards are buttons with `aria-pressed`, focus ring, press physics);
+  panels carry title/description/`View … →` with skeleton / `role="alert"`
+  error / truthful-empty states; tables keep search→quick-filters→advanced→
+  results order with All-first; one state = one color (DB status strings
+  unchanged; room-type identity keys preserved); primary = ink, secondary =
+  white/ink, danger = muted red; modals 16px with ink branded headers
+  (staff-scoped); chart heights 220/260/300; the one donut (`roomMix`)
+  genuinely partitions room inventory, so the Partition-Only rule holds with
+  no change; severity travels on tinted chips, never border bars (owner tone
+  insets removed); no pulse/beacon on static records (none existed).
+- **Dark variant kept + refined** (user decision, plan phase): ink-family
+  surfaces, white primary buttons, same token names.
+- **Superseded for staff only:** D-024 teal band hero, dark-green shell,
+  7–9px micro-type, decorative metric-card stripes. Landing/customer/auth
+  keep their existing systems.
+
+## 17. Authenticated header session countdown
+
+- Shared Customer, operational staff, System Administrator, and Owner headers
+  place the countdown in the top-right control group after role indicators and
+  before theme, notification, and profile controls.
+- Visible content is only a clock glyph plus `HH:MM:SS` while at least one
+  hour remains, otherwise `MM:SS`. The glyph hides at compact mobile widths;
+  the timer stays visible.
+- Normal, approaching-expiration, and critical states use the existing
+  neutral/info, warning, and danger tokens. A non-live accessible expiration
+  label prevents screen readers from announcing every tick.
+- Expiration opens a blocking, focus-directed dialog with one action:
+  **Sign in again**.
+
+## 18. Role-based overview composition (2026-09-21)
+
+One visual system, different information hierarchies per role. All five
+staff overviews share `Overview` (`manager-dashboard-client.tsx`), the same
+`DashboardData` payload, `metric-card`s, `HavenActionItem` queues, and the
+room-mix donut — only composition differs:
+
+- **Manager:** decisions-first — `Decisions & exceptions` panel leads
+  visually (`order:-1`, DOM unchanged) with approvals, escalations, and a
+  Predictive Insights link; occupancy-area chart retained (only role with
+  one, plus Owner Reports).
+- **Front Desk:** arrivals/departures queue panel replaces the chart;
+  compact room-mix donut kept for assignment decisions.
+- **Accounting:** financial card set (pending verifications with oldest-age
+  hint, past-SLA, pending refunds, collections, outstanding, refunds today)
+  + `Pending financial actions` panel; no occupancy chart.
+- **Housekeeping / Maintenance:** task-first queue panels replace the chart
+  and the duplicate room-activity panel; their `Needs attention` panels hide
+  items duplicated by the queue panel (cross-department approvals remain).
+- Overview action items link to existing module sections only (never to a
+  filter the target module does not support); counts are the same
+  predicates the modules use. `overview-role-<role>` scopes composition
+  CSS; `≤1000px` stacks `.dashboard-grid` to one column.
+- Customer `/account` stays the dedicated personal dashboard (stay hero,
+  attention list, folio/requests/notifications cards, quick actions);
+  `/my-reservations` stays the separate history module.
