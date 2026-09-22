@@ -518,6 +518,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
                 <div className="rate-plan-row" key={plan.id}>
                   <div className="rate-plan-main">
                     <strong>{plan.name}</strong>
+                    {plan.created_from_analytics && <span className="badge pending">Predictive recommendation</span>}
                     <span className={`badge ${plan.status === "active" ? "active" : plan.status === "pending" ? "pending" : "inactive"}`}>{label(plan.status)}</span>
                     <p className="muted">{plan.start_date} → {plan.end_date} · {daysLabel(plan.days_of_week)} · <strong>{peso(plan.nightly_rate)}</strong>/night{plan.reason ? ` · “${plan.reason}”` : ""}{plan.decision_reason ? ` · ${label(plan.status)}: “${plan.decision_reason}”` : ""}</p>
                   </div>

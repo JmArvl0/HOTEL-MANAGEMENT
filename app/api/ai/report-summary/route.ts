@@ -4,6 +4,7 @@ import { aiGuardFailed, guardAiSession } from "@/lib/ai/guard";
 import { aiRateLimited, recordAiInteraction } from "@/lib/ai/audit";
 import { AI_DISCLOSURE, AI_UNAVAILABLE_MESSAGE, HAVEN_SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import { ReportSummaryResponseSchema, ReportSummarySchema } from "@/lib/ai/schemas";
+import { EXECUTIVE_DIGEST_TASK, ExecutiveDigestResponseSchema, ExecutiveDigestSchema, buildExecutiveDigestContext } from "@/lib/ai/executive-summary";
 import { buildDailyReport, isReportDate } from "@/lib/front-desk-reports";
 import { hotelToday } from "@/lib/booking";
 
@@ -39,14 +40,34 @@ export async function POST(request: NextRequest) {
   if (!isReportDate(date)) {
     return NextResponse.json({ error: "A valid report date (YYYY-MM-DD) is required." }, { status: 400 });
   }
+  const digest = body && typeof body === "object" && (body as { mode?: unknown }).mode === "digest";
 
-  if (await aiRateLimited(session.userId, "report_summary", 20, 10)) {
-    await recordAiInteraction({ userId: session.userId, role: session.role, feature: "report_summary", toolCalls: [], status: "rate_limited" });
+  if (await aiRateLimited(session.userId, digest ? "executive_shift_summary" : "report_summary", 20, 10)) {
+    await recordAiInteraction({ userId: session.userId, role: session.role, feature: digest ? "executive_shift_summary" : "report_summary", toolCalls: [], status: "rate_limited" });
     return NextResponse.json({ error: "Summary limit reached. Try again in a few minutes." }, { status: 429 });
   }
 
   try {
     const report = await buildDailyReport(date);
+    if (digest) {
+      const digestResult = await generateJson({
+        systemInstruction: `${HAVEN_SYSTEM_PROMPT}\n\n${EXECUTIVE_DIGEST_TASK}`,
+        contents: buildExecutiveDigestContext(report),
+        responseSchema: ExecutiveDigestResponseSchema,
+        schema: ExecutiveDigestSchema,
+        temperature: 0.2
+      });
+      await recordAiInteraction({
+        userId: session.userId, role: session.role, feature: "executive_shift_summary", toolCalls: [],
+        status: digestResult.ok ? "ok" : digestResult.reason === "rate_limited" ? "rate_limited" : "unavailable",
+        model: geminiModel(), latencyMs: digestResult.ok ? digestResult.latencyMs : undefined
+      });
+      if (!digestResult.ok) {
+        console.error(`[ai] executive_shift_summary served fallback — reason=${digestResult.reason}`);
+        return NextResponse.json({ data: null, message: AI_UNAVAILABLE_MESSAGE }, { status: 200 });
+      }
+      return NextResponse.json({ data: digestResult.data, model: digestResult.model, reportDate: report.reportDate, disclosure: AI_DISCLOSURE });
+    }
     const result = await generateJson({
       systemInstruction: `${HAVEN_SYSTEM_PROMPT}\n\n${SUMMARY_TASK}`,
       contents: `Report date: ${report.reportDate}\n\n${JSON.stringify(report, null, 2)}`,

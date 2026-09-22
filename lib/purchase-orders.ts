@@ -27,6 +27,27 @@ export interface DraftPurchaseOrder {
 
 export const DRAFT_PO_STATUS = "draft" as const;
 
+export type PurchaseOrderStatus = "draft" | "pending_approval" | "approved" | "received" | "cancelled";
+
+export const PO_AUTO_APPROVE_THRESHOLD_DEFAULT = 50000;
+
+/** Submit routing: at/under threshold auto-approves, above files an approval exception. */
+export function resolvePoSubmission(total: number, threshold: number): "approved" | "pending_approval" {
+  return total <= threshold ? "approved" : "pending_approval";
+}
+
+/** Validate received quantities: each 0 <= received <= ordered. */
+export function validateReceivedItems(
+  ordered: DraftPurchaseItem[],
+  received: { itemId: string; quantity: number }[]
+): void {
+  const byId = new Map(received.map((r) => [r.itemId, r.quantity]));
+  for (const o of ordered) {
+    const q = byId.has(o.itemId) ? Number(byId.get(o.itemId)) : o.quantity;
+    if (!Number.isFinite(q) || q < 0 || q > o.quantity) throw new Error("PO_INVALID_RECEIVED_QTY");
+  }
+}
+
 /** Σ quantity × unit cost, rounded to centavos — never trusted from the client. */
 export function draftPurchaseTotal(items: DraftPurchaseItem[]): number {
   return Math.round(items.reduce((sum, item) => sum + item.quantity * item.unitCost, 0) * 100) / 100;

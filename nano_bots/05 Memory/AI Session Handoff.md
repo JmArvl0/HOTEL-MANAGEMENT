@@ -2,6 +2,84 @@
 
 Current execution state. Concise — detail lives in linked session notes.
 
+## Current task (guest Rewards redesign, 2026-09-22)
+
+COMPLETE locally. The customer Rewards page now uses the standard dark-teal
+hero, three live KPI cards, a keyboard-operable three-tier comparison, and a
+responsive paginated points ledger with transaction badges. Tier thresholds,
+multipliers, progress, and redemption value reuse the canonical loyalty
+helpers; the live API payload is validated before display. Shape-matched
+skeleton, guided empty, reduced-motion, and retryable error states are covered.
+Gates: typecheck, touched ESLint, 156 files / 1,718 tests, production build,
+Impeccable detector, and diff-check are green. Full lint has 0 errors and 70
+pre-existing repository warnings. Authenticated browser QA remains pending.
+Detail: Sessions/Codex/2026-09-22 - Guest Rewards Redesign.md.
+
+## Current task (guest Payments & Folio hierarchy, 2026-09-22)
+
+COMPLETE locally. The customer Payments & Folio page now renders in the
+approved order: hero, three live financial KPI cards, a transparent compact
+filter toolbar, then folio cards. Stay/payment dropdowns and reference search
+filter immediately in a client leaf while the secure folio markup remains
+server-rendered; counts, outstanding balance, and paid total update from the
+visible records. The canonical keyboard-accessible HavenSelect is used in
+accordance with HAVEN_UI_STANDARDS (Radix/Shadcn is prohibited). Gates:
+typecheck, touched ESLint, 154 files / 1,709 tests, production build,
+Impeccable detector, and diff-check are green. Full lint has 0 errors and 70
+pre-existing repository warnings. Authenticated browser QA remains pending.
+Detail: Sessions/Codex/2026-09-22 - Guest Payments Folio Hierarchy.md.
+
+## Current task (Digital Express Pass card, 2026-09-22)
+
+Reservation-detail QR redesign (Scenario A): COMPLETE, all gates green. The
+stay QR moved out of its full-width band into a compact "Digital Express Pass"
+card anchored as a third column of `.customer-reservation-heading`
+(`customer-checkin-qr-pass-column`; stacks ≤900px centered ≤320px). Pass card:
+uppercase pass title + HAVEN Makati, high-contrast 160px QR on white inset
+figure (source is 320px, crisp on HiDPI), "Scan at front desk or kiosk", green
+"Ready for Express Check-In" pill, full-width Download QR, honest validity
+note (IDs/balance still verified in person). `CheckInQrExpired` keeps a
+full-width band via `customer-checkin-qr-band` modifier. Also fixed two
+jammed single-line statements in `reservation-detail-view.tsx` (import +
+`openRequest`) — zero behavior change. New `check-in-qr.test.tsx` (4: hero
+anchoring, pass parts, folio strip order, terminal band). Gates: typecheck,
+touched eslint 0 errors, **1713/1713 (155 files)**, build, diff-check.
+Browser QA still manual (KI-005). Detail:
+`Sessions/Freebuff/2026-09-22 - Digital Express Pass Card.md`.
+
+## Current task (PayMongo GCash auto-pay, 2026-09-22)
+
+Automated GCash deposit confirmation: COMPLETE locally, all gates green. The
+DB backbone already existed (`20261016010000`); this session reconciled the
+boundary to PayMongo's real wire formats (`Paymongo-Signature` t/te/li HMAC
+over `"<t>.<body>"` + timestamp tolerance, `PAYMONGO_*` env with legacy
+aliases, centavo helper, real event shapes incl. v1/v2 payment.paid, payload
+amount guard), added migration `20261021010000` (idempotent re-assert +
+same-reference replay instead of `GATEWAY_REFERENCE_CONFLICT` on concurrent
+multi-channel delivery), GCash Instant Auto-Pay UI + confirmation-page
+payment poller (new guest-scoped `GET
+/api/account/reservations/[id]/payments`), and `lib/paymongo.test.ts` (29).
+Gates: typecheck, touched eslint 0 errors, **1704/1704 (153 files)**, build,
+diff-check. Pending: `supabase db push`, PayMongo dashboard webhook
+registration, browser QA (KI-005). Detail:
+`Sessions/Freebuff/2026-09-22 - PayMongo GCash Auto-Pay Reconciliation.md`.
+
+## Current task (predictive dynamic pricing, 2026-09-22)
+
+IMPLEMENTED locally, not migrated remotely and not committed. A centavo-exact
+7-day pricing recommender now combines occupancy forecast, 48-hour net pickup,
+and day-of-week demand; generated room-type bounds clamp every result.
+Manager can review/edit selected recommendations beside the occupancy chart
+and submit them through an additive transactional wrapper around the existing
+rate-plan proposal RPC. Rows remain pending for Owner/Admin, carry analytics
+origin + model-run provenance, and are separately audited. Direct role/API,
+domain, bounds, and UI tests are green (35 focused tests); typecheck is green.
+Full gates are green: 148 files / 1,657 tests, typecheck, lint (0 errors; 66
+repository-wide warnings), production build, diff-check, and migration safety
+scan. Pending: authenticated browser QA and remote migration application by an
+explicit deployment task. Detail:
+`Sessions/Codex/2026-09-22 - Predictive Dynamic Pricing.md`.
+
 ## Current task (role-based overview redesign, 2026-09-21)
 
 System-wide staff Overview recomposition: COMPLETE, all gates green.

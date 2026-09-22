@@ -1,5 +1,41 @@
 # Current Status
 
+## Guest Rewards redesign (2026-09-22)
+
+- Rewards now follows the customer portal's executive hierarchy: dark-teal
+  hero, tier/balance-progress-redemption KPI strip, selectable tier comparison,
+  and a polished points ledger with shared pagination.
+- All figures derive from the existing loyalty API and canonical helpers.
+  Loading geometry, empty history, malformed payload fallback, retry, semantic
+  progress, keyboard focus, mobile ledger reflow, and reduced motion are
+  handled.
+- Verification is green: typecheck, touched ESLint, 156 files / 1,718 tests,
+  production build, Impeccable detector, and diff-check. Full lint has 0
+  errors and 70 pre-existing warnings. Authenticated browser QA is pending.
+
+## Guest Payments & Folio hierarchy (2026-09-22)
+
+- The customer Payments & Folio page now follows hero → live financial KPI
+  summary → transparent compact filters → folio cards.
+- Stay/payment filters and booking-reference search update the visible records,
+  dynamic facet counts, outstanding balance, and paid total without navigation
+  or layout shift. Secure folio content remains server-rendered.
+- Verification is green: typecheck, touched ESLint, 154 files / 1,709 tests,
+  production build, Impeccable layout detector, and diff-check. Full lint has
+  0 errors and 70 pre-existing warnings. Authenticated browser QA is pending.
+
+## Predictive dynamic pricing (2026-09-22)
+
+- Local implementation complete: explainable 7-day room-rate recommendations,
+  Manager review/edit/propose UI, Manager-only proposal mutation, Owner/Admin
+  approval preserved, analytics provenance and audit linkage added by
+  migration `20261018010000`.
+- The migration has not been pushed to the linked database. Until it is
+  applied, the new pricing endpoints will not be operational against Supabase.
+- Focused pricing/authorization/UI suite (35), full suite (1,657), typecheck,
+  lint (0 errors), production build, diff-check, and migration safety scan are
+  green. Authenticated browser QA remains pending.
+
 Last Updated: 2026-10-12
 Current Development Area: Official system-wide redesign (Modern Luxury Hospitality SaaS) — COMPLETE (2026-09-19); guest-to-staff conversion boundary deployed (2026-10-12); org staff theme implemented (2026-09-20)
 Current Feature: Unified PageHeader band hero on staff overview + all owner sections; every role verified against the reference

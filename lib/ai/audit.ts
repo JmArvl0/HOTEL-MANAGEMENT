@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
  * guest data), prompts/responses are never stored at all.
  */
 
-export type AiFeature = "brief" | "ask" | "explain" | "report_summary";
+export type AiFeature = "brief" | "ask" | "explain" | "report_summary" | "executive_shift_summary" | "guest_concierge" | "guest_smart_request";
 
 export interface AiInteractionRecord {
   userId: string;

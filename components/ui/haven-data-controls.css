@@ -31,6 +31,17 @@
   --hc-accent:var(--dg,#176773);
 }
 .haven-toolbar-section{display:grid;gap:7px;min-width:0}
+.haven-data-toolbar.filters-inline{grid-template-columns:minmax(0,1fr) auto;column-gap:16px}
+.haven-data-toolbar.filters-inline .haven-toolbar-search,
+.haven-data-toolbar.filters-inline .haven-toolbar-footer{grid-column:1/-1}
+.haven-data-toolbar.filters-inline .haven-toolbar-quick{grid-column:1;grid-row:2}
+.haven-data-toolbar.filters-inline .haven-toolbar-advanced{grid-column:2;grid-row:2;align-self:end}
+.haven-data-toolbar.filters-inline .haven-toolbar-advanced-controls{flex-wrap:nowrap}
+.haven-data-toolbar.filters-compact{grid-template-columns:minmax(260px,1fr) auto;column-gap:16px}
+.haven-data-toolbar.filters-compact .haven-toolbar-search{grid-column:1;grid-row:1}
+.haven-data-toolbar.filters-compact .haven-toolbar-advanced{grid-column:2;grid-row:1}
+.haven-data-toolbar.filters-compact .haven-toolbar-footer{grid-column:1/-1}
+.haven-data-toolbar.filters-compact .haven-toolbar-advanced-controls{flex-wrap:nowrap}
 .haven-toolbar-label{color:var(--hc-muted);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
 .haven-search-input{position:relative;display:flex;align-items:center;width:min(100%,560px);min-width:0;color:var(--hc-muted)}
 .haven-search-input>svg{position:absolute;left:13px;pointer-events:none}
@@ -126,6 +137,16 @@
   .haven-toolbar-advanced-controls>.haven-filter,.haven-toolbar-advanced-controls>.haven-select{width:100%}
   .haven-toolbar-footer{align-items:flex-start;flex-direction:column}
   .haven-clear-filters{min-height:44px}
+}
+@media(max-width:1100px){
+  .haven-data-toolbar.filters-inline{grid-template-columns:minmax(0,1fr)}
+  .haven-data-toolbar.filters-inline :is(.haven-toolbar-search,.haven-toolbar-quick,.haven-toolbar-advanced,.haven-toolbar-footer){grid-column:1;grid-row:auto}
+  .haven-data-toolbar.filters-inline .haven-toolbar-advanced-controls{flex-wrap:wrap}
+}
+@media(max-width:1200px){
+  .haven-data-toolbar.filters-compact{grid-template-columns:minmax(0,1fr)}
+  .haven-data-toolbar.filters-compact :is(.haven-toolbar-search,.haven-toolbar-advanced,.haven-toolbar-footer){grid-column:1;grid-row:auto}
+  .haven-data-toolbar.filters-compact .haven-toolbar-advanced-controls{flex-wrap:wrap}
 }
 @media(max-width:420px){.haven-filter-badges{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.haven-search-input input,.haven-filter-badge{transition:none}}

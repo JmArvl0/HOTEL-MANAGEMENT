@@ -126,6 +126,7 @@ export function HavenDataToolbar({
   hasActiveFilters = false,
   variant = "internal",
   label = "Search and filters",
+  filtersLayout = "stacked",
 }: {
   search: ReactNode;
   quickFilters?: ReactNode;
@@ -136,10 +137,11 @@ export function HavenDataToolbar({
   hasActiveFilters?: boolean;
   variant?: HavenControlVariant;
   label?: string;
+  filtersLayout?: "stacked" | "inline" | "compact";
 }) {
   const noun = resultCount === 1 ? resultNoun.replace(/s$/, "") : resultNoun;
   return (
-    <section className={`haven-data-toolbar is-${variant}`} aria-label={label}>
+    <section className={`haven-data-toolbar is-${variant} filters-${filtersLayout}`} aria-label={label}>
       <div className="haven-toolbar-section haven-toolbar-search">
         <span className="haven-toolbar-label">Search</span>
         {search}

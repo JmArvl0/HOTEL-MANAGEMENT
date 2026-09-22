@@ -101,6 +101,7 @@ export function ReservationHistoryToolbar({
       resultNoun="reservations"
       onClearFilters={clear}
       hasActiveFilters={Boolean(query || status !== "all" || sort !== "recommended")}
+      filtersLayout="inline"
     />
   );
 }

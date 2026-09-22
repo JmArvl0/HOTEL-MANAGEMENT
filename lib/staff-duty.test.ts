@@ -4,7 +4,6 @@ import { STAFF_DUTY_BASIS_NOTE, deriveStaffDuty, hotelTodayKey, type StaffDutyIn
 
 const route = readFileSync("app/api/manager/staff-duty/route.ts", "utf8");
 const permissions = readFileSync("lib/permissions.ts", "utf8");
-const dashboard = readFileSync("components/manager/manager-dashboard-client.tsx", "utf8");
 
 const TODAY = hotelTodayKey();
 
@@ -89,7 +88,7 @@ describe("staff duty authorization and wiring", () => {
     expect(route).toContain("403");
   });
   it("serves the dashboard only through the guarded route, never the generic resource CRUD", () => {
-    expect(dashboard).toContain('section: "staff_duty"');
+    expect(readFileSync("config/role-navigation.ts", "utf8")).toContain('section: "staff_duty"');
     expect(readFileSync("app/api/resources/[resource]/route.ts", "utf8")).not.toContain("staff_duty");
   });
   it("documents that duty is derived, not faked from login", () => {

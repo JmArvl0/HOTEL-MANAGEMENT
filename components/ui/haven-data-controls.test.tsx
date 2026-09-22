@@ -78,6 +78,22 @@ describe("HavenDataToolbar", () => {
     expect(quick.compareDocumentPosition(advanced) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  it("supports an inline quick and advanced filter row without changing DOM order", () => {
+    const { container } = render(
+      <HavenDataToolbar
+        filtersLayout="inline"
+        search={<HavenSearchInput value="" onValueChange={() => {}} label="Search" placeholder="Search…" />}
+        quickFilters={<HavenFilterBadges value="all" onChange={() => {}} label="Quick filters" options={[{ value: "all", label: "All" }]} />}
+        advancedFilters={<button type="button">Sort</button>}
+      />,
+    );
+    const toolbar = container.querySelector(".haven-data-toolbar")!;
+    const quick = container.querySelector(".haven-toolbar-quick")!;
+    const advanced = container.querySelector(".haven-toolbar-advanced")!;
+    expect(toolbar.classList.contains("filters-inline")).toBe(true);
+    expect(quick.compareDocumentPosition(advanced) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("renders a transparent wrapper — controls keep their surfaces, the card does not", () => {
     const css = readFileSync(join(process.cwd(), "components/ui/haven-data-controls.css"), "utf8");
     const block = css.match(/\.haven-data-toolbar\s*\{[^}]*\}/)![0];

@@ -24,7 +24,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (adminGuardFailed(c)) return c;
   const { data, error } = await c.client
     .from("room_rate_plans")
-    .select("id,name,start_date,end_date,days_of_week,nightly_rate,status,reason,decision_reason,decided_at,created_at")
+    .select("id,name,start_date,end_date,days_of_week,nightly_rate,status,reason,decision_reason,decided_at,created_at,created_from_analytics,analytics_model_run_id")
     .eq("room_type_id", (await params).id)
     .order("created_at", { ascending: false });
   if (error) return NextResponse.json({ error: "Unable to load rate plans." }, { status: 500 });

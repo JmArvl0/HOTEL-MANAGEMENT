@@ -6,6 +6,7 @@ const roomRoute = readFileSync("app/api/staff/rooms/[id]/route.ts", "utf8");
 const staffData = readFileSync("lib/staff-data.ts", "utf8");
 const modal = readFileSync("components/manager/room-detail-modal.tsx", "utf8");
 const dashboard = readFileSync("components/manager/manager-dashboard-client.tsx", "utf8");
+const roomMatrix = readFileSync("components/shared/unified-room-matrix.tsx", "utf8");
 
 describe("room detail RBAC", () => {
   it("gates the room dossier endpoint behind session and rooms access", () => {
@@ -46,9 +47,12 @@ describe("room details modal", () => {
     expect(dashboard).toContain("onViewReservation={(id)=>{setRoomDetail(null);viewReservation({id})}}");
   });
   it("makes every room card keyboard-accessible and labels it", () => {
-    expect(dashboard).toContain('aria-label={`View room details for Room ${label(item.number)}`}');
-    expect(dashboard).toContain('onKeyDown={(event)=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();viewRoom(item)}}');
-    expect(dashboard).toContain("event.stopPropagation();advance(item)");
+    // Room cards render through the single shared matrix — assertions target
+    // the matrix source, and the dashboard only wires it in.
+    expect(roomMatrix).toContain("View room details for Room");
+    expect(roomMatrix).toContain('event.key === "Enter"');
+    expect(roomMatrix).toContain("event.stopPropagation(); onAdvanceStatus(item)");
+    expect(dashboard).toContain("<UnifiedRoomMatrix");
   });
   it("uses accessible tabs and the required blocked-room copy", () => {
     expect(modal).toContain('role="tablist"');

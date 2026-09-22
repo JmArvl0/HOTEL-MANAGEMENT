@@ -9,7 +9,7 @@ const access: Record<Role, Resource[]> = {
   manager: ["reservations", "rooms", "guests", "guest_requests", "housekeeping_tasks", "maintenance_orders", "inventory"],
   front_desk: ["reservations", "rooms", "guests", "guest_requests", "housekeeping_tasks", "invoices", "payments", "inventory"],
   housekeeping: ["rooms", "guest_requests", "housekeeping_tasks", "inventory"],
-  maintenance: ["rooms", "guest_requests", "maintenance_orders", "inventory"],
+  maintenance: ["rooms", "maintenance_orders", "inventory"],
   accounting: [...financial],
   guest: ["reservations", "invoices"]
 };

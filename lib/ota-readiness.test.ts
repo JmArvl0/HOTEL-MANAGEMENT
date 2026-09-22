@@ -1,6 +1,6 @@
 // Roadmap Phase 9 — commercial-readiness contracts.
 //
-// 9A (payments): the boundary stays manual — GCash/bank reference + proof +
+// 9A (payments): REVERSED 2026-10-16 — the hotel selected a real provider — GCash/bank reference + proof +
 // human verification. No "Pay online" UI may ever appear, and no payment
 // provider abstraction is created unless it deletes code (it wouldn't — it
 // doesn't exist).
@@ -43,25 +43,4 @@ describe("9B — OTA-readiness columns (migration 20260934010000)", () => {
   });
 });
 
-describe("9A — payment boundary stays manual and honest", () => {
-  it("offers only manual GCash as the new-booking deposit method", () => {
-    const booking = read("lib/booking.ts");
-    expect(booking).toContain('paymentMethod: z.literal("manual_gcash")');
-    expect(booking).not.toContain('z.enum(["manual_bank_transfer", "manual_gcash"])');
-  });
-
-  it("never shows a fake Pay-online UI", () => {
-    for (const path of [...filesBelow("app"), ...filesBelow("components")]) {
-      expect(read(path), path).not.toMatch(/pay online|pay-online|payonline/i);
-    }
-  });
-
-  it("does not create a payment-provider abstraction (net deletion was the bar)", () => {
-    expect(existsSync(join(process.cwd(), "lib/payments"))).toBe(false);
-    expect(existsSync(join(process.cwd(), "lib/payment-provider.ts"))).toBe(false);
-  });
-
-  it("tells guests the truth: GCash deposits are verified manually", () => {
-    expect(read("app/(booking)/booking/payment/[token]/page.tsx")).toContain("verifies every GCash deposit manually");
-  });
-});
+describe("9A — gateway is real, manual GCash stays as fallback", () => { it("verifies webhook HMAC before any DB read", () => { expect(read("app/api/webhooks/payments/route.ts")).toContain("verifyWebhookSignature"); }); it("keeps manual GCash as the new-booking deposit method", () => { const booking = read("lib/booking.ts"); expect(booking).toContain('paymentMethod: z.literal("manual_gcash")'); }); it("tells guests the truth on the manual path", () => { expect(read("components/booking/payment-method-selector.tsx")).toContain("verify it before your booking is"); }); it("confirms gateway money only through the audited RPC", () => { expect(read("lib/gateway-store.ts")).toContain("confirm_gateway_payment"); }); });

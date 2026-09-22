@@ -154,7 +154,10 @@ dev-only secret is used in non-production for zero-config demo runs), `NEXT_PUBL
 the innovation layer only — `GEMINI_API_KEY` + optional `GEMINI_MODEL` (server-side Gemini access;
 **never** a `NEXT_PUBLIC_` Gemini variable) and `CRON_SECRET` (Vercel cron bearer for
 `/api/analytics/generate`). Optional `RESEND_API_KEY` + `RESEND_FROM` enable transactional guest
-email copies; without them, durable in-app notifications continue to work. zod validates the app's
+email copies; without them, durable in-app notifications continue to work. Optional
+`PAYMONGO_SECRET_KEY` + `PAYMONGO_WEBHOOK_SECRET` (legacy names `PAYMENT_GATEWAY_SECRET_KEY` /
+`PAYMENT_GATEWAY_WEBHOOK_SECRET` still work) enable the PayMongo GCash instant auto-pay deposit
+path (§7.2.1); without them only the manual GCash proof flow is offered. zod validates the app's
 required environment at boot. Transportation deliberately uses no external mapping/routing API
 (§7.11).
 
@@ -335,7 +338,7 @@ deactivation is the only retirement path. Front Desk and Housekeeping have no ca
 all (guardCatalog + nav gating).
 
 **Rate plans** (migration `20260929010000`) — dated per-night price overlays on `base_rate`
-(weekday/weekend, seasonal, holiday/peak periods; deliberately NOT dynamic pricing). `room_rate_plans`
+(weekday/weekend, seasonal, holiday/peak periods). `room_rate_plans`
 rows (room type, name, date range, ISO day-of-week bitmask where bit 0 = Monday … bit 6 = Sunday,
 nightly rate, status) are governed exactly like rate proposals: **Manager proposes**
 (`manager_propose_room_rate_plan`), **Owner/Admin approves to `active`** (`admin_review_room_rate_plan`,
@@ -360,6 +363,26 @@ search/catalog can show honest **estimates** — it never computes a charge. UI:
 the Room Types & Photos panel (Manager proposes/retires, Owner/Admin approves; per-plan status,
 dates, days, rate, decision trail); booking review, reservation detail, the extend-stay and
 arrival dialogs, and approval financials render the frozen per-night breakdown whenever rates vary.
+
+**Predictive rate recommendations** (migration `20261018010000`) remain a human-in-the-loop
+input to that same rate-plan pipeline, never a second pricing authority. `lib/analytics/dynamic-pricing.ts`
+combines the 7-day occupancy forecast, room-type net booking pickup over the prior 48 hours, and
+Friday/Saturday demand into explainable centavo-exact recommendations. Occupancy ≥80% yields a
+15–35% surge band; 50–<80% stays within ±5%; <30% yields a 10–20% discount; the 30–<50% gap uses
+a conservative 0–5% discount. Every result is clamped to generated room-type bounds
+(`dynamic_rate_floor` = 80% and `dynamic_rate_ceiling` = 135% of `base_rate`). These bounds are
+advisory guardrails only; `room_nightly_rates` remains the price authority.
+
+`GET /api/analytics/pricing-recommendations` is server-authorized to Manager/Owner/Admin and
+returns recommendations with FACT/PREDICTION basis, data confidence, pace, bounds, and reasoning.
+Only Manager may call `POST /api/analytics/pricing-recommendations/propose`; the server rebuilds
+the current recommendations, rejects stale model-run ids and out-of-bound/fractional-centavo
+rates, then calls `manager_propose_analytics_rate_plans`. That transaction calls the existing
+`manager_propose_room_rate_plan` for every selected date, leaves each row `pending`, stamps
+`created_from_analytics = true` + `analytics_model_run_id`, and adds a dedicated audit event.
+Owner/Admin still must call `admin_review_room_rate_plan` before any overlay becomes `active`.
+The Predictive Insights occupancy view presents the review/edit modal; the Rate Plans review
+surface labels analytics-origin proposals.
 
 **Room-type badge colors** (migrations `20260925010000` + `20260927010000`). Each room type carries
 a semantic color key on `room_types.badge_color_key` — one of eight curated HAVEN palette keys
@@ -524,8 +547,9 @@ Confirmation**, wired through search-params → a server-issued **hold token** �
    (`components/booking/booking-page-frame.tsx` + `BackButton`) that pushes deterministically to
    the previous breadcrumb step (never `router.back()`), labelled "Back to <step>".
 4. **Review** (`/booking/review/[token]`) — holds the reservation.
-5. **Payment link** (`/booking/payment/[token]`) — manual deposit only (see below).
-6. **Confirmation** (`/booking/confirmation/[id]`).
+5. **Payment link** (`/booking/payment/[token]`) — manual deposit (see below) or, when the
+   PayMongo env pair is configured, **GCash Instant Auto-Pay** (§7.2.1).
+6. **Confirmation** (`/booking/confirmation/[id]`) — auto-refreshes when a gateway deposit settles.
 
 Server-side, `POST /api/booking/holds` validates the guest details and the transportation
 preference (strict, service-type-conditional: the client never supplies the hotel side of the
@@ -553,6 +577,19 @@ website reservation into `confirmed`. Holds expire defensively (`expire_booking_
 the top of every inventory recount); an unpaid website `pending` past its payment deadline releases
 its inventory and its hold/payment are expired. Payment proofs are never sent to the AI layer
 (Gemini reads only rooms/guest_requests/transportation aggregates).
+
+**§7.2.1 GCash Instant Auto-Pay (PayMongo, optional).** When `PAYMONGO_SECRET_KEY` +
+`PAYMONGO_WEBHOOK_SECRET` are set, the deposit page offers a highlighted instant option beside the
+manual form. The route prices from the hold (never the client), creates the hosted checkout session
+in centavos, and records the pending reservation + `pending_verification` payment via
+`submit_gateway_deposit` with the session id as `gateway_reference_id`. The webhook
+(`Paymongo-Signature`, HMAC-SHA256 over `"<t>.<raw body>"` with a 5-minute timestamp tolerance)
+confirms only paid events (`checkout_session.payment.paid`, `payment.paid`), verifies the payload
+amount against the pending payment when the event carries one, and settles through
+`confirm_gateway_payment` — one transaction that row-locks, re-verifies amount equality and
+inventory, flips payment→`paid` + reservation→`confirmed`, completes the hold, writes the audit
+row, and itemizes transport. Duplicate events replay idempotently by `webhook_event_id`; the same
+reference arriving on both checkout and payment channels settles once.
 
 **GCash payment destination (Owner-controls-where).** The deposit page shows the
 Owner-configured destination — account name, mobile number with Copy, official QR
@@ -1240,7 +1277,8 @@ hotel operational data → lib/analytics (HAVEN's own forecasts — the ONLY pre
 ```
 
 **Predictive analytics engine** (`lib/analytics/`, pure functions over plain arrays — dual-mode and
-unit-testable). Four forecasts: **occupancy** (7-day; per day KNOWN/booked occupancy as FACT from
+unit-testable). Four operational forecasts plus one governed pricing recommendation model:
+**occupancy** (7-day; per day KNOWN/booked occupancy as FACT from
 confirmed+checked-in reservations, plus a PREDICTED final occupancy from same-weekday historical
 pickup — shown only when enough observations exist, always labeled with its basis), **housekeeping
 workload** (expected departures → checkout cleans, stayovers → services, inspections per policy,
@@ -1257,7 +1295,9 @@ authorized Manager (rate-limited ≥1 h between runs); `/api/analytics/insights`
 snapshot with on-demand-compute fallback. UI: Manager dashboard → **Predictive Insights**
 (metric cards with FACT vs PREDICTION separation, 7-day occupancy chart with booked-fact bars vs
 dashed predicted line, housekeeping/inventory forecast tables, maintenance-risk cards, performance
-metrics, honest data-quality notes everywhere).
+metrics, honest data-quality notes everywhere). Beside the occupancy chart, **predictive pricing**
+shows high/moderate/low demand cards and a Manager-only edit-and-propose modal; base rates are
+FACT, occupancy-driven recommendations are PREDICTION, and submitting never activates a price.
 
 **Gemini AI assistance** (`lib/ai/`, server-side only, `@google/genai` 2.21.0). `gemini-client.ts`
 is the single source of truth for the model (`GEMINI_MODEL_DEFAULT = "gemini-3.6-flash"`,
@@ -1559,7 +1599,9 @@ closeReservation), `GET rooms/[id]` (room dossier), `GET guests/[id]` (consolida
 **Analytics** (`/api/analytics`, §7.13; manager/owner/admin — front desk gets a reduced subset on
 insights): `GET /insights` (latest prediction snapshot + evaluation metrics, on-demand-compute
 fallback); `POST /generate` (run the analytics engine + persist snapshot — Vercel cron bearer
-`CRON_SECRET` or authorized session, ≥1 h between runs).
+`CRON_SECRET` or authorized session, ≥1 h between runs); `GET /pricing-recommendations`
+(Manager/Owner/Admin) and `POST /pricing-recommendations/propose` (Manager only; governed pending
+rate-plan proposals, never direct pricing writes).
 
 **Guest reminders** (`/api/guest-reminders`, §7.13): `GET/POST` run one reminder pass — the same
 `CRON_SECRET` bearer or manager/owner/admin session guard as analytics generate. The Vercel cron
@@ -1721,14 +1763,22 @@ pipeline config in the repo at this tree.
 Honest inventory of what is **not** wired up yet (not prescriptions). Full split notes:
 `docs/lacking-of-the-system/`.
 
-- **Payments/refunds are manual, not gateway-backed.** Deposits and stay payments are staff-verified
-  proof-of-transfer; refunds are recorded attempts with a transaction reference. No real card/gateway
-  or actual money movement. `payments.status` has no `paid`→gateway-confirmed automatic path.
-  **This is deliberate (roadmap Phase 9A, 2026-09-30; GCash-only for new deposits,
-  2026-09-16):** new online deposits accept exactly `manual_gcash` with reference +
-  proof, the payment page states deposits are verified manually, and **no "Pay online"
-  UI exists or may exist** (contract-tested in `lib/ota-readiness.test.ts`). A gateway integration adds a real provider module only when the
-  hotel selects one — no provider abstraction was created speculatively.
+- **Payments/refunds other than the GCash gateway deposit are manual.** Stay payments and refunds
+  are staff-verified proof-of-transfer; refunds are recorded attempts with a transaction
+  reference. The one automated money path is the PayMongo GCash deposit (§7.2.1, migrations
+  `20261016010000` + `20261021010000`): when the PayMongo env pair is configured, the deposit page
+  offers **GCash Instant Auto-Pay** (`POST /api/booking/payments/gateway` → PayMongo hosted
+  checkout, GCash-only by default) and the webhook route
+  `POST /api/webhooks/payments` verifies the `Paymongo-Signature` header (HMAC-SHA256 over
+  `"<t>.<raw body>"`, timestamp-tolerance replay guard, `te`/`li` mode selection) BEFORE any
+  database read, then settles only through the service-role `confirm_gateway_payment` RPC
+  (webhook-event idempotency via the unique `payments.webhook_event_id`, amount equality re-checked
+  in-transaction, audit row, transport itemization). The confirmation page polls the guest-scoped
+  `GET /api/account/reservations/[id]/payments` and flips to "Payment Confirmed!" without a reload.
+  Without the env pair nothing gateway shows and the manual-only statement remains true
+  (contract-tested in `lib/ota-readiness.test.ts` + `lib/paymongo.test.ts`). A gateway integration
+  beyond this deposit path still adds a real provider module only when the hotel selects one — no
+  provider abstraction was created speculatively.
 - **OTA/channel-manager integration is column-ready, nothing more (roadmap Phase 9B, 2026-09-30).**
   `reservations.external_channel` / `external_reference` / `external_synced_at` are nullable,
   start NULL on every row, and are read/written by **nothing** in the app (partial unique index on

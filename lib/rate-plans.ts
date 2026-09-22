@@ -28,6 +28,8 @@ export type RatePlan = {
   decision_reason?: string | null;
   decided_at?: string | null;
   created_at?: string | null;
+  created_from_analytics?: boolean;
+  analytics_model_run_id?: string | null;
 };
 
 export type NightlyRate = { date: string; rate: number };

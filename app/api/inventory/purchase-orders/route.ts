@@ -21,11 +21,12 @@ import type { Role } from "@/lib/types";
 const DRAFT_PO_ROLES: Role[] = ["manager", "owner", "admin"];
 
 /** Shortage suggestions from the same forecast the Predictive Insights panel uses. */
-export async function GET() {
+export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session || session.user.disabled) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!DRAFT_PO_ROLES.includes(session.user.role as Role)) return NextResponse.json({ error: "Replenishment suggestion access required." }, { status: 403 });
   if (!supabase) return NextResponse.json({ error: "Database unavailable." }, { status: 503 });
+  const params = new URL(request.url).searchParams;
   try {
     const inputs = await getAnalyticsInputs();
     const forecast = forecastInventory({ items: inputs.inventoryItems, movements: inputs.movements, today: inputs.today });
@@ -35,10 +36,22 @@ export async function GET() {
     const shortageIds = forecast.items
       .filter((item) => (item.projectedShortage ?? 0) > 0 || item.riskBasis === "current-low-stock")
       .map((item) => item.itemId);
-    const [costResult, ordersResult, vendorResult] = await Promise.all([
+    const [costResult, ordersResult, vendorResult, policyResult] = await Promise.all([
       shortageIds.length ? supabase.from("inventory").select("id,unit_cost,vendor_id").in("id", shortageIds) : Promise.resolve({ data: [] as { id: string; unit_cost: number | null; vendor_id: string | null }[], error: null as null }),
-      supabase.from("purchase_orders").select("id,vendor_id,status,total,items,created_at").order("created_at", { ascending: false }).limit(50),
-      supabase.from("vendors").select("id,name").eq("status", "active").order("name")
+      (() => {
+        let q = supabase.from("purchase_orders").select("id,vendor_id,status,total,items,created_at,version,approved_at,received_at").order("created_at", { ascending: false }).limit(50);
+        const status = params.get("status");
+        if (status) q = q.eq("status", status);
+        const vendor = params.get("vendor");
+        if (vendor) q = q.eq("vendor_id", vendor);
+        const from = params.get("from");
+        if (from) q = q.gte("created_at", from);
+        const to = params.get("to");
+        if (to) q = q.lte("created_at", to);
+        return q;
+      })(),
+      supabase.from("vendors").select("id,name").eq("status", "active").order("name"),
+      supabase.from("hotel_operational_policies").select("po_auto_approve_threshold").eq("key", "default").maybeSingle()
     ]);
     if (costResult.error || ordersResult.error || vendorResult.error) throw costResult.error ?? ordersResult.error ?? vendorResult.error;
     const costs = new Map((costResult.data ?? []).map((row) => [String(row.id), row]));
@@ -60,13 +73,15 @@ export async function GET() {
           risk: item.risk
         };
       });
-    return NextResponse.json({ data: { suggestions, drafts: ordersResult.data ?? [], vendors: vendorResult.data ?? [], method: forecast.method, notes: forecast.notes } });
+    return NextResponse.json({ data: { suggestions, drafts: ordersResult.data ?? [], vendors: vendorResult.data ?? [], method: forecast.method, notes: forecast.notes, autoApproveThreshold: Number((policyResult.data as { po_auto_approve_threshold?: number } | null)?.po_auto_approve_threshold ?? 50000) } });
   } catch {
     return NextResponse.json({ error: "Unable to load replenishment suggestions." }, { status: 500 });
   }
 }
 
 const schema = z.object({
+  id: z.string().uuid().optional(),
+  version: z.number().int().positive().optional(),
   items: z.array(z.object({
     itemId: z.string().min(1),
     name: z.string().trim().min(1).max(200),
@@ -120,9 +135,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: code === "EMPTY_DRAFT" ? "Nothing to order — all quantities are zero." : "Choose valid unit costs." }, { status: 400 });
   }
 
+  // Draft edit: only draft rows, version-guarded. Submit/receive/cancel have own routes.
+  if (parsed.data.id) {
+    if (!parsed.data.version) return NextResponse.json({ error: "Version is required to edit a draft." }, { status: 400 });
+    const { data: updated, error: updateError } = await supabase.from("purchase_orders")
+      .update({ vendor_id: draft.vendorId, items: draft.items, total: draft.total, version: parsed.data.version + 1 })
+      .eq("id", parsed.data.id).eq("status", "draft").eq("version", parsed.data.version)
+      .select("id,status,total").maybeSingle();
+    if (updateError) return NextResponse.json({ error: "Unable to update the draft purchase order." }, { status: 409 });
+    if (!updated) return NextResponse.json({ error: "Draft changed or already submitted — reload and retry.", code: "PO_STALE" }, { status: 409 });
+    await supabase.from("audit_logs").insert({
+      user_id: session.user.id, action: "inventory_draft_purchase_order_updated",
+      entity_type: "purchase_order", entity_id: String(updated.id),
+      after_data: { status: "draft", vendorId: draft.vendorId, total: draft.total, items: draft.items, note: draft.note ?? null }
+    });
+    return NextResponse.json({ data: updated });
+  }
+
   const { data, error } = await supabase.from("purchase_orders").insert({
     vendor_id: draft.vendorId,
-    status: draft.status, // always 'draft' — the only value this route writes
+    status: draft.status, // always 'draft' — inserts only; edits go through the branch above
     items: draft.items,
     total: draft.total,
     ordered_by: draft.orderedBy

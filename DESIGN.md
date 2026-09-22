@@ -146,18 +146,34 @@ The public room-discovery route (`/booking/search`) extends the landing-page ide
 
 ## 9. Customer payments & folio
 
-`/account/payments` (refined 2026-09-10) keeps the coastal card identity while adding
-URL-driven filter chips (`?stay=` current/upcoming/past/cancelled, `?pay=`
-pending/due/refund/settled — two chip rows above the list, each with a live count).
-Chips are plain links (back button, sharing, direct load; zero client JS); a zero-match
-chip renders dimmed and disabled. An aggregate strip under the filters shows the
-filtered set's folio count, outstanding balance, and paid-to-date, server-computed.
+`/account/payments` keeps the coastal card identity with a decision-first hierarchy:
+page hero → three financial KPI cards → transparent filter toolbar → folio cards.
+The stable KPI strip shows the filtered folio count, outstanding balance, and
+paid-to-date before the user reaches the controls. Search plus the Stay Status and
+Payment Status `HavenSelect` controls filter the already-authorized server payload
+locally, update faceted option counts and KPI totals without navigation or layout
+shift, and mirror state into `?q=`, `?stay=`, and `?pay=` through browser history.
+The shared toolbar wrapper remains uncontainerized; only its inputs/selects draw
+surfaces. At narrower widths the KPI strip becomes one column and the controls stack.
 Each folio card carries a paid-vs-total progress bar (`.folio-progress`, accent =
 partial, green = settled) between header and `.folio-summary`, with a text
 alternative on the progressbar role. Bucket derivation (`financialPaymentState`) and
-filtering live in `lib/customer.ts` as pure presentation helpers — no query or
-business-logic change. Styling is scoped in `guest-booking.css` (`.folio-*`) using
-`--cp-*` tokens, with 44px chip touch floors ≤680px.
+money derivation remain shared presentation helpers — no query or business-logic
+change. Styling is scoped in `guest-booking.css` (`.folio-*`) using `--cp-*` tokens.
+
+## 9a. Customer rewards
+
+The guest Rewards page uses the customer portal's dark-teal hero, followed by
+three live KPI cards (tier/balance, tier progress, redemption value), a
+selectable three-tier comparison, and the append-only points ledger. The API
+payload remains authoritative; client code validates it before presentation.
+Tier comparison cards are real buttons with pressed state and visible focus,
+while the current membership is independently marked as Active tier. Progress
+uses a semantic progressbar, transform-only animation, and reduced-motion
+fallback. The ledger uses the shared pagination primitive on wide screens and
+reflows into labeled records on narrow screens without horizontal page scroll.
+Loading skeletons reserve the same page regions as the loaded content, and
+errors include a retry action.
 
 ## 10. Module quick-overview cards (staff dashboards)
 
@@ -383,3 +399,19 @@ room-mix donut — only composition differs:
 - Customer `/account` stays the dedicated personal dashboard (stay hero,
   attention list, folio/requests/notifications cards, quick actions);
   `/my-reservations` stays the separate history module.
+
+## 19. Predictive pricing workspace (2026-09-22)
+
+- The Occupancy Outlook keeps the FACT bars and dashed PREDICTION line as the
+  primary evidence. A responsive recommendation workspace sits beside it at
+  wide widths and stacks below it before mobile.
+- Recommendation cards show room/date, base rate (FACT), proposed rate,
+  percentage movement, demand-tier badge, confidence, and plain-language
+  reasoning. Color is never the only status signal.
+- The top three highest-impact recommendations preview in the panel. The
+  branded review modal exposes all seven-day room/date recommendations with
+  native checkboxes, bounded numeric inputs, visible focus treatment, and a
+  sticky semantic footer count/action group.
+- The sole primary action says **Submit Proposal to Owner**. Supporting copy
+  states that submission leaves live rates unchanged and creates pending
+  Owner/Admin work. Reduced-motion removes skeleton and row transitions.

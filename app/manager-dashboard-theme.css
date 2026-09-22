@@ -966,6 +966,67 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .app-shell .insights-chart-key span{display:inline-flex;align-items:center;gap:6px}
 .app-shell .insights-chart-key i{display:block;width:16px;height:8px;border-radius:2px;background:#176773}
 .app-shell .insights-chart-key i.predicted{height:0;border-top:2px dashed #b8860b;border-radius:0;background:transparent}
+.app-shell .occupancy-pricing-layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(320px,.75fr);gap:14px;align-items:start}
+.app-shell .occupancy-chart-workspace{min-width:0}
+.app-shell .pricing-workspace{min-width:0;padding:14px;border:1px solid var(--dl);border-radius:11px;background:var(--ds2)}
+.app-shell .pricing-workspace>header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:7px}
+.app-shell .pricing-workspace>header>div{display:grid;gap:5px}
+.app-shell .pricing-workspace h4{margin:0;color:var(--dt);font:700 14px/1.25 var(--font-sans)}
+.app-shell .pricing-intro,.app-shell .pricing-confidence-note,.app-shell .pricing-run-warning{margin:0;color:var(--dm);font-size:9px;line-height:1.55}
+.app-shell .pricing-preview-list{display:grid;gap:8px;margin:12px 0}
+.app-shell .pricing-preview{display:grid;gap:8px;padding:11px;border:1px solid var(--dl);border-inline-start:3px solid #9aa9a5;border-radius:9px;background:var(--ds)}
+.app-shell .pricing-preview.high{border-inline-start-color:#b36235}.app-shell .pricing-preview.low{border-inline-start-color:#29765e}.app-shell .pricing-preview.moderate{border-inline-start-color:#b18732}
+.app-shell .pricing-preview-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.app-shell .pricing-preview-heading>div{display:grid;gap:2px;min-width:0}
+.app-shell .pricing-preview-heading b{overflow:hidden;color:var(--dt);font-size:10px;text-overflow:ellipsis;white-space:nowrap}
+.app-shell .pricing-preview-heading small{color:var(--dm);font-size:8px}
+.app-shell .demand-badge,.pricing-overlay .demand-badge{display:inline-flex;align-items:center;width:max-content;padding:3px 7px;border:1px solid #dce4e0;border-radius:999px;background:#f4f6f3;color:#52615b;font-size:7px;font-weight:800;line-height:1.2;white-space:nowrap}
+.app-shell .demand-badge.high,.pricing-overlay .demand-badge.high{border-color:#e5c0aa;background:#f8e8df;color:#8d4825}
+.app-shell .demand-badge.low,.pricing-overlay .demand-badge.low{border-color:#b9ddcf;background:#e5f4ee;color:#21634f}
+.app-shell .demand-badge.moderate,.pricing-overlay .demand-badge.moderate{border-color:#ead8ad;background:#faf1dc;color:#785b18}
+.app-shell .pricing-values{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto;align-items:end;gap:7px}
+.app-shell .pricing-values>span:not(.pricing-change){display:grid;gap:3px}
+.app-shell .pricing-values small{display:flex;align-items:center;gap:4px;color:var(--dm);font-size:7px}
+.app-shell .pricing-values b{color:var(--dt);font-size:12px;font-variant-numeric:tabular-nums}
+.app-shell .pricing-values>svg{align-self:center;color:var(--dm)}
+.app-shell .pricing-change{display:inline-flex;align-items:center;gap:2px;padding:3px 5px;border-radius:999px;background:#e5f4ee;color:#21634f;font-size:8px;font-weight:800}
+.app-shell .pricing-change.up{background:#f8e8df;color:#8d4825}
+.app-shell .pricing-preview>p{margin:0;color:var(--dm);font-size:8px;line-height:1.5}
+.app-shell .insight-kind{display:inline-flex;width:max-content;color:#49726d;font-size:7px;font-weight:900;letter-spacing:.12em}
+.app-shell .insight-kind.prediction{color:#b06b33}.app-shell .insight-kind.fact{color:#26715f}
+.app-shell .pricing-confidence-note{padding-top:10px;border-top:1px solid var(--dl)}
+.app-shell .pricing-run-warning{margin-top:8px;color:#a45a22}
+.app-shell .pricing-review-button{justify-content:center;width:100%;margin-top:11px}
+.app-shell .pricing-feedback{margin:0;padding:9px 12px;border:1px solid #b9ddcf;border-radius:8px;background:#e5f4ee;color:#21634f;font-size:9px}
+.app-shell .pricing-workspace-loading{display:grid;gap:10px;min-height:310px;align-content:start}
+.app-shell .pricing-skeleton{display:block;height:16px;border-radius:5px;background:var(--dl);animation:pricingPulse 1.4s ease-in-out infinite}.app-shell .pricing-skeleton.short{width:62%}.app-shell .pricing-skeleton.card{height:92px;margin-top:8px}
+.app-shell .pricing-workspace-error{display:grid;justify-items:start;align-content:center;min-height:280px;gap:7px}
+.app-shell .pricing-workspace-error>svg{color:#b36235}.app-shell .pricing-workspace-error p{margin:0;color:var(--dm);font-size:9px;line-height:1.5}
+.pricing-overlay .modal-content{max-height:min(88vh,900px)}
+.pricing-overlay .modal-body{background:#f6f6f2}
+.pricing-overlay .modal-footer{display:flex;align-items:center;gap:8px}
+.pricing-overlay .pricing-selection-count{margin-inline-end:auto;color:#65716c;font-size:10px;font-weight:700}
+.pricing-overlay .pricing-modal-summary{display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:9px 11px;border:1px solid #dce4e0;border-radius:8px;background:#fff;color:#52615b;font-size:9px}
+.pricing-overlay .insight-kind{display:inline-flex;padding:2px 5px;border-radius:3px;font-size:7px;font-weight:900;letter-spacing:.11em}
+.pricing-overlay .insight-kind.fact{background:#e5f4ee;color:#21634f}.pricing-overlay .insight-kind.prediction{margin-inline-start:10px;background:#faf1dc;color:#785b18}
+.pricing-overlay .pricing-editor-list{display:grid;gap:8px;max-height:52vh;overflow:auto;padding:1px}
+.pricing-overlay .pricing-editor-row{display:grid;grid-template-columns:minmax(190px,1fr) minmax(180px,.85fr) minmax(210px,.8fr);gap:14px;align-items:center;padding:12px;border:1px solid #dce4e0;border-radius:9px;background:#fff;transition:border-color .16s ease,box-shadow .16s ease}
+.pricing-overlay .pricing-editor-row.selected{border-color:#74a89d;box-shadow:0 0 0 1px rgba(35,111,97,.08)}
+.pricing-overlay .pricing-select{display:grid;grid-template-columns:20px minmax(0,1fr);gap:2px 8px;align-items:center;cursor:pointer}
+.pricing-overlay .pricing-select input{position:absolute;opacity:0;pointer-events:none}
+.pricing-overlay .pricing-select>span{grid-row:1/3;display:grid;place-items:center;width:20px;height:20px;border:1px solid #c8d3cf;border-radius:5px;color:transparent}
+.pricing-overlay .pricing-select input:focus-visible+span{outline:2px solid #0c6670;outline-offset:2px}
+.pricing-overlay .pricing-select input:checked+span{border-color:#0c6670;background:#0c6670;color:#fff}
+.pricing-overlay .pricing-select b{color:#15352f;font-size:10px}.pricing-overlay .pricing-select small{color:#68756f;font-size:8px}
+.pricing-overlay .pricing-editor-context{display:grid;gap:5px}.pricing-overlay .pricing-editor-context small{color:#68756f;font-size:8px}
+.pricing-overlay .pricing-rate-field{display:grid;gap:4px}.pricing-overlay .pricing-rate-field>label{color:#4f5f58;font-size:8px;font-weight:700}
+.pricing-overlay .pricing-rate-field>div{display:flex;align-items:center;border:1px solid #ccd7d3;border-radius:7px;background:#fff;overflow:hidden}
+.pricing-overlay .pricing-rate-field>div:focus-within{border-color:#0c6670;box-shadow:0 0 0 2px rgba(12,102,112,.14)}
+.pricing-overlay .pricing-rate-field>div>span{padding-inline-start:9px;color:#52615b;font-size:10px}
+.pricing-overlay .pricing-rate-field input{width:100%;min-height:34px;border:0;background:transparent;color:#15352f;font:700 10px var(--font-sans);font-variant-numeric:tabular-nums;outline:0}
+.pricing-overlay .pricing-rate-field input:disabled{opacity:.48}.pricing-overlay .pricing-rate-field>small{color:#74817b;font-size:7px}
+.pricing-overlay .pricing-modal-feedback{margin:10px 0 0;color:#9d3d38;font-size:9px}
+@keyframes pricingPulse{0%,100%{opacity:.5}50%{opacity:1}}
 .app-shell .insights-performance-panel .snapshot-list{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
 .app-shell .insights-performance-panel .snapshot-list li{min-height:44px;align-items:center;padding:9px 12px;border-radius:9px}
 .app-shell .insights-performance-panel .snapshot-list li span{line-height:1.35}
@@ -982,10 +1043,10 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .theme-light .app-shell .insights-metric-card.low>i{border-color:#c4dfd2;background:#def1e8;color:#267056}
 .theme-light .app-shell .insights-panel>.panel-heading .btn:hover{background:#eef5f2}
 .theme-light .app-shell .insights-chart-panel .recharts-responsive-container{background:#f7faf8}
-@media(max-width:1180px){.app-shell .predictive-insights .insights-title{align-items:flex-start;flex-direction:column}.app-shell .insights-title-actions{width:100%;justify-content:space-between}.app-shell .insights-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:1180px){.app-shell .predictive-insights .insights-title{align-items:flex-start;flex-direction:column}.app-shell .insights-title-actions{width:100%;justify-content:space-between}.app-shell .insights-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.app-shell .occupancy-pricing-layout{grid-template-columns:1fr}.app-shell .pricing-preview-list{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:720px){.app-shell .insights-tabs{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}.app-shell .insights-tabs button{flex:none}}
-@media(max-width:720px){.app-shell .predictive-insights{gap:10px}.app-shell .predictive-insights .insights-title{padding:19px}.app-shell .insights-title-actions{align-items:stretch;flex-direction:column}.app-shell .insights-freshness{padding:0 0 10px;border-inline-end:0;border-bottom:1px solid rgba(201,220,218,.28)}.app-shell .predictive-insights .insights-title .btn{justify-content:center;width:100%;font-size:10px}.app-shell .insights-metric-grid{grid-template-columns:1fr}.app-shell .insights-panel{padding:15px}.app-shell .insights-panel>.panel-heading{align-items:flex-start;flex-direction:column}.app-shell .insights-panel>.panel-heading .btn{width:100%;justify-content:center}.app-shell .insights-performance-panel .snapshot-list{grid-template-columns:1fr}}
-@media(prefers-reduced-motion:reduce){.app-shell .predictive-insights .is-spinning,.app-shell .insights-state-spinner{animation:none}.app-shell .insights-panel .table-scroll tbody tr{transition:none}.app-shell .insights-tabpanel{animation:none}}
+@media(max-width:720px){.app-shell .predictive-insights{gap:10px}.app-shell .predictive-insights .insights-title{padding:19px}.app-shell .insights-title-actions{align-items:stretch;flex-direction:column}.app-shell .insights-freshness{padding:0 0 10px;border-inline-end:0;border-bottom:1px solid rgba(201,220,218,.28)}.app-shell .predictive-insights .insights-title .btn{justify-content:center;width:100%;font-size:10px}.app-shell .insights-metric-grid{grid-template-columns:1fr}.app-shell .insights-panel{padding:15px}.app-shell .insights-panel>.panel-heading{align-items:flex-start;flex-direction:column}.app-shell .insights-panel>.panel-heading .btn{width:100%;justify-content:center}.app-shell .insights-performance-panel .snapshot-list{grid-template-columns:1fr}.app-shell .pricing-preview-list{grid-template-columns:1fr}.pricing-overlay .pricing-editor-row{grid-template-columns:1fr}.pricing-overlay .pricing-modal-summary{align-items:flex-start;flex-wrap:wrap}.pricing-overlay .modal-footer{align-items:stretch;flex-direction:column}.pricing-overlay .pricing-selection-count{margin:0}.pricing-overlay .modal-footer .btn{width:100%}}
+@media(prefers-reduced-motion:reduce){.app-shell .predictive-insights .is-spinning,.app-shell .insights-state-spinner,.app-shell .pricing-skeleton{animation:none}.app-shell .insights-panel .table-scroll tbody tr,.pricing-overlay .pricing-editor-row{transition:none}.app-shell .insights-tabpanel{animation:none}}
 
 /* Manager performance reports — current operational facts first, detailed
    trend and inventory evidence second, immutable daily review history last. */

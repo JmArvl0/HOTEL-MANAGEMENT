@@ -5,6 +5,7 @@ import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, 
 import { Activity, BedDouble, Boxes, RefreshCw, Sparkles, Wrench } from "lucide-react";
 import { usePrefersReducedMotion } from "@/lib/motion/reduced-motion";
 import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination";
+import PredictivePricingPanel from "@/components/manager/predictive-pricing-panel";
 import type { RiskLevel } from "@/lib/analytics/types";
 import type { PredictionMetrics } from "@/lib/analytics/runner";
 
@@ -270,24 +271,29 @@ export default function PredictiveInsightsPanel() {
           </div>
           <ExplainButton type="occupancy" onExplain={explain} busy={explaining} />
         </div>
-        <div className="insights-chart-key" aria-label="Occupancy chart legend">
-          <span><i className="booked" aria-hidden="true" />Booked (fact)</span>
-          <span><i className="predicted" aria-hidden="true" />Predicted</span>
+        <div className="occupancy-pricing-layout">
+          <div className="occupancy-chart-workspace">
+            <div className="insights-chart-key" aria-label="Occupancy chart legend">
+              <span><i className="booked" aria-hidden="true" />Booked (fact)</span>
+              <span><i className="predicted" aria-hidden="true" />Predicted</span>
+            </div>
+            <ResponsiveContainer width="100%" height={280}>
+              <ComposedChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--line, #e8e7e2)" />
+                <XAxis dataKey="day" axisLine={false} tickLine={false} />
+                <YAxis domain={[0, 100]} axisLine={false} tickLine={false} unit="%" width={44} />
+                <Tooltip />
+                <Bar dataKey="Booked (fact)" fill="#176773" radius={[3, 3, 0, 0]} maxBarSize={38} isAnimationActive={chartAnimated} />
+                <Line type="monotone" dataKey="Predicted" stroke="#b8860b" strokeWidth={2.5} strokeDasharray="6 4" dot={{ r: 3 }} connectNulls isAnimationActive={chartAnimated} />
+              </ComposedChart>
+            </ResponsiveContainer>
+            <p className="snapshot-hint">
+              Solid bars are booked rooms — fact. The dashed line is the predicted final occupancy, shown only where enough
+              pickup history exists. {data.occupancy.notes.join(" ")}
+            </p>
+          </div>
+          <PredictivePricingPanel key={data.generatedAt} />
         </div>
-        <ResponsiveContainer width="100%" height={280}>
-          <ComposedChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--line, #e8e7e2)" />
-            <XAxis dataKey="day" axisLine={false} tickLine={false} />
-            <YAxis domain={[0, 100]} axisLine={false} tickLine={false} unit="%" width={44} />
-            <Tooltip />
-            <Bar dataKey="Booked (fact)" fill="#176773" radius={[3, 3, 0, 0]} maxBarSize={38} isAnimationActive={chartAnimated} />
-            <Line type="monotone" dataKey="Predicted" stroke="#b8860b" strokeWidth={2.5} strokeDasharray="6 4" dot={{ r: 3 }} connectNulls isAnimationActive={chartAnimated} />
-          </ComposedChart>
-        </ResponsiveContainer>
-        <p className="snapshot-hint">
-          Solid bars are booked rooms — fact. The dashed line is the predicted final occupancy, shown only where enough
-          pickup history exists. {data.occupancy.notes.join(" ")}
-        </p>
         {explanation?.type === "occupancy" && <ExplanationCard explanation={explanation.data} onClose={() => setExplanation(null)} />}
       </article>
       )}

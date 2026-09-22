@@ -8,6 +8,7 @@ import {
 const migration=readFileSync("supabase/migrations/20260828010000_reservation_deposit_model.sql","utf8");
 const noDeadlineMigration=readFileSync("supabase/migrations/20260907010000_verification_no_time_limit.sql","utf8");
 const paymentPage=readFileSync("app/(booking)/booking/payment/[token]/page.tsx","utf8");
+const paymentSelector=readFileSync("components/booking/payment-method-selector.tsx","utf8");
 const submitRoute=readFileSync("app/api/booking/holds/[token]/confirm/route.ts","utf8");
 const verifyRoute=readFileSync("app/api/front-desk/deposits/[id]/verify/route.ts","utf8");
 const checkInRoute=readFileSync("app/api/front-desk/check-in/route.ts","utf8");
@@ -62,7 +63,8 @@ describe("staff verification has no time limit",()=>{
 
 describe("end-to-end UI and authorization wiring",()=>{
  it("shows a reservation deposit screen",()=>expect(paymentPage).toContain("Reservation deposit"));
-  it("states that manual submission is not automatic payment success",()=>expect(paymentPage).toContain("verifies every GCash deposit manually"));
+  it("states that manual submission is not automatic payment success",()=>expect(paymentSelector).toContain("verify it before your booking is"));
+  it("offers the instant option only when the gateway is configured",()=>expect(paymentSelector).toContain("gatewayAvailable ?"));
  it("never offers obsolete online guarantees",()=>{expect(paymentPage).not.toContain("Pay at the hotel");expect(paymentPage).not.toContain("Cash guarantee")});
  it("uses the server submission RPC without accepting an amount",()=>{expect(submitRoute).toContain("submit_reservation_deposit");expect(submitRoute).not.toContain("p_amount")});
  it("requires guest ownership for deposit submission",()=>expect(submitRoute).toContain('session.user.role !== "guest"'));

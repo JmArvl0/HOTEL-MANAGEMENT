@@ -6,7 +6,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { buildDraftPurchaseOrder, draftPurchaseTotal, DRAFT_PO_STATUS, suggestedQuantity } from "./purchase-orders";
+import { buildDraftPurchaseOrder, draftPurchaseTotal, DRAFT_PO_STATUS, suggestedQuantity, resolvePoSubmission, validateReceivedItems, PO_AUTO_APPROVE_THRESHOLD_DEFAULT } from "./purchase-orders";
 
 const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 
@@ -60,13 +60,13 @@ describe("draft purchase order helpers", () => {
 describe("route contract (app/api/inventory/purchase-orders/route.ts)", () => {
   const route = read("app/api/inventory/purchase-orders/route.ts");
 
-  it("writes status draft only — no other purchase-order status is ever set", () => {
+  it("writes status draft on insert — submit/receive/cancel live in their own RPC routes", () => {
     expect(route).toContain("status: draft.status"); // insert carries the builder's status…
     expect(route).toContain('after_data: { status: "draft"'); // …and the audit row repeats it
-    // No transition to any other status anywhere in the route, and no update
-    // path that could change a status after the fact.
-    expect(route).not.toMatch(/status:\s*"(ordered|submitted|approved|sent|received|cancelled)"/i);
-    expect(route).not.toMatch(/purchase_orders"\)\.(update|delete|upsert)/);
+    // No transition to any other status anywhere in this route file.
+    expect(route).not.toMatch(/status:\s*"(ordered|submitted|approved|sent|received|cancelled|pending_approval)"/i);
+    // The only update path is the draft-edit branch: draft rows, version-guarded.
+    expect(route).toContain('.eq("status", "draft").eq("version"');
   });
 
   it("never trusts the client: unit cost comes from the inventory rows, total is recomputed", () => {
@@ -93,6 +93,89 @@ describe("route contract (app/api/inventory/purchase-orders/route.ts)", () => {
   });
 });
 
+describe("submission routing + receive validation (pure)", () => {
+  it("auto-approves at or below the threshold, files an exception above it", () => {
+    expect(PO_AUTO_APPROVE_THRESHOLD_DEFAULT).toBe(50000);
+    expect(resolvePoSubmission(50000, 50000)).toBe("approved");
+    expect(resolvePoSubmission(49999.99, 50000)).toBe("approved");
+    expect(resolvePoSubmission(50000.01, 50000)).toBe("pending_approval");
+  });
+
+  it("accepts received <= ordered, refuses over-receipt and negatives", () => {
+    const ordered = [{ itemId: "a", name: "A", quantity: 10, unit: "pcs", unitCost: 5 }];
+    expect(() => validateReceivedItems(ordered, [{ itemId: "a", quantity: 10 }])).not.toThrow();
+    expect(() => validateReceivedItems(ordered, [])).not.toThrow(); // absent = full receipt
+    expect(() => validateReceivedItems(ordered, [{ itemId: "a", quantity: 11 }])).toThrow("PO_INVALID_RECEIVED_QTY");
+    expect(() => validateReceivedItems(ordered, [{ itemId: "a", quantity: -1 }])).toThrow("PO_INVALID_RECEIVED_QTY");
+  });
+});
+
+describe("workflow migration (20261014010000_inventory_replenishment_workflow.sql)", () => {
+  const migration = read("supabase/migrations/20261014010000_inventory_replenishment_workflow.sql");
+
+  it("extends the status machine and adds lifecycle columns + threshold policy", () => {
+    expect(migration).toContain("'draft','pending_approval','approved','received','cancelled'");
+    expect(migration).toContain("received_at");
+    expect(migration).toContain("received_by");
+    expect(migration).toContain("approval_request_id");
+    expect(migration).toContain("po_auto_approve_threshold");
+    expect(migration).toContain("purchase_order_approval");
+  });
+
+  it("receives atomically: approved-only, row lock, inventory increment, restock movement, audit", () => {
+    expect(migration).toContain("create or replace function public.inventory_receive_purchase_order");
+    expect(migration).toContain("for update");
+    expect(migration).toContain("if po.status <> 'approved' then raise exception 'PO_NOT_APPROVED'");
+    expect(migration).toContain("update inventory set quantity = coalesce(quantity,0) + rqty");
+    expect(migration).toContain("'restock','purchase_order'");
+    expect(migration).toContain("'purchase_order_received'");
+    expect(migration).toContain("PO_STALE");
+  });
+
+  it("submits with server-recomputed totals and files a manager approval above threshold", () => {
+    expect(migration).toContain("create or replace function public.submit_purchase_order");
+    expect(migration).toContain("select unit_cost into cost from inventory where id = item->>'itemId'");
+    expect(migration).toContain("insert into manager_approval_requests");
+    expect(migration).toContain("'purchase_order_approval'");
+    expect(migration).toContain("'purchase_order_auto_approved'");
+  });
+
+  it("locks received orders immutable and revokes public execute", () => {
+    expect(migration).toContain("protect_received_po");
+    expect(migration).toContain("raise exception 'PO_IMMUTABLE'");
+    expect(migration).toContain("actor is null or actor not in("); // null-safe guard rule
+    expect(migration).toContain("grant execute on function public.submit_purchase_order");
+    expect(migration).toContain("to service_role");
+  });
+});
+
+describe("action route contracts", () => {
+  it("submit/receive/cancel call their RPCs with version guards and mapped errors", () => {
+    const actions = read("app/api/inventory/purchase-orders/_actions.ts");
+    expect(actions).toContain('rpc("submit_purchase_order"');
+    expect(actions).toContain('rpc("inventory_receive_purchase_order"');
+    expect(actions).toContain('rpc("cancel_purchase_order"');
+    expect(actions).toContain("PO_STALE");
+    expect(actions).toContain("PO_NOT_APPROVED");
+    expect(actions).toContain("PO_IMMUTABLE");
+  });
+
+  it("receive is open to housekeeping; submit/cancel stay manager/owner/admin", () => {
+    const actions = read("app/api/inventory/purchase-orders/_actions.ts");
+    expect(actions).toMatch(/\["manager",\s*"housekeeping",\s*"owner",\s*"admin"\]/);
+    expect(actions).toMatch(/\["manager",\s*"owner",\s*"admin"\]/);
+  });
+
+  it("owner/admin review PO exceptions through the dedicated RPC, never the generic review", () => {
+    const review = read("app/api/inventory/purchase-orders/approvals/[id]/review/route.ts");
+    expect(review).toContain('rpc("review_purchase_order_approval"');
+    expect(review).toMatch(/\["owner",\s*"admin"\]/);
+    const generic = read("app/api/manager/approvals/[id]/review/route.ts");
+    expect(generic).toContain("purchase_order_approval");
+    expect(generic).toContain("PO_REVIEW_ELSEWHERE");
+  });
+});
+
 describe("surface contracts", () => {
   it("the Inventory section renders the advisory strip and a quantity-editable draft dialog", () => {
     const ui = read("components/manager/manager-dashboard-client.tsx");
@@ -100,7 +183,18 @@ describe("surface contracts", () => {
     expect(ui).toContain("Create draft PO");
     expect(ui).toContain("defaultValue: suggestion.suggestedQuantity"); // quantity editable, forecast default
     expect(ui).toContain("Nothing was ordered"); // the toast tells the truth
-    expect(ui).toContain("Draft only — review before any order");
     expect(ui).toContain("nothing is ordered or sent automatically");
+  });
+
+  it("the PO workspace offers status filters and the submit/receive/cancel lifecycle", () => {
+    const panel = read("components/manager/inventory-replenishment-panel.tsx");
+    expect(panel).toContain("pending_approval");
+    expect(panel).toContain("Confirm stock restock");
+    expect(panel).toContain("Received — immutable");
+    expect(panel).toContain("onSubmit");
+    expect(panel).toContain("haven-filter-badge");
+    const ui = read("components/manager/manager-dashboard-client.tsx");
+    expect(ui).toContain("Confirm stock restock");
+    expect(ui).toContain("atomically and the order becomes immutable");
   });
 });

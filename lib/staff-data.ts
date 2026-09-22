@@ -283,7 +283,7 @@ export async function getStaffGuestProfile(id: string, role: Role) {
       requestOptions: [], financialVisible,
     };
   }
-  const guestResult = await supabase.from("guests").select("id,name,email,phone,loyalty_tier,loyalty_points,stays,preferences,special_requests,nationality,address,created_at").eq("id", id).maybeSingle();
+  const guestResult = await supabase.from("guests").select("id,name,email,phone,loyalty_tier,loyalty_points,lifetime_spend,stays,preferences,special_requests,nationality,address,created_at").eq("id", id).maybeSingle();
   if (guestResult.error) throw guestResult.error;
   const guest = guestResult.data as RecordItem | null;
   if (!guest) return null;

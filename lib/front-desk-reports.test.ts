@@ -144,7 +144,7 @@ describe("centralized reporting replaces scattered module exports", () => {
     expect(dashboard).toContain('generateDocument({documentType:"folio"');
   });
   it("gives Front Desk the Reports page and states that Export never submits", () => {
-    expect(dashboard).toContain('roles: ["manager", "accounting", "front_desk"]');
+    expect(readFileSync("config/role-navigation.ts", "utf8")).toContain('roles: ["manager", "accounting", "front_desk"]');
     expect(dashboard).toContain("FrontDeskReportsPanel");
     expect(reportsPanel).toContain("It does not submit anything to the Manager");
     expect(reportsPanel).toContain("Submit to Manager");

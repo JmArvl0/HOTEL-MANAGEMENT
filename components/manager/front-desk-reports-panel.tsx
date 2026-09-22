@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { CalendarDays, ClipboardCheck, Download, FileText, Send, X } from "lucide-react";
+import { CalendarDays, ClipboardCheck, Download, FileText, Send, Sparkles, X } from "lucide-react";
+import { AI_DISCLOSURE } from "@/lib/ai/prompts";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
 import { canGenerateFrontDeskReport, canReviewFrontDeskReports } from "@/lib/permissions";
@@ -64,6 +65,53 @@ export function ReportSnapshotView({ snapshot }: { snapshot: DailyReportSnapshot
     <CountList title="Exception approvals raised" entries={snapshot.approvals} hint="Manager approval requests filed this day, by status." />
     <CountList title="Rooms at generation" entries={snapshot.rooms} hint="Rooms carry no per-day history — this is the live snapshot at generation time." />
   </div>;
+}
+
+type ExecutiveDigest = { executiveOverview: string; bottlenecks: string[]; actionPlan: string[] };
+
+// AI Executive Digest — advisory narration over the authoritative snapshot.
+// Manager/Owner/Admin only; degrades to a message when Gemini is unavailable.
+function ExecutiveDigestCard({ reportDate }: { reportDate: string }) {
+  const [open, setOpen] = useState(false);
+  const [digest, setDigest] = useState<ExecutiveDigest | null>(null);
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  async function refresh() {
+    setLoading(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/ai/report-summary", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: reportDate, mode: "digest" })
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error ?? "Unable to build the digest.");
+      if (!body.data) { setDigest(null); setMessage(body.message ?? "AI assistance is temporarily unavailable."); return; }
+      setDigest(body.data);
+    } catch (cause) {
+      setMessage(cause instanceof Error ? cause.message : "Unable to build the digest.");
+    }
+    setLoading(false);
+  }
+  return (
+    <details className="panel ai-digest" open={open} onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}>
+      <summary><Sparkles size={16} aria-hidden="true" /> AI Executive Digest · {formatDate(reportDate)}</summary>
+      <div className="ai-digest-body">
+        <button className="btn btn-soft" onClick={() => void refresh()} disabled={loading}>
+          {loading ? "Reading the day…" : digest ? "Refresh digest" : "Generate digest"}
+        </button>
+        {loading && <p className="pulse-skeleton">Summarizing arrivals, collections, turnover, and open work…</p>}
+        {message && <p role="status">{message}</p>}
+        {digest && !loading && <>
+          <h4>Executive overview</h4>
+          <p>{digest.executiveOverview}</p>
+          {digest.bottlenecks.length > 0 && <><h4>Operational bottlenecks</h4><ul>{digest.bottlenecks.map((b, i) => <li key={i}>{b}</li>)}</ul></>}
+          {digest.actionPlan.length > 0 && <><h4>Manager action plan</h4><ul>{digest.actionPlan.map((a, i) => <li key={i}>{a}</li>)}</ul></>}
+          <p className="concierge-disclosure">{AI_DISCLOSURE}</p>
+        </>}
+      </div>
+    </details>
+  );
 }
 
 export default function FrontDeskReportsPanel({ role }: { role: Role }) {
@@ -151,6 +199,7 @@ export default function FrontDeskReportsPanel({ role }: { role: Role }) {
       {canGenerate && <div className="report-tools"><label>Report date<input type="date" value={date} max={today} onChange={(event) => setDate(event.target.value)}/></label><button className="btn btn-accent" onClick={() => void generate()} disabled={building}>{building ? "Building…" : "Generate preview"}</button></div>}
     </div>
     {error && <div className="empty"><FileText/><h3>Reports unavailable</h3><p>{error}</p></div>}
+    {canReview && <ExecutiveDigestCard reportDate={viewing ? viewing.report_date.slice(0, 10) : date} />}
     {(preview || viewing) && <article className="panel report-preview">
       <div className="panel-heading"><div><h3>{viewing ? `Submitted snapshot · ${formatDate(viewing.report_date)}` : "Preview"}</h3><p>{viewing ? `Submitted by ${viewing.submitted_by_name ?? "Front Desk"} · ${formatStamp(viewing.submitted_at)}` : "Auto-generated from live hotel records for the selected hotel day."}</p></div>
       <div className="report-actions">

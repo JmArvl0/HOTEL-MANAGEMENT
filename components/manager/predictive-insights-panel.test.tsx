@@ -177,7 +177,8 @@ describe("PredictiveInsightsPanel", () => {
     const fetchMock = mockFetch({ "/api/analytics/insights": { data: insights } });
     render(<PredictiveInsightsPanel />);
     await waitFor(() => expect(screen.getByText("7-day occupancy outlook")).toBeTruthy());
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const callsAfterLoad = fetchMock.mock.calls.length;
+    expect(callsAfterLoad).toBe(2);
     fireEvent.click(screen.getByRole("tab", { name: "Housekeeping Forecast" }));
     expect(screen.getByText("Housekeeping workload forecast")).toBeTruthy();
     expect(screen.queryByText("7-day occupancy outlook")).toBeNull();
@@ -186,7 +187,7 @@ describe("PredictiveInsightsPanel", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Maintenance Risk" }));
     expect(screen.getByRole("heading", { name: "Recurring maintenance risk" })).toBeTruthy();
     // Tab switches render already-loaded data — the insights endpoint is hit once.
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(callsAfterLoad);
     // Performance remains visible regardless of the selected tab.
     expect(screen.getByText("Prediction performance")).toBeTruthy();
   });

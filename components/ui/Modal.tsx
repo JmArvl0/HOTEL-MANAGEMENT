@@ -136,6 +136,7 @@ export function Modal({
   if (!isOpen || (portal && typeof document === "undefined")) return null;
 
   const prefersReducedMotion = typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const content = (
