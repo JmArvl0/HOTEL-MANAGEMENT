@@ -69,19 +69,19 @@ describe("customer session guard", () => {
   it("sends an anonymous visitor to sign in and back to the portal", async () => {
     vi.mocked(getServerSession).mockResolvedValue(null);
     await expect(requireCustomerSession()).rejects.toThrow(/NEXT_REDIRECT/);
-    expect(nav.redirected).toEqual(["/login?callbackUrl=%2Faccount"]);
+    expect(nav.redirected).toEqual(["/login"]);
   });
 
   it("refuses a disabled customer session", async () => {
     vi.mocked(getServerSession).mockResolvedValue({ user: { id: A, role: "guest", disabled: true } } as never);
     await expect(requireCustomerSession()).rejects.toThrow(/NEXT_REDIRECT/);
-    expect(nav.redirected).toEqual(["/login?callbackUrl=%2Faccount"]);
+    expect(nav.redirected).toEqual(["/login"]);
   });
 
   it("refuses a neutralized customer session with no account id", async () => {
     vi.mocked(getServerSession).mockResolvedValue({ user: { id: "", role: "guest", disabled: false } } as never);
     await expect(requireCustomerSession()).rejects.toThrow(/NEXT_REDIRECT/);
-    expect(nav.redirected).toEqual(["/login?callbackUrl=%2Faccount"]);
+    expect(nav.redirected).toEqual(["/verify?callbackUrl=%2Faccount"]);
   });
 
   it("refuses a staff session on customer pages", async () => {

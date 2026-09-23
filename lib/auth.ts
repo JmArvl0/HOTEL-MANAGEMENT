@@ -56,10 +56,7 @@ export const authOptions: NextAuthOptions = {
       }
       const policy = await getSecurityPolicy();
       const persistent = credentials.remember === "1" && policy.persistentSessionEnabled;
-      if (!policy.loginOtpEnabled) {
-        await supabase.from("user_accounts").update({ last_seen_at: new Date().toISOString() }).eq("id", data.id);
-        return { id: data.id, email: data.email, name: data.name, role: data.role as Role, authVersion: data.auth_version ?? 1, persistent };
-      }
+      // Mandatory login OTP for all roles: password alone never mints a session.
       // Stage 1 of login OTP: password verified, but no authenticated session
       // yet. Fail closed when the delivery prerequisites are missing.
       if (otpIssuable().ok !== true || !smtpConfigured()) return null;

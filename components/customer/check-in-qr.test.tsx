@@ -83,7 +83,7 @@ describe("Digital Express Pass layout (Scenario A)", () => {
     const { container } = render(<ReservationDetailView data={data} />);
     await waitFor(() => expect(container.querySelector(".customer-checkin-qr-figure img")).toBeTruthy());
     expect(screen.getByText("Digital Express Pass")).toBeTruthy();
-    expect(screen.getByText("HAVEN Makati")).toBeTruthy();
+    expect(screen.getByText("HAVEN Hotel & Residences")).toBeTruthy();
     expect(screen.getByText("Scan at front desk or kiosk")).toBeTruthy();
     expect(screen.getByText(/Ready for Express Check-In/)).toBeTruthy();
     expect(screen.getByRole("button", { name: /Download QR/ })).toBeTruthy();

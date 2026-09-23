@@ -146,6 +146,9 @@ export default function LoginForm({
       <p className="haven-vault__foot">
         New guest? <Link href={`/register?callbackUrl=${encodeURIComponent(callbackUrl)}${booking ? "&booking=1" : ""}`}>Create an account</Link>
       </p>
+      <p className="haven-vault__foot">
+        Forgot your password? <Link href="/forgot-password">Reset it with email verification</Link>
+      </p>
 
       <div className="haven-vault__trust"><span>Secure credentials</span><span>•</span><span>Role-based access</span></div>
     </>

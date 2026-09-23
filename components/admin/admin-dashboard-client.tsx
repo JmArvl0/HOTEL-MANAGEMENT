@@ -1,5 +1,5 @@
 "use client";
-import{useCallback,useEffect,useRef,useState}from"react";import{signOut}from"next-auth/react";import Link from"next/link";import{Activity,BedDouble,Building2,CarTaxiFront,ChevronDown,ChevronRight,ClipboardCheck,CircleDollarSign,Crown,FileText,HeartPulse,KeyRound,LogOut,MailCheck,PanelLeftClose,Search,Send,Settings,ShieldCheck,Sparkles,User,Users,Wrench}from"lucide-react";import{ThemeToggle}from"@/components/theme-toggle";import{ToastStack,useToasts}from"@/components/ui/toast-stack";import{SettingsDialog}from"@/components/ui/SettingsDialog";import type{RecordItem,Role}from"@/lib/types";
+import{useCallback,useEffect,useRef,useState}from"react";import{signOut}from"next-auth/react";import Link from"next/link";import{Activity,AlertTriangle,BedDouble,Building2,CarTaxiFront,CheckSquare,ChevronDown,ChevronRight,ClipboardCheck,CircleDollarSign,Clock,Cpu,CreditCard,Crown,Database,FileText,FlaskConical,Globe,HardDrive,HeartPulse,History,Hourglass,KeyRound,Layers,Lock,LogOut,Mail,MailCheck,PanelLeftClose,RefreshCw,Search,Send,Settings,Shield,ShieldCheck,Sparkles,User,UserCheck,Users,Wrench}from"lucide-react";import{ThemeToggle}from"@/components/theme-toggle";import{ToastStack,useToasts}from"@/components/ui/toast-stack";import{SettingsDialog}from"@/components/ui/SettingsDialog";import{Modal}from"@/components/ui/Modal";import type{RecordItem,Role}from"@/lib/types";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { HavenSelect } from "@/components/ui/haven-select";
 import { HavenSearchInput } from "@/components/ui/haven-data-controls";
@@ -11,10 +11,10 @@ import RoomCatalogPanel from "@/components/catalog/room-catalog-panel";
 import TransportServicesPanel from "@/components/catalog/transport-vehicle-types-panel";
 import { migrationStatus, type SystemHealth } from "@/lib/system-health";
 import { SessionExpiryGuard } from "@/components/auth/session-expiry-guard";
-type Section="overview"|"users"|"roles"|"rooms"|"room_types"|"transport_services"|"policy"|"audit"|"security"|"security_config"|"reports"|"system";type User={id:string;name?:string|null;email?:string|null;role:Role};type Overview={metrics:Record<string,number>;roleCounts:Record<string,number>;recentAudit:RecordItem[]};
-const nav:[Section,string,React.ElementType][]=[["overview","Overview",Activity],["users","Users & Staff",Users],["roles","Roles & Permissions",ShieldCheck],["rooms","Room Configuration",Building2],["room_types","Room Types",Building2],["transport_services","Transfer Vehicles",CarTaxiFront],["policy","Hotel Policies",Settings],["audit","Audit Logs",FileText],["security","Security events",KeyRound],["security_config","Security Configuration",ShieldCheck],["reports","Admin Reports",ClipboardCheck],["system","System Health",HeartPulse]];
+type Section="overview"|"users"|"roles"|"rooms"|"room_types"|"transport_services"|"policy"|"audit"|"security"|"security_config"|"password_resets"|"reports"|"system";type User={id:string;name?:string|null;email?:string|null;role:Role};type Overview={metrics:Record<string,number>;roleCounts:Record<string,number>;recentAudit:RecordItem[]};
+const nav:[Section,string,React.ElementType][]=[["overview","Overview",Activity],["users","Users & Staff",Users],["roles","Roles & Permissions",ShieldCheck],["rooms","Room Configuration",Building2],["room_types","Room Types",Building2],["transport_services","Transfer Vehicles",CarTaxiFront],["policy","Hotel Policies",Settings],["audit","Audit Logs",FileText],["security","Security events",KeyRound],["security_config","Security Configuration",ShieldCheck],["password_resets","Password reset audit",UserCheck],["reports","Admin Reports",ClipboardCheck],["system","System Health",HeartPulse]];
 // Presentational grouping only — admin sees every module; no RBAC filtering on this client.
-export const NAV_GROUPS:{id:string;label:string;sections:Section[]}[]=[{id:"workspace",label:"Workspace",sections:["overview"]},{id:"accounts",label:"Accounts",sections:["users","roles"]},{id:"configuration",label:"Configuration",sections:["rooms","room_types","transport_services","policy"]},{id:"governance",label:"Governance",sections:["audit","security","security_config","reports","system"]}];
+export const NAV_GROUPS:{id:string;label:string;sections:Section[]}[]=[{id:"workspace",label:"Workspace",sections:["overview"]},{id:"accounts",label:"Accounts",sections:["users","roles"]},{id:"configuration",label:"Configuration",sections:["rooms","room_types","transport_services","policy"]},{id:"governance",label:"Governance",sections:["audit","security","security_config","password_resets","reports","system"]}];
 const label=(value:unknown)=>String(value??"—").replaceAll("_"," ");
 // System Administrator display name: internal role id stays "admin"; only
 // user-facing role renders use this.
@@ -141,18 +141,42 @@ useEffect(()=>{if(!profileOpen)return;const outside=(event:Event)=>{if(profileMe
   const body=await patch("/api/admin/policy",{hotelTimezone:String(data.hotelTimezone),checkInTime:String(data.checkInTime),checkOutTime:String(data.checkOutTime),noShowCutoffTime:String(data.noShowCutoffTime),validIdRequired:Boolean(item.valid_id_required),minimumBookingAge:Number(data.minimumBookingAge),cancellationFullRefundDays:Number(data.full),cancellationPartialRefundDays:Number(data.partial),cancellationPartialRefundBasisPoints:Math.round(Number(data.percent)*100),selfServiceModificationDays:Number(data.modification),earlyCheckInAllowed:Boolean(item.early_check_in_allowed),housekeepingInspectionRequired:Boolean(item.housekeeping_inspection_required),vatRateBp:Math.round(Number(data.vat)*100),serviceChargeBp:Math.round(Number(data.serviceCharge)*100),depositSlaHours:Number(data.depositSla),reason:String(data.reason),version:item.version});
   if(body)notify("Policy updated for future transactions; existing reservation snapshots were unchanged.")
 }
- async function saveSecurityPolicy(item:RecordItem){
+ async function saveSessionPolicy(item:RecordItem){
   const idleOpts=[["10","10 minutes"],["15","15 minutes"],["30","30 minutes"],["45","45 minutes"],["60","1 hour"],["120","2 hours"],["240","4 hours"],["480","8 hours"]].map(([value,optLabel])=>({value,label:optLabel}));
   const absoluteOpts=[["60","1 hour"],["120","2 hours"],["240","4 hours"],["480","8 hours"],["720","12 hours"],["1440","24 hours"]].map(([value,optLabel])=>({value,label:optLabel}));
   const data=await dialogs.askForm({
-    title:"Update security configuration",
-    description:"Takes effect at the next session validation and for new sign-ins. Existing sessions are never silently revoked.",
+    title:"Configure session settings",
+    description:"Takes effect at the next session validation. Existing sessions are never silently revoked.",
     size:"lg",
     submitText:"Review changes",
     fields:[
       {key:"persistent",label:"Persistent login / Remember Me",type:"select",required:true,defaultValue:item.persistent_session_enabled?"on":"off",options:[{value:"on",label:"On — offer Keep me signed in"},{value:"off",label:"Off — standard sessions only"}]},
       {key:"idle",label:"Inactivity timeout",type:"select",required:true,defaultValue:String(item.idle_timeout_minutes??30),options:idleOpts},
       {key:"absolute",label:"Maximum session lifetime",type:"select",required:true,defaultValue:String(item.absolute_session_minutes??480),options:absoluteOpts},
+      {key:"reason",label:"Reason for change",type:"textarea",required:true,validation:requiredText("Reason for change")},
+    ],
+  });
+  if(!data)return;
+  const persistent=String(data.persistent)==="on",idle=Number(data.idle),absolute=Number(data.absolute);
+  if(!Number.isInteger(idle)||!Number.isInteger(absolute)||absolute<idle){notify("Maximum session lifetime must not be shorter than the inactivity timeout.");return}
+  const fmt=(minutes:number)=>minutes<60?`${minutes} min`:`${minutes/60} h`;
+  const changes:string[]=[];
+  if(persistent!==Boolean(item.persistent_session_enabled))changes.push(`Persistent login\n${item.persistent_session_enabled?"On":"Off"} → ${persistent?"On":"Off"}`);
+  if(idle!==Number(item.idle_timeout_minutes))changes.push(`Inactivity timeout\n${fmt(Number(item.idle_timeout_minutes))} → ${fmt(idle)}`);
+  if(absolute!==Number(item.absolute_session_minutes))changes.push(`Maximum session lifetime\n${fmt(Number(item.absolute_session_minutes))} → ${fmt(absolute)}`);
+  if(!changes.length){notify("No session changes to apply.");return}
+  const ok=await dialogs.askConfirm({title:"Update session settings?",message:`These changes affect authentication and session behavior for HAVEN users.\n\nSummary:\n\n${changes.join("\n\n")}`,confirmText:"Confirm update",variant:"warning"});
+  if(!ok)return;
+  const body=await patch("/api/admin/security-policy",{persistentSessionEnabled:persistent,idleTimeoutMinutes:idle,absoluteSessionMinutes:absolute,loginOtpEnabled:Boolean(item.login_otp_enabled),otpTtlSeconds:Number(item.otp_ttl_seconds??300),otpResendCooldownSeconds:Number(item.otp_resend_cooldown_seconds??60),otpMaxAttempts:Number(item.otp_max_attempts??5),reason:String(data.reason),version:item.version});
+  if(body)notify("Session settings updated and audited.")
+}
+ async function saveOtpPolicy(item:RecordItem){
+  const data=await dialogs.askForm({
+    title:"Manage OTP policy",
+    description:"Password plus a single-use emailed code at login. Takes effect for new sign-ins.",
+    size:"lg",
+    submitText:"Review changes",
+    fields:[
       {key:"otp",label:"Require email OTP at login",type:"select",required:true,defaultValue:item.login_otp_enabled?"on":"off",options:[{value:"on",label:"On — password plus emailed code"},{value:"off",label:"Off — password only"}]},
       {key:"ttl",label:"OTP validity",type:"select",required:true,defaultValue:String(item.otp_ttl_seconds??300),options:[["180","3 minutes"],["300","5 minutes"],["600","10 minutes"]].map(([value,optLabel])=>({value,label:optLabel}))},
       {key:"cooldown",label:"Resend cooldown",type:"select",required:true,defaultValue:String(item.otp_resend_cooldown_seconds??60),options:[["30","30 seconds"],["60","60 seconds"],["120","120 seconds"]].map(([value,optLabel])=>({value,label:optLabel}))},
@@ -161,27 +185,22 @@ useEffect(()=>{if(!profileOpen)return;const outside=(event:Event)=>{if(profileMe
     ],
   });
   if(!data)return;
-  const persistent=String(data.persistent)==="on",idle=Number(data.idle),absolute=Number(data.absolute);
   const otp=String(data.otp)==="on",ttl=Number(data.ttl),cooldown=Number(data.cooldown),attempts=Number(data.attempts);
-  if(!Number.isInteger(idle)||!Number.isInteger(absolute)||absolute<idle){notify("Maximum session lifetime must not be shorter than the inactivity timeout.");return}
-  const fmt=(minutes:number)=>minutes<60?`${minutes} min`:`${minutes/60} h`;
-  const changes:string[]=[];
-  if(persistent!==Boolean(item.persistent_session_enabled))changes.push(`Persistent login\n${item.persistent_session_enabled?"On":"Off"} → ${persistent?"On":"Off"}`);
-  if(idle!==Number(item.idle_timeout_minutes))changes.push(`Inactivity timeout\n${fmt(Number(item.idle_timeout_minutes))} → ${fmt(idle)}`);
-  if(absolute!==Number(item.absolute_session_minutes))changes.push(`Maximum session lifetime\n${fmt(Number(item.absolute_session_minutes))} → ${fmt(absolute)}`);
   const ttlFmt=(s:number)=>`${s/60} min`;
+  const changes:string[]=[];
   if(otp!==Boolean(item.login_otp_enabled))changes.push(`Login OTP\n${item.login_otp_enabled?"On":"Off"} → ${otp?"On":"Off"}`);
   if(ttl!==Number(item.otp_ttl_seconds??300))changes.push(`OTP validity\n${ttlFmt(Number(item.otp_ttl_seconds??300))} → ${ttlFmt(ttl)}`);
   if(cooldown!==Number(item.otp_resend_cooldown_seconds??60))changes.push(`Resend cooldown\n${Number(item.otp_resend_cooldown_seconds??60)} sec → ${cooldown} sec`);
   if(attempts!==Number(item.otp_max_attempts??5))changes.push(`Maximum attempts\n${Number(item.otp_max_attempts??5)} → ${attempts}`);
-  if(!changes.length){notify("No security changes to apply.");return}
+  if(!changes.length){notify("No OTP changes to apply.");return}
   const enablingOtp=otp&&!item.login_otp_enabled;
-  const ok=await dialogs.askConfirm({title:"Update security configuration?",message:`These changes affect authentication and session behavior for HAVEN users.\n\nSummary:\n\n${changes.join("\n\n")}${enablingOtp?"\n\nEnable login OTP only after SMTP is configured and the connection test passes — without delivery, nobody can sign in.":""}`,confirmText:"Confirm update",variant:"warning"});
+  const ok=await dialogs.askConfirm({title:"Update OTP policy?",message:`These changes affect authentication and session behavior for HAVEN users.\n\nSummary:\n\n${changes.join("\n\n")}${enablingOtp?"\n\nEnable login OTP only after SMTP is configured and the connection test passes — without delivery, nobody can sign in.":""}`,confirmText:"Confirm update",variant:"warning"});
   if(!ok)return;
-  const body=await patch("/api/admin/security-policy",{persistentSessionEnabled:persistent,idleTimeoutMinutes:idle,absoluteSessionMinutes:absolute,loginOtpEnabled:otp,otpTtlSeconds:ttl,otpResendCooldownSeconds:cooldown,otpMaxAttempts:attempts,reason:String(data.reason),version:item.version});
-  if(body)notify("Security configuration updated and audited.")
+  const body=await patch("/api/admin/security-policy",{persistentSessionEnabled:Boolean(item.persistent_session_enabled),idleTimeoutMinutes:Number(item.idle_timeout_minutes),absoluteSessionMinutes:Number(item.absolute_session_minutes),loginOtpEnabled:otp,otpTtlSeconds:ttl,otpResendCooldownSeconds:cooldown,otpMaxAttempts:attempts,reason:String(data.reason),version:item.version});
+  if(body)notify("OTP policy updated and audited.")
 }
- const rows=Array.isArray(data)?data as RecordItem[]:[];const contentLoading=loading||(!loadError&&loadedSection!==section);return <div className={`app-shell${collapsed?" sidebar-collapsed":""}`}><aside id="admin-navigation" className={`sidebar${menu?" open":""}${collapsed?" collapsed":""}`}><div className="sidebar-top"><div className="brand"><button className="brand-mark sidebar-brand-toggle" onClick={()=>{if(window.matchMedia("(max-width: 1000px)").matches){setMenu(false)}else{const next=!collapsed;setCollapsed(next);localStorage.setItem("haven-admin-sidebar-collapsed",String(next))}}} aria-label={collapsed?"Expand navigation":"Collapse navigation"} aria-controls="admin-navigation" aria-expanded={!collapsed} title={collapsed?"Expand navigation":"Collapse navigation"}><Sparkles size={17}/></button><Link href="/" className="brand-copy" aria-label="Hotel homepage" title="Hotel homepage">HAVEN<small>SYSTEM ADMINISTRATION</small></Link><button className="sidebar-collapse-button" onClick={()=>{if(!window.matchMedia("(max-width: 1000px)").matches){const next=!collapsed;setCollapsed(next);localStorage.setItem("haven-admin-sidebar-collapsed",String(next))}}} aria-label="Collapse navigation" aria-controls="admin-navigation" aria-expanded={!collapsed} title="Collapse navigation"><PanelLeftClose size={16}/></button></div></div><div className="property-pill"><span>HV</span><div className="property-copy"><b>Haven Makati</b><small>System Administration</small></div><ChevronDown size={15}/></div><AdminSidebarNav section={section} onSelect={(key)=>{setSection(key);setMenu(false)}}/></aside><main className="workspace"><header className="app-header"><button className="menu-btn brand-menu-btn" onClick={()=>setMenu(true)}><span className="brand-mark"><Sparkles size={16}/></span></button><div><p>{nav.find(x=>x[0]===section)?.[1]}</p><small>Secure hotel governance workspace</small></div><div className="header-actions"><SessionExpiryGuard expiresAt={sessionExpiresAt}/><ThemeToggle/><div className="profile-menu-wrap" ref={profileMenu}><button className="profile-menu-btn" onClick={()=>setProfileOpen((value)=>!value)} aria-expanded={profileOpen} aria-haspopup="menu" aria-label="Account menu"><b>{(user.name??"A").slice(0,2).toUpperCase()}</b><span>{user.name}</span><ChevronDown size={14}/></button>{profileOpen&&<div className="popover-gap"><div className="profile-popover"><p><strong>{user.name}</strong><small>{user.email}</small><small>{roleLabel(user.role)}</small></p><button onClick={()=>{setProfileOpen(false);setSettingsOpen(true)}}><Settings size={15}/>Settings</button><button onClick={()=>signOut({callbackUrl:"/"})}><LogOut size={15}/>Sign Out</button></div></div>}</div></div></header><ToastStack controller={toastController}/><div className={`workspace-body admin-workspace admin-section-${section}`} aria-busy={contentLoading}>{contentLoading?<div className="empty admin-loading"><Activity/><h3>Loading governance data…</h3><p>Preparing the {nav.find(x=>x[0]===section)?.[1].toLowerCase()} workspace.</p></div>:loadError?<div className="empty admin-loading" role="alert"><Activity/><h3>Administrative data unavailable</h3><p>{loadError}</p><button className="btn btn-accent" onClick={()=>void load()}>Try again</button></div>:section==="overview"?<Overview data={data as Overview} setSection={setSection}/>:section==="users"?<UsersView rows={rows} create={createStaff} action={userAction}/>:section==="rooms"?<RoomsView rows={rows} configure={editRoom}/>:section==="room_types"?<RoomCatalogPanel role="admin"/>:section==="transport_services"?<TransportServicesPanel/>:section==="security_config"?<SecurityConfigView item={data as RecordItem} save={saveSecurityPolicy} notify={notify}/>:section==="policy"?<PolicyView item={data as RecordItem} edit={editPolicy}/>:section==="roles"?<RolesView data={data}/>:section==="audit"||section==="security"?<AuditView security={section==="security"} rows={rows}/>:section==="system"?<SystemHealthView data={data as SystemHealth} onRefresh={()=>load()} />:<Reports data={data as Overview}/>}</div></main>{settingsOpen&&<SettingsDialog isOpen onClose={()=>setSettingsOpen(false)}/>}{dialogs.view}</div>}
+ 
+ const rows=Array.isArray(data)?data as RecordItem[]:[];const contentLoading=loading||(!loadError&&loadedSection!==section);return <div className={`app-shell${collapsed?" sidebar-collapsed":""}`}><aside id="admin-navigation" className={`sidebar${menu?" open":""}${collapsed?" collapsed":""}`}><div className="sidebar-top"><div className="brand"><button className="brand-mark sidebar-brand-toggle" onClick={()=>{if(window.matchMedia("(max-width: 1000px)").matches){setMenu(false)}else{const next=!collapsed;setCollapsed(next);localStorage.setItem("haven-admin-sidebar-collapsed",String(next))}}} aria-label={collapsed?"Expand navigation":"Collapse navigation"} aria-controls="admin-navigation" aria-expanded={!collapsed} title={collapsed?"Expand navigation":"Collapse navigation"}><Sparkles size={17}/></button><Link href="/" className="brand-copy" aria-label="Hotel homepage" title="Hotel homepage">HAVEN<small>SYSTEM ADMINISTRATION</small></Link><button className="sidebar-collapse-button" onClick={()=>{if(!window.matchMedia("(max-width: 1000px)").matches){const next=!collapsed;setCollapsed(next);localStorage.setItem("haven-admin-sidebar-collapsed",String(next))}}} aria-label="Collapse navigation" aria-controls="admin-navigation" aria-expanded={!collapsed} title="Collapse navigation"><PanelLeftClose size={16}/></button></div></div><div className="property-pill" title="HAVEN Hotel & Residences"><span>HV</span><div className="property-copy"><b>HAVEN</b><small>HOTEL &amp; RESIDENCES</small></div></div><AdminSidebarNav section={section} onSelect={(key)=>{setSection(key);setMenu(false)}}/></aside><main className="workspace"><header className="app-header"><button className="menu-btn brand-menu-btn" onClick={()=>setMenu(true)}><span className="brand-mark"><Sparkles size={16}/></span></button><div><p>{nav.find(x=>x[0]===section)?.[1]}</p><small>Secure hotel governance workspace</small></div><div className="header-actions"><SessionExpiryGuard expiresAt={sessionExpiresAt}/><ThemeToggle/><div className="profile-menu-wrap" ref={profileMenu}><button className="profile-menu-btn" onClick={()=>setProfileOpen((value)=>!value)} aria-expanded={profileOpen} aria-haspopup="menu" aria-label="Account menu"><b>{(user.name??"A").slice(0,2).toUpperCase()}</b><span>{user.name}</span><ChevronDown size={14}/></button>{profileOpen&&<div className="popover-gap"><div className="profile-popover"><p><strong>{user.name}</strong><small>{user.email}</small><small>{roleLabel(user.role)}</small></p><button onClick={()=>{setProfileOpen(false);setSettingsOpen(true)}}><Settings size={15}/>Settings</button><button onClick={()=>signOut({callbackUrl:"/"})}><LogOut size={15}/>Sign Out</button></div></div>}</div></div></header><ToastStack controller={toastController}/><div className={`workspace-body admin-workspace admin-section-${section}`} aria-busy={contentLoading}>{contentLoading?<div className="empty admin-loading"><Activity/><h3>Loading governance data…</h3><p>Preparing the {nav.find(x=>x[0]===section)?.[1].toLowerCase()} workspace.</p></div>:loadError?<div className="empty admin-loading" role="alert"><Activity/><h3>Administrative data unavailable</h3><p>{loadError}</p><button className="btn btn-accent" onClick={()=>void load()}>Try again</button></div>:section==="overview"?<Overview data={data as Overview} setSection={setSection}/>:section==="users"?<UsersView rows={rows} create={createStaff} action={userAction}/>:section==="rooms"?<RoomsView rows={rows} configure={editRoom}/>:section==="room_types"?<RoomCatalogPanel role="admin"/>:section==="transport_services"?<TransportServicesPanel/>:section==="security_config"?<SecurityConfigView item={data as RecordItem} saveSession={saveSessionPolicy} saveOtp={saveOtpPolicy} notify={notify}/>:section==="policy"?<PolicyView item={data as RecordItem} edit={editPolicy}/>:section==="roles"?<RolesView data={data}/>:section==="password_resets"?<PasswordResetAuditView rows={rows} notify={notify}/>:section==="audit"||section==="security"?<AuditView security={section==="security"} rows={rows}/>:section==="system"?<SystemHealthView data={data as SystemHealth} onRefresh={()=>load()} />:<Reports data={data as Overview}/>}</div></main>{settingsOpen&&<SettingsDialog isOpen onClose={()=>setSettingsOpen(false)}/>}{dialogs.view}</div>}
 function Overview({data,setSection}:{data:Overview;setSection:(s:Section)=>void}){
  const m=data.metrics??{},attention=Number(m.attention??0);
  const quickActions:{label:string;detail:string;section:Section;Icon:React.ElementType}[]=[
@@ -268,6 +287,38 @@ export function RoomsView({rows,configure}:{rows:RecordItem[];configure:(x:Recor
  {visible.length===0&&<div className="empty"><Search/><h3>No rooms match these filters</h3><p>Try clearing the filters to see every room.</p><button className="table-action" onClick={clearFilters}>Clear filters</button></div>}
  <TablePagination {...page} onPageChange={page.setPage} noun={`room${rows.length!==1?"s":""}`} allTotal={rows.length} note="Occupancy and housekeeping state change only through their own departments."/></div></>
 }
+// Password reset audit: every self-service and link-based reset attempt with
+// its OTP state and staged identity selfie. Selfies open in a signed-URL
+// preview modal — paths never render as links and bytes never pass through JSON.
+// Exported for the jsdom render test (admin-views.test.tsx).
+export function PasswordResetAuditView({rows,notify}:{rows:RecordItem[];notify:(message:string)=>void}){
+ const[status,setStatus]=useState("all");const[search,setSearch]=useState("");
+ const[preview,setPreview]=useState<{email:string;url:string}|null>(null);const[previewBusy,setPreviewBusy]=useState<string|null>(null);
+ const visible=rows.filter(item=>(status==="all"||String(item.status)===status)&&[item.email,item.ip_address,item.status].some(value=>String(value??"").toLowerCase().includes(search.toLowerCase())));
+ const page=useTablePagination(visible);
+ const clearFilters=()=>{setStatus("all");setSearch("")};
+ const counts={requested:rows.filter(item=>String(item.status)==="requested").length,verified:rows.filter(item=>String(item.status)==="otp_verified").length,completed:rows.filter(item=>String(item.status)==="completed").length,failed:rows.filter(item=>String(item.status)==="failed").length};
+ const stamp=(value:unknown)=>new Date(String(value)).toLocaleString("en-PH",{dateStyle:"medium",timeStyle:"short"});
+ async function inspect(item:RecordItem){
+  setPreviewBusy(String(item.id));
+  try{const response=await fetch(`/api/admin/password-resets/${item.id}/selfie`,{cache:"no-store"});const body=await response.json().catch(()=>null);
+   if(!response.ok||typeof body?.data?.url!=="string"){notify(body?.error??"The selfie could not be loaded.");return}
+   setPreview({email:String(item.email??"—"),url:String(body.data.url)});
+  }finally{setPreviewBusy(null)}
+ }
+ return <><div className="page-title"><div><p className="admin-section-context">Authentication & session security</p><h1>Password reset audit</h1><p>Every reset attempt with OTP state and identity-selfie evidence. Selfies are human-reviewed proof — never automatic approval.</p></div></div>
+ <ModuleSummaryCards ariaLabel="Password reset summary" cards={[
+  {label:"Attempts on record",value:rows.length,hint:"Most recent first",icon:KeyRound,tone:"active"},
+  {label:"Completed",value:counts.completed,hint:"Password changed with selfie proof",icon:ShieldCheck,tone:"done"},
+  {label:"Awaiting completion",value:counts.requested+counts.verified,hint:"Link issued, reset not finished",icon:Activity,tone:counts.requested+counts.verified>0?"today":"done"},
+  {label:"Failed",value:counts.failed,hint:"Expired, invalid, or undelivered",icon:KeyRound,tone:counts.failed>0?"attention":"done"},
+ ]}/>
+ <div className="reservation-filters approval-toolbar"><div className="approval-filters"><HavenSearchInput value={search} onValueChange={setSearch} label="Search reset attempts" placeholder="Search email, IP, or status..."/><div className="haven-filter"><span>Status</span><HavenSelect value={status} onChange={setStatus} ariaLabel="Filter by reset status" options={[{value:"all",label:"All statuses"},{value:"requested",label:"Requested"},{value:"otp_verified",label:"OTP verified"},{value:"completed",label:"Completed"},{value:"failed",label:"Failed"}]}/></div></div></div>
+ <div className="data-panel"><div className="table-scroll"><table aria-label="Password reset attempts"><thead><tr>{["Time","Email","IP address","OTP","Status","Selfie proof"].map(x=><th key={x}>{x}</th>)}</tr></thead><tbody>{page.rows.map(item=><tr key={item.id}><td>{stamp(item.created_at)}</td><td><strong>{label(item.email)}</strong></td><td>{label(item.ip_address)}</td><td><span className={`badge ${item.otp_verified?"paid":"expired"}`}>{item.otp_verified?"Verified":"Pending"}</span></td><td><span className={`badge ${item.status}`}>{label(item.status)}</span></td><td>{item.has_selfie?<button className="table-action" onClick={()=>inspect(item)} disabled={previewBusy!==null}>{previewBusy===String(item.id)?"Loading…":"Inspect selfie"}</button>:"—"}</td></tr>)}</tbody></table></div>
+ {visible.length===0&&<div className="empty"><Search/><h3>No reset attempts match these filters</h3><p>Try clearing the filters to see every attempt.</p><button className="table-action" onClick={clearFilters}>Clear filters</button></div>}
+ <TablePagination {...page} onPageChange={page.setPage} noun="attempts" allTotal={rows.length} note="Selfie images are staged evidence; the password change itself is the audited event."/></div>
+ {preview&&<Modal isOpen onClose={()=>setPreview(null)} title="Identity selfie proof" description={`Staged for ${preview.email} — compare against a known photo before trusting the reset.`} size="md"><img src={preview.url} alt={`Identity selfie staged for ${preview.email}`} style={{maxWidth:"100%",borderRadius:12}}/></Modal>}</>
+}
 // Audit Logs and Security share one immutable event stream; the section only
 // changes the framing. Filters and cards are client-side over the loaded page
 // of events, same pattern as UsersView.
@@ -327,10 +378,12 @@ export function PolicyView({item,edit}:{item:RecordItem;edit:(x:RecordItem)=>voi
 // workspace. Editable policy (session + email OTP) is interactive; enforced
 // protections and delivery status are read-only facts, never styled as inputs.
 type DeliveryStatus={configured:boolean;sender:string|null;lastChecked:string|null;lastResult:string|null;otpReady:boolean};
-function EmailDeliveryPanel({notify}:{notify:(message:string)=>void}){
+function EmailDeliveryPanel({notify,onStatus}:{notify:(message:string)=>void;onStatus?:(status:DeliveryStatus|null)=>void}){
  const[status,setStatus]=useState<DeliveryStatus|null>(null);
  const[busy,setBusy]=useState<"verify"|"send"|null>(null);
- const load=useCallback(async()=>{const response=await fetch("/api/admin/email-delivery",{cache:"no-store"});const body=await response.json().catch(()=>null);if(response.ok&&body?.data)setStatus(body.data)},[]);
+ const statusRef=useRef<((status:DeliveryStatus|null)=>void)|undefined>(undefined);
+ useEffect(()=>{statusRef.current=onStatus});
+ const load=useCallback(async()=>{const response=await fetch("/api/admin/email-delivery",{cache:"no-store"});const body=await response.json().catch(()=>null);if(response.ok&&body?.data){setStatus(body.data);statusRef.current?.(body.data)}},[]);
  useEffect(()=>{void load()},[load]);
  async function act(action:"verify"|"send"){
   setBusy(action);
@@ -342,18 +395,17 @@ function EmailDeliveryPanel({notify}:{notify:(message:string)=>void}){
  }
  const tone=status?(status.otpReady?"paid":status.configured?"pending":"expired"):"";
  const state=status?(status.otpReady?"Ready":status.configured?(status.lastResult==="passed"?"Configured":"Not verified"):"Not configured"):"Checking…";
- const checked=status?.lastChecked?new Date(status.lastChecked).toLocaleString("en-PH",{dateStyle:"medium",timeStyle:"short"}):"Never";
- return <section><h4>Email delivery</h4><p>Real delivery state — Ready appears only after a passing connection test.</p><dl>
+ return <div className="data-panel"><div className="panel-heading"><div><h3><Send size={17} aria-hidden="true"/>Email delivery (SMTP)</h3><p>Real delivery state — Ready appears only after a passing connection test.</p></div><span className={`badge ${tone}`}>{state}</span></div><dl>
   <div><dt>SMTP configuration</dt><dd>{status?(status.configured?"Configured":"Not configured"):state}</dd></div>
-  <div><dt>Connection test</dt><dd>{status?(status.lastResult==="passed"?"Passed":status.lastResult==="failed"?"Failed":"Not yet tested"):state}</dd></div>
-  <div><dt>Last checked</dt><dd>{checked}</dd></div>
-  <div><dt>OTP delivery</dt><dd><span className={`badge ${tone}`}>{state}</span></dd></div>
+  <div><dt>Last connection test</dt><dd>{status?(status.lastResult==="passed"?"Passed":status.lastResult==="failed"?"Failed":"Not yet tested"):state}</dd></div>
+  <div><dt>Delivery readiness</dt><dd>{state}</dd></div>
  </dl>
  {status&&!status.configured&&<p className="admin-policy-warn">Configure SMTP before enabling login OTP — without delivery, nobody can sign in.</p>}
- <div className="reservation-actions"><button className="table-action" onClick={()=>act("verify")} disabled={busy!==null}>{busy==="verify"?"Testing…":"Test connection"}</button><button className="table-action" onClick={()=>act("send")} disabled={busy!==null}>{busy==="send"?"Sending…":"Send test email"}</button></div></section>;
+ <div className="reservation-actions"><button className="table-action" onClick={()=>act("verify")} disabled={busy!==null}><FlaskConical size={15} aria-hidden="true"/>{busy==="verify"?"Testing…":"Test connection"}</button><button className="table-action" onClick={()=>act("send")} disabled={busy!==null}><Mail size={15} aria-hidden="true"/>{busy==="send"?"Sending…":"Send test email"}</button></div></div>;
 }
-export function SecurityConfigView({item,save,notify}:{item:RecordItem;save:(x:RecordItem)=>void;notify:(message:string)=>void}){
+export function SecurityConfigView({item,saveSession,saveOtp,notify}:{item:RecordItem;saveSession:(x:RecordItem)=>void;saveOtp:(x:RecordItem)=>void;notify:(message:string)=>void}){
  const fmt=(minutes:number)=>Number.isFinite(minutes)?(minutes<60?`${minutes} min`:`${minutes/60} h`):"—";
+ const[delivery,setDelivery]=useState<DeliveryStatus|null>(null);
  if(!item||item.idle_timeout_minutes==null)return <><div className="page-title"><div><p className="admin-section-context">Authentication & session security</p><h1>Security configuration</h1><p>Manage how HAVEN protects account access.</p></div></div><div className="empty admin-module-empty"><ShieldCheck/><h3>Security configuration unavailable</h3><p>The security policy could not be read. Refresh the module to try again.</p></div></>;
  const persistent=item.persistent_session_enabled===true;
  const idle=Number(item.idle_timeout_minutes),absolute=Number(item.absolute_session_minutes);
@@ -361,41 +413,34 @@ export function SecurityConfigView({item,save,notify}:{item:RecordItem;save:(x:R
  const ttlMin=Math.round(Number(item.otp_ttl_seconds??300)/60),cooldownSec=Number(item.otp_resend_cooldown_seconds??60),attempts=Number(item.otp_max_attempts??5);
  const history=(item.history??null) as null|{updatedAt?:unknown;updatedBy?:unknown;reason?:unknown;version?:unknown;changes?:{label?:unknown;from?:unknown;to?:unknown}[]};
  const historyChanges=Array.isArray(history?.changes)?(history?.changes??[]).filter((c)=>c&&typeof c.label==="string"):[];
- return <><div className="page-title"><div><p className="admin-section-context">Authentication & session security</p><h1>Security configuration</h1><p>Manage how HAVEN protects account access.</p></div><button className="btn btn-accent" onClick={()=>save(item)}>Save security configuration</button></div>
- <ModuleSummaryCards ariaLabel="Security summary" cards={[
-  {label:"Session policy",value:"Configured",hint:`Version ${label(item.version)}`,icon:ShieldCheck,tone:"done"},
-  {label:"Persistent login",value:persistent?"On":"Off",hint:persistent?"Keep me signed in is offered":"Standard sessions only",icon:KeyRound,tone:persistent?"today":"active"},
-  {label:"Idle timeout",value:fmt(idle),hint:"Inactivity limit",icon:Activity},
-  {label:"Maximum lifetime",value:fmt(absolute),hint:"Absolute session limit",icon:Activity,tone:"active"},
-  {label:"Login OTP",value:otp?"On":"Off",hint:otp?`${ttlMin} min code · ${attempts} attempts`:"Password only",icon:MailCheck,tone:otp?"today":"active"},
-  {label:"Email delivery",value:"See below",hint:"Live status in the panel",icon:Send},
- ]}/>
- <div className="data-panel admin-policy-panel"><div className="admin-policy-groups">
-  <section><h4>Session & cookie security</h4><p>The authentication cookie itself is mandatory — this panel governs persistence and timeouts only.</p><dl>
-   <div><dt>Persistent login / Remember Me</dt><dd>{persistent?"On — eligible users may remain signed in longer":"Off"}</dd></div>
+ return <><div className="page-title"><div><p className="admin-section-context">Authentication & session security</p><h1>Security configuration</h1><p>Manage how HAVEN protects account access.</p></div></div>
+  <div className="metric-grid" role="group" aria-label="Security summary">
+   <article className="metric-card"><div><span>Login OTP status</span><b>{otp?"Enforced (ON)":"Disabled (Off)"}</b><small>{otp?`${ttlMin} min code · ${attempts} attempts`:"Password only"}</small></div><i><KeyRound size={21} aria-hidden="true"/></i></article>
+   <article className="metric-card"><div><span>Idle timeout</span><b>{fmt(idle)}</b><small>Inactivity limit</small></div><i><Hourglass size={21} aria-hidden="true"/></i></article>
+   <article className="metric-card"><div><span>Max session lifetime</span><b>{fmt(absolute)}</b><small>Absolute session limit</small></div><i><Hourglass size={21} aria-hidden="true"/></i></article>
+   <article className="metric-card"><div><span>Email delivery status</span><b>{delivery?(delivery.otpReady?"SMTP Connected":delivery.configured?"Configured":"Not configured"):"Checking…"}</b><small>Live SMTP state</small></div><i><MailCheck size={21} aria-hidden="true"/></i></article>
+  </div>
+  <div className="admin-security-grid">
+  <section className="data-panel" aria-labelledby="sec-session"><div className="panel-heading"><div><h3 id="sec-session"><Lock size={17} aria-hidden="true"/>Session & cookie security</h3><p>The authentication cookie itself is mandatory — this card governs persistence and timeouts only.</p></div></div><dl>
+   <div><dt>Persistent login / Remember Me</dt><dd>{persistent?"On":"Off"}</dd></div>
    <div><dt>Inactivity timeout</dt><dd>{fmt(idle)}</dd></div>
    <div><dt>Maximum session lifetime</dt><dd>{fmt(absolute)}</dd></div>
-  </dl></section>
-  <section><h4>Email OTP security</h4><p>Password plus a single-use emailed code at login. Account recovery links stay separate.</p><dl>
-   <div><dt>Require email OTP at login</dt><dd>{otp?"On":"Off"}</dd></div>
-   <div><dt>OTP validity</dt><dd>{ttlMin} min</dd></div>
+  </dl><div className="reservation-actions"><button className="table-action" onClick={()=>saveSession(item)}><Settings size={15} aria-hidden="true"/>Configure session settings</button></div></section>
+  <section className="data-panel" aria-labelledby="sec-otp"><div className="panel-heading"><div><h3 id="sec-otp"><KeyRound size={17} aria-hidden="true"/>Email OTP security</h3><p>Password plus a single-use emailed code at login. Account recovery links stay separate.</p></div><span className={`badge ${otp?"paid":"expired"}`}>{otp?"Enforced":"Disabled"}</span></div><dl>
+   <div><dt>Require email OTP at login</dt><dd>{otp?"Enforced":"Disabled"}</dd></div>
+   <div><dt>OTP validity window</dt><dd>{ttlMin} min</dd></div>
    <div><dt>Resend cooldown</dt><dd>{cooldownSec} sec</dd></div>
-   <div><dt>Maximum attempts</dt><dd>{attempts}</dd></div>
-  </dl></section>
-  <EmailDeliveryPanel notify={notify}/>
-  <section><h4>Enforced security protections</h4><p>Always on. No administrator control can disable these.</p><dl>
-   <div><dt>HttpOnly</dt><dd>Enforced</dd></div>
-   <div><dt>Secure</dt><dd>Enforced in production</dd></div>
-   <div><dt>SameSite</dt><dd>Enforced</dd></div>
-   <div><dt>Password hashing</dt><dd>bcrypt</dd></div>
-   <div><dt>Server-side verification</dt><dd>Enforced</dd></div>
-  </dl></section>
-  <section><h4>Configuration history</h4><p>Latest audited security-policy change.</p><dl>
-   <div><dt>Last updated</dt><dd>{history?.updatedAt?new Date(String(history.updatedAt)).toLocaleString("en-PH",{dateStyle:"medium",timeStyle:"short"}):"No changes recorded yet"}</dd></div>
-   {history&&<><div><dt>Updated by</dt><dd>{String(history.updatedBy??"—")}</dd></div><div><dt>Reason</dt><dd>{String(history.reason??"—")}</dd></div><div><dt>Version</dt><dd>{String(history.version??"—")}</dd></div></>}
-  </dl>
-  {historyChanges.length>0&&<ul className="admin-config-list">{historyChanges.map((c)=><li key={String(c.label)}><span>{String(c.label)}</span><b>{`${String(c.from)} → ${String(c.to)}`}</b></li>)}</ul>}</section>
- </div></div></>
+   <div><dt>Maximum attempt limit</dt><dd>{attempts} attempts</dd></div>
+  </dl><div className="reservation-actions"><button className="table-action" onClick={()=>saveOtp(item)}><Shield size={15} aria-hidden="true"/>Manage OTP policy</button></div></section>
+  <EmailDeliveryPanel notify={notify} onStatus={setDelivery}/>
+  <section className="data-panel" aria-labelledby="sec-enforced"><div className="panel-heading"><div><h3 id="sec-enforced"><ShieldCheck size={17} aria-hidden="true"/>Enforced security protections</h3><p>Always on. No administrator control can disable these.</p></div></div><dl>
+   <div><dt>HttpOnly cookies</dt><dd>Enforced</dd></div>
+   <div><dt>Secure transport (TLS/SSL)</dt><dd>Enforced in production</dd></div>
+   <div><dt>SameSite policy</dt><dd>Strict</dd></div>
+   <div><dt>Password hashing</dt><dd>bcrypt (cost 12)</dd></div>
+  </dl><div className="reservation-actions"><span className="badge"><Lock size={13} aria-hidden="true"/>System enforced (read-only)</span></div></section>
+ </div>
+ <section className="data-panel" aria-labelledby="sec-audit"><div className="panel-heading"><div><h3 id="sec-audit"><History size={17} aria-hidden="true"/>Security configuration audit log</h3><p>Latest audited security-policy change.</p></div></div>{historyChanges.length>0?<div className="table-scroll"><table aria-label="Security configuration audit log"><thead><tr><th>Time</th><th>Admin</th><th>Setting modified</th><th>Previous value</th><th>New value</th></tr></thead><tbody>{historyChanges.map((c)=><tr key={String(c.label)}><td>{history?.updatedAt?new Date(String(history.updatedAt)).toLocaleString("en-PH",{dateStyle:"medium",timeStyle:"short"}):"—"}</td><td>{String(history?.updatedBy??"—")}</td><td>{String(c.label)}</td><td>{String(c.from)}</td><td>{String(c.to)}</td></tr>)}</tbody></table></div>:<p>No configuration changes recorded yet.</p>}</section></>
 }
 function AuditRows({rows}:{rows:RecordItem[]}){const page=useTablePagination(rows,5);if(!rows.length)return <div className="admin-audit-empty"><FileText size={22}/><h3>No governance activity yet</h3><p>Administrative and security changes will appear here as they are recorded.</p></div>;return <><div className="table-scroll"><table aria-label="Activity log"><thead><tr><th>Time</th><th>Action</th><th>Entity</th><th>Record</th></tr></thead><tbody>{page.rows.map(item=><tr key={item.id}><td>{new Date(String(item.created_at)).toLocaleString()}</td><td>{label(item.action)}</td><td>{label(item.entity_type)}</td><td>{label(item.entity_id)}</td></tr>)}</tbody></table></div><TablePagination {...page} onPageChange={page.setPage} noun="events" note="Newest governance activity first."/></>}
 // Governance report over the same overview payload the landing section uses:
@@ -427,39 +472,61 @@ function PaymentHealthPanel({payments}:{payments:SystemHealth["payments"]}){
 }
 
 // every minute while the section is open (AdminDashboardClient interval).
+// Executive 3-tier layout: compact 8-card health grid, automations × alerts,
+// then a tabbed ledger (migrations / payment / audit trail). Every figure
+// arrives server-computed; the view only formats. Tabs switch visibility
+// only — no refetch, the single `data` prop feeds all three.
 export function SystemHealthView({data,onRefresh}:{data:SystemHealth;onRefresh:()=>void}){
  // Shape-safe: during a section switch the view renders once with the previous
  // section's data before the new fetch lands (and a failed fetch keeps it), so
  // every field is defaulted rather than assumed.
-  const db=data?.db??{},activity=data?.activity??{},rows=data?.migrations?.applied??[];
-  const appliedCount=data?.migrations?.appliedCount??rows.length,localCount=data?.migrations?.localCount??null;
-  const status=migrationStatus(appliedCount,localCount);
-  const behind=(localCount??0)-appliedCount;
-  const checked=db.checkedAt?new Date(db.checkedAt).toLocaleTimeString():"—";
-  const lastAudit=activity.lastAuditAt?new Date(activity.lastAuditAt).toLocaleString():"No events yet";
-  // Extended sections default to honest Unknowns while data is still loading.
-  const app=data?.application??{environment:"Unknown",version:"Unknown",commit:null};
-  const storageStatus=data?.storage?.status??"unknown";
-  const emailLabel=!data?.email?"Unknown":data.email.status==="configured"?"Configured":"Not configured";
-  const automations=data?.automations??[];
-  const deployProvider=data?.deployment?.provider??"Unknown";
-  const issues=data?.issues??[];
-  const page=useTablePagination(rows);
- return <><div className="page-title"><div><p className="admin-section-context">Technical operations</p><h1>System health</h1><p>Live database condition, system activity, and deployment status. Re-checked every minute.</p></div><button className="btn btn-accent" onClick={onRefresh}>Run checks now</button></div>
- <div className="metric-grid">
-  <article className="metric-card"><div><span>Database</span><b>{db.checkedAt?db.live?"Connected":"Unreachable":"Checking…"}</b><small>{db.live?`${db.latencyMs!==null?`${db.latencyMs} ms response · `:""}Supabase PostgreSQL · checked ${checked}`:db.checkedAt?"Connection failed":"Waiting for first probe"}</small></div><i><HeartPulse size={21}/></i></article>
-  <article className="metric-card"><div><span>Audit events (24h)</span><b>{activity.auditEvents24h}</b><small>Last event: {lastAudit}</small></div><i><Activity size={21}/></i></article>
-  <article className="metric-card"><div><span>Pending approvals</span><b>{activity.pendingApprovals}</b><small>Awaiting Manager review</small></div><i><ClipboardCheck size={21}/></i></article>
-   <article className="metric-card"><div><span>Migrations applied</span><b>{appliedCount}{localCount!==null?` / ${localCount}`:""}</b><small>{status==="in_sync"?"Deployment in sync":status==="remote_behind"?`${behind} local migration${behind===1?"":"s"} not applied`:"Local files unavailable — remote count only"}</small></div><i><ShieldCheck size={21}/></i></article>
-   <article className="metric-card"><div><span>Application</span><b>{app.environment}</b><small>v{app.version}{app.commit?` · ${app.commit}`:" · commit unknown"}</small></div><i><Activity size={21}/></i></article>
-   <article className="metric-card"><div><span>Storage</span><b>{storageStatus==="operational"?"Operational":storageStatus==="unavailable"?"Unavailable":"Unknown"}</b><small>Photo bucket probe</small></div><i><Building2 size={21}/></i></article>
-   <article className="metric-card"><div><span>Email</span><b>{emailLabel}</b><small>Resend service</small></div><i><FileText size={21}/></i></article>
-   <article className="metric-card"><div><span>Deployment</span><b>Unknown</b><small>{deployProvider} · no deployment feed connected</small></div><i><HeartPulse size={21}/></i></article>
-   <article className="metric-card"><div><span>Domain</span><b>Not connected</b><small>Health reporting not connected</small></div><i><Activity size={21}/></i></article>
-  </div>
-  {!db.live&&db.checkedAt&&<div className="data-panel" role="alert"><div className="panel-heading"><div><h3>Database unreachable</h3><p>{db.error??"The live database did not respond to the health probe."}</p></div></div></div>}
-  {status==="remote_behind"&&<div className="data-panel" role="alert"><div className="panel-heading"><div><h3>Deployment drift</h3><p>{behind} local migration{behind===1?" is":"s are"} not applied to the live database — run <code>supabase db push</code> before relying on new features.</p></div></div></div>}
-   {automations.length>0&&<div className="data-panel"><div className="panel-heading"><div><h3>Scheduled automations</h3><p>Jobs that exist · last run is untracked</p></div></div><div className="table-scroll"><table aria-label="Scheduled automations"><thead><tr><th>Job</th><th>Schedule</th><th>Last run</th></tr></thead><tbody>{automations.map(job=><tr key={job.name}><td><strong>{job.name}</strong></td><td>{job.schedule}</td><td>Unknown</td></tr>)}</tbody></table></div></div>}
-   <PaymentHealthPanel payments={data?.payments}/>
-   {issues.length>0&&<div className="data-panel"><div className="panel-heading"><div><h3>Recent technical issues</h3><p>Derived from live probes — no sensitive detail</p></div></div><ul className="admin-config-list">{issues.map(issue=><li key={issue}><span>{issue}</span></li>)}</ul></div>}
- <div className="data-panel"><div className="panel-heading"><div><h3>Applied migrations</h3><p>Newest first — the live supabase migration ledger, read server-side</p></div><span className={`badge ${status==="in_sync"?"healthy":status==="remote_behind"?"pending":""}`}>{label(status)}</span></div><div className="table-scroll"><table aria-label="Applied migrations"><thead><tr><th>Version</th><th>Name</th></tr></thead><tbody>{page.rows.map(row=><tr key={row.version}><td><strong>{row.version}</strong></td><td>{label(row.name)}</td></tr>)}</tbody></table></div><TablePagination {...page} onPageChange={page.setPage} noun={`applied migration${appliedCount!==1?"s":""}`} note={`Last checked ${checked} · auto-refresh every minute`}/></div></>}
+ const db=data?.db??{},activity=data?.activity??{},rows=data?.migrations?.applied??[];
+ const appliedCount=data?.migrations?.appliedCount??rows.length,localCount=data?.migrations?.localCount??null;
+ const status=migrationStatus(appliedCount,localCount);
+ const behind=(localCount??0)-appliedCount;
+ const checked=db.checkedAt?new Date(db.checkedAt).toLocaleTimeString():"—";
+ // Extended sections default to honest Unknowns while data is still loading.
+ const app=data?.application??{environment:"Unknown",version:"Unknown",commit:null};
+ const storageStatus=data?.storage?.status??"unknown";
+ const emailLabel=!data?.email?"Unknown":data.email.status==="configured"?"Configured":"Not configured";
+ const automations=data?.automations??[];
+ const gateway=data?.gateway??null;
+ const gatewayLabel=!gateway?"Unknown":gateway.status==="listening_live"?"Listening · Live":gateway.status==="listening_test"?"Listening · Test":"Not configured";
+ const deployProvider=data?.deployment?.provider??"Unknown";
+ const domainStatus=data?.domain?.status??"not_connected";
+ const issues=data?.issues??[];
+ const probes=data?.recentProbes??[];
+ const[tab,setTab]=useState("migrations");const[search,setSearch]=useState("");
+ const tabRefs=useRef<Record<string,HTMLButtonElement|null>>({});
+ const tabs=[{key:"migrations",label:"Applied Migrations",Icon:Layers},{key:"payment",label:"Payment Configuration",Icon:CreditCard},{key:"audit",label:"Audit Trail",Icon:FileText}];
+ const onTabKeys=(event:React.KeyboardEvent)=>{const order=tabs.map(t=>t.key);const at=order.indexOf(tab);if(event.key==="ArrowRight")setTab(order[(at+1)%order.length]);else if(event.key==="ArrowLeft")setTab(order[(at-1+order.length)%order.length]);else if(event.key==="Home")setTab(order[0]);else if(event.key==="End")setTab(order[order.length-1]);else return;event.preventDefault();const next=order[(at+(event.key==="ArrowLeft"?-1:1)+order.length)%order.length];tabRefs.current[event.key==="Home"?order[0]:event.key==="End"?order[order.length-1]:next]?.focus()};
+ const filtered=rows.filter(row=>`${row.version} ${row.name}`.toLowerCase().includes(search.toLowerCase()));
+ const page=useTablePagination(filtered);
+ const clearSearch=()=>setSearch("");
+ return <><div className="page-title"><div><p className="admin-section-context">Technical operations</p><h1><Activity size={22} aria-hidden="true"/>System Health & Infrastructure</h1><p>Live database condition, microservice connectivity, scheduled jobs, and migration status. Auto-refreshed every 60 seconds.</p></div><button className="btn btn-accent" onClick={onRefresh}><RefreshCw size={15} aria-hidden="true"/>Run Health Probes</button></div>
+ <div className="metric-grid" role="group" aria-label="Infrastructure status">
+  <article className="metric-card"><div><span>Database (Postgres)</span><b>{db.checkedAt?db.live?"Connected":"Unreachable":"Checking…"}</b><small>{db.live?`${db.latencyMs!==null?`${db.latencyMs} ms response · `:""}Supabase PostgreSQL · checked ${checked}`:db.checkedAt?"Connection failed":"Waiting for first probe"}</small></div><i><Database size={21} aria-hidden="true"/></i></article>
+  <article className="metric-card"><div><span>Application Env</span><b>{app.environment}</b><small>v{app.version}{app.commit?` · ${app.commit}`:" · commit unknown"}</small></div><i><Cpu size={21} aria-hidden="true"/></i></article>
+  <article className="metric-card"><div><span>Storage Bucket</span><b>{storageStatus==="operational"?"Operational":storageStatus==="unavailable"?"Unavailable":"Unknown"}</b><small>Photo bucket probe</small></div><i><HardDrive size={21} aria-hidden="true"/></i></article>
+  <article className="metric-card"><div><span>Email Service (Resend)</span><b>{emailLabel}</b><small>Delivery configuration presence</small></div><i><Mail size={21} aria-hidden="true"/></i></article>
+  <article className="metric-card"><div><span>Deployment (Vercel)</span><b>Unknown</b><small>{deployProvider} · no deployment feed connected</small></div><i><Globe size={21} aria-hidden="true"/></i></article>
+  <article className="metric-card"><div><span>PayMongo Webhook</span><b>{gatewayLabel}</b><small>{gateway&&gateway.status!=="not_configured"?"/api/webhooks/payments":"Configure PAYMONGO_* to enable"}</small></div><i><CreditCard size={21} aria-hidden="true"/></i></article>
+  <article className="metric-card"><div><span>Migrations Applied</span><b>{appliedCount}{localCount!==null?` / ${localCount} Applied`:""}</b><small>{status==="in_sync"?"Deployment in sync":status==="remote_behind"?`${behind} local pending`:"Local files unavailable"}</small></div><i><Layers size={21} aria-hidden="true"/></i></article>
+  <article className="metric-card"><div><span>Pending Approvals</span><b>{activity.pendingApprovals??0} Pending</b><small>Awaiting Manager review</small></div><i><CheckSquare size={21} aria-hidden="true"/></i></article>
+ </div>
+ <div className="admin-report-lower">
+  <section className="data-panel" aria-labelledby="sys-automations"><div className="panel-heading"><div><h3 id="sys-automations"><Clock size={17} aria-hidden="true"/>Scheduled Automations</h3><p>Jobs that exist · last run is untracked</p></div></div>{automations.length>0?<div className="table-scroll"><table aria-label="Scheduled automations"><thead><tr><th>Job Name</th><th>Schedule</th><th>Last Execution Status</th></tr></thead><tbody>{automations.map(job=><tr key={job.name}><td><strong>{job.name}</strong></td><td>{job.schedule}</td><td>Unknown</td></tr>)}</tbody></table></div>:<p>No scheduled jobs registered.</p>}</section>
+  <section className="data-panel" aria-labelledby="sys-alerts"><div className="panel-heading"><div><h3 id="sys-alerts"><AlertTriangle size={17} aria-hidden="true"/>Live System Alerts</h3><p>Derived from live probes — no sensitive detail</p></div></div>
+   {!db.live&&db.checkedAt&&<div role="alert"><p><strong>Database unreachable.</strong> {db.error??"The live database did not respond to the health probe."}</p></div>}
+   {status==="remote_behind"&&<div role="alert"><p><strong>Deployment drift.</strong> {behind} local migration{behind===1?" is":"s are"} not applied to the live database — run <code>supabase db push</code> before relying on new features.</p></div>}
+   {gateway?.status==="listening_test"&&<div><p><strong>PayMongo gateway mode.</strong> Test mode active — live payments are not accepted.</p></div>}
+   {issues.filter(issue=>!issue.startsWith("Database unreachable")&&!issue.includes("not applied")).map(issue=><div key={issue}><p>{issue}</p></div>)}
+   {domainStatus==="not_connected"&&<div><p>Public domain: Not connected — health reporting not connected.</p></div>}
+   {db.live&&status!=="remote_behind"&&gateway?.status!=="listening_test"&&issues.length===0&&<p>No active alerts. All probes report a steady state.</p>}
+  </section>
+ </div>
+ <div className="data-panel"><div className="insights-tabs" role="tablist" aria-label="System health ledgers" onKeyDown={onTabKeys}>{tabs.map(({key,label:tabLabel,Icon})=><button key={key} ref={(element)=>{tabRefs.current[key]=element}} type="button" role="tab" id={`sys-tab-${key}`} aria-selected={tab===key} aria-controls={`sys-panel-${key}`} tabIndex={tab===key?0:-1} className={tab===key?"active":""} onClick={()=>setTab(key)}><Icon size={14} aria-hidden="true"/>{tabLabel}</button>)}</div>
+  <div role="tabpanel" id="sys-panel-migrations" aria-labelledby="sys-tab-migrations" hidden={tab!=="migrations"}><div className="panel-heading"><div><h3>Applied migrations</h3><p>Newest first — the live supabase migration ledger, read server-side</p></div><span className={`badge ${status==="in_sync"?"healthy":status==="remote_behind"?"pending":""}`}>{label(status)}</span></div><HavenSearchInput value={search} onValueChange={setSearch} label="Search migrations" placeholder="Search version or name..."/>{filtered.length===0?<div className="empty"><Search size={21} aria-hidden="true"/><h3>No migrations match this search</h3><p>Try clearing the search to see every applied migration.</p><button className="table-action" onClick={clearSearch}>Clear search</button></div>:<div className="table-scroll"><table aria-label="Applied migrations"><thead><tr><th>Version</th><th>Name</th><th>Status</th></tr></thead><tbody>{page.rows.map(row=><tr key={row.version}><td><strong>{row.version}</strong></td><td>{label(row.name)}</td><td><span className="badge paid">Applied</span></td></tr>)}</tbody></table></div>}<TablePagination {...page} onPageChange={page.setPage} noun={`applied migration${appliedCount!==1?"s":""}`} note={`Last checked ${checked} · auto-refresh every minute`}/></div>
+  <div role="tabpanel" id="sys-panel-payment" aria-labelledby="sys-tab-payment" hidden={tab!=="payment"}><PaymentHealthPanel payments={data?.payments}/></div>
+  <div role="tabpanel" id="sys-panel-audit" aria-labelledby="sys-tab-audit" hidden={tab!=="audit"}><div className="panel-heading"><div><h3>Audit trail</h3><p>Latest system probes and administrative events · {activity.auditEvents24h??0} in the last 24 hours</p></div></div>{probes.length>0?<div className="table-scroll"><table aria-label="System audit trail"><thead><tr><th>Time</th><th>Action</th><th>Entity</th></tr></thead><tbody>{probes.map(probe=><tr key={`${probe.at}-${probe.action}`}><td>{probe.at?new Date(probe.at).toLocaleString("en-PH",{dateStyle:"medium",timeStyle:"short"}):"—"}</td><td>{label(probe.action)}</td><td>{label(probe.entity)}</td></tr>)}</tbody></table></div>:<p>No probe history is available yet.</p>}</div>
+ </div></>}

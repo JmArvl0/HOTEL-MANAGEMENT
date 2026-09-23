@@ -1,4 +1,4 @@
-"use client"; import { useCallback, useEffect, useMemo, useRef, useState } from "react"; import { signOut } from "next-auth/react"; import Link from "next/link"; import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis } from "recharts"; import { Activity, AlertTriangle, BedDouble, Bell, Boxes, Building2, CalendarCheck, CalendarDays, CarTaxiFront, CheckCircle2, ChevronDown, ChevronRight, CircleDollarSign, ClipboardCheck, Clock, DoorClosed, Eye, FileText, Gauge, Landmark, LayoutGrid, ListChecks, LogIn, LogOut, PanelLeftClose, Plus, QrCode, ReceiptText, Scale, Search, Settings, Sparkles, TrendingUp, Users, Wallet, Wrench } from "lucide-react"; import { approvalKind, compareApprovalUrgency, formatDetail, waitingSince } from "@/lib/approval-display"; import { ROOM_TYPE_CHANGE_REASONS, roomTypeChangeReasonLabel, financialDifference, type RoomTypeChangeFinancials } from "@/lib/room-type-change-reasons"; import { requestLabel } from "@/lib/request-options"; import { parseFrozenRates } from "@/lib/rate-plans"; import { depositAgeBand, depositAgeMinutes, formatDepositAge, DEFAULT_DEPOSIT_SLA_HOURS } from "@/lib/deposit-sla"; import { formatPaymentSubmittedAt, paymentSearchText } from "@/lib/payment-display"; import { ASSET_DUE_WINDOWS, assetDueWindow, daysUntil, type MaintenanceAsset } from "@/lib/maintenance-assets"; import { ThemeToggle } from "@/components/theme-toggle"; import { NotificationHistoryModal } from "@/components/customer/notification-history-modal"; import { Modal } from "@/components/ui/Modal"; import { HavenActionItem } from "@/components/ui/haven-action-item"; import { QrScannerModal } from "@/components/qr/qr-scanner"; import { SettingsDialog } from "@/components/ui/SettingsDialog"; import { isRefundActionable, ratePercent } from "@/lib/accounting"; import type { AccountingLedger } from "@/lib/accounting"; import type { AccountingSection, DashboardData, ManagerSection, RecordItem, Resource, Role } from "@/lib/types"; import { useActionDialogs } from "@/components/ui/action-dialogs"; import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination"; import RoomCatalogPanel from "@/components/catalog/room-catalog-panel"; import TransportServicesPanel from "@/components/catalog/transport-vehicle-types-panel"; import RequestTypesPanel from "@/components/catalog/request-types-panel"; import TransportationPanel from "@/components/manager/transportation-panel"; import FrontDeskReportsPanel from "@/components/manager/front-desk-reports-panel"; import Reports from "@/components/manager/performance-reports"; import GuestRequestsPanel from "@/components/manager/guest-requests-panel"; import RoomDetailModal from "@/components/manager/room-detail-modal"; import RoomRosterPanel from "@/components/manager/room-roster-panel"; import HousekeepingQueuePanel from "@/components/manager/housekeeping-queue-panel"; import type { AssignmentSuggestion } from "@/lib/housekeeping-suggestions"; import FrontDeskArrivalDialog, { type ArrivalProgress } from "@/components/manager/front-desk-arrival-dialog"; import FrontOfficeRack from "@/components/front-desk/fused-room-rack-panel"; import WalkInDialog from "@/components/manager/walk-in-dialog"; import ExtendStayDialog from "@/components/manager/extend-stay-dialog"; import PredictiveInsightsPanel from "@/components/manager/predictive-insights-panel"; import HavenAiPanel from "@/components/manager/haven-ai-panel"; import StaffDutyPanel from "@/components/manager/staff-duty-panel"; import { ManagerReservationsPanel } from "@/components/manager/manager-reservations-panel"; import { ModuleSummaryCards, type ModuleSummaryCard } from "@/components/manager/module-summary-cards"; import { ToastStack, useToasts } from "@/components/ui/toast-stack"; import { HavenSelect } from "@/components/ui/haven-select"; import { ALL_LOYALTY_TIERS, loyaltyTierOptions, matchesLoyaltyTier } from "@/lib/guest-loyalty"; import { HavenSearchInput } from "@/components/ui/haven-data-controls";
+"use client"; import { useCallback, useEffect, useMemo, useRef, useState } from "react"; import { signOut } from "next-auth/react"; import Link from "next/link"; import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis } from "recharts"; import { Activity, AlertTriangle, BedDouble, Bell, Boxes, Building2, CalendarCheck, CalendarDays, CarTaxiFront, CheckCircle2, ChevronDown, ChevronRight, CircleDollarSign, ClipboardCheck, Clock, DoorClosed, Eye, FileText, Gauge, Landmark, LayoutGrid, ListChecks, LogIn, LogOut, PanelLeftClose, Plus, QrCode, ReceiptText, Scale, Search, Settings, Sparkles, TrendingUp, Users, Wallet, Wrench } from "lucide-react"; import { approvalKind, compareApprovalUrgency, formatDetail, waitingSince } from "@/lib/approval-display"; import { ROOM_TYPE_CHANGE_REASONS, roomTypeChangeReasonLabel, financialDifference, type RoomTypeChangeFinancials } from "@/lib/room-type-change-reasons"; import { requestLabel } from "@/lib/request-options"; import { parseFrozenRates } from "@/lib/rate-plans"; import { depositAgeBand, depositAgeMinutes, formatDepositAge, DEFAULT_DEPOSIT_SLA_HOURS } from "@/lib/deposit-sla"; import { formatPaymentSubmittedAt, paymentSearchText } from "@/lib/payment-display"; import { ASSET_DUE_WINDOWS, assetDueWindow, daysUntil, type MaintenanceAsset } from "@/lib/maintenance-assets"; import { ThemeToggle } from "@/components/theme-toggle"; import { NotificationHistoryModal } from "@/components/customer/notification-history-modal"; import { Modal } from "@/components/ui/Modal"; import { HavenActionItem } from "@/components/ui/haven-action-item"; import { QrScannerModal } from "@/components/qr/qr-scanner"; import { SettingsDialog } from "@/components/ui/SettingsDialog"; import { isRefundActionable, ratePercent } from "@/lib/accounting"; import type { AccountingLedger } from "@/lib/accounting"; import type { AccountingSection, DashboardData, ManagerSection, RecordItem, Resource, Role } from "@/lib/types"; import { useActionDialogs } from "@/components/ui/action-dialogs"; import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination"; import RoomCatalogPanel from "@/components/catalog/room-catalog-panel"; import TransportServicesPanel from "@/components/catalog/transport-vehicle-types-panel"; import RequestTypesPanel from "@/components/catalog/request-types-panel"; import TransportationPanel from "@/components/manager/transportation-panel"; import FrontDeskReportsPanel from "@/components/manager/front-desk-reports-panel"; import Reports from "@/components/manager/performance-reports"; import GuestRequestsPanel from "@/components/manager/guest-requests-panel"; import RoomDetailModal from "@/components/manager/room-detail-modal"; import RoomRosterPanel from "@/components/manager/room-roster-panel"; import HousekeepingQueuePanel from "@/components/manager/housekeeping-queue-panel"; import type { AssignmentSuggestion } from "@/lib/housekeeping-suggestions"; import FrontDeskArrivalDialog, { type ArrivalProgress } from "@/components/manager/front-desk-arrival-dialog"; import FrontOfficeRack from "@/components/front-desk/fused-room-rack-panel"; import WalkInDialog from "@/components/manager/walk-in-dialog"; import ExtendStayDialog from "@/components/manager/extend-stay-dialog"; import PredictiveInsightsPanel from "@/components/manager/predictive-insights-panel"; import HavenAiPanel from "@/components/manager/haven-ai-panel"; import StaffDutyPanel from "@/components/manager/staff-duty-panel"; import { ManagerReservationsPanel } from "@/components/manager/manager-reservations-panel"; import { ModuleSummaryCards, type ModuleSummaryCard } from "@/components/manager/module-summary-cards"; import { ToastStack, useToasts } from "@/components/ui/toast-stack"; import { HavenSelect } from "@/components/ui/haven-select"; import { ALL_LOYALTY_TIERS, loyaltyTierOptions, matchesLoyaltyTier } from "@/lib/guest-loyalty"; import { HavenDataToolbar, HavenFilterBadges, HavenSearchInput } from "@/components/ui/haven-data-controls";
 import UnifiedRoomMatrix from "@/components/shared/unified-room-matrix";
 import { NAV_GROUPS, NAV_ITEMS, groupedNav as buildGroupedNav, type NavGroupId } from "@/config/role-navigation"; type ReservationDetail = { reservation: RecordItem; guest: RecordItem | null; invoice: RecordItem | null; payments: RecordItem[]; charges: RecordItem[]; adjustments: RecordItem[]; refunds: RecordItem[]; refundAttempts: RecordItem[]; documents: RecordItem[]; changeRequests: RecordItem[]; assignments: RecordItem[]; requests: RecordItem[]; room: RecordItem | null; maintenance: RecordItem[]; transportation?: RecordItem[]; approvals?: RecordItem[]; turnover?: RecordItem | null; }; // Read-only consolidated guest profile (GET /api/staff/guests/[id]) — identity,
 import { HavenNotificationBell as SharedNotificationBell, HavenNotificationPopover } from "@/components/ui/haven-notifications";
@@ -183,13 +183,12 @@ async function signOutGuarded() { if (cashHandling) { try { const response = awa
             </button>
           </div>
         </div>
-        <div className="property-pill" title="Haven Makati">
+        <div className="property-pill" title="HAVEN Hotel & Residences">
           <span>HV</span>
           <div className="property-copy">
-            <b>Haven Makati</b>
-            <small>48 rooms Main property</small>
+            <b>HAVEN</b>
+            <small>HOTEL &amp; RESIDENCES</small>
           </div>
-          <ChevronDown className="property-chevron" size={15} />
         </div>
         <ManagerSidebarNav items={visibleNav} section={section} onSelect={target => { setSection(target); setMenu(false); }} badges={badges} />
       </aside>{" "}
@@ -556,6 +555,7 @@ const roomStatusRank: Record<string, number> = { available: 0, dirty: 1, mainten
               </button>}
             {canCheckIn && <NewReservationMenu onNew={createReservation} onWalkIn={openWalkIn} />}
           </div>}
+        {resource === "rooms" && manageRooms && <button className="btn btn-accent" onClick={manageRooms}><DoorClosed size={15} /> Manage rooms</button>}
         {!["payments", "refunds", "reservations"].includes(resource) && canCreate && <button className="btn btn-accent" onClick={open}>
               <Plus size={17} /> Add {c.title.split(" ")[0].toLowerCase()}
             </button>}
@@ -682,37 +682,17 @@ const roomStatusRank: Record<string, number> = { available: 0, dirty: 1, mainten
                       </article>; })}
                 </section>; })}
         </div>}
-      <div className="table-tools">
-        <HavenSearchInput value={search} onValueChange={setSearch} label={resource === "payments" ? "Search deposit verification records" : `Search ${c.title.toLowerCase()}`} placeholder={resource === "payments" ? "Search by guest name, reservation code, or reference number..." : `Search ${c.title.toLowerCase()}...`} />
-      </div>
-      {resource === "guests" && <div className="reservation-filters">
-          <div className="haven-filter">
-            <span>Loyalty tier</span>
-            <HavenSelect value={loyaltyTier} onChange={setLoyaltyTier} ariaLabel="Filter by loyalty tier" options={loyaltyTiers} />
-          </div>
-        </div>}
-      {resource === "reservations" && <div className="reservation-filters">
-          <div>
-            {[["all", "All"], ["upcoming", "Upcoming"], ["arrivals", "Arrivals today"], ["departures", "Departures today"], ["in_house", "In-house"], ["cancelled", "Cancelled"], ["no_show", "No-shows"]].map(([value, text]) => <button key={value} className={queue === value ? "active" : ""} aria-pressed={queue === value} onClick={() => setQueue(value)}>
-                {text}
-                {queueCounts && <i className="chip-count">{queueCounts.get(value) ?? 0}</i>}
-              </button>)}
-          </div>
-          <div className="haven-filter">
-            <span>Source</span>
-            <HavenSelect value={source} onChange={setSource} ariaLabel="Filter by source" options={[{ value: "all", label: "All sources" }, ...sources.map(value => ({ value, label: value }))]} />
-          </div>
-        </div>}
-      {resource === "rooms" && <div className="reservation-filters">
-          <div>
-            {[["all", "All types"], ...roomTypes.map(value => [value, label(value)] as [string, string])].map(([value, text]) => <button key={value} className={roomType === value ? "active" : ""} aria-pressed={roomType === value} onClick={() => setRoomType(value)}>
-                {text}
-              </button>)}
-          </div>
-          {manageRooms && <button className="btn btn-accent" onClick={manageRooms}>
-              <DoorClosed size={15} /> Manage rooms
-            </button>}
-        </div>}
+      <HavenDataToolbar
+        label={`Search and filter ${c.title.toLowerCase()}`}
+        filtersLayout={resource === "reservations" ? "inline" : "compact"}
+        search={<HavenSearchInput value={search} onValueChange={setSearch} label={resource === "payments" ? "Search deposit verification records" : `Search ${c.title.toLowerCase()}`} placeholder={resource === "payments" ? "Search by guest name, reservation code, or reference number..." : `Search ${c.title.toLowerCase()}...`} />}
+        quickFilters={resource === "reservations" ? <HavenFilterBadges value={queue} onChange={setQueue} label="Filter reservations by stay status" options={[["all", "All"], ["upcoming", "Upcoming"], ["arrivals", "Arrivals today"], ["departures", "Departures today"], ["in_house", "In-house"], ["cancelled", "Cancelled"], ["no_show", "No-shows"]].map(([value, text]) => ({ value, label: text, count: queueCounts?.get(value) ?? 0 }))} /> : resource === "rooms" ? <HavenFilterBadges value={roomType} onChange={setRoomType} label="Filter rooms by room type" options={[["all", "All types"], ...roomTypes.map(value => [value, label(value)] as [string, string])].map(([value, text]) => ({ value, label: text }))} /> : undefined}
+        advancedFilters={resource === "guests" ? <div className="haven-filter"><span>Loyalty tier</span><HavenSelect value={loyaltyTier} onChange={setLoyaltyTier} ariaLabel="Filter by loyalty tier" options={loyaltyTiers} /></div> : resource === "reservations" ? <div className="haven-filter"><span>Source</span><HavenSelect value={source} onChange={setSource} ariaLabel="Filter by source" options={[{ value: "all", label: "All sources" }, ...sources.map(value => ({ value, label: value }))]} /></div> : undefined}
+        resultCount={ordered.length}
+        resultNoun="records"
+        hasActiveFilters={Boolean(search.trim()) || (resource === "reservations" && (queue !== "all" || source !== "all")) || (resource === "rooms" && roomType !== "all") || (resource === "guests" && loyaltyTier !== ALL_LOYALTY_TIERS)}
+        onClearFilters={() => { setSearch(""); setQueue("all"); setSource("all"); setRoomType("all"); setLoyaltyTier(ALL_LOYALTY_TIERS); }}
+      />
       {resource === "rooms" && <UnifiedRoomMatrix items={visible} canAdvanceStatus={canAdvance} onView={viewRoom} onAdvanceStatus={advance} />}
       {resource === "reservations" && <div className="data-panel">
           <div className="table-scroll">
@@ -1803,9 +1783,14 @@ const isStayExtension = String(item.request_type) === "stay_extension"; const st
           </button>}
       </div>
       <ModuleSummaryCards cards={cards[section].map(card => ({ label: card.label, value: card.value, hint: card.hint }))} ariaLabel={`${view.title} summary`} />
-      <div className="table-tools">
-        <HavenSearchInput value={search} onValueChange={setSearch} label={`Search ${view.title.toLowerCase()}`} placeholder={`Search ${view.title.toLowerCase()}...`} />
-      </div>
+      <HavenDataToolbar
+        search={<HavenSearchInput value={search} onValueChange={setSearch} label={`Search ${view.title.toLowerCase()}`} placeholder={`Search ${view.title.toLowerCase()}...`} />}
+        resultCount={matchingRows.length}
+        resultNoun="ledger records"
+        hasActiveFilters={search.trim() !== ""}
+        onClearFilters={() => setSearch("")}
+        label={`Search ${view.title.toLowerCase()}`}
+      />
       <div className="data-panel">
         <div className="table-scroll">
           <table aria-label="Ledger records">

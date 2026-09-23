@@ -54,7 +54,7 @@ export function CheckInQr({ reservationId, confirmationNumber }: { reservationId
     <div className="customer-checkin-qr">
       <div className="customer-checkin-qr-head">
         <h3><QrCode size={13} aria-hidden="true" /> Digital Express Pass</h3>
-        <p className="customer-checkin-qr-hotel">HAVEN Makati</p>
+        <p className="customer-checkin-qr-hotel">HAVEN Hotel &amp; Residences</p>
       </div>
       <div className="customer-checkin-qr-figure">
         <img src={qr.dataUrl} alt={confirmationNumber ? `Reservation QR for ${confirmationNumber}` : "HAVEN reservation QR code"} width={160} height={160} />

@@ -5,6 +5,7 @@ import { guardAdmin,adminGuardFailed } from "@/lib/admin-route";
 import { ROLE_CAPABILITIES } from "@/lib/admin";
 import { isPaymentDestinationComplete, maskGcashNumber } from "@/lib/payment-destination";
 import { migrationStatus, type SystemHealth } from "@/lib/system-health";
+import { gatewayConfigured, resolveGatewaySecrets } from "@/lib/gateway";
 
 export async function GET(request:Request){const context=await guardAdmin();if(adminGuardFailed(context))return context;const section=new URL(request.url).searchParams.get("section")??"overview";const db=context.client;
  if(section==="users"){const{data,error}=await db.from("user_accounts").select("id,email,name,role,active,account_status,recovery_required,phone,department,employee_reference,auth_version,created_at,updated_at").order("created_at",{ascending:false});if(error)throw error;return NextResponse.json({data});}
@@ -12,6 +13,7 @@ export async function GET(request:Request){const context=await guardAdmin();if(a
  if(section==="room_types"){const{data,error}=await db.from("room_types").select("id,name,description,max_guests,beds,size_sqm,amenities,base_rate,active,version,created_at,updated_at").order("name");if(error)throw error;return NextResponse.json({data});}
  if(section==="policy"){const{data,error}=await db.from("hotel_operational_policies").select("*").eq("key","default").single();if(error)throw error;return NextResponse.json({data});}
  if(section==="roles")return NextResponse.json({data:ROLE_CAPABILITIES});
+  if(section==="password_resets"){const{data,error}=await db.from("password_reset_logs").select("id,user_id,email,ip_address,otp_verified,selfie_url,status,created_at,completed_at").order("created_at",{ascending:false}).limit(100);if(error){if(error.code==="42P01")return NextResponse.json({data:[]});throw error}return NextResponse.json({data:(data??[]).map(row=>{const r=row as Record<string,unknown>;const{selfie_url,...rest}=r;return{...rest,has_selfie:typeof selfie_url==="string"&&selfie_url.length>0}})});}
  if(section==="system")return NextResponse.json({data:await systemHealth(db)});
  const{data:audit}=await db.from("audit_logs").select("id,user_id,action,entity_type,entity_id,before_data,after_data,created_at").or("action.ilike.admin_%,action.ilike.security_%,action.ilike.otp_%,action.ilike.smtp_%,action.ilike.auth_%,action.eq.account_recovery_completed,action.eq.change_own_password").order("created_at",{ascending:false}).limit(section==="overview"?8:100);
  if(section==="audit"||section==="security")return NextResponse.json({data:audit??[]});
@@ -83,5 +85,19 @@ async function systemHealth(db:AdminDbClient):Promise<SystemHealth>{
     payments={status:enabled?"Active":"Inactive",accountName:name||"Not configured",mobileNumber:maskGcashNumber(mobile),qrImage:qrPath?"Configured":"Missing",configuredBy,lastUpdated:latest?.created_at?String(latest.created_at):row.updated_at?String(row.updated_at):null,qrStorage,configuration:!enabled?"Disabled":isPaymentDestinationComplete({accountName:name||null,mobileNumber:mobile,qrStoragePath:qrPath||null,enabled})?"Complete":"Incomplete"};
    }catch{payments=undefined}
   }
-  return{db:{live,latencyMs,checkedAt,error:dbError},activity:{lastAuditAt,auditEvents24h,pendingApprovals},migrations:{applied,appliedCount,localCount,status},application:{environment,version:appVersion,commit},storage,email,automations,deployment:{provider:"Vercel",status:"unknown"},domain:{status:"not_connected"},payments,issues};
+  // PayMongo gateway presence + mode, derived server-side from the secret-key
+  // prefix. The key itself never leaves the server — only the mode label.
+  const { secretKey: gatewayKey } = resolveGatewaySecrets();
+  const gateway: NonNullable<SystemHealth["gateway"]> = !gatewayConfigured() ? { status: "not_configured" }
+    : gatewayKey.startsWith("sk_live_") ? { status: "listening_live" } : { status: "listening_test" };
+  // Recent audit rows for the Audit Trail tab. Safe columns only, capped —
+  // payloads and secrets are never selected.
+  let recentProbes: NonNullable<SystemHealth["recentProbes"]> = [];
+  if (live) {
+    try {
+      const { data: probes } = await db.from("audit_logs").select("action,entity_type,created_at").order("created_at", { ascending: false }).limit(10);
+      recentProbes = (probes ?? []).map((row: { action: unknown; entity_type: unknown; created_at: unknown }) => ({ action: String(row.action ?? "—"), entity: String(row.entity_type ?? "—"), at: String(row.created_at ?? "") }));
+    } catch { recentProbes = []; }
+  }
+  return{db:{live,latencyMs,checkedAt,error:dbError},activity:{lastAuditAt,auditEvents24h,pendingApprovals},migrations:{applied,appliedCount,localCount,status},application:{environment,version:appVersion,commit},storage,email,automations,gateway,recentProbes,deployment:{provider:"Vercel",status:"unknown"},domain:{status:"not_connected"},payments,issues};
 }

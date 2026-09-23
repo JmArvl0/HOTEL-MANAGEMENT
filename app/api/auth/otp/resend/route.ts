@@ -21,8 +21,6 @@ export async function POST(request: NextRequest) {
   if (!supabase) return NextResponse.json({ error: "Database unavailable." }, { status: 503 });
 
   const policy = await getSecurityPolicy();
-  if (!policy.loginOtpEnabled)
-    return NextResponse.json({ error: "Verification is no longer required. Sign in again." }, { status: 403 });
   if (otpIssuable().ok !== true || !smtpConfigured())
     return NextResponse.json({ error: "Verification email is unavailable right now." }, { status: 503 });
 

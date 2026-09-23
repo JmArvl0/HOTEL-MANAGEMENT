@@ -3,9 +3,9 @@
 // filters, and footer all count the same loaded rows, card clicks drive the
 // existing filters, and the policy view groups and formats the raw columns.
 // Pure render; no fetches.
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { AuditView, normalizeRoleCapabilities, PolicyView, RolesView, RoomsView } from "./admin-dashboard-client";
+import { AuditView, normalizeRoleCapabilities, PasswordResetAuditView, PolicyView, RolesView, RoomsView, SecurityConfigView } from "./admin-dashboard-client";
 import type { RecordItem } from "@/lib/types";
 
 // The dashboard module imports panels that read layout/motion APIs jsdom lacks.
@@ -160,6 +160,98 @@ describe("PolicyView", () => {
     render(<PolicyView item={{ ...policy, future_flag: true } as RecordItem} edit={() => {}} />);
     expect(screen.getByRole("heading", { name: "Additional settings" })).toBeTruthy();
     expect(screen.getByText("Future flag")).toBeTruthy();
+  });
+});
+
+describe("SecurityConfigView", () => {
+  const security = {
+    id: "default", version: 2,
+    persistent_session_enabled: false, idle_timeout_minutes: 30, absolute_session_minutes: 480,
+    login_otp_enabled: true, otp_ttl_seconds: 300, otp_resend_cooldown_seconds: 60, otp_max_attempts: 5,
+    history: {
+      updatedAt: "2026-09-20T04:00:00Z", updatedBy: "Ada (System Administrator)",
+      changes: [{ label: "Inactivity timeout", from: "15 min", to: "30 min" }],
+    },
+  } as unknown as RecordItem;
+
+  // EmailDeliveryPanel fetches live SMTP state; jsdom has no relative-URL
+  // fetch, so stub it — the panel renders its checking state instead.
+  beforeEach(() => { vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, json: async () => null }))); });
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it("renders sectional cards with per-card actions and no global save", () => {
+    render(<SecurityConfigView item={security} saveSession={() => {}} saveOtp={() => {}} notify={() => {}} />);
+    expect(screen.queryByRole("button", { name: /save security configuration/i })).toBeNull();
+    expect(screen.getByRole("button", { name: /configure session settings/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /manage otp policy/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /test connection/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /send test email/i })).toBeTruthy();
+    // KPI strip + definition lists, no nested grey-box copy.
+    const summary = screen.getByRole("group", { name: "Security summary" });
+    expect(summary.classList.contains("metric-grid")).toBe(true);
+    expect(summary.querySelectorAll("article.metric-card").length).toBe(4);
+    // No Tailwind utilities: the repo ships hand-written CSS only.
+    expect(document.body.innerHTML).not.toMatch(/grid-cols-/);
+    expect(screen.getByText("Enforced (ON)")).toBeTruthy();
+    expect(screen.getByText("System enforced (read-only)")).toBeTruthy();
+    // Audit ledger table with timestamp, admin, setting, from/to.
+    const ledger = screen.getByRole("table", { name: "Security configuration audit log" });
+    expect(within(ledger).getByText("Inactivity timeout")).toBeTruthy();
+    expect(within(ledger).getByText("Ada (System Administrator)")).toBeTruthy();
+    // Zero emojis anywhere in the rendered tree.
+    expect(document.body.innerHTML.match(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]/u)).toBeNull();
+  });
+});
+
+describe("PasswordResetAuditView", () => {
+  const attempts: RecordItem[] = [
+    { id: "p1", email: "ada@example.com", ip_address: "203.0.113.7", otp_verified: true, status: "completed", has_selfie: true, created_at: new Date(Date.now() - 60 * 60 * 1000).toISOString() },
+    { id: "p2", email: "bob@example.com", ip_address: "198.51.100.9", otp_verified: false, status: "requested", has_selfie: false, created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
+    { id: "p3", email: "cid@example.com", ip_address: null, otp_verified: true, status: "failed", has_selfie: true, created_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString() },
+  ];
+
+  it("renders the attempt ledger with OTP badges and selfie actions", () => {
+    render(<PasswordResetAuditView rows={attempts} notify={() => {}} />);
+    expect(screen.getByRole("heading", { name: "Password reset audit" })).toBeTruthy();
+    expect(screen.getByRole("table", { name: "Password reset attempts" })).toBeTruthy();
+    expect(screen.getByText("ada@example.com")).toBeTruthy();
+    expect(screen.getByText("203.0.113.7")).toBeTruthy();
+    expect(screen.getAllByText("Verified")).toHaveLength(2);
+    expect(screen.getByText("Pending")).toBeTruthy();
+    // Selfie inspection only where evidence was staged — never a raw path.
+    expect(screen.getAllByRole("button", { name: "Inspect selfie" })).toHaveLength(2);
+    expect(document.body.innerHTML).not.toContain("recovery-selfies/");
+    expect(document.body.innerHTML.match(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]/u)).toBeNull();
+  });
+
+  it("opens the signed-URL selfie preview on inspect", async () => {
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ data: { url: "https://signed.example/selfie.jpg" } }) }));
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      render(<PasswordResetAuditView rows={attempts} notify={() => {}} />);
+      fireEvent.click(screen.getAllByRole("button", { name: "Inspect selfie" })[0]);
+      expect(await screen.findByRole("heading", { name: "Identity selfie proof" })).toBeTruthy();
+      expect(screen.getByAltText("Identity selfie staged for ada@example.com")).toBeTruthy();
+      expect(fetchMock).toHaveBeenCalledWith("/api/admin/password-resets/p1/selfie", expect.anything());
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("renders an honest empty state when the ledger has no rows", () => {
+    render(<PasswordResetAuditView rows={[]} notify={() => {}} />);
+    expect(screen.getByText("No reset attempts match these filters")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Inspect selfie" })).toBeNull();
+  });
+
+  it("filters by status and searches", async () => {
+    render(<PasswordResetAuditView rows={attempts} notify={() => {}} />);
+    expect(tableRows()).toHaveLength(3);
+    await chooseHaven("Filter by reset status", "Completed");
+    expect(tableRows()).toHaveLength(1);
+    await chooseHaven("Filter by reset status", "All statuses");
+    fireEvent.change(screen.getByLabelText("Search reset attempts"), { target: { value: "bob@" } });
+    await waitFor(() => expect(tableRows()).toHaveLength(1));
   });
 });
 

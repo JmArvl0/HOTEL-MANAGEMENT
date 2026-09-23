@@ -33,8 +33,6 @@ export async function POST(request: NextRequest) {
   if (!supabase) return NextResponse.json({ error: "Database unavailable." }, { status: 503 });
 
   const policy = await getSecurityPolicy();
-  if (!policy.loginOtpEnabled)
-    return NextResponse.json({ error: "Verification is no longer required. Sign in again." }, { status: 403 });
 
   const verifier = otpCodeVerifier(pending.challengeId, parsed.data.code);
   if (!verifier) return NextResponse.json({ error: "Enter the 6-digit code." }, { status: 400 });

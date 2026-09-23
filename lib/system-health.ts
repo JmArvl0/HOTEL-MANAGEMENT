@@ -21,6 +21,12 @@ export type SystemHealth = {
   storage?: { status: "operational" | "unavailable" | "unknown" };
   email?: { status: "configured" | "not_configured" };
   automations?: { name: string; schedule: string; lastRun: string | null; status: "unknown" }[];
+  // PayMongo gateway presence + mode, derived server-side from the secret-key
+  // prefix. Presence flags only — the key itself never leaves the server.
+  gateway?: { status: "listening_test" | "listening_live" | "not_configured" };
+  // Recent audit rows backing the Audit Trail tab. Safe columns only — no
+  // payloads, no secrets, newest first, capped server-side.
+  recentProbes?: { action: string; entity: string; at: string }[];
   deployment?: { provider: string; status: "unknown" };
   domain?: { status: "not_connected" };
   issues?: string[];

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Activity, BedDouble, Building2, Calculator, ChevronRight, CircleDollarSign, ClipboardCheck, ClipboardList, ConciergeBell, Eye, Info, Lightbulb, RefreshCw, Search, Settings, Users, Wrench, X, type LucideIcon } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { HavenSelect } from "@/components/ui/haven-select";
-import { HavenSearchInput } from "@/components/ui/haven-data-controls";
+import { HavenDataToolbar, HavenSearchInput } from "@/components/ui/haven-data-controls";
 import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination";
 import { STAFF_DUTY_BASIS_NOTE, type StaffDutyMember, type StaffDutySnapshot, type StaffDutyStatus } from "@/lib/staff-duty";
 
@@ -151,14 +151,19 @@ export default function StaffDutyPanel() {
             <div className="sd-main">
               <div className="sd-info-strip" role="note"><Info size={15} aria-hidden="true" /><p>{data.basisNote}</p></div>
 
-              <div className="table-tools reservation-filters sd-toolbar">
-                <HavenSearchInput value={search} onValueChange={setSearch} label="Search staff" placeholder="Search staff, department, assignment…"/>
-                <div className="sd-filters">
-                  <HavenSelect value={department} onChange={setDepartment} ariaLabel="Filter by department" options={[{ value: "all", label: "All departments" }, ...data.departments.map((dept) => ({ value: dept.name, label: dept.name }))]} />
-                  <HavenSelect value={duty} onChange={setDuty} ariaLabel="Filter by duty status" options={[{ value: "all", label: "All duty states" }, { value: "working", label: "Working now" }, { value: "assigned", label: "Assigned work" }, { value: "no_active_work", label: "No active work" }]} />
-                  {hasActiveFilters && <button type="button" className="sd-clear" onClick={clearFilters}><X size={13} />Clear filters</button>}
-                </div>
-              </div>
+              <HavenDataToolbar
+                label="Search and filter staff duty"
+                filtersLayout="compact"
+                search={<HavenSearchInput value={search} onValueChange={setSearch} label="Search staff" placeholder="Search staff, department, assignment…" />}
+                advancedFilters={<>
+                  <div className="haven-filter"><span>Department</span><HavenSelect value={department} onChange={setDepartment} ariaLabel="Filter by department" options={[{ value: "all", label: "All departments" }, ...data.departments.map((dept) => ({ value: dept.name, label: dept.name }))]} /></div>
+                  <div className="haven-filter"><span>Duty status</span><HavenSelect value={duty} onChange={setDuty} ariaLabel="Filter by duty status" options={[{ value: "all", label: "All duty states" }, { value: "working", label: "Working now" }, { value: "assigned", label: "Assigned work" }, { value: "no_active_work", label: "No active work" }]} /></div>
+                </>}
+                resultCount={filtered.length}
+                resultNoun="staff"
+                hasActiveFilters={hasActiveFilters}
+                onClearFilters={clearFilters}
+              />
 
               <div className="data-panel">
                 {data.staff.length === 0 ? (

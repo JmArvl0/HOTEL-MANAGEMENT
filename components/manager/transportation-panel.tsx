@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { CalendarDays, CarFront, CarTaxiFront, CheckCircle2, ClipboardCheck, X } from "lucide-react";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
-import { HavenSearchInput } from "@/components/ui/haven-data-controls";
+import { HavenDataToolbar, HavenFilterBadges, HavenSearchInput } from "@/components/ui/haven-data-controls";
 import { HavenSelect } from "@/components/ui/haven-select";
 import { TablePagination, useTablePagination } from "@/components/ui/table-pagination";
 import type { FormField } from "@/components/ui/FormDialog";
@@ -184,8 +184,17 @@ export default function TransportationPanel({ role }: { role: Role }) {
       { label: "Assigned / in progress", value: trips.filter((trip) => ["ASSIGNED", "IN_PROGRESS"].includes(trip.status)).length, hint: "Driver on the trip", queue: "active", icon: CarFront, tone: "active" },
       { label: "Completed this week", value: trips.filter((trip) => trip.status === "COMPLETED" && trip.completed_at && new Date(trip.completed_at).getTime() >= weekAgo).length, hint: "Last 7 days", queue: "completed", icon: CheckCircle2, tone: "done" },
     ]} activeQueue={queue} onSelect={setQueue} ariaLabel="Transportation summary"/>
-    <div className="tp-search-row table-tools"><HavenSearchInput value={search} onValueChange={setSearch} label="Search transportation requests" placeholder="Search guest, reservation, route, location…"/>{hasActiveFilters && <button className="tp-clear" onClick={clearFilters}><X size={13}/>Clear filters</button>}</div>
-    <div className="tp-toolbar reservation-filters"><div className="tp-queues">{QUEUES.map(([value, text]) => <button key={value} className={queue === value ? "active" : ""} aria-pressed={queue === value} onClick={() => setQueue(value)}>{text}<i className="chip-count">{counts[value]}</i></button>)}</div><div className="haven-filter"><span>Service</span><HavenSelect value={serviceFilter} onChange={setServiceFilter} ariaLabel="Filter by service type" options={[{ value: "all", label: "All services" }, { value: "PICKUP", label: "Airport Pickup" }, { value: "DROPOFF", label: "Hotel Drop-off" }, { value: "ROUND_TRIP", label: "Round Trip" }]} /></div></div>
+    <HavenDataToolbar
+      search={<HavenSearchInput value={search} onValueChange={setSearch} label="Search transportation requests" placeholder="Search guest, reservation, route, location…" />}
+      quickFilters={<HavenFilterBadges value={queue} onChange={setQueue} label="Filter transportation requests" options={QUEUES.map(([value, text]) => ({ value, label: text, count: counts[value] }))} />}
+      advancedFilters={<div className="haven-filter"><span>Service</span><HavenSelect value={serviceFilter} onChange={setServiceFilter} ariaLabel="Filter by service type" options={[{ value: "all", label: "All services" }, { value: "PICKUP", label: "Airport Pickup" }, { value: "DROPOFF", label: "Hotel Drop-off" }, { value: "ROUND_TRIP", label: "Round Trip" }]} /></div>}
+      resultCount={visible.length}
+      resultNoun="transportation requests"
+      hasActiveFilters={hasActiveFilters}
+      onClearFilters={clearFilters}
+      filtersLayout="inline"
+      label="Search and filter transportation requests"
+    />
     <p className="tp-note">Locations are recorded as text — coordinate trips by phone; there is no external mapping or fleet service.</p>
     <div className="data-panel">
       {loading ? <div className="tp-skeleton" role="status" aria-label="Loading transportation requests"><i/><i/><i/><i/></div>

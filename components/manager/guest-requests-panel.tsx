@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { BedDouble, Bell, Boxes, ClipboardCheck, Search } from "lucide-react";
-import { HavenSearchInput } from "@/components/ui/haven-data-controls";
+import { HavenDataToolbar, HavenFilterBadges, HavenSearchInput } from "@/components/ui/haven-data-controls";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
 import { canAccess } from "@/lib/permissions";
@@ -155,8 +155,15 @@ export default function GuestRequestsPanel({ role, onEscalate }: { role: Role; o
         { label: "Approved", value: counts.approved, hint: "Granted submissions", icon: ClipboardCheck, tone: "done", queue: "approved" },
         { label: "Declined", value: counts.rejected, hint: "Refused submissions", icon: Bell, queue: "rejected" },
       ]} activeQueue={queue} onSelect={setQueue} ariaLabel="Guest requests summary"/>
-      <div className="table-tools"><HavenSearchInput value={search} onValueChange={setSearch} label="Search guest requests" placeholder="Search guest, reservation, request..."/></div>
-      <div className="reservation-filters"><div>{QUEUES.map(([value, text]) => <button key={value} className={queue === value ? "active" : ""} aria-pressed={queue === value} onClick={() => setQueue(value)}>{text} <b>{counts[value as keyof typeof counts]}</b></button>)}</div></div>
+      <HavenDataToolbar
+        search={<HavenSearchInput value={search} onValueChange={setSearch} label="Search guest requests" placeholder="Search guest, reservation, request..." />}
+        quickFilters={<HavenFilterBadges value={queue} onChange={setQueue} label="Filter guest requests" options={QUEUES.map(([value, text]) => ({ value, label: text, count: counts[value as keyof typeof counts] }))} />}
+        resultCount={visible.length}
+        resultNoun="submissions"
+        hasActiveFilters={queue !== "all" || search.trim() !== ""}
+        onClearFilters={() => { setQueue("all"); setSearch(""); }}
+        label="Search and filter guest requests"
+      />
       <div className={showInventory ? "grp-layout" : undefined}>
         <div className="grp-main">
         <div className="grp-batches">

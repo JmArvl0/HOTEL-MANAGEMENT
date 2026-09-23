@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { CarTaxiFront, Loader2, Pencil, Plus, Search } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
-import { HavenSearchInput } from "@/components/ui/haven-data-controls";
+import { HavenDataToolbar, HavenSearchInput } from "@/components/ui/haven-data-controls";
 import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination";
 
 type Vehicle = {
@@ -97,9 +97,14 @@ export default function TransportVehicleTypesPanel() {
         </div>
         <button className="btn btn-accent" onClick={openCreate}><Plus size={16}/> Add vehicle</button>
       </div>
-      <div className="table-tools">
-        <HavenSearchInput value={search} onValueChange={setSearch} label="Search transfer vehicles" placeholder="Search transfer vehicles..." />
-      </div>
+      <HavenDataToolbar
+        search={<HavenSearchInput value={search} onValueChange={setSearch} label="Search transfer vehicles" placeholder="Search transfer vehicles..." />}
+        resultCount={visible.length}
+        resultNoun="vehicle types"
+        hasActiveFilters={search.trim() !== ""}
+        onClearFilters={() => setSearch("")}
+        label="Search transfer vehicles"
+      />
       {loading ? (
         <div className="empty"><Loader2 className="spin"/><h3>Loading transfer vehicles…</h3></div>
       ) : error ? (

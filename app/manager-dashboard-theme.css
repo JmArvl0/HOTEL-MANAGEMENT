@@ -1780,6 +1780,12 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .app-shell .admin-workspace .admin-policy-groups dl{grid-template-columns:1fr}
 .app-shell .admin-workspace .admin-policy-groups dl>div{min-height:52px;background:var(--ds2)}
 .app-shell .admin-workspace .admin-report-lower{gap:12px}
+.app-shell .admin-workspace .admin-security-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start;margin:12px 0}
+.app-shell .admin-workspace .admin-security-grid section>dl,.app-shell .admin-workspace .admin-security-grid div.data-panel>dl{margin:0}
+.app-shell .admin-workspace .admin-security-grid section>dl>div,.app-shell .admin-workspace .admin-security-grid div.data-panel>dl>div{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:9px 0;border:0;border-bottom:1px solid var(--dl);background:transparent}
+.app-shell .admin-workspace .admin-security-grid section>dl>div:last-child,.app-shell .admin-workspace .admin-security-grid div.data-panel>dl>div:last-child{border-bottom:0}
+.app-shell .admin-workspace .admin-security-grid section>dl dt,.app-shell .admin-workspace .admin-security-grid div.data-panel>dl dt{color:var(--dm);font-size:11px}
+.app-shell .admin-workspace .admin-security-grid section>dl dd,.app-shell .admin-workspace .admin-security-grid div.data-panel>dl dd{margin:0;color:var(--dt);font-size:12px;font-weight:650;text-align:right;font-variant-numeric:tabular-nums}
 .app-shell .admin-workspace .admin-config-list li{min-height:47px;transition:background-color .16s ease}
 .app-shell .admin-workspace .admin-config-list li:hover{background:var(--ds2)}
 
@@ -1798,6 +1804,7 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 
 @media(max-width:900px){
  .app-shell .admin-workspace .admin-policy-groups{grid-template-columns:1fr}
+ .app-shell .admin-workspace .admin-security-grid{grid-template-columns:1fr}
  .app-shell .admin-workspace .reservation-actions{flex-wrap:wrap}
 }
 @media(max-width:620px){

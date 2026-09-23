@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff, ListChecks, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
-import { HavenSearchInput } from "@/components/ui/haven-data-controls";
+import { HavenDataToolbar, HavenSearchInput } from "@/components/ui/haven-data-controls";
 import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination";
 
 // Manager-maintained guest request catalog. What is active here is exactly
@@ -105,9 +105,14 @@ export default function RequestTypesPanel() {
         </div>
         <button className="btn btn-accent" onClick={() => { setCreating(true); setEditing(null); setDraft(emptyDraft()); }}><Plus size={16}/> Add request type</button>
       </div>
-      <div className="table-tools">
-        <HavenSearchInput value={search} onValueChange={setSearch} label="Search request types" placeholder="Search request types..." />
-      </div>
+      <HavenDataToolbar
+        search={<HavenSearchInput value={search} onValueChange={setSearch} label="Search request types" placeholder="Search request types..." />}
+        resultCount={visible.length}
+        resultNoun="request types"
+        hasActiveFilters={search.trim() !== ""}
+        onClearFilters={() => setSearch("")}
+        label="Search request types"
+      />
       {loading ? (
         <div className="empty"><Loader2 className="spin"/><h3>Loading request types…</h3></div>
       ) : error ? (

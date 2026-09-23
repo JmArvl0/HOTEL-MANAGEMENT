@@ -148,6 +148,8 @@ export default function VerifyForm({ callbackUrl = "/manager_dashboard" }: { cal
             placeholder="••••••"
             required
             className="haven-vault__otp"
+            autoFocus
+            aria-invalid={error ? true : undefined}
           />
         </label>
 

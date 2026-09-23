@@ -8,7 +8,7 @@
  */
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
-import { buildOtpEmail, buildTestEmail } from "@/lib/otp-email";
+import { buildOtpEmail, buildTestEmail, type OtpEmailMessage } from "@/lib/otp-email";
 
 export type OtpEmailFailureReason = "unconfigured" | "failed";
 export type OtpEmailResult = { ok: true } | { ok: false; reason: OtpEmailFailureReason; message: string };
@@ -89,6 +89,22 @@ export async function sendTestEmail(input: { to: string }): Promise<OtpEmailResu
     return { ok: true };
   } catch {
     return { ok: false, reason: "failed", message: "The test email could not be delivered." };
+  }
+}
+
+/** Generic account-security send (recovery links, reset codes). Never throws. */
+export async function sendAccountEmail(input: { to: string; message: OtpEmailMessage }): Promise<OtpEmailResult> {
+  const transport = transporter();
+  if (!transport) return { ok: false, reason: "unconfigured", message: "SMTP is not configured on the server." };
+  if (!blank(input.to)) return { ok: false, reason: "failed", message: "No recipient address." };
+  try {
+    await transport.sendMail({
+      from: smtpSender(), to: input.to,
+      subject: input.message.subject, text: input.message.text, html: input.message.html,
+    });
+    return { ok: true };
+  } catch {
+    return { ok: false, reason: "failed", message: "The email could not be delivered." };
   }
 }
 

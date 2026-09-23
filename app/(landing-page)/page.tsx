@@ -78,7 +78,7 @@ export default async function LandingPage() {
     <section className="coast-section coast-teaser" id="smarter" aria-labelledby="smarter-title">
       <header className="coast-section-heading"><div><p className="coast-eyebrow">Behind the scenes</p><h2 id="smarter-title">Smarter hospitality.</h2><p>Technology in service of a warmer welcome.</p></div><Sparkles size={30} strokeWidth={1.3} aria-hidden="true"/></header>
       <div className="coast-teaser-grid">
-        <div className="coast-teaser-tile"><BedDouble size={20} strokeWidth={1.5} aria-hidden="true"/><b>48</b><span>Boutique rooms in one Makati property</span></div>
+        <div className="coast-teaser-tile"><BedDouble size={20} strokeWidth={1.5} aria-hidden="true"/><b>48</b><span>Boutique rooms in one property</span></div>
         <div className="coast-teaser-tile"><ConciergeBell size={20} strokeWidth={1.5} aria-hidden="true"/><b>{amenities.length}</b><span>Thoughtful amenities &amp; services</span></div>
         <div className="coast-teaser-tile"><QrCode size={20} strokeWidth={1.5} aria-hidden="true"/><b>1</b><span>Connected guest account for your whole stay</span></div>
       </div>

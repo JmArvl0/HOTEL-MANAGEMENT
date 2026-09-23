@@ -1052,3 +1052,40 @@ rather than trusting a component test.
 `docs/HAVEN_UI_STANDARDS.md` (§ Data toolbar) · `docs/DESIGN.md` (Data toolbar row) ·
 `components/ui/haven-data-controls.{tsx,css,test.tsx}` ·
 [[2026-09-20 - Universal Search Filter Standard]]
+
+---
+
+## D-027 — Password reset is selfie-gated and fully audited
+
+Date: 2026-09-23
+Status: Active
+
+### Decision
+
+- Recovery completion requires a staged identity selfie: `complete_account_recovery`
+  takes `p_selfie_path`, refuses missing/foreign paths (`SELFIE_REQUIRED`, shape
+  enforced in SQL), and marks the `password_reset_logs` row completed in the
+  same transaction. Upload alone never completes a reset.
+- New self-service flow: `/forgot-password` (email → OTP code → emailed
+  one-time link), always generic responses (no account enumeration), 5
+  requests/email/hour, pre-verification token rotated on code success.
+- `password_reset_logs` records user, token, challenge, email, IP, user agent,
+  OTP state, selfie path, and lifecycle status (`requested`/`otp_verified`/
+  `completed`/`failed`); service-role only behind RLS.
+- Selfies live in the private `recovery-selfies` bucket (magic-byte sniffed,
+  5 MB); admins inspect via 60s signed URLs in the new Governance →
+  Password reset audit section. Selfies are human-reviewed evidence — no
+  facial matching, no auto-approval.
+
+### Reason
+
+Recovery links are bearer credentials sent by email; a stolen inbox meant a
+stolen account with no trace. The selfie adds a human-reviewable identity
+barrier at the exact moment of credential change, and the ledger makes every
+attempt visible to System Administration.
+
+### Related
+
+`supabase/migrations/20261022010000_password_reset_audit.sql` ·
+`app/api/password-reset/*` · `app/api/recover/[token]/*` ·
+`app/(auth)/forgot-password/page.tsx` · `lib/password-reset-audit.test.ts`

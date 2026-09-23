@@ -2,6 +2,46 @@
 
 Current execution state. Concise — detail lives in linked session notes.
 
+## Current task (admin governance native-CSS fix, 2026-09-23)
+
+FIXED locally, all gates green. Uncompiled Tailwind grids in System Health
+replaced with native `metric-grid` / `admin-report-lower`; tablist reuses
+`insights-tabs`; dead icon utilities stripped; scoped borderless key-value
+`dl` CSS added. 159 files / 1762 tests, typecheck, eslint 0 errors, build
+green. Pending: viewport browser QA (KI-005).
+Detail: Sessions/OpenCode/2026-09-23 - Admin Governance Native-CSS Fix.md.
+
+## Current task (system health executive layout, 2026-09-23)
+
+IMPLEMENTED locally, all gates green. `SystemHealthView` is a 3-tier
+executive layout: 8-card infrastructure grid (incl. server-derived PayMongo
+gateway mode), automations × alerts workspace, hand-rolled tablist ledger
+(migrations / payment / audit trail, no refetch). 159 files / 1759 tests,
+typecheck, eslint 0 errors, build green. Pending: browser QA (KI-005).
+Detail: Sessions/OpenCode/2026-09-23 - System Health Executive Layout.md.
+
+## Current task (selfie-gated password reset, 2026-09-23)
+
+IMPLEMENTED locally, all gates green. Recovery requires a staged identity
+selfie (`SELFIE_REQUIRED` in `complete_account_recovery`); self-service
+`/forgot-password` (email → OTP → link, generic responses, 5/hr cap);
+`password_reset_logs` ledger; Admin Governance → Password reset audit with
+signed-URL selfie preview. 159 files / 1753 tests, typecheck, eslint
+0 errors, build green. Pending: `supabase db push`, SMTP config, browser QA.
+Detail: Sessions/OpenCode/2026-09-23 - Selfie-Gated Password Reset.md.
+
+## Current task (operational module layout audit, 2026-09-23)
+
+COMPLETE locally. A system-wide structural review found the shared design
+foundation sound, with seven standalone panels plus shared resource and
+accounting views still using legacy split search/filter rows. Guest Requests, Transportation, Housekeeping,
+Staff & Duty, Room Types, Request Types, Transfer Vehicles, shared staff
+resources, and Accounting now use the canonical transparent `HavenDataToolbar` hierarchy with responsive grouping,
+visible labels, live result counts, and one clear action. Existing permissions,
+filtering, actions, sorting, and pagination are unchanged. Gates: typecheck,
+touched ESLint, focused 42/42 tests, full Vitest, production build, Impeccable
+detector, and diff-check are green. Authenticated browser QA remains pending.
+Detail: Sessions/Codex/2026-09-23 - Operational Module Layout Audit.md.
 ## Current task (guest Rewards redesign, 2026-09-22)
 
 COMPLETE locally. The customer Rewards page now uses the standard dark-teal

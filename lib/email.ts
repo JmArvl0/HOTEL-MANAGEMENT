@@ -62,6 +62,6 @@ export function guestEmailHtml(heading: string, bodyHtml: string): string {
 <p style="letter-spacing:.2em;font-size:12px;color:#084b55;margin:0 0 16px">HAVEN HOTEL &amp; RESIDENCES</p>
 <h1 style="font-size:20px;margin:0 0 16px">${heading}</h1>
 ${bodyHtml}
-<p style="font-size:12px;color:#8a8a8a;margin:32px 0 0">Sent by the Haven Makati guest portal. Sign in to view your reservation details.</p>
+<p style="font-size:12px;color:#8a8a8a;margin:32px 0 0">Sent by the HAVEN Hotel & Residences guest portal. Sign in to view your reservation details.</p>
 </div></body></html>`;
 }

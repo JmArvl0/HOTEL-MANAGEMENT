@@ -1,5 +1,15 @@
 # Current Status
 
+## Operational module layout audit (2026-09-23)
+
+- Seven standalone panels plus the shared staff resource and accounting views
+  now use the canonical transparent search/filter toolbar: Guest Requests, Transportation, Housekeeping, Staff &
+  Duty, Room Types, Request Types, Transfer Vehicles, shared staff resources, and Accounting.
+- Controls follow search → quick/advanced filters → results, share one clear
+  action, and stack responsively without changing domain behavior.
+- Verification is green: typecheck, touched ESLint, focused 42/42 tests, full
+  Vitest, production build, Impeccable detector, and diff-check. Authenticated
+  browser QA is pending.
 ## Guest Rewards redesign (2026-09-22)
 
 - Rewards now follows the customer portal's executive hierarchy: dark-teal
