@@ -25,4 +25,13 @@ describe("shared notification layout contract", () => {
     expect(css).toMatch(/\.nh-body\s*\{[\s\S]*?overflow-y:\s*auto/);
     expect(css).toContain("width: calc(100vw - 16px)");
   });
+
+  it("chips all four severities in both shells with labeled text", () => {
+    for (const sev of ["critical", "attention", "success", "info"]) {
+      expect(css).toContain(`.cnr-severity.sev-${sev}`);
+      expect(css).toContain(`.app-shell .cnr-severity.sev-${sev}`);
+    }
+    // Uppercase micro-label: color never travels without text.
+    expect(css).toMatch(/\.cnr-severity\s*\{[\s\S]*?text-transform:\s*uppercase/);
+  });
 });

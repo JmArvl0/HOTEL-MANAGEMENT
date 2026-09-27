@@ -3,7 +3,7 @@
 import type { ElementType, ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
 
-export type HavenActionItemTone = "amber" | "green" | "rose" | "neutral";
+export type HavenActionItemTone = "amber" | "green" | "rose" | "neutral" | "info";
 export type HavenActionItemVariant = "row" | "stat";
 
 export type HavenActionItemProps = {

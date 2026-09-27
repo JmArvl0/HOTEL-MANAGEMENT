@@ -1,5 +1,48 @@
 # Current Status
 
+## System Health module (2026-09-26)
+
+- The Admin → System Health module was rebuilt around one question — *is anything
+  wrong right now, and what do I do about it?* Order is now verdict → 8 service
+  cards → needs-attention → ledger | automations rail. The attention list left the
+  320px rail for the main column, and the ledger took the full width.
+- Root cause of "prompts to fix the design change nothing": the module was the only
+  admin stylesheet outside the D-025 theme layer, keeping a pinned 9–11px scale while
+  `.theme-light .app-shell` ran at 12–15px. Tones moved onto the value line only, on
+  theme-flipping `--color-*-fg` tokens. Alerts are now de-duplicated against the cards.
+- The two permanent Unknowns became real with **no migration** — both crons already
+  persist their runs: automations read `guest_reminder_deliveries` / `analytics_model_runs`
+  (labelled "Last send" where the ledger records sends, not attempts), and Deployment
+  gained a two-tier feed (always-on env/branch/commit; newest build status when
+  `VERCEL_TOKEN` is set).
+- The ledger panel then had three **style conflicts** fixed in
+  `components/admin/system-health.css`: the theme resets headings with a child
+  combinator that cannot reach headings nested inside `[role=tabpanel]`, and no
+  stylesheet gives `.data-panel` padding (every other panel is inset by its own
+  heading child) — so the ledger's headings sat flush on the card border and the tab
+  pills were drawn *on* it, with `overflow:hidden` clipping their focus ring. The
+  tables also had no mobile step. See [[2026-09-26 - System Health Ledger Conflict Fix]].
+- The ledger tables' **column geometry** followed: they were `table-layout:fixed` at
+  `width:100%`, so the one column with no declared width (Name) swallowed ~700px and
+  pushed the Status badge to the far edge of the card. The module now declares a
+  width for every column **except the last of each table** — Status in migrations,
+  Entity in the audit trail — which is the column that absorbs the leftover width.
+  `table-layout:fixed` is gone; a spacer column was designed, built, measured, and
+  **rejected** (see the session note). Browser-measured, not assumed. A later review
+  brief asked for the reverse (Name flexible, Status compact); both layouts were put
+  to the user, who **kept this one** — recorded as [[D-031]] so the wide Status column
+  is not "fixed" back. The one soft value, `--sys-col-name`, was then tuned 280 → 240px
+  from a measurement of all 87 migration names in the app's real font (Inter 13px, not
+  `system-ui`): 84/87 names stay on one line and the mean gap to the badge drops from
+  121px to 81px.
+  See [[2026-09-26 - Ledger Table Column Geometry]].
+- Verification: 35/35 focused, full suite 160 files / 1797 tests, typecheck clean,
+  eslint 0 errors (3 pre-existing warnings), compiled-CSS chunk confirms the fixes,
+  and the final geometry was measured in headless Chrome at 1440px and 390px.
+- See [[D-030 — Admin module stylesheets inherit the theme scale and never restate a fact a card already shows]]
+  and [[2026-09-26 - System Health Module Redesign]]. Authenticated browser QA is
+  pending (KI-005); `VERCEL_TOKEN` is unset, so tier 2 deployment status is dormant.
+
 ## Operational module layout audit (2026-09-23)
 
 - Seven standalone panels plus the shared staff resource and accounting views
@@ -66,6 +109,20 @@ foundation, 9 commercial readiness (9A/9B/9C/9D). The final overall report was d
 in-session. Remaining: manual UI verification (role logins) and committing the tree.
 
 ## Recently Completed
+
+- **Admin module CSS scoping fix (2026-09-26)** — Admin → System Health layout edits now
+  land deterministically instead of silently losing. Three overlapping causes fixed:
+  unscoped `.page-title`/`.panel-heading` rules in a stylesheet Next.js hoists app-wide
+  (`.panel-heading h3` had been forcing every admin panel heading into a flex row that no
+  theme could override), a (0,1,1) specificity tie between `system-health.css` and
+  `globals.css` whose winner was bundler chunk order, and a test that locked the
+  stylesheet's literal text. Table column geometry moved into `--sys-col-*` variables
+  (`table-layout:fixed` ignores cell content, so markup edits could never move it). Five
+  Security Configuration headings that had been relying on the leaked rule now declare
+  their own. Also unclipped the Pending Migrations modal's Filename column. Full suite
+  160 files / 1791 passing, typecheck clean, compiled dev-server CSS verified. See
+  [[D-029 — Admin module stylesheets are global; every selector must be namespaced]] and
+  [[2026-09-26 - Admin Module CSS Scoping Fix]]. Manual browser verification pending.
 
 - **Authenticated header session countdown (2026-09-21)** — Customer and all
   staff roles now receive the earliest authoritative idle/absolute deadline
@@ -1024,6 +1081,7 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
 
 ## Recent Sessions
 
+- [[2026-09-26 - Admin Module CSS Scoping Fix]] — unscoped admin module CSS leaked app-wide (D-029); leak guard added, 1791/1791 green, manual browser check pending
 - [[2026-09-14 - Room Create Reason Removal]] — create needs no reason, auto-audit kept, edit reason intact; all gates green
 - [[2026-09-14 - Manager Reports Redesign]] — extracted PerformanceReports surface (KPIs, accessible chart + data table, room status); print/review flows preserved; 1057/1057, build + detector clean
 - [[2026-09-14 - Manager HAVEN AI Workspace]] — authoritative KPI strip + redesigned read-only brief/Ask decision workspace; all automated gates green

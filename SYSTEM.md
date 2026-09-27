@@ -251,19 +251,28 @@ the session no longer matches. Every privileged RPC **re-checks the actor's role
 function body**, reading `user_accounts where id = p_staff_user_id and active`.
 
 **Session security policy** (System Administration → Security Configuration, D-021,
-migration `20261009010000`). One authoritative `security_policies` row (persistent-login
-toggle, inactivity timeout 10–480 min, absolute lifetime from 1/2/4/8/12/24 h with
-absolute ≥ idle, versioned, reasoned, audited as `security_policy_updated`) — deliberately
+migration `20261009010000`, cookie policy + extended ranges in `20261023010000`). One authoritative `security_policies` row: the **cookie-policy toggle is the
+single session-policy switch** (inactivity timeout 1–480 min — 1–59 min plus
+1/2/4/8 h options, absolute lifetime from 5/10/15/30 min or 1/2/4/8/12/24 h with
+absolute ≥ idle, versioned, reasoned — every change requires a recorded reason —
+audited as `security_policy_updated`) — deliberately
 separate from `hotel_operational_policies` so auth values never freeze into booking
-snapshots. Enforcement is live in the NextAuth `session` callback (which runs on every
+snapshots. Remember Me ("Keep me signed in") is always available by default;
+there is no persistence toggle. Cookie policy OFF suspends the session policy:
+browser-session cookies only (no `maxAge`, die on browser close), Remember Me
+hidden on `/login`, the header countdown hidden, and live Remember-Me sessions
+collapse to the idle window at the next validation — login itself keeps working.
+Cookie policy ON restores the full policy and the countdown resumes. Enforcement is live in the NextAuth `session` callback (which runs on every
 `getServerSession`; `callbacks.jwt` does not run per request): idle timeout against
 server-side `user_accounts.last_seen_at` (stamped at sign-in, throttled to one write per
 minute), absolute lifetime against the token `iat`. Standard sign-in is bound by the
-inactivity window; Remember Me (offered on `/login` only while the toggle is on) extends
-to the configured maximum. Expired sessions are neutralized centrally (`disabled` + guest
+inactivity window; Remember-Me opt-in extends
+to the configured maximum. Freshly minted cookies carry a policy-derived `maxAge`
+(absolute window when persistent, idle window otherwise; none when the cookie policy
+is off). Expired sessions are neutralized centrally (`disabled` + guest
 role + blank id). Never-stamped accounts are grandfathered once, so a policy deploy can
-never silently log everyone out; the cookie backstop is `maxAge` 24 h + 5 min. Cookie
-protections (`HttpOnly`, `Secure` in production, `SameSite=lax`) are hardcoded with no
+never silently log everyone out; `SESSION_MAX_AGE` (24 h + 5 min) remains the hard
+ceiling. Cookie protections (`HttpOnly`, `Secure` in production, `SameSite=lax`) are hardcoded with no
 disable path. Mutation is System Administrator (`admin`) only, at both the route and the
 RPC (`SECURITY_ADMIN_ONLY`); Owner has no edit path.
 
@@ -1137,15 +1146,57 @@ persists its own open/closed choices (`localStorage["haven-admin-sidebar-groups"
   silently every minute while open plus a manual "Run checks now" button. It is
   the single authoritative UI surface for database/Supabase status — no role
   header shows a database badge (the manager header keeps a "Demo data" pill in
-  demo mode only). Extended
+  demo mode only). The view reads top-down as verdict → eight service cards →
+  the items no card already reports → the evidence ledger beside the automations
+  rail; the attention list is **de-duplicated against the cards**, so a fact a
+  card already states (storage unavailable, gateway test mode, unconfigured
+  email, migration drift) is never repeated as an alert — only items different in
+  kind earn a row (an unreachable database, which carries `role="alert"`; the
+  domain, which has no card; free-form server notices). Tone is applied to the
+  card's value line only, via the theme-flipping `--color-*-fg` tokens; no card
+  is tinted, because colored 12px body text both read as noise and failed
+  contrast. The ledger's padding is **restated in `system-health.css` on purpose**:
+  the admin theme resets headings with a child combinator
+  (`.admin-workspace .data-panel>.panel-heading`) that cannot reach headings nested
+  inside `[role=tabpanel]`, and `.data-panel` itself carries no padding in any
+  stylesheet — so the strip and those headings are inset in the module at the
+  theme's own 16px. Do not delete them as duplicates; without them the headings sit
+  flush on the card border and the pills' focus ring is clipped by the theme's
+  `overflow:hidden`. The ledger tables are at `width:100%` (so the header band and
+  row rules span the card) and the module gives a width to **every column except the
+  last one of each table** — Status in migrations, Entity in the audit trail. That
+  unconstrained last column is what carries the leftover width, and it is a
+  deliberate trade-off, not an oversight: the last column's content is
+  left-aligned, so this is what keeps the Status badge flush against the migration
+  name, at the cost of the Status column itself being wide with its header label
+  sitting mid-card. The only alternative is to give Status a width and let Name
+  carry the slack, which pushes the badge ~600px right of the name — the "columns
+  are too far apart" defect this replaced. Do not "fix" the wide Status column
+  without confirming the user wants that gap back. `width:100%` on a column is
+  never the fix either: a percentage column demands the whole table and Chrome
+  crushes every other column to min-content. Extended
   (Unknown-first, read-only, no secrets): **Application** (environment from `NODE_ENV`,
   `package.json` version, Vercel commit short hash when present — otherwise `Unknown`),
   **Storage** (service-role `list` probe on the `room-photos` bucket — status only, never
   keys or URLs), **Email** (`RESEND_API_KEY` presence → Configured/Not configured; delivery
   history untracked → `Unknown`), **Scheduled automations** (the two real `vercel.json`
-  crons — guest reminders daily 01:05 UTC, analytics generation daily 18:35 UTC — with
-  last-run `Unknown`), **Deployment** (provider Vercel, status `Unknown` — no deployment
-  feed connected), **Domain** (`Not connected` — health reporting not connected), and a
+  crons — guest reminders daily 01:05 UTC, analytics generation daily 18:35 UTC — with a
+  **real last run** read from the table each job already writes: latest
+  `guest_reminder_deliveries.sent_at`, latest `analytics_model_runs.generated_at`. The
+  per-job label names what the timestamp means: `guest_reminder_deliveries` is unique per
+  `(reservation_id, kind)` and only inserts on an actual send, so that row is the last
+  **send**, not the last attempt, and is labelled "Last send". No row at all reads "No
+  sends recorded" / "No runs recorded" — never a fabricated success. Both tables are
+  RLS-enabled, revoked from anon/authenticated and granted to `service_role`, which
+  `guardAdmin()` provides. A failed query degrades that one job to `unknown` rather than
+  failing the payload), **Deployment** (two tiers. Tier 1, always available: Vercel injects
+  `VERCEL_ENV`/`VERCEL_GIT_COMMIT_SHA`/`VERCEL_GIT_COMMIT_REF`/`VERCEL_DEPLOYMENT_ID` into
+  the function, so the card reports the environment/branch/short commit actually serving
+  the request — public identifiers only. Tier 2, when `VERCEL_TOKEN` is set: the newest
+  deployment's `readyState` from `GET /v6/deployments`, i.e. the only real "did the last
+  build succeed" signal. A missing token is not an error — the card falls back to tier 1
+  and says so; any API or parse failure leaves `unknown`. The token never enters the
+  payload), **Domain** (`Not connected` — no domain feed exists), and a
   **Recent technical issues** list derived from live probes only. No deploy/redeploy/
   rollback/SQL/shell/env controls exist anywhere in the workspace.
 - **Owner** (`OwnerDashboardClient`, `/api/owner/data`, `/api/owner/exceptions/[id]/review`):

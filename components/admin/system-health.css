@@ -1,0 +1,254 @@
+/* System Health console — scoped presentation only. The page is a header
+   status line, an 8-card executive KPI grid, the items no card already
+   reports, and a ledger + automations-rail split. Everything here is scoped
+   under .sys-* / .system-health-* so shared primitives (.mod-kpis,
+   .data-panel, .table-scroll) are untouched.
+
+   SIZING RULE — read before adding a font-size here. This module used to pin
+   its own 9-11px scale while .theme-light .app-shell raised table/badge/
+   .table-action/panel headings to 12-15px, so it read as a foreign module
+   bolted into the admin app, and no theme edit could reach the pinned values.
+   Sizes here either inherit the theme or restate the theme's own step
+   (12px label / 13px body) — never a new one. Tone classes use the semantic
+   --color-*-fg tokens, which flip per theme; the --ops-*-ink tokens did not
+   and failed contrast in dark mode. */
+.sys-spin{animation:sys-spin 1s linear infinite}
+@keyframes sys-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.sys-spin{animation:none}}
+/* Steady state: a quiet line inside the attention panel, not its own card. */
+.sys-steady{display:flex;align-items:flex-start;gap:8px;margin:0;padding:4px 0 0;font-size:13px;line-height:1.55;color:var(--dm)}
+.sys-steady svg{flex:none;margin-top:2px;color:var(--color-success-fg)}
+/* Attention queue: severity-ordered rows, text + badge carry meaning.
+   Lives in the rail above automations (equal split gives its bodies room). */
+.sys-attention{margin-bottom:1.5rem}
+.sys-queue{list-style:none;margin:0;padding:4px 18px 16px;display:grid;gap:10px}
+.sys-queue-row{display:flex;gap:12px;align-items:flex-start;padding:12px;border:1px solid var(--dl);border-radius:8px;background:var(--ds2,transparent)}
+.sys-queue-row>div{min-width:0;display:grid;gap:4px}
+.sys-queue-row strong{font-size:13px}
+.sys-queue-row p{margin:0;font-size:12px;line-height:1.55}
+.sys-queue-row .table-action{justify-self:start}
+/* Executive KPI grid: 8 service cards, 4 → 2 → 1 columns.
+   grid-template-rows pins the four stacked parts to shared tracks and the
+   explain row takes the slack (1fr), so the value baselines and the action
+   footer line up across a row instead of the cards reading as ragged. */
+.sys-health-grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem;margin-bottom:1.5rem}
+.sys-health-card{min-width:0;display:grid;grid-template-rows:auto auto 1fr auto;gap:8px;padding:1.25rem;transition:transform 280ms var(--ops-ease-tactile,cubic-bezier(0.32,0.72,0,1))}
+/* Base cards rest flat and lift on hover (staff stat grammar, DESIGN.md §16).
+   These cards are not links, so no focus ring or press physics applies here. */
+.sys-health-card:hover{transform:translateY(-1px)}
+@media(prefers-reduced-motion:reduce){.sys-health-card{transition:none}.sys-health-card:hover{transform:none}}
+.sys-card-name{display:flex;align-items:center;gap:10px;margin:0;font-size:12px;font-weight:600;color:var(--dm)}
+.sys-card-value{display:flex;align-items:center;gap:7px;margin:0}
+/* 24px stat step (the §16 30px/24px alternate for dense cards) — tabular, wraps
+   on spaces for word values like "Listening · Test", never mid-word. */
+.sys-card-value b{font-size:24px;line-height:1.15;font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:break-word;min-width:0}
+.sys-card-explain{margin:0;font-size:12px;line-height:1.55;overflow-wrap:anywhere}
+/* Real footer row, aligned across the grid. Cards with no action keep the
+   empty track rather than collapsing it, which is what keeps the row aligned
+   — so no :empty{display:none} here. */
+.sys-card-action{display:flex;align-items:flex-end;min-height:0}
+/* Lower split: ledger main + rail (attention above automations), split
+   equally — the ledger contents are compact, so both halves share the width.
+   Rail children stack with the rail gap; the attention panel drops its own
+   bottom margin inside the rail to avoid double spacing. */
+.sys-lower-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1.5rem;margin-bottom:1.5rem;align-items:start}
+.sys-lower-split>.sys-main{min-width:0;display:grid;gap:0;align-content:start}
+.sys-rail{display:grid;gap:1.5rem;align-content:start;min-width:0}
+.sys-rail>.sys-automations{margin-bottom:0}
+.sys-rail>.sys-attention{margin-bottom:0}
+/* Consistent icon container: 34px box with a surface, so it reads as a
+   deliberate badge rather than a glyph floating next to the label. Card-name
+   icons additionally carry the card tone as a 10% tint chip (stat grammar). */
+.sys-ico{width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:8px;background:var(--ds2);border:1px solid var(--dl)}
+.sys-card-name .sys-ico{border-radius:12px;border-color:transparent}
+.sys-card-name .sys-ico-ok{color:var(--color-success-fg);background:color-mix(in srgb,currentColor 12%,transparent)}
+.sys-card-name .sys-ico-warn{color:var(--color-warning-fg);background:color-mix(in srgb,currentColor 12%,transparent)}
+.sys-card-name .sys-ico-bad{color:var(--color-danger-fg);background:color-mix(in srgb,currentColor 12%,transparent)}
+.sys-card-name .sys-ico-neutral{color:var(--dm);background:var(--ds2);border-color:var(--dl)}
+.sys-ico--inline{display:inline-flex;align-items:center;justify-content:center;flex:none}
+/* Rail jobs: stacked definition list — fits any rail width with zero table
+   floor, zero x-scroll. Reuses shell tokens + .table-action untouched. */
+.sys-jobs{list-style:none;margin:0;padding:4px 18px 16px;display:grid;gap:10px}
+.sys-job{border:1px solid var(--dl);border-radius:8px;padding:12px;display:grid;gap:8px;min-width:0}
+.sys-job-main{display:grid;gap:2px;min-width:0}
+.sys-job-main strong{font-size:13px;overflow-wrap:anywhere}
+.sys-job-main span{font-size:12px;color:var(--dm)}
+.sys-job-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.sys-job-status{font-size:12px;color:var(--dm);font-variant-numeric:tabular-nums}
+.sys-job-tail{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* Ledger (see system-health-ledger.tsx): detached tab nav above a separate
+   content card. Tables use fixed layout inside their own column context, so
+   the shared 560px table floor never applies here.
+
+   PADDING IS RESTATED HERE ON PURPOSE. No stylesheet gives .data-panel padding
+   (globals.css, manager-dashboard-theme.css, staff-ops-theme.css) — every other
+   panel is inset by its own .panel-heading child, which supplies 15px 16px. The
+   tabs card has no .panel-heading child, only the strip, and the content card's
+   headings are grandchildren of it, so neither ever got inset: the pills were
+   drawn ON the card border and, with the theme's overflow:hidden + radius, their
+   corners and their 2px focus-ring offset were clipped. The strip and the
+   headings are inset below at the theme's own 16px value. */
+.system-health-ledger{display:grid;gap:1rem;min-width:0}
+.system-health-ledger-tabs{margin-bottom:0;padding:12px 16px}
+/* The admin theme resets headings with a CHILD combinator
+   (manager-dashboard-theme.css:1749 `.data-panel>.panel-heading`), which cannot
+   reach these — they live inside [role=tabpanel] so each tab carries its own.
+   Unrestated, the heading sits flush on the card border at x=0 while the cells
+   below it are inset 14px by the same theme file. */
+.system-health-ledger-content .panel-heading{padding:15px 16px;margin:0;border-bottom:1px solid var(--dl)}
+.system-health-tablist{display:flex;gap:6px;flex-wrap:wrap}
+.system-health-tablist button{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--dl);border-radius:999px;background:var(--ds);color:var(--dm);font:600 12px var(--font-sans);white-space:nowrap;cursor:pointer}
+.system-health-tablist button:hover{border-color:var(--dg);color:var(--dt)}
+.system-health-tablist button.active{background:#084b55;border-color:#136573;color:#fff}
+.system-health-tablist button:focus-visible{outline:2px solid var(--dg);outline-offset:2px}
+.system-health-ledger-content{margin-bottom:0;min-width:0}
+/* Inset with MARGIN, never padding — the D-026 guard in system-health-view.test.tsx
+   asserts this rule carries no padding/background/border (transparent at every width). */
+.system-health-searchrow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 16px}
+.system-health-searchrow .haven-search-input{flex:1 1 auto;max-width:360px}
+.system-health-count{flex:none;font-size:12px;color:var(--dm);font-variant-numeric:tabular-nums}
+@media(max-width:680px){.system-health-searchrow{flex-wrap:wrap}.system-health-searchrow .haven-search-input{max-width:none;flex-basis:100%}.system-health-tablist{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}.system-health-tablist button{flex:none;min-height:44px}}
+.system-health-tablewrap{max-width:100%}
+/* Column geometry lives HERE, not in the markup.
+   The tables stay at width:100% so the header band and row rules span the card,
+   which means the leftover width has to land in exactly one column, and a
+   column's width is uniform across rows. There are only two places it can go:
+     - in the LAST column (what we do). Its content is left-aligned, so the badge
+       sits flush against the Name text; the cost is that the STATUS column is
+       wide and its own header label sits mid-card with empty space to its right.
+       This is the chosen side — the STATUS column looking "too wide" is the
+       trade-off, NOT a bug. Do not "fix" it by giving .col-status a width.
+     - in the NAME column (the alternative). STATUS then shrinks to the badge,
+       but the badge lands ~600px to the right of the name text. That was tried
+       and rejected: it is the "columns are too far apart" defect.
+   Giving both a width puts the slack back between Name and Status, and
+   width:100% on a column is never the fix — a percentage column demands the
+   whole table and Chrome crushes every other column to min-content.
+   Measured, not assumed. --sys-col-* are widths, not minimums: a value longer
+   than its column wraps.
+   Sizing is measured in Inter 13px (the app font — NOT system-ui, which is
+   narrower and makes these numbers look generous) over all 87 migration names:
+   mean 145px of text, longest 234px. --sys-col-name is the one soft value: it
+   sets how far the badge sits from a short name, since a column is uniform.
+   240px keeps 84/87 names on one line for a mean 81px gap; 280px fits all 87
+   but pushes the mean gap to 121px. The 3 that wrap at 240px are the 234-262px
+   outliers (e.g. "guest to staff conversion input hardening"). Raise it back
+   toward 280 if a wrapping row bothers you more than the gap. */
+.system-health-table{
+  --sys-col-version:140px;
+  --sys-col-name:280px;
+  --sys-col-date:170px;
+  --sys-col-time:160px;
+  --sys-col-action:200px;
+  --sys-col-by:220px;
+  width:100%;max-width:100%;border-collapse:collapse;
+}
+/* Sizes inherit the theme's table step (13px light) — no pin, see the header. */
+.system-health-table th{font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--dm)}
+.system-health-table td{overflow-wrap:anywhere}
+.system-health-table .version-code{font-family:var(--font-mono);font-size:.85rem;font-weight:600;color:var(--dt);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+/* Widths on every column EXCEPT the last of each table — see the note above.
+   `.col-status` and `.col-entity` intentionally have no rule at all: Entity
+   values are short single tokens that sit happily in the leftover, while By
+   carries "Name (Role)" and needs its own allotment. */
+.system-health-table--migrations .col-version{width:var(--sys-col-version)}
+.system-health-table--migrations .col-name{width:var(--sys-col-name)}
+.system-health-table--migrations .col-date{width:var(--sys-col-date)}
+.system-health-table--audit .col-time{width:var(--sys-col-time)}
+.system-health-table--audit .col-action{width:var(--sys-col-action)}
+.system-health-table--audit .col-by{width:var(--sys-col-by)}
+/* Actor names wrap at word boundaries ("…(System" / "Administrator)"), never
+   mid-token: the shared td rule uses overflow-wrap:anywhere, which shredded
+   names into "sandtos"-style fragments in this narrow column. */
+.system-health-table--audit td:last-child{overflow-wrap:break-word;white-space:normal}
+/* Phone step. The fixed widths now total ~590px (migrations) / ~580px
+    (audit), so below this step every column releases and the tables stack
+    naturally. Must sit AFTER the width rules: these selectors tie with them
+    on specificity and the later rule wins. */
+@media(max-width:680px){
+  .system-health-table .col-version,
+  .system-health-table .col-name,
+  .system-health-table .col-date,
+  .system-health-table .col-time,
+  .system-health-table .col-action,
+  .system-health-table .col-by{width:auto}
+}
+.system-health-config{display:grid;margin:0;padding:0;list-style:none}
+.system-health-config>div{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid var(--dl)}
+.system-health-config>div:last-child{border-bottom:0}
+.system-health-config dt{color:var(--dm);font-size:12px;flex:none}
+.sys-skel{display:inline-block;min-height:12px;min-width:72px;border-radius:6px;background:var(--ds2);vertical-align:middle}
+.sys-skel-dt{width:96px}
+.sys-skel-dd{width:144px;max-width:100%}
+.system-health-config dd{margin:0;color:var(--dt);font-size:13px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;min-width:0}
+@media(max-width:680px){.system-health-config>div{flex-direction:column;align-items:stretch;gap:4px}.system-health-config dd{text-align:left}}
+/* Header actions: Run Health Probes + Open Security Configuration side by
+   side, right-aligned, vertically centered.
+   SCOPING IS LOAD-BEARING: this file is imported by admin-dashboard-client.tsx,
+   which renders every admin section, so Next.js hoists it into the route bundle
+   and these rules apply app-wide. As bare .page-title/.panel-heading selectors
+   they leaked onto every admin page and tied globals.css on specificity — so
+   later layout edits lost to whichever chunk the bundler injected last. See the
+   leak guard in system-health-view.test.tsx before unscoping anything here. */
+.sys-health-title .title-actions{display:flex;gap:10px;align-items:center;flex:none}
+.sys-health-title h1{display:flex;align-items:center;gap:10px}
+.sys-health-title h1 .sys-ico,
+.sys-card-name .sys-ico,
+.panel-heading h3 .sys-ico{margin-right:2px}
+/* Panel-heading flex row — System Health panels only. Globally this forced
+   every admin panel <h3> into a flex row that no theme file overrode. */
+.sys-attention .panel-heading h3,
+.sys-automations .panel-heading h3,
+.system-health-ledger .panel-heading h3{display:flex;align-items:center;gap:10px}
+/* Module badge vocabulary (design.mdd one-state-one-color). These classes
+   name ledger/job states honestly instead of borrowing the payment-success
+   `paid` family: Applied/Succeeded share the success values, Failed the
+   danger values, Info the info-blue values. Scoped under this module's own
+   sys and system-health selectors so the shared badge families are untouched;
+   both themes defined here because .badge.failed/.badge.info/.badge.applied/
+   .badge.succeeded have no app-shell rules. Text stays on the AA-safe step. */
+.system-health-ledger-content .badge.applied,
+.sys-automations .badge.succeeded{background:#173024;color:#65d3a5}
+.sys-automations .badge.failed{background:#351f21;color:#ef797e}
+.sys-queue .badge.info{background:#1d2c46;color:#8fb8f5}
+.theme-light .system-health-ledger-content .badge.applied,
+.theme-light .sys-automations .badge.succeeded{background:#def1e8;color:#267056}
+.theme-light .sys-automations .badge.failed{background:#f9e3e1;color:#a44843}
+.theme-light .sys-queue .badge.info{background:#e3edfb;color:#1d4ed8}
+/* Tone lands on the value line and its icon ONLY. Tinting the whole card
+    turned every label and paragraph into colored body text — noisy, and it
+    failed contrast at those sizes. These are the semantic foreground tokens,
+   so they flip with the theme and pass AA at any size (light: 7.1-8.3:1 on
+   white; dark: 9.5-12.9:1 on the card surface). Do not swap in --ops-*-ink,
+   which has no dark variant, and do not move tone back onto small text. */
+.sys-tone-ok{color:var(--color-success-fg)}
+.sys-tone-warn{color:var(--color-warning-fg)}
+.sys-tone-bad{color:var(--color-danger-fg)}
+.sys-tone-neutral{color:var(--dm)}
+/* Grid steps 4 → 2 → 1. The 4-across floor needs ~1200px before the value
+   and its explanation start colliding. The lower split collapses at 1100px,
+   where two halves would otherwise crush the ledger columns. */
+@media(max-width:1200px){
+ .sys-health-grid-4{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:1100px){
+ .sys-lower-split{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:760px){
+ .sys-health-grid-4{grid-template-columns:minmax(0,1fr)}
+ .sys-steady{flex-wrap:wrap}
+}
+/* Pending modal interior: fixed layout kills the inner x-scroll; long .sql
+   names wrap to two lines (design.mdd: wrap queue text with line-clamp-2,
+   never truncate) with the full name kept in the title tooltip. The modal
+   table deliberately does NOT use .table-scroll — that class
+   carries a global `table{min-width:560px}` floor (app/responsive.css) which is
+   wider than the 560px modal cap and clipped the Filename column. */
+.sys-pending-scroll{overflow-x:auto}
+.sys-pending-scroll table{width:100%;table-layout:fixed;border-collapse:collapse}
+.sys-pending-scroll .col-version{width:130px}
+.sys-pending-scroll .version-code{font-family:var(--font-mono);font-size:.825rem;font-weight:600;font-variant-numeric:tabular-nums}
+.sys-pending-file{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:.825rem;overflow-wrap:anywhere}
+.sys-cli-box{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;padding:.75rem 1rem;border:1px solid var(--dl);border-radius:10px;background:var(--ds)}
+.sys-cli-code{display:flex;align-items:center;gap:.5rem;font-family:var(--font-mono);font-size:.825rem;min-width:0}
+.sys-cli-copy{flex:none}

@@ -173,6 +173,21 @@ describe("shared state primitives", () => {
     expect(screen.queryByRole("button")).toBeNull();
   });
 
+  it("unifies urgent into the amber attention family", () => {
+    cleanup();
+    render(<StatusBadge status="urgent" />);
+    expect(screen.getByText("Urgent").closest(".haven-status")?.className).toContain("haven-status--warning");
+  });
+
+  it("treats refunded and closed as successful outcomes, not informational ones", () => {
+    cleanup();
+    render(<StatusBadge status="refunded" />);
+    expect(screen.getByText("Refunded").closest(".haven-status")?.className).toContain("haven-status--success");
+    cleanup();
+    render(<StatusBadge status="closed" />);
+    expect(screen.getByText("Closed").closest(".haven-status")?.className).toContain("haven-status--success");
+  });
+
   it("renders explicit semantic button variants", () => {
     render(<HavenButton variant="danger">Reject request</HavenButton>);
     const button = screen.getByRole("button", { name: "Reject request" });

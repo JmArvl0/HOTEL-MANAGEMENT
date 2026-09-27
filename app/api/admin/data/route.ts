@@ -4,7 +4,7 @@ import path from "node:path";
 import { guardAdmin,adminGuardFailed } from "@/lib/admin-route";
 import { ROLE_CAPABILITIES } from "@/lib/admin";
 import { isPaymentDestinationComplete, maskGcashNumber } from "@/lib/payment-destination";
-import { migrationStatus, type SystemHealth } from "@/lib/system-health";
+import { automationRunStatus, deploymentBuildStatus, migrationStatus, pendingMigrations, type AutomationRunStatus, type SystemHealth } from "@/lib/system-health";
 import { gatewayConfigured, resolveGatewaySecrets } from "@/lib/gateway";
 
 export async function GET(request:Request){const context=await guardAdmin();if(adminGuardFailed(context))return context;const section=new URL(request.url).searchParams.get("section")??"overview";const db=context.client;
@@ -31,22 +31,39 @@ async function systemHealth(db:AdminDbClient):Promise<SystemHealth>{
  try{const{error}=await db.from("hotel_operational_policies").select("key").limit(1);if(error)throw new Error(error.message);latencyMs=Date.now()-started}
  catch(error){live=false;dbError=error instanceof Error?error.message:"Database probe failed."}
   let lastAuditAt:string|null=null,auditEvents24h=0,pendingApprovals=0,applied:SystemHealth["migrations"]["applied"]=[],appliedCount=0,localCount:number|null=null;
+  // Last-run facts for the scheduled jobs, read from the table each job already
+  // writes — no separate run ledger. Kept null/unknown until a row exists.
+  let reminderRun:{at:string|null;status:AutomationRunStatus}={at:null,status:"unknown"};
+  let modelRun:{at:string|null;status:AutomationRunStatus}={at:null,status:"unknown"};
   // Storage probe is presence-only: operational/unavailable, never keys or URLs.
   let storage:NonNullable<SystemHealth["storage"]>={status:"unknown"};
   if(live){
    const since=new Date(Date.now()-24*60*60*1000).toISOString();
-   const[{data:lastAudit},{count:recentCount},{count:pending},{data:ledger}]=await Promise.all([
+   const[{data:lastAudit},{count:recentCount},{count:pending},{data:ledger},{data:lastReminder},{data:lastModelRun}]=await Promise.all([
     db.from("audit_logs").select("created_at").order("created_at",{ascending:false}).limit(1),
     db.from("audit_logs").select("id",{count:"exact",head:true}).gte("created_at",since),
     db.from("manager_approval_requests").select("id",{count:"exact",head:true}).eq("status","pending"),
-    db.rpc("admin_read_migration_ledger")]);
+    db.rpc("admin_read_migration_ledger"),
+    // Guest reminders only insert on an actual send (unique per reservation+kind),
+    // so the newest row is the last SEND — the label in the view says so.
+    db.from("guest_reminder_deliveries").select("sent_at,status").order("sent_at",{ascending:false}).limit(1).maybeSingle(),
+    db.from("analytics_model_runs").select("generated_at,status").order("generated_at",{ascending:false}).limit(1).maybeSingle()]);
    lastAuditAt=lastAudit?.[0]?String(lastAudit[0].created_at):null;
    auditEvents24h=recentCount??0;pendingApprovals=pending??0;
-   applied=(ledger??[]).map((row:{version:unknown;name:unknown})=>({version:String(row.version),name:String(row.name)}));appliedCount=applied.length;
+    applied=(ledger??[]).map((row:{version:unknown;name:unknown;applied_at?:unknown;approximate?:unknown})=>({version:String(row.version),name:String(row.name),appliedAt:typeof row.applied_at==="string"?row.applied_at:null,approximate:row.approximate===true}));appliedCount=applied.length;
+   reminderRun={at:lastReminder?.sent_at?String(lastReminder.sent_at):null,status:automationRunStatus(lastReminder?.status)};
+   modelRun={at:lastModelRun?.generated_at?String(lastModelRun.generated_at):null,status:automationRunStatus(lastModelRun?.status)};
    try{const{error:storageError}=await db.storage.from("room-photos").list("",{limit:1});storage={status:storageError?"unavailable":"operational"}}catch{storage={status:"unknown"}}
   }
-  try{localCount=(await readdir(path.join(process.cwd(),"supabase","migrations"))).filter(file=>file.endsWith(".sql")).length}catch{localCount=null}
+   try{localCount=(await readdir(path.join(process.cwd(),"supabase","migrations"))).filter(file=>file.endsWith(".sql")).length}catch{localCount=null}
   const status=migrationStatus(appliedCount,localCount);
+  // Pending filenames: local files whose version is absent from the ledger.
+  let pending:SystemHealth["migrations"]["pending"]=[];
+  try{
+    const files=(await readdir(path.join(process.cwd(),"supabase","migrations"))).filter(file=>file.endsWith(".sql")).sort();
+    const local=files.map(file=>{const m=file.match(/^(\d+)_(.+)\.sql$/);return{version:m?.[1]??file,name:(m?.[2]??file).replace(/\.sql$/,""),appliedAt:null}});
+    pending=pendingMigrations(local,applied);
+  }catch{pending=[]}
   const behind=(localCount??0)-appliedCount;
   const issues:string[]=[];
   if(!live)issues.push("Database unreachable.");
@@ -59,11 +76,13 @@ async function systemHealth(db:AdminDbClient):Promise<SystemHealth>{
   const commit=process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA?.slice(0,7)??null;
   // Email reports configuration presence only — never keys or delivery claims.
   const email:NonNullable<SystemHealth["email"]>={status:process.env.RESEND_API_KEY?"configured":"not_configured"};
-  // Automations that really exist (vercel.json crons). Last run is untracked —
-  // Unknown rather than invented.
+  // Automations that really exist (vercel.json crons). Last run now comes from
+  // the table each job writes, so it is a real timestamp or an honest "not yet
+  // run" — never invented. The labels name what the timestamp means: the
+  // reminder ledger records sends, not attempts.
   const automations:NonNullable<SystemHealth["automations"]>=[
-   {name:"Guest reminders",schedule:"Daily 01:05 UTC",lastRun:null,status:"unknown"},
-   {name:"Analytics generation",schedule:"Daily 18:35 UTC",lastRun:null,status:"unknown"},
+   {name:"Guest reminders",schedule:"Daily 01:05 UTC",lastRun:reminderRun.at,lastRunLabel:"Last send",lastStatus:reminderRun.status},
+   {name:"Analytics generation",schedule:"Daily 18:35 UTC",lastRun:modelRun.at,lastRunLabel:"Last run",lastStatus:modelRun.status},
   ];
   // Payment configuration health: Owner-controlled business values (masked,
   // read-only) plus the technical integration status System Administration
@@ -91,13 +110,64 @@ async function systemHealth(db:AdminDbClient):Promise<SystemHealth>{
   const gateway: NonNullable<SystemHealth["gateway"]> = !gatewayConfigured() ? { status: "not_configured" }
     : gatewayKey.startsWith("sk_live_") ? { status: "listening_live" } : { status: "listening_test" };
   // Recent audit rows for the Audit Trail tab. Safe columns only, capped —
-  // payloads and secrets are never selected.
+  // payloads and secrets are never selected. Actors resolve through one
+  // batched user lookup (same pattern as the payment destination above).
   let recentProbes: NonNullable<SystemHealth["recentProbes"]> = [];
   if (live) {
     try {
-      const { data: probes } = await db.from("audit_logs").select("action,entity_type,created_at").order("created_at", { ascending: false }).limit(10);
-      recentProbes = (probes ?? []).map((row: { action: unknown; entity_type: unknown; created_at: unknown }) => ({ action: String(row.action ?? "—"), entity: String(row.entity_type ?? "—"), at: String(row.created_at ?? "") }));
+      const { data: probes } = await db.from("audit_logs").select("action,entity_type,created_at,user_id").order("created_at", { ascending: false }).limit(10);
+      const rows = probes ?? [];
+      const actorIds = [...new Set(rows.map((row) => String((row as { user_id?: unknown }).user_id ?? "")).filter(Boolean))];
+      const actors = new Map<string, string>();
+      if (actorIds.length) {
+        const { data: people } = await db.from("user_accounts").select("id,name,role").in("id", actorIds);
+        for (const person of (people ?? []) as { id: unknown; name: unknown; role: unknown }[]) {
+          actors.set(String(person.id), `${String(person.name ?? "Unknown")} (${person.role === "admin" ? "System Administrator" : String(person.role ?? "unknown")})`);
+        }
+      }
+      recentProbes = rows.map((row: { action: unknown; entity_type: unknown; created_at: unknown; user_id?: unknown }) => ({ action: String(row.action ?? "—"), entity: String(row.entity_type ?? "—"), at: String(row.created_at ?? ""), actor: typeof row.user_id === "string" && row.user_id ? (actors.get(row.user_id) ?? "Unknown") : null }));
     } catch { recentProbes = []; }
   }
-  return{db:{live,latencyMs,checkedAt,error:dbError},activity:{lastAuditAt,auditEvents24h,pendingApprovals},migrations:{applied,appliedCount,localCount,status},application:{environment,version:appVersion,commit},storage,email,automations,gateway,recentProbes,deployment:{provider:"Vercel",status:"unknown"},domain:{status:"not_connected"},payments,issues};
+  const deployment = await deploymentFacts();
+     return{db:{live,latencyMs,checkedAt,error:dbError},activity:{lastAuditAt,auditEvents24h,pendingApprovals},migrations:{applied,appliedCount,localCount,status,pending},application:{environment,version:appVersion,commit},storage,email,automations,gateway,recentProbes,deployment,domain:{status:"not_connected"},payments,issues};
+}
+
+/**
+ * Deployment facts, two tiers — the card never reports a bare "Unknown" again.
+ *
+ * Tier 1 ("environment") needs no configuration: Vercel injects the running
+ * deployment's own identifiers into the function, so the environment, short
+ * commit, branch and deployment id reported here are the ones actually serving
+ * this request. Public identifiers only.
+ *
+ * Tier 2 ("api") asks the Vercel API for the newest deployment's readyState when
+ * VERCEL_TOKEN is configured. That is the only real "did the last build succeed"
+ * signal — a broken latest build is invisible to tier 1. A missing token is not
+ * an error and produces no user-facing failure: the card just reports tier 1.
+ * Any API or parse failure leaves buildStatus "unknown" rather than guessing.
+ */
+async function deploymentFacts():Promise<NonNullable<SystemHealth["deployment"]>>{
+ const sha=process.env.VERCEL_GIT_COMMIT_SHA??process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA??"";
+ const facts:NonNullable<SystemHealth["deployment"]>={
+  provider:"Vercel",
+  environment:process.env.VERCEL_ENV??null,
+  commit:sha?sha.slice(0,7):null,
+  branch:process.env.VERCEL_GIT_COMMIT_REF??null,
+  deploymentId:process.env.VERCEL_DEPLOYMENT_ID??null,
+  buildStatus:"unknown",
+  source:process.env.VERCEL_ENV?"environment":"none",
+ };
+ const token=process.env.VERCEL_TOKEN?.trim();
+ const projectId=process.env.VERCEL_PROJECT_ID?.trim()||"prj_zaDNKEZdklMfWPtWVAqddQIT5Amk";
+ const teamId=process.env.VERCEL_TEAM_ID?.trim()||"team_Nm9HqLXb3cZzz7b4xx3abgnT";
+ if(!token)return facts;
+ try{
+  const response=await fetch(`https://api.vercel.com/v6/deployments?projectId=${encodeURIComponent(projectId)}&teamId=${encodeURIComponent(teamId)}&limit=1`,{headers:{Authorization:`Bearer ${token}`},cache:"no-store"});
+  if(!response.ok)return facts;
+  const body=await response.json() as {deployments?:{readyState?:unknown;url?:unknown;meta?:{githubCommitRef?:unknown}}[]};
+  const newest=body.deployments?.[0];
+  const mapped=deploymentBuildStatus(newest?.readyState);
+  if(mapped==="unknown")return facts;
+  return{...facts,buildStatus:mapped,source:"api",branch:typeof newest?.meta?.githubCommitRef==="string"?newest.meta.githubCommitRef:facts.branch};
+ }catch{return facts}
 }

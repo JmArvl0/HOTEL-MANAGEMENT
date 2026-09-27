@@ -30,6 +30,23 @@ logic, and update `SYSTEM.md` when verified changes make it stale.
 
 ## 3. Memory files and their jobs
 
+The Obsidian vault lives in `nano_bots/`. Use it to recover prior decisions,
+completed and unfinished work, known issues, rejected approaches,
+implementation reasoning, test/build results, and previous session handoffs.
+The vault supplements `SYSTEM.md`; it never replaces it.
+
+Two files share one name — do not confuse them:
+
+- `03 Reference/AI Session Handoff.md` — the stable **protocol** (session-start
+  steps, selective-retrieval rule, session-end steps). Read it when unsure how
+  to work the memory layer.
+- `05 Memory/AI Session Handoff.md` — the live **execution state** (current
+  task, previous work). Read and refresh it every normal development session.
+
+Retrieval rule: summary first → related note second → historical session only
+if necessary → source code for the current implementation. Never auto-read the
+whole vault, all sessions, or unrelated modules.
+
 - `05 Memory/Project Memory.md` — durable reviewed knowledge (≤3k tokens)
 - `05 Memory/AI Session Handoff.md` — current execution state (≤2k tokens)
 - `05 Memory/Current Status.md` — project-level now (not a second handoff)

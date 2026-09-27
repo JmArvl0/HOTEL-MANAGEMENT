@@ -56,9 +56,13 @@ export async function POST(request: NextRequest) {
   }
 
   await supabase.from("user_accounts").update({ last_seen_at: new Date().toISOString() }).eq("id", account.id);
+  // Re-check the live policy: an admin may have disabled the cookie policy
+  // between password entry and code entry — never mint a long-lived session
+  // from a stale pending flag.
+  const persistent = pending.persistent === true && policy.cookieEnabled;
   await setFullSessionCookie(await cookies(), {
     id: account.id, email: account.email, name: account.name,
-    role: account.role as Role, authVersion: account.auth_version ?? 1, persistent: pending.persistent === true,
+    role: account.role as Role, authVersion: account.auth_version ?? 1, persistent, policy,
   });
   return NextResponse.json({ ok: true });
 }

@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 import { env } from "@/lib/env";
 import { supabase } from "@/lib/supabase";
 import type { Role } from "@/lib/types";
-import { evaluateSessionExpiry, getSecurityPolicy, resolveSessionEnforcement, sessionExpiryDeadline, touchSecuritySeen } from "@/lib/security-policy";
+import { evaluateSessionExpiry, getSecurityPolicy, loadSecurityPolicyFresh, resolveSessionEnforcement, sessionExpiryDeadline, touchSecuritySeen } from "@/lib/security-policy";
 import { generateOtpCode, otpCodeVerifier, otpIssuable } from "@/lib/auth-otp";
 import { sendOtpEmail, smtpConfigured } from "@/lib/otp-transport";
 import { otpTtlMinutes } from "@/lib/security-policy";
@@ -54,8 +54,25 @@ export const authOptions: NextAuthOptions = {
         await recordLoginFailure(email);
         return null;
       }
-      const policy = await getSecurityPolicy();
-      const persistent = credentials.remember === "1" && policy.persistentSessionEnabled;
+      const policy = await loadSecurityPolicyFresh();
+      // Fail closed: an unreadable policy must never silently downgrade an
+      // OTP-required deployment to password-only authentication.
+      if (!policy) return null;
+      const persistent = credentials.remember === "1" && policy.cookieEnabled;
+      // Password-only path: the authoritative policy does not require login
+      // OTP, so no challenge is created. Stamps last_seen_at exactly like the
+      // OTP verify route does before minting its cookie — without a fresh
+      // stamp the session callback would neutralize this new session as idle
+      // for any account whose previous stamp predates the inactivity window.
+      // Best-effort (result ignored); enforcement stays with the session
+      // callback. Returns the normal fully authenticated user object — the
+      // jwt callback mints the standard session (role, authVersion,
+      // persistent) exactly as the OTP verify route's upgrade does for the
+      // enabled path.
+      if (!policy.loginOtpEnabled) {
+        await supabase.from("user_accounts").update({ last_seen_at: new Date().toISOString() }).eq("id", data.id);
+        return { id: data.id, email: data.email, name: data.name, role: data.role as Role, authVersion: data.auth_version, persistent };
+      }
       // Mandatory login OTP for all roles: password alone never mints a session.
       // Stage 1 of login OTP: password verified, but no authenticated session
       // yet. Fail closed when the delivery prerequisites are missing.

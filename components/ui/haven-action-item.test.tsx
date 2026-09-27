@@ -2,6 +2,8 @@
 // Contract for the shared staff HavenActionItem: icon | title + description |
 // trailing. Owns layout only — callers own the data. Buttons navigate,
 // plain divs inform; zero-count cards stay quiet but reachable.
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { ClipboardCheck } from "lucide-react";
@@ -92,5 +94,24 @@ describe("HavenActionItem", () => {
     expect(card.textContent).toContain("Needs attention");
     expect(card.textContent).toContain("3");
     expect(card.textContent).toContain("Suspended or recovery-required");
+  });
+
+  it("carries the info tone for informing rows", () => {
+    render(
+      <HavenActionItem
+        icon={ClipboardCheck}
+        title="Predictive insights"
+        description="Demand, staffing, and maintenance forecasts"
+        tone="info"
+        onAction={() => {}}
+      />
+    );
+    expect(screen.getByRole("button", { name: /Predictive insights/ }).getAttribute("data-tone")).toBe("info");
+  });
+
+  it("paints the info tone from the staff theme in both modes", () => {
+    const css = readFileSync(join(process.cwd(), "app/staff-ops-theme.css"), "utf8");
+    expect(css).toContain('.app-shell .haven-action-item[data-tone="info"]');
+    expect(css).toContain('.theme-light .app-shell .haven-action-item[data-tone="info"]');
   });
 });

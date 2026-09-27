@@ -14,6 +14,7 @@ import {
   groupNotificationsByRecency,
   hotelDayKey,
   hotelTodayKey,
+  notificationSeverity,
   previewNotifications,
   relativeTime,
   resolveNotificationDay,
@@ -114,6 +115,10 @@ export function HavenNotificationItem({
   const Icon: LucideIcon = item.type && item.type in NOTIFICATION_TYPE_ICONS
     ? NOTIFICATION_TYPE_ICONS[item.type as keyof typeof NOTIFICATION_TYPE_ICONS]
     : Bell;
+  // Canonical severity color code (DESIGN.md §21): chip + text carry meaning,
+  // never color alone.
+  const severity = notificationSeverity(item.type);
+  const severityLabel = { critical: "Critical", attention: "Attention", success: "Success", info: "Info" }[severity];
   const body = (
     <>
       <span className="cnr-icon" aria-hidden="true"><Icon size={16} /></span>
@@ -124,6 +129,7 @@ export function HavenNotificationItem({
         </span>
         {item.detail && <span className="cnr-detail">{item.detail}</span>}
         <span className="cnr-meta">
+          <span className={`cnr-severity sev-${severity}`}>{severityLabel}</span>
           {item.reference && <span className="cnr-reference">{item.reference}</span>}
           <time dateTime={item.createdAt}>
             {variant === "clock" ? formatClock(item.createdAt) : relativeTime(item.createdAt)}

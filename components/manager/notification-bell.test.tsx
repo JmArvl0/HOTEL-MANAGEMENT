@@ -6,6 +6,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { countUniqueNotifications, HeaderNotificationBell } from "./manager-dashboard-client";
+import { HavenNotificationItem } from "@/components/ui/haven-notifications";
 
 // The dashboard file pulls in recharts via its panel imports; jsdom has no
 // ResizeObserver or layout. (Same stubs as manager-sidebar-nav.test.tsx.)
@@ -77,5 +78,35 @@ describe("HeaderNotificationBell", () => {
     render(<HeaderNotificationBell count={2} expanded={false} onToggle={onToggle} />);
     fireEvent.click(screen.getByRole("button", { name: "Notifications, 2 unread" }));
     expect(onToggle).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("HavenNotificationItem severity chips", () => {
+  const item = (type?: string | null) => ({
+    id: "n1", title: "Deposit rejected", createdAt: "2026-09-26T08:00:00.000Z", type,
+  });
+
+  it("chips critical, attention, success, and info with text labels", () => {
+    const cases: [string | null | undefined, string, string][] = [
+      ["deposit_rejected", "Critical", "sev-critical"],
+      ["reservation_change_submitted", "Attention", "sev-attention"],
+      ["deposit_verified", "Success", "sev-success"],
+      ["pre_arrival_reminder", "Info", "sev-info"],
+    ];
+    for (const [type, label, cls] of cases) {
+      cleanup();
+      const { container } = render(<HavenNotificationItem item={item(type)} />);
+      const chip = container.querySelector(".cnr-severity")!;
+      expect(chip.textContent).toBe(label);
+      expect(chip.className).toContain(cls);
+    }
+  });
+
+  it("defaults unknown types to the info chip — color never travels alone", () => {
+    cleanup();
+    const { container } = render(<HavenNotificationItem item={item("mystery_type")} />);
+    const chip = container.querySelector(".cnr-severity")!;
+    expect(chip.textContent).toBe("Info");
+    expect(chip.className).toContain("sev-info");
   });
 });

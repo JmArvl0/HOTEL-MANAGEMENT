@@ -26,62 +26,12 @@ Before making implementation changes:
 5. Inspect the actual source code, migrations, and relevant tests before
    making implementation decisions.
 
-## Authority and Drift
+## Authority, Memory, Safety, Verification
 
-Use the following context order:
-
-1. `SYSTEM.md`
-2. Current source code and authoritative migrations
-3. `Current Status.md`
-4. `Decisions.md` / `Known Issues.md`
-5. Other summarized Obsidian memory
-6. Historical session notes / terminal transcripts
-
-`SYSTEM.md` always outranks ordinary vault notes.
-
-However, if current source code or migrations conflict with `SYSTEM.md`,
-do NOT silently override either source.
-
-Instead:
-
-- identify the discrepancy,
-- determine whether SYSTEM.md is stale or the implementation is incorrect,
-- preserve existing business logic until the intended behavior is understood,
-- and update SYSTEM.md when verified implementation changes make it stale.
-
-For database structure, follow the source-of-truth rules documented in SYSTEM.md.
-
-## Token Discipline
-
-Use the minimum relevant project context required for the current task.
-
-Prefer:
-- SYSTEM.md
-- Current Status
-- relevant Decisions / Known Issues
-- summarized handoffs
-
-over raw historical session logs.
-
-Do not load unrelated modules or vault notes simply for additional context.
-
-## Persistent Memory
-
-The Obsidian vault lives in:
-
-`nano_bots/`
-
-Use it to recover:
-- prior decisions
-- completed work
-- unfinished work
-- known issues
-- rejected approaches
-- implementation reasoning
-- test/build results
-- previous session handoffs
-
-The vault supplements SYSTEM.md; it does not replace it.
+Shared rules live in `AGENTS.md` (repo root) — authority order, the
+`nano_bots/` Obsidian vault and its files, safety rules, and verification
+commands. They agree with this file by design; where they overlap, `AGENTS.md`
+is canonical. Do not duplicate them here — edit them there.
 
 ## Session Handoff
 
@@ -106,6 +56,6 @@ Do not create unnecessary memory entries for trivial work.
 
 `AGENTS.md` (repo root) is the canonical tool-neutral operating guide shared
 with OpenCode and Codex — same memory files, same authority order, same
-safety rules. This file stays Claude Code's entry point; where the two
-overlap, they agree by design. Point OpenCode/Codex collaborators here only
-via `AGENTS.md`, never by duplicating these rules.
+safety rules. This file stays Claude Code's entry point: init steps and the
+handoff record above. Point OpenCode/Codex collaborators to
+`AGENTS.md`, never by duplicating these rules.

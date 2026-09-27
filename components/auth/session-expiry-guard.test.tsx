@@ -51,4 +51,30 @@ describe("SessionExpiryGuard", () => {
     fireEvent.click(signInAgain);
     expect(signOut).toHaveBeenCalledWith({ callbackUrl: "/login" });
   });
+
+  it("shows a subtle policy-off indicator while the cookie policy is off", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-21T04:00:00.000Z"));
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({ data: { cookieEnabled: false } }) })));
+    try {
+      render(<SessionExpiryGuard expiresAt="2026-09-21T04:24:35.000Z" />);
+      await vi.waitFor(() => expect(screen.getByLabelText("Cookie policy is disabled. Sessions do not expire.")).toBeTruthy());
+      expect(screen.getByText("Policy off")).toBeTruthy();
+      expect(screen.queryByRole("alertdialog", { name: "Session expired" })).toBeNull();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("keeps counting when the policy flag cannot be read (fail open)", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-21T04:00:00.000Z"));
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("offline"); }));
+    try {
+      render(<SessionExpiryGuard expiresAt="2026-09-21T04:24:35.000Z" />);
+      await vi.waitFor(() => expect(screen.getByLabelText("Session expires in 24 minutes and 35 seconds.")).toBeTruthy());
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

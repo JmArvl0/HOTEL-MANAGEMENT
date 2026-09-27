@@ -50,10 +50,14 @@ const statusIcons: Record<string, ReactNode> = {
   clean: <SparklesIcon />,
   inspecting: <SearchIcon />,
   passed: <CheckCircleIcon />,
+  not_configured: <InfoIcon />,
+  not_ready: <AlertTriangleIcon />,
   
   // Generic statuses
   active: <CheckCircleIcon />,
+  enabled: <CheckCircleIcon />,
   inactive: <XCircleIcon />,
+  disabled: <XCircleIcon />,
   suspended: <PauseIcon />,
   healthy: <CheckCircleIcon />,
   low: <AlertTriangleIcon />,
@@ -94,8 +98,12 @@ const statusLabels: Record<string, string> = {
   clean: "Clean",
   inspecting: "Inspecting",
   passed: "Passed",
+  not_configured: "Not configured",
+  not_ready: "Not ready",
   active: "Active",
+  enabled: "Enabled",
   inactive: "Inactive",
+  disabled: "Disabled",
   suspended: "Suspended",
   healthy: "Healthy",
   low: "Low Stock",
@@ -206,16 +214,19 @@ export function StatusBadge({
     // Green states
     confirmed: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
     checked_in: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
-    checked_out: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
     paid: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
     completed: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
     resolved: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+    closed: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+    refunded: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
     clean: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
     passed: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
     active: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+    enabled: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
     healthy: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
     
-    // Yellow/Amber states
+    // Amber states — the single attention family (DESIGN.md §21). Urgent
+    // keeps its triangle icon + "Urgent" label for emphasis, not a color.
     pending: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
     pending_verification: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
     in_progress: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
@@ -231,7 +242,7 @@ export function StatusBadge({
     low: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
     normal: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
     high: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
-    urgent: "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800",
+    urgent: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
     
     // Red states
     cancelled: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
@@ -246,9 +257,14 @@ export function StatusBadge({
     out: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
     critical: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
     
-    // Blue states
-    closed: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
-    refunded: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+    // Blue states — informational records, never outcomes.
+    checked_out: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+
+    // Neutral states — intentionally disabled/unconfigured is not an error.
+    disabled: "",
+    not_configured: "",
+    // Warning — configured but not yet validated, operator action required.
+    not_ready: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
   };
 
   const legacyTone = statusColorClasses[normalizedStatus] || "";

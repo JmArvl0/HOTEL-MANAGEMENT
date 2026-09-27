@@ -29,7 +29,7 @@ export default function LoginForm({
     fetch("/api/security-policy/public", { cache: "no-store" })
       .then((response) => (response.ok ? response.json() : null))
       .then((body) => {
-        if (live) setRememberOffered(body?.data?.persistentSessionEnabled === true);
+        if (live) setRememberOffered(body?.data?.cookieEnabled !== false);
       })
       .catch(() => {});
     return () => {

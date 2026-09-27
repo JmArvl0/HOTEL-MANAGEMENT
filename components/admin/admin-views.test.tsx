@@ -186,20 +186,66 @@ describe("SecurityConfigView", () => {
     expect(screen.getByRole("button", { name: /manage otp policy/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /test connection/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /send test email/i })).toBeTruthy();
-    // KPI strip + definition lists, no nested grey-box copy.
+    // Summary strip uses the shared ModuleSummaryCards (.mod-kpis).
     const summary = screen.getByRole("group", { name: "Security summary" });
-    expect(summary.classList.contains("metric-grid")).toBe(true);
-    expect(summary.querySelectorAll("article.metric-card").length).toBe(4);
+    expect(summary.classList.contains("mod-kpis")).toBe(true);
+    expect(summary.querySelectorAll("article.mod-kpi").length).toBe(4);
     // No Tailwind utilities: the repo ships hand-written CSS only.
     expect(document.body.innerHTML).not.toMatch(/grid-cols-/);
-    expect(screen.getByText("Enforced (ON)")).toBeTruthy();
-    expect(screen.getByText("System enforced (read-only)")).toBeTruthy();
-    // Audit ledger table with timestamp, admin, setting, from/to.
+    expect(screen.getAllByText("Enforced").length).toBeGreaterThan(0);    // Audit ledger table with timestamp, admin, setting, from/to.
     const ledger = screen.getByRole("table", { name: "Security configuration audit log" });
     expect(within(ledger).getByText("Inactivity timeout")).toBeTruthy();
     expect(within(ledger).getByText("Ada (System Administrator)")).toBeTruthy();
     // Zero emojis anywhere in the rendered tree.
     expect(document.body.innerHTML.match(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]/u)).toBeNull();
+  });
+
+  it("derives the disabled OTP state from persisted policy, keeping stored values", () => {
+    cleanup();
+    render(<SecurityConfigView item={{ ...security, login_otp_enabled: false } as RecordItem} saveSession={() => {}} saveOtp={() => {}} notify={() => {}} />);
+    const summary = screen.getByRole("group", { name: "Security summary" });
+    expect(within(summary).getByText("Disabled")).toBeTruthy();
+    expect(within(summary).getByText("Password only")).toBeTruthy();
+    // Card shows Disabled but the stored tuning values survive.
+    expect(screen.getByText("5 min")).toBeTruthy();
+    expect(screen.getByText("60 sec")).toBeTruthy();
+    expect(screen.getByText("5 attempts")).toBeTruthy();
+  });
+
+  it("never shows Expired for disabled boolean security policies", () => {
+    cleanup();
+    render(<SecurityConfigView item={{ ...security, persistent_session_enabled: false, cookie_enabled: false, login_otp_enabled: false } as RecordItem} saveSession={() => {}} saveOtp={() => {}} notify={() => {}} />);
+    // Header + row badges agree on Disabled for both remaining toggles.
+    expect(screen.getAllByText("Disabled").length).toBeGreaterThanOrEqual(3);
+    expect(screen.queryByText("Expired")).toBeNull();
+    // Disabled badges carry the scoped rose-warning class with an alert icon.
+    const offBadges = Array.from(document.querySelectorAll(".sec-wrap .haven-status.sec-badge-off"));
+    expect(offBadges.length).toBeGreaterThanOrEqual(3);
+    expect(document.querySelector(".sec-wrap .haven-status.sec-badge-on")).toBeNull();
+    expect(screen.getByText("Cookie policy is disabled — sessions do not expire. Re-enable to restore timeouts.")).toBeTruthy();
+  });
+
+  it("shows Enabled badges when persistent login and OTP are on", () => {
+    cleanup();
+    render(<SecurityConfigView item={{ ...security, persistent_session_enabled: true, cookie_enabled: true, login_otp_enabled: true } as RecordItem} saveSession={() => {}} saveOtp={() => {}} notify={() => {}} />);
+    expect(screen.getAllByText("Enabled").length).toBeGreaterThanOrEqual(3);
+    expect(screen.queryByText("Expired")).toBeNull();
+    expect(document.querySelectorAll(".sec-wrap .haven-status.sec-badge-on").length).toBeGreaterThanOrEqual(3);
+    expect(document.querySelector(".sec-wrap .haven-status.sec-badge-off")).toBeNull();
+  });
+
+  it("maps StatusBadge operator vocabulary to the correct tones", async () => {
+    cleanup();
+    const { StatusBadge } = await import("@/components/ui/StatusBadge");
+    const { container } = render(<><StatusBadge status="enabled" /><StatusBadge status="disabled" /><StatusBadge status="expired" /><StatusBadge status="passed" /></>);
+    const badges = container.querySelectorAll(".haven-status");
+    expect(badges[0].textContent).toBe("Enabled");
+    expect(badges[0].className).toContain("haven-status--success");
+    expect(badges[1].textContent).toBe("Disabled");
+    expect(badges[1].className).toContain("haven-status--neutral");
+    expect(badges[2].textContent).toBe("Expired");
+    expect(badges[2].className).toContain("haven-status--danger");
+    expect(badges[3].textContent).toBe("Passed");
   });
 });
 

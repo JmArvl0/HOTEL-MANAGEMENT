@@ -4,6 +4,8 @@
 // the filter chips. All handlers are stubbed — no server calls, no mutation.
 import { afterEach, afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { ManagerReservationsPanel } from "./manager-reservations-panel";
 import type { RecordItem } from "@/lib/types";
 
@@ -153,5 +155,14 @@ describe("ManagerReservationsPanel", () => {
     renderPanel({ items: [quiet, closed] });
     fireEvent.click(screen.getByText("Attention Required"));
     expect(screen.getByText("No reservations need attention")).toBeTruthy();
+  });
+
+  it("paints mr-issue severities from the canonical code in both themes", () => {
+    const theme = readFileSync(join(process.cwd(), "app/manager-dashboard-theme.css"), "utf8");
+    // high = danger red, warning = amber, info = informing blue (DESIGN.md §21).
+    expect(theme).toMatch(/\.mr-issue\.high\{[^}]*#351f21/);
+    expect(theme).toMatch(/\.mr-issue\.warning\{[^}]*#34291c/);
+    expect(theme).toMatch(/\.mr-issue\.info\{[^}]*#1d2c46/);
+    expect(theme).toMatch(/\.theme-light \.app-shell \.mr-issue\.info\{[^}]*#e3edfb/);
   });
 });

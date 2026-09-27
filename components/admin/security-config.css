@@ -1,0 +1,31 @@
+/* Security Configuration — scoped presentation only. No logic lives here. */
+.sec-wrap{width:100%;max-width:1240px;margin-inline:auto}
+.sec-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:stretch;margin:20px 0 0}
+.sec-grid>.sec-panel{min-width:0;display:flex;flex-direction:column}
+/* Several panel headings carry a leading state icon (<Send/>, <Lock/>,
+   <ShieldCheck/>, <History/>, <KeyRound/>) with no wrapper span, so they need a
+   flex row for the icon/label gap. This was previously inherited by accident
+   from an unscoped .panel-heading h3 rule in system-health.css; it is declared
+   here so this section owns its own heading layout instead of borrowing one. */
+.sec-panel .panel-heading h3{display:flex;align-items:center;gap:10px}
+.sec-panel>.sec-rows{margin:0;display:grid;gap:0;padding:8px 18px 8px}
+.sec-rows>div{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-top:1px solid var(--dl)}
+.sec-rows>div:first-child{border-top:0}
+.sec-rows dt{color:var(--ops-text-2,#8b95a8);font-size:12px;flex:none}
+.sec-rows dd{margin:0;min-width:0;text-align:right;font-weight:600;font-size:13px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.sec-panel>.sec-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto;padding:16px 18px 18px}
+.sec-locked{position:relative}
+.sec-panel>.sec-warn{margin:12px 18px 0;font-size:12px;color:var(--ops-warning-ink,#90621c)}
+.sec-audit{grid-column:1/-1}
+.sec-audit .empty.admin-module-empty{min-height:0;padding:28px 20px}
+/* Scoped security-state badges: off/disabled must read as a warning at a
+   glance, on/enabled as a steady state. Scoped to .sec-wrap so the shared
+   StatusBadge neutral mapping elsewhere is untouched. Theme-aware: the
+   dark app-shell values reuse the shared danger/success badge tokens from
+   haven-data-controls.css; no new colors are introduced. */
+.app-shell .sec-wrap .haven-status.sec-badge-off{background-color:#351f21!important;color:#ef797e!important;border:1px solid #67353a!important;font-weight:600}
+.app-shell .sec-wrap .haven-status.sec-badge-on{background-color:#173024!important;color:#65d3a5!important;border:1px solid #285441!important;font-weight:600}
+.theme-light .app-shell .sec-wrap .haven-status.sec-badge-off{background-color:#fef2f2!important;color:#9f1239!important;border:1px solid #fecdd3!important}
+.theme-light .app-shell .sec-wrap .haven-status.sec-badge-on{background-color:#ecfdf5!important;color:#065f46!important;border:1px solid #a7f3d0!important}
+@media(max-width:900px){.sec-grid{grid-template-columns:1fr}}
+@media(max-width:680px){.sec-rows>div{flex-wrap:wrap;row-gap:4px}.sec-rows dd{flex-basis:100%;text-align:left}}

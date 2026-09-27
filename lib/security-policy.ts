@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabase";
  */
 export type SecurityPolicy = {
   persistentSessionEnabled: boolean;
+  cookieEnabled: boolean;
   idleTimeoutMinutes: number;
   absoluteSessionMinutes: number;
   loginOtpEnabled: boolean;
@@ -24,6 +25,7 @@ export type SecurityPolicy = {
 
 export const DEFAULT_SECURITY_POLICY: SecurityPolicy = {
   persistentSessionEnabled: false,
+  cookieEnabled: true,
   idleTimeoutMinutes: 30,
   absoluteSessionMinutes: 480,
   loginOtpEnabled: false,
@@ -47,15 +49,18 @@ export const OTP_ATTEMPTS_OPTIONS = [3, 5, 10];
 /** OTP policy guards: never expose the option lists as editable free text. */
 export const otpTtlMinutes = (policy: SecurityPolicy) => Math.round(policy.otpTtlSeconds / 60);
 
-/** Inactivity timeout bounds: 10 minutes – 8 hours. */
-export const SECURITY_IDLE_MINUTES_MIN = 10;
+/** Inactivity timeout bounds: 1 minute – 8 hours. */
+export const SECURITY_IDLE_MINUTES_MIN = 1;
 export const SECURITY_IDLE_MINUTES_MAX = 480;
 
-/** Maximum session lifetime choices: 1h, 2h, 4h, 8h, 12h, 24h. */
-export const ABSOLUTE_SESSION_OPTIONS = [60, 120, 240, 480, 720, 1440];
+/** Maximum session lifetime choices: 5/10/15/30 min, then 1h–24h. */
+export const ABSOLUTE_SESSION_OPTIONS = [5, 10, 15, 30, 60, 120, 240, 480, 720, 1440];
 
-/** Inactivity-timeout choices offered in the admin UI (minutes). */
-export const IDLE_TIMEOUT_OPTIONS = [10, 15, 30, 45, 60, 120, 240, 480];
+/** Smallest absolute lifetime (minutes) — must still cover the idle floor. */
+export const SECURITY_ABSOLUTE_MINUTES_MIN = 5;
+
+/** Inactivity-timeout choices offered in the admin UI: 1–59 min + hours. */
+export const IDLE_TIMEOUT_OPTIONS = [1, 2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 59, 60, 120, 240, 480];
 
 /** last_seen_at writes are throttled to one per active user per minute. */
 export const SECURITY_TOUCH_THROTTLE_MS = 60_000;
@@ -73,6 +78,7 @@ export function securityPolicyFromRow(row: unknown): SecurityPolicy {
   const attempts = Number(value.otp_max_attempts);
   return {
     persistentSessionEnabled: value.persistent_session_enabled === true,
+    cookieEnabled: value.cookie_enabled !== false,
     idleTimeoutMinutes: Number.isFinite(idle) ? idle : DEFAULT_SECURITY_POLICY.idleTimeoutMinutes,
     absoluteSessionMinutes: Number.isFinite(absolute) ? absolute : DEFAULT_SECURITY_POLICY.absoluteSessionMinutes,
     loginOtpEnabled: value.login_otp_enabled === true,
@@ -88,6 +94,7 @@ export function securityPolicyFromRow(row: unknown): SecurityPolicy {
 /** Pure bounds check shared by the route and the admin UI. Null = valid. */
 export function validateSecurityPolicyValues(values: {
   persistentSessionEnabled: unknown;
+  cookieEnabled: unknown;
   idleTimeoutMinutes: unknown;
   absoluteSessionMinutes: unknown;
   loginOtpEnabled: unknown;
@@ -96,13 +103,14 @@ export function validateSecurityPolicyValues(values: {
   otpMaxAttempts: unknown;
 }): string | null {
   if (typeof values.persistentSessionEnabled !== "boolean") return "Persistent login must be on or off.";
+  if (typeof values.cookieEnabled !== "boolean") return "Cookie policy must be on or off.";
   if (!Number.isInteger(values.idleTimeoutMinutes)) return "Inactivity timeout must be a whole number of minutes.";
   const idle = values.idleTimeoutMinutes as number;
   if (idle < SECURITY_IDLE_MINUTES_MIN || idle > SECURITY_IDLE_MINUTES_MAX)
-    return `Inactivity timeout must be between ${SECURITY_IDLE_MINUTES_MIN} minutes and 8 hours.`;
+    return `Inactivity timeout must be between 1 minute and 8 hours.`;
   if (!Number.isInteger(values.absoluteSessionMinutes)) return "Maximum session lifetime must be a whole number of minutes.";
   const absolute = values.absoluteSessionMinutes as number;
-  if (!ABSOLUTE_SESSION_OPTIONS.includes(absolute)) return "Maximum session lifetime must be one of 1, 2, 4, 8, 12, or 24 hours.";
+  if (!ABSOLUTE_SESSION_OPTIONS.includes(absolute)) return "Maximum session lifetime must be one of 5, 10, 15, 30 minutes or 1, 2, 4, 8, 12, or 24 hours.";
   if (absolute < idle) return "Maximum session lifetime must not be shorter than the inactivity timeout.";
   if (typeof values.loginOtpEnabled !== "boolean") return "Login OTP must be on or off.";
   if (!OTP_TTL_OPTIONS.includes(values.otpTtlSeconds as number)) return "OTP validity must be 3, 5, or 10 minutes.";
@@ -122,9 +130,13 @@ export function sessionExpiryDeadline(input: {
   nowMs?: number;
 }): string | null {
   if (typeof input.issuedAtSec !== "number" || !Number.isFinite(input.issuedAtSec) || input.lastSeenAt == null) return null;
+  // Cookie policy OFF suspends the whole session policy: no deadline to show.
+  if (!input.policy.cookieEnabled) return null;
   const seenMs = new Date(String(input.lastSeenAt)).getTime();
   if (!Number.isFinite(seenMs)) return null;
-  const effectivePersistent = input.persistent && input.policy.persistentSessionEnabled;
+  // Remember Me is always available by default; the cookie-policy toggle is
+  // the single session-policy switch that gates persistence.
+  const effectivePersistent = input.persistent && input.policy.cookieEnabled;
   const absoluteMinutes = effectivePersistent
     ? input.policy.absoluteSessionMinutes
     : Math.min(input.policy.absoluteSessionMinutes, input.policy.idleTimeoutMinutes);
@@ -148,11 +160,13 @@ export function evaluateSessionExpiry(input: {
   nowMs?: number;
 }): SessionExpiry {
   const now = input.nowMs ?? Date.now();
+  // Cookie policy OFF suspends the whole session policy — no forced logout.
+  if (!input.policy.cookieEnabled) return "active";
   // Grandfather first: a never-stamped account predates the policy regime and
   // gets one grace request (the caller stamps last_seen_at on it), no matter
   // how old the token itself is.
   if (input.lastSeenAt == null) return "active";
-  const effectivePersistent = input.persistent && input.policy.persistentSessionEnabled;
+  const effectivePersistent = input.persistent && input.policy.cookieEnabled;
   const absoluteMinutes = effectivePersistent
     ? input.policy.absoluteSessionMinutes
     : Math.min(input.policy.absoluteSessionMinutes, input.policy.idleTimeoutMinutes);
@@ -166,6 +180,22 @@ export function evaluateSessionExpiry(input: {
 }
 
 export type SessionEnforcement = "allow" | "neutralize";
+
+/**
+ * Cookie lifetime for a freshly minted session cookie (seconds).
+ * Remember-Me opted in while the cookie policy is ON: absolute lifetime.
+ * Anything else: idle window. Null = browser-session cookie (no maxAge) —
+ * used when the cookie policy is OFF.
+ */
+export function sessionCookieMaxAgeSeconds(input: {
+  persistent: boolean;
+  policy: SecurityPolicy;
+}): number | null {
+  if (!input.policy.cookieEnabled) return null;
+  if (input.persistent)
+    return input.policy.absoluteSessionMinutes * 60;
+  return input.policy.idleTimeoutMinutes * 60;
+}
 
 /**
  * Single decision point for the session callback. A query ERROR (missing
@@ -198,7 +228,7 @@ export async function getSecurityPolicy(): Promise<SecurityPolicy> {
   try {
     const { data, error } = await supabase
       .from("security_policies")
-      .select("persistent_session_enabled,idle_timeout_minutes,absolute_session_minutes,login_otp_enabled,otp_ttl_seconds,otp_resend_cooldown_seconds,otp_max_attempts,version,updated_by,updated_at")
+      .select("persistent_session_enabled,cookie_enabled,idle_timeout_minutes,absolute_session_minutes,login_otp_enabled,otp_ttl_seconds,otp_resend_cooldown_seconds,otp_max_attempts,version,updated_by,updated_at")
       .eq("key", "default")
       .maybeSingle();
     if (error || !data) return cachedPolicy ?? DEFAULT_SECURITY_POLICY;
@@ -210,6 +240,27 @@ export async function getSecurityPolicy(): Promise<SecurityPolicy> {
   }
 }
 
+/**
+ * Uncached policy read for the login decision. Returns null when the policy
+ * cannot be authoritatively read (no client, query error, no row) so the
+ * caller fails closed — a database failure must never silently downgrade an
+ * OTP-required deployment to password-only authentication. Does not touch
+ * the shared cache; session enforcement keeps using getSecurityPolicy().
+ */
+export async function loadSecurityPolicyFresh(): Promise<SecurityPolicy | null> {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from("security_policies")
+      .select("persistent_session_enabled,cookie_enabled,idle_timeout_minutes,absolute_session_minutes,login_otp_enabled,otp_ttl_seconds,otp_resend_cooldown_seconds,otp_max_attempts,version,updated_by,updated_at")
+      .eq("key", "default")
+      .maybeSingle();
+    if (error || !data) return null;
+    return securityPolicyFromRow(data);
+  } catch {
+    return null;
+  }
+}
 /**
  * Stamp last_seen_at: always when never stamped (grandfathering), otherwise
  * throttled to one write per minute. Never throws — activity bookkeeping

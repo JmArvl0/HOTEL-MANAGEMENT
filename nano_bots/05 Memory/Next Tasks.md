@@ -5,6 +5,30 @@ their outcome is captured in [[Current Status]], [[Decisions]], or a session not
 
 ## Immediate
 
+- [ ] **System Health visual QA (KI-005)** — needs an Admin session on `:3000`. In
+      **both themes**: no card text is tinted (tone sits on the value line only); the
+      dark-mode tone contrast reads correctly (the old `--ops-*-ink` tones were
+      2.77–3.58:1 there). At ~1100 / ~900 / ~700px: cards step 4 → 2 → 1, the lower
+      split collapses at 1100px, and the ledger table never crushes. Confirm the audit
+      table's **Entity** column is left-aligned. Confirm the automations rail shows a
+      real last-run time, or "No sends recorded" / "No runs recorded".
+      **Ledger panel specifically** ([[2026-09-26 - System Health Ledger Conflict Fix]]):
+      the three pills are inset from the card border and **tabbing to them shows a
+      full focus ring** (it was clipped by the theme's `overflow:hidden`); on each of
+      the three tabs the heading, the rows/table and the pagination share one left
+      edge; at ~680px and ~390px the migrations table's Name column stays readable.
+      **Column geometry** ([[2026-09-26 - Ledger Table Column Geometry]], [[D-031]]):
+      the migrations Status badge and the audit Entity value should sit **immediately
+      after** the previous column's text, with the empty space only at the far right
+      of the card — the leftover is carried by the last column of each table on
+      purpose. Shrinking the card must move that trailing edge, not reopen the gaps.
+      **The wide Status column is confirmed correct** — do not report it as a defect
+      or "fix" it by giving Status a width; that is the layout the user rejected.
+- [ ] **Add `VERCEL_TOKEN` as a Vercel project env var.** Deployment tier 1 (env /
+      branch / commit) renders today; tier 2 — the actual newest-build outcome — stays
+      dormant until the token is set. Verified-safe: a missing or failing token is not
+      an error, it just falls back to tier 1.
+
 - [ ] Authenticated visual QA of the universal UI foundation at desktop, tablet, and
       390px: My Reservations; Manager Reservations; one Front Desk, Accounting,
       Housekeeping, Maintenance, Owner, and System Administrator searchable module;

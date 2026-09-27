@@ -35,17 +35,20 @@ describe("security policy defaults and validation", () => {
     });
   });
 
-  const otp = { loginOtpEnabled: false, otpTtlSeconds: 300, otpResendCooldownSeconds: 60, otpMaxAttempts: 5 };
+  const otp = { loginOtpEnabled: false, otpTtlSeconds: 300, otpResendCooldownSeconds: 60, otpMaxAttempts: 5, cookieEnabled: true };
 
   it("accepts in-range values and rejects dangerous ones", () => {
     expect(validateSecurityPolicyValues({ persistentSessionEnabled: true, idleTimeoutMinutes: 30, absoluteSessionMinutes: 480, ...otp })).toBeNull();
     expect(validateSecurityPolicyValues({ persistentSessionEnabled: false, idleTimeoutMinutes: 10, absoluteSessionMinutes: 60, ...otp })).toBeNull();
-    expect(validateSecurityPolicyValues({ persistentSessionEnabled: true, idleTimeoutMinutes: 9, absoluteSessionMinutes: 480, ...otp })).not.toBeNull();
+    expect(validateSecurityPolicyValues({ persistentSessionEnabled: false, idleTimeoutMinutes: 1, absoluteSessionMinutes: 5, ...otp })).toBeNull();
+    expect(validateSecurityPolicyValues({ persistentSessionEnabled: true, idleTimeoutMinutes: 59, absoluteSessionMinutes: 60, ...otp })).toBeNull();
+    expect(validateSecurityPolicyValues({ persistentSessionEnabled: true, idleTimeoutMinutes: 0, absoluteSessionMinutes: 480, ...otp })).not.toBeNull();
     expect(validateSecurityPolicyValues({ persistentSessionEnabled: true, idleTimeoutMinutes: 481, absoluteSessionMinutes: 480, ...otp })).not.toBeNull();
     expect(validateSecurityPolicyValues({ persistentSessionEnabled: true, idleTimeoutMinutes: 30, absoluteSessionMinutes: 45, ...otp })).not.toBeNull();
     expect(validateSecurityPolicyValues({ persistentSessionEnabled: true, idleTimeoutMinutes: 30, absoluteSessionMinutes: 180, ...otp })).not.toBeNull();
     expect(validateSecurityPolicyValues({ persistentSessionEnabled: true, idleTimeoutMinutes: 30, absoluteSessionMinutes: 1500, ...otp })).not.toBeNull();
     expect(validateSecurityPolicyValues({ persistentSessionEnabled: "yes", idleTimeoutMinutes: 30, absoluteSessionMinutes: 480, ...otp })).not.toBeNull();
+    expect(validateSecurityPolicyValues({ persistentSessionEnabled: true, idleTimeoutMinutes: 30, absoluteSessionMinutes: 480, loginOtpEnabled: false, otpTtlSeconds: 300, otpResendCooldownSeconds: 60, otpMaxAttempts: 5, cookieEnabled: undefined })).not.toBeNull();
   });
 
   it("absolute lifetime must not be shorter than the inactivity timeout", () => {
@@ -53,7 +56,7 @@ describe("security policy defaults and validation", () => {
   });
 
   it("restricts OTP values to the safe option sets", () => {
-    const base = { persistentSessionEnabled: false, idleTimeoutMinutes: 30, absoluteSessionMinutes: 480 };
+    const base = { persistentSessionEnabled: false, cookieEnabled: true, idleTimeoutMinutes: 30, absoluteSessionMinutes: 480 };
     expect(validateSecurityPolicyValues({ ...base, loginOtpEnabled: true, otpTtlSeconds: 300, otpResendCooldownSeconds: 60, otpMaxAttempts: 5 })).toBeNull();
     expect(validateSecurityPolicyValues({ ...base, loginOtpEnabled: true, otpTtlSeconds: 120, otpResendCooldownSeconds: 60, otpMaxAttempts: 5 })).not.toBeNull();
     expect(validateSecurityPolicyValues({ ...base, loginOtpEnabled: true, otpTtlSeconds: 300, otpResendCooldownSeconds: 45, otpMaxAttempts: 5 })).not.toBeNull();
@@ -62,9 +65,11 @@ describe("security policy defaults and validation", () => {
   });
 
   it("bounds and option sets match the migration checks", () => {
-    expect(SECURITY_IDLE_MINUTES_MIN).toBe(10);
+    expect(SECURITY_IDLE_MINUTES_MIN).toBe(1);
     expect(SECURITY_IDLE_MINUTES_MAX).toBe(480);
-    expect(ABSOLUTE_SESSION_OPTIONS).toEqual([60, 120, 240, 480, 720, 1440]);
+    expect(ABSOLUTE_SESSION_OPTIONS).toEqual([5, 10, 15, 30, 60, 120, 240, 480, 720, 1440]);
+    expect(IDLE_TIMEOUT_OPTIONS).toContain(1);
+    expect(IDLE_TIMEOUT_OPTIONS).toContain(59);
     expect(IDLE_TIMEOUT_OPTIONS[0]).toBeGreaterThanOrEqual(SECURITY_IDLE_MINUTES_MIN);
     expect(IDLE_TIMEOUT_OPTIONS[IDLE_TIMEOUT_OPTIONS.length - 1]).toBeLessThanOrEqual(SECURITY_IDLE_MINUTES_MAX);
   });
@@ -118,9 +123,35 @@ describe("session expiry verdicts", () => {
     expect(evaluateSessionExpiry({ issuedAtSec: issuedSec(481), lastSeenAt: minutesAgo(1), persistent: true, policy: enabled })).toBe("absolute");
   });
 
-  it("a disabled persistence toggle demotes Remember Me tokens to the standard tier", () => {
-    const off = policy({ persistentSessionEnabled: false });
-    expect(evaluateSessionExpiry({ issuedAtSec: issuedSec(100), lastSeenAt: minutesAgo(1), persistent: true, policy: off })).toBe("absolute");
+  it("Remember Me extends by default — only the cookie toggle demotes it", () => {
+    // The persistent-login flag is always on (Remember Me by default); the
+    // cookie-policy toggle is the single session-policy switch.
+    const on = policy({ persistentSessionEnabled: true, cookieEnabled: true });
+    expect(evaluateSessionExpiry({ issuedAtSec: issuedSec(100), lastSeenAt: minutesAgo(1), persistent: true, policy: on })).toBe("active");
+    // OFF suspends the whole session policy: no forced logout, no deadline.
+    const off = policy({ persistentSessionEnabled: true, cookieEnabled: false });
+    expect(evaluateSessionExpiry({ issuedAtSec: issuedSec(10000), lastSeenAt: minutesAgo(10000), persistent: true, policy: off })).toBe("active");
+    expect(securityPolicy.sessionExpiryDeadline({ issuedAtSec: issuedSec(100), lastSeenAt: minutesAgo(1), persistent: true, policy: off, nowMs: Date.now() })).toBeNull();
+  });
+
+  it("a disabled cookie policy suspends expiry and mints browser-session cookies", () => {
+    const off = policy({ persistentSessionEnabled: true, cookieEnabled: false });
+    expect(evaluateSessionExpiry({ issuedAtSec: issuedSec(10000), lastSeenAt: minutesAgo(10000), persistent: true, policy: off })).toBe("active");
+    expect(securityPolicy.sessionCookieMaxAgeSeconds({ persistent: true, policy: off })).toBeNull();
+    expect(securityPolicy.sessionCookieMaxAgeSeconds({
+      persistent: true, policy: policy({ persistentSessionEnabled: true, cookieEnabled: true }),
+    })).toBe(DEFAULT_SECURITY_POLICY.absoluteSessionMinutes * 60);
+    expect(securityPolicy.sessionCookieMaxAgeSeconds({
+      persistent: false, policy: policy({ idleTimeoutMinutes: 1 }),
+    })).toBe(60);
+  });
+
+  it("the countdown guard suspends when the cookie policy is off", () => {
+    const guard = read("components/auth/session-expiry-guard.tsx");
+    expect(guard).toMatch(/security-policy\/public/);
+    expect(guard).toMatch(/cookieOn === false/);
+    // Fail open: an unreadable flag keeps a live countdown visible.
+    expect(guard).toMatch(/cookieEnabled !== false/);
   });
 
   it("a never-stamped account is grandfathered active once (the caller stamps it)", () => {
@@ -207,9 +238,10 @@ describe("enforcement surface contracts", () => {
     expect(route).toMatch(/SECURITY_ADMIN_ONLY/);
   });
 
-  it("the public endpoint exposes only the persistence flag — no values, no secrets", () => {
+  it("the public endpoint exposes only the persistence and cookie flags — no values, no secrets", () => {
     const route = read("app/api/security-policy/public/route.ts");
     expect(route).toMatch(/persistentSessionEnabled/);
+    expect(route).toMatch(/cookieEnabled/);
     expect(route).not.toMatch(/idleTimeoutMinutes|absoluteSessionMinutes|version/);
   });
 
@@ -262,8 +294,21 @@ describe("enforcement surface contracts", () => {
     expect(route).toMatch(/p_login_otp_enabled:v\.loginOtpEnabled/);
   });
 
+  it("the OTP modal has one explicit enable/disable control and preserves dependent values", () => {
+    const client = read("components/admin/admin-dashboard-client.tsx");
+    expect(client).toMatch(/label:"Login OTP security"/);
+    expect(client).toMatch(/Enabled — Require Email OTP at Login \(On\)/);
+    expect(client).toMatch(/Disabled — Password Only Login \(Off\)/);
+    // No second OTP boolean: exactly one loginOtpEnabled reference in the form.
+    expect(client.match(/loginOtpEnabled/g)?.length).toBeGreaterThan(0);
+    expect(client).not.toMatch(/\b(otp_enabled|require_email_otp|login_otp_required)\b/i);
+    // Dependent values are always submitted (never destroyed when disabled).
+    expect(client).toMatch(/otpTtlSeconds:ttl,otpResendCooldownSeconds:cooldown,otpMaxAttempts:attempts/);
+    expect(client).toMatch(/Preserved when login OTP is disabled/);
+  });
+
   it("the public OTP surface exposes no secrets and SMTP stays server-only", () => {
-    expect(read("app/api/security-policy/public/route.ts")).not.toMatch(/otp/i);
+    expect(read("app/api/security-policy/public/route.ts")).not.toMatch(/otpTtl|otp_ttl|otpMax|otp_max|SMTP/i);
     const transport = read("lib/otp-transport.ts");
     expect(transport).toMatch(/process\.env\.SMTP_PASSWORD/);
     for (const path of ["components/auth/verify-form.tsx", "components/auth/login-form.tsx", "components/admin/admin-dashboard-client.tsx"]) {
@@ -297,5 +342,33 @@ describe("enforcement surface contracts", () => {
     for (const path of ["lib/auth.ts", "lib/security-policy.ts", "lib/customer-auth.ts"]) {
       expect(read(path)).not.toMatch(/console\.(log|debug|info|warn|error)/);
     }
+  });
+
+  it("the cookie-policy migration adds the flag, relaxes bounds, and replaces the RPC", () => {
+    const sql = read("supabase/migrations/20261023010000_cookie_policy.sql");
+    expect(sql).toMatch(/add column if not exists cookie_enabled boolean not null default true/);
+    expect(sql).toMatch(/check \(idle_timeout_minutes between 1 and 480\)/);
+    expect(sql).toMatch(/check \(absolute_session_minutes between 5 and 1440\)/);
+    expect(sql).toMatch(/p_cookie_enabled boolean/);
+    expect(sql).toMatch(/drop function if exists public\.admin_update_security_policy\(boolean,integer,integer,boolean,integer,integer,integer,text,integer,uuid\)/);
+    expect(sql).toMatch(/grant execute on function public\.admin_update_security_policy\(boolean,integer,integer,boolean,integer,integer,integer,boolean,text,integer,uuid\) to service_role/);
+  });
+
+  it("the verify route re-checks the live cookie policy before minting", () => {
+    const verify = read("app/api/auth/otp/verify/route.ts");
+    expect(verify).toMatch(/policy\.cookieEnabled/);
+    const flow = read("lib/otp-flow.ts");
+    expect(flow).toMatch(/sessionCookieMaxAgeSeconds/);
+    expect(flow).not.toMatch(/maxAge: SESSION_MAX_AGE \}/);
+  });
+
+  it("the session form has one switch — the cookie policy — with Remember Me always on", () => {
+    const client = read("components/admin/admin-dashboard-client.tsx");
+    expect(client).toMatch(/label:"Cookie policy"/);
+    expect(client).toMatch(/cookieEnabled:cookie/);
+    expect(client).not.toMatch(/label:"Persistent login \/ Remember Me"/);
+    expect(client).toMatch(/persistentSessionEnabled:true/);
+    expect(client).toMatch(/\["59","59 minutes"\]/);
+    expect(client).toMatch(/\["5","5 minutes"\]/);
   });
 });

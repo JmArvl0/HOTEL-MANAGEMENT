@@ -52,7 +52,9 @@ export async function POST(request: NextRequest) {
   if (!sent.ok) return NextResponse.json({ error: "The verification email could not be delivered." }, { status: 503 });
 
   await setPendingSessionCookie(await cookies(), {
-    challengeId, email: pending.email, name: pending.name, persistent: pending.persistent === true,
+    challengeId, email: pending.email, name: pending.name,
+    persistent: pending.persistent === true && policy.cookieEnabled,
+    policy,
   });
   const issued = data as { expiresAt?: string; resendAvailableAt?: string };
   return NextResponse.json({ ok: true, expiresAt: issued.expiresAt, resendAvailableAt: issued.resendAvailableAt });

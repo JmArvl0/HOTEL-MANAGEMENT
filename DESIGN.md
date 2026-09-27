@@ -415,3 +415,43 @@ room-mix donut — only composition differs:
 - The sole primary action says **Submit Proposal to Owner**. Supporting copy
   states that submission leaves live rates unchanged and creates pending
   Owner/Admin work. Reduced-motion removes skeleton and row transitions.
+
+## 20. System Health module conformance (2026-09-26)
+
+The System Health module (`SystemHealthView`, `SystemHealthLedger`,
+`system-health.css` — self-scoped, no shared-theme edits) follows the §16
+staff grammar with four module-specific applications: health cards use the
+24px stat step with tone-tinted icon chips and base-card hover lift; ledger
+and job states use honest badge names (`applied`, `succeeded`, `failed`,
+`info` — `paid` stays a payment word); pending filenames wrap to two lines
+instead of truncating; payment/audit panels own skeleton and empty-with-action
+states per the Honest Feed Rule. Severity still travels on chips, never
+border bars; tone stays on value lines and theme-flipping tokens.
+
+## 21. Canonical severity color code (2026-09-26)
+
+One vocabulary everywhere — red is crucial, amber is attention, green is
+success, blue is informing:
+
+| Severity | Meaning | Transport |
+|---|---|---|
+| `critical` / red | Act now — failures, rejections, critical states | Badge/chip + icon + text (`expired`, `failed`, toast `error`) |
+| `attention` / amber | Needs attention this cycle — the single attention family (`urgent` included) | Badge/chip + icon + text (`pending`, toast `warning`) |
+| `success` / green | Completed well | Badge/chip + icon + text (`healthy`, `applied`, `succeeded`, toast `success`) |
+| `info` / blue | Informing, no action needed | Badge/chip + icon + text (`info`, toast `info`) |
+
+Rules: color never travels alone (icon + text label always); severity lives
+on chips/badges/icon-chips only — never colored border bars, never whole-card
+tints; small text uses AA-safe 700-level variants. Sources:
+`lib/notifications.ts` (`NOTIFICATION_SEVERITY`, bell + history chips),
+`ToastStack` tones (the reference implementation, all shells),
+`HavenActionItem` tones (incl. `info`), `StatusBadge` families, System Health
+queue badges. Unknown notification types default to info — never alarming on
+the unrecognised.
+
+Phase 2 (2026-09-26): `urgent` unified into the amber family (icon + label
+kept); `refunded`/`closed` moved to green as completed outcomes while
+`checked_out` stays informational blue; approval `critical`/`high` severities
+gained real theme rules (danger red / warning amber — previously unstyled
+gray); reservation `.mr-issue.info` moved from neutral gray to informing blue.
+Modal `danger`/`warning` map to the same red/amber tokens — no change needed.

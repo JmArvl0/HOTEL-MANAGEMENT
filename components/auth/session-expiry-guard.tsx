@@ -46,15 +46,28 @@ const deadlineFromBody = (body: unknown) => {
 
 export function SessionExpiryGuard({ expiresAt }: { expiresAt?: string | null }) {
   const [deadline, setDeadline] = useState(expiresAt ?? null);
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState<number | null>(null);
+  // Cookie-policy toggle owns the session policy: OFF suspends the countdown.
+  // Null = unknown (fail open — keep counting rather than hide a live expiry).
+  const [cookieOn, setCookieOn] = useState<boolean | null>(null);
   const signInRef = useRef<HTMLButtonElement>(null);
   const lastActivitySentAt = useRef(0);
-  const remaining = deadline ? Date.parse(deadline) - now : Number.POSITIVE_INFINITY;
-  const expired = Boolean(deadline) && remaining <= 0;
+  const remaining = deadline && now !== null ? Date.parse(deadline) - now : null;
+  const expired = remaining !== null && remaining <= 0;
 
   useEffect(() => {
+    setNow(Date.now());
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    let live = true;
+    fetch("/api/security-policy/public", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body) => { if (live) setCookieOn(body?.data?.cookieEnabled !== false); })
+      .catch(() => {});
+    return () => { live = false; };
   }, []);
 
   useEffect(() => {
@@ -113,13 +126,29 @@ export function SessionExpiryGuard({ expiresAt }: { expiresAt?: string | null })
   }, [expired]);
 
   if (!deadline) return null;
+  // Session policy suspended by the admin: subtle text-style indicator in the
+  // countdown slot — never a dialog, never a block.
+  if (cookieOn === false) return (
+    <span className="session-countdown session-countdown--normal" aria-label="Cookie policy is disabled. Sessions do not expire." aria-live="off" suppressHydrationWarning>
+      <Clock3 size={14} aria-hidden="true" />
+      <span aria-hidden="true" suppressHydrationWarning>Policy off</span>
+    </span>
+  );
+  if (remaining === null) {
+    return (
+      <span className="session-countdown session-countdown--normal" aria-label="Session expires in unknown time." aria-live="off" suppressHydrationWarning>
+        <Clock3 size={14} aria-hidden="true" />
+        <span aria-hidden="true" suppressHydrationWarning>--:--</span>
+      </span>
+    );
+  }
   const tone = sessionCountdownTone(remaining);
   return <>
     <span className={`session-countdown session-countdown--${tone}`} aria-label={sessionCountdownLabel(remaining)} aria-live="off">
       <Clock3 size={14} aria-hidden="true" />
-      <span aria-hidden="true" suppressHydrationWarning>{formatSessionCountdown(remaining)}</span>
+      <span aria-hidden="true">{formatSessionCountdown(remaining)}</span>
     </span>
-    {expired && typeof document !== "undefined" ? createPortal(
+    {expired ? createPortal(
       <div className="session-expired-backdrop">
         <section className="session-expired-dialog" role="alertdialog" aria-modal="true" aria-labelledby="session-expired-title" aria-describedby="session-expired-description">
           <span className="session-expired-icon"><Clock3 aria-hidden="true" /></span>

@@ -3,9 +3,11 @@
 import { describe, expect, it } from "vitest";
 import {
   BELL_PREVIEW_LIMIT,
+  NOTIFICATION_SEVERITY,
   NOTIFICATION_TYPE_ICONS,
   groupNotificationsByRecency,
   notificationIcon,
+  notificationSeverity,
   previewNotifications,
   relativeTime,
   splitUnreadRead,
@@ -98,5 +100,39 @@ describe("notificationIcon", () => {
     const fallback = notificationIcon("mystery_type");
     const bellFallback = notificationIcon(undefined);
     expect(fallback).toBe(bellFallback);
+  });
+});
+
+describe("notificationSeverity", () => {
+  it("covers every icon-mapped type with a canonical severity", () => {
+    for (const type of Object.keys(NOTIFICATION_TYPE_ICONS)) {
+      expect(notificationSeverity(type)).toBe(
+        NOTIFICATION_SEVERITY[type as keyof typeof NOTIFICATION_SEVERITY],
+      );
+    }
+  });
+
+  it("routes rejections and cancellations to critical, completions to success", () => {
+    for (const type of ["deposit_rejected", "stay_payment_rejected", "reservation_cancelled"]) {
+      expect(notificationSeverity(type)).toBe("critical");
+    }
+    for (const type of ["deposit_verified", "stay_payment_verified", "reservation_confirmed", "request_batch_reviewed"]) {
+      expect(notificationSeverity(type)).toBe("success");
+    }
+  });
+
+  it("routes actionable queues to attention and reminders to info", () => {
+    for (const type of ["transportation_cancelled", "reservation_change_submitted", "payment_link", "approvals"]) {
+      expect(notificationSeverity(type)).toBe("attention");
+    }
+    for (const type of ["pre_arrival_reminder", "pre_departure_reminder", "rooms", "folios"]) {
+      expect(notificationSeverity(type)).toBe("info");
+    }
+  });
+
+  it("defaults unknown types to info — never alarming on the unrecognised", () => {
+    expect(notificationSeverity("mystery_type")).toBe("info");
+    expect(notificationSeverity(undefined)).toBe("info");
+    expect(notificationSeverity(null)).toBe("info");
   });
 });

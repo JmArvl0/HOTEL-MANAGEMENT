@@ -227,6 +227,50 @@ export function notificationIcon(type: unknown): LucideIcon {
     : Bell) as LucideIcon;
 }
 
+/**
+ * Canonical notification severity — the system-wide color code (DESIGN.md
+ * §21): critical/red (act now), attention/amber (needs attention this
+ * cycle), success/green (completed well), info/blue (informing). Unknown
+ * types default to info: never alarming on an unrecognised type.
+ */
+export type NotificationSeverity = "critical" | "attention" | "success" | "info";
+
+export const NOTIFICATION_SEVERITY: Record<string, NotificationSeverity> = {
+  deposit_rejected: "critical",
+  stay_payment_rejected: "critical",
+  reservation_cancelled: "critical",
+  transportation_cancelled: "attention",
+  reservation_change_submitted: "attention",
+  payment_link: "attention",
+  approvals: "attention",
+  guest_requests: "attention",
+  maintenance_orders: "attention",
+  housekeeping_tasks: "attention",
+  deposit_verified: "success",
+  stay_payment_verified: "success",
+  reservation_confirmed: "success",
+  request_batch_reviewed: "success",
+  refunds: "success",
+  transportation_scheduled: "success",
+  pre_arrival_reminder: "info",
+  pre_departure_reminder: "info",
+  reservations: "info",
+  rooms: "info",
+  guests: "info",
+  transportation: "info",
+  inventory: "info",
+  invoices: "info",
+  payments: "info",
+  transactions: "info",
+  folios: "info",
+};
+
+export function notificationSeverity(type: unknown): NotificationSeverity {
+  return typeof type === "string" && type in NOTIFICATION_SEVERITY
+    ? NOTIFICATION_SEVERITY[type]
+    : "info";
+}
+
 export async function recordNotification(input: NotificationInput): Promise<void> {
   if (!supabase) return; // demo mode — no store, no error
   try {

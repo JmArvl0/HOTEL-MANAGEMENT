@@ -262,6 +262,7 @@
 .theme-light .app-shell .haven-action-item[data-tone="green"] .haven-action-item-icon { background: var(--ops-success-tint); color: var(--ops-success-ink); }
 .theme-light .app-shell .haven-action-item[data-tone="rose"] .haven-action-item-icon { background: var(--ops-danger-tint); color: var(--ops-danger-ink); }
 .theme-light .app-shell .haven-action-item[data-tone="neutral"] .haven-action-item-icon { background: var(--ops-paper); color: var(--ops-text-2); }
+.theme-light .app-shell .haven-action-item[data-tone="info"] .haven-action-item-icon { background: var(--ops-info-tint); color: var(--ops-info-ink); }
 .theme-light .app-shell .haven-action-item.is-quiet .haven-action-item-icon { background: var(--ops-paper); color: var(--ops-text-3); }
 .theme-light .app-shell .haven-action-item-copy { display: grid; gap: 4px; min-width: 0; }
 .theme-light .app-shell .haven-action-item-copy > strong { color: var(--ops-ink); font-size: 14px; font-weight: 600; }
@@ -309,14 +310,15 @@
 .theme-light .app-shell .badge.deposit, .theme-light .app-shell .badge.partial,
 .theme-light .app-shell .badge.reserved, .theme-light .app-shell .badge.requested,
 .theme-light .app-shell .badge.reviewed { background: var(--ops-info-tint); color: var(--ops-info-ink); }
-.theme-light .app-shell .badge.cancelled, .theme-light .app-shell .badge.urgent,
+.theme-light .app-shell .badge.cancelled, .theme-light .app-shell .badge.critical,
 .theme-light .app-shell .badge.out, .theme-light .app-shell .badge.maintenance,
 .theme-light .app-shell .badge.rejected, .theme-light .app-shell .badge.no_show,
 .theme-light .app-shell .badge.sla-breach { background: var(--ops-danger-tint); color: var(--ops-danger-ink); }
 .theme-light .app-shell .badge.dirty, .theme-light .app-shell .badge.low,
 .theme-light .app-shell .badge.pending, .theme-light .app-shell .badge.open,
-.theme-light .app-shell .badge.unpaid { background: var(--ops-warning-tint); color: var(--ops-warning-ink); }
-.theme-light .app-shell .badge.closed { background: var(--ops-paper); color: var(--ops-text-2); border: 1px solid var(--ops-border); }
+.theme-light .app-shell .badge.unpaid, .theme-light .app-shell .badge.urgent,
+.theme-light .app-shell .badge.high { background: var(--ops-warning-tint); color: var(--ops-warning-ink); }
+.theme-light .app-shell .badge.closed { background: var(--ops-success-tint); color: var(--ops-success-ink); }
 /* shared haven-status pills → org tokens */
 .theme-light .app-shell .haven-status { font-size: 12px; font-weight: 500; }
 .theme-light .app-shell .haven-status--success { --status-bg: var(--ops-success-tint); --status-fg: var(--ops-success-ink); --status-border: var(--ops-success); }
@@ -556,6 +558,7 @@
 .app-shell .haven-action-item[data-tone="green"] .haven-action-item-icon { background: #173024; color: #65d3a5; }
 .app-shell .haven-action-item[data-tone="rose"] .haven-action-item-icon { background: #3a1e22; color: #e88a8f; }
 .app-shell .haven-action-item[data-tone="neutral"] .haven-action-item-icon { background: #1a2440; color: #b9c6de; }
+.app-shell .haven-action-item[data-tone="info"] .haven-action-item-icon { background: #1d2c46; color: #8fb8f5; }
 .app-shell .haven-action-item.is-quiet .haven-action-item-icon { background: #1a2440; color: #7c8698; }
 .app-shell .haven-action-item-copy { display: grid; gap: 4px; min-width: 0; }
 .app-shell .haven-action-item-copy > strong { color: #eef1f7; font-size: 14px; font-weight: 600; }

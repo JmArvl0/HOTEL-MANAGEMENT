@@ -2,6 +2,171 @@
 
 Current execution state. Concise — detail lives in linked session notes.
 
+## Follow-up: column geometry confirmed, no architectural change (2026-09-26/27)
+
+A review brief arrived asking for NAME flexible / STATUS compact, on the grounds that
+STATUS "stretches across a very large portion of the table". That accurately describes
+the layout shipped earlier the same day, and the two specs cannot both hold — the
+slack must live in one end column. Put to the user with both layouts drawn; **they
+chose to keep the current geometry.** The absorbing column did not change.
+
+What the follow-up did change is `--sys-col-name`: **280px → 240px**, the one soft
+value in the model. Because a column's width is uniform across rows, Name's width also
+sets how far the badge sits from a *short* name. Sized from a measurement of **all 87
+migration names in Inter 13px** (the app font — `system-ui`, used in the first probe,
+is narrower and made the numbers ~10% generous): mean text 145px, longest 234px.
+240px keeps 84/87 names on one line for a mean 81px gap to the badge; 280px fit all 87
+but left 121px. The 3 that wrap are the 234–262px outliers. Rejected 200px, which my
+own earlier note floated: it wraps 17/87 (20%) and the table reads ragged.
+
+Verified on the shipped CSS in headless Chrome with real markup: **`140 / 240 / 650`**
+on a 1030px card, median row height still 48px, 3 wrapped, no overflow; the 358px card
+still releases the widths with no overflow. Temporary probes deleted.
+
+Also added: **[[D-031]]**, plus a matching clause in the `system-health.css` comment
+block and in `SYSTEM.md`, because this table has been reversed three times and the wide
+Status column reads as a bug to anyone who has not seen the gap it replaces. Confirmed
+by `grep` that no other stylesheet in `app/` or `components/` touches
+`system-health-table` or any `col-*` class, so the module owns the columns outright.
+
+35/35 focused, **160 files / 1800 tests**, typecheck clean, eslint 0 errors, compiled
+chunk confirmed carrying 240px.
+
+## Current task (ledger table column geometry, 2026-09-26)
+
+IMPLEMENTED locally, all gates green. CSS-only — no markup, theme, API or migration
+change.
+
+The Applied Migrations and Audit Trail tables were `table-layout:fixed` at
+`width:100%`, so the one column with no declared width (Name) swallowed ~700px at a
+1030px card and pushed the `Applied` badge to the far edge; audit had two ~420px
+voids per row. The fix declares a width for **every column except the last of each
+table** — Status (migrations) and Entity (audit) are left unconstrained so they
+absorb the leftover, and their text then sits flush against the column before them.
+`--sys-col-version:140` / `--sys-col-name:280` / `--sys-col-time:160` /
+`--sys-col-action:200`, all taken from browser-measured text widths, not estimates.
+`--sys-col-status` (120px) is deleted — Status is the absorber now. The 680px media
+step releases the new set.
+
+**A trailing `.col-fill` spacer with `width:100%` was designed, implemented, and then
+rejected after measurement**: a percentage column demands the whole table width and
+Chrome crushes every other column to min-content (`87/67/77/800`), in fixed layout as
+well (`140/0/88/802`). The spacer was reverted; the "last column absorbs" shape needs
+no markup. Numbers and the full mechanism are in the session note — do not re-derive.
+
+Geometry was verified by measurement, not assertion: the real compiled chunk, real
+markup, `getBoundingClientRect()` read out of headless Chrome. Migrations `140/280/610`
+and audit `160/200/670` on a 1030px card, `358px` card `109/167/82`, no overflow in
+any case (was `140/802/88`). The temporary probe `public/__colcheck.html` was deleted.
+
+35/35 focused, 160 files / 1797 tests, typecheck clean, eslint 0 errors, compiled CSS
+chunk confirmed. `SYSTEM.md` records the "every column except the last" invariant,
+because the unconstrained column reads as an oversight. Pending: authenticated browser
+QA (KI-005) against the live page.
+
+See [[2026-09-26 - Ledger Table Column Geometry]].
+
+## Previous: system health ledger conflict fix (2026-09-26)
+
+IMPLEMENTED locally, all gates green. Three style conflicts in the ledger panel
+(Applied Migrations / Payment Configuration / Audit Trail), each with a named
+mechanism:
+
+1. The admin theme resets headings with a **child** combinator
+   (`manager-dashboard-theme.css:1749`) that cannot reach headings nested inside
+   `[role=tabpanel]` — so the ledger's headings got no padding/separator and sat
+   flush on the card border while the cells below them were inset 14px by the same
+   theme file.
+2. **No stylesheet gives `.data-panel` padding** — every other panel is inset by its
+   own `.panel-heading` child. The tabs card has none (only the tab strip, also
+   unpadded), so the pills were drawn on the card border and the theme's
+   `overflow:hidden` clipped their corners and their focus ring (**an a11y defect**).
+3. The tables had no mobile step: 310px of locked columns, no `@media` rule, so the
+   Name column got ~48px at 390px.
+
+All four edits are in `components/admin/system-health.css` — strip + heading inset at
+the theme's 16px, the search row inset with **`margin` not `padding`** (the D-026
+guard at `system-health-view.test.tsx:386` asserts that rule has no padding), and a
+680px `table-layout:auto` step placed *after* the `--sys-col-*` rules it ties with on
+specificity. No markup, theme, token, or migration change.
+
+Ruled out with evidence and left alone: the `.admin-security-grid` `dl>div` rule
+(no such ancestor), `dt{flex:none}`, the 560px `.table-scroll` floor, `[hidden]`, and
+the tablist's hardcoded `#084b55` — swapping that to `--admin-accent` would regress
+dark contrast to ~1.9:1.
+
+35/35 selected, 160 files / 1793 tests, typecheck clean, eslint 0 errors, compiled
+CSS chunk verified with newline-tolerant greps (the dev pipeline pretty-prints, so a
+naive `grep -oE "rule\{[^}]*\}"` returns nothing and makes a fresh chunk look stale).
+`SYSTEM.md` gained one sentence so the restated padding is not deleted as a duplicate.
+Pending: browser QA (KI-005).
+
+See [[2026-09-26 - System Health Ledger Conflict Fix]].
+
+## Previous: system health module redesign (2026-09-26)
+
+IMPLEMENTED locally. Hierarchy rebuilt: verdict → 8 cards → needs-attention →
+ledger | automations rail. Attention moved out of the 320px rail into the main
+column and is de-duplicated against the cards; ledger takes full width.
+
+Root cause of the repeated no-op redesign prompts: this module was the only admin
+stylesheet outside the D-025 theme layer, pinning a 9-11px scale while the light
+theme ran 12-15px. Pinned sizes removed; tone moved onto the value line on
+theme-flipping `--color-*-fg` (was `--ops-*-ink`, 2.77-3.58:1 in dark); cards step
+4→2→1 at 1200/760px; split collapses at 1100px; `td:last-child` scoped to
+`--migrations`; payment tab's 5 hardcoded rows dropped (3 restated the gateway card
+and would have gone false once a gateway secret is set).
+
+Unknowns made real with NO migration — both crons already persist their runs.
+Automations read `guest_reminder_deliveries.sent_at` / `analytics_model_runs.generated_at`
+with a per-job label ("Last send" — the reminders ledger only writes on a real send).
+Deployment is two-tier: env/branch/commit from Vercel's injected vars (always), and
+newest `readyState` from the API when `VERCEL_TOKEN` is set.
+
+Selected 35/35, full suite 160 files / 1793 tests, typecheck clean, eslint 0 errors
+(3 pre-existing warnings), compiled-CSS chunk verified to carry the new rules and
+zero pinned sizes / ops-ink / unscoped selectors. Pending: browser QA (KI-005) and
+the `VERCEL_TOKEN` env var.
+
+See [[D-030 — Admin module stylesheets inherit the theme scale and never restate a fact a card already shows]]
+and [[2026-09-26 - System Health Module Redesign]].
+
+## Previous: ledger table refinement (2026-09-24)
+
+IMPLEMENTED locally. Applied Migrations + audit + automations tables share one
+scoped `.sys-ledger` treatment in system-health.css (uppercase 11px muted thead,
+right-aligned status col, mono version-code on real `--font-mono`, transparent
+search row with live count). Markup-only JSX (searchrow wrapper, code element,
+sys-ledger classes); search/pagination/badges/tabs/data hooks untouched.
+Brief's invented tokens (none exist) mapped to real shell tokens; bordered
+toolbar card + custom pagination buttons rejected per D-026/shared primitives.
+Full suite 160/160 files, 1789/1789 tests; typecheck, eslint 0 errors, build,
+diff-check clean. Pending: browser QA (KI-005).
+
+## Previous: system health console recomposition
+
+IMPLEMENTED locally. Killed the KPI-card wall: header statusline (verdict +
+counts + last-checked + Run Probes), attention queue (severity-ordered,
+critical-only alert role), 3 grouped definition-list service panels
+(Infrastructure / Application services / Governance, 9 rows, text+icon tone on
+existing ops tokens), full-width automations table, evidence tabs untouched.
+Zero backend change; RBAC/probes/actions/search/pagination/modal preserved.
+Targeted 50/50, full suite 1784/1785 (1 pre-existing cross-stream OTP-copy
+failure, untouched), typecheck, eslint 0 errors, build green, diff-check clean.
+Pending: browser QA (KI-005).
+
+## Previous: system health console redesign (banner + grouped cards)
+
+IMPLEMENTED locally, gates green except 1 pre-existing cross-stream failure
+(security-policy.test.ts OTP-copy expectation vs parallel stream's uncommitted
+Security Configuration copy — untouched by this work). SystemHealthView is now
+an ops console: posture banner (counts over probe states, no invented
+algorithm), 3 grouped ModuleSummaryCards strips (Infrastructure / Application
+services / Governance + Security link-out), severity-ordered alerts, untouched
+automations/tabs/search/pagination/refresh/RBAC. Scoped system-health.css
+(3-col grid, banner, alerts). 160 files / 1782-1783 pass, typecheck, eslint 0
+errors, build green. Pending: browser QA (KI-005).
+
 ## Current task (admin governance native-CSS fix, 2026-09-23)
 
 FIXED locally, all gates green. Uncompiled Tailwind grids in System Health

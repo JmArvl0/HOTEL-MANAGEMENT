@@ -772,6 +772,29 @@
   gap: 7px;
 }
 
+/* Severity chip — canonical color code (DESIGN.md §21): 10% tint
+   background + AA-safe text, mirrored per shell. Text label always
+   accompanies the color; color never travels alone. */
+.cnr-severity {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 99px;
+}
+.cnr-severity.sev-critical { background: #f9e3e1; color: #a44843; }
+.cnr-severity.sev-attention { background: #fff0dd; color: #a45a22; }
+.cnr-severity.sev-success { background: #def1e8; color: #267056; }
+.cnr-severity.sev-info { background: #e3edfb; color: #1d4ed8; }
+.app-shell .cnr-severity.sev-critical { background: #351f21; color: #ef797e; }
+.app-shell .cnr-severity.sev-attention { background: #34291c; color: #dfa062; }
+.app-shell .cnr-severity.sev-success { background: #173024; color: #65d3a5; }
+.app-shell .cnr-severity.sev-info { background: #1d2c46; color: #8fb8f5; }
+
 .cnr-reference {
   min-width: 0;
   overflow: hidden;

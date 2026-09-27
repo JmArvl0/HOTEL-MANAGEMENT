@@ -1089,3 +1089,178 @@ attempt visible to System Administration.
 `supabase/migrations/20261022010000_password_reset_audit.sql` ·
 `app/api/password-reset/*` · `app/api/recover/[token]/*` ·
 `app/(auth)/forgot-password/page.tsx` · `lib/password-reset-audit.test.ts`
+
+## D-028 — Security modal copy uses Turn On/Turn Off operator wording
+
+Date: 2026-09-24
+Status: Active
+
+### Decision
+
+- Security Configuration modal options use direct Turn On/Turn Off labels:
+  `Enabled — Turn On "Keep Me Signed In"` / `Disabled — Turn Off "Remember Me"`
+  and `Enabled — Require Email OTP at Login (On)` /
+  `Disabled — Password Only Login (Off)`. This supersedes the prior
+  "allow Keep me signed in" operator-clarity wording for these two modals.
+- Review diffs, card badges, and the Enabled/Disabled status vocabulary are
+  unchanged; persisted booleans and the confirm-with-diff workflow are untouched.
+- Scoped `.sec-badge-off/.sec-badge-on` remain the only rose/green overrides
+  for disabled security features (scoped to `.sec-wrap`); the shared
+  `StatusBadge` neutral mapping is untouched. Both badge classes are
+  theme-aware (dark app-shell values reuse the shared danger/success tokens).
+
+### Reason
+
+Operator explicitly approved the Turn On/Turn Off wording as clearer at the
+moment of changing authentication policy; the stronger verbs reduce the risk
+of an accidental security disablement being misread.
+
+### Related
+
+`components/admin/admin-dashboard-client.tsx` (`saveSessionPolicy`, `saveOtpPolicy`) ·
+`components/admin/security-config.css`
+
+## D-029 — Admin module stylesheets are global; every selector must be namespaced
+
+Date: 2026-09-26
+Status: Active
+
+### Decision
+
+- `components/admin/system-health.css` and `components/admin/security-config.css` are
+  imported by `components/admin/admin-dashboard-client.tsx`, which renders every admin
+  section. Next.js therefore hoists both into the route bundle and they apply
+  **app-wide**, not just to the module that owns them. Every rule in a stylesheet
+  imported from that component must be namespaced to its module prefix (`.sys-*` /
+  `.sec-*`).
+- Bare shell selectors are forbidden in these two files: `.page-title h1`,
+  `.page-title .title-actions`, `.panel-heading h3`, `.sys-card-name`. A guard test,
+  "never leaks unscoped shell selectors onto the admin app", scans both files for them
+  and must be kept.
+- Layout details that a module depends on are declared by that module, not inherited
+  by accident from another. The Security Configuration panel headings carry unwrapped
+  icons and need a flex row, so `.sec-panel .panel-heading h3` is declared in
+  `security-config.css` — previously they relied on the leaked `.panel-heading h3`
+  rule in `system-health.css`.
+- Table geometry for the System Health ledgers lives in CSS custom properties
+  (`--sys-col-version`, `--sys-col-status`, `--sys-col-time`) on
+  `.system-health-table`, not in the `<colgroup>`. Because
+  `table-layout:fixed` sizes columns from the colgroup and ignores cell content,
+  editing the table markup cannot change column widths — only the variables can.
+- A module stylesheet does not assert its own literal CSS text in tests. Assertions
+  that pin declarations (e.g. `toContain("table-layout:fixed")`) block layout
+  refactors and make a successful edit look like a failed one.
+
+### Reason
+
+A brief that appears to do nothing is worse than a brief that errors: the operator
+cannot tell whether the prompt failed, the file was wrong, or the change was
+overridden. Here three separate mechanisms produced that outcome at once — an
+unscoped rule that no theme could override, a specificity tie at (0,1,1) between
+`system-health.css` and `globals.css` whose winner was decided by bundler chunk order,
+and a test that locked the stylesheet's literal text. Namespacing plus the guard
+makes every future layout edit land deterministically.
+
+### Related
+
+[[D-028 — Security modal copy uses Turn On/Turn Off operator wording]] ·
+`components/admin/system-health.css` · `components/admin/security-config.css` ·
+`components/admin/system-health-view.test.tsx` ·
+[[2026-09-26 - Admin Module CSS Scoping Fix]]
+
+---
+
+## D-030 — Admin module stylesheets inherit the theme scale and never restate a fact a card already shows
+
+### Decision
+
+Two rules for any admin module stylesheet (`components/admin/*.css`):
+
+1. **Inherit the theme's type scale; never pin a size the theme owns.** A module
+   may restate the theme's own step (12px label, 13px body) but must not introduce
+   a smaller one. `system-health.css` pinned `dt` at 9px, `dd` at 11px and the
+   tablist at 10px while `.theme-light .app-shell` raised tables, badges and panel
+   headings to 12–15px — so the module read as foreign, and no markup or theme edit
+   could reach the pinned values. This is the second failure mode of a hoisted
+   module stylesheet: D-029 covers leaking *out*, this covers being stranded *in*.
+
+2. **Tone goes on the value, not the container, using semantic tokens.**
+   `--color-success/warning/danger-fg` (which flip per theme) — never
+   `--ops-*-ink`, which has no dark variant and measured 2.77–3.58:1 in dark mode.
+   Tinting the whole card made every 12px label and paragraph inherit the tone:
+   noisy, and below AA. The `-fg` pair measures 7.1–8.3:1 light / 9.5–12.9:1 dark,
+   so it passes AA at any size.
+
+3. **A status card and an alert list must not state the same fact.** An item earns
+   a place in the attention list only by adding information a card does not already
+   carry — not by restating it with the same action. Three renderings of one fact
+   is what made the module read as noise.
+
+Corollary: a status surface reports what it can *measure*, and names the specific
+missing input when it cannot. "Serving this request — newest build status needs
+`VERCEL_TOKEN`" is correct; a bare "Unknown" and a fabricated healthy state are both
+wrong.
+
+### Reason
+
+The module had been through several redesign prompts that visibly changed nothing.
+Each of the three rules above was a separate mechanism pinning the old look: a type
+scale outside the theme layer that no theme rule could reach, a tone token with no
+dark variant, and a page that said the same four facts three times. Naming the rule
+at the file is what stops the next prompt from re-introducing it.
+
+### Related
+
+[[D-025 — Organization Executive Dashboard theme governs staff pages]] ·
+[[D-029 — Admin module stylesheets are global; every selector must be namespaced]] ·
+`components/admin/system-health.css` · `components/admin/admin-dashboard-client.tsx` ·
+[[2026-09-26 - System Health Module Redesign]]
+
+## D-031 — A full-width ledger table parks its slack in the LAST column, never a spacer
+
+### Decision
+
+The Applied Migrations and Audit Trail tables in System Health are `width:100%` so
+their header band and row rules span the card. That forces the leftover width into
+exactly one column, and a column's width is uniform across rows, so it must be the
+**last** column of the table — Status in migrations, Entity in the audit trail. Those
+two carry no `width` at all; every other column does.
+
+The chosen side has a visible cost and it is accepted: the Status badge sits flush
+against the migration name, but the Status column itself is wide (~650px of a 1030px
+card) with its header label mid-card. **That is the trade-off, not a bug.** The only
+alternative is to give Status a width and let Name carry the slack, which pushes the
+badge ~600px right of the name — the defect this replaced.
+
+| | |
+|---|---|
+| Slack in **Status** (chosen) | badge hugs the name · Status column wide |
+| Slack in **Name** (rejected) | Status compact · badge ~600px from the name |
+
+`width:100%` on a column is never a spacer: a percentage column demands the whole
+table and Chrome resolves the over-constraint by crushing every other column to
+min-content (measured: `87/67/77/800` in auto layout, `140/0/88/802` in fixed).
+
+### Reason
+
+This table's column geometry was reversed three times in one day — once by a review
+prompt that saw only the wide Status column and not the gap it replaced. A trailing
+spacer column was designed, implemented, and rejected after browser measurement for
+the same reason. Naming the trade-off at the file (and in `SYSTEM.md`) is what stops
+the next prompt from "fixing" it back; the user confirmed the current side explicitly
+on 2026-09-26 when shown both.
+
+Because a column's width is uniform across rows, the Name column also sets how far the
+badge sits from a *short* name — the one soft value here. It is measured in **Inter
+13px, the app's real font**, over all 87 migration names (mean 145px of text, longest
+234px): `--sys-col-name:240px` keeps 84/87 on one line for a mean 81px gap, where
+280px fits all 87 but widens the mean gap to 121px. The 3 that wrap at 240px are the
+234–262px outliers. Do not measure these widths in `system-ui` — it is narrower than
+Inter and makes the numbers look ~10% generous.
+
+### Related
+
+[[D-029 — Admin module stylesheets are global; every selector must be namespaced]] ·
+[[D-030]] · `components/admin/system-health.css` ·
+[[2026-09-26 - Ledger Table Column Geometry]] ·
+[[2026-09-26 - System Health Ledger Conflict Fix]]

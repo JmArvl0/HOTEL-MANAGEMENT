@@ -346,7 +346,7 @@ export function Overview({ data, setSection, allowed, role, onScan }: { data: Da
             </div> : role === "accounting" ? <div className="haven-action-list">
               <HavenActionItem icon={ClipboardCheck} tone="amber" title={<>{m.pendingVerifications ?? 0} deposits awaiting verification</>} description={(m.pendingPastSla ?? 0) > 0 ? `${m.pendingPastSla} past the ${m.depositSlaHours ?? 4}h target` : "Oldest first in Deposit Verification"} quiet={(m.pendingVerifications ?? 0) === 0} onAction={() => setSection("payments")} />
               <HavenActionItem icon={CircleDollarSign} tone="rose" title={<>{m.pendingRefundCount ?? 0} refund{(m.pendingRefundCount ?? 0) === 1 ? "" : "s"} awaiting action</>} description="Failed refunds need a retry decision" quiet={(m.pendingRefundCount ?? 0) === 0} onAction={() => setSection("refunds")} />
-              <HavenActionItem icon={Scale} tone="neutral" title="Reconciliation & documents" description={`${peso(m.outstandingBalances)} outstanding across open folios`} onAction={() => setSection("reconciliation")} />
+              <HavenActionItem icon={Scale} tone="info" title="Reconciliation & documents" description={`${peso(m.outstandingBalances)} outstanding across open folios`} onAction={() => setSection("reconciliation")} />
             </div> : role === "housekeeping" ? <div className="haven-action-list">
               <HavenActionItem icon={BedDouble} tone="amber" title={<>{m.dirtyRooms} dirty rooms</>} description={`${m.openTasks} open room-care tasks`} quiet={m.dirtyRooms === 0} onAction={() => setSection("housekeeping_tasks")} />
               <HavenActionItem icon={ClipboardCheck} tone="green" title={<>{m.roomsCleaning} cleaning in progress</>} description="Claimed and being worked now" quiet={m.roomsCleaning === 0} onAction={() => setSection("housekeeping_tasks")} />
@@ -356,7 +356,7 @@ export function Overview({ data, setSection, allowed, role, onScan }: { data: Da
               <HavenActionItem icon={AlertTriangle} tone="rose" title={<>{m.criticalMaintenance} urgent or critical</>} description="Safety and guest-impact first" quiet={m.criticalMaintenance === 0} onAction={() => setSection("maintenance_orders")} />
               <HavenActionItem icon={Wrench} tone="amber" title={<>{m.openMaintenance} active work orders</>} description="Claim, diagnose, repair, restore" quiet={m.openMaintenance === 0} onAction={() => setSection("maintenance_orders")} />
               <HavenActionItem icon={BedDouble} tone="rose" title={<>{m.outOfServiceRooms} room{m.outOfServiceRooms === 1 ? "" : "s"} technically blocked</>} description="Based on Maintenance diagnosis" quiet={m.outOfServiceRooms === 0} onAction={() => setSection("rooms")} />
-              <HavenActionItem icon={Bell} tone="neutral" title={<>{m.departmentRequests ?? 0} routed guest requests</>} description="Approved guest needs — file a work order from Maintenance" quiet={(m.departmentRequests ?? 0) === 0} onAction={() => setSection("maintenance_orders")} />
+              <HavenActionItem icon={Bell} tone="info" title={<>{m.departmentRequests ?? 0} routed guest requests</>} description="Approved guest needs — file a work order from Maintenance" quiet={(m.departmentRequests ?? 0) === 0} onAction={() => setSection("maintenance_orders")} />
             </div>}
         </article>}
         <article className="panel room-mix">
@@ -428,7 +428,7 @@ export function Overview({ data, setSection, allowed, role, onScan }: { data: Da
           {allowed.includes("rooms") && role !== "housekeeping" && role !== "maintenance" && <HavenActionItem icon={BedDouble} tone="green" title={<>{m.availableRooms} rooms ready</>} description="Available for assignment now" quiet={m.availableRooms === 0} onAction={() => setSection("rooms")} />}
           {allowed.includes("maintenance_orders") && role !== "maintenance" && <HavenActionItem icon={Wrench} tone="rose" title="Maintenance work orders" description="Review open repair priorities" onAction={() => setSection("maintenance_orders")} />}
           {allowed.includes("approvals") && <HavenActionItem icon={ClipboardCheck} tone="rose" title={<>{m.pendingApprovals} pending approvals</>} description={<>{m.escalatedIssues} escalated guest issue{m.escalatedIssues === 1 ? "" : "s"}</>} quiet={m.pendingApprovals === 0} onAction={() => setSection("approvals")} />}
-          {allowed.includes("insights") && <HavenActionItem icon={TrendingUp} tone="neutral" title="Predictive insights" description="Demand, staffing, and maintenance forecasts" onAction={() => setSection("insights")} />}
+          {allowed.includes("insights") && <HavenActionItem icon={TrendingUp} tone="info" title="Predictive insights" description="Demand, staffing, and maintenance forecasts" onAction={() => setSection("insights")} />}
           {allowed.includes("reconciliation") && <HavenActionItem icon={Scale} tone="neutral" title="Reconciliation" description="Match statements against recorded collections" onAction={() => setSection("reconciliation")} />}
           {allowed.includes("documents") && <HavenActionItem icon={FileText} tone="neutral" title="Financial documents" description="Issued receipts and folio statements" onAction={() => setSection("documents")} />}
           </div>

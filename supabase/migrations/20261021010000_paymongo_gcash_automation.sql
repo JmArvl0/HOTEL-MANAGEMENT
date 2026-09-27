@@ -115,5 +115,13 @@ end$$;
 
 revoke all on function public.confirm_gateway_payment(uuid,text,text) from public, anon, authenticated;
 grant execute on function public.confirm_gateway_payment(uuid,text,text) to service_role;
-revoke all on function public.submit_gateway_deposit(uuid,uuid,text) from public, anon, authenticated;
-grant execute on function public.submit_gateway_deposit(uuid,uuid,text) to service_role;
+-- submit_gateway_deposit was introduced in 20261016010000, but ledgers that
+-- applied an earlier revision of that file lack it; guard the re-assertion so
+-- the push does not fail where the function was never created.
+do $$ begin
+  if exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'submit_gateway_deposit') then
+    revoke all on function public.submit_gateway_deposit(uuid,uuid,text) from public, anon, authenticated;
+    grant execute on function public.submit_gateway_deposit(uuid,uuid,text) to service_role;
+  end if;
+end $$;

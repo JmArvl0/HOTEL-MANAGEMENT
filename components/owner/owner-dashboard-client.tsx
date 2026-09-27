@@ -66,8 +66,9 @@ export default function OwnerDashboardClient({ user, sessionExpiresAt }: { user:
   const [data, setData] = useState<unknown>(null);
   const [loading, setLoading] = useState(true);
   const toastController = useToasts();
-  const [collapsed, setCollapsed] = useState(() => typeof window !== "undefined" && window.localStorage.getItem("haven-owner-sidebar-collapsed") === "true");
+  const [collapsed, setCollapsed] = useState(false);
   const [menu, setMenu] = useState(false);
+  useEffect(() => { try { if (window.localStorage.getItem("haven-owner-sidebar-collapsed") === "true") setCollapsed(true); } catch {} }, []);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const toggleGroup = (id: string) => setOpenGroups((prev) => { const next = { ...prev, [id]: !(prev[id] ?? false) }; window.localStorage.setItem("haven-owner-sidebar-groups", JSON.stringify(next)); return next; });
   useEffect(() => { const timer = window.setTimeout(() => { try { const saved: unknown = JSON.parse(window.localStorage.getItem("haven-owner-sidebar-groups") ?? "{}"); if (saved && typeof saved === "object") setOpenGroups(saved as Record<string, boolean>); } catch {} }, 0); return () => window.clearTimeout(timer); }, []);

@@ -8,6 +8,8 @@ import { getToken, encode } from "next-auth/jwt";
 import type { NextRequest } from "next/server";
 import { env } from "@/lib/env";
 import { SESSION_MAX_AGE, sessionCookieName, sessionCookieOptions } from "@/lib/auth";
+import type { SecurityPolicy } from "@/lib/security-policy";
+import { sessionCookieMaxAgeSeconds } from "@/lib/security-policy";
 import { supabase } from "@/lib/supabase";
 import type { Role } from "@/lib/types";
 
@@ -50,28 +52,39 @@ export function challengeStatus(row: OtpChallengeRow | null, nowMs = Date.now())
 
 type CookieStore = { set: (name: string, value: string, options: Record<string, unknown>) => void };
 
+/** Resolve mint options: policy-derived maxAge, or browser-session when OFF. */
+function mintOptions(policy: SecurityPolicy, persistent: boolean) {
+  const maxAge = sessionCookieMaxAgeSeconds({ persistent, policy });
+  const capped = maxAge == null ? null : Math.min(maxAge, SESSION_MAX_AGE);
+  return capped == null
+    ? { ...sessionCookieOptions() }
+    : { ...sessionCookieOptions(), maxAge: capped };
+}
+
 /** Mint the stage-1 cookie: challenge-bound, role-less, id-less, disabled. */
 export async function setPendingSessionCookie(
   store: CookieStore,
-  input: { challengeId: string; email: string; name: string; persistent: boolean },
+  input: { challengeId: string; email: string; name: string; persistent: boolean; policy: SecurityPolicy },
 ) {
+  const options = mintOptions(input.policy, input.persistent);
   const encoded = await encode({
     token: { otpPending: true, challengeId: input.challengeId, persistent: input.persistent, email: input.email, name: input.name },
     secret: env.authSecret,
-    maxAge: SESSION_MAX_AGE,
+    maxAge: (options as { maxAge?: number }).maxAge ?? SESSION_MAX_AGE,
   });
-  store.set(sessionCookieName(), encoded, { ...sessionCookieOptions(), maxAge: SESSION_MAX_AGE });
+  store.set(sessionCookieName(), encoded, options);
 }
 
 /** Mint the full post-verification cookie. Absolute lifetime restarts here. */
 export async function setFullSessionCookie(
   store: CookieStore,
-  input: { id: string; email: string; name: string; role: Role; authVersion: number; persistent: boolean },
+  input: { id: string; email: string; name: string; role: Role; authVersion: number; persistent: boolean; policy: SecurityPolicy },
 ) {
+  const options = mintOptions(input.policy, input.persistent);
   const encoded = await encode({
     token: { sub: input.id, email: input.email, name: input.name, role: input.role, authVersion: input.authVersion, persistent: input.persistent, otpPending: false, disabled: false },
     secret: env.authSecret,
-    maxAge: SESSION_MAX_AGE,
+    maxAge: (options as { maxAge?: number }).maxAge ?? SESSION_MAX_AGE,
   });
-  store.set(sessionCookieName(), encoded, { ...sessionCookieOptions(), maxAge: SESSION_MAX_AGE });
+  store.set(sessionCookieName(), encoded, options);
 }
