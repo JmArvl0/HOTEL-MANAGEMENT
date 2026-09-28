@@ -20,7 +20,12 @@ const todayManila = () =>
  */
 export function useFrontOfficeRack() {
   const [from, setFrom] = useState(todayManila);
-  const [days, setDays] = useState<7 | 14>(7);
+  // Free window length 1–14 days (the /api/rack cap); the range control
+  // derives it from the picked end date.
+  const [days, setDaysState] = useState<number>(7);
+  const setDays = useCallback((value: number) => {
+    setDaysState(Math.min(14, Math.max(1, Math.floor(value) || 1)));
+  }, []);
   const [snapshot, setSnapshot] = useState<RackSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -61,7 +66,7 @@ export function useFrontOfficeRack() {
   );
 
   return useMemo(
-    () => ({ from, days, setDays, shift, goToday: () => setFrom(todayManila()), snapshot, loading, error, reload: load }),
-    [from, days, shift, snapshot, loading, error, load]
+    () => ({ from, days, setDays, setFrom, shift, goToday: () => setFrom(todayManila()), snapshot, loading, error, reload: load }),
+    [from, days, setDays, shift, snapshot, loading, error, load]
   );
 }

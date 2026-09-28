@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   assignableCell,
   barsForRoom,
+  groupRoomsByType,
   rackSummary,
+  roomBoardState,
   unassignedArrivals,
   windowDays,
   type RackReservation,
@@ -88,6 +90,32 @@ describe("assignableCell", () => {
     expect(blocked.ok).toBe(false);
     const clear = assignableCell(room(), stay({ id: "new", check_in: "2026-09-26", check_out: "2026-09-28" }), bars);
     expect(clear).toEqual({ ok: true });
+  });
+});
+
+describe("roomBoardState", () => {
+  it("derives occupied from the in-house stay, not mere assignment", () => {
+    const rows = [stay({ id: "s", room_id: "RM-1", status: "checked_in", check_in: "2026-09-21", check_out: "2026-09-24" })];
+    const board = roomBoardState(room(), rows, "2026-09-22");
+    expect(board.state).toBe("occupied");
+    expect(board.stay?.id).toBe("s");
+  });
+  it("marks confirmed future holds reserved and keeps dirty/OOS distinct", () => {
+    const rows = [stay({ id: "u", room_id: "RM-1", check_in: "2026-09-25", check_out: "2026-09-27" })];
+    expect(roomBoardState(room(), rows, "2026-09-22").state).toBe("reserved");
+    expect(roomBoardState(room({ housekeeping: "dirty" }), rows, "2026-09-22").state).toBe("dirty");
+    expect(roomBoardState(room({ status: "maintenance" }), rows, "2026-09-22").state).toBe("out_of_service");
+    expect(roomBoardState(room({ administratively_active: false }), rows, "2026-09-22").state).toBe("out_of_service");
+    expect(roomBoardState(room(), [], "2026-09-22").state).toBe("available");
+  });
+});
+
+describe("groupRoomsByType", () => {
+  it("groups live types in first-seen order, sorted by floor then number", () => {
+    const rows = [room({ id: "b", number: "102", type: "Suite" }), room({ id: "a", number: "101" }), room({ id: "c", number: "201" })];
+    const groups = groupRoomsByType(rows);
+    expect(groups.map((g) => g.type)).toEqual(["Suite", "Deluxe King"]);
+    expect(groups[1].rooms.map((r) => r.number)).toEqual(["101", "201"]);
   });
 });
 

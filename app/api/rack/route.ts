@@ -13,7 +13,7 @@ const query = z.object({
 
 /**
  * Front Office rack snapshot — one batched read-only payload for the fused
- * Room Rack & Reservations view (front_desk operates, manager/owner oversee):
+ * Room Reservations view (front_desk operates, manager/owner oversee):
  * room inventory with readiness, reservations overlapping the window, and
  * the unassigned-arrivals queue. All writes still
  * go through the existing assign / check-in / prioritize routes and RPCs.
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
   toDate.setUTCDate(toDate.getUTCDate() + parsed.data.days);
   const to = toDate.toISOString().slice(0, 10);
 
-  const [{ data: rooms }, { data: reservations }, { data: invoices }] = await Promise.all([
+  const [{ data: rooms }, { data: reservations }, { data: invoices }, { data: types }] = await Promise.all([
     supabase
       .from("rooms")
       .select("id,number,floor,wing,type,status,housekeeping,administratively_active")
@@ -45,7 +45,15 @@ export async function GET(request: Request) {
       .not("status", "in", "(cancelled,no_show)")
       .order("check_in", { ascending: true }),
     supabase.from("invoices").select("reservation_id,balance").not("reservation_id", "is", null),
+    supabase.from("room_types").select("name,badge_color_key"),
   ]);
+
+  const colors = new Map(
+    ((types ?? []) as { name: string; badge_color_key: string | null }[]).map((row) => [
+      String(row.name),
+      row.badge_color_key,
+    ])
+  );
 
   const balances = new Map(
     ((invoices ?? []) as { reservation_id: string; balance: number | string }[]).map((row) => [
@@ -58,7 +66,10 @@ export async function GET(request: Request) {
     data: {
       from,
       days: parsed.data.days,
-      rooms: rooms ?? [],
+      rooms: ((rooms ?? []) as Record<string, unknown>[]).map((row) => ({
+        ...row,
+        room_type_color: colors.get(String(row.type)) ?? null,
+      })),
       reservations: ((reservations ?? []) as Record<string, unknown>[]).map((row) => ({
         ...row,
         folio_balance: balances.get(String(row.id)) ?? null,

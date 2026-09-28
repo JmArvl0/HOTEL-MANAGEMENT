@@ -30,7 +30,7 @@ export type NavItem = { label: string; section: Section; roles?: Role[]; group: 
 
 export const NAV_ITEMS: NavItem[] = [
   { label: "Overview", section: "overview", group: "workspace" },
-  { label: "Room Rack & Reservations", section: "room_rack", roles: ["front_desk", "manager", "owner"], group: "front_office" },
+  { label: "Room Reservations", section: "room_rack", roles: ["front_desk", "manager", "owner"], group: "front_office" },
   // Deprecated fused surfaces: hidden from the sidebar but still renderable,
   // so deep links and in-flight workflows keep working.
   { label: "Reservations", section: "reservations", group: "front_office", hidden: true },

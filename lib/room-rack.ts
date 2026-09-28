@@ -1,5 +1,5 @@
 /**
- * Pure tape-chart helpers for the fused Room Rack & Reservations view.
+ * Pure board helpers for the Room Reservations view.
  * No I/O, no dates beyond ISO day strings — every rule here mirrors the
  * server gates in front_desk_assign_room (type match, available + clean,
  * no overlap); the RPC remains the arbiter and re-validates on assign.
@@ -14,6 +14,8 @@ export interface RackRoom {
   status: string;
   housekeeping: string;
   administratively_active?: boolean | null;
+  /** Semantic badge color key from room_types (null = uncolored type). */
+  room_type_color?: string | null;
 }
 
 export interface RackReservation {
@@ -96,6 +98,57 @@ export function assignableCell(
   });
   if (clash) return { ok: false, reason: "Room is already booked for those dates." };
   return { ok: true };
+}
+
+export type RackBoardState = "available" | "occupied" | "dirty" | "out_of_service" | "reserved";
+
+/**
+ * Board state for one room card, derived from the same authoritative fields
+ * the tape chart and assign gates use — never from reservation presence
+ * alone. Precedence: retired/OOS > dirty > in-house stay > upcoming hold >
+ * clean+available. Availability and assignment stay distinct concepts.
+ */
+export function roomBoardState(
+  room: RackRoom,
+  reservations: RackReservation[],
+  today: string
+): { state: RackBoardState; stay: RackReservation | null; upcoming: RackReservation | null } {
+  if (
+    room.administratively_active === false ||
+    room.status === "maintenance" ||
+    room.housekeeping === "reclean_required"
+  )
+    return { state: "out_of_service", stay: null, upcoming: null };
+  if (room.housekeeping === "dirty" || room.status === "dirty")
+    return { state: "dirty", stay: null, upcoming: null };
+  const mine = reservations.filter(
+    (r) => r.room_id === room.id && (r.status === "confirmed" || r.status === "checked_in")
+  );
+  const stay = mine.find((r) => r.status === "checked_in" && r.check_in.slice(0, 10) <= today && r.check_out.slice(0, 10) > today)
+    ?? mine.find((r) => r.status === "checked_in")
+    ?? null;
+  if (stay) return { state: "occupied", stay, upcoming: null };
+  const upcoming = mine
+    .filter((r) => r.status === "confirmed" && r.check_out.slice(0, 10) > today)
+    .sort((a, b) => (a.check_in < b.check_in ? -1 : 1))[0] ?? null;
+  if (upcoming) return { state: "reserved", stay: null, upcoming };
+  if (room.status === "available" && room.housekeeping === "clean")
+    return { state: "available", stay: null, upcoming: null };
+  return { state: "reserved", stay: null, upcoming };
+}
+
+/** Board grouping: live room types in first-seen order (never hardcoded). */
+export function groupRoomsByType(rooms: RackRoom[]): { type: string; rooms: RackRoom[] }[] {
+  const groups = new Map<string, RackRoom[]>();
+  for (const room of rooms) {
+    const key = room.type || "Unspecified";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(room);
+  }
+  return [...groups.entries()].map(([type, list]) => ({
+    type,
+    rooms: [...list].sort((a, b) => String(a.floor ?? "").localeCompare(String(b.floor ?? ""), undefined, { numeric: true }) || String(a.number).localeCompare(String(b.number), undefined, { numeric: true })),
+  }));
 }
 
 export interface RackSummary {

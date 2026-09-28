@@ -14,3 +14,6 @@ node_modules
 
 # local visual verification captures
 tmp-shots/
+
+# QA reset legacy archive (guest PII — never commit)
+/legacy-archive/

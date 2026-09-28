@@ -1,0 +1,113 @@
+/* Room Reservations as an interactive Room Board — scoped
+   presentation only. .mod-kpis is owned by ModuleSummaryCards (spacing guard
+   only below). Toolbar wrapper stays transparent per HAVEN_UI_STANDARDS. */
+.room-rack{display:grid;gap:12px;padding:16px}
+.board-viewtabs{display:flex;flex-wrap:wrap;gap:4px 20px;border-bottom:1px solid var(--dl);padding:0 4px}
+.board-viewtabs button{min-height:40px;padding:10px 2px;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:var(--dm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap}
+.board-viewtabs button:hover{color:var(--dt)}
+.board-viewtabs button.active{border-bottom-color:var(--dg);color:var(--dt)}
+.board-viewtabs button:focus-visible{outline:2px solid var(--dg);outline-offset:2px}
+.board-window-note{margin:-4px 0 0;color:var(--dm);font-size:12px;font-variant-numeric:tabular-nums}
+.rack-notice{margin:0;padding:10px 12px;border:1px solid var(--dl);border-radius:8px;background:var(--ds2);color:var(--dt);font-size:12px;line-height:1.5}
+.board-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,260px);gap:12px;align-items:start}
+.board-main{display:grid;gap:12px;min-width:0}
+.board-groups{display:grid;gap:0;border:1px solid var(--dl);border-radius:10px;background:var(--ds);overflow:hidden}
+.board-group{display:grid;grid-template-columns:132px minmax(0,1fr);border-top:1px solid var(--dl)}
+.board-group:first-child{border-top:0}
+.board-group-head{display:grid;gap:2px;align-content:start;justify-items:start;padding:12px;border-right:1px solid var(--dl);background:var(--ds2)}
+.board-group-count{color:var(--dt);font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.board-group-sub{color:var(--dm);font-size:11px;font-weight:600}
+.board-group-type{margin-top:4px}
+.board-group-breakdown{margin:6px 0 0;padding-left:16px;display:grid;gap:2px;color:var(--dt);font-size:12px;font-weight:700;line-height:1.5;list-style:disc}
+.board-group-breakdown li::marker{color:var(--dm)}
+.board-group-breakdown .breakdown-available::marker{color:#2f9e6e}
+.board-group-breakdown .breakdown-occupied::marker{color:#3b82f6}
+.board-group-breakdown .breakdown-dirty::marker{color:#d9a13b}
+.board-group-breakdown .breakdown-reserved::marker{color:var(--dm)}
+.board-group-breakdown .breakdown-out_of_service::marker{color:#9aa4b5}
+.board-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;padding:12px;align-content:start}
+.board-card{display:grid;gap:4px;min-height:120px;padding:12px;text-align:left;border:1px solid var(--dl);border-radius:10px;background:transparent;color:var(--dt);font-family:inherit;cursor:pointer}
+.board-card-top{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.board-card-top b{font-size:16px;font-weight:650}
+.board-card-guest{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.board-card-floor{color:var(--dm);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.board-card-range{color:var(--dm);font-size:11px;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.board-card.is-available{background:color-mix(in srgb,#2f9e6e 7%,transparent)}
+.board-card.is-occupied{background:color-mix(in srgb,#3b82f6 9%,transparent)}
+.board-card.is-dirty{background:color-mix(in srgb,#d9a13b 10%,transparent)}
+.board-card.is-out_of_service{background:var(--ds2);opacity:.75}
+.board-card.is-reserved{background:transparent;border-style:dashed}
+.board-card:hover{border-color:var(--dg)}
+.board-card.selected{border-color:var(--dg);box-shadow:0 0 0 1px var(--dg)}
+.board-card:focus-visible{outline:2px solid var(--dg);outline-offset:2px}
+.board-state-available,.board-state-occupied,.board-state-dirty,.board-state-out_of_service,.board-state-reserved{font-size:10px;font-weight:700}
+.app-shell .room-rack .badge.board-state-available{background:color-mix(in srgb,#2f9e6e 16%,transparent);color:#2f9e6e;border-color:transparent}
+.app-shell .room-rack .badge.board-state-occupied{background:color-mix(in srgb,#3b82f6 16%,transparent);color:#3b82f6;border-color:transparent}
+.app-shell .room-rack .badge.board-state-dirty{background:color-mix(in srgb,#d9a13b 20%,transparent);color:#b07d1e;border-color:transparent}
+.app-shell .room-rack .badge.board-state-reserved{background:transparent;color:var(--dm);border-color:var(--dl)}
+.app-shell .room-rack .badge.board-state-out_of_service{background:color-mix(in srgb,#9aa4b5 18%,transparent);color:#7c8698;border-color:transparent}
+.theme-light .app-shell .room-rack .badge.board-state-available{color:#267056}
+.theme-light .app-shell .room-rack .badge.board-state-occupied{color:#2456a8}
+.theme-light .app-shell .room-rack .badge.board-state-dirty{color:#8a5a12}
+.theme-light .app-shell .room-rack .badge.board-state-out_of_service{color:#5b6672}
+.board-range{position:relative;display:inline-flex}
+.board-range-trigger{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:10px 12px;border:1px solid var(--dl);border-radius:12px;background:transparent;color:var(--dt);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap}
+.board-range-trigger:hover{border-color:var(--dg)}
+.board-range-trigger:focus-visible{outline:2px solid var(--dg);outline-offset:2px}
+.board-range-backdrop{position:fixed;inset:0;border:0;background:transparent;cursor:default;z-index:60}
+.board-range-pop{position:absolute;top:calc(100% + 6px);right:0;z-index:61;display:grid;gap:10px;min-width:230px;padding:12px;border:1px solid var(--dl);border-radius:12px;background:var(--ds);box-shadow:0 12px 32px rgba(0,0,0,.18)}
+.board-range-pop label{display:grid;gap:4px;font-size:12px;font-weight:600;color:var(--dt)}
+.board-range-pop .board-date-input{width:100%}
+.board-date-input{min-height:44px;padding:10px 12px;border:1px solid var(--dl);border-radius:12px;background:transparent;color:var(--dt);font-size:13px;font-family:inherit}
+.app-shell .board-date-input{color-scheme:dark}
+.theme-light .app-shell .board-date-input{color-scheme:light}
+.board-date-input:hover{border-color:var(--dg)}
+.board-date-input:focus-visible{outline:2px solid var(--dg);outline-offset:2px}
+.board-actions{display:grid;gap:8px}
+.board-action{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:44px;padding:10px 12px;text-align:left;border:1px solid var(--dl);border-radius:8px;background:transparent;color:var(--dt);font-family:inherit;font-size:13px;cursor:pointer}
+.board-action span b{display:block}
+.board-action span small{display:block;color:var(--dm);font-size:12px}
+.board-action:hover{border-color:var(--dg);background:var(--ds2)}
+.board-ops{display:grid;gap:12px;min-width:0;align-content:start;position:sticky;top:12px;max-height:calc(100vh - 24px);overflow-y:auto}
+.ops-panel{padding:14px}
+.ops-panel h2{display:flex;align-items:center;gap:8px;margin:0 0 10px;color:var(--dt);font-size:13px;font-weight:650}
+.ops-panel h3{margin:12px 0 8px;color:var(--dm);font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:.6px}
+.ops-panel ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.ops-panel li button{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:8px 10px;border:1px solid var(--dl);border-radius:8px;background:transparent;color:var(--dt);font-family:inherit;font-size:13px;cursor:pointer;text-align:left}
+.ops-panel li button>span:nth-child(2){flex:1}
+.ops-panel li button:hover{border-color:var(--dg);background:var(--ds2)}
+.ops-panel li button:disabled{opacity:.55;cursor:not-allowed}
+.ops-activity b{font-variant-numeric:tabular-nums}
+.ops-ico{display:grid;place-items:center;width:28px;height:28px;flex:none;border-radius:8px}
+.ops-arr{background:color-mix(in srgb,#2f9e6e 16%,transparent);color:#2f9e6e}
+.ops-dep{background:color-mix(in srgb,#3b82f6 14%,transparent);color:#3b82f6}
+.ops-in{background:color-mix(in srgb,#8b5cf6 14%,transparent);color:#8b5cf6}
+.ops-out{background:color-mix(in srgb,#d9a13b 16%,transparent);color:#b07d1e}
+.ops-occupancy{display:flex;align-items:center;gap:12px}
+.ops-donut{display:grid;place-items:center;width:64px;height:64px;flex:none;border-radius:50%}
+.ops-donut b{display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:var(--ds);color:var(--dt);font-size:13px}
+.ops-occupancy-copy{display:grid;gap:2px}
+.ops-occupancy-copy b{color:var(--dt);font-size:13px}
+.ops-occupancy-copy small{color:var(--dm);font-size:12px}
+.ops-legend li{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dm)}
+.dot{width:10px;height:10px;flex:none;border-radius:50%}
+.dot-available{background:#2f9e6e}
+.dot-occupied{background:#3b82f6}
+.dot-dirty{background:#d9a13b}
+.dot-oos{background:#9aa4b5}
+.board-tabs{overflow:hidden}
+.board-tabs-searchpanel{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin-bottom:12px}
+.board-tabs-searchpanel .haven-search-input{flex:1 1 240px}
+.rack-skeleton{display:grid;gap:8px;padding:16px}
+.rack-skeleton .pulse-bar{display:block;height:44px;border-radius:8px;background:var(--ds2);animation:rack-pulse 1.4s ease-in-out infinite}
+.rack-skeleton .pulse-bar.short{width:60%}
+.rack-error{display:grid;gap:10px;justify-items:start;padding:16px;border:1px solid var(--dl);border-radius:10px;color:var(--dt);font-size:13px}
+.rack-error button{min-height:36px;padding:8px 14px;border:1px solid var(--dl);border-radius:8px;background:transparent;color:var(--dt);font-size:13px;font-weight:600;cursor:pointer}
+.rack-error button:hover{border-color:var(--dg)}
+@keyframes rack-pulse{0%,100%{opacity:.55}50%{opacity:1}}
+.theme-light .room-rack .board-groups,.theme-light .room-rack .ops-panel{background:#fff}
+.theme-light .room-rack .board-group-head{background:#f7f9f7}
+.theme-light .room-rack .ops-donut b{background:#fff}
+@media(max-width:1100px){.room-rack .board-layout{grid-template-columns:1fr}.room-rack .board-ops{grid-template-columns:repeat(auto-fit,minmax(240px,1fr));position:static;max-height:none;overflow:visible}}
+@media(max-width:640px){.room-rack .board-group{grid-template-columns:80px minmax(0,1fr)}.room-rack .board-cards{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}}
+@media(prefers-reduced-motion:reduce){.room-rack .rack-skeleton .pulse-bar{animation:none}}
