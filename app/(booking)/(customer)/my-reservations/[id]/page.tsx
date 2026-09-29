@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireCustomerSession } from "@/lib/customer-auth";
 import { getCustomerReservationDetail } from "@/lib/customer";
-import { formatPeso } from "@/lib/booking";
 import { displayTime, operationalPolicyFromSnapshot } from "@/lib/hotel-policy";
 import { getCustomerTransportation } from "@/lib/transportation";
 import { supabase } from "@/lib/supabase";
@@ -40,6 +39,16 @@ export default async function ReservationPage({ params }: { params: Promise<{ id
     if (data) existingReview = { rating: Number(data.rating), comment: String(data.comment) };
   }
 
+  const partialPct = policy.cancellationPartialRefundBasisPoints / 100;
+  const policyItems = [
+    { title: "Check-in & check-out", body: <>Check-in from <strong>{displayTime(policy.checkInTime)}</strong> · check-out by <strong>{displayTime(policy.checkOutTime)}</strong> ({policy.hotelTimezone}).</> },
+    { title: "Valid ID", body: <>Valid government ID is <strong>{policy.validIdRequired ? "required" : "not required by the current configuration"}</strong> at check-in. Guests must be at least <strong>{policy.minimumBookingAge} years old</strong> to book.</> },
+    { title: "Balance & incidentals", body: <>The remaining balance and incidental charges are due <strong>{policy.incidentalsDue.toLowerCase()}</strong>.</> },
+    { title: "Cancellation refunds", body: <><strong>100% refund</strong> at least <strong>{policy.cancellationFullRefundDays} days</strong> before arrival · <strong>{partialPct}% refund</strong> at least <strong>{policy.cancellationPartialRefundDays} days</strong> before arrival · otherwise <strong>non-refundable</strong>. No-show past <strong>{displayTime(policy.noShowCutoffTime)}</strong> on arrival day forfeits the deposit.</> },
+    { title: "Changes to your booking", body: <>Self-service change requests at least <strong>{policy.selfServiceModificationDays} days</strong> before arrival, subject to availability, repricing, and <strong>staff approval</strong>.</> },
+    { title: "Special requests", body: <>Special requests are recorded but <strong>{policy.specialRequestsGuaranteed ? "guaranteed" : "not guaranteed"}</strong>.</> },
+    { title: "House rules", body: <>Pets are <strong>{policy.petsAllowed ? "allowed" : "not allowed"}</strong> · smoking is <strong>{policy.smokingAllowed ? "allowed" : "not allowed"}</strong> · early check-in is <strong>{policy.earlyCheckInAllowed ? "available on request" : "not offered"}</strong>.</> },
+  ];
   return (
     <>
     <ReservationDetailView
@@ -69,6 +78,7 @@ export default async function ReservationPage({ params }: { params: Promise<{ id
           ? "This reservation is awaiting deposit verification and is not yet confirmed."
           : null,
         policyText: `Valid government ID is ${policy.validIdRequired ? "required" : "not required by the current configuration"} at check-in. The remaining balance and incidental charges are due ${policy.incidentalsDue.toLowerCase()}. Deposit refund: 100% at least ${policy.cancellationFullRefundDays} days before arrival, ${policy.cancellationPartialRefundBasisPoints / 100}% at least ${policy.cancellationPartialRefundDays} days before arrival, otherwise non-refundable. Special requests are recorded but ${policy.specialRequestsGuaranteed ? "guaranteed" : "not guaranteed"}.`,
+        policyItems,
         money: {
           stayTotal,
           folioTotal,

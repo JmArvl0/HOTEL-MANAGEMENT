@@ -3,7 +3,7 @@
 // room action sheet, assign-picker RPC call, dirty-cell dispatch dialog, and
 // folio routing. The rack hook is stubbed — no network, no mutation.
 import { afterEach, describe, expect, it, vi, beforeEach } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import FrontOfficeRack from "./fused-room-rack-panel";
 import * as hook from "@/hooks/use-front-office-rack";
 
@@ -56,6 +56,8 @@ function renderRack(role = "front_desk") {
     onViewRoom: vi.fn(),
     onNewReservation: vi.fn(),
     onCheckOut: vi.fn(),
+    onScan: vi.fn(),
+    notify: vi.fn(),
   };
   render(<FrontOfficeRack {...props} />);
   return props;
@@ -78,27 +80,34 @@ describe("FrontOfficeRack", () => {
     expect(screen.getByText("Available")).toBeTruthy();
   });
 
-  it("opens the action sheet on card click with room detail and folio actions", () => {
-    const props = renderRack();
-    fireEvent.click(screen.getByRole("button", { name: /Room 101, floor 1, Occupied/ }));
-    expect(screen.getByText("Room 101 — Occupied")).toBeTruthy();
-    fireEvent.click(screen.getByText("View room details"));
-    expect(props.onViewRoom).toHaveBeenCalledWith(expect.objectContaining({ id: "RM-101" }));
+  it("lands on the deep-linked rack tab from overview shortcuts", () => {
+    render(<FrontOfficeRack role="front_desk" onOpenFolio={vi.fn()} onCheckIn={vi.fn()} onViewRoom={vi.fn()} initialView="departures" initialTab="departures" />);
+    const views = screen.getByRole("tablist", { name: "Room reservations views" });
+    expect(within(views).getByRole("tab", { name: "Departures Today" }).getAttribute("aria-selected")).toBe("true");
   });
 
-  it("routes the in-house stay to the folio from the action sheet", () => {
+  it("opens room details directly on card click with folio actions attached", () => {
     const props = renderRack();
     fireEvent.click(screen.getByRole("button", { name: /Room 101, floor 1, Occupied/ }));
-    fireEvent.click(screen.getByText("View folio"));
+    expect(props.onViewRoom).toHaveBeenCalledWith(expect.objectContaining({ id: "RM-101" }), expect.any(Array));
+    expect(screen.queryByText("View room details")).toBeNull();
+  });
+
+  it("routes the in-house stay to the folio from the attached detail actions", () => {
+    const props = renderRack();
+    fireEvent.click(screen.getByRole("button", { name: /Room 101, floor 1, Occupied/ }));
+    const actions = props.onViewRoom.mock.calls[0][1] as { label: string; onSelect: () => void }[];
+    actions.find((a) => a.label === "View folio")!.onSelect();
     expect(props.onOpenFolio).toHaveBeenCalledWith("RSV-B");
   });
 
   it("routes dirty cards to dispatch and posts the reclean task", async () => {
     const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({}) }));
     vi.stubGlobal("fetch", fetchMock);
-    renderRack();
+    const props = renderRack();
     fireEvent.click(screen.getByRole("button", { name: /Room 102, floor 1, Dirty/ }));
-    fireEvent.click(screen.getByText("Dispatch reclean"));
+    const actions = props.onViewRoom.mock.calls[0][1] as { label: string; onSelect: () => void }[];
+    act(() => { actions.find((a) => a.label === "Dispatch reclean")!.onSelect(); });
     expect(screen.getByText("Dispatch reclean for room 102?")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Dispatch reclean" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
@@ -109,21 +118,26 @@ describe("FrontOfficeRack", () => {
   });
 
   it("offers no assign action on a dirty room", () => {
-    renderRack();
+    const props = renderRack();
     fireEvent.click(screen.getByRole("button", { name: /Room 102, floor 1, Dirty/ }));
-    expect(screen.queryByText("Assign arrival…")).toBeNull();
+    const actions = props.onViewRoom.mock.calls[0][1] as { label: string }[];
+    expect(actions.some((a) => a.label === "Assign arrival…")).toBe(false);
   });
 
-  it("assigns a compatible arrival through picker + confirm, then checks in", async () => {
+  it("uses the standard confirm dialog for assign with kit buttons", async () => {
     const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({}) }));
     vi.stubGlobal("fetch", fetchMock);
     const props = renderRack();
     fireEvent.click(screen.getByRole("button", { name: /Room 104, floor 1, Clean/ }));
-    fireEvent.click(screen.getByText("Assign arrival…"));
-    expect(screen.getByText("Assign arrival to room 104?")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /Reyes/ }));
-    expect(screen.getByText("Assign room 104?")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Assign & check in" }));
+    const actions = props.onViewRoom.mock.calls[0][1] as { label: string; onSelect: () => void }[];
+    act(() => { actions.find((a) => a.label === "Assign arrival…")!.onSelect(); });
+    fireEvent.click(screen.getByRole("option", { name: /Reyes/ }));
+    const dialog = screen.getByRole("dialog", { name: "Assign room 104?" });
+    const cancel = within(dialog).getByRole("button", { name: "Cancel" });
+    const confirm = within(dialog).getByRole("button", { name: "Assign & check in" });
+    expect(cancel.className).toContain("btn-soft");
+    expect(confirm.className).toContain("btn-accent");
+    fireEvent.click(confirm);
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
       "/api/front-desk/reservations/RSV-A/assign",
       expect.objectContaining({ method: "POST" })
@@ -132,11 +146,55 @@ describe("FrontOfficeRack", () => {
     vi.unstubAllGlobals();
   });
 
+  it("uses the standard footer buttons for dispatch reclean", async () => {
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({}) }));
+    vi.stubGlobal("fetch", fetchMock);
+    const props = renderRack();
+    fireEvent.click(screen.getByRole("button", { name: /Room 102, floor 1, Dirty/ }));
+    const actions = props.onViewRoom.mock.calls[0][1] as { label: string; onSelect: () => void }[];
+    act(() => { actions.find((a) => a.label === "Dispatch reclean")!.onSelect(); });
+    const dialog = screen.getByRole("dialog", { name: "Dispatch reclean for room 102?" });
+    expect(within(dialog).getByText("Creates an urgent housekeeping task. The turnover queue owns completion.")).toBeTruthy();
+    const cancel = within(dialog).getByRole("button", { name: "Cancel" });
+    const confirm = within(dialog).getByRole("button", { name: "Dispatch reclean" });
+    expect(cancel.className).toContain("btn-soft");
+    expect(confirm.className).toContain("btn-accent");
+    fireEvent.click(confirm);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      "/api/resources/housekeeping_tasks",
+      expect.objectContaining({ method: "POST" })
+    ));
+    vi.unstubAllGlobals();
+  });
+
   it("keeps manager read-only on assignment with a friendly notice", () => {
-    renderRack("manager");
+    const props = renderRack("manager");
     fireEvent.click(screen.getByRole("button", { name: /Room 104, floor 1, Clean/ }));
-    expect(screen.queryByText("Assign arrival…")).toBeNull();
-    expect(screen.queryByText("Check in guest")).toBeNull();
+    const actions = props.onViewRoom.mock.calls[0][1] as { label: string; onSelect: () => void }[];
+    expect(actions.some((a) => a.label === "Assign arrival…")).toBe(false);
+    expect(actions.some((a) => a.label === "Check in guest")).toBe(false);
+    actions.find((a) => a.label === "Assignment is Front Desk only")!.onSelect();
+    expect(screen.queryByText(/Front Desk operations/)).toBeNull();
+  });
+
+  it("sends notices to the toast stack with tones, not inline text", async () => {
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({}) }));
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const props = renderRack("manager");
+      fireEvent.click(screen.getByRole("button", { name: /Room 104, floor 1, Clean/ }));
+      const actions = props.onViewRoom.mock.calls[0][1] as { label: string; onSelect: () => void }[];
+      actions.find((a) => a.label === "Assignment is Front Desk only")!.onSelect();
+      expect(props.notify).toHaveBeenCalledWith(expect.stringMatching(/Front Desk operations/), "info");
+      expect(document.querySelector(".rack-notice")).toBeNull();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("falls back to inline text when unwired", () => {
+    render(<FrontOfficeRack role="manager" onOpenFolio={vi.fn()} onCheckIn={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: /Room 104, floor 1, Clean/ }));
     fireEvent.click(screen.getByText("Assignment is Front Desk only"));
     expect(screen.getByText(/Front Desk operations/)).toBeTruthy();
   });
@@ -174,6 +232,16 @@ describe("FrontOfficeRack", () => {
     const search = screen.getByLabelText("Search reservations") as HTMLInputElement;
     fireEvent.change(search, { target: { value: "no-such-guest" } });
     await waitFor(() => expect(screen.getByText("No guests in house")).toBeTruthy());
+  });
+
+  it("lists Scan QR first in Quick Actions and fires the scanner", () => {
+    const props = renderRack();
+    const rail = screen.getByRole("complementary", { name: "Front office operations" });
+    const scan = within(rail).getByRole("button", { name: "Scan QR" });
+    const items = within(rail).getAllByRole("listitem");
+    expect(items[0].textContent).toContain("Scan QR");
+    fireEvent.click(scan);
+    expect(props.onScan).toHaveBeenCalledTimes(1);
   });
 
   it("orders view tabs with the board default and switches to reservation views", () => {

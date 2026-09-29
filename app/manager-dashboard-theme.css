@@ -65,6 +65,10 @@
 .toast-stack .toast-card{pointer-events:auto;display:flex;align-items:flex-start;gap:10px;padding:12px 12px 12px 14px;background:var(--ds);border:1px solid var(--dl);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.28);animation:havenToastIn .2s ease-out}
 .toast-stack .toast-card .toast-icon{flex:0 0 auto;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;border-radius:5px}
 .toast-stack .toast-card.info .toast-icon{background:#17363f;color:#85cbd0}
+.toast-stack .toast-card.info{border-color:#2e5963;background:color-mix(in srgb,#85cbd0 8%,var(--ds))}
+.toast-stack .toast-card.success{border-color:#285441;background:color-mix(in srgb,#65d3a5 8%,var(--ds))}
+.toast-stack .toast-card.warning{border-color:#5f482c;background:color-mix(in srgb,#dfa062 9%,var(--ds))}
+.toast-stack .toast-card.error{border-color:#67353a;background:color-mix(in srgb,#ef797e 9%,var(--ds))}
 .toast-stack .toast-card.success .toast-icon{background:#173024;color:#65d3a5}
 .toast-stack .toast-card.warning .toast-icon{background:#34291c;color:#dfa062}
 .toast-stack .toast-card.error .toast-icon{background:#351f21;color:#ef797e}
@@ -77,6 +81,10 @@
 .toast-stack .toast-card .toast-dismiss:hover{color:var(--dt);background:var(--ds2)}
 .theme-light .toast-stack .toast-card{box-shadow:0 10px 30px rgba(30,52,41,.14)}
 .theme-light .toast-stack .toast-card.info .toast-icon{background:#e1eeeb;color:#176773}
+.theme-light .toast-stack .toast-card.info{border-color:#9fc6cd;background:color-mix(in srgb,#176773 6%,#fff)}
+.theme-light .toast-stack .toast-card.success{border-color:#9fd8c3;background:color-mix(in srgb,#267056 6%,#fff)}
+.theme-light .toast-stack .toast-card.warning{border-color:#f1d3aa;background:color-mix(in srgb,#a45a22 6%,#fff)}
+.theme-light .toast-stack .toast-card.error{border-color:#edc2bf;background:color-mix(in srgb,#a44843 6%,#fff)}
 .theme-light .toast-stack .toast-card.success .toast-icon{background:#def1e8;color:#267056}
 .theme-light .toast-stack .toast-card.warning .toast-icon{background:#fff0dd;color:#a45a22}
 .theme-light .toast-stack .toast-card.error .toast-icon{background:#f9e3e1;color:#a44843}
@@ -340,36 +348,50 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .app-shell .grp-inventory-icon{width:30px;height:30px;display:grid;place-items:center;border-radius:5px;background:#17363f;color:#85cbd0}
 .app-shell .grp-inventory-icon svg{width:15px}
 .app-shell .grp-inventory header>div{flex:1;min-width:0}
-.app-shell .grp-inventory header b{display:block;color:#e6ebe8;font-size:12px}
-.app-shell .grp-inventory header small{display:block;margin-top:2px;color:#626c66;font-size:9px}
+.app-shell .grp-inventory header b{display:block;color:#e6ebe8;font-size:14px}
+.app-shell .grp-inventory header small{display:block;margin-top:2px;color:#9aa5a0;font-size:12px}
 .app-shell .grp-inventory header .badge{margin-left:auto}
 .app-shell .grp-inventory ul{list-style:none;margin:0;padding:0}
 .app-shell .grp-inventory li{display:grid;gap:4px;padding:11px 0;border-bottom:1px solid #222824}
 .app-shell .grp-inventory li:last-child{border-bottom:0}
 .app-shell .grp-inv-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.app-shell .grp-inv-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#dce2de;font-size:11px;font-weight:600}
+.app-shell .grp-inv-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#dce2de;font-size:13.5px;font-weight:600}
 .app-shell .grp-inv-qty{margin:0;display:flex;align-items:baseline;gap:5px;font-variant-numeric:tabular-nums}
-.app-shell .grp-inv-qty b{color:#dce2de;font-weight:600;font-size:12px}
-.app-shell .grp-inv-target{color:#5f6963;font-size:10px}
-.app-shell .grp-inv-unit{color:#626c66;font-size:9px}
+.app-shell .grp-inv-qty b{color:#dce2de;font-weight:600;font-size:14px}
+.app-shell .grp-inv-target{color:#9aa5a0;font-size:12.5px}
+.app-shell .grp-inv-unit{color:#9aa5a0;font-size:12px}
 .app-shell .grp-inventory li.grp-low .grp-inv-qty b{color:#d1a35f}
-.app-shell .grp-inventory .grp-inventory-empty{display:block;padding:14px 0;color:#626c66;font-size:10px}
-.app-shell .grp-inventory-note{display:block;margin-top:10px;padding-top:11px;border-top:1px solid #222824;color:#626c66;font-size:9px;line-height:1.6}
-.app-shell .grp-batches{display:grid;gap:10px}
-.app-shell .grp-batch{background:var(--ds);border:1px solid var(--dl)}
-.app-shell .grp-batch>header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:14px 16px;border-bottom:1px solid #222824}
-.app-shell .grp-batch>header strong{display:block;color:#dce2de;font-size:11px}
-.app-shell .grp-batch>header small{display:block;margin-top:4px;color:#626c66;font-size:9px}
+.app-shell .grp-inventory .grp-inventory-empty{display:block;padding:14px 0;color:#9aa5a0;font-size:13px}
+.app-shell .grp-inventory-note{display:block;margin-top:10px;padding-top:11px;border-top:1px solid #222824;color:#9aa5a0;font-size:12.5px;line-height:1.6}
+.app-shell .grp-batches{display:grid;gap:14px}
+.app-shell .grp-batch{background:var(--ds);border:1px solid var(--dl);border-radius:12px}
+.app-shell .grp-batch.grp-urgent{border-left:4px solid #d1a35f}
+.app-shell .grp-batch>header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:16px 18px;border-bottom:1px solid #222824}
+.app-shell .grp-batch-title h3{margin:0;color:#eef3f0;font-size:17px;font-weight:700;letter-spacing:-.01em}
+.app-shell .grp-batch>header strong{display:block;margin-top:4px;color:#c6cfca;font-size:13px;font-weight:600}
+.app-shell .grp-batch>header small{display:block;margin-top:4px;color:#9aa5a0;font-size:12.5px;line-height:1.5}
 .app-shell .grp-batch-meta{display:flex;flex-direction:column;align-items:flex-end;gap:9px}
 .app-shell .grp-batch-badges{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}
-.app-shell .grp-room{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:4px 8px;border-radius:999px;background:#17363f;color:#85cbd0;font-size:9px;font-weight:700;white-space:nowrap}
+.app-shell .grp-room{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:6px 12px;border-radius:999px;background:#17363f;color:#85cbd0;font-size:13px;font-weight:700;white-space:nowrap}
 .app-shell .grp-room.unassigned{background:#2c2d29;color:#9da59f}
-.app-shell .grp-batch ul{list-style:none;margin:0;padding:4px 16px 10px}
-.app-shell .grp-batch li{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:10px 0;border-bottom:1px dashed #222824}
+.app-shell .grp-batch ul{list-style:none;margin:0;padding:6px 18px 12px}
+.app-shell .grp-batch li{position:relative;display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 0 12px 20px;border-bottom:1px dashed #222824}
 .app-shell .grp-batch li:last-child{border-bottom:0}
-.app-shell .grp-batch li b{display:block;color:#dce2de;font-size:10px}
-.app-shell .grp-batch li small{display:block;margin-top:3px;color:#626c66;font-size:9px}
+.app-shell .grp-batch li::before{content:"";position:absolute;left:2px;top:20px;width:8px;height:8px;border-radius:999px;background:#d1a35f}
+.app-shell .grp-batch li.grp-status-in-progress::before{background:#6fb7d6}
+.app-shell .grp-batch li.grp-status-completed::before{background:#65d3a5}
+.app-shell .grp-batch li.grp-status-cancelled::before{background:#ef797e}
+.app-shell .grp-item-main b{display:block;color:#eef3f0;font-size:14.5px;font-weight:600;line-height:1.5}
+.app-shell .grp-item-main small{display:block;margin-top:4px;color:#9aa5a0;font-size:13px;line-height:1.5}
+.app-shell .grp-chip{display:inline-block;padding:2px 8px;border-radius:999px;background:#ffffff14;font-size:12px;font-weight:700;color:#c6cfca}
+.app-shell .grp-fulfillment{display:inline-flex;align-items:center;gap:8px;color:#9aa5a0;font-size:13px;font-weight:600}
+.app-shell .grp-bar{display:inline-block;width:72px;height:6px;border-radius:999px;background:#ffffff1f;overflow:hidden}
+.app-shell .grp-bar>span{display:block;height:100%;background:#65d3a5;border-radius:999px}
+.app-shell .badge.grp-overdue{background:#30281b;color:#e8b96a;font-size:12.5px;padding:5px 10px}
+.app-shell .grp-batch .badge{font-size:12.5px;padding:5px 10px}
+.app-shell .grp-decide .table-action{min-height:44px;padding:10px 18px;font-size:14px}
 .app-shell .grp-item-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}
+.app-shell .grp-item-actions .table-action{min-height:40px;padding:8px 14px;font-size:13.5px}
 .app-shell .grp-note{color:#ef797e}
 .app-shell .badge.grp-approval.pending{background:#30281b;color:#d1a35f}
 .app-shell .badge.grp-approval.approved{background:#173024;color:#65d3a5}
@@ -388,12 +410,17 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .theme-light .app-shell .grp-inventory .grp-inventory-empty{color:#7c8780}
 .theme-light .app-shell .grp-inventory-note{border-color:#e8ece9;color:#7c8780}
 .theme-light .app-shell .grp-batch{background:#fff;border-color:#dfe5e1}
+.theme-light .app-shell .grp-batch.grp-urgent{border-left:4px solid #b97e1e}
 .theme-light .app-shell .grp-batch>header{border-color:#e8ece9}
-.theme-light .app-shell .grp-batch>header strong{color:#1d2821}
-.theme-light .app-shell .grp-batch>header small{color:#7c8780}
+.theme-light .app-shell .grp-batch-title h3{color:#16211b}
+.theme-light .app-shell .grp-batch>header strong{color:#3d4a43}
+.theme-light .app-shell .grp-batch>header small{color:#5b6660}
 .theme-light .app-shell .grp-batch li{border-color:#e8ece9}
-.theme-light .app-shell .grp-batch li b{color:#1d2821}
-.theme-light .app-shell .grp-batch li small{color:#7c8780}
+.theme-light .app-shell .grp-item-main b{color:#16211b}
+.theme-light .app-shell .grp-item-main small{color:#5b6660}
+.theme-light .app-shell .grp-chip{background:#eef2ef;color:#3d4a43}
+.theme-light .app-shell .grp-bar{background:#e3e9e5}
+.theme-light .app-shell .badge.grp-overdue{background:#f4ead7;color:#7a5410}
 .theme-light .app-shell .grp-room{background:#e1eeeb;color:#176773}
 .theme-light .app-shell .grp-room.unassigned{background:#edf0ee;color:#6f7973}
 .theme-light .app-shell .grp-note{color:#a44843}
@@ -1674,11 +1701,11 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
    keep long governance and service queues understandable. */
 .app-shell .table-pagination{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:48px;padding:9px 14px;border-top:1px solid var(--dl);background:var(--ds)}
 .app-shell .table-pagination-copy{display:grid;gap:2px;min-width:0}
-.app-shell .table-pagination-summary{color:var(--dt);font-size:9px;font-weight:700}
-.app-shell .table-pagination-note{overflow:hidden;color:var(--dm);font-size:8px;line-height:1.4;text-overflow:ellipsis;white-space:nowrap}
+.app-shell .table-pagination-summary{color:var(--dt);font-size:11px;font-weight:700}
+.app-shell .table-pagination-note{overflow:hidden;color:var(--dm);font-size:10px;line-height:1.4;text-overflow:ellipsis;white-space:nowrap}
 .app-shell .table-pagination-controls{display:flex;align-items:center;gap:7px;flex:none}
-.app-shell .table-pagination-page{min-width:78px;color:var(--dm);font-size:8px;font-weight:700;text-align:center;font-variant-numeric:tabular-nums}
-.app-shell .table-pagination-button{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-height:30px;padding:6px 9px;border:1px solid var(--dl);border-radius:6px;background:var(--ds2);color:var(--dt);font-size:8px;font-weight:750;cursor:pointer;transition:border-color .16s ease,background-color .16s ease,color .16s ease}
+.app-shell .table-pagination-page{min-width:78px;color:var(--dm);font-size:10px;font-weight:700;text-align:center;font-variant-numeric:tabular-nums}
+.app-shell .table-pagination-button{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-height:32px;padding:6px 9px;border:1px solid var(--dl);border-radius:6px;background:var(--ds2);color:var(--dt);font-size:10px;font-weight:750;cursor:pointer;transition:border-color .16s ease,background-color .16s ease,color .16s ease}
 .app-shell .table-pagination-button:hover:not(:disabled){border-color:var(--dg);background:#17363f;color:#dff7ef}
 .app-shell .table-pagination-button:focus-visible{outline:2px solid var(--dg);outline-offset:2px}
 .app-shell .table-pagination-button:disabled{cursor:not-allowed;opacity:.42}

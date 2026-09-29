@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { BedDouble, CalendarDays, DoorOpen, Sparkles, SprayCan } from "lucide-react";
-import { Modal } from "@/components/ui/Modal";
+import { BedDouble, CalendarDays, DoorOpen, QrCode, Sparkles, SprayCan } from "lucide-react";
+import { Modal, ConfirmDialog } from "@/components/ui/Modal";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { HavenDataToolbar, HavenSearchInput } from "@/components/ui";
 import { HavenSelect } from "@/components/ui/haven-select";
@@ -20,6 +20,7 @@ import {
   type RackRoom,
 } from "@/lib/room-rack";
 import type { RecordItem } from "@/lib/types";
+import type { ToastTone } from "@/components/ui/toast-stack";
 import "./fused-room-rack-panel.css";
 
 const asRecord = (value: object): RecordItem => value as unknown as RecordItem;
@@ -102,21 +103,37 @@ export default function FrontOfficeRack({
   onViewRoom,
   onNewReservation,
   onCheckOut,
+  onScan,
+  notify,
+  initialView,
+  initialTab,
 }: {
   role: string;
   onOpenFolio: (reservationId: string) => void;
   onCheckIn: (reservationId: string) => void;
-  onViewRoom?: (room: RecordItem) => void;
+  onViewRoom?: (room: RecordItem, actions?: BoardAction[]) => void;
   onNewReservation?: () => void;
   onCheckOut?: (item: RecordItem) => void;
+  onScan?: () => void;
+  /** Deep-link entry from Overview shortcuts — applied on mount and when changed. */
+  initialView?: "board" | BoardTab;
+  initialTab?: BoardTab;
+  /** Transient feedback — the shared toast stack. Falls back to inline text. */
+  notify?: (message: string, tone?: ToastTone) => void;
 }) {
   const { from, days, setDays, setFrom, snapshot, loading, error, reload } = useFrontOfficeRack();
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [floorFilter, setFloorFilter] = useState("all");
-  const [tab, setTab] = useState<BoardTab>("arrivals");
-  const [view, setView] = useState<"board" | BoardTab>("board");
+  const [tab, setTab] = useState<BoardTab>(initialTab ?? "arrivals");
+  const [view, setView] = useState<"board" | BoardTab>(initialView ?? "board");
+  // Overview shortcuts deep-link into a specific rack view — applied on
+  // mount and whenever the entry changes (section switches remount anyway).
+  useEffect(() => {
+    if (initialTab) setTab(initialTab);
+    if (initialView) setView(initialView);
+  }, [initialTab, initialView]);
   const [history, setHistory] = useState<RackReservation[] | null>(null);
   const [activeRoom, setActiveRoom] = useState<RackRoom | null>(null);
   const [arrivalPick, setArrivalPick] = useState<RackRoom | null>(null);
@@ -124,6 +141,12 @@ export default function FrontOfficeRack({
   const [dispatchRoom, setDispatchRoom] = useState<RackRoom | null>(null);
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  // Toast-first feedback: parent wires the shared stack; the inline line is
+  // only a fallback so messages are never swallowed when unwired (tests).
+  const say = (message: string, tone: ToastTone = "info") => {
+    if (notify) notify(message, tone);
+    else setNotice(message);
+  };
 
   const rooms = useMemo(() => snapshot?.rooms ?? [], [snapshot]);
   const reservations = useMemo(() => snapshot?.reservations ?? [], [snapshot]);
@@ -198,7 +221,7 @@ export default function FrontOfficeRack({
     const bars = barsForRoom(reservations, room.id, from, days);
     const check = assignableCell(room, reservation, bars);
     if (!check.ok) {
-      setNotice((check as { reason: string }).reason);
+      say((check as { reason: string }).reason, "warning");
       setConfirm(null);
       return;
     }
@@ -218,7 +241,7 @@ export default function FrontOfficeRack({
       await reload();
       onCheckIn(reservation.id);
     } catch (cause) {
-      setNotice(cause instanceof Error ? cause.message : "Unable to assign room.");
+      say(cause instanceof Error ? cause.message : "Unable to assign room.", "error");
       setConfirm(null);
     } finally {
       setBusy(false);
@@ -244,10 +267,10 @@ export default function FrontOfficeRack({
       if (!res.ok) throw new Error(body.error ?? "Unable to dispatch housekeeping.");
       setDispatchRoom(null);
       setActiveRoom(null);
-      setNotice(`Reclean dispatched for room ${room.number}.`);
+      say(`Reclean dispatched for room ${room.number}.`, "success");
       await reload();
     } catch (cause) {
-      setNotice(cause instanceof Error ? cause.message : "Unable to dispatch housekeeping.");
+      say(cause instanceof Error ? cause.message : "Unable to dispatch housekeeping.", "error");
     } finally {
       setBusy(false);
     }
@@ -257,12 +280,7 @@ export default function FrontOfficeRack({
     const board = states.get(room.id) ?? roomBoardState(room, reservations, today);
     const stay = board.stay ?? board.upcoming;
     const actions: BoardAction[] = [];
-    if (onViewRoom)
-      actions.push({
-        label: "View room details",
-        hint: `${room.type} · Floor ${String(room.floor ?? "—")}`,
-        onSelect: () => { setActiveRoom(null); onViewRoom(asRecord({ id: room.id, number: room.number, type: room.type, floor: room.floor, status: room.status, housekeeping: room.housekeeping })); },
-      });
+    // Card click opens room details directly — no "View room details" row.
     if (stay)
       actions.push({
         label: stay.status === "checked_in" ? "View folio" : "View reservation",
@@ -282,8 +300,19 @@ export default function FrontOfficeRack({
     if (board.state === "dirty" && canDispatch)
       actions.push({ label: "Dispatch reclean", hint: "Creates an urgent housekeeping task", onSelect: () => { setActiveRoom(null); setDispatchRoom(room); } });
     if (!canAssign && board.state === "available")
-      actions.push({ label: "Assignment is Front Desk only", hint: "This view is read-only for your role", onSelect: () => { setActiveRoom(null); setNotice("Room assignment and check-in are Front Desk operations — this view is read-only for your role."); } });
+      actions.push({ label: "Assignment is Front Desk only", hint: "This view is read-only for your role",         onSelect: () => { setActiveRoom(null); say("Room assignment and check-in are Front Desk operations — this view is read-only for your role."); } });
     return actions;
+  }
+
+  // Card click opens room details directly with its operational actions
+  // attached (rendered in the detail modal footer). Only the unwired
+  // fallback (no onViewRoom) keeps the legacy action sheet.
+  function openRoom(room: RackRoom) {
+    if (onViewRoom) {
+      onViewRoom(asRecord({ id: room.id, number: room.number, type: room.type, floor: room.floor, status: room.status, housekeeping: room.housekeeping }), roomActions(room));
+      return;
+    }
+    setActiveRoom(room);
   }
 
   if (loading && !snapshot) return <div className="rack-skeleton" aria-label="Loading room rack"><span className="pulse-bar" /><span className="pulse-bar" /><span className="pulse-bar short" /></div>;
@@ -321,7 +350,7 @@ export default function FrontOfficeRack({
         ))}
       </div>
 
-      {notice && <p role="status" className="rack-notice">{notice}</p>}
+      {notice && !notify && <p role="status" className="rack-notice">{notice}</p>}
 
       <div className="board-layout">
         <div className="board-main">
@@ -335,7 +364,7 @@ export default function FrontOfficeRack({
           <div className="haven-filter"><HavenSelect value={typeFilter} onChange={setTypeFilter} ariaLabel="Filter by room type" options={[{ value: "all", label: "All room types" }, ...types.map((t) => ({ value: t, label: t }))]} /></div>
           <div className="haven-filter"><HavenSelect value={statusFilter} onChange={setStatusFilter} ariaLabel="Filter by room status" options={[{ value: "all", label: "All statuses" }, { value: "available", label: "Clean" }, { value: "occupied", label: "Occupied" }, { value: "dirty", label: "Dirty" }, { value: "reserved", label: "Reserved" }, { value: "out_of_service", label: "Out of service" }]} /></div>
           <div className="haven-filter"><HavenSelect value={floorFilter} onChange={setFloorFilter} ariaLabel="Filter by floor" options={[{ value: "all", label: "All floors" }, ...floors.map((f) => ({ value: f, label: `Floor ${f}` }))]} /></div>
-          <div className="haven-filter"><BoardDateRange from={from} days={days} notify={setNotice} onRange={(nextFrom, nextDays) => { setFrom(nextFrom); setDays(nextDays); }} /></div>
+          <div className="haven-filter"><BoardDateRange from={from} days={days} notify={(m) => say(m, "warning")} onRange={(nextFrom, nextDays) => { setFrom(nextFrom); setDays(nextDays); }} /></div>
         </>}
         resultCount={visibleRooms.length}
         resultNoun="rooms"
@@ -343,7 +372,7 @@ export default function FrontOfficeRack({
         hasActiveFilters={hasActiveFilters}
       />
       <p className="board-window-note" aria-live="polite">Window from {from} · {days} days</p>
-          <RoomBoard rooms={visibleRooms} reservations={reservations} today={today} selectedRoomId={activeRoom?.id ?? null} onSelectRoom={setActiveRoom} />
+          <RoomBoard rooms={visibleRooms} reservations={reservations} today={today} selectedRoomId={activeRoom?.id ?? null} onSelectRoom={openRoom} />
           </>
           ) : (
           <BoardReservationTabs reservations={reservations} history={history} today={today} tab={tab} onOpenFolio={onOpenFolio} search={query} onSearchChange={setQuery} />
@@ -351,10 +380,11 @@ export default function FrontOfficeRack({
         </div>
         <RoomBoardOps
           actions={[
+            ...(onScan ? [{ label: "Scan QR", icon: QrCode, onSelect: onScan }] : []),
             ...(onNewReservation ? [{ label: "New Reservation", icon: DoorOpen, onSelect: onNewReservation }] : []),
-            { label: "Check In Guest", icon: CalendarDays, onSelect: () => { setTab("arrivals"); setView("arrivals"); setNotice("Choose an arrival below — opening it shows check-in."); } },
-            { label: "Check Out Guest", icon: BedDouble, onSelect: () => { setTab("in_house"); setView("in_house"); setNotice("Choose a current guest below — opening it shows check-out."); } },
-            { label: "Room Status Update", icon: SprayCan, onSelect: () => setNotice("Select a room on the board to see its available actions.") },
+            { label: "Check In Guest", icon: CalendarDays, onSelect: () => { setTab("arrivals"); setView("arrivals"); say("Choose an arrival below — opening it shows check-in."); } },
+            { label: "Check Out Guest", icon: BedDouble, onSelect: () => { setTab("in_house"); setView("in_house"); say("Choose a current guest below — opening it shows check-out."); } },
+            { label: "Room Status Update", icon: SprayCan, onSelect: () => say("Select a room on the board to see its available actions.") },
           ]}
           arrivals={arrivalsToday}
           departures={departuresToday}
@@ -378,11 +408,17 @@ export default function FrontOfficeRack({
       )}
 
       {arrivalPick && (
-        <Modal isOpen onClose={() => setArrivalPick(null)} title={`Assign arrival to room ${arrivalPick.number}?`}>
-          <p>Only {arrivalPick.type} arrivals fit this room. Assignment re-validates on the server.</p>
-          <div className="board-actions">
+        <Modal
+          isOpen
+          onClose={() => setArrivalPick(null)}
+          title={`Assign arrival to room ${arrivalPick.number}?`}
+          description={`Only ${arrivalPick.type} arrivals fit this room. Assignment re-validates on the server.`}
+          size="md"
+          portal
+        >
+          <div className="board-actions" role="listbox" aria-label="Compatible arrivals">
             {queue.filter((r) => r.room_type === arrivalPick.type).map((r) => (
-              <button key={r.id} type="button" className="board-action" onClick={() => setConfirm({ reservation: r, room: arrivalPick })}>
+              <button key={r.id} type="button" role="option" aria-selected="false" className="board-action" onClick={() => setConfirm({ reservation: r, room: arrivalPick })}>
                 <span><b>{r.guest_name ?? r.confirmation_number ?? r.id}</b><small>{r.check_in.slice(0, 10)} → {r.check_out.slice(0, 10)}</small></span>
                 <span aria-hidden="true">›</span>
               </button>
@@ -393,26 +429,38 @@ export default function FrontOfficeRack({
       )}
 
       {confirm && (
-        <Modal isOpen onClose={() => setConfirm(null)} title={`Assign room ${confirm.room.number}?`}>
-          <p>{confirm.reservation.guest_name} · {confirm.reservation.room_type} · {confirm.reservation.check_in.slice(0, 10)} → {confirm.reservation.check_out.slice(0, 10)}</p>
-          <div>
-            <button type="button" onClick={() => setConfirm(null)}>Cancel</button>
-            <button type="button" disabled={busy} onClick={() => void assign(confirm.reservation, confirm.room)}>
-              {busy ? "Assigning…" : "Assign & check in"}
-            </button>
-          </div>
-        </Modal>
+        <ConfirmDialog
+          isOpen
+          onClose={() => setConfirm(null)}
+          onConfirm={() => void assign(confirm.reservation, confirm.room)}
+          title={`Assign room ${confirm.room.number}?`}
+          message={`${confirm.reservation.guest_name} · ${confirm.reservation.room_type} · ${confirm.reservation.check_in.slice(0, 10)} → ${confirm.reservation.check_out.slice(0, 10)}`}
+          confirmText="Assign & check in"
+          loading={busy}
+          portal
+        />
       )}
 
       {dispatchRoom && (
-        <Modal isOpen onClose={() => setDispatchRoom(null)} title={`Dispatch reclean for room ${dispatchRoom.number}?`}>
-          <p>Creates an urgent housekeeping task. The turnover queue owns completion.</p>
-          <div>
-            <button type="button" onClick={() => setDispatchRoom(null)}>Cancel</button>
-            <button type="button" disabled={busy} onClick={() => void dispatch(dispatchRoom)}>
-              {busy ? "Dispatching…" : "Dispatch reclean"}
-            </button>
-          </div>
+        <Modal
+          isOpen
+          onClose={() => setDispatchRoom(null)}
+          title={`Dispatch reclean for room ${dispatchRoom.number}?`}
+          description="Creates an urgent housekeeping task. The turnover queue owns completion."
+          size="sm"
+          portal
+          footer={
+            <div className="modal-footer">
+              <button type="button" className="btn btn-soft" onClick={() => setDispatchRoom(null)} disabled={busy}>
+                Cancel
+              </button>
+              <button type="button" className="btn btn-accent" disabled={busy} onClick={() => void dispatch(dispatchRoom)}>
+                {busy ? "Dispatching..." : "Dispatch reclean"}
+              </button>
+            </div>
+          }
+        >
+          <p className="modal-note">The turnover queue owns completion.</p>
         </Modal>
       )}
     </section>

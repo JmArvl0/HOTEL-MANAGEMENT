@@ -42,11 +42,13 @@ Because this is a cascade property rather than a component property, it is guard
 
 - `HavenButton` variants are `primary`, `secondary`, `neutral`, and `danger`; use `density="customer"` only on customer-facing surfaces. Legacy `.btn-accent` and `.btn-soft` remain compatible during migration.
 - `StatusBadge` is informational and non-interactive. Semantic tones are success, informational, warning, error, and neutral. Room-type badges remain governed by `RoomTypeBadge` and are not remapped.
+- Customer overview cards may promote one action to a full-width soft pill (`btn btn-soft`): oval radius, full card width, 44px target. Sibling links on that card and the other overview cards stay text links. The asymmetry is intentional — do not normalize it.
 - Use `Modal` for standard dialogs and rich detail modals. It owns the backdrop, Escape handling, focus trap, focus restoration, viewport-safe body scrolling, and optional branded header. Keep photo lightboxes separate.
 
 ## Data, feedback, and responsive behavior
 
 - Use `TablePagination` for internal lists. Tables scroll inside `.table-scroll`; the page itself must not acquire horizontal overflow. Customer history should prefer cards when that is easier to scan.
+- One footer per table: `TablePagination` is the footer — render it as the last child of `.data-panel`, never alongside a separate `.table-footer`. Pager-less summary lists (card grids without pages) keep `.table-footer`. Pagination type follows the table/footer scale (summary 11px, note/page/buttons 10px).
 - Use `formatHotelDateTime` for normal customer/staff timestamps in the configured hotel-time presentation. Exact technical timestamps may remain secondary on audit surfaces.
 - Use `HavenLoader` or existing skeletons for loading, safe contextual copy for failures, and `HavenEmptyState` for empty/search-empty states.
 - Preserve notification meanings: sidebar badge = unresolved actionable workload; header bell = persistent/current notification history with one aggregate unread count; centered transient stack = new-event alert. Never combine the three.

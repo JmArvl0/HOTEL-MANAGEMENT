@@ -157,6 +157,14 @@ describe("centered notification viewport contracts", () => {
     expect(css).toContain("prefers-reduced-motion");
   });
 
+  it("tints every tone card so info stops blending into panels, both themes", () => {
+    const css = read("app/manager-dashboard-theme.css");
+    for (const tone of ["info", "success", "warning", "error"]) {
+      expect(css).toContain(`.toast-stack .toast-card.${tone}{border-color:`);
+      expect(css).toContain(`.theme-light .toast-stack .toast-card.${tone}{border-color:`);
+    }
+  });
+
   it("renders the viewport inside the workspace below the header in all shells", () => {
     for (const path of ["components/manager/manager-dashboard-client.tsx", "components/admin/admin-dashboard-client.tsx", "components/owner/owner-dashboard-client.tsx"]) {
       const src = read(path);

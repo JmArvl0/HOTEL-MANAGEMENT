@@ -22,8 +22,8 @@ export default async function RequestsPage(){const session=await requireCustomer
      <ChevronDown className="cgr-batch-chevron" size={16} aria-hidden="true"/>
     </span>
    </summary>
-   <ul className="cgr-batch-items">{batch.items.map((item)=>{const label=item.request_type?requestLabel(item.request_type):item.request;const note=item.request_type&&item.request!==label?(item.request.startsWith(`${label}: `)?item.request.slice(label.length+2):item.request):null;return (
-    <li key={item.id}>
+    <ul className="cgr-batch-items">{batch.items.map((item)=>{const label=item.request_type?requestLabel(item.request_type):item.request;const note=item.request_type&&item.request!==label?(item.request.startsWith(`${label}: `)?item.request.slice(label.length+2):item.request):null;const statusClass=item.status==="in_progress"?"in-progress":item.status==="completed"?"completed":item.status==="cancelled"||item.approval_status==="rejected"?"cancelled":"open";return (
+     <li key={item.id} className={`cgr-status-${statusClass}`}>
      <div><b>{label}</b><small>{item.department.replaceAll("_"," ")} · {friendlyStatus(item.status)}</small>
       {note&&<small className="cgr-item-note">“{note}”</small>}
       {item.approval_status==="rejected"&&item.approval_note&&<small className="cgr-approval-note">Front Desk: {item.approval_note}</small>}

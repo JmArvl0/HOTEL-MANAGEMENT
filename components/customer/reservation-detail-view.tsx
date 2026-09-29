@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft, BedDouble, BookOpenText, CalendarDays, CarTaxiFront,
   Check, ChevronDown, ClipboardCheck, CreditCard, Copy,
@@ -20,6 +21,8 @@ import {
 // All data arrives as plain serializable props from the server page — the view
 // only renders and manages UI state (tabs, copy, disclosures). Money math and
 // policy resolution happen server-side in the page.
+export type PolicyItem = { title: string; body: React.ReactNode };
+
 export type ReservationDetailViewData = {
   id: string;
   confirmationNumber: string;
@@ -43,6 +46,7 @@ export type ReservationDetailViewData = {
   checkOutTime: string;
   transportLines: { name: string; price: number; note?: string | null }[];
   policyText: string;
+  policyItems?: PolicyItem[];
   pendingNotice: string | null;
   money: {
     stayTotal: number;
@@ -133,6 +137,12 @@ function TimelineDot({ tone }: { tone: "payment" | "refund" | "charge" | "change
 export function ReservationDetailView({ data }: { data: ReservationDetailViewData }) {
   const [tab, setTab] = useState<TabKey>("stay");
   const [copied, setCopied] = useState(false);
+  const router = useRouter();
+
+  const goBack = useCallback(() => {
+    if (typeof window !== "undefined" && window.history.length > 1) router.back();
+    else router.push("/my-reservations");
+  }, [router]);
 
   const copyCode = useCallback(async () => {
     try {
@@ -178,7 +188,17 @@ export function ReservationDetailView({ data }: { data: ReservationDetailViewDat
   return (
     <div className="customer-reservation-detail">
       <section className="customer-reservation-hero">
-        <Link className="customer-back" href="/my-reservations"><ArrowLeft size={14} />All reservations</Link>
+        <nav className="crd-breadcrumbs" aria-label="Breadcrumb">
+          <Link href="/my-reservations">My Reservations</Link>
+          <span aria-hidden="true">›</span>
+          <Link href="/my-reservations">{data.roomType}</Link>
+          <span aria-hidden="true">›</span>
+          <span aria-current="page">{data.confirmationNumber}</span>
+        </nav>
+        <button type="button" className="customer-back customer-back-circle" onClick={goBack} aria-label="Go back to the previous page">
+          <span className="customer-back-icon" aria-hidden="true"><ArrowLeft size={17} /></span>
+          <span>Back</span>
+        </button>
         <div className="customer-reservation-heading">
           <div>
             <p className="customer-reservation-reference">
@@ -393,9 +413,21 @@ export function ReservationDetailView({ data }: { data: ReservationDetailViewDat
       </section>
 
       <section className="customer-policy crd-panel" role="tabpanel" id="crd-panel-policy" aria-labelledby="crd-tab-policy" hidden={tab !== "policy"}>
-        <h2>Policy accepted with this reservation</h2>
+        <p className="crd-policy-eyebrow">Booking policy for this reservation</p>
+        <h2>What you agreed to when booking</h2>
         {data.pendingNotice && <p className="crd-policy-notice">{data.pendingNotice}</p>}
-        <p>{data.policyText}</p>
+        {data.policyItems && data.policyItems.length > 0 ? (
+          <ul className="crd-policy-list">
+            {data.policyItems.map((item) => (
+              <li key={item.title}>
+                <h3>{item.title}</h3>
+                <p>{item.body}</p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>{data.policyText}</p>
+        )}
       </section>
     </div>
   );

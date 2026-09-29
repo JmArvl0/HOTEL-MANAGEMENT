@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useId, useMemo, useState } from "react";
 import { ArrowRight } from "lucide-react";
+import { BookingNoticeToast } from "./booking-notice-toast";
 
 export function BookingSearchForm({
   initial,
@@ -58,7 +59,7 @@ export function BookingSearchForm({
       aria-label="Check availability"
       onSubmit={() => setSubmitting(true)}
     >
-      {stale && !submitting ? <p className="booking-notice" role="status">Your dates changed — check availability again for current counts.</p> : null}
+      {stale && !submitting ? <BookingNoticeToast text="Your dates changed — check availability again for current counts." /> : null}
       {initial?.roomType ? <input type="hidden" name="roomType" value={initial.roomType} /> : null}
       <label htmlFor={`${id}-checkin`}>
         Check in

@@ -71,7 +71,7 @@ describe("guest request fulfillment presentation", () => {
     expect(panel).toContain("/api/guest-requests/${item.id}/progress");
     expect(panel).toContain("item.department === role");
     // Fulfillment is derived per batch from child statuses — nothing stored.
-    expect(panel).toContain("Fulfillment");
+    expect(panel).toContain("fulfillment");
     expect(panel).toContain("Fulfilled");
     expect(panel).not.toContain("fulfillment_status");
   });

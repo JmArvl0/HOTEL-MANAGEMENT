@@ -110,6 +110,22 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
 
 ## Recently Completed
 
+- **Room price typography (2026-09-29)** — finished a two-surface plan left half-verified
+  by a previous session (that session died on a provider rate limit at `typecheck`, not a
+  code failure; its edits were already correct on disk). The room-card price block no
+  longer renders figures in the display serif — both surfaces use `--font-sans` at semibold
+  with tabular numerals kept, and the `3 nights` / `estimated total` labels went 9–10px
+  muted grey → 12px full contrast. The plan's deferred item turned out to be real but
+  cheaper than it assumed: `" / night"` is a bare text node inside `.room-price`, which had
+  **no rule in any stylesheet** and no ancestor setting a `font-size`, so it inherited the
+  16px root default. One `font-size` per surface fixes it with no JSX edit to the shared
+  component. Two public-page inconsistencies closed with it: `.room-price-total` was
+  computing at weight 400 against the portal's 600, and a redundant tabular rule was
+  deleted. Note the two stylesheets **mirror each other by hand** — any price-block change
+  must be made in both. Typecheck clean, full suite 162 files / 1850 passing, build clean,
+  compiled chunks checked by byte offset to prove cascade order. See
+  [[2026-09-29 - Room Price Typography Fix]]. Manual browser verification pending.
+
 - **Admin module CSS scoping fix (2026-09-26)** — Admin → System Health layout edits now
   land deterministically instead of silently losing. Three overlapping causes fixed:
   unscoped `.page-title`/`.panel-heading` rules in a stylesheet Next.js hoists app-wide
@@ -1026,6 +1042,10 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
   [[2026-09-09 - Session 02]]).
 - Booking Review polish delivered; manual UI verification pending (same constraint).
 - Session 04 delivered; manual UI verification pending (needs a logged-in Manager account).
+- Overview requests-card link is now a full-width soft pill (`btn btn-soft`); the other two
+  card links stay text links by design. All gates green (166 files / 1873 tests, build
+  clean); manual UI verification pending (needs a logged-in guest) — checklist in
+  [[2026-09-29 - Overview Requests Card Pill Button]].
 
 ## Current Problems / Blockers
 
@@ -1081,6 +1101,8 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
 
 ## Recent Sessions
 
+- [[2026-09-29 - Overview Requests Card Pill Button]] — requests-card link became a full-width soft pill (`btn btn-soft`), sibling card links untouched; 1873/1873, build clean, visual check pending; the label renders green and the pill is outline-only by cascade, not by choice
+- [[2026-09-29 - Room Price Typography Fix]] — price figures off the display serif onto `--font-sans`, 12px labels on both surfaces; the bare `" / night"` node inherited 16px from a rule-less span; 1850/1850, build clean, visual check pending
 - [[2026-09-26 - Admin Module CSS Scoping Fix]] — unscoped admin module CSS leaked app-wide (D-029); leak guard added, 1791/1791 green, manual browser check pending
 - [[2026-09-14 - Room Create Reason Removal]] — create needs no reason, auto-audit kept, edit reason intact; all gates green
 - [[2026-09-14 - Manager Reports Redesign]] — extracted PerformanceReports surface (KPIs, accessible chart + data table, room status); print/review flows preserved; 1057/1057, build + detector clean

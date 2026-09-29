@@ -64,6 +64,11 @@
 .board-date-input:hover{border-color:var(--dg)}
 .board-date-input:focus-visible{outline:2px solid var(--dg);outline-offset:2px}
 .board-actions{display:grid;gap:8px}
+.modal-content .board-actions{gap:8px}
+.modal-content .board-action{background:#fff;border-color:#e3e5df;color:#103e48;font-size:14px;line-height:1.5;padding:12px 14px}
+.modal-content .board-action span b{font-size:14px}
+.modal-content .board-action span small{color:#6d7971;font-size:12px;line-height:1.5}
+.modal-content .board-action:hover{border-color:#176773;background:#f7f9f6}
 .board-action{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:44px;padding:10px 12px;text-align:left;border:1px solid var(--dl);border-radius:8px;background:transparent;color:var(--dt);font-family:inherit;font-size:13px;cursor:pointer}
 .board-action span b{display:block}
 .board-action span small{display:block;color:var(--dm);font-size:12px}

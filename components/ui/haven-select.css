@@ -153,14 +153,16 @@ select.form-input:hover:not(:disabled),
 .approval-filters select:hover:not(:disabled),
 .table-tools select:hover:not(:disabled),
 .filter-input:hover:not(:disabled),
-.arrival-field select:hover:not(:disabled) { border-color: var(--select-border-hover); }
+.arrival-field select:hover:not(:disabled),
+.booking-search.compact select:hover:not(:disabled) { border-color: var(--select-border-hover); }
 select.form-input:focus,
 .reservation-filters select:focus,
 .approval-filters select:focus,
 .table-tools select:focus,
 .filter-input:focus,
 .prompt-input:focus,
-.arrival-field select:focus {
+.arrival-field select:focus,
+.booking-search.compact select:focus {
   outline: none; border-color: var(--select-border-focus);
   box-shadow: 0 0 0 3px var(--select-ring);
 }

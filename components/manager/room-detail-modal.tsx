@@ -43,7 +43,9 @@ function readiness(room: RecordItem, blocked: boolean): string[] {
   return notes;
 }
 
-export default function RoomDetailModal({ room, onClose, onViewReservation }: { room: RecordItem; onClose: () => void; onViewReservation: (reservationId: string) => void }) {
+export type RoomDetailAction = { label: string; hint?: string; onSelect: () => void };
+
+export default function RoomDetailModal({ room, onClose, onViewReservation, actions = [] }: { room: RecordItem; onClose: () => void; onViewReservation: (reservationId: string) => void; actions?: RoomDetailAction[] }) {
   const [detail, setDetail] = useState<RoomDetail | null>(null);
   const [error, setError] = useState("");
   const [tab, setTab] = useState("overview");
@@ -81,7 +83,11 @@ export default function RoomDetailModal({ room, onClose, onViewReservation }: { 
   const shown = (key: string, count = 6) => expanded[key] ?? count;
 
   return (
-    <Modal isOpen onClose={onClose} title={`Room ${label(room.number)}`} description={`${label(room.type)}${room.floor ? ` · Floor ${label(room.floor)}` : ""}`} size="xl" headerVariant="branded">
+    <Modal isOpen onClose={onClose} title={`Room ${label(room.number)}`} description={`${label(room.type)}${room.floor ? ` · Floor ${label(room.floor)}` : ""}`} size="xl" headerVariant="branded" footer={
+      actions.length > 0 ? <div className="reservation-detail-actions">
+        {actions.map((action) => <button key={action.label} type="button" className="btn btn-soft" title={action.hint} onClick={action.onSelect}>{action.label}</button>)}
+      </div> : undefined
+    }>
       <div className="room-detail">
         <div className="room-detail-status">
           <span className={`badge ${room.status}`}>{label(room.status)}</span>

@@ -196,6 +196,7 @@ export interface ConfirmDialogProps {
   variant?: "default" | "danger" | "warning";
   loading?: boolean;
   disabled?: boolean;
+  portal?: boolean;
 }
 
 export function ConfirmDialog({
@@ -209,6 +210,7 @@ export function ConfirmDialog({
   variant = "default",
   loading = false,
   disabled = false,
+  portal = false,
 }: ConfirmDialogProps) {
   const cancelRef = useRef<HTMLButtonElement>(null);
   const handleConfirm = async () => {
@@ -229,6 +231,7 @@ export function ConfirmDialog({
       onClose={onClose}
       title={title}
       size="sm"
+      portal={portal}
       initialFocusRef={cancelRef as unknown as React.RefObject<HTMLElement>}
     >
       <div className="confirm-dialog">

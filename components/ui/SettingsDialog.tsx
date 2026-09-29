@@ -2,6 +2,7 @@
 
 import { Modal } from "./Modal";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { SoundToggleRow } from "@/components/ui/sound-toggle";
 import { PasswordForm } from "@/components/account/account-forms";
 
 // Shared account Settings dialog for the staff shells (manager / owner /
@@ -22,6 +23,7 @@ export function SettingsDialog({ isOpen, onClose }: { isOpen: boolean; onClose: 
           <div><b>Appearance</b><small>Switch between dark and light themes.</small></div>
           <ThemeToggle />
         </div>
+        <SoundToggleRow />
         <h3>Password</h3>
         <PasswordForm />
       </div>

@@ -1,8 +1,9 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
-import { BadgeCheck, Files, WalletCards } from "lucide-react";
+import { BadgeCheck, Files, WalletCards, X } from "lucide-react";
 import { HavenDataToolbar, HavenSearchInput, HavenSelect } from "@/components/ui";
+import { TablePagination, useTablePagination } from "@/components/ui/table-pagination";
 import { formatPeso } from "@/lib/format";
 import type { FolioPaymentState, ReservationCategory } from "@/lib/customer";
 
@@ -80,6 +81,8 @@ export function PaymentsFolioPanel({
   const outstanding = filtered.reduce((sum, item) => sum + item.balance, 0);
   const paidToDate = filtered.reduce((sum, item) => sum + item.paid, 0);
   const hasActiveFilters = stay !== "all" || payment !== "all" || Boolean(search);
+  const page = useTablePagination(filtered, 4);
+  useEffect(() => { page.setPage(1); }, [stay, payment, search]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -97,14 +100,14 @@ export function PaymentsFolioPanel({
   };
 
   const stayOptions = [
-    { value: "all", label: `All Stays (${stayFacet.length})` },
+    { value: "all", label: `All Stay Statuses (${stayFacet.length})` },
     ...stayValues.map((value) => ({
       value,
       label: `${STAY_LABELS[value]} (${stayFacet.filter((item) => item.stayState === value).length})`,
     })),
   ];
   const paymentOptions = [
-    { value: "all", label: `All Payment States (${paymentFacet.length})` },
+    { value: "all", label: `All Payment Statuses (${paymentFacet.length})` },
     ...paymentValues.map((value) => ({
       value,
       label: `${PAYMENT_LABELS[value]} (${paymentFacet.filter((item) => item.paymentState === value).length})`,
@@ -145,19 +148,13 @@ export function PaymentsFolioPanel({
         advancedFilters={
           <>
             <div className="haven-filter folio-filter-control">
-              <span>Stay status</span>
               <HavenSelect value={stay} onChange={(value) => setStay(value as StayFilter)} ariaLabel="Stay status" options={stayOptions} />
             </div>
             <div className="haven-filter folio-filter-control">
-              <span>Payment status</span>
               <HavenSelect value={payment} onChange={(value) => setPayment(value as PaymentFilter)} ariaLabel="Payment status" options={paymentOptions} />
             </div>
           </>
         }
-        resultCount={filtered.length}
-        resultNoun="folios"
-        onClearFilters={clearFilters}
-        hasActiveFilters={hasActiveFilters}
       />
 
       {filtered.length === 0 ? (
@@ -167,7 +164,18 @@ export function PaymentsFolioPanel({
           <button className="btn btn-soft" type="button" onClick={clearFilters}>Show all folios</button>
         </div>
       ) : (
-        <div className="customer-financial-list">{filtered.map((item) => <Fragment key={item.id}>{item.content}</Fragment>)}</div>
+        <>
+          <div className="customer-financial-list">{page.rows.map((item) => <Fragment key={item.id}>{item.content}</Fragment>)}</div>
+          <div className="reservation-history-footer folio-footer">
+            {hasActiveFilters && (
+              <button type="button" className="btn btn-soft" onClick={() => { clearFilters(); page.setPage(1); }}>
+                <X size={14} aria-hidden="true" />
+                Clear filters
+              </button>
+            )}
+            <TablePagination {...page} onPageChange={page.setPage} noun="folios" />
+          </div>
+        </>
       )}
     </>
   );

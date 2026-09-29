@@ -73,7 +73,13 @@
   background:#fff;border:0;border-radius:16px;box-shadow:0 18px 45px #062f3c2b;
 }
 .booking-page .booking-search.compact label{display:flex;flex-direction:column;justify-content:center;gap:6px;min-width:0;padding:3px 20px;border-right:1px solid var(--search-line);color:var(--search-muted);font-size:9px;font-weight:800;letter-spacing:.65px;text-transform:uppercase}
-.booking-page .booking-search.compact input,.booking-page .booking-search.compact select{display:block;width:100%;min-width:0;min-height:30px;margin:0;padding:0;border:0;border-radius:0;background:#fff;color:var(--search-ink);box-shadow:none;font-size:13px;font-weight:650;text-transform:none}
+/* Shared metrics only — border/radius/background are owned per-control below:
+   Check in / Check out carry the standard rounded date-picker wrapper, while
+   the Guests dropdown inherits haven-select.css's styled native <select>
+   (11px wrapper + chevron) by declaring nothing that would flatten it. */
+.booking-page .booking-search.compact input,.booking-page .booking-search.compact select{display:block;width:100%;min-width:0;min-height:30px;margin:0;color:var(--search-ink);box-shadow:none;font-size:13px;font-weight:650;text-transform:none}
+.booking-page .booking-search.compact input{padding:0 12px;border:1px solid var(--search-line);border-radius:8px;background:#fff}
+.booking-page .booking-search.compact select{margin:4px 0;padding-top:0;padding-bottom:0}
 .booking-page .booking-search.compact .btn{min-height:54px;margin:1px 0 1px 12px;border-radius:12px;padding:12px 22px;background:var(--search-teal);color:#fff;opacity:1;visibility:visible}
 .booking-page .booking-search.compact .btn:hover:not(:disabled){background:var(--search-teal-hover)}
 .booking-page .booking-search.compact .btn:disabled{background:#4d7177;color:#fff;cursor:wait}
@@ -112,8 +118,9 @@
 .booking-page .available-room-copy li svg{color:var(--search-teal);flex:none}
 .booking-page .room-rate{display:flex;align-items:end;justify-content:space-between;gap:18px;margin-top:auto;padding-top:20px;border-top:1px solid var(--search-line)}
 .booking-page .room-rate>span{line-height:1.35}
-.booking-page .room-rate small,.booking-page .room-rate em{display:block;color:var(--search-muted);font-size:9px;font-style:normal}
-.booking-page .room-rate strong{font:600 25px var(--font-display),Georgia,serif}
+.booking-page .room-rate small,.booking-page .room-rate em{display:block;color:var(--search-ink);font-size:12px;font-style:normal;line-height:1.5}
+.booking-page .room-rate strong{font-family:var(--font-sans,system-ui,-apple-system,"Segoe UI",sans-serif);font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:0}
+.booking-page .room-price{font-size:12px}
 .booking-page .room-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px}
 .booking-page .room-actions .btn{min-height:42px;border-radius:9px;padding:10px 14px;font-size:10px;white-space:nowrap}
 .booking-page .room-actions .btn-soft{background:#fff;border:1px solid var(--search-line);color:var(--search-ink)}
@@ -172,7 +179,8 @@
   .booking-page .booking-search.compact{grid-template-columns:1fr 1fr;gap:10px;padding:12px;border-radius:15px}
   .booking-page .booking-search.compact label{padding:9px 10px;border:0;border-radius:9px;background:#f2f5f1}
   .booking-page .booking-search.compact label:last-of-type{grid-column:1/-1}
-  .booking-page .booking-search.compact input,.booking-page .booking-search.compact select{background:transparent;min-height:31px;font-size:12px}
+  .booking-page .booking-search.compact input{border:0;border-radius:0;background:transparent;min-height:31px;padding:0;font-size:12px}
+  .booking-page .booking-search.compact select{border:0;border-radius:0;background-color:transparent;min-height:31px;margin:0;padding:0 24px 0 0;font-size:12px}
   .booking-page .booking-search.compact .btn{grid-column:1/-1;min-height:48px;margin:0}
   .booking-active-filters{justify-content:flex-start}
   .booking-filter-chip{font-size:9px;box-shadow:none}
@@ -204,5 +212,4 @@
 .booking-page .room-description{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .booking-page .room-facts span svg{flex:none}
 .booking-page .room-amenities-more{color:var(--search-teal);font-weight:750;list-style:none}
-.booking-page .room-price-nightly{font-variant-numeric:tabular-nums}
-.booking-page .room-price-total{margin-top:2px;font-variant-numeric:tabular-nums}
+.booking-page .room-price-total{margin-top:2px;font-weight:600;font-variant-numeric:tabular-nums}

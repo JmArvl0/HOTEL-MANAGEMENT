@@ -100,4 +100,54 @@ describe("Overview role composition", () => {
     fireEvent.click(screen.getByText(/deposits awaiting verification/));
     expect(setSection).toHaveBeenCalledWith("payments");
   });
+
+  it("front-desk queue buttons deep-link into the room reservations board tabs", () => {
+    const onOpenRack = vi.fn();
+    render(
+      <Overview data={data} setSection={vi.fn()} allowed={["overview", "reservations", "rooms", "guest_requests"] as never} role="front_desk" onScan={() => {}} onOpenRack={onOpenRack} onNewReservation={vi.fn()} />
+    );
+    fireEvent.click(screen.getByText(/arrivals need rooms/));
+    expect(onOpenRack).toHaveBeenCalledWith("board", "arrivals");
+    fireEvent.click(screen.getByText(/arrivals today/));
+    expect(onOpenRack).toHaveBeenCalledWith("arrivals", "arrivals");
+    fireEvent.click(screen.getByText(/departures today/));
+    expect(onOpenRack).toHaveBeenCalledWith("departures", "departures");
+  });
+
+  it("recent reservations view-all opens the all-reservations tab", () => {
+    const onOpenRack = vi.fn();
+    render(
+      <Overview data={data} setSection={vi.fn()} allowed={["overview", "reservations", "rooms"] as never} role="front_desk" onScan={() => {}} onOpenRack={onOpenRack} onNewReservation={vi.fn()} />
+    );
+    fireEvent.click(screen.getByText("View all"));
+    expect(onOpenRack).toHaveBeenCalledWith("all", "all");
+  });
+
+  it("new reservation opens the create dialog in place", () => {
+    const onNewReservation = vi.fn();
+    const setSection = vi.fn();
+    render(
+      <Overview data={data} setSection={setSection} allowed={["overview", "reservations", "rooms"] as never} role="front_desk" onScan={() => {}} onOpenRack={vi.fn()} onNewReservation={onNewReservation} />
+    );
+    fireEvent.click(screen.getByText("New reservation"));
+    expect(onNewReservation).toHaveBeenCalledTimes(1);
+    expect(setSection).not.toHaveBeenCalled();
+  });
+
+  it("rooms-ready opens the board for rack roles, the rooms table otherwise", () => {
+    const onOpenRack = vi.fn();
+    const setSection = vi.fn();
+    render(
+      <Overview data={data} setSection={setSection} allowed={["overview", "reservations", "rooms", "approvals"] as never} role="front_desk" onScan={() => {}} onOpenRack={onOpenRack} onNewReservation={vi.fn()} />
+    );
+    fireEvent.click(screen.getByText(/rooms ready/));
+    expect(onOpenRack).toHaveBeenCalledWith("board", "arrivals");
+    expect(setSection).not.toHaveBeenCalledWith("rooms");
+    cleanup();
+    render(
+      <Overview data={data} setSection={setSection} allowed={["overview", "rooms", "housekeeping_tasks"] as never} role="housekeeping" onScan={() => {}} onOpenRack={onOpenRack} onNewReservation={vi.fn()} />
+    );
+    fireEvent.click(screen.getByText(/technically blocked room/));
+    expect(setSection).toHaveBeenCalledWith("rooms");
+  });
 });

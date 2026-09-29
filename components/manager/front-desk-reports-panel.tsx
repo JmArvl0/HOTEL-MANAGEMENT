@@ -3,8 +3,10 @@ import { useCallback, useEffect, useState } from "react";
 import { CalendarDays, ClipboardCheck, Download, FileText, Send, Sparkles, X } from "lucide-react";
 import { AI_DISCLOSURE } from "@/lib/ai/prompts";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
 import { canGenerateFrontDeskReport, canReviewFrontDeskReports } from "@/lib/permissions";
+import { REPORT_PAGE_SIZE } from "@/lib/front-desk-reports";
 import type { DailyReportSnapshot } from "@/lib/front-desk-reports";
 import type { Role } from "@/lib/types";
 
@@ -121,6 +123,7 @@ export default function FrontDeskReportsPanel({ role }: { role: Role }) {
   const [rows, setRows] = useState<ReportRow[]>([]);
   const [page, setPage] = useState(0);
   const [pageCount, setPageCount] = useState(1);
+  const [total, setTotal] = useState(0);
   const [status, setStatus] = useState("all");
   const [loading, setLoading] = useState(true);
   const [building, setBuilding] = useState(false);
@@ -137,7 +140,7 @@ export default function FrontDeskReportsPanel({ role }: { role: Role }) {
       const response = await fetch(`/api/front-desk/reports?page=${nextPage}`, { cache: "no-store" });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error ?? "Unable to load report history.");
-      setRows(body.data.rows ?? []); setPage(body.data.page ?? 0); setPageCount(body.data.pageCount ?? 1);
+      setRows(body.data.rows ?? []); setPage(body.data.page ?? 0); setPageCount(body.data.pageCount ?? 1); setTotal(body.data.total ?? 0);
       setError("");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to load report history.");
@@ -231,10 +234,7 @@ export default function FrontDeskReportsPanel({ role }: { role: Role }) {
         </div></td>
       </tr>)}</tbody></table></div>
       {!visible.length && <div className="empty"><FileText/><h3>No reports</h3><p>{status === "all" ? "No daily operations reports have been submitted yet." : `No ${label(status)} reports.`}</p></div>}
-      <div className="table-footer">Page {page + 1} of {pageCount} · {rows.length} on this page
-        <span className="report-pager"><button className="table-action" disabled={page <= 0} onClick={() => void load(page - 1)}>Previous</button><button className="table-action" disabled={page + 1 >= pageCount} onClick={() => void load(page + 1)}>Next</button></span>
-        <span>Submitted snapshots are immutable evidence — they are never edited after submission.</span>
-      </div></div>
+      <TablePagination page={page + 1} pageCount={pageCount} start={rows.length ? page * REPORT_PAGE_SIZE + 1 : 0} end={page * REPORT_PAGE_SIZE + rows.length} total={total} onPageChange={(next) => void load(next - 1)} noun="reports" note="Submitted snapshots are immutable evidence — they are never edited after submission." /></div>
     {loading && <div className="empty"><ClipboardCheck/><h3>Loading reports…</h3></div>}
     {toast && <div className="toast"><ClipboardCheck size={18}/>{toast}</div>}
     {dialogs.view}

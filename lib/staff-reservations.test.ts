@@ -73,7 +73,7 @@ describe("unified staff reservation workflow", () => {
     expect(dashboard).toContain("Cancelled");
     expect(dashboard).toContain("No-shows");
     expect(dashboard).toContain("All sources");
-    expect(dashboard).toContain("Website and staff bookings share this live queue.");
+    expect(dashboard).toContain('<TablePagination {...page} onPageChange={page.setPage} noun="records" />');
   });
   it("polls the live queue and exposes same-record staff details", () => {
     expect(dashboard).toContain("setInterval(()=>load(true),30000)");

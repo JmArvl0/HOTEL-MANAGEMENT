@@ -6,6 +6,7 @@
 // badge keep showing the underlying work until it is resolved.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CheckCircle2, Info, TriangleAlert, X } from "lucide-react";
+import { playNotificationTone } from "@/lib/notification-sound";
 
 export type ToastTone = "info" | "success" | "warning" | "error";
 export interface ToastOptions {
@@ -17,6 +18,8 @@ export interface ToastOptions {
   onAction?: () => void;
   /** ms before auto-dismiss; 0 keeps the toast until dismissed manually. */
   duration?: number;
+  /** Skip the notification sound (e.g. initial-load catch-up toasts). */
+  silent?: boolean;
 }
 
 interface ActiveToast extends ToastOptions {
@@ -61,6 +64,7 @@ export function useToasts(): ToastController {
   }, [clearTimer]);
 
   const push = useCallback((options: ToastOptions) => {
+    if (!options.silent) playNotificationTone(options.tone ?? "info");
     setToasts((current) => {
       if (current.some((existing) => existing.id === (options.id ?? ""))) return current;
       const toast: ActiveToast = { ...options, id: options.id ?? crypto.randomUUID(), remaining: options.duration ?? TOAST_DURATION[options.tone ?? "info"], startedAt: 0 };

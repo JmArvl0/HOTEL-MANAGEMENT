@@ -26,6 +26,16 @@ type InventoryItem = { id: string; name: string; category: string; quantity: num
 type Batch = { key: string; items: StaffRequest[]; approval: "pending" | "approved" | "rejected" };
 
 const label = (value: unknown) => String(value ?? "—").replaceAll("_", " ");
+const OVERDUE_MS = 2 * 60 * 60 * 1000;
+const ageLabel = (createdAt: string) => {
+  const ms = Date.now() - new Date(createdAt).getTime();
+  if (Number.isNaN(ms) || ms < 0) return "just now";
+  const mins = Math.floor(ms / 60000);
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  return hrs < 24 ? `${hrs}h ago` : `${Math.floor(hrs / 24)}d ago`;
+};
+const isOverdue = (batch: Batch) => batch.approval === "pending" && Date.now() - new Date(batch.items[0].created_at).getTime() > OVERDUE_MS;
 const APPROVAL_LABELS: Record<Batch["approval"], string> = { pending: "Awaiting approval", approved: "Approved", rejected: "Declined" };
 const QUEUES: [string, string][] = [["all", "All"], ["pending", "Awaiting approval"], ["approved", "Approved"], ["rejected", "Declined"], ["open", "Open work"]];
 
@@ -167,11 +177,12 @@ export default function GuestRequestsPanel({ role, onEscalate }: { role: Role; o
       <div className={showInventory ? "grp-layout" : undefined}>
         <div className="grp-main">
         <div className="grp-batches">
-          {visible.map((batch) => { const first = batch.items[0]; const roomNumber = first.reservation?.room_number; const fulfilled = fulfillment(batch); const isFulfilled = batch.approval === "approved" && fulfilled.total > 0 && fulfilled.done === fulfilled.total; return (
-            <article key={batch.key} className="grp-batch">
+          {visible.map((batch) => { const first = batch.items[0]; const roomNumber = first.reservation?.room_number; const fulfilled = fulfillment(batch); const isFulfilled = batch.approval === "approved" && fulfilled.total > 0 && fulfilled.done === fulfilled.total; const overdue = isOverdue(batch); return (
+            <article key={batch.key} className={`grp-batch${overdue ? " grp-urgent" : ""}${isFulfilled ? " grp-done" : ""}`}>
               <header>
-                <div>
-                  <strong>{first.reservation?.guest_name ?? first.guest_id ?? "Guest"} · Request #{requestCode(batch)}</strong>
+                <div className="grp-batch-title">
+                  <h3>{first.reservation?.guest_name ?? first.guest_id ?? "Guest"}</h3>
+                  <strong>Request #{requestCode(batch)} · {batch.items.length} item{batch.items.length !== 1 ? "s" : ""} · {ageLabel(first.created_at)}</strong>
                   <small>{first.reservation?.confirmation_number ?? first.reservation_id}{first.reservation?.room_type ? ` · ${first.reservation.room_type}` : ""} · submitted {new Date(first.created_at).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" })}</small>
                 </div>
                 <div className="grp-batch-meta">
@@ -181,19 +192,20 @@ export default function GuestRequestsPanel({ role, onEscalate }: { role: Role; o
                       {roomNumber ? `Room ${roomNumber}` : "Room not assigned"}
                     </span>
                     <span className={`badge grp-approval ${batch.approval}`}>{APPROVAL_LABELS[batch.approval]}</span>
+                    {overdue && <span className="badge grp-overdue">Needs decision · {ageLabel(first.created_at)}</span>}
                     {batch.approval === "approved" && (isFulfilled
                       ? <span className="badge confirmed">Fulfilled</span>
-                      : <span className="grp-fulfillment" title="Share of approved items the department has completed">Fulfillment {fulfilled.done}/{fulfilled.total} completed</span>)}
+                      : <span className="grp-fulfillment" title="Share of approved items the department has completed"><span className="grp-bar" aria-hidden="true"><span style={{ width: fulfilled.total ? `${Math.round((fulfilled.done / fulfilled.total) * 100)}%` : "0%" }} /></span>{fulfilled.done} of {fulfilled.total} done</span>)}
                   </div>
-                  {canReview && batch.approval === "pending" && <div className="reservation-actions">
+                  {canReview && batch.approval === "pending" && <div className="reservation-actions grp-decide">
                     <button className="table-action action-primary" onClick={() => act(batch, "approve")}>Approve</button>
                     <button className="table-action" onClick={() => act(batch, "reject")}>Decline</button>
                   </div>}
                 </div>
               </header>
               <ul>{batch.items.map((item) => (
-                <li key={item.id}>
-                  <div><b>{item.request_type ? requestLabel(item.request_type) : item.request}</b><small>{label(item.department)} · {label(item.status)}</small>{item.approval_status === "rejected" && item.approval_note && <small className="grp-note">{item.approval_note}</small>}</div>
+                <li key={item.id} className={`grp-status-${item.status === "in_progress" ? "in-progress" : item.status === "completed" ? "completed" : item.status === "cancelled" || item.approval_status === "rejected" ? "cancelled" : "open"}`}>
+                  <div className="grp-item-main"><b>{item.request_type ? requestLabel(item.request_type) : item.request}</b><small><span className="grp-chip">{label(item.department)}</span> · {label(item.status)}</small>{item.approval_status === "rejected" && item.approval_note && <small className="grp-note">{item.approval_note}</small>}</div>
                   <div className="grp-item-actions">
                     <span className={`badge ${item.status}`}>{label(item.status)}</span>
                     {canProgress(item) && item.status === "open" && <button className="table-action action-primary" onClick={() => void progress(item, "start")}>Start</button>}

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, CalendarDays, Search, Users } from "lucide-react";
 import { HavenEmptyState, StatusBadge } from "@/components/ui";
+import { ReservationHistoryFooter } from "@/components/customer/reservation-history-footer";
 import { ReservationHistoryToolbar } from "@/components/customer/reservation-history-toolbar";
 import { calculateFinancialState, calculateNights, formatPeso, getGuestReservations } from "@/lib/booking";
 import {
@@ -41,7 +42,15 @@ export default async function MyReservationsPage({
   const requestedSort = first(raw.sort) ?? "recommended";
   const sort = ["recommended", "stay-oldest", "stay-newest", "booked-newest"].includes(requestedSort) ? requestedSort : "recommended";
   const visible = filterReservationHistory(reservations, { query, status, sort });
+  // Section-level pagination (same offset math as paginateTableRows).
+  const PAGE_SIZE = 6;
+  const pageCount = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+  const requestedPage = Number(first(raw.page) ?? 1);
+  const page = Math.min(Math.max(1, Math.floor(requestedPage) || 1), pageCount);
+  const offset = (page - 1) * PAGE_SIZE;
+  const pageRows = visible.slice(offset, offset + PAGE_SIZE);
   const totals = groupReservations(reservations);
+  const hasActiveFilters = Boolean(query || status !== "all" || sort !== "recommended");
   const activeFilter = statusFilters.find((filter) => filter.value === status)!;
   return (
     <div className="customer-reservations-page">
@@ -74,7 +83,6 @@ export default async function MyReservationsPage({
               label: filter.label,
               count: filter.category ? totals[filter.category].length : reservations.length,
             }))}
-            resultCount={visible.length}
           />
 
           {visible.length === 0 ? (
@@ -95,7 +103,7 @@ export default async function MyReservationsPage({
                   <span>{visible.length}</span>
                 </header>
                 <div className="reservation-history-list">
-                  {visible.map((reservation) => {
+                  {pageRows.map((reservation) => {
                       const money = calculateFinancialState(reservation.total, reservation.deposit ?? 0);
                       const photo = roomPrimary(undefined, reservation.room_type);
                       const nights = calculateNights(reservation.check_in, reservation.check_out);
@@ -137,6 +145,17 @@ export default async function MyReservationsPage({
                       );
                     })}
                 </div>
+                <ReservationHistoryFooter
+                  query={query}
+                  status={status}
+                  sort={sort}
+                  page={page}
+                  pageCount={pageCount}
+                  start={pageRows.length ? offset + 1 : 0}
+                  end={offset + pageRows.length}
+                  total={visible.length}
+                  hasActiveFilters={hasActiveFilters}
+                />
               </section>
             </div>
           )}

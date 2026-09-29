@@ -2,6 +2,52 @@
 
 Current execution state. Concise — detail lives in linked session notes.
 
+## Current task (reservation detail smart-back + policy document, 2026-09-29)
+
+IMPLEMENTED locally, all gates green. Three user-confirmed changes to the
+customer reservation detail page (`reservation-detail-view.tsx`,
+`my-reservations/[id]/page.tsx`, guest-booking/customer-portal CSS):
+1. Circular history-aware smart-back — 44px round icon + "Back" label,
+   `router.back()` when history exists else push `/my-reservations`
+   (direct-landing fallback), `aria-label`.
+2. Breadcrumb trail above it — My Reservations › {Room Type} ›
+   {Confirmation #}, last crumb `aria-current="page"`, wraps at 390px.
+3. Policy tab expanded from one `policyText` paragraph into a structured
+   7-group document built server-side from the policy snapshot
+   (check-in/out, ID + booking age, balance & incidentals, refund tiers +
+   no-show forfeit, change window, special requests, house rules) with
+   `<strong>`-highlighted crucial terms and left-accent section rules.
+   Pending-verification callout kept (user decision). New optional
+   `policyItems` prop on `ReservationDetailViewData`; `policyText` remains
+   the fallback, so the two existing view fixtures needed no change.
+
+Gates: focused 48/48, typecheck clean, touched eslint 0 errors 0 warnings
+(unused `formatPeso` import removed), build 88 routes, full suite **166
+files / 1873 tests**, diff-check clean. Pending: manual browser QA (KI-005)
+— desktop + 390px, policy reading order, back behavior from direct URLs.
+
+See [[2026-09-29 - Reservation Detail Smart-Back, Breadcrumbs and Full Policy Document]].
+
+## Previous: Find a Room compact-search control corners (2026-09-29)
+
+IMPLEMENTED locally, all gates green. CSS-only — no JSX, logic, API or migration
+change. On both Find-a-Room surfaces the Check in / Check out / Guests controls
+collapsed into sharp borderless boxes (a stale `border-radius:6px` override, a
+later borderless refinement, and a `.customer-shell` background shorthand that
+also erased the Guests dropdown's chevron image). Controls now carry the
+standard rounded language: dates use the portal's 8px wrapper (same corners as
+`.prompt-input` in Request-a-Change) and the Guests select inherits
+haven-select.css's 11px wrapper + chevron untouched; compact select also added
+to haven-select.css's hover/focus lists (it was missing from both). Desktop
+divider-cell composition kept — only the corners inside the cells changed.
+
+Gates: focused 36/36, `components/booking` 13 files / 138, full suite **162
+files / 1851 tests**, typecheck clean, touched eslint clean, build clean.
+Pending: manual browser QA (KI-005) — portal `/account/find-room` (guest
+login) + public `/booking/search`, desktop and ≤600px.
+
+See [[2026-09-29 - Find a Room Compact Search Control Corners]].
+
 ## Follow-up: column geometry confirmed, no architectural change (2026-09-26/27)
 
 A review brief arrived asking for NAME flexible / STATUS compact, on the grounds that

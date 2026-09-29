@@ -84,11 +84,15 @@ export function RoomActionSheet({
 }) {
   const guest = stay?.guest_name ?? upcoming?.guest_name ?? null;
   return (
-    <Modal isOpen onClose={onClose} title={`Room ${room.number} — ${STATE_LABEL[state] ?? state}`}>
-      <p>
-        {room.type} · Floor {String(room.floor ?? "—")}
-        {guest ? ` · ${guest}` : ""}
-      </p>
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={`Room ${room.number} — ${STATE_LABEL[state] ?? state}`}
+      description={`${room.type} · Floor ${String(room.floor ?? "—")}${guest ? ` · ${guest}` : ""}`}
+      size="md"
+      headerVariant="branded"
+      portal
+    >
       <div className="board-actions">
         {actions.map((action) => (
           <button key={action.label} type="button" className="board-action" onClick={action.onSelect}>

@@ -69,6 +69,9 @@
 .customer-shell .customer-card dt{font-size:11px}
 .customer-shell .customer-card>p{font-size:12px}
 .customer-shell .customer-card>a{font-size:11px;font-weight:700}
+/* Guest-requests card link renders as a soft pill button (label + arrow stay
+   centered via .btn); the other card links keep their text-link treatment. */
+.customer-shell .customer-card>a.btn{display:flex;width:100%;min-height:44px;margin-top:12px;border-radius:999px;font-size:12px}
 .customer-shell .customer-card li{font-size:12px}
 .customer-shell .customer-card li b{font-size:10px;font-weight:700}
 .customer-shell .customer-feature-card p{font-size:10px;letter-spacing:1.4px}
@@ -95,7 +98,8 @@
 .customer-shell .customer-reservation-groups>section>header span{font-size:10px;font-variant-numeric:tabular-nums}
 .customer-shell .customer-reservation-card p,.customer-shell .customer-reservation-card small{font-size:11px}
 .customer-shell .customer-reservation-card a{font-size:11px}
-.customer-shell .customer-back{font-size:11px}
+.customer-shell .customer-back{font-size:13px}
+.customer-shell .crd-breadcrumbs{font-size:12px}
 .customer-shell .customer-detail-card dt{font-size:11px}
 .customer-shell .customer-detail-card dd{font-size:12px}
 .customer-shell .customer-detail-card .detail-balance dd{font-variant-numeric:tabular-nums}
@@ -128,11 +132,30 @@
 .customer-shell .ctr-note{font-size:10px}
 .customer-shell .ctr-note b{font-size:10px}
 .customer-shell .ctr-stay-window span{font-size:10px}
-/* cgr-* guest requests */
-.customer-shell .cgr-batch-heading small{font-size:10px}
-.customer-shell .cgr-batch-count{font-size:11px;font-variant-numeric:tabular-nums}
-.customer-shell .cgr-batch-items b{font-size:12px}
-.customer-shell .cgr-batch-items small{font-size:10px}
+/* cgr-* guest requests — readable type scale (system standard: 14px titles, 12px meta) */
+.customer-shell .cgr-batch-heading small{font-size:12px}
+.customer-shell .cgr-batch-count{font-size:12px;font-variant-numeric:tabular-nums}
+.customer-shell .cgr-batch-items b{font-size:14px}
+.customer-shell .cgr-batch-items small{font-size:12px}
+.customer-shell .cgr-submit-success p{font-size:13px;line-height:1.7}
+/* Shared form/option classes — page-scoped so transportation, payments reuse,
+   and portal-global micro-type stay untouched. The !important below beats the
+   existing !important base sizing for the option cards. */
+.customer-shell .customer-requests-page .customer-request-options legend{font-size:12px}
+.customer-shell .customer-requests-page .customer-request-form label{font-size:12px}
+.customer-shell .customer-requests-page .request-options-list .request-option{font-size:14px !important}
+/* Batch headings carry the booking identifier — same accessibility treatment
+   as .room-price-nightly: bold sans with tabular figures instead of the thin
+   display serif, so room + request numbers stay legible at low vision. */
+.customer-shell .customer-requests-page .cgr-batch-heading h2{font-family:var(--font-sans,system-ui,-apple-system,"Segoe UI",sans-serif);font-size:18px;font-weight:700;letter-spacing:0;line-height:1.3;font-variant-numeric:tabular-nums}
+/* Status bullet per request item — mirrors the Front Desk .grp-batch dot:
+   amber while open, blue in progress, green completed, red cancelled/declined.
+   Decorative only; status already exists in text and the StatusBadge. */
+.customer-shell .customer-requests-page .cgr-batch-items li{position:relative;padding-left:20px}
+.customer-shell .customer-requests-page .cgr-batch-items li::before{content:"";position:absolute;left:2px;top:20px;width:8px;height:8px;border-radius:999px;background:#d1a35f}
+.customer-shell .customer-requests-page .cgr-batch-items li.cgr-status-in-progress::before{background:#6fb7d6}
+.customer-shell .customer-requests-page .cgr-batch-items li.cgr-status-completed::before{background:#65d3a5}
+.customer-shell .customer-requests-page .cgr-batch-items li.cgr-status-cancelled::before{background:#ef797e}
 .customer-shell .ctr-request-invitation p,.customer-shell .cgr-request-invitation p{font-size:11px}
 /* Digital Express Pass */
 .customer-shell .customer-checkin-qr{padding:22px 18px}
@@ -415,6 +438,14 @@
 .customer-shell .reservation-history-section>header{padding-bottom:12px;border-bottom:1px solid var(--cp-line)}
 .customer-shell .reservation-history-section>header span{border-radius:999px}
 .customer-shell .customer-reservation-groups .reservation-history-list{display:grid;grid-template-columns:1fr;gap:12px}
+/* Section footer for reservation history: result count left, pagination right.
+   Scoped to this section only — never the shared toolbar footer or table footer. */
+.customer-shell .reservation-history-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;padding-top:14px;border-top:1px solid var(--cp-line)}
+.customer-shell .reservation-history-footer-info{display:flex;align-items:center;gap:12px;min-width:0}
+.customer-shell .reservation-history-count{color:var(--cp-muted);font-size:12px;font-weight:650;font-variant-numeric:tabular-nums}
+.customer-shell .reservation-history-pages{display:flex;align-items:center;gap:8px;flex:none}
+.customer-shell .reservation-history-page{min-width:90px;color:var(--cp-muted);font-size:12px;font-weight:700;text-align:center;font-variant-numeric:tabular-nums}
+@media(max-width:680px){.customer-shell .reservation-history-footer{align-items:flex-start;flex-direction:column}.customer-shell .reservation-history-pages{justify-content:space-between;width:100%}}
 .customer-shell .customer-reservation-card{display:grid;grid-template-columns:220px minmax(0,1fr) 230px;gap:0;padding:0;min-height:180px;border-radius:14px;box-shadow:var(--cp-shadow)}
 .customer-shell .customer-reservation-card:hover{border-color:color-mix(in srgb,var(--cp-green) 42%,var(--cp-line));box-shadow:var(--cp-shadow-hover)}
 .customer-shell .customer-reservation-card .customer-reservation-photo{width:auto;height:auto;min-height:180px;margin:0;border-radius:13px 0 0 13px}

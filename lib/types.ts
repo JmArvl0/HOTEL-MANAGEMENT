@@ -18,5 +18,5 @@ export interface DashboardData {
   occupancyTrend: { day: string; occupancy: number }[];
   roomMix: { name: string; value: number; color: string }[];
   recentReservations: RecordItem[];
-  notifications: { id: string; title: string; detail: string; section: Resource | AccountingSection | ManagerSection | "reports"; createdAt?: string }[];
+  notifications: { id: string; title: string; detail: string; section: Resource | AccountingSection | ManagerSection | "reports" | "room_rack"; createdAt?: string }[];
 }

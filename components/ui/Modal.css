@@ -1354,21 +1354,6 @@
   to { transform: rotate(360deg); }
 }
 
-.data-table-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px;
-  border-top: 1px solid var(--color-border, #e3e5df);
-  background: var(--surface-panel, #f7f9f6);
-}
-
-.pagination-summary {
-  margin: 0;
-  font-size: 13px;
-  color: var(--color-fg-muted, #6d7971);
-}
-
 /* Mobile Cards */
 .data-table-mobile-cards {
   display: none;

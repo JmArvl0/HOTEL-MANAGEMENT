@@ -90,7 +90,7 @@ describe("GuestRequestsPanel render layer", () => {
     await waitFor(() => expect(screen.getByText("Extra towels")).toBeTruthy());
     // Approval badge present, yet the open item still reads Open with a Start action.
     expect(screen.getByText("Approved", { selector: ".grp-approval" })).toBeTruthy();
-    expect(screen.getByText("Fulfillment 1/2 completed")).toBeTruthy();
+    expect(screen.getByText("1 of 2 done")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Start" })).toBeTruthy();
     expect(screen.queryByText("Fulfilled")).toBeNull();
   });

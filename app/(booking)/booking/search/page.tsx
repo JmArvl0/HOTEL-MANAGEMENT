@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { ArrowRight, CalendarDays, Check, ChevronRight, Clock3, Headphones, ShieldCheck, Users, Waves } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { LandingNav } from "@/components/landing/landing-nav";
+import { BookingNoticeToast } from "@/components/booking/booking-notice-toast";
 import { BookingSearchForm } from "@/components/booking/booking-search-form";
 import { AvailabilityGuide } from "@/components/booking/availability-guide";
 import { BackButton } from "@/components/booking/back-button";
@@ -118,10 +119,10 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
       </section>
 
       <div className="booking-content--premium">
-        {raw.expired && availability && <p className="booking-notice">Your hold expired. Please pick from today’s live rooms.</p>}
-        {raw.changed && availability && <p className="booking-notice">Rates or availability changed — here are the latest results.</p>}
-        {intent.mode === "browse" && intent.notice && <p className="booking-notice">Your search needs attention — {intent.notice.toLowerCase()}. Pick dates below to see live availability.</p>}
-        {focusNotice && <p className="booking-notice">{focusNotice}</p>}
+        {raw.expired && availability && <BookingNoticeToast text="Your hold expired. Please pick from today’s live rooms." />}
+        {raw.changed && availability && <BookingNoticeToast text="Rates or availability changed — here are the latest results." />}
+        {intent.mode === "browse" && intent.notice && <BookingNoticeToast text={`Your search needs attention — ${intent.notice.toLowerCase()}. Pick dates below to see live availability.`} />}
+        {focusNotice && <BookingNoticeToast text={focusNotice} />}
 
         <div className="booking-layout">
           <div className="booking-results">

@@ -11,13 +11,11 @@ export function ReservationHistoryToolbar({
   initialStatus,
   initialSort,
   statusOptions,
-  resultCount,
 }: {
   initialQuery: string;
   initialStatus: string;
   initialSort: string;
   statusOptions: FilterOption[];
-  resultCount: number;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -33,6 +31,7 @@ export function ReservationHistoryToolbar({
     if (nextQuery.trim()) params.set("q", nextQuery.trim());
     if (nextStatus !== "all") params.set("status", nextStatus);
     if (nextSort !== "recommended") params.set("sort", nextSort);
+    // Filter changes reset pagination — the page param never survives them.
     const suffix = params.toString();
     router.replace(suffix ? `${pathname}?${suffix}` : pathname, { scroll: false });
   }, [pathname, query, router, sort, status]);
@@ -50,13 +49,6 @@ export function ReservationHistoryToolbar({
   const changeSort = (value: string) => {
     setSort(value);
     navigate({ sort: value });
-  };
-
-  const clear = () => {
-    setQuery("");
-    setStatus("all");
-    setSort("recommended");
-    router.replace(pathname, { scroll: false });
   };
 
   return (
@@ -97,10 +89,6 @@ export function ReservationHistoryToolbar({
           />
         </div>
       }
-      resultCount={resultCount}
-      resultNoun="reservations"
-      onClearFilters={clear}
-      hasActiveFilters={Boolean(query || status !== "all" || sort !== "recommended")}
       filtersLayout="inline"
     />
   );

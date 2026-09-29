@@ -145,6 +145,7 @@ describe("Housekeeping overview boundaries", () => {
 
     expect(dashboard).toContain('allowed.includes("reservations")?<article className="panel arrivals"');
     expect(dashboard).toContain("Room readiness activity");
-    expect(dashboard).toContain('onClick={()=>setSection("rooms")}>View rooms');
+    expect(dashboard).toContain("onClick={openRooms}>View rooms");
+    expect(dashboard).toContain('onOpenRack("board", "arrivals")');
   });
 });

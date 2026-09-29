@@ -148,7 +148,7 @@ export type FrontDeskReportRecord = RecordItem & {
   reviewed_by_name?: string | null;
 };
 
-export async function listFrontDeskReports(page: number): Promise<{ rows: FrontDeskReportRecord[]; page: number; pageCount: number }> {
+export async function listFrontDeskReports(page: number): Promise<{ rows: FrontDeskReportRecord[]; page: number; pageCount: number; total: number }> {
   if (!supabase) throw new Error("Database unavailable.");
   const safePage = Math.max(0, page);
   const { data, error, count } = await supabase
@@ -166,5 +166,5 @@ export async function listFrontDeskReports(page: number): Promise<{ rows: FrontD
     row.submitted_by_name = users?.find((user) => user.id === row.submitted_by)?.name ?? null;
     row.reviewed_by_name = users?.find((user) => user.id === row.reviewed_by)?.name ?? null;
   }
-  return { rows, page: safePage, pageCount: Math.max(1, Math.ceil((count ?? 0) / REPORT_PAGE_SIZE)) };
+  return { rows, page: safePage, pageCount: Math.max(1, Math.ceil((count ?? 0) / REPORT_PAGE_SIZE)), total: count ?? 0 };
 }

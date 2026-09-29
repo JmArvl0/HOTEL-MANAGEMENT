@@ -4,6 +4,32 @@ Lightweight decision log. Each entry records a choice that constrains future dev
 Trivial implementation details do not belong here. Historical sessions never override the
 current system or `SYSTEM.md` — see [[AI Session Handoff]] for the authority order.
 
+## D-032 — One footer per table: TablePagination is the footer
+
+Date: 2026-09-28
+Status: Active
+
+### Decision
+
+Every paginated table/card list renders exactly one footer: `TablePagination` as the
+last child of `.data-panel` (the footer position) — never alongside a separate
+`.table-footer`. Pager-less summary lists (housekeeping queue cards, room matrix grid)
+keep `.table-footer`. Pagination type follows the table/footer scale (summary 11px,
+note/page/buttons 10px). Server-paged lists (front-desk reports) use the same
+primitive with exact totals from the API, not a custom pager.
+
+### Reason
+
+Panels had drifted into double footers (a `.table-footer` count plus a detached
+`.table-pagination` outside the card) with shrunken 8/9px pagination text. One
+footer in the card removes the duplication and keeps counts, notes, and page
+controls in a single strip at readable sizes.
+
+### Related
+
+`docs/HAVEN_UI_STANDARDS.md` · `components/ui/table-pagination.tsx` ·
+`app/manager-dashboard-theme.css` (.table-pagination)
+
 ## D-017 — One interaction system with customer and internal presentation contexts
 
 Date: 2026-09-18
