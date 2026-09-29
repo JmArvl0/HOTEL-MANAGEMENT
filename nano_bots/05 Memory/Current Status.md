@@ -1046,6 +1046,15 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
   card links stay text links by design. All gates green (166 files / 1873 tests, build
   clean); manual UI verification pending (needs a logged-in guest) — checklist in
   [[2026-09-29 - Overview Requests Card Pill Button]].
+- Online-deposit failure ("Unable to start online payment.") fixed at the root: the live database
+  had no `public.submit_gateway_deposit` in any schema while its migration (`20261016010000`) was
+  already recorded as applied, so `supabase db push` could never recreate it ([[KI-011]]). Restore
+  migration pushed and live-verified — function present, service-role-only, `prosrc` digest matches
+  the canonical body, RPC resolves through PostgREST (no `PGRST202`); the route now logs RPC
+  failures and maps every guard code, and `lib/gateway.ts` keeps the provider's HTTP status.
+  PayMongo had collected **zero** payments ever, so no orphaned session was paid. All gates green
+  (167 files / 1886 tests, build clean); no end-to-end guest run yet (needs a guest login) —
+  checklist in [[2026-09-29 - Restore submit_gateway_deposit]].
 
 ## Current Problems / Blockers
 
@@ -1101,6 +1110,7 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
 
 ## Recent Sessions
 
+- [[2026-09-29 - Restore submit_gateway_deposit]] — live DB had no `submit_gateway_deposit` in any schema while its migration was already ledger-recorded, so `db push` could never recreate it ([[KI-011]]); restore pushed + live-verified (prosrc digest matches, RPC resolves, no `PGRST202`), route now logs and maps every guard code, zero payments had ever been collected; 1886/1886, build clean, guest run pending
 - [[2026-09-29 - Overview Requests Card Pill Button]] — requests-card link became a full-width soft pill (`btn btn-soft`), sibling card links untouched; 1873/1873, build clean, visual check pending; the label renders green and the pill is outline-only by cascade, not by choice
 - [[2026-09-29 - Room Price Typography Fix]] — price figures off the display serif onto `--font-sans`, 12px labels on both surfaces; the bare `" / night"` node inherited 16px from a rule-less span; 1850/1850, build clean, visual check pending
 - [[2026-09-26 - Admin Module CSS Scoping Fix]] — unscoped admin module CSS leaked app-wide (D-029); leak guard added, 1791/1791 green, manual browser check pending

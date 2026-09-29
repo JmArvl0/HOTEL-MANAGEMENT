@@ -177,7 +177,13 @@ export async function createGCashCheckoutSource(params: GCashCheckoutParams): Pr
       },
     }),
   });
-  if (!response.ok) throw new Error("GATEWAY_SESSION_FAILED");
+  if (!response.ok) {
+    // Carry the provider's own diagnostics out to the caller: the HTTP status and
+    // error detail are the only things that distinguish a rejected request from a
+    // provider outage. Truncated, and never the request headers or the secret key.
+    const detail = await response.text().catch(() => "");
+    throw new Error(`GATEWAY_SESSION_FAILED — httpStatus=${response.status} detail=${detail.slice(0, 200)}`);
+  }
   const payload = (await response.json()) as {
     data?: { id?: string; attributes?: { checkout_url?: string } };
   };

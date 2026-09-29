@@ -213,3 +213,49 @@ Never detach or rewrite reservations merely to pass the conversion gate.
 Related:
 [[D-023]] · `supabase/migrations/20261012010000_guest_to_staff_conversion.sql` ·
 `supabase/migrations/20261012020000_guest_to_staff_conversion_input_hardening.sql`
+
+---
+
+## KI-011 — The ledger can record a migration whose objects are absent
+
+Status: Resolved for `submit_gateway_deposit` (2026-09-29); the class stays Open
+Area: Database / migrations
+
+Description:
+`supabase_migrations.schema_migrations` stores version+name only, and `supabase db push`
+consults it to decide what to run. If a migration file is edited after its version was
+recorded — or applied only in part — the added objects never reach the database, because
+that version is never re-run. `20261016010000_express_checkin_and_gateway.sql` was edited
+after being recorded this way: `public.submit_gateway_deposit` existed in **no** schema on
+the live database while every other object of that file was present.
+
+`20261021010000` already documented the class in a comment ("ledgers that applied an earlier
+revision of that file lack it") but guarded only the function's *grants*, so the missing
+function stayed missing for four months. Nothing ever drops this function — the restore
+reverts no deliberate removal.
+
+Impact:
+An RPC defined by an "applied" migration can be absent at runtime. PostgREST answers
+`PGRST202` ("Could not find the function … in the schema cache"), which surfaces as whatever
+the caller's unmapped-error branch returns — here the generic 500 "Unable to start online
+payment.", which is precisely how it went unnoticed. The online-deposit flow had never once
+succeeded (PayMongo: zero payments collected, ever).
+
+Detection — read-only, one statement (see `scripts/dbq.mjs`):
+`select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where
+p.proname='<fn>'`. Zero means absent, whatever the ledger says. Also compare the ledger's
+max version against the highest file in `supabase/migrations/`.
+
+Resolution:
+`supabase/migrations/20261024040000_restore_submit_gateway_deposit.sql` re-creates the
+function from the canonical body, idempotently, in the re-assertion style of
+`20261021010000`. Pushed 2026-09-29 and verified live: `pg_proc` row present, `proacl` =
+`{postgres=X/postgres,service_role=X/postgres}` (no public/anon/authenticated), `prosecdef`
+true with `search_path=public`, a whitespace-normalized digest of the live `prosrc` matching
+the canonical body, and the RPC resolving through PostgREST (`P0001 HOLD_NOT_FOUND`, not
+`PGRST202`). The route now logs an RPC failure before mapping it, and `lib/paymongo.test.ts`
+pins every guard code the RPC raises to an explicit route mapping.
+
+Related:
+[[D-001 — Migrations are applied with `supabase db push`, never `npm run migrate]] ·
+KI-002 · KI-003 · `lib/paymongo.test.ts`

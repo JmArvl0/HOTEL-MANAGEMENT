@@ -11,7 +11,10 @@ import {
 } from "@/lib/gateway";
 import { confirmGatewayEvent } from "@/lib/gateway-store";
 
-const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
+// Normalized to LF: core.autocrlf=true checks tracked files out with CRLF while
+// newly written files stay LF, so raw working-tree bytes are checkout-dependent.
+// These contracts assert the *content* of a migration, not its line endings.
+const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8").replace(/\r\n/g, "\n");
 const SECRET = "whsec-paymongo-test";
 const ts = () => Math.floor(Date.now() / 1000);
 
@@ -268,5 +271,78 @@ describe("paymongo migration contract", () => {
   });
   it("keeps the RPC locked to the service role", () => {
     expect(sql).toContain("grant execute on function public.confirm_gateway_payment(uuid,text,text) to service_role");
+  });
+});
+
+// The live database was missing submit_gateway_deposit while its migration
+// (20261016010000) was already recorded as applied, so `supabase db push` could
+// never recreate it and the deposit flow failed with the generic 500. This
+// contract pins the restore migration to the canonical definition.
+describe("gateway deposit RPC restore migration contract", () => {
+  const restore = read("supabase/migrations/20261024040000_restore_submit_gateway_deposit.sql");
+  const source = read("supabase/migrations/20261016010000_express_checkin_and_gateway.sql");
+
+  /** The canonical function text: signature through its terminating end$$; */
+  const canonical = (() => {
+    const start = source.indexOf("create or replace function public.submit_gateway_deposit(");
+    const end = source.indexOf("end$$;", start);
+    return source.slice(start, end + "end$$;".length);
+  })();
+
+  it("carries the canonical function body verbatim, with the same signature", () => {
+    expect(canonical.length).toBeGreaterThan(0);
+    expect(restore).toContain(canonical);
+    expect(restore).toContain("p_token uuid, p_user_id uuid, p_gateway_ref text");
+    expect(restore).toContain("returns table(reservation_id text, confirmation_number text, reservation_status text");
+    expect(restore).toContain("language plpgsql security definer set search_path=public");
+  });
+
+  it("keeps every guard code the route and webhook map on", () => {
+    for (const code of [
+      "HOLD_NOT_FOUND",
+      "HOLD_EXPIRED",
+      "INVALID_GATEWAY_PAYLOAD",
+      "INVALID_DEPOSIT_AMOUNT",
+      "RATE_CHANGED",
+      "ROOM_TYPE_UNAVAILABLE",
+    ]) {
+      expect(restore, code).toContain(code);
+    }
+    // A hold that already has a reservation returns its state (idempotent retry).
+    expect(restore).toContain("if h.reservation_id is not null then");
+    // The gateway payment row is what the webhook looks up by reference.
+    expect(restore).toContain("'gateway_paymongo',trim(p_gateway_ref),");
+  });
+
+  it("re-asserts the gateway columns and indexes idempotently", () => {
+    for (const fragment of [
+      "add column if not exists payment_gateway text",
+      "add column if not exists gateway_reference_id text",
+      "add column if not exists webhook_event_id text",
+      "payments_gateway_reference_unique",
+      "payments_webhook_event_unique",
+    ]) {
+      expect(restore, fragment).toContain(fragment);
+    }
+  });
+
+  it("keeps the RPC service-role only", () => {
+    expect(restore).toContain(
+      "revoke all on function public.submit_gateway_deposit(uuid,uuid,text) from public, anon, authenticated"
+    );
+    expect(restore).toContain("grant execute on function public.submit_gateway_deposit(uuid,uuid,text) to service_role");
+  });
+
+  // The regression this whole file exists for: a guard code the route does not map
+  // falls through to the generic 500, so the guest sees "Unable to start online
+  // payment." and nothing says why. Every code the RPC can raise must be named
+  // explicitly in the route.
+  it("maps every guard code the RPC can raise", () => {
+    const route = read("app/api/booking/payments/gateway/route.ts");
+    const codes = [...restore.matchAll(/raise exception '([A-Z_]+)'/g)].map((m) => m[1]);
+    expect(codes.length).toBeGreaterThan(0);
+    for (const code of codes) expect(route, code).toContain(`code === "${code}"`);
+    // And the failure has to be recorded before it is mapped away.
+    expect(route).toContain("[gateway] submit_gateway_deposit failed");
   });
 });

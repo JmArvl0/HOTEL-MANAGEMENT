@@ -72,7 +72,8 @@ export async function POST(request: Request) {
         cancel: `${origin}/booking/payment/${parsed.data.holdToken}`,
       },
     });
-  } catch {
+  } catch (error) {
+    console.error(`[gateway] checkout session failed — ${error instanceof Error ? error.message : String(error)}`);
     return NextResponse.json(
       { error: "Unable to start online payment. Please use manual GCash transfer." },
       { status: 502 }
@@ -86,8 +87,16 @@ export async function POST(request: Request) {
   });
   if (error) {
     const code = error.message.split(":")[0].trim();
+    // A schema-cache miss (PGRST202) or an ACL gap lands here too, so log before
+    // mapping: without this line a missing submit_gateway_deposit surfaced only as
+    // the generic 500 below, which is how it went unnoticed.
+    console.error(`[gateway] submit_gateway_deposit failed — code=${code} message=${error.message}`);
     if (code === "HOLD_EXPIRED" || code === "ROOM_TYPE_UNAVAILABLE" || code === "RATE_CHANGED")
       return NextResponse.json({ error: "This booking is no longer available at the held price." }, { status: 409 });
+    if (code === "HOLD_NOT_FOUND")
+      return NextResponse.json({ error: "Booking hold not found." }, { status: 404 });
+    if (code === "INVALID_DEPOSIT_AMOUNT" || code === "INVALID_GATEWAY_PAYLOAD")
+      return NextResponse.json({ error: "Unable to start online payment for this booking." }, { status: 400 });
     return NextResponse.json({ error: "Unable to start online payment." }, { status: 500 });
   }
   const row = (Array.isArray(data) ? data[0] : data) as { reservation_id: string };
