@@ -27,5 +27,7 @@ describe("BookingPageFrame", () => {
     const breadcrumb = screen.getByRole("navigation", { name: "Breadcrumb" });
     const goBack = screen.getByRole("button", { name: "Back to Find a Room" });
     expect(breadcrumb.nextElementSibling).toBe(goBack);
+    // Styled as a button by the flow skin in guest-booking.css.
+    expect(goBack.className).toBe("booking-back booking-back--flow");
   });
 });

@@ -45,4 +45,16 @@ describe("find-a-room compact search style contract", () => {
     expect(css).toMatch(/\.customer-content \.booking-search\.compact label\{[^}]*border-right:/);
     expect(css).toMatch(/@media\(max-width:900px\)\{[^}]*\.customer-content \.booking-search\.compact label\{[^}]*padding:8px 10px/);
   });
+
+  it("floats the booking notice in a fixed top-centered layer, out of the compact grid", () => {
+    // The stale-search notice lives in .toast-layer (a direct <body> child), so
+    // no rule may put it back in the form's grid flow.
+    expect(css).toMatch(/\.toast-layer\{[^}]*position:\s*fixed/);
+    expect(css).toMatch(/\.toast-layer\{[^}]*top:76px/);
+    expect(css).toMatch(/\.toast-layer\{[^}]*left:50%/);
+    expect(css).toMatch(/\.toast-layer\{[^}]*transform:translateX\(-50%\)/);
+    expect(css).toMatch(/\.toast-layer\{[^}]*flex-direction:column/);
+    expect(css).not.toMatch(/\.customer-shell \.toast-card-static|\.booking-page \.toast-card-static/);
+    expect(css).not.toMatch(/\.toast-card-static\{[^}]*position:\s*static/);
+  });
 });

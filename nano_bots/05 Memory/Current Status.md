@@ -1055,6 +1055,14 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
   PayMongo had collected **zero** payments ever, so no orphaned session was paid. All gates green
   (167 files / 1886 tests, build clean); no end-to-end guest run yet (needs a guest login) —
   checklist in [[2026-09-29 - Restore submit_gateway_deposit]].
+- Booking form type raised to the system standard (14px body / 12px meta, 16px fields). Inside
+  `.booking-form-card` labels sat at 10px, the request subhead and GCash detail labels at 9px,
+  and the field text was worst: inputs inherited 10px from `.booking-form-grid`, selects were
+  14px via `haven-select.css`, and textarea fell back to the ~13.3px UA default — three sizes in
+  one grid. Fixed with a scoped `.booking-form-card` block appended to `app/guest-booking.css`
+  (both forms; `guest-booking.css` is imported by the root layout, so it covers the public flow
+  and the portal at once). All gates green (168 files / 1893 tests, build clean); visual check
+  pending (needs a guest login) — checklist in [[2026-09-29 - Booking Form Type Scale]].
 
 ## Current Problems / Blockers
 
@@ -1110,6 +1118,7 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
 
 ## Recent Sessions
 
+- [[2026-09-29 - Booking Form Type Scale]] — `.booking-form-card` type lifted to the 14px/12px standard with 16px fields; inputs inherited 10px, selects were 14px, textarea ~13.3px, so one grid showed three sizes; scoped append (not in-place — `.request-option` is shared), 1893/1893, build clean, visual check pending
 - [[2026-09-29 - Restore submit_gateway_deposit]] — live DB had no `submit_gateway_deposit` in any schema while its migration was already ledger-recorded, so `db push` could never recreate it ([[KI-011]]); restore pushed + live-verified (prosrc digest matches, RPC resolves, no `PGRST202`), route now logs and maps every guard code, zero payments had ever been collected; 1886/1886, build clean, guest run pending
 - [[2026-09-29 - Overview Requests Card Pill Button]] — requests-card link became a full-width soft pill (`btn btn-soft`), sibling card links untouched; 1873/1873, build clean, visual check pending; the label renders green and the pill is outline-only by cascade, not by choice
 - [[2026-09-29 - Room Price Typography Fix]] — price figures off the display serif onto `--font-sans`, 12px labels on both surfaces; the bare `" / night"` node inherited 16px from a rule-less span; 1850/1850, build clean, visual check pending

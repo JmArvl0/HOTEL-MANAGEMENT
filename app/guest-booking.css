@@ -60,12 +60,17 @@
 .booking-breadcrumb-light{max-width:1160px;margin:auto;padding:0 24px;font-size:10px}
 .booking-flow-navigation{max-width:1180px;margin:0 auto}
 .booking-flow-navigation .breadcrumb{max-width:none}
-.booking-back.booking-back--flow{margin:10px 0 0;padding:3px 2px;border:0;background:transparent;color:var(--cp-green,var(--green));font-size:11px;font-weight:750;cursor:pointer;transition:color .15s ease}
+/* Flow back control: a real secondary button, not a bare text link — same
+   metric family as .btn (40px / 6px radius / 8px gap, 44px touch floor) and
+   the .btn-soft palette. Fully self-contained because search.css (which owns
+   the base .booking-back pill for the /booking/search hero) is only loaded on
+   that route. Never a borderless, transparent skin again. */
+.booking-back.booking-back--flow{display:inline-flex;align-items:center;gap:8px;min-height:40px;margin:10px 0 0;padding:0 16px;border:1px solid var(--cp-line,var(--line));border-radius:6px;background:var(--cp-panel,var(--paper,#fff));color:var(--cp-text,var(--ink));font-size:12px;font-weight:750;white-space:nowrap;cursor:pointer;transition:background-color .18s ease,border-color .18s ease,color .18s ease,transform .18s ease}
 .booking-back.booking-back--flow .booking-back-icon{display:inline-flex;align-items:center;width:auto;height:auto;background:transparent;transition:transform .15s ease}
-.booking-back.booking-back--flow:hover{color:var(--cp-accent,var(--accent));text-decoration:underline;text-underline-offset:3px}
+.booking-back.booking-back--flow:hover{border-color:var(--cp-green,var(--green));color:var(--cp-green,var(--green))}
 .booking-back.booking-back--flow:hover .booking-back-icon{transform:translateX(-2px)}
-.booking-back.booking-back--flow:active{color:var(--cp-accent,var(--accent))}
-.booking-back.booking-back--flow:focus-visible{outline:2px solid var(--cp-green,var(--green));outline-offset:3px;border-radius:4px}
+.booking-back.booking-back--flow:active:not(:disabled){transform:translateY(1px)}
+.booking-back.booking-back--flow:focus-visible{outline:2px solid var(--cp-green,var(--green));outline-offset:2px}
 .booking-flow-navigation--public{max-width:1160px;padding:18px 24px 0}
 .booking-flow-navigation--public .booking-breadcrumb-light{padding:0}
 .customer-shell .booking-form-card,.customer-shell .review-card,.customer-shell .booking-search.compact,.customer-shell .available-room,.customer-shell .booking-empty,.customer-shell .confirmation-card{background:var(--cp-panel);border-color:var(--cp-line);color:var(--cp-text)}
@@ -163,6 +168,7 @@
 @media(max-width:680px){
   .booking-flow-navigation{padding-inline:0}
   .booking-flow-navigation--public{padding:16px 20px 0}
+  .booking-back.booking-back--flow{min-height:44px}
   .review-actions{flex-direction:column;align-items:stretch}
   .review-actions .btn{width:100%;justify-content:center}
   .review-finance{grid-template-columns:1fr}
@@ -722,14 +728,21 @@
 .customer-shell .toast-stack .toast-dismiss{width:26px;height:26px;flex:none;padding:0;display:inline-flex;align-items:center;justify-content:center;color:var(--cp-muted);background:transparent;border:0;border-radius:4px;cursor:pointer}
 .customer-shell .toast-stack .toast-dismiss:hover{color:var(--cp-text);background:var(--cp-panel-2)}
 @media(max-width:480px){.customer-shell .toast-stack{top:66px;width:calc(100vw - 24px)}}
-/* Inline booking notice reusing toast-card info function (same look, 6s auto-dismiss, × dismiss) */
-.toast-card-static{margin:0 0 12px}
-.customer-shell .toast-card-static,.booking-page .toast-card-static{position:static;transform:none;width:100%;pointer-events:auto;display:flex;align-items:flex-start;gap:10px;padding:12px 12px 12px 14px;background:#fff;border:1px solid var(--cp-line,#cfdcd8);border-radius:12px;box-shadow:0 12px 32px rgba(8,75,85,.18)}
+/* Booking notice: the toast-card info function (same look, 6s auto-dismiss,
+   × dismiss) floated in a fixed, top-centered layer — the same slot as the
+   customer shell's .toast-stack — instead of sitting where it was raised, so
+   it never reflows the compact search grid or the results below. The layer is
+   a direct <body> child (BookingNoticeToast), so notices raised together stack
+   instead of overlapping. Public booking pages sit below their 86px nav. */
+.toast-layer{position:fixed;top:76px;left:50%;transform:translateX(-50%);z-index:900;display:flex;flex-direction:column;gap:8px;width:min(520px,calc(100vw - 32px));pointer-events:none}
+body:has(.booking-page) .toast-layer{top:96px}
+.toast-card-static{width:100%;margin:0;pointer-events:auto;display:flex;align-items:flex-start;gap:10px;padding:12px 12px 12px 14px;background:#fff;border:1px solid var(--cp-line,#cfdcd8);border-radius:12px;box-shadow:0 12px 32px rgba(8,75,85,.18)}
 .toast-card-static .toast-icon{flex:none;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;border-radius:5px;background:#e1eeeb;color:#176773}
 .toast-card-static .toast-copy{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .toast-card-static .toast-copy strong{color:var(--cp-text,#103e48);font-size:12px;line-height:1.4;font-weight:600}
 .toast-card-static .toast-dismiss{width:26px;height:26px;flex:none;padding:0;display:inline-flex;align-items:center;justify-content:center;color:var(--cp-muted,#6d7971);background:transparent;border:0;border-radius:4px;cursor:pointer}
 .toast-card-static .toast-dismiss:hover{color:var(--cp-text,#103e48);background:var(--cp-panel-2,#eef4f2)}
+@media(max-width:480px){.toast-layer{top:66px;width:calc(100vw - 24px)}body:has(.booking-page) .toast-layer{top:86px}}
 
 /* GCash instant auto-pay deposit selector (booking payment step) */
 .gateway-selector{display:grid;gap:14px;margin:18px 0 6px}
@@ -749,3 +762,47 @@
 .payment-status-poller{margin-top:12px;padding:12px 14px;border:1px dashed var(--line);color:var(--muted);font-size:10px;line-height:1.6;text-align:center}
 @media(prefers-reduced-motion:no-preference){.payment-status-poller{animation:haven-poller-pulse 2s ease-in-out infinite}}
 @keyframes haven-poller-pulse{0%,100%{opacity:1}50%{opacity:.65}}
+
+/* Booking form readable type scale (system standard: 14px body, 12px meta — see the cgr
+   block in app/customer-portal.css and components/customer/guest-request-type-scale.test.ts).
+   Scoped to .booking-form-card rather than edited in place: .request-option /
+   .request-options-list are shared with the customer requests page (the reason that page
+   needed its own scoped override), so raising the base rules would leak off this flow.
+   Fields are 16px because that IS the app-wide form default — nothing else overrides form
+   inputs, so every other form already renders at body size — and 16px stops iOS Safari
+   zooming the page on focus. Before this, one grid showed three sizes: inputs inherited
+   10px from .booking-form-grid, selects were 14px from components/ui/haven-select.css, and
+   textarea fell back to the ~13.3px UA default. The 10px on .booking-form-grid is now fully
+   shadowed inside this card; it is left alone so the change stays scoped.
+   One selector per rule so booking-form-type-scale.test.ts can assert single-line
+   substrings and check every rule for the card scope. */
+.booking-form-card .booking-form-grid input{font-size:16px}
+.booking-form-card .booking-form-grid select{font-size:16px}
+.booking-form-card .booking-form-grid textarea{font-size:16px}
+.booking-form-card .booking-form-other textarea{font-size:16px}
+.booking-form-card .deposit-reference input{font-size:16px}
+.booking-form-card .gcash-destination h2{font-size:16px}
+.booking-form-card .deposit-due-line strong{font-size:18px}
+.booking-form-card .request-options-list .request-option{font-size:14px!important}
+.booking-form-card .gcash-steps{font-size:14px}
+.booking-form-card .gcash-details dd{font-size:14px}
+.booking-form-card .deposit-due-line{font-size:14px}
+.booking-form-card .deposit-form h3{font-size:14px}
+.booking-form-card .proof-upload strong{font-size:14px}
+.booking-form-card .proof-file-info strong{font-size:14px}
+.booking-form-card .booking-form-grid label{font-size:12px}
+.booking-form-card .booking-form-grid .arrival-note{font-size:12px}
+.booking-form-card .booking-form-option-heading{font-size:12px}
+.booking-form-card .booking-form-option-heading small{font-size:12px}
+.booking-form-card .request-options-subhead{font-size:12px}
+.booking-form-card .booking-form-other{font-size:12px}
+.booking-form-card .booking-form-other small{font-size:12px}
+.booking-form-card .deposit-form legend{font-size:12px}
+.booking-form-card .deposit-reference{font-size:12px}
+.booking-form-card .proof-label{font-size:12px}
+.booking-form-card .proof-staged .btn{font-size:12px}
+.booking-form-card .proof-upload small{font-size:12px}
+.booking-form-card .proof-file-info small{font-size:12px}
+.booking-form-card .gcash-details dt{font-size:12px}
+.booking-form-card .deposit-verification-note{font-size:12px!important}
+.booking-form-card .byp-note{font-size:12px!important}

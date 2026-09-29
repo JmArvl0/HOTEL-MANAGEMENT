@@ -666,7 +666,7 @@
   .dialog{display:flex!important;position:static;inset:auto;padding:0;animation:none}
   .dialog-backdrop,.modal-header,.modal-footer,.modal-close,
   .customer-sidebar,.customer-content-header,.customer-mobile-menu,
-  .customer-drawer-backdrop,.toast-stack,.receipt-page-back{display:none!important}
+  .customer-drawer-backdrop,.toast-stack,.toast-layer,.receipt-page-back{display:none!important}
   .modal-content{box-shadow:none;border:0;border-radius:0;max-height:none;overflow:visible}
   .modal-body{padding:0;overflow:visible}
   .customer-shell,.customer-main,.customer-content{display:block!important;background:#fff!important}

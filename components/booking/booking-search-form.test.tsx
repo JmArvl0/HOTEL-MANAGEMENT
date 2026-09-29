@@ -47,4 +47,23 @@ describe("Booking search", () => {
     fireEvent.change(screen.getByLabelText("Guests"), { target: { value: "4" } });
     expect(screen.getByRole("status").textContent).toMatch(/check availability again/);
   });
+  it("floats the stale notice in the top-centered layer, never inside the compact search grid", () => {
+    render(<BookingSearchForm compact initial={{ checkIn: "2099-09-06", checkOut: "2099-09-08", guests: 2 }} searched={{ checkIn: "2099-09-06", checkOut: "2099-09-08", guests: 2 }} />);
+    fireEvent.change(screen.getByLabelText("Check in"), { target: { value: "2099-09-10" } });
+    const card = screen.getByRole("status");
+    const layer = document.getElementById("haven-booking-notice-layer");
+    expect(layer?.className).toBe("toast-layer");
+    expect(layer?.parentElement).toBe(document.body);
+    expect(layer?.contains(card)).toBe(true);
+    expect(document.querySelector("form.booking-search.compact")?.contains(card)).toBe(false);
+  });
+  it("stacks notices raised together in one shared layer", () => {
+    const searched = { checkIn: "2099-09-06", checkOut: "2099-09-08", guests: 2 };
+    render(<><BookingSearchForm compact initial={searched} searched={searched} /><BookingSearchForm compact initial={searched} searched={searched} /></>);
+    for (const checkIn of screen.getAllByLabelText("Check in")) {
+      fireEvent.change(checkIn, { target: { value: "2099-09-10" } });
+    }
+    expect(document.querySelectorAll(".toast-layer")).toHaveLength(1);
+    expect(document.querySelectorAll(".toast-layer .toast-card-static")).toHaveLength(2);
+  });
 });

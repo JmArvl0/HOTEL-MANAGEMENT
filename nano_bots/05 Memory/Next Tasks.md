@@ -5,6 +5,15 @@ their outcome is captured in [[Current Status]], [[Decisions]], or a session not
 
 ## Immediate
 
+- [ ] **Booking-form type-scale visual QA (KI-005)** — needs a guest login on `:3000`.
+      `/booking/search` → hold a room → the details form, then the deposit step. Confirm
+      field text is legible, that inputs and the textarea now match at 16px, and that the
+      "Anything else?" box and the request checkboxes are readable. Re-check the deposit
+      step inside `/account` (the dark `.customer-shell` context) — it shares the card.
+      Checklist in [[2026-09-29 - Booking Form Type Scale]]. Related, found while fixing
+      this and deliberately left alone: `.gateway-selector` (9px badge, 11px steps) and
+      `.payment-status-poller` (10px) still sit below the standard.
+
 - [ ] **System Health visual QA (KI-005)** — needs an Admin session on `:3000`. In
       **both themes**: no card text is tinted (tone sits on the value line only); the
       dark-mode tone contrast reads correctly (the old `--ops-*-ink` tones were
