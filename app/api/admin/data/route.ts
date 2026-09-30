@@ -106,9 +106,11 @@ async function systemHealth(db:AdminDbClient):Promise<SystemHealth>{
   }
   // PayMongo gateway presence + mode, derived server-side from the secret-key
   // prefix. The key itself never leaves the server — only the mode label.
-  const { secretKey: gatewayKey } = resolveGatewaySecrets();
-  const gateway: NonNullable<SystemHealth["gateway"]> = !gatewayConfigured() ? { status: "not_configured" }
-    : gatewayKey.startsWith("sk_live_") ? { status: "listening_live" } : { status: "listening_test" };
+  const { secretKey: gatewayKey, webhookSecret: gatewayWebhook } = resolveGatewaySecrets();
+  const hasSecretKey = gatewayKey.length > 0;
+  const hasWebhookSecret = gatewayWebhook.length > 0;
+  const gateway: NonNullable<SystemHealth["gateway"]> = !gatewayConfigured() ? { status: "not_configured", hasSecretKey, hasWebhookSecret }
+    : gatewayKey.startsWith("sk_live_") ? { status: "listening_live", hasSecretKey: true, hasWebhookSecret: true } : { status: "listening_test", hasSecretKey: true, hasWebhookSecret: true };
   // Recent audit rows for the Audit Trail tab. Safe columns only, capped —
   // payloads and secrets are never selected. Actors resolve through one
   // batched user lookup (same pattern as the payment destination above).

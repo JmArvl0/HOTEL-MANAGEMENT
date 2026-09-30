@@ -39,7 +39,7 @@ const health = (overrides: Partial<SystemHealth> = {}): SystemHealth => ({
   application: { environment: "Production", version: "1.0.0", commit: "abc1234" },
   storage: { status: "operational" },
   email: { status: "configured" },
-  gateway: { status: "listening_test" },
+  gateway: { status: "listening_test", hasSecretKey: true, hasWebhookSecret: true },
   recentProbes: [
     { action: "security_policy_updated", entity: "security_policy", at: "2026-09-24T08:12:00.000Z", actor: "Ada (System Administrator)" },
     { action: "admin_create_staff", entity: "user_account", at: "2026-09-24T07:58:00.000Z", actor: null },
@@ -137,7 +137,7 @@ describe("SystemHealthView", () => {
   });
 
   it("puts tone on the value line only, never on the card", () => {
-    render(<SystemHealthView data={health({ gateway: { status: "listening_test" } })} onRefresh={() => {}} />);
+    render(<SystemHealthView data={health({ gateway: { status: "listening_test", hasSecretKey: true, hasWebhookSecret: true } })} onRefresh={() => {}} />);
     const card = screen.getByText("PayMongo Webhook").closest(".sys-health-card")!;
     // Tone classes on the <article> tinted the name and the whole explanation
     // paragraph — colored body text at 12px, which is both noisy and below AA.
@@ -146,7 +146,7 @@ describe("SystemHealthView", () => {
   });
 
   it("shows a compact steady strip instead of an empty attention panel", () => {
-    const steady = health({ db: { live: true, latencyMs: 40, checkedAt: "2026-09-24T08:30:00.000Z" }, gateway: { status: "listening_live" }, email: { status: "configured" }, domain: { status: "connected" } as unknown as SystemHealth["domain"], issues: [] });
+    const steady = health({ db: { live: true, latencyMs: 40, checkedAt: "2026-09-24T08:30:00.000Z" }, gateway: { status: "listening_live", hasSecretKey: true, hasWebhookSecret: true }, email: { status: "configured" }, domain: { status: "connected" } as unknown as SystemHealth["domain"], issues: [] });
     render(<SystemHealthView data={steady} onRefresh={() => {}} />);
     expect(document.querySelector(".sys-queue")).toBeNull();
     expect(screen.getByText(/No critical issues/)).toBeTruthy();
@@ -360,7 +360,7 @@ describe("SystemHealthView", () => {
   });
 
   it("renders the gateway card honestly when unconfigured", () => {
-    render(<SystemHealthView data={health({ gateway: { status: "not_configured" } })} onRefresh={() => {}} />);
+    render(<SystemHealthView data={health({ gateway: { status: "not_configured", hasSecretKey: false, hasWebhookSecret: false } })} onRefresh={() => {}} />);
     expect(screen.getByText("Not configured")).toBeTruthy();
     expect(screen.queryByText(/Test mode active/)).toBeNull();
   });
