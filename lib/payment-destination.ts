@@ -24,13 +24,28 @@ export function maskGcashNumber(value: string | null | undefined) {
   return `09******${trimmed.slice(-4)}`;
 }
 
+export const DEPOSIT_METHODS = ["paymongo", "manual", "off"] as const;
+export type DepositMethod = (typeof DEPOSIT_METHODS)[number];
+
 export type PaymentDestination = {
   accountName: string | null;
   mobileNumber: string | null;
   qrStoragePath: string | null;
   enabled: boolean;
+  depositMethod: DepositMethod;
   version: number;
 };
+
+/** Effective deposit path: paymongo only when selected AND gateway keys present. */
+export function activeDepositMethod(
+  destination: Pick<PaymentDestination, "enabled" | "depositMethod">,
+  gatewayOn: boolean,
+): DepositMethod {
+  if (!destination.enabled) return "off";
+  if (destination.depositMethod === "paymongo" && gatewayOn) return "paymongo";
+  if (destination.depositMethod === "off") return "off";
+  return "manual";
+}
 
 /** Complete means a guest can actually pay: every field present when enabled. */
 export function isPaymentDestinationComplete(destination: Pick<PaymentDestination, "accountName" | "mobileNumber" | "qrStoragePath" | "enabled">) {
@@ -43,11 +58,14 @@ export function isPaymentDestinationComplete(destination: Pick<PaymentDestinatio
   );
 }
 
+export const depositMethodSchema = z.enum(["paymongo", "manual", "off"]);
+
 export const paymentDestinationSchema = z.object({
   accountName: z.string().trim().max(80),
   mobileNumber: z.string().trim().max(30),
   qrStoragePath: z.string().trim().max(300).nullable(),
   enabled: z.boolean(),
+  depositMethod: depositMethodSchema.optional(),
   reason: z.string().trim().min(3, "Record why this payment destination is changing.").max(500),
   version: z.coerce.number().int().positive(),
 }).superRefine((value, ctx) => {

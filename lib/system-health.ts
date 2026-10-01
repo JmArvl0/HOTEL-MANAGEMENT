@@ -43,7 +43,7 @@ export type SystemHealth = {
   }[];
   // PayMongo gateway presence + mode, derived server-side from the secret-key
   // prefix. Presence flags only — the key itself never leaves the server.
-  gateway?: { status: "listening_test" | "listening_live" | "not_configured"; hasSecretKey: boolean; hasWebhookSecret: boolean };
+  gateway?: { status: "listening_test" | "listening_live" | "not_configured"; hasSecretKey: boolean; hasWebhookSecret: boolean; depositMethod?: string };
   // Recent audit rows backing the Audit Trail tab. Safe columns only — no
   // payloads, no secrets, newest first, capped server-side. Actor is the
   // display name + role resolved from user_id, null for system rows.

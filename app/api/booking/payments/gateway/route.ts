@@ -25,6 +25,14 @@ export async function POST(request: Request) {
       { status: 503 }
     );
 
+  const { data: policy } = await supabase.from("hotel_operational_policies")
+    .select("deposit_method,gcash_enabled").eq("key", "default").maybeSingle();
+  if ((policy as { deposit_method?: unknown } | null)?.deposit_method !== "paymongo")
+    return NextResponse.json(
+      { error: "Instant online payment is not the active deposit method. Please use the method shown on the deposit page." },
+      { status: 409 }
+    );
+
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "A booking hold is required." }, { status: 400 });
 

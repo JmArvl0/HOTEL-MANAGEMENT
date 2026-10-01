@@ -7,6 +7,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   GCASH_MOBILE_RE,
+  activeDepositMethod,
   isPaymentDestinationComplete,
   maskGcashNumber,
   normalizeGcashNumber,
@@ -50,6 +51,45 @@ describe("destination completeness", () => {
     expect(isPaymentDestinationComplete({ ...full, accountName: "" })).toBe(false);
     expect(isPaymentDestinationComplete({ ...full, mobileNumber: "123" })).toBe(false);
     expect(isPaymentDestinationComplete({ ...full, qrStoragePath: null })).toBe(false);
+  });
+});
+
+describe("exclusive deposit method", () => {
+  it("offers paymongo only when selected and the gateway is configured", () => {
+    expect(activeDepositMethod({ enabled: true, depositMethod: "paymongo" }, true)).toBe("paymongo");
+    expect(activeDepositMethod({ enabled: true, depositMethod: "paymongo" }, false)).toBe("manual");
+  });
+  it("stays manual unless paymongo is selected with keys present", () => {
+    expect(activeDepositMethod({ enabled: true, depositMethod: "manual" }, true)).toBe("manual");
+    expect(activeDepositMethod({ enabled: true, depositMethod: "manual" }, false)).toBe("manual");
+  });
+  it("is off whenever disabled or explicitly switched off", () => {
+    expect(activeDepositMethod({ enabled: false, depositMethod: "paymongo" }, true)).toBe("off");
+    expect(activeDepositMethod({ enabled: true, depositMethod: "off" }, true)).toBe("off");
+  });
+  it("accepts the method switch through the Owner schema without touching destination rules", () => {
+    expect(paymentDestinationSchema.safeParse({ accountName: "", mobileNumber: "", qrStoragePath: null, enabled: false, depositMethod: "paymongo", reason: "Paused.", version: 3 }).success).toBe(true);
+    expect(paymentDestinationSchema.safeParse({ accountName: "", mobileNumber: "", qrStoragePath: null, enabled: false, depositMethod: "crypto", reason: "Paused.", version: 3 }).success).toBe(false);
+  });
+});
+
+describe("deposit-method migration contracts (20261024050000)", () => {
+  const sql = read("supabase/migrations/20261024050000_deposit_method_toggle.sql");
+  it("adds an exclusive method column defaulting to manual", () => {
+    expect(sql).toContain("deposit_method text not null default 'manual'");
+    expect(sql).toContain("('paymongo', 'manual', 'off')");
+  });
+  it("gates the switch RPC to Owner and Admin with an audited action", () => {
+    expect(sql).toContain("admin_update_deposit_method");
+    expect(sql).toContain("DEPOSIT_METHOD_FORBIDDEN");
+    expect(sql).toContain("to service_role");
+  });
+  it("exposes the switch to Owner + Admin through the admin guard", () => {
+    expect(read("app/api/admin/deposit-method/route.ts")).toContain("guardAdmin()");
+  });
+  it("enforces one active path on both booking routes", () => {
+    expect(read("app/api/booking/payments/gateway/route.ts")).toContain('deposit_method');
+    expect(read("app/api/booking/holds/[token]/confirm/route.ts")).toContain("active method");
   });
 });
 
@@ -153,8 +193,8 @@ describe("no-secret contracts", () => {
       "app/api/admin/data/route.ts",
       "app/api/owner/data/route.ts",
     ]) {
-      const source = read(path).replace(/RESEND_API_KEY/g, "");
-      expect(source, path).not.toMatch(/api[_-]?key|webhook[_-]?secret|merchant[_-]?secret|private[_-]?token|NEXT_PUBLIC_.*(KEY|SECRET)/i);
+      const source = read(path).replace(/RESEND_API_KEY/g, "").replace(/PAYMONGO_(SECRET_KEY|WEBHOOK_SECRET|PUBLIC_KEY)/g, "");
+      expect(source, path).not.toMatch(/api[_-]key|webhook[_-]secret|merchant[_-]secret|private[_-]token|NEXT_PUBLIC_.*(KEY|SECRET)/i);
     }
   });
 });

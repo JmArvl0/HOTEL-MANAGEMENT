@@ -5,11 +5,12 @@ import { ImageUp, QrCode, Smartphone } from "lucide-react";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
 import { GCASH_QR_PATH_RE, normalizeGcashNumber } from "@/lib/payment-destination";
 
-type Destination = { accountName: string | null; mobileNumber: string | null; qrStoragePath: string | null; enabled: boolean; version: number };
+type DepositMethod = "paymongo" | "manual" | "off";
+type Destination = { accountName: string | null; mobileNumber: string | null; qrStoragePath: string | null; enabled: boolean; depositMethod: DepositMethod; version: number };
 type TrailEntry = { id: number; created_at: string; actorName: string; action: string; after_data?: { accountName?: unknown; mobileNumber?: unknown; qrConfigured?: unknown; enabled?: unknown; reason?: unknown } | null };
 type Payload = { destination: Destination; qrDataUrl: string | null; qrHealthy: boolean; lastUpdated: string | null; lastUpdatedBy: string | null; trail: TrailEntry[] };
 
-const EMPTY: Destination = { accountName: null, mobileNumber: null, qrStoragePath: null, enabled: false, version: 1 };
+const EMPTY: Destination = { accountName: null, mobileNumber: null, qrStoragePath: null, enabled: false, depositMethod: "manual", version: 1 };
 
 export default function PaymentSettingsPanel({ notify }: { notify: (message: string) => void }) {
   const dialogs = useActionDialogs();
@@ -18,6 +19,7 @@ export default function PaymentSettingsPanel({ notify }: { notify: (message: str
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
   const [enabled, setEnabled] = useState(false);
+  const [depositMethod, setDepositMethod] = useState<DepositMethod>("manual");
   const [qrPath, setQrPath] = useState<string | null>(null);
   const [qrPreview, setQrPreview] = useState<string | null>(null);
   const [reason, setReason] = useState("");
@@ -37,6 +39,7 @@ export default function PaymentSettingsPanel({ notify }: { notify: (message: str
       setName(dest.accountName ?? "");
       setMobile(dest.mobileNumber ?? "");
       setEnabled(dest.enabled);
+      setDepositMethod(dest.depositMethod === "paymongo" || dest.depositMethod === "off" ? dest.depositMethod : "manual");
       setQrPath(dest.qrStoragePath);
       setQrPreview(data.qrDataUrl);
       setReason("");
@@ -98,6 +101,33 @@ export default function PaymentSettingsPanel({ notify }: { notify: (message: str
     }
   }
 
+  async function saveMethod() {
+    setError("");
+    if (reason.trim().length < 3) { setError("Record why the deposit method is changing (3+ characters)."); return; }
+    const confirmed = await dialogs.askConfirm({
+      title: "Switch deposit method",
+      message: "Only one deposit method is offered at a time. Pending payments on the previous path still finish honestly.",
+      confirmText: "Switch method",
+      cancelText: "Review again",
+      variant: "danger",
+    });
+    if (!confirmed) return;
+    setSaving(true);
+    try {
+      const response = await fetch("/api/admin/deposit-method", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ depositMethod, reason: reason.trim(), version: loaded?.destination.version ?? 1 }),
+      });
+      const body = await response.json();
+      if (!response.ok) { setError(body.error ?? "Unable to save the deposit method."); return; }
+      notify(`Deposit method switched to ${depositMethod === "paymongo" ? "PayMongo instant auto-pay" : depositMethod === "manual" ? "manual GCash verification" : "off"}.`);
+      await load();
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (loading || !loaded) return <div className="empty"><QrCode /><h3>Loading payment settings…</h3></div>;
   return (
     <div className="owner-payment-settings">
@@ -114,7 +144,13 @@ export default function PaymentSettingsPanel({ notify }: { notify: (message: str
         <section className="data-panel owner-setting-panel" aria-labelledby="pay-method">
           <div className="panel-heading"><div><h3 id="pay-method">Customer deposit method</h3><p>The single method offered for new online reservation deposits.</p></div></div>
           <p><strong>GCash</strong> — manual transfer verified by Accounting.</p>
+          <div role="radiogroup" aria-label="Deposit method">
+            {([["paymongo", "PayMongo instant auto-pay", "Provider-hosted GCash checkout, confirmed automatically."], ["manual", "Manual GCash verification", "Guest transfers, then staff verify the receipt."], ["off", "Deposits off", "Guests see a temporarily-unavailable notice."]] as [DepositMethod, string, string][]).map(([value, label, hint]) => (
+              <label key={value} className="choice"><input type="radio" name="deposit-method" checked={depositMethod === value} onChange={() => setDepositMethod(value)} /><span><strong>{label}</strong><small>{hint}</small></span></label>
+            ))}
+          </div>
           <label className="choice"><input type="checkbox" checked={enabled} onChange={(event) => setEnabled(event.target.checked)} /><span><strong>Accept GCash deposits</strong><small>While off, guests see a temporarily-unavailable notice and cannot submit.</small></span></label>
+          <div className="form-actions"><button type="button" className="btn btn-soft" disabled={saving} onClick={saveMethod}>{saving ? "Switching…" : "Switch deposit method"}</button></div>
         </section>
         <section className="data-panel owner-setting-panel" aria-labelledby="pay-destination">
           <div className="panel-heading"><div><h3 id="pay-destination">GCash payment destination</h3><p>Exactly what customers pay into. No PINs, passwords, or secrets belong here.</p></div></div>

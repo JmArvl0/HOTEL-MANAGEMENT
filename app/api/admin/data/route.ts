@@ -109,8 +109,10 @@ async function systemHealth(db:AdminDbClient):Promise<SystemHealth>{
   const { secretKey: gatewayKey, webhookSecret: gatewayWebhook } = resolveGatewaySecrets();
   const hasSecretKey = gatewayKey.length > 0;
   const hasWebhookSecret = gatewayWebhook.length > 0;
-  const gateway: NonNullable<SystemHealth["gateway"]> = !gatewayConfigured() ? { status: "not_configured", hasSecretKey, hasWebhookSecret }
-    : gatewayKey.startsWith("sk_live_") ? { status: "listening_live", hasSecretKey: true, hasWebhookSecret: true } : { status: "listening_test", hasSecretKey: true, hasWebhookSecret: true };
+  const { data: depositPolicy } = await db.from("hotel_operational_policies").select("deposit_method").eq("key", "default").maybeSingle();
+  const depositMethod = (depositPolicy as { deposit_method?: unknown } | null)?.deposit_method === "paymongo" || (depositPolicy as { deposit_method?: unknown } | null)?.deposit_method === "off" ? String((depositPolicy as { deposit_method?: unknown }).deposit_method) : "manual";
+  const gateway: NonNullable<SystemHealth["gateway"]> = !gatewayConfigured() ? { status: "not_configured", hasSecretKey, hasWebhookSecret, depositMethod }
+    : gatewayKey.startsWith("sk_live_") ? { status: "listening_live", hasSecretKey: true, hasWebhookSecret: true, depositMethod } : { status: "listening_test", hasSecretKey: true, hasWebhookSecret: true, depositMethod };
   // Recent audit rows for the Audit Trail tab. Safe columns only, capped —
   // payloads and secrets are never selected. Actors resolve through one
   // batched user lookup (same pattern as the payment destination above).

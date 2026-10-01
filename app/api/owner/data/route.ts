@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     }
     if (section === "payments") {
       const { data: policy, error: policyError } = await db.from("hotel_operational_policies")
-        .select("gcash_account_name,gcash_mobile_number,gcash_qr_storage_path,gcash_enabled,version,updated_at")
+        .select("gcash_account_name,gcash_mobile_number,gcash_qr_storage_path,gcash_enabled,deposit_method,version,updated_at")
         .eq("key", "default").maybeSingle();
       if (policyError) throw policyError;
       const row = (policy ?? {}) as Row;
@@ -61,6 +61,7 @@ export async function GET(request: Request) {
           mobileNumber: row.gcash_mobile_number ?? null,
           qrStoragePath: row.gcash_qr_storage_path ?? null,
           enabled: Boolean(row.gcash_enabled),
+          depositMethod: row.deposit_method === "paymongo" || row.deposit_method === "off" ? row.deposit_method : "manual",
           version: row.version ?? 1,
         },
         qrDataUrl,

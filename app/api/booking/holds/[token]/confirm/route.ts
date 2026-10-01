@@ -25,8 +25,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     // GCash acceptance is Owner-controlled: a disabled or incomplete
     // destination blocks submissions server-side, whatever the page showed.
     const { data: policy } = await supabase.from("hotel_operational_policies")
-      .select("gcash_account_name,gcash_mobile_number,gcash_qr_storage_path,gcash_enabled")
+      .select("gcash_account_name,gcash_mobile_number,gcash_qr_storage_path,gcash_enabled,deposit_method")
       .eq("key", "default").maybeSingle();
+    if ((policy as { deposit_method?: unknown } | null)?.deposit_method === "paymongo")
+      return NextResponse.json({ error: "Manual deposits are not accepted while instant online payment is the active method." }, { status: 409 });
     const destination = {
       accountName: typeof policy?.gcash_account_name === "string" ? policy.gcash_account_name : null,
       mobileNumber: typeof policy?.gcash_mobile_number === "string" ? policy.gcash_mobile_number : null,
