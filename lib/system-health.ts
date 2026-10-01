@@ -79,6 +79,8 @@ export type SystemHealth = {
     lastUpdated: string | null;
     qrStorage: "Healthy" | "Unavailable" | "Unknown";
     configuration: "Complete" | "Incomplete" | "Disabled";
+    depositMethod: "paymongo" | "manual" | "off";
+    version: number;
   };
 };
 

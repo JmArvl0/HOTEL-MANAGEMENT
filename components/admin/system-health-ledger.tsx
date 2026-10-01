@@ -20,7 +20,74 @@ const tabs = [
 
 type TabKey = (typeof tabs)[number]["key"];
 
-export function PaymentHealthPanel({ payments }: { payments: SystemHealth["payments"] }) {
+type DepositMethod = "paymongo" | "manual" | "off";
+
+const DEPOSIT_OPTIONS: [DepositMethod, string, string][] = [
+  ["paymongo", "PayMongo instant", "Provider-hosted GCash checkout, confirmed automatically."],
+  ["manual", "Manual GCash", "Guest transfers, then staff verify the receipt."],
+  ["off", "Off", "Guests see a temporarily-unavailable notice."],
+];
+
+function DepositMethodSwitch({
+  current,
+  version,
+  gatewayOn,
+  notify,
+  onRefresh,
+}: {
+  current: DepositMethod;
+  version: number;
+  gatewayOn: boolean;
+  notify?: (message: string) => void;
+  onRefresh?: () => void;
+}) {
+  const [method, setMethod] = useState<DepositMethod>(current);
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  async function save() {
+    setError("");
+    if (reason.trim().length < 3) { setError("Record why the deposit method is changing (3+ characters)."); return; }
+    setSaving(true);
+    try {
+      const response = await fetch("/api/admin/deposit-method", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ depositMethod: method, reason: reason.trim(), version }),
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) { setError((body as { error?: string } | null)?.error ?? "Unable to switch the deposit method."); return; }
+      notify?.(`Deposit method switched to ${method === "paymongo" ? "PayMongo instant" : method === "manual" ? "manual GCash" : "off"}.`);
+      setReason("");
+      onRefresh?.();
+    } finally {
+      setSaving(false);
+    }
+  }
+  return (
+    <div>
+      <dt>Deposit method (one active at a time)</dt>
+      <dd>
+        <div role="radiogroup" aria-label="Deposit method">
+          {DEPOSIT_OPTIONS.map(([value, optionLabel, hint]) => (
+            <label key={value} className="choice">
+              <input type="radio" name="admin-deposit-method" checked={method === value} onChange={() => setMethod(value)} />
+              <span><strong>{optionLabel}</strong><small>{hint}</small></span>
+            </label>
+          ))}
+        </div>
+        {method === "paymongo" && !gatewayOn && (
+          <p className="booking-error" role="alert">PayMongo is selected but its server configuration is missing — guests would see the manual path until it is configured.</p>
+        )}
+        <label>Reason for change<textarea value={reason} maxLength={500} onChange={(event) => setReason(event.target.value)} placeholder="Record the business reason — it is stored in the audit trail…" /></label>
+        {error && <p className="booking-error" role="alert">{error}</p>}
+        <button type="button" className="btn btn-soft" disabled={saving || method === current} onClick={save}>{saving ? "Switching…" : "Switch deposit method"}</button>
+      </dd>
+    </div>
+  );
+}
+
+export function PaymentHealthPanel({ payments, gateway, notify, onRefresh }: { payments: SystemHealth["payments"]; gateway?: SystemHealth["gateway"]; notify?: (message: string) => void; onRefresh?: () => void }) {
   if (!payments)
     return (
       <>
@@ -47,10 +114,11 @@ export function PaymentHealthPanel({ payments }: { payments: SystemHealth["payme
       <div className="panel-heading">
         <div>
           <h3>Payment configuration</h3>
-          <p>
-            Customer payment destination is controlled by the Owner. Technical integration and
-            payment-provider connectivity are maintained by System Administration.
-          </p>
+            <p>
+              Customer payment destination is controlled by the Owner. The deposit method
+              can be switched by Owner or Admin. Technical integration and
+              payment-provider connectivity are maintained by System Administration.
+            </p>
         </div>
         <span className={`badge ${payments.status === "Active" ? "paid" : "expired"}`}>
           {payments.status}
@@ -90,6 +158,13 @@ export function PaymentHealthPanel({ payments }: { payments: SystemHealth["payme
           <dt>Configuration</dt>
           <dd>{payments.configuration}</dd>
         </div>
+        <DepositMethodSwitch
+          current={payments.depositMethod}
+          version={payments.version}
+          gatewayOn={gateway?.status === "listening_live" || gateway?.status === "listening_test"}
+          notify={notify}
+          onRefresh={onRefresh}
+        />
       </dl>
     </>
   );
@@ -99,10 +174,12 @@ export function SystemHealthLedger({
   data,
   checked,
   onProbe,
+  notify,
 }: {
   data: SystemHealth;
   checked: string;
   onProbe?: () => void;
+  notify?: (message: string) => void;
 }) {
   const rows = data?.migrations?.applied ?? [];
   const appliedCount = data?.migrations?.appliedCount ?? rows.length;
@@ -266,7 +343,7 @@ export function SystemHealthLedger({
           aria-labelledby="sys-tab-payment"
           hidden={tab !== "payment"}
         >
-          <PaymentHealthPanel payments={data?.payments} />
+          <PaymentHealthPanel payments={data?.payments} gateway={data?.gateway} notify={notify} onRefresh={onProbe} />
         </div>
         <div
           role="tabpanel"

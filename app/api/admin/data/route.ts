@@ -90,7 +90,7 @@ async function systemHealth(db:AdminDbClient):Promise<SystemHealth>{
   let payments:NonNullable<SystemHealth["payments"]>|undefined;
   if(live){
    try{
-    const{data:policy}=await db.from("hotel_operational_policies").select("gcash_account_name,gcash_mobile_number,gcash_qr_storage_path,gcash_enabled,updated_at").eq("key","default").maybeSingle();
+     const{data:policy}=await db.from("hotel_operational_policies").select("gcash_account_name,gcash_mobile_number,gcash_qr_storage_path,gcash_enabled,deposit_method,version,updated_at").eq("key","default").maybeSingle();
     const row=(policy??{}) as Record<string,unknown>;
     const qrPath=typeof row.gcash_qr_storage_path==="string"?row.gcash_qr_storage_path:"";
     const mobile=typeof row.gcash_mobile_number==="string"?row.gcash_mobile_number:null;
@@ -101,7 +101,8 @@ async function systemHealth(db:AdminDbClient):Promise<SystemHealth>{
     const{data:latest}=await db.from("audit_logs").select("created_at,user_id").eq("entity_type","hotel_payment_destination").order("created_at",{ascending:false}).limit(1).maybeSingle();
     let configuredBy:string|null=null;
     if(latest?.user_id){const{data:actor}=await db.from("user_accounts").select("name,role").eq("id",String(latest.user_id)).maybeSingle();configuredBy=actor?`${actor.name??"Unknown"} (${actor.role==="admin"?"System Administrator":actor.role})`:null}
-    payments={status:enabled?"Active":"Inactive",accountName:name||"Not configured",mobileNumber:maskGcashNumber(mobile),qrImage:qrPath?"Configured":"Missing",configuredBy,lastUpdated:latest?.created_at?String(latest.created_at):row.updated_at?String(row.updated_at):null,qrStorage,configuration:!enabled?"Disabled":isPaymentDestinationComplete({accountName:name||null,mobileNumber:mobile,qrStoragePath:qrPath||null,enabled})?"Complete":"Incomplete"};
+     const depositMethod=(row.deposit_method==="paymongo"||row.deposit_method==="off"?row.deposit_method:"manual") as "paymongo"|"manual"|"off";
+     payments={status:enabled?"Active":"Inactive",accountName:name||"Not configured",mobileNumber:maskGcashNumber(mobile),qrImage:qrPath?"Configured":"Missing",configuredBy,lastUpdated:latest?.created_at?String(latest.created_at):row.updated_at?String(row.updated_at):null,qrStorage,configuration:!enabled?"Disabled":isPaymentDestinationComplete({accountName:name||null,mobileNumber:mobile,qrStoragePath:qrPath||null,enabled})?"Complete":"Incomplete",depositMethod,version:typeof row.version==="number"?row.version:1};
    }catch{payments=undefined}
   }
   // PayMongo gateway presence + mode, derived server-side from the secret-key

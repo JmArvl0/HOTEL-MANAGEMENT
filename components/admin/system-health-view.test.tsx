@@ -493,13 +493,39 @@ describe("SystemHealthView", () => {
       payments: {
         status: "Active", accountName: "Haven Hotel", mobileNumber: "+639000000000",
         qrImage: "Configured", configuredBy: "Owner", lastUpdated: "2026-09-24T08:30:00.000Z",
-        qrStorage: "Healthy", configuration: "Complete",
+        qrStorage: "Healthy", configuration: "Complete", depositMethod: "manual", version: 2,
       },
     })} onRefresh={() => {}} />);
     fireEvent.click(screen.getByRole("tab", { name: /Payment Configuration/ }));
     const paidBadges = Array.from(document.querySelectorAll(".badge.paid"));
     expect(paidBadges).toHaveLength(1);
     expect(paidBadges[0].textContent).toBe("Active");
+  });
+
+  it("lets an Admin switch the exclusive deposit method from Payment Configuration", async () => {
+    const requests: string[] = [];
+    const notify = vi.fn();
+    vi.stubGlobal("fetch", vi.fn(async (url: unknown) => {
+      requests.push(String(url));
+      return { ok: true, json: async () => ({ data: { version: 3 } }) };
+    }));
+    try {
+      render(<SystemHealthView data={health({
+        payments: {
+          status: "Active", accountName: "Haven Hotel", mobileNumber: "+639000000000",
+          qrImage: "Configured", configuredBy: "Owner", lastUpdated: "2026-09-24T08:30:00.000Z",
+          qrStorage: "Healthy", configuration: "Complete", depositMethod: "manual", version: 2,
+        },
+      })} onRefresh={() => {}} notify={notify} />);
+      fireEvent.click(screen.getByRole("tab", { name: /Payment Configuration/ }));
+      fireEvent.click(screen.getByRole("radio", { name: /PayMongo instant/ }));
+      fireEvent.change(screen.getByPlaceholderText(/business reason/), { target: { value: "Guest demand for instant GCash." } });
+      fireEvent.click(screen.getByRole("button", { name: /Switch deposit method/ }));
+      await vi.waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringMatching(/Deposit method switched/)));
+      expect(requests).toContain("/api/admin/deposit-method");
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("wraps pending filenames instead of truncating them", () => {

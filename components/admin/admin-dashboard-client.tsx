@@ -583,7 +583,7 @@ export function SystemHealthView({data,onRefresh,notify,goSection}:{data:SystemH
   </div>
   <div className="sys-lower-split">
    <div className="sys-main">
-    <SystemHealthLedger data={data} checked={checked} onProbe={()=>void refresh()}/>
+     <SystemHealthLedger data={data} checked={checked} onProbe={()=>void refresh()} notify={notify}/>
   </div>
   <aside className="sys-rail" aria-label="Operational panels">
   {alertItems.length>0?
