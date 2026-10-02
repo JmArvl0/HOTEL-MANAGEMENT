@@ -85,14 +85,24 @@ A new `.loyalty-redeem*` block inside the existing Guest Rewards section (after 
   it now pins `POINTS_TO_PESO` and the `Redeem rewards points` heading, so the rate lives in one
   place.
 
-## Verification
+## Deploy (2026-10-03)
 
-- `npm run typecheck` — clean.
-- Targeted: `npx vitest run components/booking/loyalty-redemption-selector.test.tsx lib/loyalty.test.ts`
-  — 2 files / 21 tests passed.
-- Full `npx vitest run` — 176 files / 1973 tests, **1 failing**: `lib/password-reset-audit.test.ts`
-  (pre-existing CRLF assertion, [[KI-012]], unrelated and unmodified).
-- `npm run build` — clean, all routes generated.
+- **Committed** as `febfc54` with a **pathspec commit** (`git commit -- <paths>`) — exactly the
+  6 files below. The parallel session's staged work (`app/api/account/profile/route.ts`,
+  `lib/customer.ts`, `lib/manager-attention.*`, `lib/cancelled-folio-consistency.test.ts`) was
+  left staged and untouched, and its untracked files (`lib/request-batches.ts`,
+  `lib/housekeeping-queue.ts`) were not added.
+- **Pushed** `ecc0633..febfc54` to `origin/main` (`git ls-remote` confirms `febfc54`).
+- **Deployment proven live, not assumed.** The production alias is
+  `haven-hotel-management-ten.vercel.app` (found in the OpenCode session note
+  [[2026-10-02 - Guest Registration 500 Loyalty Default]]). Method: the app-router CSS chunks
+  are content-hashed and `app/layout.tsx` imports `customer-portal.css` globally, so the root
+  CSS chunk is publicly fetchable.
+  - Before push: portal chunk `3ck2-y394gzxr.css`, sha256 `7f1b210ce548112b…`, **zero**
+    `loyalty-redeem` matches.
+  - ~60 s after the push: the chunk became `1k_zs0e1djhi-.css` and **contains `.loyalty-redeem`**.
+  - This also proves the GitHub → Vercel integration auto-deploys pushes to `main`, which is the
+    same mechanism that carried the earlier payment-settings fix.
 
 ## Unresolved / next
 
@@ -101,4 +111,14 @@ A new `.loyalty-redeem*` block inside the existing Guest Rewards section (after 
   keyboard-only pass (Tab to the slider, arrow keys adjust, **Use max**, Apply) — the balance
   should drop by exactly the peso amount and the reloaded page show the new balance. Confirm the
   Guest Rewards page is unchanged.
-- No API, RPC, or database change. Not yet committed.
+- No API, RPC, or database change.
+
+## Verification
+
+- `npm run typecheck` — clean.
+- Targeted: `npx vitest run components/booking/loyalty-redemption-selector.test.tsx lib/loyalty.test.ts`
+  — 2 files / 21 tests passed.
+- Full `npx vitest run` — 176 files / 1973 tests, **1 failing**: `lib/password-reset-audit.test.ts`
+  (pre-existing CRLF assertion, [[KI-012]], unrelated and unmodified).
+- `npm run build` — clean, all routes generated.
+- Deployed to production and confirmed by the chunk-hash change above.

@@ -93,7 +93,7 @@ Last Updated: 2026-10-03
 Current Development Area: Guest customer portal presentation — redesigned the reservation-page loyalty redemption block (2026-10-03); Owner payment governance fix deployed
 Current Feature: Guest folio redemption widget (styled slider, Use max, live credit preview); manual browser QA pending
 Current Branch: `main`
-Latest Relevant Commit: `ecc0633` (payment-settings deploy record)
+Latest Relevant Commit: `febfc54` (guest loyalty redemption block redesign, deployed)
 
 > ⚠ Large **uncommitted working tree** on top of that commit: the features below plus
 > parallel-session work (room catalog with photos, transport booking at checkout,
@@ -121,7 +121,10 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
   **untouched and load-bearing** — the RPC credits `least(points, invoice)` but debits every point
   sent. New 5-case jsdom test + updated `lib/loyalty.test.ts` contract. Typecheck clean, full suite
   1973 with the same 1 pre-existing unrelated failure ([[KI-012]], CRLF), build clean.
-  Not committed yet. See [[2026-10-03 - Loyalty Redemption Block Redesign]].
+  Committed `febfc54`, pushed, and **deployment verified live** — the portal CSS chunk gained
+  `.loyalty-redeem` (`3ck2-y394gzxr.css` → `1k_zs0e1djhi-.css`, ~60 s after the push), which also
+  proves the GitHub → Vercel auto-deploy is wired. Guest browser QA pending.
+  See [[2026-10-03 - Loyalty Redemption Block Redesign]].
 - **Owner Payment Settings — method switch persists (2026-10-03)** — switching
   PayMongo → Manual GCash in Owner → Governance → Payment Settings reported success but
   reverted on refresh. Root cause: the wizard's primary **Save changes** called only
@@ -1060,10 +1063,10 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
 
 ## Current Work
 
-- Guest loyalty redemption block redesigned (2026-10-03); manual guest browser QA pending
-  ([[KI-005]]) — My Reservations → reservation → Rate & folio, dark + light, 390px, plus a
+- Guest loyalty redemption block redesigned (2026-10-03); **committed `febfc54`, pushed, and live
+  in production** (deploy verified by the portal CSS chunk change). Manual guest browser QA still
+  pending ([[KI-005]]) — My Reservations → reservation → Rate & folio, dark + light, 390px, plus a
   keyboard-only pass. Checklist in [[2026-10-03 - Loyalty Redemption Block Redesign]].
-  Uncommitted.
 
 - Owner Payment Settings method-switch fix delivered (2026-10-03); manual Owner browser QA pending
   ([[KI-005]]) — switch PayMongo → Manual → Save → hard refresh → still Manual; then back to
@@ -1159,7 +1162,7 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
 
 ## Recent Sessions
 
-- [[2026-10-03 - Loyalty Redemption Block Redesign]] — `.loyalty-redeem` on the guest reservation folio had no CSS anywhere, so it rendered raw browser controls; rebuilt as a styled sub-panel (figures, themed slider, Use max, live credit preview) sourcing the rate from `POINTS_TO_PESO`; the `min(points, floor(balance))` cap is preserved because the RPC debits every point sent; 1973 tests (1 pre-existing CRLF failure, [[KI-012]]), build clean, guest QA pending
+- [[2026-10-03 - Loyalty Redemption Block Redesign]] — `.loyalty-redeem` on the guest reservation folio had no CSS anywhere, so it rendered raw browser controls; rebuilt as a styled sub-panel (figures, themed slider, Use max, live credit preview) sourcing the rate from `POINTS_TO_PESO`; the `min(points, floor(balance))` cap is preserved because the RPC debits every point sent; committed `febfc54` and **deployment verified live** by the portal CSS chunk change (which also confirms the GitHub → Vercel auto-deploy); 1973 tests (1 pre-existing CRLF failure, [[KI-012]]), build clean, guest QA pending
 - [[2026-10-03 - Owner Payment Method Persist]] — the wizard's primary Save called only the destination route, so PayMongo → Manual GCash reported success while `deposit_method` stayed `'paymongo'`; one `save()` now commits the method first (version threaded into the destination save), redundant method-only button removed; live probe ruled out a migration; 1968 tests (1 pre-existing CRLF failure, [[KI-012]]), build clean, Owner QA pending
 - [[2026-09-29 - Booking Form Type Scale]] — `.booking-form-card` type lifted to the 14px/12px standard with 16px fields; inputs inherited 10px, selects were 14px, textarea ~13.3px, so one grid showed three sizes; scoped append (not in-place — `.request-option` is shared), 1893/1893, build clean, visual check pending
 - [[2026-09-29 - Restore submit_gateway_deposit]] — live DB had no `submit_gateway_deposit` in any schema while its migration was already ledger-recorded, so `db push` could never recreate it ([[KI-011]]); restore pushed + live-verified (prosrc digest matches, RPC resolves, no `PGRST202`), route now logs and maps every guard code, zero payments had ever been collected; 1886/1886, build clean, guest run pending
