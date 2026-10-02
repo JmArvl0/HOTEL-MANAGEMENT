@@ -227,6 +227,52 @@ export function formatPolicyValue(key: string, value: unknown): string {
   return label(value);
 }
 
+/** Labels for the camelCase policy-change audit payload (see summarizePolicyChanges). */
+const POLICY_CHANGE_LABELS: Record<string, string> = {
+  hotelTimezone: "Hotel timezone",
+  checkInTime: "Check-in time",
+  checkOutTime: "Checkout time",
+  noShowCutoffTime: "No-show cutoff",
+  validIdRequired: "Valid ID required",
+  minimumBookingAge: "Minimum booking age",
+  cancellationFullRefundDays: "Full-refund window",
+  cancellationPartialRefundDays: "Partial-refund window",
+  cancellationPartialRefundBasisPoints: "Partial refund rate",
+  selfServiceModificationDays: "Self-service modification window",
+  earlyCheckInAllowed: "Early check-in allowed",
+  housekeepingInspectionRequired: "Inspection before re-occupancy",
+  depositSlaHours: "Deposit verification SLA",
+  vatRateBp: "VAT rate",
+  serviceChargeBp: "Service charge rate",
+};
+
+function formatPolicyChangeValue(key: string, value: unknown): string {
+  if (value === null || value === undefined || value === "") return "—";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (typeof value === "string" && /^\d{2}:\d{2}/.test(value)) return value.slice(0, 5);
+  const n = Number(value);
+  if (/BasisPoints|RateBp$/.test(key) && Number.isFinite(n)) return `${n / 100}%`;
+  if (/Days$/.test(key) && Number.isFinite(n)) return `${n} day${n === 1 ? "" : "s"}`;
+  if (/Hours$/.test(key) && Number.isFinite(n)) return `${n} hour${n === 1 ? "" : "s"}`;
+  if (/Age$/.test(key) && Number.isFinite(n)) return `${n} year${n === 1 ? "" : "s"}`;
+  return String(value);
+}
+
+/**
+ * Presentation-only summary of one policy-change audit entry. The RPC stores
+ * before_data in snake_case and after_data in camelCase, so entries are
+ * summarized from the new values (never diffed across the case boundary).
+ * Reason/version are shown in their own columns, never inlined here.
+ */
+export function summarizePolicyChanges(after: Row): string[] {
+  return Object.entries(after ?? {})
+    .filter(([key]) => key !== "reason" && key !== "version")
+    .map(([key, value]) => {
+      const spaced = String(key).replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, (c) => c.toUpperCase());
+      return `${POLICY_CHANGE_LABELS[key] ?? spaced}: ${formatPolicyChangeValue(key, value)}`;
+    });
+}
+
 /** Role icon + summary for the authority-hierarchy cards (display only). */
 export const OWNER_ROLE_META: Record<string, { summary: string; Icon: LucideIcon }> = {
   owner: { summary: "Executive governance over the platform and its administrators", Icon: Crown },

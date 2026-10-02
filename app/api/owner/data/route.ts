@@ -29,7 +29,20 @@ export async function GET(request: Request) {
     if (section === "policy") {
       const { data, error } = await db.from("hotel_operational_policies").select("*").eq("key", "default").single();
       if (error) throw error;
-      return NextResponse.json({ data });
+      const { data: policyTrail } = await db.from("audit_logs")
+        .select("id,user_id,action,created_at,after_data").eq("entity_type", "hotel_operational_policy")
+        .order("created_at", { ascending: false }).limit(20);
+      const policyActors = [...new Set(((policyTrail ?? []) as Row[]).map((entry) => String(entry.user_id || "")).filter(Boolean))];
+      const { data: policyUsers } = policyActors.length
+        ? await db.from("user_accounts").select("id,name,role").in("id", policyActors)
+        : { data: [] };
+      return NextResponse.json({ data: {
+        policy: data,
+        trail: (policyTrail ?? []).map((entry) => ({
+          ...entry,
+          actorName: policyUsers?.find((u) => u.id === entry.user_id)?.name ?? "Unknown",
+        })),
+      } });
     }
     if (section === "payments") {
       const { data: policy, error: policyError } = await db.from("hotel_operational_policies")

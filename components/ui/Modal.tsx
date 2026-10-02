@@ -197,6 +197,7 @@ export interface ConfirmDialogProps {
   loading?: boolean;
   disabled?: boolean;
   portal?: boolean;
+  headerVariant?: "branded" | "plain";
 }
 
 export function ConfirmDialog({
@@ -211,6 +212,7 @@ export function ConfirmDialog({
   loading = false,
   disabled = false,
   portal = false,
+  headerVariant = "plain",
 }: ConfirmDialogProps) {
   const cancelRef = useRef<HTMLButtonElement>(null);
   const handleConfirm = async () => {
@@ -232,6 +234,7 @@ export function ConfirmDialog({
       title={title}
       size="sm"
       portal={portal}
+      headerVariant={headerVariant}
       initialFocusRef={cancelRef as unknown as React.RefObject<HTMLElement>}
     >
       <div className="confirm-dialog">
@@ -281,6 +284,8 @@ export interface PromptDialogProps {
   loading?: boolean;
   multiline?: boolean;
   rows?: number;
+  portal?: boolean;
+  headerVariant?: "branded" | "plain";
 }
 
 export function PromptDialog({
@@ -303,6 +308,8 @@ export function PromptDialog({
   loading = false,
   multiline = false,
   rows = 4,
+  portal = false,
+  headerVariant = "plain",
 }: PromptDialogProps) {
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
   const [value, setValue] = useState(defaultValue);
@@ -340,6 +347,8 @@ export function PromptDialog({
       onClose={onClose}
       title={title}
       size="sm"
+      portal={portal}
+      headerVariant={headerVariant}
       initialFocusRef={inputRef}
     >
       <form onSubmit={handleSubmit} className="prompt-dialog">

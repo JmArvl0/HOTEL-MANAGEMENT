@@ -36,7 +36,7 @@ type Pending = {
   resolve: DialogCallback;
 };
 
-export type AskConfirmOptions = Pick<ConfirmDialogProps, "title" | "message" | "confirmText" | "cancelText" | "variant">;
+export type AskConfirmOptions = Pick<ConfirmDialogProps, "title" | "message" | "confirmText" | "cancelText" | "variant" | "portal" | "headerVariant">;
 export type AskPromptOptions = Pick<
   PromptDialogProps,
   | "title"
@@ -54,6 +54,8 @@ export type AskPromptOptions = Pick<
   | "validation"
   | "submitText"
   | "cancelText"
+  | "portal"
+  | "headerVariant"
 >;
 export type AskSelectOptions = Pick<
   SelectDialogProps,

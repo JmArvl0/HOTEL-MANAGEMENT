@@ -161,6 +161,15 @@ describe("PolicyView", () => {
     expect(screen.getByRole("heading", { name: "Additional settings" })).toBeTruthy();
     expect(screen.getByText("Future flag")).toBeTruthy();
   });
+
+  it("offers a scoped edit per RPC-covered card and none for read-only cards", () => {
+    const seen: (string | undefined)[] = [];
+    render(<PolicyView item={{ ...policy, future_flag: true } as RecordItem} edit={(_x, group) => { seen.push(group); }} />);
+    fireEvent.click(screen.getByRole("button", { name: "Edit Locale and daily schedule" }));
+    fireEvent.click(screen.getByRole("button", { name: "Edit Cancellation and refunds" }));
+    expect(seen).toEqual(["Locale and daily schedule", "Cancellation and refunds"]);
+    expect(screen.queryByRole("button", { name: "Edit Additional settings" })).toBeNull();
+  });
 });
 
 describe("SecurityConfigView", () => {

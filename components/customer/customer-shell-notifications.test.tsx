@@ -67,6 +67,16 @@ function openBell() {
   fireEvent.click(screen.getByRole("button", { name: /Notifications/ }));
 }
 
+describe("CustomerShell navigation", () => {
+  it("has no sidebar concierge module — the floating bubble is the single entry", () => {
+    renderShell();
+    const nav = document.querySelector("#customer-navigation nav")!;
+    const labels = Array.from(nav.querySelectorAll("a span")).map((el) => el.textContent);
+    expect(labels).not.toContain("Concierge");
+    expect(nav.querySelector('a[href="/account/concierge"]')).toBeNull();
+  });
+});
+
 describe("CustomerShell notification bell", () => {
   it("shows one aggregate unread badge on the bell", () => {
     const { container } = renderShell();

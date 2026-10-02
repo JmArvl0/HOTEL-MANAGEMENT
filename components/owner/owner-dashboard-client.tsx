@@ -3,12 +3,13 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
-import { Activity, BarChart3, BedDouble, Building2, CarTaxiFront, ChevronDown, ChevronRight, CircleDollarSign, ClipboardCheck, Eye, FileText, Image, KeyRound, LogOut, PanelLeftClose, QrCode, Settings, ShieldCheck, Sparkles, Users } from "lucide-react";
+import { Activity, BarChart3, BedDouble, Bell, Building2, CalendarDays, CarTaxiFront, ChevronDown, ChevronRight, CircleDollarSign, CircleDot, ClipboardCheck, Clock, Eye, FileText, Globe, Image, KeyRound, LogOut, Mail, MapPin, PanelLeftClose, Percent, Pencil, QrCode, Receipt, Settings, ShieldCheck, Sparkles, Star, Tag, Timer, Users } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SessionExpiryGuard } from "@/components/auth/session-expiry-guard";
 import { ToastStack, useToasts } from "@/components/ui/toast-stack";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/Navigation";
+import { HavenLogo } from "@/components/ui/haven-logo";
 import { AccessibleChart } from "@/components/ui/AccessibleChart";
 import {
   OwnerToolbar,
@@ -16,9 +17,11 @@ import {
   OwnerSectionHead,
   OwnerCollapse,
   OwnerTabs,
+  OwnerTablePanel,
   useOwnerSearch,
   formatOwnerDate,
   formatPolicyValue,
+  summarizePolicyChanges,
   OWNER_ROLE_META,
 } from "@/components/owner/owner-primitives";
 import { SettingsDialog } from "@/components/ui/SettingsDialog";
@@ -145,31 +148,42 @@ export default function OwnerDashboardClient({ user, sessionExpiresAt }: { user:
     const body = await send(`/api/owner/exceptions/${item.id}/review`, { decision, reason, version: item.version });
     if (body) notify(decision === "approve" ? "Exception authorized. The responsible department must execute it." : "Exception rejected and recorded.");
   }
-  async function editPolicy(item: Row) {
+  async function editPolicy(item: Row, groupTitle?: string) {
     const time = (raw: unknown) => String(raw ?? "").slice(0, 5);
     const pct = Number(item.cancellation_partial_refund_basis_points) / 100;
-    const data = await dialogs.askForm({
-      title: "Update critical hotel policy",
+    // Master dialog fields tagged by policy group. Scoped edits show one
+    // group's fields + reason; submit merges with live values (full RPC payload).
+    const master: (FormField & { group: string })[] = [
+      { key: "hotelTimezone", group: "Stay & arrival", label: "Hotel timezone", type: "text", required: true, defaultValue: String(item.hotel_timezone ?? ""), validation: requiredText("Hotel timezone") },
+      { key: "checkInTime", group: "Stay & arrival", label: "Check-in time", type: "text", required: true, defaultValue: time(item.check_in_time), validation: timeField("Check-in time") },
+      { key: "checkOutTime", group: "Stay & arrival", label: "Checkout time", type: "text", required: true, defaultValue: time(item.check_out_time), validation: timeField("Checkout time") },
+      { key: "noShowCutoffTime", group: "Stay & arrival", label: "No-show cutoff", type: "text", required: true, defaultValue: time(item.no_show_cutoff_time), validation: timeField("No-show cutoff") },
+      { key: "minimumBookingAge", group: "Stay & arrival", label: "Minimum booking age", type: "number", required: true, defaultValue: Number(item.minimum_booking_age), min: 0, validation: requiredNumber("Minimum booking age") },
+      { key: "full", group: "Cancellation & self-service", label: "Full-refund days", type: "number", required: true, defaultValue: Number(item.cancellation_full_refund_days), min: 0, validation: requiredNumber("Full-refund days") },
+      { key: "partial", group: "Cancellation & self-service", label: "Partial-refund days", type: "number", required: true, defaultValue: Number(item.cancellation_partial_refund_days), min: 0, validation: requiredNumber("Partial-refund days") },
+      { key: "percent", group: "Cancellation & self-service", label: "Partial refund percent", type: "number", required: true, defaultValue: pct, min: 0, max: 100, step: 0.01, validation: requiredNumber("Partial refund percent") },
+      { key: "modification", group: "Cancellation & self-service", label: "Self-service modification days", type: "number", required: true, defaultValue: Number(item.self_service_modification_days), min: 0, validation: requiredNumber("Self-service modification days") },
+      { key: "depositSla", group: "Hotel operations", label: "Deposit verification SLA (hours)", type: "number", required: true, defaultValue: Number(item.deposit_sla_hours ?? 4), min: 0, max: 72, validation: requiredNumber("Deposit SLA") },
+      { key: "vat", group: "Financial documents", label: "VAT rate (%) — inclusive, shown on documents", type: "number", required: true, defaultValue: Number(item.vat_rate_bp ?? 1200) / 100, min: 0, max: 100, step: 0.01, validation: requiredNumber("VAT rate") },
+      { key: "serviceCharge", group: "Financial documents", label: "Service charge (%) — inclusive, shown on documents", type: "number", required: true, defaultValue: Number(item.service_charge_bp ?? 1000) / 100, min: 0, max: 100, step: 0.01, validation: requiredNumber("Service charge rate") },
+    ];
+    const scoped = groupTitle ? master.filter((field) => field.group === groupTitle) : master;
+    if (!scoped.length) return;
+    const form = await dialogs.askForm({
+      title: groupTitle ? `Update ${groupTitle}` : "Update critical hotel policy",
       description: "Applies to future operations only — historical reservation and financial snapshots remain unchanged.",
       size: "lg",
-      submitText: "Update policy",
+      submitText: "Save changes",
       fields: [
-        { key: "hotelTimezone", label: "Hotel timezone", type: "text", required: true, defaultValue: String(item.hotel_timezone ?? ""), validation: requiredText("Hotel timezone") },
-        { key: "checkInTime", label: "Check-in time", type: "text", required: true, defaultValue: time(item.check_in_time), validation: timeField("Check-in time") },
-        { key: "checkOutTime", label: "Checkout time", type: "text", required: true, defaultValue: time(item.check_out_time), validation: timeField("Checkout time") },
-        { key: "noShowCutoffTime", label: "No-show cutoff", type: "text", required: true, defaultValue: time(item.no_show_cutoff_time), validation: timeField("No-show cutoff") },
-        { key: "minimumBookingAge", label: "Minimum booking age", type: "number", required: true, defaultValue: Number(item.minimum_booking_age), min: 0, validation: requiredNumber("Minimum booking age") },
-        { key: "full", label: "Full-refund days", type: "number", required: true, defaultValue: Number(item.cancellation_full_refund_days), min: 0, validation: requiredNumber("Full-refund days") },
-        { key: "partial", label: "Partial-refund days", type: "number", required: true, defaultValue: Number(item.cancellation_partial_refund_days), min: 0, validation: requiredNumber("Partial-refund days") },
-        { key: "percent", label: "Partial refund percent", type: "number", required: true, defaultValue: pct, min: 0, max: 100, step: 0.01, validation: requiredNumber("Partial refund percent") },
-        { key: "modification", label: "Self-service modification days", type: "number", required: true, defaultValue: Number(item.self_service_modification_days), min: 0, validation: requiredNumber("Self-service modification days") },
-        { key: "vat", label: "VAT rate (%) — inclusive, shown on documents", type: "number", required: true, defaultValue: Number(item.vat_rate_bp ?? 1200) / 100, min: 0, max: 100, step: 0.01, validation: requiredNumber("VAT rate") },
-        { key: "serviceCharge", label: "Service charge (%) — inclusive, shown on documents", type: "number", required: true, defaultValue: Number(item.service_charge_bp ?? 1000) / 100, min: 0, max: 100, step: 0.01, validation: requiredNumber("Service charge rate") },
-        { key: "depositSla", label: "Deposit verification SLA (hours)", type: "number", required: true, defaultValue: Number(item.deposit_sla_hours ?? 4), min: 0, max: 72, validation: requiredNumber("Deposit SLA") },
+        ...scoped,
         { key: "reason", label: "Reason for this critical policy change", type: "textarea", required: true, validation: requiredText("Reason") },
       ],
     });
-    if (!data) return;
+    if (!form) return;
+    // Scoped edits submit one card; untouched fields fall back to live values
+    // so the full-payload RPC contract is preserved either way.
+    const data = Object.fromEntries(master.map((field) => [field.key, field.key in form ? form[field.key] : field.defaultValue]));
+    data.reason = form.reason;
     const body = await send("/api/admin/policy", { hotelTimezone: String(data.hotelTimezone), checkInTime: String(data.checkInTime), checkOutTime: String(data.checkOutTime), noShowCutoffTime: String(data.noShowCutoffTime), validIdRequired: Boolean(item.valid_id_required), minimumBookingAge: Number(data.minimumBookingAge), cancellationFullRefundDays: Number(data.full), cancellationPartialRefundDays: Number(data.partial), cancellationPartialRefundBasisPoints: Math.round(Number(data.percent) * 100), selfServiceModificationDays: Number(data.modification), earlyCheckInAllowed: Boolean(item.early_check_in_allowed), housekeepingInspectionRequired: Boolean(item.housekeeping_inspection_required), vatRateBp: Math.round(Number(data.vat) * 100), serviceChargeBp: Math.round(Number(data.serviceCharge) * 100), depositSlaHours: Number(data.depositSla), reason: String(data.reason), version: item.version }, "PATCH");
     if (body) notify("Critical policy updated for future transactions; historical snapshots remain unchanged.");
   }
@@ -189,15 +203,15 @@ export default function OwnerDashboardClient({ user, sessionExpiresAt }: { user:
   }, [profileOpen]);
   return <div className={`app-shell owner-workspace${collapsed ? " sidebar-collapsed" : ""}`}>
     <aside id="owner-navigation" className={`sidebar${menu ? " open" : ""}${collapsed ? " collapsed" : ""}`}>
-      <div className="sidebar-top"><div className="brand"><button className="brand-mark sidebar-brand-toggle" onClick={toggleSidebar} aria-label={collapsed ? "Expand navigation" : "Collapse navigation"} aria-controls="owner-navigation" aria-expanded={!collapsed} title={collapsed ? "Expand navigation" : "Collapse navigation"}><Sparkles size={17}/></button><Link href="/" className="brand-copy" aria-label="Hotel homepage" title="Hotel homepage">HAVEN<small>OWNER GOVERNANCE</small></Link><button className="sidebar-collapse-button" onClick={toggleSidebar} aria-label="Collapse navigation" aria-controls="owner-navigation" aria-expanded={!collapsed} title="Collapse navigation"><PanelLeftClose size={16}/></button></div></div>
+      <div className="sidebar-top"><div className="brand"><button className="brand-mark sidebar-brand-toggle" onClick={toggleSidebar} aria-label={collapsed ? "Expand navigation" : "Collapse navigation"} aria-controls="owner-navigation" aria-expanded={!collapsed} title={collapsed ? "Expand navigation" : "Collapse navigation"}><HavenLogo size={29} small /></button><Link href="/" className="brand-copy" aria-label="Hotel homepage" title="Hotel homepage">HAVEN<small>OWNER GOVERNANCE</small></Link><button className="sidebar-collapse-button" onClick={toggleSidebar} aria-label="Collapse navigation" aria-controls="owner-navigation" aria-expanded={!collapsed} title="Collapse navigation"><PanelLeftClose size={16}/></button></div></div>
       <div className="property-pill" title="HAVEN Hotel & Residences"><span>HV</span><div className="property-copy"><b>HAVEN</b><small>HOTEL &amp; RESIDENCES</small></div></div>
       <nav aria-label="Modules">{NAV_GROUPS.map((group) => { const open = (openGroups[group.id] ?? false) || group.sections.includes(section); return <div className="nav-group-wrap" key={group.id}>
         <button className="nav-caption nav-group-header" aria-expanded={open} aria-controls={`nav-group-${group.id}`} onClick={() => toggleGroup(group.id)}><span className="nav-group-label">{group.label}</span><ChevronRight size={13} className="nav-group-chevron" aria-hidden="true"/></button>
         <div className={`nav-group${open ? " open" : ""}`} id={`nav-group-${group.id}`}><div className="nav-group-items">{nav.filter(([key]) => group.sections.includes(key)).map(([key, text, Icon]) => <button key={key} className={section === key ? "active" : ""} onClick={() => { setSection(key); setMenu(false); }} title={text}><Icon size={18}/><span className="nav-label">{text}</span></button>)}</div></div>
       </div>; })}</nav>
     </aside>
-    <main className="workspace"><header className="app-header"><button className="menu-btn brand-menu-btn" onClick={() => setMenu(true)} aria-label="Open navigation"><span className="brand-mark"><Sparkles size={16}/></span></button><div><p>{nav.find((item) => item[0] === section)?.[1]}</p><small>Provisional Owner / Super Admin Governance Baseline</small></div><div className="header-actions"><SessionExpiryGuard expiresAt={sessionExpiresAt}/><ThemeToggle/><div className="profile-menu-wrap" ref={profileMenu}><button className="profile-menu-btn" onClick={() => setProfileOpen((value) => !value)} aria-expanded={profileOpen} aria-haspopup="menu" aria-label="Account menu"><b>{(user.name ?? "OW").slice(0, 2).toUpperCase()}</b><span>{user.name}</span><ChevronDown size={14}/></button>{profileOpen && <div className="popover-gap"><div className="profile-popover"><p><strong>{user.name}</strong><small>{user.email}</small><small>Owner / Super Admin</small></p><button onClick={() => { setProfileOpen(false); setSettingsOpen(true); }}><Settings size={15}/>Settings</button><SoundToggleMenuItem onToggle={() => setProfileOpen(false)} /><button onClick={() => signOut({ callbackUrl: "/" })}><LogOut size={15}/>Sign Out</button></div></div>}</div></div></header><ToastStack controller={toastController} />
-      <div className="workspace-body owner-module">{section === "room_types" ? <RoomCatalogPanel role="owner"/> : section === "transport_services" ? <TransportServicesPanel/> : section === "transportation" ? <TransportationPanel role="owner"/> : section === "payments" ? <PaymentSettingsPanel notify={notify}/> : loading ? <div className="empty"><Activity/><h3>Loading executive records…</h3></div> : section === "overview" ? <Overview data={data as ExecutiveData} setSection={setSection}/> : section === "operations" ? <Operations data={data as { metrics: Record<string, number>; departmentSummary: Record<string, Record<string, number>>; risks: Record<string, Row[]>; trend: Row[] }}/> : section === "financial" ? <Financial data={data as Row}/> : section === "departments" ? <Departments data={data as { departmentSummary: Record<string, Record<string, number>>; risks: Record<string, Row[]> }}/> : section === "admins" ? <Admins rows={rows} currentId={user.id} createAdmin={createAdmin} action={adminAction}/> : section === "roles" ? <Roles data={data as { catalogue: Record<string, string[]>; ownerPrinciples: string[] }}/> : section === "policy" ? <Policy item={data as Row} edit={editPolicy}/> : section === "exceptions" ? <Exceptions rows={rows} review={reviewException}/> : section === "audit" || section === "security" ? <Audit rows={rows} security={section === "security"}/> : <Reports data={data as ExecutiveData}/>}</div>
+    <main className="workspace"><header className="app-header"><button className="menu-btn brand-menu-btn" onClick={() => setMenu(true)} aria-label="Open navigation"><span className="brand-mark"><HavenLogo size={31} small /></span></button><div><p>{nav.find((item) => item[0] === section)?.[1]}</p><small>Provisional Owner / Super Admin Governance Baseline</small></div><div className="header-actions"><SessionExpiryGuard expiresAt={sessionExpiresAt}/><ThemeToggle/><div className="profile-menu-wrap" ref={profileMenu}><button className="profile-menu-btn" onClick={() => setProfileOpen((value) => !value)} aria-expanded={profileOpen} aria-haspopup="menu" aria-label="Account menu"><b>{(user.name ?? "OW").slice(0, 2).toUpperCase()}</b><span>{user.name}</span><ChevronDown size={14}/></button>{profileOpen && <div className="popover-gap"><div className="profile-popover"><p><strong>{user.name}</strong><small>{user.email}</small><small>Owner / Super Admin</small></p><button onClick={() => { setProfileOpen(false); setSettingsOpen(true); }}><Settings size={15}/>Settings</button><SoundToggleMenuItem onToggle={() => setProfileOpen(false)} /><button onClick={() => signOut({ callbackUrl: "/" })}><LogOut size={15}/>Sign Out</button></div></div>}</div></div></header><ToastStack controller={toastController} />
+      <div className="workspace-body owner-module">{section === "room_types" ? <RoomCatalogPanel role="owner"/> : section === "transport_services" ? <TransportServicesPanel/> : section === "transportation" ? <TransportationPanel role="owner"/> : section === "payments" ? <PaymentSettingsPanel notify={notify}/> : loading ? <div className="empty"><Activity/><h3>Loading executive records…</h3></div> : section === "overview" ? <Overview data={data as ExecutiveData} setSection={setSection}/> : section === "operations" ? <Operations data={data as { metrics: Record<string, number>; departmentSummary: Record<string, Record<string, number>>; risks: Record<string, Row[]>; trend: Row[] }}/> : section === "financial" ? <Financial data={data as Row}/> : section === "departments" ? <Departments data={data as { departmentSummary: Record<string, Record<string, number>>; risks: Record<string, Row[]> }}/> : section === "admins" ? <Admins rows={rows} currentId={user.id} createAdmin={createAdmin} action={adminAction}/> : section === "roles" ? <Roles data={data as { catalogue: Record<string, string[]>; ownerPrinciples: string[] }}/> : section === "policy" ? <Policy item={((data as { policy?: Row } | null)?.policy ?? data) as Row} trail={((data as { trail?: Row[] } | null)?.trail ?? []) as Row[]} edit={editPolicy}/> : section === "exceptions" ? <Exceptions rows={rows} review={reviewException}/> : section === "audit" || section === "security" ? <Audit rows={rows} security={section === "security"}/> : <Reports data={data as ExecutiveData}/>}</div>
     </main>{settingsOpen && <SettingsDialog isOpen onClose={()=>setSettingsOpen(false)}/>}{dialogs.view}
   </div>;
 }
@@ -228,7 +242,31 @@ const POLICY_GROUPS: { title: string; note: string; fields: [string, string][] }
   { title: "Transportation", note: "Hotel-side endpoints for transfer requests", fields: [["transfer_hotel_label", "Hotel label"], ["transfer_hotel_lat", "Hotel latitude"], ["transfer_hotel_lon", "Hotel longitude"]] },
   { title: "Payment destination", note: "Owner-controlled GCash configuration (managed in Payment Settings)", fields: [["gcash_enabled", "GCash deposits enabled"], ["gcash_account_name", "Account name"], ["gcash_mobile_number", "Mobile number"], ["gcash_qr_storage_path", "Official QR"]] },
 ];
-function Policy({ item, edit }: { item: Row; edit: (item: Row) => void }) { const known = new Set(POLICY_GROUPS.flatMap((group) => group.fields.map(([key]) => key))); const extras = Object.entries(item ?? {}).filter(([key]) => !known.has(key) && !["key", "version", "updated_at"].includes(key)); const groups = [...POLICY_GROUPS, ...(extras.length ? [{ title: "Additional settings", note: "Recorded on the policy row", fields: extras.map(([key]) => [key, label(key)] as [string, string]) }] : [])]; const value = (key: string) => key === "gcash_qr_storage_path" ? (item?.[key] ? "Configured" : "Not configured") : formatValue(key, item?.[key]); return <><Title eyebrow="Final policy authority" title="Critical hotel policy" subtitle="Updates affect future operations only. Historical reservation and financial snapshots remain unchanged." action={<button className="btn btn-accent" onClick={() => edit(item)}>Update critical policy</button>}/>{item?.updated_at && <p className="owner-policy-meta">Version {label(item.version)} · updated {formatOwnerDate(item.updated_at)}</p>}<div className="owner-policy-groups">{groups.map((group) => <section className="data-panel owner-panel" key={group.title} aria-label={group.title}><div className="panel-heading"><div><h3>{group.title}</h3><p>{group.note}</p></div></div><dl>{group.fields.filter(([key]) => key in (item ?? {})).map(([key, name]) => <div key={key}><dt>{name}</dt><dd>{value(key)}</dd></div>)}</dl></section>)}</div></>; }
+const POLICY_GROUP_ICONS: Record<string, React.ElementType> = {
+  "Stay & arrival": Clock,
+  "Cancellation & self-service": CalendarDays,
+  "Hotel operations": Settings,
+  "Financial documents": Receipt,
+  "Transportation": CarTaxiFront,
+  "Payment destination": QrCode,
+  "Additional settings": Tag,
+};
+const POLICY_EDITABLE_GROUPS = new Set(["Stay & arrival", "Cancellation & self-service", "Hotel operations", "Financial documents"]);
+function policyFieldIcon(key: string): React.ElementType {
+  if (key.includes("timezone")) return Globe;
+  if (key.includes("time") || key.includes("cutoff") || key.includes("sla") || key.includes("minutes")) return key.includes("sla") || key.includes("minutes") ? Timer : Clock;
+  if (key.includes("days")) return CalendarDays;
+  if (key.includes("basis_points") || key.includes("percent") || key.includes("rate")) return Percent;
+  if (key.includes("lat") || key.includes("lon") || key.includes("label")) return key.includes("label") ? Tag : MapPin;
+  if (key.includes("age")) return Users;
+  if (key.includes("email")) return Mail;
+  if (key.includes("request") || key.includes("arrival_risk")) return Bell;
+  if (key.includes("allowed") || key.includes("required") || key.includes("guaranteed")) return ShieldCheck;
+  if (key.includes("amount") || key.includes("balance") || key.includes("revenue") || key.includes("refund") || key.includes("credit")) return Receipt;
+  if (key.includes("pets") || key.includes("special")) return Star;
+  return CircleDot;
+}
+function Policy({ item, trail, edit }: { item: Row; trail?: Row[]; edit: (item: Row, group?: string) => void }) { const known = new Set(POLICY_GROUPS.flatMap((group) => group.fields.map(([key]) => key))); const extras = Object.entries(item ?? {}).filter(([key]) => !known.has(key) && !["key", "version", "updated_at"].includes(key)); const groups = [...POLICY_GROUPS, ...(extras.length ? [{ title: "Additional settings", note: "Recorded on the policy row", fields: extras.map(([key]) => [key, label(key)] as [string, string]) }] : [])]; const value = (key: string) => key === "gcash_qr_storage_path" ? (item?.[key] ? "Configured" : "Not configured") : formatValue(key, item?.[key]); const changes = (trail ?? []).map((entry) => ({ ...entry, id: String(entry.id ?? entry.created_at) })); return <><Title eyebrow="Final policy authority" title="Critical hotel policy" subtitle="Updates affect future operations only. Historical reservation and financial snapshots remain unchanged." action={<button className="btn btn-accent" onClick={() => edit(item)}>Update critical policy</button>}/>{item?.updated_at && <p className="owner-policy-meta">Version {label(item.version)} · updated {formatOwnerDate(item.updated_at)}</p>}<div className="owner-policy-groups">{groups.map((group) => { const GroupIcon = POLICY_GROUP_ICONS[group.title] ?? Tag; const editable = POLICY_EDITABLE_GROUPS.has(group.title); return <section className="data-panel owner-panel owner-policy-card" key={group.title} aria-label={group.title}><div className="panel-heading owner-policy-head"><span className="owner-policy-icon" aria-hidden="true"><GroupIcon size={18} /></span><div><h3>{group.title}</h3><p>{group.note}</p></div>{editable && <button type="button" className="table-action" onClick={() => edit(item, group.title)} aria-label={`Edit ${group.title}`}><Pencil size={13} aria-hidden="true" />Edit</button>}</div><dl>{group.fields.filter(([key]) => key in (item ?? {})).map(([key, name]) => { const FieldIcon = policyFieldIcon(key); return <div key={key} className="owner-policy-field"><span className="owner-policy-field-icon" aria-hidden="true"><FieldIcon size={15} /></span><div className="owner-policy-field-copy"><dt>{name}</dt><dd>{value(key)}</dd></div></div>; })}</dl></section>; })}</div><OwnerSectionHead title="Policy change history" note="Every policy update is recorded with its reason." /><OwnerTablePanel title="Policy change history" noun="changes" note="Newest first · Executive source order retained." rows={changes} columns={[{ key: "created_at", header: "When", render: (row) => formatOwnerDate(row.created_at) }, { key: "actorName", header: "Changed by", render: (row) => String(row.actorName ?? "—") }, { key: "after_data", header: "New values", render: (row) => <span>{summarizePolicyChanges((row.after_data ?? {}) as Row).map((line) => <span key={line} className="owner-change-line">{line}</span>)}</span> }, { key: "reason", header: "Reason", render: (row) => String(((row.after_data ?? {}) as Row).reason ?? "—") }]} empty={<OwnerEmpty icon={<FileText size={22} />} title="No policy changes" body="Recorded policy updates will appear here." />} /></>; }
 function Exceptions({ rows, review }: { rows: Row[]; review: (item: Row, decision: "approve" | "reject") => void }) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");

@@ -32,6 +32,18 @@ describe("guest smart-request drafting (via guest concierge)", () => {
     expect(route).toContain("{ data: null, message:"); // graceful degradation, never 5xx
   });
 
+  it("degrades without the provider when the API key is missing (never 5xx)", () => {
+    const route = read("app/api/account/ai/concierge/route.ts");
+    expect(route).toContain("if (!aiConfigured())");
+    const gateAt = route.indexOf("if (!aiConfigured())");
+    const nullAt = route.indexOf("{ data: null, message:");
+    const callAt = route.indexOf("askGuestConcierge(context");
+    expect(gateAt).toBeGreaterThan(-1);
+    expect(nullAt).toBeGreaterThan(gateAt); // unconfigured branch answers gracefully…
+    expect(callAt).toBeGreaterThan(nullAt); // …before the provider is ever touched
+    expect(route).toContain("GUEST_CONCIERGE_UNAVAILABLE_MESSAGE");
+  });
+
   it("drafts are catalog-restricted before Confirm can submit them", () => {
     const route = read("app/api/account/ai/concierge/route.ts");
     expect(route).toContain("allowed");

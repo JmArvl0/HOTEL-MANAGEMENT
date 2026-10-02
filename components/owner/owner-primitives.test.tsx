@@ -13,6 +13,7 @@ import {
   OwnerToolbar,
   formatOwnerDate,
   formatPolicyValue,
+  summarizePolicyChanges,
   useOwnerSearch,
 } from "./owner-primitives";
 import { Search } from "lucide-react";
@@ -201,6 +202,55 @@ describe("owner redesign consolidation contracts", () => {
     expect(dashboard).not.toContain("admin-policy-grid");
     expect(dashboard).toContain("POLICY_GROUPS");
     expect(dashboard).toContain("Additional settings");
+  });
+
+  it("summarizes policy-change audit entries without the reason or version", () => {
+    const lines = summarizePolicyChanges({
+      hotelTimezone: "Asia/Manila",
+      checkInTime: "14:00:00",
+      cancellationPartialRefundBasisPoints: 3000,
+      selfServiceModificationDays: 2,
+      minimumBookingAge: 18,
+      depositSlaHours: 4,
+      validIdRequired: true,
+      mysteryField: "x",
+      reason: "Board decision.",
+      version: 4,
+    });
+    expect(lines).toContain("Hotel timezone: Asia/Manila");
+    expect(lines).toContain("Check-in time: 14:00");
+    expect(lines).toContain("Partial refund rate: 30%");
+    expect(lines).toContain("Self-service modification window: 2 days");
+    expect(lines).toContain("Minimum booking age: 18 years");
+    expect(lines).toContain("Deposit verification SLA: 4 hours");
+    expect(lines).toContain("Valid ID required: Yes");
+    expect(lines).toContain("Mystery Field: x");
+    expect(lines.some((line) => line.startsWith("Reason:") || line.startsWith("Version:"))).toBe(false);
+  });
+
+  it("serves the policy change log from audited entries with actor names", () => {
+    const route = read("app/api/owner/data/route.ts");
+    expect(route).toContain('eq("entity_type", "hotel_operational_policy")');
+    expect(route).toContain("actorName");
+    expect(dashboard).toContain("Policy change history");
+    expect(dashboard).toContain("summarizePolicyChanges");
+    expect(dashboard).toContain("owner-change-line");
+  });
+
+  it("gives RPC-covered policy cards a scoped edit with reason and full-payload merge", () => {
+    expect(dashboard).toContain("POLICY_EDITABLE_GROUPS");
+    expect(dashboard).toContain("owner-policy-field-icon");
+    expect(dashboard).toContain("Save changes");
+    expect(dashboard).toContain("Reason for this critical policy change");
+    // Scoped submit merges card values with live item values (full RPC payload).
+    expect(dashboard).toContain("minimumBookingAge: Number(data.minimumBookingAge)");
+    expect(dashboard).toContain("validIdRequired: Boolean(item.valid_id_required)");
+    // Non-covered cards (transport, destination, extras) carry no Edit.
+    const editable = dashboard.match(/POLICY_EDITABLE_GROUPS = new Set\(\[([\s\S]*?)\]\)/)?.[1] ?? "";
+    expect(editable).toContain("Financial documents");
+    expect(editable).not.toContain("Transportation");
+    expect(editable).not.toContain("Payment destination");
+    expect(editable).not.toContain("Additional settings");
   });
 
   it("leaves the three accepted modules wired and untouched", () => {
