@@ -253,3 +253,34 @@ describe("CustomerShell notification bell", () => {
     expect(document.activeElement).toBe(bell);
   });
 });
+
+describe("CustomerShell account menu", () => {
+  // Account security used to be a link to /account/settings, which navigated the
+  // guest away mid-task. It now opens the dialog in place.
+  it("opens Account security in a dialog instead of navigating to the settings page", async () => {
+    const { container } = renderShell();
+
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    expect(container.querySelector('.customer-account-popover a[href="/account/settings"]')).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Account security" }));
+
+    expect(await screen.findByRole("dialog", { name: "Account security" })).toBeTruthy();
+    expect(screen.getByRole("switch", { name: "Notification sound on" })).toBeTruthy();
+    expect(screen.getByLabelText("Current password")).toBeTruthy();
+    // The popover closed on the same click that opened the dialog.
+    expect(container.querySelector(".customer-account-popover")).toBeNull();
+  });
+
+  it("closes the dialog with Escape and leaves the page content mounted", async () => {
+    renderShell();
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    fireEvent.click(screen.getByRole("button", { name: "Account security" }));
+    await screen.findByRole("dialog", { name: "Account security" });
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Account security" })).toBeNull());
+    expect(screen.getByText("Stay content")).toBeTruthy();
+  });
+});

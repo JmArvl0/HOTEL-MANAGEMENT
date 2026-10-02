@@ -318,6 +318,25 @@
 .customer-shell .customer-page-title{margin-bottom:30px}
 .customer-shell .customer-request-form{border-radius:12px}
 
+/* Account security dialog (reached from the account menu and the My Profile
+   page title). The staff shells style .settings-theme-row and .settings-body h3
+   under .app-shell .modal-content, which never matches in the portal — without
+   these rules the notification-sound row renders as a bare div, which is what it
+   does today on /account/settings. Tokens only: .modal-content re-pins --cp-* to
+   the light dialog surface, so these read correctly in both portal themes. */
+.customer-shell .settings-body{display:grid;gap:14px}
+.customer-shell .settings-theme-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;border:1px solid var(--cp-line);border-radius:10px;background:var(--cp-panel-2)}
+.customer-shell .settings-theme-row b{display:block;color:var(--cp-text);font-size:12px}
+.customer-shell .settings-theme-row small{display:block;margin-top:3px;color:var(--cp-muted);font-size:10px}
+.customer-shell .settings-theme-row>button{display:inline-flex;flex:none;align-items:center;gap:7px;min-height:30px;padding:6px 12px;border:1px solid var(--cp-line);border-radius:999px;background:var(--cp-panel);color:var(--cp-text);font-size:10px;font-weight:750}
+.customer-shell .settings-theme-row>button:hover{border-color:var(--cp-accent);color:var(--cp-accent)}
+.customer-shell .settings-theme-row>button[aria-checked="true"]{border-color:var(--cp-accent);color:var(--cp-accent)}
+.customer-shell .settings-theme-row>button:focus-visible{outline:2px solid var(--cp-accent);outline-offset:2px}
+.customer-shell .settings-body h3{margin:0;color:var(--cp-text);font:600 11px var(--font-sans)}
+.customer-shell .settings-body .account-form>.btn{width:100%;margin-top:18px}
+/* /account/settings keeps the row and the form as siblings (no .settings-body). */
+.customer-shell .settings-theme-row+.account-form{margin-top:18px}
+
 /* ============ 7. Restrained motion (portal rung of the motion ladder) ============ */
 .customer-shell .customer-quick-actions a{
   transition:transform .22s cubic-bezier(.22,1,.36,1),box-shadow .22s cubic-bezier(.22,1,.36,1),border-color .22s ease;
