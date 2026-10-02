@@ -111,6 +111,24 @@ API, route handler, RPC, or database change.
 - `npm run lint` — 0 errors, 70 pre-existing warnings, none in the changed files.
 - `npm run build` — clean.
 
+## Deploy (2026-10-03)
+
+- **Committed** as `17b824d` with a **pathspec commit** (`git commit -- <paths>`) — the 8 files
+  below. The parallel session's staged work (`app/api/account/profile/route.ts`, `lib/customer.ts`,
+  `lib/manager-attention.*`, `lib/cancelled-folio-consistency.test.ts`) was left staged and
+  untouched, and its `lib/request-batches.ts` / `lib/housekeeping-queue.ts` were not added.
+- **Pushed** `b641d01..17b824d` to `origin/main` (`git ls-remote` confirms `17b824d`).
+- **Deployment proven live, not assumed** — same public technique as the loyalty deploy: the
+  app-router CSS chunks are content-hashed and `app/layout.tsx` imports `customer-portal.css`
+  globally, so the portal chunk is fetchable from the production alias without credentials.
+  - Before push: `1k_zs0e1djhi-.css`, sha256 `e13948be23088ddf…`, **0** `settings-theme-row` /
+    `settings-body` matches.
+  - After: the portal chunk became `2odo9rj1od4bl.css`, sha256 `47fb7070ca507aa8…`, carrying
+    `.customer-shell .settings-theme-row{`, four `.customer-shell .settings-theme-row>button`
+    rules (base, `:hover`, `[aria-checked=true]`, `:focus-visible`),
+    `.settings-theme-row+.account-form` and `.customer-shell .settings-body{` — plus the previous
+    deploy's `.loyalty-redeem` (40 matches), which confirms the same mechanism carried `febfc54`.
+
 ## Unresolved / next
 
 - Authenticated browser QA pending ([[KI-005]], needs a guest login): from **My Reservations** with
@@ -119,8 +137,7 @@ API, route handler, RPC, or database change.
   sound switch survives a reload; a real password change still lands on
   `/login?reason=password-changed`. Repeat from **My Profile**'s title button, in dark and light
   theme and at 390px, and confirm `/account/settings` typed directly still renders the fallback.
-- **Not committed.** The tree also holds a parallel session's staged work
-  (`app/api/account/profile/route.ts`, `lib/customer.ts`, `lib/manager-attention.*`,
-  `lib/cancelled-folio-consistency.test.ts`, `lib/request-batches.ts`,
-  `lib/housekeeping-queue.ts`) — commit this change with a pathspec commit when the user asks.
+- The tree still holds a parallel session's staged work (`app/api/account/profile/route.ts`,
+  `lib/customer.ts`, `lib/manager-attention.*`, `lib/cancelled-folio-consistency.test.ts`,
+  `lib/request-batches.ts`, `lib/housekeeping-queue.ts`) — untouched by this change.
 - No SYSTEM.md change: the guest account menu and `/account/settings` were never documented there.

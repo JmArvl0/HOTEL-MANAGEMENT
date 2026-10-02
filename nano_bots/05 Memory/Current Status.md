@@ -90,10 +90,10 @@
   green. Authenticated browser QA remains pending.
 
 Last Updated: 2026-10-03
-Current Development Area: Guest customer portal presentation — Account security now opens in a modal (2026-10-03, uncommitted); redesigned reservation-page loyalty redemption block deployed
+Current Development Area: Guest customer portal presentation — Account security now opens in a modal (2026-10-03, deployed); redesigned reservation-page loyalty redemption block deployed
 Current Feature: Guest Account security dialog (sound switch + password form, opened from the account menu and the My Profile title; `/account/settings` kept as a fallback); manual browser QA pending
 Current Branch: `main`
-Latest Relevant Commit: `febfc54` (guest loyalty redemption block redesign, deployed)
+Latest Relevant Commit: `17b824d` (guest Account security modal, deployed)
 
 > ⚠ Large **uncommitted working tree** on top of that commit: the features below plus
 > parallel-session work (room catalog with photos, transport booking at checkout,
@@ -125,7 +125,10 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
   has a customer-scoped block (tokens only, [[D-029]]). `PasswordForm` still signs the guest out
   on success. No API/RPC/DB change. New 6-case dialog test + 2 shell cases; typecheck clean, lint
   0 errors, full suite 1981 with the same 1 pre-existing unrelated failure ([[KI-012]], CRLF),
-  build clean. **Not committed** — see the session note.
+  build clean. Committed `17b824d` with a **pathspec commit** and pushed; **deployment verified
+  live** — the portal CSS chunk became `2odo9rj1od4bl.css` (sha256 `47fb7070…`, was
+  `1k_zs0e1djhi-.css` / `e13948be…`) carrying the new `.customer-shell .settings-theme-row` rules
+  alongside the previous deploy's `.loyalty-redeem`. Guest browser QA pending.
   See [[2026-10-03 - Account Security Modal]].
 
 - **Guest loyalty redemption block redesigned (2026-10-03)** — the `.loyalty-redeem` widget on
@@ -1081,8 +1084,9 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
 
 ## Current Work
 
-- Guest Account security modal delivered (2026-10-03), **uncommitted**. Manual guest browser QA
-  pending ([[KI-005]]) — My Reservations → account menu → **Account security** with a form
+- Guest Account security modal delivered (2026-10-03); **committed `17b824d`, pushed, and live in
+  production** (deploy verified by the portal CSS chunk change). Manual guest browser QA pending
+  ([[KI-005]]) — My Reservations → account menu → **Account security** with a form
   half-filled; Escape returns focus to the menu button; sound switch survives a reload; a password
   change still lands on `/login?reason=password-changed`; repeat from the My Profile title button,
   dark + light, 390px; `/account/settings` still resolves. Checklist in
@@ -1188,7 +1192,7 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
 
 ## Recent Sessions
 
-- [[2026-10-03 - Account Security Modal]] — the account menu's Account security entry navigated to `/account/settings` and dropped the guest's page; it is now a dialog (sound switch + password form) opened from the menu and the My Profile title via one provider inside `<main>`, deliberately non-portaled and outside the blurred header; `/account/settings` kept as a fallback; also fixed the portal's unstyled `.settings-theme-row`; 1981 tests (1 pre-existing CRLF failure, [[KI-012]]), lint 0 errors, build clean, **uncommitted**, guest QA pending
+- [[2026-10-03 - Account Security Modal]] — the account menu's Account security entry navigated to `/account/settings` and dropped the guest's page; it is now a dialog (sound switch + password form) opened from the menu and the My Profile title via one provider inside `<main>`, deliberately non-portaled and outside the blurred header; `/account/settings` kept as a fallback; also fixed the portal's unstyled `.settings-theme-row`; committed `17b824d` and **deployment verified live** by the portal CSS chunk change; 1981 tests (1 pre-existing CRLF failure, [[KI-012]]), lint 0 errors, build clean, guest QA pending
 - [[2026-10-03 - Loyalty Redemption Block Redesign]] — `.loyalty-redeem` on the guest reservation folio had no CSS anywhere, so it rendered raw browser controls; rebuilt as a styled sub-panel (figures, themed slider, Use max, live credit preview) sourcing the rate from `POINTS_TO_PESO`; the `min(points, floor(balance))` cap is preserved because the RPC debits every point sent; committed `febfc54` and **deployment verified live** by the portal CSS chunk change (which also confirms the GitHub → Vercel auto-deploy); 1973 tests (1 pre-existing CRLF failure, [[KI-012]]), build clean, guest QA pending
 - [[2026-10-03 - Owner Payment Method Persist]] — the wizard's primary Save called only the destination route, so PayMongo → Manual GCash reported success while `deposit_method` stayed `'paymongo'`; one `save()` now commits the method first (version threaded into the destination save), redundant method-only button removed; live probe ruled out a migration; 1968 tests (1 pre-existing CRLF failure, [[KI-012]]), build clean, Owner QA pending
 - [[2026-09-29 - Booking Form Type Scale]] — `.booking-form-card` type lifted to the 14px/12px standard with 16px fields; inputs inherited 10px, selects were 14px, textarea ~13.3px, so one grid showed three sizes; scoped append (not in-place — `.request-option` is shared), 1893/1893, build clean, visual check pending
