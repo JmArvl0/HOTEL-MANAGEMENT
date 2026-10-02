@@ -46,8 +46,13 @@ export const FOLIO_PAY_FILTERS:FolioPaymentState[]=["pending","due","refund","se
 export type FolioMoneyInput={total:string|number;deposit?:string|number|null;invoice:{amount:string|number;paid:string|number;balance:string|number;status:string}|null};
 export type FolioStateInput=FolioMoneyInput&{status:string;check_in:string;check_out:string;payments:{status:string}[];refunds:unknown[]};
 export function folioMoney(record:FolioMoneyInput){const total=Number(record.invoice?.amount??record.total);const paid=Number(record.invoice?.paid??record.deposit??0);const balance=Number(record.invoice?.balance??Math.max(total-paid,0));return{total,paid,balance}}
-// Precedence: an in-flight payment outranks the balance it covers; a live balance outranks refund bookkeeping.
-export function financialPaymentState(record:FolioStateInput):FolioPaymentState{if(record.payments.some((payment)=>payment.status==="pending_verification")||record.invoice?.status==="pending_verification")return"pending";if(folioMoney(record).balance>0&&!["cancelled","no_show"].includes(record.status))return"due";if(record.refunds.length>0)return"refund";return"settled"}
+// Precedence: a terminal reservation is never an actionable payment state.
+// A stale pending_verification row on a cancelled/no-show stay (cancelled
+// before 20261024080000 backfilled it to expired) must not bucket as
+// "Awaiting Verification"; the row itself stays visible in the folio card so
+// nothing is hidden, but the bucket follows the reservation's final state.
+// Live flow: a live balance outranks refund bookkeeping.
+export function financialPaymentState(record:FolioStateInput):FolioPaymentState{if(["cancelled","no_show"].includes(record.status)){if(record.refunds.length>0)return"refund";return"settled"}if(record.payments.some((payment)=>payment.status==="pending_verification")||record.invoice?.status==="pending_verification")return"pending";if(folioMoney(record).balance>0)return"due";if(record.refunds.length>0)return"refund";return"settled"}
 export function filterFinancialRecords<T extends FolioStateInput>(records:T[],filters:{stay?:string|null;pay?:string|null},today=hotelToday()):T[]{const stay=FOLIO_STAY_FILTERS.includes(filters.stay as ReservationCategory)?(filters.stay as ReservationCategory):null;const pay=FOLIO_PAY_FILTERS.includes(filters.pay as FolioPaymentState)?(filters.pay as FolioPaymentState):null;return records.filter((record)=>(!stay||reservationCategory(record,today)===stay)&&(!pay||financialPaymentState(record)===pay))}
 
 const financialColumns="id,confirmation_number,room_type,check_in,check_out,guests,status,total,deposit,deposit_required,deposit_policy_snapshot,operational_policy_snapshot,payment_due_at,payment_status,cancellation_reason,identity_status";
