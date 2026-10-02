@@ -96,6 +96,24 @@ describe("HousekeepingQueuePanel workspace", () => {
     expect(cards).toEqual(["1", "1", "0", "0", "0"]);
   });
 
+  it("counts the summary from the full load even when the queue arrives pre-filtered", () => {
+    // Regression (QA BUG-005): "Waiting for inspection 1" beside a queue
+    // showing other totals looked contradictory. The cards describe allItems;
+    // the queue (and its footer) describe items.
+    const full = [
+      task({ id: "t1", task_type: "checkout_cleaning", status: "pending" }),
+      task({ id: "t2", status: "completed", inspection_status: "pending", completed_at: nowIso }),
+    ];
+    render(<HousekeepingQueuePanel
+      role="housekeeping" userId="u1" items={[full[1]]} allItems={full} search="" setSearch={noop}
+      housekeepingAction={noop} coordinate={noop} onViewMaintenance={noop} onViewRoom={noop}
+    />);
+    const cards = Array.from(screen.getByRole("group", { name: "Housekeeping summary" }).querySelectorAll("article")).map((card) => card.querySelector("b")?.textContent);
+    expect(cards).toEqual(["1", "0", "1", "0", "0"]);
+    expect(within(screen.getByRole("region", { name: "Room care queue" })).getByText(/Showing 1 task/)).toBeTruthy();
+    expect(screen.getByText(/Summary counts cover all loaded tasks/)).toBeTruthy();
+  });
+
   it("links to Guest Requests with the live open count and no duplicate actions", () => {
     const open = vi.fn();
     render(<HousekeepingQueuePanel

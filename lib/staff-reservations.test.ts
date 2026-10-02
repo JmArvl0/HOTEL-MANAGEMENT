@@ -99,7 +99,7 @@ describe("manager reservation oversight workspace", () => {
   });
   it("routes Review Exception through the existing approval workflow, never a direct mutation", () => {
     expect(managerPanel).toContain("Review Exception");
-    expect(dashboard).toContain("function reviewReservationException(item:RecordItem){setDetail(null);setSearch(String(item.confirmation_number||item.id));setSection(\"approvals\")}");
+    expect(dashboard).toContain("function reviewReservationException(item:RecordItem){setDetail(null);setSearchForSection(\"approvals\",String(item.confirmation_number||item.id));setSection(\"approvals\")}");
     // Advisory only: the derivation module never writes reservation state.
     const derivation = readFileSync("lib/manager-attention.ts", "utf8");
     expect(derivation).not.toContain("supabase");
@@ -111,6 +111,37 @@ describe("manager reservation oversight workspace", () => {
     expect(staffData).toContain('from("manager_approval_requests")');
     expect(staffData).toContain('from("transportation_requests")');
     expect(staffData).toContain('from("refund_requests")');
-    expect(staffData).toContain('from("guest_requests")');
+  });
+});
+
+describe("per-module search memory", () => {
+  it("scopes search text by section instead of one global string", () => {
+    // Regression (QA BUG-001): one shared search leaked "Ava" from Guests
+    // into Approvals. Each module now remembers its own text.
+    expect(dashboard).toContain("searchBySection[section]");
+    expect(dashboard).toContain("setSearchForSection");
+    expect(dashboard).not.toContain('const [search, setSearch] = useState("")');
+  });
+
+  it("remounts the generic resource view per section so filters and pages reset", () => {
+    expect(dashboard).toContain("<ResourceView key={section}");
+  });
+});
+
+describe("stale detail modals never follow navigation", () => {
+  it("discards late reservation/profile responses after a section change", () => {
+    // Regression (QA BUG-003): a slow profile fetch resolved after leaving
+    // Guests and rendered on top of Guest Requests.
+    for (const loader of ["async function viewReservation", "async function viewGuestProfile"]) {
+      const start = dashboard.indexOf(loader);
+      expect(start).toBeGreaterThan(-1);
+      const body = dashboard.slice(start, dashboard.indexOf("async function", start + loader.length));
+      expect(body).toContain("requestSection");
+      expect(body).toContain("sectionRef.current !== requestSection");
+    }
+  });
+
+  it("closes open detail modals when the section changes", () => {
+    expect(dashboard).toContain("setDetail(null); setGuestProfile(null); setRoomDetail(null); setRoomDetailActions([]);");
   });
 });

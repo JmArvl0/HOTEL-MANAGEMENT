@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Search, X } from "lucide-react";
 
 export type HavenControlVariant = "customer" | "internal";
@@ -39,6 +39,24 @@ export function HavenSearchInput({
     setLastExternalValue(value);
     setDraft(value);
   }
+  // If the input unmounts with keystrokes still inside the debounce window
+  // (e.g. switching modules mid-typing), commit the draft instead of
+  // silently dropping it — otherwise the field can show text the filter
+  // never received. Refs stay fresh via the sync effect below, so the
+  // unmount cleanup below it always reads the latest values.
+  const draftRef = useRef(draft);
+  const committedRef = useRef(value);
+  const commitRef = useRef(onValueChange);
+  useEffect(() => {
+    draftRef.current = draft;
+    committedRef.current = value;
+    commitRef.current = onValueChange;
+  });
+  useEffect(() => {
+    return () => {
+      if (draftRef.current !== committedRef.current) commitRef.current(draftRef.current);
+    };
+  }, []);
   useEffect(() => {
     if (draft === value) return;
     const timer = window.setTimeout(() => onValueChange(draft), debounceMs);

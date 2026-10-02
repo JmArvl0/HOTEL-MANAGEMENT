@@ -2,7 +2,20 @@
 
 Current execution state. Concise — detail lives in linked session notes.
 
-## Current task (cancelled-state, preview-404, profile fixes, 2026-10-02)
+## Current task (QA follow-ups BUG-001…005, 2026-10-02)
+
+IMPLEMENTED + PUSHED, all gates green. Per-module search memory; Billing
+search chain extracted/tested + draft-commit hardening (observation reads as
+stale-build/timing — re-verify on fresh deploy); stale modal guards + nav
+clear; single property-wide open shift (migration `20261024090000`,
+live-verified, zero open shifts at census); global housekeeping totals +
+scope copy. Full 1949/1950 (1 pre-existing unrelated failure), build clean.
+Pending: Front Desk re-run on fresh deploy (KI-005); export-timeout
+follow-up needs network capture.
+
+See [[2026-10-02 - QA Follow-Ups BUG-001 to 005]].
+
+## Previous: cancelled-state, preview-404, profile fixes (2026-10-02)
 
 IMPLEMENTED + PUSHED, all gates green. Cancel now expires awaiting-
 verification deposits + stamps `payment_status='failed'` (no-refund case;

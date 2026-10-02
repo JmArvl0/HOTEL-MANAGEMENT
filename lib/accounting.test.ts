@@ -204,3 +204,31 @@ describe("accounting dashboard", () => {
   it("reports no hard-coded operational metric", () => { expect(dashboard).not.toContain("<h2>92%</h2>"); expect(dashboard).not.toContain("8.2%"); });
   it("offers a refund retry only through the server-validated refund endpoint", () => { expect(dashboard).toContain("isRefundActionable(String(item.status))"); expect(dashboard).toContain("/process"); });
 });
+
+describe("single open cash shift (20261024090000)", () => {
+  const single = read("supabase/migrations/20261024090000_single_open_cash_shift.sql");
+  const shiftRoute = read("app/api/accounting/cash-shifts/route.ts");
+
+  it("refuses a new open while any shift is open, serialized on a lock", () => {
+    // Regression (QA BUG-004): per-staff-only guard let concurrent opens
+    // across cashiers disagree across header, summary, and ledger.
+    expect(single).toContain("where status='open'");
+    expect(single).not.toContain("staff_user_id=p_staff_user_id and status='open'");
+    expect(single).toContain("CASH_SHIFT_ALREADY_OPEN");
+    expect(single).toContain("pg_advisory_xact_lock");
+  });
+
+  it("keeps the live-tightened cash-handler roles, not the older wider list", () => {
+    expect(single).toContain("not in('front_desk','accounting')");
+    expect(single).not.toContain("'owner','admin','manager','front_desk','accounting'");
+  });
+
+  it("tells the cashier a shift is already open anywhere, not just theirs", () => {
+    expect(shiftRoute).toContain("A cash shift is already open. Close it before opening another.");
+  });
+
+  it("disables the Open button while any shift is open", () => {
+    expect(dashboard).toContain("disabled={ledger.metrics.openCashShifts > 0}");
+    expect(dashboard).toContain("only one stays open at a time");
+  });
+});

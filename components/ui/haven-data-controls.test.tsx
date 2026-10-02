@@ -34,6 +34,16 @@ describe("HavenSearchInput", () => {
     fireEvent.click(screen.getByRole("button", { name: "Clear search reservations" }));
     expect(onValueChange).toHaveBeenCalledWith("");
   });
+
+  it("commits an in-flight draft on unmount instead of dropping keystrokes", () => {
+    vi.useFakeTimers();
+    const onValueChange = vi.fn();
+    const { unmount } = render(<HavenSearchInput value="" onValueChange={onValueChange} label="Search billing" placeholder="Search…" />);
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "Sheniel" } });
+    expect(onValueChange).not.toHaveBeenCalled();
+    unmount();
+    expect(onValueChange).toHaveBeenCalledWith("Sheniel");
+  });
 });
 
 describe("HavenFilterBadges", () => {

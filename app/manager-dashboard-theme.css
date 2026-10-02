@@ -760,6 +760,7 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
    clean next", not a flat task log. Mirrors the roster's flex-row pattern
    so both read as one system; taps only, no hover-dependent affordances. */
 .hk-queue{display:grid;gap:14px;padding:14px}
+.hk-scope-note{margin:10px 2px 0;color:var(--cp-muted);font-size:10px;line-height:1.5}
 .hk-queue-group{display:grid;gap:6px}
 .hk-queue-group>header{display:grid;gap:2px}
 .hk-queue-group h3{display:flex;align-items:center;gap:7px;margin:0;color:var(--cp-text);font:700 9px var(--font-sans);letter-spacing:1.1px;text-transform:uppercase}

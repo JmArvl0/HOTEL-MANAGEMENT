@@ -63,10 +63,12 @@ export const queueTaskOrder = (a: RecordItem, b: RecordItem): number =>
 
 type GroupSpec = { key: QueueGroup; title: string; hint: string; icon: typeof BedDouble };
 
-export default function HousekeepingQueuePanel({ role, userId, items, search, setSearch, housekeepingAction, coordinate, applySuggestion, suggestions = [], onViewMaintenance, onViewRoom, guestRequestOpen = 0, onOpenGuestRequests }: {
+export default function HousekeepingQueuePanel({ role, userId, items, allItems, search, setSearch, housekeepingAction, coordinate, applySuggestion, suggestions = [], onViewMaintenance, onViewRoom, guestRequestOpen = 0, onOpenGuestRequests }: {
   role: Role;
   userId: string;
   items: RecordItem[];
+  /** Unfiltered load for the summary snapshot; the queue below renders `items`. */
+  allItems?: RecordItem[];
   search: string;
   setSearch: (value: string) => void;
   housekeepingAction: (item: RecordItem, action: "assign" | "start" | "complete" | "inspect" | "defer" | "maintenance") => void;
@@ -121,12 +123,12 @@ export default function HousekeepingQueuePanel({ role, userId, items, search, se
   // sections below, never the snapshot above.
   const totals = useMemo(() => {
     const grouped: Record<QueueGroup, number> = { blocked: 0, needs_attention: 0, my_tasks: 0, in_progress: 0, waiting_inspection: 0, completed_today: 0, other_open: 0 };
-    for (const item of items) {
+    for (const item of allItems ?? items) {
       const group = groupQueueTask(item, mine, today);
       if (group) grouped[group] += 1;
     }
     return grouped;
-  }, [items, mine, today]);
+  }, [allItems, items, mine, today]);
 
   const specs: GroupSpec[] = [
     { key: "needs_attention", title: "Needs attention", hint: "Unassigned or urgent open work — the next rooms to clean", icon: ClipboardCheck },
@@ -155,6 +157,7 @@ export default function HousekeepingQueuePanel({ role, userId, items, search, se
       { label: "Blocked by Maintenance", value: totals.blocked, hint: "Work order holds the room", icon: Wrench, tone: "attention" },
       { label: "Completed today", value: totals.completed_today, hint: "Finished this hotel day", icon: ClipboardCheck, tone: "done" },
     ]} ariaLabel="Housekeeping summary"/>
+    <p className="hk-scope-note">Summary counts cover all loaded tasks. Search and filters narrow the queue below — and the &ldquo;Showing N tasks&rdquo; footer counts that narrowed queue.</p>
     {showGuestStrip && <section className="data-panel hk-guest-strip" aria-label="Guest service requests">
       <span className="hk-guest-icon" aria-hidden="true"><Bell size={16} /></span>
       <div><b>Guest service requests assigned to Housekeeping</b><small>{guestRequestOpen} open — start and complete them in Guest Requests</small></div>
