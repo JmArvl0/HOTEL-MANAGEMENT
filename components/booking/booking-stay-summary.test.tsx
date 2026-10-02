@@ -173,10 +173,10 @@ describe("stay-summary consolidation contracts", () => {
     }
   });
 
-  it("wires every booking step to the shared component with no duplicate cards", () => {
+  it("wires booking steps to the shared component with no duplicate cards", () => {
     expect(read("app/(booking)/booking/details/page.tsx")).toContain("BookingStaySummary");
     expect(read("app/(booking)/booking/payment/[token]/page.tsx")).toContain("BookingStaySummary");
-    expect(read("app/(booking)/booking/confirmation/[id]/page.tsx")).toContain("BookingStaySummary");
+    expect(read("app/(booking)/booking/confirmation/[id]/page.tsx")).not.toContain("BookingStaySummary");
     expect(read("app/(booking)/booking/review/[token]/page.tsx")).toContain("ReviewStayCard");
     // Old variants are gone: no BookingSummary import/usage, no inline deposit aside.
     expect(read("app/(booking)/booking/details/page.tsx")).not.toContain("BookingSummary ");

@@ -2,17 +2,17 @@
 
 Current execution state. Concise — detail lives in linked session notes.
 
-## Current task (abandoned PayMongo checkout, 2026-10-02)
+## Current task (confirmation stay-summary aside removal, 2026-10-02)
 
-IMPLEMENTED + PUSHED, all gates green. Backing out of PayMongo checkout left
-an immortal ghost booking that read as accepted (reservation created before
-payment; no cancel path; staff could verify zero-money). Migration
-`20261024070000` (guest cancel RPC + 24h gateway-only lapse + verify block,
-live-verified) with cancel route, `GatewayPendingActions`, honest copy, and
-staff queue steering. paymongo 40/40, full 1928/1929 (1 pre-existing unrelated
-failure), build clean. Pending: test-mode live probe + browser QA (KI-005).
+IMPLEMENTED locally, all gates green. Removed the redundant `<aside className="review-stay-card">`
+(`<BookingStaySummary>` in `<div className="confirmation-stay">`) from `/booking/confirmation/[id]`
+only, as requested. The confirmation page already features a complete stay & deposit summary
+in its dedicated `.confirmation-card` section. Cleaned up unused photo queries and imports.
+Tests updated and passing (17/17 targeted, 212/212 booking suite), typecheck and build clean.
 
-See [[2026-10-02 - Abandoned PayMongo Checkout]].
+See [[2026-10-02 - Confirmation Page Stay Summary Aside Removal]].
+
+## Previous: abandoned PayMongo checkout (2026-10-02)
 
 ## Previous: deposit proof-upload duplicate control (2026-10-02)
 
