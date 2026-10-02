@@ -231,4 +231,18 @@ describe("single open cash shift (20261024090000)", () => {
     expect(dashboard).toContain("disabled={ledger.metrics.openCashShifts > 0}");
     expect(dashboard).toContain("only one stays open at a time");
   });
+
+  it("logs the raw RPC failure and maps unmapped database errors to operator messages", () => {
+    // Diagnosis (2026-10-03): a 409 with the bare fallback hid the real RPC
+    // error from every log surface. The raw code/message is now logged
+    // server-side, and constraint/permission/function failures map to honest
+    // messages instead of the fallback. Raw database text never reaches the client.
+    expect(shiftRoute).toContain('console.error("open cash shift failed"');
+    expect(shiftRoute).toContain('"duplicate key"');
+    expect(shiftRoute).toContain('"permission denied"');
+    expect(shiftRoute).toContain('"Could not find the function"');
+    const patchRoute = read("app/api/accounting/cash-shifts/[id]/route.ts");
+    expect(patchRoute).toContain('console.error("update cash shift failed"');
+    expect(patchRoute).toContain('"Could not find the function"');
+  });
 });
