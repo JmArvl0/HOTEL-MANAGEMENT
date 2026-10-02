@@ -3,6 +3,8 @@
 // configuration, the number copies, and no bank-transfer path exists.
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { ConfirmBookingForm } from "./confirm-booking-form";
 import { DEFAULT_DEPOSIT_POLICY } from "@/lib/booking";
 import { DEFAULT_OPERATIONAL_POLICY } from "@/lib/hotel-policy";
@@ -83,5 +85,22 @@ describe("ConfirmBookingForm (GCash-only)", () => {
     );
     expect(container.querySelector(".before-you-pay")?.textContent).toMatch(/21 days or more/);
     expect(container.querySelector(".before-you-pay")?.textContent).not.toMatch(/30%/);
+  });
+});
+
+describe("ConfirmBookingForm proof upload is a single visible control", () => {
+  const css = readFileSync(join(process.cwd(), "app/guest-booking.css"), "utf8");
+
+  it("visually hides the native file input so only the styled button shows", () => {
+    // Regression: the input's class matched no loaded rule, so the native
+    // "Choose file" control rendered beside the styled upload button.
+    expect(css).toContain('.proof-field input[type="file"]');
+    expect(css).toMatch(/\.proof-field input\[type="file"\][^{]*\{[^}]*clip:/);
+  });
+
+  it("never uses display:none on the file input, which would break picker forwarding", () => {
+    const rule = css.match(/\.proof-field input\[type="file"\][^{]*\{[^}]*\}/)?.[0] ?? "";
+    expect(rule).not.toMatch(/display\s*:\s*none/);
+    expect(rule).not.toMatch(/visibility\s*:\s*hidden/);
   });
 });

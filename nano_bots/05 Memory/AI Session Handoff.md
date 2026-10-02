@@ -2,7 +2,35 @@
 
 Current execution state. Concise — detail lives in linked session notes.
 
-## Current task (reservation detail smart-back + policy document, 2026-09-29)
+## Current task (deposit proof-upload duplicate control, 2026-10-02)
+
+IMPLEMENTED locally, all gates green. The deposit page showed a native file
+input beside the styled upload button because `sr-only-proofs` matched no
+loaded CSS rule. The input tag itself stays (deleting it would silently kill
+the upload — the button only forwards clicks to it); one scoped 1px-clip rule
+in `app/guest-booking.css` hides it, so guests see a single control. New
+stylesheet-walk tests pin the rule and forbid `display:none`. Targeted 116/116,
+full suite 1922/1923 (1 pre-existing unrelated failure), build clean. Pending:
+manual browser QA (KI-005).
+
+See [[2026-10-02 - Deposit Proof Upload Duplicate Control]].
+
+## Previous: guest registration 500 (2026-10-02)
+
+ROOT-CAUSED + FIXED locally, push pending. `POST /api/register` 500 for all new
+emails: `guests.loyalty_tier` default stayed `'Member'` after `20261015010000`
+restricted the check to silver/gold/platinum — every new-guest insert failed
+23514. New migration `20261024060000` sets default `'silver'` (one statement,
+fixes all guest-creating RPCs); `lib/loyalty.test.ts` pins it. Gates: targeted
+36/36, typecheck/build clean, full suite 1920/1921 (1 pre-existing unrelated
+`password-reset-audit` failure). PUSHED 2026-10-02 via `supabase db push --db-url`
+(dry-run → user-approved; ledger max `20261024060000`, live default `silver`).
+Standing rule this session: I handle pushes, dry-run → confirm each time,
+production target.
+
+See [[2026-10-02 - Guest Registration 500 Loyalty Default]].
+
+## Previous: reservation detail smart-back + policy document (2026-09-29)
 
 IMPLEMENTED locally, all gates green. Three user-confirmed changes to the
 customer reservation detail page (`reservation-detail-view.tsx`,

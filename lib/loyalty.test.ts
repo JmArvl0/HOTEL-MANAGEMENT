@@ -103,6 +103,18 @@ describe("loyalty migration (20261015010000_guest_loyalty_submodule.sql)", () =>
   });
 });
 
+describe("loyalty default tier (20261024060000_guest_loyalty_default.sql)", () => {
+  const fix = read("supabase/migrations/20261024060000_guest_loyalty_default.sql");
+
+  it("defaults new guests to silver so inserts omitting loyalty_tier pass the tier check", () => {
+    // Regression: the column default stayed 'Member' after 20261015010000
+    // restricted the check to silver/gold/platinum, so every
+    // register_guest_account insert failed with 23514 → /api/register 500.
+    expect(fix).toContain("set default 'silver'");
+    expect(fix).not.toContain("default 'Member'");
+  });
+});
+
 describe("loyalty route contracts", () => {
   it("guest routes are guest-only and delegate to the RPCs", () => {
     const get = read("app/api/account/loyalty/route.ts");
