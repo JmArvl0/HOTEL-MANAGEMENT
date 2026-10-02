@@ -147,6 +147,9 @@ describe("loyalty surface contracts", () => {
     expect(dossier).toContain("badge-loyalty-");
     const widget = read("components/booking/loyalty-redemption-selector.tsx");
     expect(widget).toContain("/api/account/loyalty/redeem");
-    expect(widget).toContain("1 point = ₱1");
+    // The rate comes from the shared constant, not a prose literal, so a change
+    // to POINTS_TO_PESO reaches both the copy and the credit preview.
+    expect(widget).toContain("POINTS_TO_PESO");
+    expect(widget).toContain("Redeem rewards points");
   });
 });
