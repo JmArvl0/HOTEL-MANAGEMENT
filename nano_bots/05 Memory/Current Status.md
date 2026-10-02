@@ -90,14 +90,15 @@
   green. Authenticated browser QA remains pending.
 
 Last Updated: 2026-10-03
-Current Development Area: Guest customer portal presentation — Account security now opens in a modal (2026-10-03, deployed); redesigned reservation-page loyalty redemption block deployed
-Current Feature: Guest Account security dialog (sound switch + password form, opened from the account menu and the My Profile title; `/account/settings` kept as a fallback); manual browser QA pending
+Current Development Area: Guest customer portal presentation — the Digital Express Pass QR moved out of the reservation hero grid into its own strip (2026-10-03, deployed); Account security modal deployed
+Current Feature: Guest reservation-page **Digital Express Pass strip** (QR | description | action, below the hero where the "QR expired" notice already sits); manual browser QA pending
 Current Branch: `main`
-Latest Relevant Commit: `17b824d` (guest Account security modal, deployed)
+Latest Relevant Commit: `8473496` (Digital Express Pass strip, deployed)
 
-> ⚠ Large **uncommitted working tree** on top of that commit: the features below plus
-> parallel-session work (room catalog with photos, transport booking at checkout,
-> event-sourced customer notifications, QR scanner redesign). Nothing is committed yet.
+> Working tree cleared on 2026-10-03: the accumulated features plus the parallel-session work
+> (room catalog with photos, transport booking at checkout, event-sourced customer notifications,
+> QR scanner redesign) were committed as `6a1a880` / `de7eb4f` / `3a9e9eb` / `abc45c7` / `8473496`
+> and pushed on top of `9710e86`.
 
 ## Current Objective
 
@@ -106,9 +107,42 @@ confirmation stops). **ALL PHASES COMPLETE** — 1 tax-aware documents, 2 guest 
 3 rate plans, 4 guest communication automation, 5 deposit-verification SLA visibility,
 6 housekeeping assignment suggestions, 7 inventory draft POs, 8 preventive maintenance
 foundation, 9 commercial readiness (9A/9B/9C/9D). The final overall report was delivered
-in-session. Remaining: manual UI verification (role logins) and committing the tree.
+in-session. Remaining: manual UI verification (role logins); the tree was committed and pushed on
+2026-10-03.
 
 ## Recently Completed
+
+- **Digital Express Pass moved into its own strip under the hero (2026-10-03)** — the pass QR
+  was the **middle `auto` column of the 3-column hero heading grid**, so a ~400px tall card set the
+  hero's height, wedged between the confirmation number and the action panel, and pushed
+  `ReservationActions` to the far right off-axis from the room type. It is now a **full-width strip
+  directly below the hero** — the same slot the *QR expired* band already uses, so live and expired
+  passes always appear in the same place — with QR left, description middle, Ready pill + Download
+  right (`customer-checkin-qr-strip`, aligned in one row). Children were regrouped into
+  figure/copy/action **without renaming a single existing class**; the skeleton took the same shape
+  so loading does not jump. The dead `.customer-checkin-qr-pass-column` rules are gone and the hero
+  heading grid dropped its third track (which otherwise still contributed its 28px gap). Caught a
+  real cascade trap pre-ship: the strip's mobile rules were first placed in the existing `≤900px`
+  block *above* the base QR rules, so equal specificity + source order would have made the desktop
+  layout win on phones — they now sit beside the rule they override, verified in the compiled chunk.
+  Mobile reading order is intentionally QR-first now (grouping cannot preserve the old interleave).
+  Typecheck clean, lint 0 errors (70 pre-existing warnings), full suite **1982 with the same 1
+  pre-existing unrelated failure** ([[KI-012]], CRLF), build clean. Committed `9710e86`, pushed, and
+  **deployment verified live** — the portal CSS chunk became `40qbpq0o-pj0p.css` (sha256
+  `b705cc2578c98307…`, was `2odo9rj1od4bl.css`) with 12 strip rules and **0** `pass-column` rules.
+  Manual guest browser QA pending ([[KI-005]]).
+  See [[2026-10-03 - Check-In QR Pass Strip]].
+
+- **Working tree committed (2026-10-03)** — the long-standing uncommitted tree was committed in six
+  logical commits and pushed: `6a1a880` retires the pre-arrival ID upload (component +
+  `id-document` route), `de7eb4f` stops a cancelled/no-show stay bucketing as *Awaiting
+  Verification* when a stale pending deposit row survives the expiry + backfill, `3a9e9eb` raises a
+  Front Desk attention warning for a **pending** reservation past its check-in date (advisory, never
+  mutates status), `abc45c7` lets the profile route survive duplicate guest rows (the `maybeSingle`
+  lookups threw on a second row and 500'd the save), and `8473496` hoists `groupQueueTask` into
+  `lib/housekeeping-queue.ts` + adds `countRequestBatches` (the queue panel still carries its local
+  copy — the swap has not happened yet). All four parallel workstreams were verified green together
+  before committing.
 
 - **Guest Account security opened as a modal (2026-10-03)** — the account menu's **Account
   security** entry was a `<Link href="/account/settings">`, so it navigated the guest away
@@ -1084,6 +1118,13 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
 
 ## Current Work
 
+- Guest reservation-page Digital Express Pass strip delivered (2026-10-03); **committed `9710e86`,
+  pushed, and live in production** (deploy verified by the portal CSS chunk change). Manual guest
+  browser QA pending ([[KI-005]]) — a confirmed + paid reservation at 1440px (hero is two columns,
+  the pass sits between hero and folio strip, Download still saves the PNG), then checked-in,
+  cancelled / checked-out (the expired band in that slot, no live pass), dark + light, at
+  1440 / 1024 / 900 / 390px. Checklist in [[2026-10-03 - Check-In QR Pass Strip]].
+
 - Guest Account security modal delivered (2026-10-03); **committed `17b824d`, pushed, and live in
   production** (deploy verified by the portal CSS chunk change). Manual guest browser QA pending
   ([[KI-005]]) — My Reservations → account menu → **Account security** with a form
@@ -1138,8 +1179,8 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
 
 ## Current Problems / Blockers
 
-- The working tree is uncommitted — commit it before starting new work to keep history clean.
-- Parallel sessions edit the same untracked tree — coordinate before committing.
+- Parallel sessions edit the same untracked tree — coordinate before committing. (The long-standing
+  backlog was cleared on 2026-10-03: `c6e95e0..8473496` were pushed, so the tree is clean again.)
 - The previously-noted `manager-reservations-panel.test.tsx` 2/8 failures did not recur in the
   2026-09-22 full run (759/759) — revisit only if they return.
 
@@ -1163,8 +1204,7 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
    strip (self-assign vs Owner assign vs Manager read-only), guest-profile modal, rate
    plans modal, deposit aging chips, System Administrator labels + timezone field +
    extended System Health cards (Admin login).
-2. Commit the working tree (all sessions' features + parallel work) — the tree is large;
-   coordinate with parallel sessions first.
+2. Commit the working tree — **done 2026-10-03** (`9710e86`..`8473496`, pushed to `origin/main`).
 3. Confirm the first live guest-reminders cron firing (09:05 Manila) once a night passes
    with eligible reservations.
 4. Known-issue sweep when convenient: schema.sql fresh-install snapshot lags the
@@ -1172,6 +1212,7 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
 
 ## Relevant Documentation
 
+- [[2026-10-03 - Check-In QR Pass Strip]]
 - [[2026-10-03 - Account Security Modal]]
 - [[2026-10-03 - Loyalty Redemption Block Redesign]]
 - [[2026-09-30 - Commercial Readiness]]
@@ -1192,6 +1233,7 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
 
 ## Recent Sessions
 
+- [[2026-10-03 - Check-In QR Pass Strip]] — the Digital Express Pass was the middle column of the reservation hero's 3-column grid, a ~400px card that set the hero's height and pushed the action panel off-axis; it is now a full-width strip below the hero (QR | description | action) in the slot the expired notice already uses, children regrouped with no class renames, dead `pass-column` CSS removed, and a same-file source-order cascade trap caught before shipping (mobile rules must sit beside the rule they override); committed `9710e86`, pushed, and **deployment verified live** by the portal CSS chunk change; 1982 tests (1 pre-existing CRLF failure, [[KI-012]]), lint 0 errors, build clean, guest QA pending
 - [[2026-10-03 - Account Security Modal]] — the account menu's Account security entry navigated to `/account/settings` and dropped the guest's page; it is now a dialog (sound switch + password form) opened from the menu and the My Profile title via one provider inside `<main>`, deliberately non-portaled and outside the blurred header; `/account/settings` kept as a fallback; also fixed the portal's unstyled `.settings-theme-row`; committed `17b824d` and **deployment verified live** by the portal CSS chunk change; 1981 tests (1 pre-existing CRLF failure, [[KI-012]]), lint 0 errors, build clean, guest QA pending
 - [[2026-10-03 - Loyalty Redemption Block Redesign]] — `.loyalty-redeem` on the guest reservation folio had no CSS anywhere, so it rendered raw browser controls; rebuilt as a styled sub-panel (figures, themed slider, Use max, live credit preview) sourcing the rate from `POINTS_TO_PESO`; the `min(points, floor(balance))` cap is preserved because the RPC debits every point sent; committed `febfc54` and **deployment verified live** by the portal CSS chunk change (which also confirms the GitHub → Vercel auto-deploy); 1973 tests (1 pre-existing CRLF failure, [[KI-012]]), build clean, guest QA pending
 - [[2026-10-03 - Owner Payment Method Persist]] — the wizard's primary Save called only the destination route, so PayMongo → Manual GCash reported success while `deposit_method` stayed `'paymongo'`; one `save()` now commits the method first (version threaded into the destination save), redundant method-only button removed; live probe ruled out a migration; 1968 tests (1 pre-existing CRLF failure, [[KI-012]]), build clean, Owner QA pending
