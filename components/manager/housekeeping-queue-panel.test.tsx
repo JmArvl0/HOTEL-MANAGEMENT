@@ -110,8 +110,20 @@ describe("HousekeepingQueuePanel workspace", () => {
     />);
     const cards = Array.from(screen.getByRole("group", { name: "Housekeeping summary" }).querySelectorAll("article")).map((card) => card.querySelector("b")?.textContent);
     expect(cards).toEqual(["1", "0", "1", "0", "0"]);
-    expect(within(screen.getByRole("region", { name: "Room care queue" })).getByText(/Showing 1 task/)).toBeTruthy();
+    expect(within(screen.getByRole("region", { name: "Room care queue" })).getByText(/Showing 1 of 1 task/)).toBeTruthy();
     expect(screen.getByText(/Summary counts cover all loaded tasks/)).toBeTruthy();
+  });
+
+  it("excludes collapsed history from the visible footer count", () => {
+    // The completed-today group starts collapsed: its cards are counted by
+    // the queue total but not visible, so the footer reports both numbers.
+    render(<HousekeepingQueuePanel
+      role="housekeeping" userId="u1"
+      items={[task({ id: "t1" }), task({ id: "t2", status: "completed", inspection_status: "passed", completed_at: nowIso })]}
+      search="" setSearch={noop}
+      housekeepingAction={noop} coordinate={noop} onViewMaintenance={noop} onViewRoom={noop}
+    />);
+    expect(within(screen.getByRole("region", { name: "Room care queue" })).getByText(/Showing 1 of 2 tasks/)).toBeTruthy();
   });
 
   it("links to Guest Requests with the live open count and no duplicate actions", () => {

@@ -28,6 +28,22 @@ describe("filterStaffItems", () => {
     expect(matching.map((item) => item.id)).toEqual(["inv-2"]);
   });
 
+  it("ignores the query fragment in non-searched invoice fields", () => {
+    // A fragment living in some other column must never match the ledger —
+    // otherwise every row stays visible and the count never moves.
+    const items = [
+      invoice({ id: "inv-1", guest_name: "Ava Santos", location: "Rene Hall" }),
+      invoice({ id: "inv-2", guest_name: "rene baterbonia" }),
+    ];
+    expect(filterStaffItems(items, "rene", "invoices").map((item) => item.id)).toEqual(["inv-2"]);
+  });
+
+  it("still matches Billing rows by booking reference and status", () => {
+    const items = [invoice({ id: "inv-1" }), invoice({ id: "inv-2", reservation_id: "RSV-9", status: "cancelled" })];
+    expect(filterStaffItems(items, "rsv-9", "invoices").map((item) => item.id)).toEqual(["inv-2"]);
+    expect(filterStaffItems(items, "cancelled", "invoices").map((item) => item.id)).toEqual(["inv-2"]);
+  });
+
   it("matches deposit verification rows by guest, reservation, or reference", () => {
     const rows = [
       { id: "p1", reservation: { guest_name: "Ava Santos", confirmation_number: "HVN-1" }, reservation_id: "RSV-1", reference: "REF-1" },

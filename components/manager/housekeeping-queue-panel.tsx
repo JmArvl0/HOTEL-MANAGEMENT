@@ -144,6 +144,10 @@ export default function HousekeepingQueuePanel({ role, userId, items, allItems, 
   const primaryKey = (["needs_attention", "my_tasks", "in_progress"] as QueueGroup[]).find((key) => groups[key].length > 0) ?? null;
   const actionable = specs.filter((spec) => groups[spec.key].length > 0);
   const completed = groups.completed_today;
+  // Cards collapsed behind the completed-today toggle are counted by the
+  // queue but not visible: the footer reports visible-of-total so the two
+  // numbers on screen can never disagree.
+  const visibleCount = queueItems.length - (showCompleted ? 0 : completed.length);
   const showGuestStrip = role === "housekeeping" && onOpenGuestRequests;
 
   return <>
@@ -191,8 +195,8 @@ export default function HousekeepingQueuePanel({ role, userId, items, allItems, 
         <div className="haven-filter"><span>Work type</span><HavenSelect value={workType} onChange={setWorkType} ariaLabel="Filter by work type" options={[{ value: "all", label: "All work types" }, ...taskTypes.map((type) => ({ value: type, label: label(type) }))]} /></div>
         <div className="haven-filter"><span>Task status</span><HavenSelect value={workStatus} onChange={setWorkStatus} ariaLabel="Filter by task status" options={[{ value: "all", label: "All statuses" }, ...workStatuses.map((status) => ({ value: status, label: label(status) }))]} /></div>
       </>}
-      resultCount={queueItems.length}
-      resultNoun="tasks"
+      resultCount={visibleCount}
+      resultNoun={`task${visibleCount !== 1 ? "s" : ""} of ${queueItems.length}`}
       hasActiveFilters={Boolean(search.trim()) || workType !== "all" || workStatus !== "all"}
       onClearFilters={() => { setSearch(""); setWorkType("all"); setWorkStatus("all"); }}
     />
@@ -209,7 +213,7 @@ export default function HousekeepingQueuePanel({ role, userId, items, allItems, 
         <header><button className="hk-queue-toggle" aria-expanded={showCompleted} onClick={() => setShowCompleted((value) => !value)}><h3><ClipboardCheck size={14} aria-hidden="true" />Completed today<i>{completed.length}</i><ChevronDown size={14} aria-hidden="true" className={showCompleted ? "open" : ""} /></h3></button><p>Finished work, with inspection outcome. Full history lives in the room detail.</p></header>
         {showCompleted && completed.map((item) => <QueueCard key={String(item.id)} item={item} canHousekeep={canHousekeep} canCoordinate={false} housekeepingAction={housekeepingAction} coordinate={coordinate} onViewMaintenance={onViewMaintenance} onViewRoom={onViewRoom} />)}
       </section>}
-      {queueItems.length > 0 && <div className="table-footer">Showing {queueItems.length} task{queueItems.length !== 1 ? "s" : ""}<span>Readiness is decided by the audited housekeeping workflow, not by this view.</span></div>}
+      {queueItems.length > 0 && <div className="table-footer">Showing {visibleCount} of {queueItems.length} task{queueItems.length !== 1 ? "s" : ""}<span>Readiness is decided by the audited housekeeping workflow, not by this view.</span></div>}
     </section>
   </>;
 }

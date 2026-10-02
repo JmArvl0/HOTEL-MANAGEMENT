@@ -2,7 +2,19 @@
 
 Current execution state. Concise — detail lives in linked session notes.
 
-## Current task (QA follow-ups BUG-001…005, 2026-10-02)
+## Current task (retest remainders: Billing, housekeeping footer, export, 2026-10-02)
+
+IMPLEMENTED locally, all gates green. Billing: live probe refutes
+over-matching (1/24 rows holds "rene") — scoped predicate + decoy tests
+shipped; re-verify on fresh deploy, instrument if it persists. Housekeeping:
+footer/toolbar now visible-of-total (collapsed history was the hidden
+remainder). Export: print-CSS hardening (breakable preview, chrome hidden)
++ wiring/stylesheet tests; instrumented retest pending. Full 1963/1964 (1
+pre-existing unrelated failure), build clean. No migration, no db push.
+
+See [[2026-10-02 - Retest Remainders Billing Housekeeping Export]].
+
+## Previous: QA follow-ups BUG-001…005 (2026-10-02)
 
 IMPLEMENTED + PUSHED, all gates green. Per-module search memory; Billing
 search chain extracted/tested + draft-commit hardening (observation reads as
