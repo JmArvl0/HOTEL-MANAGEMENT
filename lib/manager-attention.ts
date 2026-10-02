@@ -77,6 +77,15 @@ export function deriveReservationAttention(row: AttentionRow, today: string): At
     push("arrival_unresolved", "Arrival unresolved", "warning", `Check-in date passed ${days} day${days !== 1 ? "s" : ""} ago — possible no-show`);
   }
 
+  // A pending website stay past its check-in date is equally stuck: the guest
+  // never paid, the hold/payment never settled, and no-show needs a confirmed
+  // stay, so neither path auto-resolves it. Surface it for Front Desk instead
+  // of silently aging it. Advisory only — never mutates status.
+  if (status === "pending" && String(row.check_in) < today) {
+    const days = daysBetween(String(row.check_in), today);
+    push("pending_arrival_overdue", "Pending arrival overdue", "warning", `Check-in date passed ${days} day${days !== 1 ? "s" : ""} ago — unpaid, needs Front Desk review`);
+  }
+
   if (row.pending_approval_type) {
     push(
       "manager_review",

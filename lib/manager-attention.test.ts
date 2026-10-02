@@ -85,6 +85,18 @@ describe("manager reservation attention", () => {
     expect(deriveReservationAttention(row({ status: "checked_out", transport_status: "REQUESTED", transport_pickup_date: "2026-09-08" }), TODAY)).toHaveLength(0);
   });
 
+  it("2b: pending + unpaid past check-in surfaces for staff review, never auto-mutates", () => {
+    const reservation = row({ status: "pending", check_in: "2026-09-05", check_out: "2026-09-06" });
+    const issues = deriveReservationAttention(reservation, TODAY);
+    expect(issues[0]).toMatchObject({ key: "pending_arrival_overdue", label: "Pending arrival overdue", severity: "warning" });
+    expect(issues[0].detail).toContain("needs Front Desk review");
+    expect(reservation.status).toBe("pending"); // advisory only — no auto-expire / no-show
+  });
+
+  it("2c: pending future check-in stays quiet", () => {
+    expect(deriveReservationAttention(row({ status: "pending", check_in: "2026-09-10", check_out: "2026-09-12" }), TODAY)).toHaveLength(0);
+  });
+
   it("sorts the attention queue worst-first, then by stay date", () => {
     const rows = [
       row({ id: "A", status: "checked_in", check_in: "2026-08-25", check_out: "2026-09-06" }),
