@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { QrCode, Download } from "lucide-react";
 
 /**
- * Guest-facing Digital Express Pass: the stay QR presented as a compact,
- * high-contrast card anchored in the reservation hero's right column
- * (stacked below on narrow screens). Fetched from the server each time the
+ * Guest-facing Digital Express Pass: the stay QR presented as a full-width
+ * ticket strip directly below the reservation hero (QR, description, action —
+ * collapsed to a centred card on narrow screens), in the same slot the
+ * expired notice uses. Fetched from the server each time the
  * reservation page opens — the endpoint is idempotent, so every view renders
  * the SAME stable code for the active reservation/stay. The QR contains only
  * an opaque token, no personal data — and presenting it at the Front Desk
@@ -30,12 +31,12 @@ export function CheckInQr({ reservationId, confirmationNumber }: { reservationId
   if (failed) return null;
   if (!qr) {
     return (
-      <div className="customer-checkin-qr" aria-busy="true">
-        <div className="customer-checkin-qr-head customer-checkin-qr-skeleton">
-          <i /> <i /> <small>Preparing your check-in QR…</small>
-        </div>
+      <div className="customer-checkin-qr customer-checkin-qr-strip" aria-busy="true">
         <div className="customer-checkin-qr-figure customer-checkin-qr-skeleton">
           <i className="customer-checkin-qr-tile" aria-hidden="true" />
+        </div>
+        <div className="customer-checkin-qr-copy customer-checkin-qr-skeleton">
+          <i /> <i /> <small>Preparing your check-in QR…</small>
         </div>
       </div>
     );
@@ -51,18 +52,22 @@ export function CheckInQr({ reservationId, confirmationNumber }: { reservationId
   };
 
   return (
-    <div className="customer-checkin-qr">
-      <div className="customer-checkin-qr-head">
-        <h3><QrCode size={13} aria-hidden="true" /> Digital Express Pass</h3>
-        <p className="customer-checkin-qr-hotel">HAVEN Hotel &amp; Residences</p>
-      </div>
+    <div className="customer-checkin-qr customer-checkin-qr-strip">
       <div className="customer-checkin-qr-figure">
         <img src={qr.dataUrl} alt={confirmationNumber ? `Reservation QR for ${confirmationNumber}` : "HAVEN reservation QR code"} width={160} height={160} />
       </div>
-      <p className="customer-checkin-qr-scan">Scan at front desk or kiosk</p>
-      <p className="customer-checkin-qr-status"><i aria-hidden="true" /> Ready for Express Check-In</p>
-      <button type="button" className="btn btn-soft" onClick={download}><Download size={14} aria-hidden="true" />Download QR</button>
-      <p className="customer-checkin-qr-note">Valid until checkout or closure — the same code on every visit. Identification and any balance due are still verified in person.</p>
+      <div className="customer-checkin-qr-copy">
+        <div className="customer-checkin-qr-head">
+          <h3><QrCode size={13} aria-hidden="true" /> Digital Express Pass</h3>
+          <p className="customer-checkin-qr-hotel">HAVEN Hotel &amp; Residences</p>
+        </div>
+        <p className="customer-checkin-qr-scan">Scan at front desk or kiosk</p>
+        <p className="customer-checkin-qr-note">Valid until checkout or closure — the same code on every visit. Identification and any balance due are still verified in person.</p>
+      </div>
+      <div className="customer-checkin-qr-action">
+        <p className="customer-checkin-qr-status"><i aria-hidden="true" /> Ready for Express Check-In</p>
+        <button type="button" className="btn btn-soft" onClick={download}><Download size={14} aria-hidden="true" />Download QR</button>
+      </div>
     </div>
   );
 }

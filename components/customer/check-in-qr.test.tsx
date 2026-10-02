@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-// Digital Express Pass contract (Scenario A): the stay QR renders as a
-// compact pass card anchored inside the hero grid — never as its own
-// full-width section — and stacks below the reservation info on mobile.
-// Terminal states render the expired band instead, never a live pass.
+// Digital Express Pass contract (Scenario A): the stay QR renders as its own
+// full-width pass strip directly below the reservation hero — never inside the
+// hero's heading grid — and collapses to a centred card on mobile. Terminal
+// states render the expired band instead, never a live pass.
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ReservationDetailView, type ReservationDetailViewData } from "./reservation-detail-view";
@@ -65,17 +65,36 @@ const stubFetch = () =>
   );
 
 describe("Digital Express Pass layout (Scenario A)", () => {
-  it("renders the pass inside the hero heading grid, not as a standalone section below it", async () => {
+  it("renders the pass as its own strip directly below the hero, outside the heading grid", async () => {
     stubFetch();
     const { container } = render(<ReservationDetailView data={data} />);
     await screen.findByText("Digital Express Pass");
+    // The hero heading is the title block and the status/action panel only.
     const heading = container.querySelector(".customer-reservation-heading")!;
-    // Anchored via the pass-column wrapper, a direct grid child of the hero heading.
-    const column = heading.querySelector(":scope > .customer-checkin-qr-pass-column");
-    expect(column).toBeTruthy();
-    expect(column!.querySelector(".customer-checkin-qr")).toBeTruthy();
+    expect(heading.querySelector(".customer-checkin-qr")).toBeNull();
+    expect(heading.querySelector(".customer-checkin-qr-pass-column")).toBeNull();
+    // The pass strip is the hero's immediate sibling, inside the detail view.
+    const hero = container.querySelector(".customer-reservation-hero")!;
+    const strip = hero.nextElementSibling!;
+    expect(strip.classList.contains("customer-checkin-qr-strip")).toBe(true);
+    expect(strip.closest(".customer-reservation-detail")).toBeTruthy();
     // The old standalone block sat between the hero and the folio strip.
     expect(screen.queryByText("Present this QR to the Front Desk")).toBeNull();
+  });
+
+  it("groups the strip into QR, description and action", async () => {
+    stubFetch();
+    const { container } = render(<ReservationDetailView data={data} />);
+    await waitFor(() => expect(container.querySelector(".customer-checkin-qr-figure img")).toBeTruthy());
+    const strip = container.querySelector(".customer-checkin-qr-strip")!;
+    expect(strip.querySelector(":scope > .customer-checkin-qr-figure img")).toBeTruthy();
+    const copy = strip.querySelector(":scope > .customer-checkin-qr-copy")!;
+    expect(copy.querySelector(".customer-checkin-qr-head h3")).toBeTruthy();
+    expect(copy.querySelector(".customer-checkin-qr-scan")).toBeTruthy();
+    expect(copy.querySelector(".customer-checkin-qr-note")).toBeTruthy();
+    const action = strip.querySelector(":scope > .customer-checkin-qr-action")!;
+    expect(action.querySelector(".customer-checkin-qr-status")).toBeTruthy();
+    expect(action.querySelector("button.btn")).toBeTruthy();
   });
 
   it("labels the pass card with its parts: hotel, scan hint, ready badge, download", async () => {
@@ -92,11 +111,11 @@ describe("Digital Express Pass layout (Scenario A)", () => {
     expect(img.getAttribute("height")).toBe("160");
   });
 
-  it("keeps the folio summary strip directly after the hero", () => {
+  it("keeps the folio summary strip directly after the pass strip", () => {
     stubFetch();
     const { container } = render(<ReservationDetailView data={data} />);
-    const hero = container.querySelector(".customer-reservation-hero")!;
-    const strip = hero.nextElementSibling!;
+    const pass = container.querySelector(".customer-checkin-qr-strip")!;
+    const strip = pass.nextElementSibling!;
     expect(strip.classList.contains("crd-folio-strip")).toBe(true);
   });
 

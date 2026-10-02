@@ -255,7 +255,7 @@
 .crd-breadcrumbs a:hover{text-decoration:underline}
 .crd-breadcrumbs span[aria-hidden="true"]{color:var(--cp-muted)}
 .crd-breadcrumbs [aria-current="page"]{color:var(--cp-text);font-weight:700;max-width:32ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.customer-reservation-heading{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:start;gap:28px}
+.customer-reservation-heading{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:28px}
 .customer-reservation-heading h1{margin:6px 0 8px;font:500 clamp(38px,4vw,56px)/1 var(--font-display);letter-spacing:-.025em}
 .customer-reservation-reference{margin:0;display:flex;align-items:center;gap:8px;color:var(--cp-accent);font-size:9px;font-weight:800;letter-spacing:1.7px;text-transform:uppercase}
 .crd-copy{display:inline-grid;place-items:center;width:26px;height:26px;border:1px solid var(--cp-line);border-radius:6px;background:var(--cp-panel-2);color:var(--cp-muted);cursor:pointer}
@@ -374,7 +374,6 @@
 
 @media(max-width:900px){
   .customer-reservation-heading{grid-template-columns:1fr;align-items:start;gap:24px}
-  .customer-checkin-qr-pass-column{max-width:320px;justify-self:center}
   .customer-reservation-summary{justify-items:start;width:100%}
   .customer-reservation-actions,.customer-reservation-actions>p{justify-items:start;text-align:left}
   .customer-reservation-detail .customer-detail-grid{gap:12px}
@@ -618,12 +617,12 @@
   .customer-transportation-dialog .ctr-service-option{transition:none}
   .customer-transportation-dialog .ctr-service-option:hover{transform:none}
 }
-/* -- Digital Express Pass (Scenario A): compact, high-contrast QR card
-   anchored in the reservation hero's right column (stacked below the
-   reservation info on narrow screens). The expired/closed notice keeps a
-   full-width band via the customer-checkin-qr-band modifier. ---------------- */
+/* -- Digital Express Pass (Scenario A): the live stay QR is a full-width
+   ticket strip below the reservation hero (QR, description, action — collapsed
+   to a centred card on narrow screens by the media query under the strip
+   rules). The expired/closed notice keeps a full-width band via the
+   customer-checkin-qr-band modifier. ---------------------------------------- */
 .customer-checkin-qr{display:grid;grid-template-columns:1fr;justify-items:center;align-content:start;gap:12px;width:100%;margin:0;padding:18px 16px;background:var(--cp-panel);border:1px solid var(--cp-line);border-radius:14px;text-align:center;animation:crdPanelIn .18s ease-out}
-.customer-checkin-qr-pass-column{display:grid;align-content:start}
 .customer-checkin-qr-head{display:grid;gap:3px;justify-items:center}
 .customer-checkin-qr h3{display:flex;align-items:center;gap:6px;margin:0;font:500 13px var(--font-display);color:var(--cp-text);letter-spacing:.4px;text-transform:uppercase}
 .customer-checkin-qr h3>svg{color:var(--cp-green)}
@@ -635,6 +634,23 @@
 .customer-checkin-qr-status i{width:6px;height:6px;flex:0 0 6px;border-radius:50%;background:var(--cp-green)}
 .customer-checkin-qr .btn{width:100%;justify-content:center;margin-top:2px}
 .customer-checkin-qr-note{margin:0;color:var(--cp-muted);font-size:9px;line-height:1.6}
+/* Live pass strip: QR | description | action, one row, all vertically centred. */
+.customer-checkin-qr-strip{grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:14px 26px;margin:0 0 16px;text-align:left;justify-items:start}
+.customer-checkin-qr-strip .customer-checkin-qr-copy{display:grid;gap:6px;justify-items:start}
+.customer-checkin-qr-strip .customer-checkin-qr-head{justify-items:start}
+.customer-checkin-qr-strip .customer-checkin-qr-note{max-width:78ch}
+.customer-checkin-qr-strip .customer-checkin-qr-action{display:grid;gap:8px;justify-items:end}
+.customer-checkin-qr-strip .btn{width:auto;margin-top:0}
+.customer-checkin-qr-strip .customer-checkin-qr-figure.customer-checkin-qr-skeleton{justify-items:center}
+.customer-checkin-qr-strip .customer-checkin-qr-copy.customer-checkin-qr-skeleton{justify-items:start}
+/* Narrow screens: the strip collapses back to a centred pass card. Kept beside
+   the rule it overrides so source order never lets the strip layout win. */
+@media(max-width:900px){
+  .customer-checkin-qr-strip{grid-template-columns:1fr;align-items:start;justify-items:center;gap:12px;max-width:320px;margin:0 auto 16px;text-align:center}
+  .customer-checkin-qr-strip .customer-checkin-qr-copy,
+  .customer-checkin-qr-strip .customer-checkin-qr-action{justify-items:center}
+  .customer-checkin-qr-strip .btn{width:100%}
+}
 .customer-checkin-qr[aria-busy="true"]{animation:none}
 .customer-checkin-qr-skeleton{display:grid;gap:8px;justify-items:center;min-width:0}
 .customer-checkin-qr-skeleton i{height:9px;width:120px;border-radius:99px;background:var(--cp-panel-2);animation:qrPulse 1.2s ease-in-out infinite}

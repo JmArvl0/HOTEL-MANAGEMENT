@@ -159,6 +159,7 @@
 .customer-shell .ctr-request-invitation p,.customer-shell .cgr-request-invitation p{font-size:11px}
 /* Digital Express Pass */
 .customer-shell .customer-checkin-qr{padding:22px 18px}
+.customer-shell .customer-checkin-qr-strip{padding:22px 26px}
 .customer-shell .customer-checkin-qr h3{font-size:14px}
 .customer-shell .customer-checkin-qr-hotel{font-size:9px}
 .customer-shell .customer-checkin-qr-scan{font-size:9px}

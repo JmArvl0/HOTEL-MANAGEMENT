@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { formatPeso } from "@/lib/format";
 import { CheckInQr, CheckInQrExpired } from "@/components/customer/check-in-qr";
-import { PreArrivalIdUpload } from "@/components/customer/pre-arrival-id-upload";
 import { ReservationActions, type OpenChangeRequest } from "@/components/customer/reservation-actions";
 import LoyaltyRedemptionSelector from "@/components/booking/loyalty-redemption-selector";
 import {
@@ -215,12 +214,6 @@ export function ReservationDetailView({ data }: { data: ReservationDetailViewDat
               <span><Users size={14} aria-hidden="true" />{data.guests} guest{data.guests !== 1 ? "s" : ""}</span>
             </p>
           </div>
-          {/* Digital Express Pass anchors in the hero's right column (Scenario A). */}
-          {(data.status === "confirmed" || data.status === "checked_in") && (
-            <div className="customer-checkin-qr-pass-column">
-              <CheckInQr reservationId={data.id} confirmationNumber={data.confirmationNumber} />
-            </div>
-          )}
           <div className="customer-reservation-summary">
             <div className="customer-title-status" aria-label="Reservation and payment status">
               <span><small>Reservation</small><span className={`customer-status ${data.status}`}>{friendly(data.status)}</span></span>
@@ -276,7 +269,11 @@ export function ReservationDetailView({ data }: { data: ReservationDetailViewDat
         )}
       </section>
 
-      {data.status === "confirmed" && data.identityStatus !== "verified" && <PreArrivalIdUpload reservationId={data.id} />}
+      {/* Digital Express Pass: its own full-width strip, in the same slot the
+          expired notice uses (the two states are mutually exclusive). */}
+      {(data.status === "confirmed" || data.status === "checked_in") && (
+        <CheckInQr reservationId={data.id} confirmationNumber={data.confirmationNumber} />
+      )}
       {(data.status === "checked_out" || terminal(data.status)) && <CheckInQrExpired completed={data.status === "checked_out"} />}
 
       <section className="crd-folio-strip" aria-label="Payment summary">
