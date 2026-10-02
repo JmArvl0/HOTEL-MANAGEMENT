@@ -2,7 +2,20 @@
 
 Current execution state. Concise — detail lives in linked session notes.
 
-## Current task (confirmation stay-summary aside removal, 2026-10-02)
+## Current task (cancelled-state, preview-404, profile fixes, 2026-10-02)
+
+IMPLEMENTED + PUSHED, all gates green. Cancel now expires awaiting-
+verification deposits + stamps `payment_status='failed'` (no-refund case;
+migration `20261024080000`, live-verified); history card shows ₱0 for
+cancelled. Refund preview path fixed (`cancel/preview` → `cancel`) + pinned.
+`getGuestProfile` hardened against duplicate rows (profile 500 suspect).
+Full 1934/1935 (1 pre-existing unrelated failure), build clean. Pending:
+browser QA all three (KI-005); re-check profile if it recurs (logs + row
+census).
+
+See [[2026-10-02 - Cancelled State Preview Profile Fixes]].
+
+## Previous: confirmation stay-summary aside removal (2026-10-02)
 
 IMPLEMENTED locally, all gates green. Removed the redundant `<aside className="review-stay-card">`
 (`<BookingStaySummary>` in `<div className="confirmation-stay">`) from `/booking/confirmation/[id]`

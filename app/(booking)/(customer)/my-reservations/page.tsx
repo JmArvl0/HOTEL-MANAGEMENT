@@ -104,7 +104,12 @@ export default async function MyReservationsPage({
                 </header>
                 <div className="reservation-history-list">
                   {pageRows.map((reservation) => {
-                      const money = calculateFinancialState(reservation.total, reservation.deposit ?? 0);
+                      // Cancelled stays settle to a zero balance at cancel time
+                      // (invoice zeroed, pendings expired), so the card must not
+                      // recompute a balance from the frozen total/deposit pair.
+                      const money = reservation.status === "cancelled"
+                        ? { total: reservation.total, paid: reservation.deposit ?? 0, balance: 0 }
+                        : calculateFinancialState(reservation.total, reservation.deposit ?? 0);
                       const photo = roomPrimary(undefined, reservation.room_type);
                       const nights = calculateNights(reservation.check_in, reservation.check_out);
                       return (

@@ -119,7 +119,7 @@ export function ReservationActions({
     setCancelError("");
     setPreview({ status: "loading" });
     setCancelOpen(true);
-    fetch(`/api/account/reservations/${id}/cancel/preview`, { cache: "no-store" })
+    fetch(`/api/account/reservations/${id}/cancel`, { cache: "no-store" })
       .then((response) => response.json().then((body) => ({ response, body })))
       .then(({ response, body }) => {
         if (!response.ok || !body?.data) {

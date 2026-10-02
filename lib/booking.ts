@@ -352,11 +352,18 @@ export const transportTotal = (lines: readonly { name?: string | null; price?: n
 
 export async function getGuestProfile(userId: string, email?: string | null) {
   if (!supabase) return null;
-  const columns = "first_name,last_name,email,phone,address,nationality,special_requests";
-  const { data: linked } = await supabase.from("guests").select(columns).eq("user_account_id", userId).limit(1).maybeSingle();
-  if (linked || !email) return linked;
-  const { data } = await supabase.from("guests").select(columns).eq("email", email.toLowerCase()).is("user_account_id",null).limit(1).maybeSingle();
-  return data;
+  // Duplicate guest rows must never 500 the profile page: take the newest
+  // linked row deterministically instead of maybeSingle (which throws on
+  // multi-row results), and fail soft to null on any query error.
+  try {
+    const columns = "first_name,last_name,email,phone,address,nationality,special_requests";
+    const { data: linked } = await supabase.from("guests").select(columns).eq("user_account_id", userId).order("created_at", { ascending: false }).limit(1);
+    if (linked?.length || !email) return linked?.[0] ?? null;
+    const { data } = await supabase.from("guests").select(columns).eq("email", email.toLowerCase()).is("user_account_id", null).order("created_at", { ascending: false }).limit(1);
+    return data?.[0] ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export async function getOwnedHold(token: string, userId: string) {

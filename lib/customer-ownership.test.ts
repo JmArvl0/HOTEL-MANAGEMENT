@@ -166,6 +166,16 @@ describe("customer data ownership", () => {
     await expect(getGuestProfile(A, "BRAVO@example.test")).resolves.toMatchObject({ email: "alfa@example.test" });
   });
 
+  it("survives duplicate guest rows instead of 500ing the profile page", async () => {
+    fake.db.guests.push({
+      id: "guest-alfa-dupe", user_account_id: A, name: "Guest alfa dupe",
+      email: "alfa@example.test", phone: "0918", nationality: "PH", address: "Cebu",
+      first_name: "Guest", last_name: "alfa", special_requests: "",
+      created_at: "2026-09-07T00:00:00Z",
+    });
+    await expect(getGuestProfile(A, "alfa@example.test")).resolves.toMatchObject({ email: "alfa@example.test" });
+  });
+
   it("never exposes credential or session columns to the portal", async () => {
     const detail = JSON.stringify(await getCustomerReservationDetail(A, "res-alfa"));
     for (const secret of ["password_hash", "session_token", "service_role", "staff_note", "internal_note"]) {

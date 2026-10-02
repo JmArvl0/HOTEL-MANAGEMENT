@@ -141,6 +141,13 @@ describe("preview endpoint (read-only by construction)", () => {
     expect(get).toContain('eq("purpose", "reservation_deposit")');
     expect(get).toContain('eq("status", "paid")');
   });
+
+  it("fetches the preview from the cancel endpoint the route actually serves", () => {
+    // Regression: the client called .../cancel/preview, which never existed,
+    // so every preview 404'd and the Cancel button stayed disabled.
+    expect(actions()).toContain("fetch(`/api/account/reservations/${id}/cancel`");
+    expect(actions()).not.toContain("cancel/preview");
+  });
 });
 
 describe("cancel execution and refund handoff", () => {
@@ -248,5 +255,36 @@ describe("cancelled detail refund section", () => {
       />,
     );
     expect(screen.getByText("Completed")).toBeTruthy();
+  });
+});
+
+describe("cancel settles pending state (20261024080000)", () => {
+  const settle = () => read("supabase/migrations/20261024080000_cancel_settles_pending_state.sql");
+
+  it("expires awaiting-verification deposits at cancel time", () => {
+    // Regression: the phantom "Awaiting Verification" folio entry on
+    // cancelled stays — the payment rows were never touched by cancel.
+    expect(settle()).toContain("purpose='reservation_deposit' and status='pending_verification'");
+    expect(settle()).toContain("status='expired'");
+  });
+
+  it("never moves paid deposit rows, which stay the refund basis", () => {
+    // protect_settled_payment forbids any status change off 'paid'; the
+    // expire update must be scoped to pending_verification only, and the
+    // paid-deposit sum that drives eligibility must still be read first.
+    expect(settle()).toContain("purpose='reservation_deposit'and status='paid'");
+    expect(settle()).not.toMatch(/status='paid'[^;]*status='(expired|failed)'/);
+  });
+
+  it("stamps payment_status failed only when no refund is eligible", () => {
+    expect(settle()).toContain("payment_status=case when eligible>0 then payment_status else'failed'end");
+  });
+
+  it("shows a zero balance for cancelled stays on the history card", () => {
+    // Regression: the card recomputed total-deposit math (₱63,800 "owed")
+    // while detail/folio read the zeroed invoice.
+    const page = read("app/(booking)/(customer)/my-reservations/page.tsx");
+    expect(page).toContain('reservation.status === "cancelled"');
+    expect(page).toContain("balance: 0");
   });
 });
