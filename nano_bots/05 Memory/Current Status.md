@@ -89,9 +89,9 @@
   lint (0 errors), production build, diff-check, and migration safety scan are
   green. Authenticated browser QA remains pending.
 
-Last Updated: 2026-10-12
-Current Development Area: Official system-wide redesign (Modern Luxury Hospitality SaaS) — COMPLETE (2026-09-19); guest-to-staff conversion boundary deployed (2026-10-12); org staff theme implemented (2026-09-20)
-Current Feature: Unified PageHeader band hero on staff overview + all owner sections; every role verified against the reference
+Last Updated: 2026-10-03
+Current Development Area: Owner payment governance — deposit-method switch now persists with the destination in one save (2026-10-03)
+Current Feature: Owner Payment Settings single-save commit (method + destination); manual browser QA pending
 Current Branch: `main`
 Latest Relevant Commit: `e91ee55` (TomTom-priced hotel transfers)
 
@@ -109,6 +109,19 @@ foundation, 9 commercial readiness (9A/9B/9C/9D). The final overall report was d
 in-session. Remaining: manual UI verification (role logins) and committing the tree.
 
 ## Recently Completed
+
+- **Owner Payment Settings — method switch persists (2026-10-03)** — switching
+  PayMongo → Manual GCash in Owner → Governance → Payment Settings reported success but
+  reverted on refresh. Root cause: the wizard's primary **Save changes** called only
+  `PATCH /api/owner/payment-destination`, whose RPC never writes `deposit_method`, so the
+  method stayed `'paymongo'` while `gcash_enabled` stayed true and the effective path stayed
+  instant. The single `save()` now commits the method first (`PATCH /api/admin/deposit-method`,
+  threading the returned version — both RPCs share one counter) then the destination; the
+  redundant `saveMethod()`/soft footer button is gone, and Step 1's **Activate PayMongo** calls
+  the same save. Live probe confirmed the RPC exists — **no migration**. Typecheck clean,
+  targeted 38/38, full suite 1968 with 1 pre-existing unrelated failure ([[KI-012]], CRLF),
+  build clean. SYSTEM.md §7.2 updated. Manual Owner browser QA pending ([[KI-005]]). See
+  [[2026-10-03 - Owner Payment Method Persist]].
 
 - **Room price typography (2026-09-29)** — finished a two-surface plan left half-verified
   by a previous session (that session died on a provider rate limit at `typecheck`, not a
@@ -1029,6 +1042,10 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
 
 ## Current Work
 
+- Owner Payment Settings method-switch fix delivered (2026-10-03); manual Owner browser QA pending
+  ([[KI-005]]) — switch PayMongo → Manual → Save → hard refresh → still Manual; then back to
+  PayMongo. Checklist in [[2026-10-03 - Owner Payment Method Persist]].
+
 - Staff notification badges + toasts delivered (all gates green, 868/868); manual UI verification
   pending — checklist in [[2026-09-11 - Session 06]] (needs Front Desk + Manager + Accounting
   logins).
@@ -1118,6 +1135,7 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
 
 ## Recent Sessions
 
+- [[2026-10-03 - Owner Payment Method Persist]] — the wizard's primary Save called only the destination route, so PayMongo → Manual GCash reported success while `deposit_method` stayed `'paymongo'`; one `save()` now commits the method first (version threaded into the destination save), redundant method-only button removed; live probe ruled out a migration; 1968 tests (1 pre-existing CRLF failure, [[KI-012]]), build clean, Owner QA pending
 - [[2026-09-29 - Booking Form Type Scale]] — `.booking-form-card` type lifted to the 14px/12px standard with 16px fields; inputs inherited 10px, selects were 14px, textarea ~13.3px, so one grid showed three sizes; scoped append (not in-place — `.request-option` is shared), 1893/1893, build clean, visual check pending
 - [[2026-09-29 - Restore submit_gateway_deposit]] — live DB had no `submit_gateway_deposit` in any schema while its migration was already ledger-recorded, so `db push` could never recreate it ([[KI-011]]); restore pushed + live-verified (prosrc digest matches, RPC resolves, no `PGRST202`), route now logs and maps every guard code, zero payments had ever been collected; 1886/1886, build clean, guest run pending
 - [[2026-09-29 - Overview Requests Card Pill Button]] — requests-card link became a full-width soft pill (`btn btn-soft`), sibling card links untouched; 1873/1873, build clean, visual check pending; the label renders green and the pill is outline-only by cascade, not by choice

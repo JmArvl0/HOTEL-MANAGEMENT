@@ -259,3 +259,32 @@ pins every guard code the RPC raises to an explicit route mapping.
 Related:
 [[D-001 — Migrations are applied with `supabase db push`, never `npm run migrate]] ·
 KI-002 · KI-003 · `lib/paymongo.test.ts`
+
+---
+
+## KI-012 — `lib/password-reset-audit.test.ts` fails on a CRLF migration file
+
+Status: Open
+Area: Tests / line endings
+
+Description:
+One case ("replaces `complete_account_recovery` with the selfie-gated overload") asserts a
+multi-line source literal containing `\n`:
+
+`complete_account_recovery(\n  p_token_hash text,\n  p_password_hash text,\n  p_selfie_path text)`
+
+The scanned file `supabase/migrations/20261022010000_password_reset_audit.sql` is checked out
+with **CRLF** terminators (88 `\r`), so every newline is `\r\n` and the `,\n` sequences never
+match. Both the migration and the test are unmodified at HEAD; the failure is environmental,
+not a regression.
+
+Impact:
+`npm test` cannot exit 0 on a CRLF checkout (1 failing case in the full suite). Unrelated to
+any payment or owner work — surfaced during the 2026-10-03 Owner Payment Settings session.
+
+Fix options: normalize the migration to LF, or make the assertion whitespace/line-ending
+agnostic (e.g. match on the parameter list with a regex). Prefer the LF normalization if the
+repo's other migrations are LF.
+
+Related:
+`lib/password-reset-audit.test.ts` · [[2026-10-03 - Owner Payment Method Persist]]

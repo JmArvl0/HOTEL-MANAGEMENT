@@ -60,8 +60,10 @@ describe("Owner executive workspace layout", () => {
     expect(paymentSettings).toContain("askPrompt");
     expect(paymentSettings).toContain('label: "Reason for change"');
     expect(paymentSettings).not.toContain("Reason for change<textarea");
-    expect(paymentSettings).toContain("reason: destReason.trim()");
-    expect(paymentSettings).toContain("reason: methodReason.trim()");
+    // The unified save audits one dialog reason on both requests — the method
+    // switch first, then the destination — so neither can drift from the other.
+    expect(paymentSettings.split("reason: destReason.trim()").length - 1).toBe(2);
+    expect(paymentSettings).not.toContain("methodReason");
   });
 
   it("collapses dense executive grids without horizontal page overflow", () => {

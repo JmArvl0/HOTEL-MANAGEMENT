@@ -85,65 +85,54 @@ export default function PaymentSettingsPanel({ notify }: { notify: (message: str
       if (!/^09\d{9}$/.test(canonical)) { setError("Enter a valid GCash mobile number (09XXXXXXXXX)."); return; }
       if (!qrPath) { setError("Upload the official GCash QR while manual deposits are enabled."); return; }
     }
+    // The deposit method and the destination share one optimistic-concurrency
+    // counter, so this single action commits both — the method first, then the
+    // destination with the version the method switch returned.
+    const methodChanged = depositMethod !== (loaded?.destination.depositMethod ?? depositMethod);
+    if (depositMethod === "paymongo" && !methodChanged) return;
     const destReason = await dialogs.askPrompt({
-      title: "Confirm payment destination change",
-      message: "Changing the payment destination affects where customers send reservation deposits. Confirm that these details are correct.",
+      title: methodChanged ? "Switch deposit method" : "Confirm payment destination change",
+      message: methodChanged
+        ? "Only one deposit method is offered at a time. Changing it affects where customers send reservation deposits; pending payments on the previous path still finish honestly."
+        : "Changing the payment destination affects where customers send reservation deposits. Confirm that these details are correct.",
       portal: true,
       headerVariant: "branded",
       label: "Reason for change",
       placeholder: "Record the business reason — it is stored in the audit trail…",
       multiline: true,
       required: true,
-      validation: (value) => (typeof value === "string" && value.trim().length >= 3 ? null : "Record why this payment destination is changing (3+ characters)."),
+      validation: (value) => (typeof value === "string" && value.trim().length >= 3 ? null : "Record why this is changing (3+ characters)."),
       submitText: "Save payment settings",
       cancelText: "Review again",
     });
     if (!destReason) return;
     setSaving(true);
     try {
+      let version = loaded?.destination.version ?? 1;
+      if (methodChanged) {
+        const methodResponse = await fetch("/api/admin/deposit-method", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ depositMethod, reason: destReason.trim(), version }),
+        });
+        const methodBody = await methodResponse.json();
+        if (!methodResponse.ok) { setError(methodBody.error ?? "Unable to save the deposit method."); return; }
+        version = (methodBody.data as { version?: number } | null)?.version ?? version + 1;
+        // Instant checkout needs no destination or review.
+        if (depositMethod === "paymongo") {
+          notify("Deposit method switched to PayMongo instant auto-pay.");
+          await load();
+          return;
+        }
+      }
       const response = await fetch("/api/owner/payment-destination", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accountName: name.trim(), mobileNumber: canonical, qrStoragePath: qrPath, enabled, reason: destReason.trim(), version: loaded?.destination.version ?? 1 }),
+        body: JSON.stringify({ accountName: name.trim(), mobileNumber: canonical, qrStoragePath: qrPath, enabled, reason: destReason.trim(), version }),
       });
       const body = await response.json();
       if (!response.ok) { setError(body.error ?? "Unable to save payment settings."); return; }
       notify(enabled ? "GCash payment destination is live for new deposits." : "GCash deposit acceptance is off. Guests see the unavailable notice.");
-      await load();
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function saveMethod() {
-    setError("");
-    const destComplete = Boolean(name.trim()) && /^09\d{9}$/.test(normalizeGcashNumber(mobile)) && Boolean(qrPath);
-    const methodReason = await dialogs.askPrompt({
-      title: "Switch deposit method",
-      portal: true,
-      headerVariant: "branded",
-      message: depositMethod === "manual" && !destComplete
-        ? "Only one deposit method is offered at a time. Pending payments on the previous path still finish honestly. Destination details are incomplete — guests will see “details unavailable” on manual until you complete Step 2."
-        : "Only one deposit method is offered at a time. Pending payments on the previous path still finish honestly.",
-      label: "Reason for change",
-      placeholder: "Record the business reason — it is stored in the audit trail…",
-      multiline: true,
-      required: true,
-      validation: (value) => (typeof value === "string" && value.trim().length >= 3 ? null : "Record why the deposit method is changing (3+ characters)."),
-      submitText: "Switch method",
-      cancelText: "Review again",
-    });
-    if (!methodReason) return;
-    setSaving(true);
-    try {
-      const response = await fetch("/api/admin/deposit-method", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ depositMethod, reason: methodReason.trim(), version: loaded?.destination.version ?? 1 }),
-      });
-      const body = await response.json();
-      if (!response.ok) { setError(body.error ?? "Unable to save the deposit method."); return; }
-      notify(`Deposit method switched to ${depositMethod === "paymongo" ? "PayMongo instant auto-pay" : depositMethod === "manual" ? "manual GCash verification" : "off"}.`);
       await load();
     } finally {
       setSaving(false);
@@ -161,6 +150,7 @@ export default function PaymentSettingsPanel({ notify }: { notify: (message: str
   const paymongoSelected: boolean = depositMethod === "paymongo";
 
   if (loading || !loaded) return <OwnerEmpty icon={<QrCode size={22} />} title="Loading payment settings…" body="Fetching the authoritative payment destination." />;
+  const methodDirty = depositMethod !== loaded.destination.depositMethod;
   const trailRows = (loaded.trail ?? []).map((entry) => ({ ...entry, id: String(entry.id) }));
   const steps: { n: 1 | 2 | 3; label: string }[] = [
     { n: 1, label: "Method" },
@@ -208,7 +198,7 @@ export default function PaymentSettingsPanel({ notify }: { notify: (message: str
             ))}
           </div>
           <div className="form-actions">{depositMethod === "paymongo"
-            ? <button type="button" className="btn btn-accent" disabled={saving} onClick={saveMethod}>{saving ? "Activating…" : "Activate PayMongo"}</button>
+            ? <button type="button" className="btn btn-accent" disabled={saving || !methodDirty} onClick={save}>{saving ? "Activating…" : "Activate PayMongo"}</button>
             : <button type="button" className="btn btn-accent" disabled={saving} onClick={() => setStep(2)}>Continue to destination</button>}</div>
         </section>
         )}
@@ -257,10 +247,11 @@ export default function PaymentSettingsPanel({ notify }: { notify: (message: str
         </section>
         )}
       </div>
+      {depositMethod !== "paymongo" && (
       <div className="form-actions owner-sticky-saves" aria-label="Save payment configuration">
-        <button type="button" className="btn btn-soft" disabled={saving} onClick={saveMethod}>{saving ? "Switching…" : "Switch deposit method"}</button>
         <button type="button" className="btn btn-accent" disabled={saving} onClick={save}>{saving ? "Saving…" : "Save changes"}</button>
       </div>
+      )}
       <OwnerSectionHead title="Governance" note="Every destination and method change is recorded." />
       <OwnerTablePanel
         title="Configuration history"

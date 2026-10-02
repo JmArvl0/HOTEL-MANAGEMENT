@@ -615,7 +615,14 @@ Writes run through the `owner_update_payment_destination` RPC, which refuses
 non-Owner actors (`PAYMENT_DESTINATION_OWNER_ONLY`) — the System Administrator
 sees the same values masked and read-only plus technical health (QR storage,
 completeness, webhook/provider `Not configured`, auto-verify `Disabled`) in
-Admin → System Health → **Payment configuration**. Historical `manual_bank_transfer`
+Admin → System Health → **Payment configuration**. The same panel's Step 1 radio is the
+exclusive method control: exactly one of PayMongo instant auto-pay, manual GCash
+verification (the destination above), or off is offered for *new* deposits, stored as
+`hotel_operational_policies.deposit_method` and switched through
+`PATCH /api/admin/deposit-method` (`admin_update_deposit_method`, Owner + Admin, audited).
+One **Save changes** commits the method (when it changed) and the destination together —
+method first, then the destination at the version the switch returned — so the radio
+cannot report success while `deposit_method` stays on the old path. Historical `manual_bank_transfer`
 rows and the portal stay-payment form (remaining balance on settled stays) keep
 both method labels; only *new* online deposits are GCash-only.
 

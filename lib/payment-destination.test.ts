@@ -93,6 +93,24 @@ describe("deposit-method migration contracts (20261024050000)", () => {
   });
 });
 
+describe("Owner panel commits the method with the destination", () => {
+  const panel = read("components/owner/payment-settings-panel.tsx");
+  it("sends the method PATCH from the single save path", () => {
+    // Regression: the wizard's primary "Save changes" once called only the
+    // destination route, so PayMongo -> Manual GCash reported success while
+    // deposit_method stayed 'paymongo' and the radio snapped back on refresh.
+    expect(panel).toContain("/api/admin/deposit-method");
+    expect(panel).toContain("/api/owner/payment-destination");
+    // The method is committed first; the destination reuses the version the
+    // switch returned, because both share hotel_operational_policies.version.
+    expect(panel.indexOf("/api/admin/deposit-method")).toBeLessThan(panel.indexOf("/api/owner/payment-destination"));
+  });
+  it("keeps one primary save — no separate method-only action left behind", () => {
+    expect(panel).not.toContain("saveMethod");
+    expect(panel).not.toContain("Switch deposit method</button>");
+  });
+});
+
 describe("Owner destination schema", () => {
   const valid = { accountName: "HAVEN Hotel & Residences", mobileNumber: "0917 123 4567", qrStoragePath: "gcash/11111111-1111-4111-8111-111111111111.png", enabled: true, reason: "New official GCash account.", version: 3 };
   it("accepts a complete enabled destination", () => {
