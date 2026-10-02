@@ -82,6 +82,26 @@ Accepted consequences: when method and destination change together, two audited 
   (see [[KI-012]]).
 - `npm run build` — clean, all routes generated.
 
+## Deploy (2026-10-03)
+
+- **Committed fix-only** as `347d688` (`git commit -- <paths>`, a pathspec commit) — 9 files:
+  the panel, its new test, `lib/payment-destination.test.ts`, `owner-dashboard-layout.test.ts`,
+  `SYSTEM.md`, this session note + `Current Status.md` + `Known Issues.md`, and the
+  `20261024100000_cancel_backfill_stale_pending.sql` file (committed so the applied ledger and
+  the repo stay in sync). Parallel-session work in the index (`app/api/account/profile/route.ts`,
+  `lib/customer.ts`, `lib/manager-attention.*`, `lib/cancelled-folio-consistency.test.ts`,
+  `lib/request-batches.ts`, `lib/housekeeping-queue.ts`) was deliberately **not** committed and
+  remains local.
+- **Pushed** `636e056..347d688` to `origin/main`. Note: `origin/main` was already level with
+  `636e056` — the earlier local ref cache was stale, so the QA-fix commits were already live and
+  this push carried only the fix.
+- **Migration applied**: `supabase db push --dry-run` showed exactly one pending file;
+  `20261024100000_cancel_backfill_stale_pending.sql` was then applied (project is not
+  `supabase link`-ed here, so the CLI was pointed at `DIRECT_URL` from `.env.local`).
+  Verified live: pending-verification deposits on terminal reservations **3 → 0**, cancelled
+  reservations still `unpaid` with no eligible refund **3 → 0**, ledger max now `20261024100000`.
+- Pre-flight gates re-run before the commit: typecheck clean, targeted 46/46, build clean.
+
 ## Unresolved / next
 
 - Authenticated browser QA pending ([[KI-005]], needs an Owner login): switch PayMongo → Manual →

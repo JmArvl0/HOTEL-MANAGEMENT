@@ -120,8 +120,14 @@ in-session. Remaining: manual UI verification (role logins) and committing the t
   redundant `saveMethod()`/soft footer button is gone, and Step 1's **Activate PayMongo** calls
   the same save. Live probe confirmed the RPC exists — **no migration**. Typecheck clean,
   targeted 38/38, full suite 1968 with 1 pre-existing unrelated failure ([[KI-012]], CRLF),
-  build clean. SYSTEM.md §7.2 updated. Manual Owner browser QA pending ([[KI-005]]). See
-  [[2026-10-03 - Owner Payment Method Persist]].
+  build clean. SYSTEM.md §7.2 updated. Committed fix-only as `347d688` and pushed to
+  `origin/main` (2026-10-03); the tree's parallel-session work was left local. Browser QA
+  pending ([[KI-005]]). See [[2026-10-03 - Owner Payment Method Persist]].
+- **Cancelled-deposit backfill applied (2026-10-03)** — `20261024100000_cancel_backfill_stale_pending.sql`
+  pushed with `supabase db push` after a clean dry-run. Verified live: deposits still
+  `pending_verification` on cancelled/no-show reservations **3 → 0**, cancelled reservations
+  still `payment_status='unpaid'` with no eligible refund **3 → 0**; ledger max now
+  `20261024100000`. Terminal reservations only — paid rows and refund-eligible rows untouched.
 
 - **Room price typography (2026-09-29)** — finished a two-surface plan left half-verified
   by a previous session (that session died on a provider rate limit at `typecheck`, not a
