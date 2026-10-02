@@ -21,14 +21,14 @@ export type RequestBatchItem = {
   created_at: string;
 };
 
-export type RequestBatch = {
+export type RequestBatch<T extends RequestBatchItem = RequestBatchItem> = {
   key: string;
-  items: RequestBatchItem[];
+  items: T[];
   approval: "pending" | "approved" | "rejected";
 };
 
-export function groupRequestBatches(requests: RequestBatchItem[]): RequestBatch[] {
-  const groups = new Map<string, RequestBatchItem[]>();
+export function groupRequestBatches<T extends RequestBatchItem>(requests: T[]): RequestBatch<T>[] {
+  const groups = new Map<string, T[]>();
   for (const request of requests) {
     const key = String(request.batch_id ?? request.id);
     const existing = groups.get(key);
@@ -36,7 +36,7 @@ export function groupRequestBatches(requests: RequestBatchItem[]): RequestBatch[
     else groups.set(key, [request]);
   }
   return Array.from(groups.values())
-    .map((items): RequestBatch => {
+    .map((items): RequestBatch<T> => {
       // Natural (filed) order inside a submission, newest submission first.
       const sorted = [...items].sort((a, b) => a.created_at.localeCompare(b.created_at));
       return {
@@ -50,6 +50,23 @@ export function groupRequestBatches(requests: RequestBatchItem[]): RequestBatch[
       };
     })
     .sort((a, b) => b.items[0].created_at.localeCompare(a.items[0].created_at));
+}
+
+/** Batch-level workload counts — the same numbers the review queue cards
+ * show, so dashboard metrics and module queues can share one derivation. */
+export function countRequestBatches(requests: RequestBatchItem[]): {
+  all: number; pending: number; approved: number; rejected: number; open: number;
+} {
+  const batches = groupRequestBatches(requests);
+  const open = (batch: RequestBatch) =>
+    batch.approval === "approved" && batch.items.some((item) => ["open", "in_progress"].includes(item.status));
+  return {
+    all: batches.length,
+    pending: batches.filter((batch) => batch.approval === "pending").length,
+    approved: batches.filter((batch) => batch.approval === "approved").length,
+    rejected: batches.filter((batch) => batch.approval === "rejected").length,
+    open: batches.filter(open).length,
+  };
 }
 
 // Deterministic per-submission display number: submission date + first 6 hex
