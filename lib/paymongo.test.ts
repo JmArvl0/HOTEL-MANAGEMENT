@@ -346,3 +346,65 @@ describe("gateway deposit RPC restore migration contract", () => {
     expect(route).toContain("[gateway] submit_gateway_deposit failed");
   });
 });
+
+// Abandoned gateway checkouts (20261024070000): a guest who leaves checkout
+// before paying must be able to cancel, ghosts must lapse on their own, and
+// staff must not be able to manually verify a payment only the webhook proves.
+describe("gateway abandonment migration contract", () => {
+  const abandon = read("supabase/migrations/20261024070000_gateway_abandonment.sql");
+
+  it("adds a guest-owned, idempotent cancel for unsettled gateway attempts", () => {
+    expect(abandon).toContain("create or replace function public.cancel_gateway_attempt(p_reservation_id text, p_user_id uuid)");
+    expect(abandon).toContain("GATEWAY_ATTEMPT_NOT_FOUND");
+    expect(abandon).toContain("GATEWAY_ATTEMPT_NOT_GATEWAY");
+    expect(abandon).toContain("GATEWAY_ALREADY_SETTLED");
+    expect(abandon).toContain("GATEWAY_ATTEMPT_NOT_PENDING");
+    // Repeating a cancel once already cancelled returns state, never errors.
+    expect(abandon).toContain("if r.status='cancelled' then return query");
+    expect(abandon).toContain("'cancel_gateway_attempt'");
+    expect(abandon).toContain("grant execute on function public.cancel_gateway_attempt(text,uuid) to service_role");
+  });
+
+  it("lapses only gateway pendings, so manual verification keeps no deadline", () => {
+    expect(abandon).toContain("payment_method='gateway_paymongo'");
+    expect(abandon).toContain("method='gateway_paymongo'");
+    expect(abandon).toContain("interval'24 hours'");
+    expect(abandon).toContain("Gateway checkout abandoned before payment");
+  });
+
+  it("refuses manual verification of gateway rows in the verify function", () => {
+    expect(abandon).toContain("GATEWAY_MANUAL_VERIFY_FORBIDDEN");
+    const verifyRoute = read("app/api/front-desk/deposits/[id]/verify/route.ts");
+    expect(verifyRoute).toContain("GATEWAY_MANUAL_VERIFY_FORBIDDEN");
+  });
+
+  it("maps every cancel guard code in the cancel route", () => {
+    const route = read("app/api/account/reservations/[id]/cancel-attempt/route.ts");
+    for (const code of [
+      "GATEWAY_ATTEMPT_NOT_FOUND",
+      "GATEWAY_ALREADY_SETTLED",
+      "GATEWAY_ATTEMPT_NOT_GATEWAY",
+      "GATEWAY_ATTEMPT_NOT_PENDING",
+    ]) {
+      expect(route, code).toContain(code);
+    }
+    expect(route).toContain('rpc("cancel_gateway_attempt"');
+  });
+
+  it("shows honest copy and a way out on gateway-pending confirmations", () => {
+    const page = read("app/(booking)/booking/confirmation/[id]/page.tsx");
+    expect(page).toContain("GatewayPendingActions");
+    expect(page).toContain("No payment received yet.");
+    expect(page).toContain("gateway_paymongo");
+    const actions = read("components/booking/gateway-pending-actions.tsx");
+    expect(actions).toContain("cancel-attempt");
+    expect(actions).toContain("Cancel this attempt and try again");
+  });
+
+  it("steers staff away from verifying gateway rows while keeping reject", () => {
+    const dashboard = read("components/manager/manager-dashboard-client.tsx");
+    expect(dashboard).toContain("Awaiting provider");
+    expect(dashboard).toContain('!== "gateway_paymongo"');
+    expect(dashboard).toContain("manual verification is disabled for them");
+  });
+});

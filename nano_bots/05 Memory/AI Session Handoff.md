@@ -2,7 +2,19 @@
 
 Current execution state. Concise — detail lives in linked session notes.
 
-## Current task (deposit proof-upload duplicate control, 2026-10-02)
+## Current task (abandoned PayMongo checkout, 2026-10-02)
+
+IMPLEMENTED + PUSHED, all gates green. Backing out of PayMongo checkout left
+an immortal ghost booking that read as accepted (reservation created before
+payment; no cancel path; staff could verify zero-money). Migration
+`20261024070000` (guest cancel RPC + 24h gateway-only lapse + verify block,
+live-verified) with cancel route, `GatewayPendingActions`, honest copy, and
+staff queue steering. paymongo 40/40, full 1928/1929 (1 pre-existing unrelated
+failure), build clean. Pending: test-mode live probe + browser QA (KI-005).
+
+See [[2026-10-02 - Abandoned PayMongo Checkout]].
+
+## Previous: deposit proof-upload duplicate control (2026-10-02)
 
 IMPLEMENTED locally, all gates green. The deposit page showed a native file
 input beside the styled upload button because `sr-only-proofs` matched no

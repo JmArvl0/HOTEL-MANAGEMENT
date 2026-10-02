@@ -730,6 +730,7 @@ return band === "normal" ? null : <span className={`badge sla-${band}`} title={`
                                       {formatDepositAge(age)}
                                     </span>; })()}
                               {item.status === "failed" && item.decision_reason && <small>{label(item.decision_reason)}</small>}
+                              {item.status === "pending_verification" && String(item.method ?? "") === "gateway_paymongo" && <span className="badge gateway-pending" title="Online payment — confirms automatically once the provider settles">Awaiting provider</span>}
                             </div> : canAdvance ? <button className={`badge ${item.status}`} onClick={() => advance(item)} title="Click to move to next status">
                               {label(item.status)}
                             </button> : <span className={`badge ${item.status}`}>
@@ -742,9 +743,16 @@ return band === "normal" ? null : <span className={`badge sla-${band}`} title={`
                       </td>)}
                     {resource === "payments" && <td>
                         <div className="reservation-actions payment-actions">
-                          {item.status === "pending_verification" && canVerify ? <>
+                          {item.status === "pending_verification" && canVerify && String(item.method ?? "") !== "gateway_paymongo" ? <>
                               <button className="table-action action-primary" onClick={() => verifyDeposit(item)}>
                                 <Eye size={14} /> Review
+                              </button>
+                              <button className="table-action action-danger" onClick={() => rejectDeposit(item)}>
+                                Reject
+                              </button>
+                            </> : item.status === "pending_verification" && canVerify ? <>
+                              <button className="table-action action-neutral" onClick={() => verifyDeposit(item)}>
+                                <Eye size={14} /> View details
                               </button>
                               <button className="table-action action-danger" onClick={() => rejectDeposit(item)}>
                                 Reject
@@ -2232,7 +2240,7 @@ function ProofPreview({ paymentId, name }: { paymentId: string; name: string | n
           <AlertTriangle size={16} aria-hidden="true" />
           <span>Proof could not be loaded.</span>
         </div>}
-    </div>; } function DepositVerifyDialog({ item, busy, onClose, onConfirm, onReject }: { item: RecordItem; busy: boolean; onClose: () => void; onConfirm: () => void; onReject: () => void; }) { const stayPayment = item.purpose === "stay_payment"; const pending = item.status === "pending_verification"; const reservation = item.reservation as RecordItem | null | undefined; const expected = Number(reservation?.deposit_required ?? 0); const difference = expected ? Number(item.amount ?? 0) - expected : 0; const when = formatPaymentSubmittedAt; const hasProof = Boolean(item.proof_original_name || item.proof_size_bytes); const proofMeta = hasProof ? `${label(item.proof_original_name)} · ${Number(item.proof_size_bytes ?? 0) / (1024 * 1024) >= 1 ? `${(Number(item.proof_size_bytes) / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(Number(item.proof_size_bytes) / 1024))} KB`}${item.proof_uploaded_at ? ` · ${when(item.proof_uploaded_at)}` : ""}` : ""; const rows: [string, React.ReactNode][] = [["Guest", label(reservation?.guest_name)], ["Reservation", `${label(reservation?.confirmation_number ?? item.reservation_id)}${reservation?.room_type ? ` · ${label(reservation.room_type)}` : ""}`], ["Stay", `${label(reservation?.check_in)} → ${label(reservation?.check_out)} · ${label(reservation?.status)}`], ["Purpose", label(item.purpose)], ["Method", label(item.method)], ["Reference", label(item.reference)], ["Status", <span key="status" className={`badge ${item.status}`}>
+    </div>; } function DepositVerifyDialog({ item, busy, onClose, onConfirm, onReject }: { item: RecordItem; busy: boolean; onClose: () => void; onConfirm: () => void; onReject: () => void; }) { const stayPayment = item.purpose === "stay_payment"; const pending = item.status === "pending_verification"; const gateway = String(item.method ?? "") === "gateway_paymongo"; const reservation = item.reservation as RecordItem | null | undefined; const expected = Number(reservation?.deposit_required ?? 0); const difference = expected ? Number(item.amount ?? 0) - expected : 0; const when = formatPaymentSubmittedAt; const hasProof = Boolean(item.proof_original_name || item.proof_size_bytes); const proofMeta = hasProof ? `${label(item.proof_original_name)} · ${Number(item.proof_size_bytes ?? 0) / (1024 * 1024) >= 1 ? `${(Number(item.proof_size_bytes) / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(Number(item.proof_size_bytes) / 1024))} KB`}${item.proof_uploaded_at ? ` · ${when(item.proof_uploaded_at)}` : ""}` : ""; const rows: [string, React.ReactNode][] = [["Guest", label(reservation?.guest_name)], ["Reservation", `${label(reservation?.confirmation_number ?? item.reservation_id)}${reservation?.room_type ? ` · ${label(reservation.room_type)}` : ""}`], ["Stay", `${label(reservation?.check_in)} → ${label(reservation?.check_out)} · ${label(reservation?.status)}`], ["Purpose", label(item.purpose)], ["Method", label(item.method)], ["Reference", label(item.reference)], ["Status", <span key="status" className={`badge ${item.status}`}>
         {label(item.status)}
       </span>], ["Proof of payment", hasProof ? proofMeta : <span key="no-proof" className="deposit-proof-none">
           No proof image submitted
@@ -2266,10 +2274,11 @@ function ProofPreview({ paymentId, name }: { paymentId: string; name: string | n
               <button type="button" className="btn action-danger" disabled={busy} onClick={onReject}>
                 Reject…
               </button>
-              <button type="button" className="btn btn-accent" disabled={busy} onClick={onConfirm}>
+              {!gateway && <button type="button" className="btn btn-accent" disabled={busy} onClick={onConfirm}>
                 {busy ? "Verifying…" : "Verify & confirm"}
-              </button>
+              </button>}
             </>}
+          {pending && gateway && <p className="deposit-verify-note">Online payments confirm automatically once the provider settles — manual verification is disabled for them.</p>}
         </div>
       </div>
      </Modal>; }

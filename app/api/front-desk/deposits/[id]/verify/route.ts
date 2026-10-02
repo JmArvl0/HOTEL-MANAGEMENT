@@ -16,6 +16,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
   const { data, error } = await supabase.rpc("verify_reservation_deposit", { p_payment_id: id, p_staff_user_id: session.user.id });
   if (error) {
     const messages: Record<string,string> = {
+      GATEWAY_MANUAL_VERIFY_FORBIDDEN: "Online payments confirm automatically once the provider settles — manual verification is disabled for them.",
       HOLD_EXPIRED: "This payment can no longer be verified — the hold was already completed or the reservation was cancelled.",
       PAYMENT_NOT_PENDING: "This payment is no longer awaiting verification.",
       PAYMENT_AMOUNT_MISMATCH: "The submitted deposit does not match the authoritative reservation amount.",
