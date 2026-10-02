@@ -3,6 +3,7 @@ import UnifiedRoomMatrix from "@/components/shared/unified-room-matrix";
 import { NAV_GROUPS, NAV_ITEMS, groupedNav as buildGroupedNav, type NavGroupId } from "@/config/role-navigation"; type ReservationDetail = { reservation: RecordItem; guest: RecordItem | null; invoice: RecordItem | null; payments: RecordItem[]; charges: RecordItem[]; adjustments: RecordItem[]; refunds: RecordItem[]; refundAttempts: RecordItem[]; documents: RecordItem[]; changeRequests: RecordItem[]; assignments: RecordItem[]; requests: RecordItem[]; room: RecordItem | null; maintenance: RecordItem[]; transportation?: RecordItem[]; approvals?: RecordItem[]; turnover?: RecordItem | null; }; // Read-only consolidated guest profile (GET /api/staff/guests/[id]) — identity,
 import { HavenNotificationBell as SharedNotificationBell, HavenNotificationPopover } from "@/components/ui/haven-notifications";
 import { PageHeader } from "@/components/ui/Navigation";
+import { HavenLogo } from "@/components/ui/haven-logo";
 import { SessionExpiryGuard } from "@/components/auth/session-expiry-guard";
 import PurchaseOrderList, { type PoOrder } from "@/components/manager/inventory-replenishment-panel";
 // stay history, service history, explicit preferences, and a financial summary
@@ -173,7 +174,7 @@ async function signOutGuarded() { if (cashHandling) { try { const response = awa
         <div className="sidebar-top">
           <div className="brand">
             <button className="brand-mark sidebar-brand-toggle" onClick={() => { if (window.matchMedia("(max-width: 1000px)").matches) { setMenu(false); } else { const next = !collapsed; setCollapsed(next); window.localStorage.setItem("haven-sidebar-collapsed", String(next)); } }} aria-label={collapsed ? "Expand navigation" : "Collapse navigation"} aria-controls="staff-navigation" aria-expanded={!collapsed} title={collapsed ? "Expand navigation" : "Collapse navigation"}>
-              <Sparkles size={17} />
+              <HavenLogo size={29} small />
             </button>
             <Link href="/" className="brand-copy" aria-label="Hotel homepage" title="Hotel homepage">
               HAVEN<small>HOTEL MANAGEMENT</small>
@@ -196,7 +197,7 @@ async function signOutGuarded() { if (cashHandling) { try { const response = awa
         <header className="app-header">
           <button className="menu-btn brand-menu-btn" onClick={() => setMenu(true)} aria-label="Open navigation" title="Open navigation">
             <span className="brand-mark">
-              <Sparkles size={16} />
+              <HavenLogo size={31} small />
             </span>
           </button>
           <div>

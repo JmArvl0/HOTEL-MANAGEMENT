@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, Building2, Headphones, ShieldCheck, Sparkles, Sun, UsersRound } from "lucide-react";
 import { AuthMotion } from "./auth-motion";
+import { HavenLogo } from "@/components/ui/haven-logo";
 import "./auth-vault.css";
 
 export function AuthVaultShell({
@@ -26,7 +27,7 @@ export function AuthVaultShell({
         <Image src="/hotel-hero.png" alt="A peaceful Haven hotel terrace overlooking the water" fill priority sizes="(max-width: 900px) 100vw, 56vw" />
         <span className="haven-vault__visual-wash" aria-hidden="true" />
         <Link href="/" className="brand brand-light haven-vault__brand" aria-label="Haven home">
-          <span className="brand-mark" aria-hidden="true"><Sparkles size={16} /></span>
+          <span className="brand-mark" aria-hidden="true"><HavenLogo size={34} /></span>
           <span>HAVEN<small>HOTEL &amp; RESIDENCES</small></span>
         </Link>
         <div className="haven-vault__story">

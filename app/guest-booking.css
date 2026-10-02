@@ -751,7 +751,7 @@ body:has(.booking-page) .toast-layer{top:96px}
 .gateway-option-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .gateway-brand{display:inline-flex;align-items:center;justify-content:center;padding:5px 10px;border-radius:6px;background:#007dfc;color:#fff;font-size:11px;font-weight:800;letter-spacing:.4px}
 .gateway-brand--plain{background:transparent;color:var(--ink);border:1px solid var(--line)}
-.gateway-badge{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;color:var(--green)}
+.gateway-badge{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;color:var(--green)}
 .gateway-badge--soft{color:var(--muted)}
 .gateway-option-copy{margin:10px 0 0;color:var(--muted);line-height:1.7}
 .gateway-option-copy strong{color:var(--ink)}

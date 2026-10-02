@@ -20,7 +20,7 @@ import "@/components/auth/session-expiry.css";
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-display" });
 
-export const metadata: Metadata = { title: "Haven Hotel Management", description: "Thoughtful stays, seamlessly managed." };
+export const metadata: Metadata = { title: "Haven Hotel Management", description: "Thoughtful stays, seamlessly managed.", icons: { icon: "/favicon.png", apple: "/favicon.png" } };
 export const viewport = {
   width: "device-width",
   initialScale: 1,

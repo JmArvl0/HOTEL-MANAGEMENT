@@ -18,6 +18,7 @@ export {
 export type { HavenNotification, HavenNotificationDensity } from "./haven-notifications";
 export type { HavenButtonProps, HavenButtonVariant, HavenButtonDensity } from "./haven-button";
 export { NavGroup, Sidebar, Breadcrumb, PageHeader } from "./Navigation";
+export { HavenLogo } from "./haven-logo";
 export { AccessibleChart, LineChart, AreaChart, BarChart, PieChart, VisuallyHidden } from "./AccessibleChart";
 export { useSSE, useRealTimeData, useVirtualizedList, useDebouncedValue, useStableCallback, useIntersectionObserver, usePerformanceMonitor, lazyImport, preloadComponent, addResourceHints, performanceUtils } from "./Performance";
 export type { ModalProps, ConfirmDialogProps, PromptDialogProps, SelectDialogProps } from "./Modal";

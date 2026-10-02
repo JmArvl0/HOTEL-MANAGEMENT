@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
-import { WaveMark } from "./wave-mark";
+import { HavenLogo } from "@/components/ui/haven-logo";
 
 const drawerLinks = [
   { href: "#stay", label: "Rooms" },
@@ -69,7 +69,7 @@ export function LandingNav({ active, rootLinks = false }: { active?: string; roo
       <nav className={`landing-nav ${scrolled ? "is-scrolled" : ""}`} aria-label="Primary">
         <Link href="/" className="brand brand-light" aria-label="Haven Hotel home">
           <span className="brand-mark" aria-hidden="true">
-            <WaveMark />
+            <HavenLogo size={40} />
           </span>
           <span>
             HAVEN<small>HOTEL & RESIDENCES</small>

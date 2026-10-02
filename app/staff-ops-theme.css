@@ -133,7 +133,7 @@
   background: var(--ops-surface); color: var(--ops-ink);
 }
 .theme-light .app-shell .page-header.band .page-header-eyebrow { color: var(--ops-text-3); }
-.theme-light .app-shell .page-header.band .page-header-title { color: var(--ops-ink); font-size: 22px; font-weight: 600; }
+.theme-light .app-shell .page-header.band .page-header-title { color: var(--ops-ink); font: 600 22px var(--font-sans); letter-spacing: -.35px; line-height: 1.15; }
 .theme-light .app-shell .page-header.band .page-header-subtitle,
 .theme-light .app-shell .page-header.band .breadcrumb-link,
 .theme-light .app-shell .page-header.band .breadcrumb-current { color: var(--ops-text-2); }
@@ -141,8 +141,8 @@
   color: var(--ops-text-3); font-size: 11px; font-weight: 500;
   letter-spacing: 0.08em; text-transform: uppercase;
 }
-.theme-light .app-shell .page-header-title { color: var(--ops-ink); font-size: 22px; font-weight: 600; }
-.theme-light .app-shell .page-header-subtitle { color: var(--ops-text-2); font-size: 14px; }
+.theme-light .app-shell .page-header-title { color: var(--ops-ink); font: 600 22px var(--font-sans); letter-spacing: -.35px; line-height: 1.15; }
+.theme-light .app-shell .page-header-subtitle { color: var(--ops-text-2); font-size: 13px; line-height: 1.6; }
 
 /* ── 6. KPI STAT CARDS — org grammar: 24px, tinted chip, 30px value ── */
 .theme-light .app-shell .metric-grid { gap: 16px; }
@@ -489,14 +489,14 @@
 .app-shell .eyebrow { color: #8b95a8; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
 .app-shell .page-header { background: var(--ds); border: 1px solid var(--dl); border-radius: var(--ops-r-card); box-shadow: var(--ops-shadow-rest); padding: 20px 24px; margin-bottom: 20px; }
 .app-shell .page-header.band { background: var(--ds); color: var(--dt); }
-.app-shell .page-header.band .page-header-title { color: #f2f5fa; font-size: 22px; }
+.app-shell .page-header.band .page-header-title { color: #f2f5fa; font: 600 22px var(--font-sans); letter-spacing: -.35px; line-height: 1.15; }
 .app-shell .page-header.band .page-header-eyebrow { color: #8b95a8; }
 .app-shell .page-header.band .page-header-subtitle,
 .app-shell .page-header.band .breadcrumb-link,
 .app-shell .page-header.band .breadcrumb-current { color: #9aa4b5; }
 .app-shell .page-header-eyebrow { color: #8b95a8; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
-.app-shell .page-header-title { color: #f2f5fa; font-size: 22px; font-weight: 600; }
-.app-shell .page-header-subtitle { color: #9aa4b5; font-size: 14px; }
+.app-shell .page-header-title { color: #f2f5fa; font: 600 22px var(--font-sans); letter-spacing: -.35px; line-height: 1.15; }
+.app-shell .page-header-subtitle { color: #9aa4b5; font-size: 13px; line-height: 1.6; }
 .app-shell .btn { min-height: 36px; padding: 8px 16px; border-radius: var(--ops-r-control); font-size: 13px; font-weight: 600; }
 .app-shell .btn-accent { background: #f3f4f6; color: var(--ops-ink); }
 .app-shell .btn-accent:hover { background: #fff; }
@@ -584,7 +584,7 @@
 .app-shell td strong, .app-shell .cell-stack b, .app-shell .stay-cell b { color: #eef1f7; font-size: 13px; }
 .app-shell .cell-stack small, .app-shell .stay-cell small { color: #8b95a8; font-size: 12px; }
 .app-shell .data-panel { border-radius: var(--ops-r-card); }
-.app-shell .badge { font-size: 12px; font-weight: 500; }
+.app-shell .badge { font-size: 12px; font-weight: 600; line-height: 1.35; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
 .app-shell .haven-status { font-size: 12px; font-weight: 500; }
 .app-shell .haven-status--neutral { --status-bg: #1a2440; --status-fg: #b9c6de; --status-border: #2c3a5c; }
 .app-shell .modal-content { border-radius: var(--ops-r-card); box-shadow: var(--ops-shadow-deep); }
@@ -716,8 +716,7 @@
 .theme-light .app-shell .payment-identity small, .theme-light .app-shell .payment-status small { font-size: 12px; }
 
 /* ── 17. OWNER WORKSPACE — flat title, chip-tinted tones (no severity bars) ── */
-.theme-light .app-shell.owner-workspace .owner-title { background: var(--ops-surface); border-color: var(--ops-border); }
-.theme-light .app-shell.owner-workspace .owner-title h1 { color: var(--ops-ink); font-size: 22px; }
+
 .theme-light .app-shell.owner-workspace .owner-metric-grid .metric-card { border-radius: var(--ops-r-stat); }
 .theme-light .app-shell.owner-workspace .owner-metric-grid .metric-card.tone-good,
 .theme-light .app-shell.owner-workspace .owner-metric-grid .metric-card.tone-warn,
@@ -795,8 +794,7 @@
 .app-shell .table-action.action-primary:hover, .app-shell .table-action.check-in-action:hover { background: #fff; color: var(--ops-ink); }
 .app-shell .badge.pending_verification { background: #3a2d1a; color: #e8b96a; }
 .app-shell .badge.failed { background: #351f21; color: #ef797e; }
-.app-shell.owner-workspace .owner-title { background: var(--ds); border-color: var(--dl); }
-.app-shell.owner-workspace .owner-title h1 { font-size: 22px; }
+
 .app-shell.owner-workspace .owner-metric-grid .metric-card.tone-good,
 .app-shell.owner-workspace .owner-metric-grid .metric-card.tone-warn,
 .app-shell.owner-workspace .owner-metric-grid .metric-card.tone-bad { box-shadow: var(--ops-shadow-rest); }
