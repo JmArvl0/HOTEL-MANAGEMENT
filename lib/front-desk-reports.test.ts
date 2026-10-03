@@ -12,6 +12,7 @@ const performanceReports = readFileSync("components/manager/performance-reports.
 const transportationPanel = readFileSync("components/manager/transportation-panel.tsx", "utf8");
 const reportsPanel = readFileSync("components/manager/front-desk-reports-panel.tsx", "utf8");
 const cashMigration = readFileSync("supabase/migrations/20260913010000_cash_payment_internal_reference.sql", "utf8");
+const bypassMigration = readFileSync("supabase/migrations/20261024120000_unattributed_cash_bypass.sql", "utf8");
 const paymentRoute = readFileSync("app/api/front-desk/reservations/[id]/payment/route.ts", "utf8");
 const arrivalDialog = readFileSync("components/manager/front-desk-arrival-dialog.tsx", "utf8");
 
@@ -130,6 +131,21 @@ describe("cash payment collection", () => {
   it("hides the reference field for cash in the collect dialog", () => {
     expect(arrivalDialog).toContain('showWhen: (v: string | number | boolean) => String(v) !== "cash"');
     expect(arrivalDialog).toContain('reference: method === "cash" ? null : String(data.reference)');
+  });
+  it("allows drawer-less cash only behind an explicit, default-off flag (temporary bypass)", () => {
+    // Defense (2026-10-03): reopen is broken with no open drawer, so cash
+    // may record unattributed instead of blocking check-in. Tender stays
+    // "cash", the folio math is untouched, and the default keeps every
+    // existing caller on today's strict behavior.
+    expect(bypassMigration).toContain("p_allow_unattributed_cash boolean default false");
+    expect(bypassMigration).toContain("if v_shift is null and not coalesce(p_allow_unattributed_cash,false) then raise exception'CASH_SHIFT_REQUIRED'");
+    expect(bypassMigration).toContain("'unattributedCash',v_shift is null");
+    expect(bypassMigration).toContain("grant execute on function public.record_staff_payment(text,numeric,text,text,uuid,uuid,boolean,boolean)to service_role");
+    expect(paymentRoute).toContain("CASH_BYPASS_ACTIVE");
+    expect(paymentRoute).toContain("p_allow_unattributed_cash:CASH_BYPASS_ACTIVE");
+    expect(paymentRoute).toContain("unattributedCash");
+    expect(dashboard).toContain("unattributedCash");
+    expect(dashboard).toContain("keep the cash secure with the receipt");
   });
 });
 
