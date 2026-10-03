@@ -290,3 +290,23 @@ describe("shared cash drawer (20261024110000)", () => {
     expect(dataLib).not.toContain('.eq("staff_user_id",userId).eq("status","open")');
   });
 });
+
+describe("suspended cash-shift close (temporary defense, 2026-10-03)", () => {
+  const patchRoute = read("app/api/accounting/cash-shifts/[id]/route.ts");
+
+  it("hides the Close action and announces the suspension on the dashboard", () => {
+    // While reopen is broken, the drawer must stay open: no Close button,
+    // a visible banner, and sign-out that warns instead of trapping.
+    expect(dashboard).toContain("CASH_SHIFT_CLOSE_SUSPENDED");
+    expect(dashboard).toContain("!CASH_SHIFT_CLOSE_SUSPENDED && row.status === \"open\"");
+    expect(dashboard).toContain("Shift closing is temporarily suspended");
+    expect(dashboard).toContain("sign-out proceeds; closing is temporarily suspended.");
+  });
+
+  it("rejects close at the API backstop while reconcile stays untouched", () => {
+    expect(patchRoute).toContain("TEMPORARY (cash-shift defense");
+    expect(patchRoute).toContain("Shift closing is temporarily suspended");
+    expect(patchRoute).toContain('if(closing)return NextResponse.json({error:"Shift closing is temporarily suspended');
+    expect(patchRoute).toContain("accounting_reconcile_cash_shift");
+  });
+});
