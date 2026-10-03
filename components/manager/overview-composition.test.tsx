@@ -57,7 +57,7 @@ afterEach(cleanup);
 describe("Overview role composition", () => {
   it("manager keeps the occupancy chart and leads with decisions & exceptions", () => {
     const { container } = show("manager", ["overview", "reservations", "rooms", "approvals", "insights"]);
-    expect(screen.getByText("Occupancy this week")).toBeTruthy();
+    expect(screen.getByText("Booked occupancy this week")).toBeTruthy();
     expect(screen.getByText("Decisions & exceptions")).toBeTruthy();
     expect(container.querySelector(".overview-role-manager .panel-needs-attention")).toBeTruthy();
     expect(screen.getByText("Predictive insights")).toBeTruthy();
@@ -66,7 +66,7 @@ describe("Overview role composition", () => {
   it("front desk gets an arrivals queue panel and no occupancy chart", () => {
     const { container } = show("front_desk", ["overview", "reservations", "rooms", "guest_requests", "folios"]);
     expect(screen.getByText("Today's arrivals & departures")).toBeTruthy();
-    expect(screen.queryByText("Occupancy this week")).toBeNull();
+    expect(screen.queryByText("Booked occupancy this week")).toBeNull();
     expect(container.querySelector(".overview-role-front_desk")).toBeTruthy();
   });
 
@@ -75,20 +75,20 @@ describe("Overview role composition", () => {
     expect(screen.getByText("Pending verifications")).toBeTruthy();
     expect(screen.getByText("Pending refunds")).toBeTruthy();
     expect(screen.getByText("Pending financial actions")).toBeTruthy();
-    expect(screen.queryByText("Occupancy this week")).toBeNull();
+    expect(screen.queryByText("Booked occupancy this week")).toBeNull();
   });
 
   it("housekeeping gets a task-first panel and no occupancy chart", () => {
     show("housekeeping", ["overview", "rooms", "housekeeping_tasks", "guest_requests"]);
     expect(screen.getByText("Priority tasks this shift")).toBeTruthy();
-    expect(screen.queryByText("Occupancy this week")).toBeNull();
+    expect(screen.queryByText("Booked occupancy this week")).toBeNull();
     expect(screen.queryByText("Recent reservations")).toBeNull();
   });
 
   it("maintenance gets a work-order panel, no chart, and no room creation", () => {
     const { container } = show("maintenance", ["overview", "rooms", "maintenance_orders", "guest_requests"]);
     expect(screen.getByText("Work orders needing attention")).toBeTruthy();
-    expect(screen.queryByText("Occupancy this week")).toBeNull();
+    expect(screen.queryByText("Booked occupancy this week")).toBeNull();
     expect(container.textContent).not.toMatch(/add rooms|create room|new room/i);
   });
 

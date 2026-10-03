@@ -129,3 +129,34 @@ export function actualOccupancy(reservations: ReservationLike[], date: string, t
   const occupied = countNights(reservations, date, true);
   return totalRooms ? Math.round((occupied / totalRooms) * 100) : 0;
 }
+
+export interface BookedOccupancyPoint {
+  date: string;
+  day: string;
+  occupancy: number;
+}
+
+/**
+ * Trailing BOOKED-occupancy series — one point per hotel day, oldest first, ending on `today`.
+ *
+ * This is the single definition of the dashboard/report seven-day trend. It reuses
+ * `countNights`, so every surface shares one night-covering basis with the forecast:
+ * stay dates decide the night, and only the last point (tonight) is measured with the
+ * current/future statuses — a stay already checked out must never be counted as
+ * occupying tonight, while it legitimately counts for nights that have passed.
+ *
+ * It is a reservation-stay-date measure, NOT the live room rack (`rooms.status`): a
+ * reservation covering tonight whose room Front Desk has not marked occupied is booked
+ * occupancy without live occupancy. Surfaces that show both must label which is which.
+ *
+ * `totalRooms` is the caller's denominator — the dashboard passes administratively
+ * active rooms minus maintenance-blocked ones, matching its `metrics.occupancy`.
+ */
+export function bookedOccupancyTrend(reservations: ReservationLike[], totalRooms: number, today: string, days = 7): BookedOccupancyPoint[] {
+  const weekday = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "UTC" });
+  return Array.from({ length: days }, (_, index) => {
+    const date = shiftDate(today, index - (days - 1));
+    const booked = countNights(reservations, date, date < today);
+    return { date, day: weekday.format(new Date(`${date}T00:00:00Z`)), occupancy: totalRooms ? Math.round((booked / totalRooms) * 100) : 0 };
+  });
+}

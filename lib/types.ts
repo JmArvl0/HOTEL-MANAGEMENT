@@ -15,6 +15,10 @@ export interface RecordItem { id: string; [key: string]: string | number | boole
 export interface AccountingMetrics { grossCollected: number; refundsIssued: number; netRevenue: number; outstandingBalance: number; folioCredit: number; pendingVerification: number; pendingRefunds: number; failedRefunds: number; openCashShifts: number; unreconciledShifts: number; cashVariance: number; openReconciliationVariance: number }
 export interface DashboardData {
   metrics: { occupancy: number; arrivals: number; departures: number; revenue: number; openTasks: number; availableRooms: number; onlineBookings: number; inHouse: number; unassignedArrivals: number; dirtyRooms: number; outOfServiceRooms: number; openRequests: number; balancesAttention: number; roomsCleaning:number; roomsAwaitingInspection:number; overdueHousekeeping:number; openMaintenance:number; criticalMaintenance:number; overdueRequests:number; escalatedIssues:number; pendingApprovals:number; collectionsToday:number; depositsReceived:number; refundSummary:number; outstandingBalances:number; cashThisShift?: number; shiftFloat?: number; shiftOpen?: boolean; pendingRequestBatches?: number; departmentRequests?: number; transportationRequested?: number; pendingVerifications?: number; pendingRefundCount?: number; depositSlaHours?: number; oldestPendingVerificationMinutes?: number; pendingPastSla?: number };
+  /** Booked occupancy per hotel day, trailing 7, oldest first — reservations whose stay
+   *  covers each night (`bookedOccupancyTrend`). Measured from reservation stay dates, so
+   *  it is NOT the live room rack in `metrics.occupancy`/`roomMix`; surfaces showing both
+   *  must label which is which. */
   occupancyTrend: { day: string; occupancy: number }[];
   roomMix: { name: string; value: number; color: string }[];
   recentReservations: RecordItem[];

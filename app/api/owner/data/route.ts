@@ -2,12 +2,13 @@ import { NextResponse } from "next/server";
 import { getAccountingLedger } from "@/lib/accounting";
 import { ROLE_CAPABILITIES } from "@/lib/admin";
 import { guardOwner, ownerGuardFailed } from "@/lib/owner-route";
+import { bookedOccupancyTrend } from "@/lib/analytics/occupancy";
+import type { ReservationLike } from "@/lib/analytics/types";
 
 
 type Row = Record<string, unknown>;
 const activeMaintenance = new Set(["open", "assigned", "in_progress", "waiting_parts", "deferred"]);
 const localDate = (value: unknown, timeZone: string) => value ? new Intl.DateTimeFormat("en-CA", { timeZone }).format(new Date(String(value))) : "";
-const shiftDay = (iso: string, days: number) => new Date(Date.parse(`${iso}T00:00:00Z`) + days * 86400000).toISOString().slice(0, 10);
 const sum = (rows: Row[], key: string) => rows.reduce((total, row) => total + Number(row[key] || 0), 0);
 
 export async function GET(request: Request) {
@@ -140,11 +141,12 @@ export async function GET(request: Request) {
     const overdueRequests = requests.filter((row) => row.status !== "completed" && ((row.due_at && new Date(String(row.due_at)).getTime() < now) || ageMinutes(row.created_at) > requestOverdue));
     const settled = payments.filter((row) => row.status === "paid");
     const financial = { grossCollected: sum(settled.filter((row) => row.purpose !== "refund"), "amount"), refundsIssued: sum(settled.filter((row) => row.purpose === "refund"), "amount"), outstandingBalance: sum(invoices, "balance"), folioCredit: sum(invoices, "credit_balance") };
-    const days = Array.from({ length: 7 }, (_, index) => shiftDay(today, index - 6));
-    const trend = days.map((day) => {
-      const nights = reservations.filter((row) => ["confirmed", "checked_in", "checked_out"].includes(String(row.status)) && String(row.check_in) <= day && String(row.check_out) > day).length;
-      const dayPayments = settled.filter((row) => localDate(row.verified_at || row.created_at, timeZone) === day);
-      return { day, occupancy: Math.round((nights / Math.max(serviceableRooms.length, 1)) * 100), collected: sum(dayPayments.filter((row) => row.purpose !== "refund"), "amount"), refunded: sum(dayPayments.filter((row) => row.purpose === "refund"), "amount") };
+    // Booked occupancy on the engine's shared night-covering basis — see
+    // bookedOccupancyTrend. Not the live room rack in metrics.occupancy.
+    const occupancySeries = bookedOccupancyTrend(reservations as unknown as ReservationLike[], serviceableRooms.length, today);
+    const trend = occupancySeries.map((point) => {
+      const dayPayments = settled.filter((row) => localDate(row.verified_at || row.created_at, timeZone) === point.date);
+      return { day: point.date, occupancy: point.occupancy, collected: sum(dayPayments.filter((row) => row.purpose !== "refund"), "amount"), refunded: sum(dayPayments.filter((row) => row.purpose === "refund"), "amount") };
     });
     const roleCounts = Object.fromEntries(Object.keys(ROLE_CAPABILITIES).map((role) => [role, users.filter((row) => row.role === role).length]));
     const departmentSummary = {

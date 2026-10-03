@@ -2,6 +2,8 @@ import { demoStore, makeId } from "@/lib/demo-store";
 import { env } from "@/lib/env";
 import { hotelToday } from "@/lib/booking";
 import { supabase } from "@/lib/supabase";
+import { bookedOccupancyTrend } from "@/lib/analytics/occupancy";
+import type { ReservationLike } from "@/lib/analytics/types";
 import { depositSlaSummary, DEFAULT_DEPOSIT_SLA_HOURS } from "@/lib/deposit-sla";
 import type { DashboardData, RecordItem, Resource, Role } from "@/lib/types";
 
@@ -48,15 +50,13 @@ export async function getDashboard(role: Role, userId?: string): Promise<Dashboa
   const operationalRole = ["manager", "front_desk"].includes(role);
   const revenue = financialRole ? invoices.reduce((sum, item) => sum + Number(item.paid || 0), 0) : 0;
   const counts = (status: string) => rooms.filter((record) => record.status === status).length;
-  // Occupancy history is derived from the reservations themselves - one point per hotel day for the
-  // trailing week - so reports never present a hard-coded figure as measured data.
-  const shiftDay = (iso: string, days: number) => new Date(Date.parse(`${iso}T00:00:00Z`) + days * 86400000).toISOString().slice(0, 10);
-  const weekday = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "UTC" });
-  const occupancyTrend = Array.from({ length: 7 }, (_, index) => {
-    const day = shiftDay(today, index - 6);
-    const nights = reservations.filter((record) => ["confirmed", "checked_in", "checked_out"].includes(String(record.status)) && String(record.check_in) <= day && String(record.check_out) > day).length;
-    return { day: weekday.format(new Date(`${day}T00:00:00Z`)), occupancy: Math.round((nights / Math.max(serviceableRooms, 1)) * 100) };
-  });
+  // Occupancy history is BOOKED occupancy — the reservations themselves, one point per
+  // hotel day for the trailing week, on the engine's shared night-covering basis
+  // (bookedOccupancyTrend). It is measured from reservation stay dates, so it is not the
+  // live room rack behind metrics.occupancy/roomMix: a reservation covering tonight whose
+  // room Front Desk has not marked occupied counts here and not there. The Reports and
+  // Overview surfaces label both accordingly.
+  const occupancyTrend = bookedOccupancyTrend(reservations as unknown as ReservationLike[], serviceableRooms, today);
   const activeArrivals = reservations.filter((record) => record.check_in === today && ["confirmed", "checked_in"].includes(String(record.status)));
   const activeDepartures = reservations.filter((record) => record.check_out === today && ["confirmed", "checked_in"].includes(String(record.status)));
   const online = reservations.filter((record) => record.source === "Website" && ["pending", "confirmed", "checked_in"].includes(String(record.status)));

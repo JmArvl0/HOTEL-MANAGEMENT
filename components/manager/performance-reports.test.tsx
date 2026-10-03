@@ -54,7 +54,7 @@ describe("PerformanceReports", () => {
     expect(screen.getByRole("img", { name: /average 65 percent, ending at 80 percent/i })).toBeTruthy();
     expect(screen.getByText("20", { selector: ".report-room-status strong" })).toBeTruthy();
 
-    fireEvent.click(screen.getByText("View occupancy data"));
+    fireEvent.click(screen.getByText("View booked occupancy data"));
     expect(screen.getByRole("table")).toBeTruthy();
     expect(screen.getByText("Sun")).toBeTruthy();
     expect(screen.getByText("80%")).toBeTruthy();

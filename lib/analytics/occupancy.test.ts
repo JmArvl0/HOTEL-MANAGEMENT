@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { actualOccupancy, countNights, forecastOccupancy, pickupEstimate } from "@/lib/analytics/occupancy";
+import { actualOccupancy, bookedOccupancyTrend, countNights, forecastOccupancy, pickupEstimate } from "@/lib/analytics/occupancy";
 import { shiftDate, type ReservationLike, type RoomLike } from "@/lib/analytics/types";
 
 const TODAY = "2026-09-08";
@@ -130,5 +130,53 @@ describe("actualOccupancy — evaluation basis", () => {
       reservation({ status: "no_show", check_in: "2026-09-01", check_out: "2026-09-02" })
     ];
     expect(actualOccupancy(rows, "2026-09-02", 10)).toBe(10);
+  });
+});
+
+// The seven-day trend the dashboard and Reports render, and the Owner executive trend.
+// It is BOOKED occupancy — reservation stay dates, not the live room rack — so the one
+// thing it must never do is disagree with itself, or count a guest who has already left
+// as occupying tonight.
+describe("bookedOccupancyTrend — the dashboard/report basis", () => {
+  it("returns seven oldest-first points ending on today, labelled by UTC weekday", () => {
+    const trend = bookedOccupancyTrend([], 10, TODAY);
+    expect(trend).toHaveLength(7);
+    expect(trend.map((point) => point.date)).toEqual(["2026-09-02", "2026-09-03", "2026-09-04", "2026-09-05", "2026-09-06", "2026-09-07", "2026-09-08"]);
+    expect(trend.at(-1)!.date).toBe(TODAY);
+    expect(trend.map((point) => point.day)).toEqual(["Wed", "Thu", "Fri", "Sat", "Sun", "Mon", "Tue"]);
+    expect(trend.every((point) => point.occupancy === 0)).toBe(true);
+    // A shorter window also ends today.
+    expect(bookedOccupancyTrend([], 10, TODAY, 3).map((point) => point.date)).toEqual(["2026-09-06", "2026-09-07", "2026-09-08"]);
+  });
+
+  it("counts a stay on each night it covers, half-open [check_in, check_out)", () => {
+    const rows = [reservation({ id: "a", check_in: "2026-09-07", check_out: "2026-09-09" })];
+    const trend = bookedOccupancyTrend(rows, 10, TODAY);
+    const pct = (date: string) => trend.find((point) => point.date === date)!.occupancy;
+    expect(pct("2026-09-06")).toBe(0); // night before arrival
+    expect(pct("2026-09-07")).toBe(10); // arrival night
+    expect(pct(TODAY)).toBe(10); // tonight — still covering
+  });
+
+  it("counts the nights a departed stay covered, but never counts it as occupying tonight", () => {
+    // Checked out early: the stay record still spans the window, the guest does not.
+    const rows = [reservation({ id: "early", status: "checked_out", check_in: "2026-09-06", check_out: "2026-09-20" })];
+    const trend = bookedOccupancyTrend(rows, 10, TODAY);
+    const pct = (date: string) => trend.find((point) => point.date === date)!.occupancy;
+    expect(pct("2026-09-06")).toBe(10);
+    expect(pct("2026-09-07")).toBe(10);
+    expect(pct(TODAY)).toBe(0);
+  });
+
+  it("ignores cancelled, no_show and pending reservations on every night", () => {
+    const rows = ["cancelled", "no_show", "pending"].map((status, index) =>
+      reservation({ id: `s${index}`, status, check_in: "2026-09-07", check_out: "2026-09-20" }));
+    expect(bookedOccupancyTrend(rows, 10, TODAY).every((point) => point.occupancy === 0)).toBe(true);
+  });
+
+  it("uses the caller's denominator, and never divides by zero", () => {
+    const rows = Array.from({ length: 3 }, (_, index) => reservation({ id: `b${index}`, check_in: TODAY, check_out: shiftDate(TODAY, 1) }));
+    expect(bookedOccupancyTrend(rows, 10, TODAY).at(-1)!.occupancy).toBe(30); // 3 of 10 rooms booked for tonight
+    expect(bookedOccupancyTrend(rows, 0, TODAY).at(-1)!.occupancy).toBe(0);
   });
 });
