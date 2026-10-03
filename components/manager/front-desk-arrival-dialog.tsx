@@ -567,6 +567,7 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
                 <div><dt>Room</dt><dd>Room {human(selected)}</dd></div>
                 <div><dt>Room type</dt><dd>{exceptionMode ? `${human(reservation.room_type)} → ${human(exceptionMode)}` : human(reservation.room_type)}</dd></div>
                 <div><dt>Stay</dt><dd>{human(reservation.check_in)} to {human(reservation.check_out)} ({nights} night{nights === 1 ? "" : "s"})</dd></div>
+                {String(reservation.expected_arrival ?? "").trim() !== "" && <div><dt>Expected arrival</dt><dd>{human(reservation.expected_arrival)} · check-in opens at this time once the room is ready</dd></div>}
                 {exceptionMode && exceptionFinancialsActive && <>
                   {exceptionResponsibility === "hotel"
                     ? <>
