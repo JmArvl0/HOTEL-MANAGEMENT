@@ -6,6 +6,8 @@ All routes live under `app/api`. Auth check pattern: `getServerSession(authOptio
 - `app/api/dashboard/route.ts`
 - Returns `{ data: DashboardData, mode }` where `mode` is `"supabase"` or `"demo"`.
 - `DashboardData`: metrics (occupancy, arrivals, departures, revenue, openTasks, availableRooms), occupancyTrend, roomMix, recentReservations.
+  `occupancyTrend` is booked occupancy from reservation stay dates; `metrics.occupancy`/`roomMix` are
+  the live room rack — different bases, labelled as such in the UI.
 
 ## `/api/resources/[resource]` (generic CRUD)
 - Dynamic segment constrained to the 8 [[../03 Reference/Data Model|Resource]] values.

@@ -207,7 +207,14 @@ Key properties:
 - **Dashboard numbers are computed, not literal.** `getDashboard(role)` derives role-scoped metrics
   (occupancy %, arrivals/departures, dirty/ready/out-of-service rooms, open housekeeping/maintenance
   counts, collections, balances, manager alert policy thresholds) from the reservations/room rows;
-  occupancy history and room-mix are aggregated, not canned.
+  occupancy history and room-mix are aggregated, not canned. The trailing seven-day occupancy series
+  is **booked** occupancy — `bookedOccupancyTrend` in `lib/analytics/occupancy.ts`, the same
+  night-covering basis as the forecast (confirmed/checked_in covering the night, plus checked_out for
+  nights already past), measured from reservation stay dates. The live figure in
+  `metrics.occupancy`/`roomMix` is the room rack (`rooms.status`), which Front Desk updates
+  independently — so the two can legitimately differ, and every surface that shows both labels which
+  is which (Reports, Overview, Owner Executive). The Owner executive trend
+  (`/api/owner/data`) is computed by the same helper, never a second copy.
 - **Promise-based dialog bridge.** All three dashboards run their confirm/prompt/form dialogs
   through `components/ui/action-dialogs.tsx` (`useActionDialogs`) — no ad-hoc dialog state.
 

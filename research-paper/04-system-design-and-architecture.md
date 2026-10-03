@@ -79,7 +79,10 @@ Errors → 400 invalid resource · 401 unauthenticated · 403 forbidden · 500 f
 `getDashboard()` (`lib/data.ts:40-52`) fetches reservations, rooms, tasks, and invoices
 in parallel and computes in JavaScript: occupancy %, arrivals/departures today, revenue
 collected (Σ invoice payments), open task count, available rooms, room-status mix, and
-recent reservations. Seven-day trend history is partially literal (documented limitation).
+recent reservations. The seven-day trend is booked occupancy derived per hotel day from
+reservation stay dates (`bookedOccupancyTrend`), over the same room denominator as the
+occupancy metric; it is labelled distinctly from the live room-status mix, which Front
+Desk maintains independently.
 
 ## 4.7 Security posture summary
 

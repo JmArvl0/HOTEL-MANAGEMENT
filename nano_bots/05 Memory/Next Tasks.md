@@ -5,6 +5,15 @@ their outcome is captured in [[Current Status]], [[Decisions]], or a session not
 
 ## Immediate
 
+- [ ] **Occupancy labelling visual QA (KI-005)** — needs an Accounting **and** a Manager
+      session on `:3000`, plus the Owner workspace. Reports: the chart is titled *Seven-day booked
+      occupancy*, its sub-copy says the basis and that the last point is today, and the Room status
+      panel reads as the separate live rack. Overview (Manager): the occupancy card hint says *Live
+      room rack* while the chart says *Booked occupancy this week*. Owner Executive: *Booked
+      occupancy — last 7 days* with the paired tile *Current occupancy*. Checklist in
+      [[2026-10-03 - Occupancy Basis Fix]]. Related and unverified: the QA report's duplicate
+      receipts/folio statements ([[KI-013]]) — needs document numbers and a product call, not a guess.
+
 - [ ] **Booking-form type-scale visual QA (KI-005)** — needs a guest login on `:3000`.
       `/booking/search` → hold a room → the details form, then the deposit step. Confirm
       field text is legible, that inputs and the textarea now match at 16px, and that the
@@ -67,8 +76,10 @@ their outcome is captured in [[Current Status]], [[Decisions]], or a session not
       [[2026-09-09 - Session 01]])
 - [ ] Manual UI verification of the payment-proof upload flow (checklist in
       [[2026-09-09 - Session 02]])
-- [ ] Commit the uncommitted working tree (exception flow + responsibility rework + parallel
-      features: room catalog, transport, event notifications, payment proofs)
+- [ ] Commit the uncommitted working tree (the 2026-10-03 occupancy-basis fix,
+      [[2026-10-03 - Occupancy Basis Fix]]; the earlier room catalog, transport,
+      event notifications, exception flow and payment proofs were pushed as
+      `6a1a880` / `de7eb4f` / `3a9e9eb` / `abc45c7` / `8473496`)
 
 ## Soon
 

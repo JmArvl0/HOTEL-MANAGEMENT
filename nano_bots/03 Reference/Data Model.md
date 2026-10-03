@@ -29,5 +29,7 @@ Enabled on every table. The app only touches the DB server-side via the service-
 ## TS shapes (`lib/types.ts`)
 - `RecordItem` — `{ id: string; [key]: string|number|boolean|null|undefined }` (generic row)
 - `DashboardData` — metrics, occupancyTrend, roomMix, recentReservations
+  - `occupancyTrend` is **booked** occupancy (reservation stay dates, `bookedOccupancyTrend`), not
+    the live room rack in `metrics.occupancy`/`roomMix`.
 
 Note: demo-mode IDs come from `makeId()` in `lib/demo-store.ts`, not the SQL defaults.

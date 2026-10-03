@@ -288,3 +288,32 @@ repo's other migrations are LF.
 
 Related:
 `lib/password-reset-audit.test.ts` · [[2026-10-03 - Owner Payment Method Persist]]
+
+---
+
+## KI-013 — Repeated receipts / folio statements for the same source records (unverified)
+
+Status: Open
+Area: Accounting documents
+
+Description:
+The Accounting QA pass (2026-10-03) reported what looked like duplicate immutable documents — the
+same source payment/folio apparently producing more than one receipt or folio statement. The report
+itself **did not count this as a confirmed bug** and asked for product clarification rather than a
+code fix, and it named no document numbers, so nothing has been reproduced. No code was changed for
+it (BUG-001 in the same report was fixed separately).
+
+Impact:
+Unknown until reproduced. If a receipt is genuinely re-issued for one source record, the document
+trail is confusing to audit. If a new immutable document per generation is deliberate, the behaviour
+is correct and only the listing/traceability needs to say so.
+
+Fix options: none yet — this needs a reproduction (the duplicated document numbers with their
+`created_at`, plus the source payment/folio ids) and a product decision on whether re-issuing a
+document for the same source record is allowed. [[D-019]] (one canonical customer receipt document;
+eligibility mirrors the staff document RPC) is the closest governing decision — check it before
+touching generation.
+
+Related:
+`lib/customer.ts` (`getCustomerReceipt`) · `lib/receipt-pdf.ts` · `lib/receipt-image.ts` ·
+[[D-019]] · [[2026-10-03 - Occupancy Basis Fix]]

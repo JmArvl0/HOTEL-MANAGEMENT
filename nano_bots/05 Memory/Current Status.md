@@ -90,15 +90,13 @@
   green. Authenticated browser QA remains pending.
 
 Last Updated: 2026-10-03
-Current Development Area: Guest customer portal presentation — the Digital Express Pass QR moved out of the reservation hero grid into its own strip (2026-10-03, deployed); Account security modal deployed
-Current Feature: Guest reservation-page **Digital Express Pass strip** (QR | description | action, below the hero where the "QR expired" notice already sits); manual browser QA pending
+Current Development Area: Occupancy reporting correctness — the seven-day trend is now one shared, explicitly-labelled **booked** basis (Accounting QA BUG-001)
+Current Feature: **Reports / Overview / Owner occupancy labelling** — booked (reservation stay dates, `bookedOccupancyTrend`) vs live (room rack) named on every surface that shows both; browser QA pending
 Current Branch: `main`
-Latest Relevant Commit: `8473496` (Digital Express Pass strip, deployed)
+Latest Relevant Commit: `8473496` (Digital Express Pass strip, deployed) — the occupancy-basis change is **not yet committed**
 
-> Working tree cleared on 2026-10-03: the accumulated features plus the parallel-session work
-> (room catalog with photos, transport booking at checkout, event-sourced customer notifications,
-> QR scanner redesign) were committed as `6a1a880` / `de7eb4f` / `3a9e9eb` / `abc45c7` / `8473496`
-> and pushed on top of `9710e86`.
+> Working tree on 2026-10-03 holds the occupancy-basis change ([[2026-10-03 - Occupancy Basis Fix]]) on top
+> of the tree pushed as `6a1a880` / `de7eb4f` / `3a9e9eb` / `abc45c7` / `8473496`.
 
 ## Current Objective
 
@@ -111,6 +109,18 @@ in-session. Remaining: manual UI verification (role logins); the tree was commit
 2026-10-03.
 
 ## Recently Completed
+
+- **Occupancy reporting basis unified and labelled (2026-10-03)** — Accounting QA BUG-001: the
+  Reports seven-day chart read 30% for Saturday while the Room status panel beside it read
+  0 occupied / 0 reserved / 10 available. Both were true, but they are different quantities with one
+  shared name — the chart is **booked** occupancy (reservation stay dates) and the panel is the
+  **live room rack** (`rooms.status`). The trend now has one implementation,
+  `bookedOccupancyTrend` in `lib/analytics/occupancy.ts`, built on the engine's tested `countNights`,
+  which also fixed a real defect: `checked_out` was counted for **every** day of the window, so an
+  early-departed guest was reported as occupying tonight. The Owner executive trend
+  (`/api/owner/data`) had its own third copy of the rule and now uses the same helper. Reports,
+  Overview and the Owner dashboard label which number is which ([[D-033]]). Not committed/deployed
+  yet; browser QA pending.
 
 - **Digital Express Pass moved into its own strip under the hero (2026-10-03)** — the pass QR
   was the **middle `auto` column of the 3-column hero heading grid**, so a ~400px tall card set the
@@ -1118,6 +1128,17 @@ in-session. Remaining: manual UI verification (role logins); the tree was commit
 
 ## Current Work
 
+- Accounting QA BUG-001 fixed (2026-10-03, uncommitted): the Reports chart and the Room status panel
+  on the same page disagreed (`Saturday 30%` vs `0 occupied / 0 reserved / 10 available`) because both
+  were called "occupancy" — one from reservation stay dates, one from the live room rack. The trend
+  now comes from one shared `bookedOccupancyTrend` helper (the same tested `countNights` basis the
+  analytics engine uses, which also stops an early-departed guest being counted as occupying
+  **tonight**), the Owner executive trend uses it too, and every surface showing both numbers labels
+  which is which ([[D-033]]). Browser QA pending ([[KI-005]]) — as Accounting and Manager check
+  Reports reads as booked with today's point last, and the Overview/Owner cards say Live room rack.
+  See [[2026-10-03 - Occupancy Basis Fix]]. The report's second item (repeated immutable receipts for
+  the same source records) was **not** changed — unverified, recorded as [[KI-013]].
+
 - Guest reservation-page Digital Express Pass strip delivered (2026-10-03); **committed `9710e86`,
   pushed, and live in production** (deploy verified by the portal CSS chunk change). Manual guest
   browser QA pending ([[KI-005]]) — a confirmed + paid reservation at 1440px (hero is two columns,
@@ -1203,7 +1224,8 @@ in-session. Remaining: manual UI verification (role logins); the tree was commit
    replenishment + draft PO, Maintenance/Manager asset registry, Housekeeping suggestion
    strip (self-assign vs Owner assign vs Manager read-only), guest-profile modal, rate
    plans modal, deposit aging chips, System Administrator labels + timezone field +
-   extended System Health cards (Admin login).
+   extended System Health cards (Admin login), and the new occupancy labelling
+   (Reports / Overview / Owner — booked vs live room rack).
 2. Commit the working tree — **done 2026-10-03** (`9710e86`..`8473496`, pushed to `origin/main`).
 3. Confirm the first live guest-reminders cron firing (09:05 Manila) once a night passes
    with eligible reservations.
@@ -1212,6 +1234,7 @@ in-session. Remaining: manual UI verification (role logins); the tree was commit
 
 ## Relevant Documentation
 
+- [[2026-10-03 - Occupancy Basis Fix]]
 - [[2026-10-03 - Check-In QR Pass Strip]]
 - [[2026-10-03 - Account Security Modal]]
 - [[2026-10-03 - Loyalty Redemption Block Redesign]]
@@ -1233,6 +1256,7 @@ in-session. Remaining: manual UI verification (role logins); the tree was commit
 
 ## Recent Sessions
 
+- [[2026-10-03 - Occupancy Basis Fix]] — Accounting QA **BUG-001**: the Reports *Seven-day occupancy* chart showed Saturday 30% while the Room status panel on the same page showed 0 occupied / 0 reserved, because both were called "occupancy" — the chart from reservation stay dates, the panel from the live room rack; one shared `bookedOccupancyTrend` (built on the engine's tested `countNights`, so past nights include `checked_out` and **tonight never counts an already-departed guest**) now serves dashboard/Reports, the Owner executive route and the engine, and Reports/Overview/Owner label booked vs live everywhere both appear ([[D-033]]); the report's duplicate-receipts item was left alone as unverified ([[KI-013]]); 1987 tests pass + 1 pre-existing CRLF failure ([[KI-012]]), 10/10 focused files, typecheck/lint/build clean, **not committed or deployed yet**
 - [[2026-10-03 - Check-In QR Pass Strip]] — the Digital Express Pass was the middle column of the reservation hero's 3-column grid, a ~400px card that set the hero's height and pushed the action panel off-axis; it is now a full-width strip below the hero (QR | description | action) in the slot the expired notice already uses, children regrouped with no class renames, dead `pass-column` CSS removed, and a same-file source-order cascade trap caught before shipping (mobile rules must sit beside the rule they override); committed `9710e86`, pushed, and **deployment verified live** by the portal CSS chunk change; 1982 tests (1 pre-existing CRLF failure, [[KI-012]]), lint 0 errors, build clean, guest QA pending
 - [[2026-10-03 - Account Security Modal]] — the account menu's Account security entry navigated to `/account/settings` and dropped the guest's page; it is now a dialog (sound switch + password form) opened from the menu and the My Profile title via one provider inside `<main>`, deliberately non-portaled and outside the blurred header; `/account/settings` kept as a fallback; also fixed the portal's unstyled `.settings-theme-row`; committed `17b824d` and **deployment verified live** by the portal CSS chunk change; 1981 tests (1 pre-existing CRLF failure, [[KI-012]]), lint 0 errors, build clean, guest QA pending
 - [[2026-10-03 - Loyalty Redemption Block Redesign]] — `.loyalty-redeem` on the guest reservation folio had no CSS anywhere, so it rendered raw browser controls; rebuilt as a styled sub-panel (figures, themed slider, Use max, live credit preview) sourcing the rate from `POINTS_TO_PESO`; the `min(points, floor(balance))` cap is preserved because the RPC debits every point sent; committed `febfc54` and **deployment verified live** by the portal CSS chunk change (which also confirms the GitHub → Vercel auto-deploy); 1973 tests (1 pre-existing CRLF failure, [[KI-012]]), build clean, guest QA pending

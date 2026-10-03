@@ -4,6 +4,42 @@ Lightweight decision log. Each entry records a choice that constrains future dev
 Trivial implementation details do not belong here. Historical sessions never override the
 current system or `SYSTEM.md` — see [[AI Session Handoff]] for the authority order.
 
+## D-033 — Occupancy has two named bases: booked (reservation stay dates) and live (room rack)
+
+Date: 2026-10-03
+Status: Active
+
+### Decision
+
+Two occupancy measures exist and are never conflated or silently made to agree:
+
+- **Booked occupancy** — reservations whose stay covers the night, from `check_in`/`check_out`
+  (`confirmed`/`checked_in` for current and future nights, plus `checked_out` for nights already
+  past). One implementation: `bookedOccupancyTrend` in `lib/analytics/occupancy.ts`, built on the
+  existing `countNights`. Every seven-day trend in the app uses it — dashboard/Reports, the Owner
+  executive trend (`/api/owner/data`) and the analytics engine — so the rule can never drift.
+- **Live occupancy** — the room rack (`rooms.status`), which Front Desk maintains: `metrics.occupancy`
+  and `roomMix`. It can differ from booked occupancy for the same day and both are correct.
+
+Any surface showing both must label which is which. A booked figure is never forced to equal the
+rack figure: rooms sold for tonight with none assigned or marked occupied is a real signal
+(`metrics.unassignedArrivals` carries the action), not a discrepancy to hide.
+
+### Reason
+
+BUG-001 in the Accounting QA report: the Reports chart showed 30% for Saturday while the Room status
+panel on the same page showed 0 occupied / 0 reserved. The chart was booked, the panel was the rack,
+and nothing said so. Two copies of the hand-rolled night-covering rule had also drifted from the
+engine's tested version, one of them counting an early-departed guest as occupying **tonight**
+(BUG-001's likely numeric contribution). Naming the two bases and giving them one implementation
+each removes the ambiguity and the drift.
+
+### Related
+
+`lib/analytics/occupancy.ts` (`countNights`, `bookedOccupancyTrend`) · `lib/data.ts` ·
+`app/api/owner/data/route.ts` · `lib/types.ts` (`occupancyTrend`) · `SYSTEM.md` ·
+[[2026-10-03 - Occupancy Basis Fix]] · [[KI-005]]
+
 ## D-032 — One footer per table: TablePagination is the footer
 
 Date: 2026-09-28
