@@ -102,6 +102,68 @@ export function assignableCell(
 
 export type RackBoardState = "available" | "occupied" | "dirty" | "out_of_service" | "reserved";
 
+/** Minimal maintenance-order shape for the blocked-room derivation. */
+export interface BlockingOrder {
+  room_id?: unknown;
+  room_number?: unknown;
+  status?: unknown;
+  serviceability_impact?: unknown;
+}
+
+const ACTIVE_MAINTENANCE = new Set(["open", "assigned", "in_progress", "waiting_parts", "deferred"]);
+const BLOCKING_IMPACTS = new Set(["blocked", "out_of_service"]);
+
+/**
+ * Rooms Maintenance has blocked (MGR-002): active orders with a blocking
+ * diagnosis. Orders linked by room_id win; orders carrying only a room
+ * number fall back to a number match, so an unlinked order can never hide
+ * from readiness counts, the board, or assignment gates.
+ */
+export function maintenanceBlockedRoomIds(
+  orders: BlockingOrder[],
+  rooms: { id: string; number?: unknown }[]
+): Set<string> {
+  const byNumber = new Map(
+    rooms.map((room) => [String(room.number ?? "").trim().toLowerCase(), room.id])
+  );
+  const blocked = new Set<string>();
+  for (const order of orders) {
+    if (!ACTIVE_MAINTENANCE.has(String(order.status))) continue;
+    if (!BLOCKING_IMPACTS.has(String(order.serviceability_impact))) continue;
+    if (order.room_id) blocked.add(String(order.room_id));
+    else if (order.room_number) {
+      const id = byNumber.get(String(order.room_number).trim().toLowerCase());
+      if (id) blocked.add(id);
+    }
+  }
+  return blocked;
+}
+
+/**
+ * Rooms held for arrivals (MGR-001): confirmed stays with a room assignment
+ * whose checkout is after today, on rooms without an in-house stay — the
+ * same derivation the board renders as "reserved", so counts built from
+ * this set can never disagree with the board.
+ */
+export function heldRoomIds(reservations: RackReservation[], today: string): Set<string> {
+  const inHouse = new Set(
+    reservations
+      .filter((r) => r.room_id && r.status === "checked_in")
+      .map((r) => String(r.room_id))
+  );
+  return new Set(
+    reservations
+      .filter(
+        (r) =>
+          r.room_id &&
+          r.status === "confirmed" &&
+          r.check_out.slice(0, 10) > today &&
+          !inHouse.has(String(r.room_id))
+      )
+      .map((r) => String(r.room_id))
+  );
+}
+
 /**
  * Board state for one room card, derived from the same authoritative fields
  * the tape chart and assign gates use — never from reservation presence
@@ -111,7 +173,8 @@ export type RackBoardState = "available" | "occupied" | "dirty" | "out_of_servic
 export function roomBoardState(
   room: RackRoom,
   reservations: RackReservation[],
-  today: string
+  today: string,
+  blockedIds?: Set<string> | null
 ): { state: RackBoardState; stay: RackReservation | null; upcoming: RackReservation | null } {
   if (
     room.administratively_active === false ||
@@ -128,6 +191,10 @@ export function roomBoardState(
     ?? mine.find((r) => r.status === "checked_in")
     ?? null;
   if (stay) return { state: "occupied", stay, upcoming: null };
+  // MGR-002: a Maintenance-blocked room is never reservable or ready, even
+  // when its stored status/housekeeping still read clean+available. An
+  // in-house stay keeps precedence above (the guest is physically there).
+  if (blockedIds?.has(room.id)) return { state: "out_of_service", stay: null, upcoming: null };
   const upcoming = mine
     .filter((r) => r.status === "confirmed" && r.check_out.slice(0, 10) > today)
     .sort((a, b) => (a.check_in < b.check_in ? -1 : 1))[0] ?? null;
@@ -159,9 +226,22 @@ export interface RackSummary {
   departuresToday: number;
 }
 
-export function rackSummary(rooms: RackRoom[], reservations: RackReservation[], today: string): RackSummary {
+export function rackSummary(
+  rooms: RackRoom[],
+  reservations: RackReservation[],
+  today: string,
+  blockedIds?: Set<string> | null
+): RackSummary {
+  // MGR-001: a room holding an arrival (or Maintenance-blocked) is not
+  // available, even when its stored status still reads clean+available.
+  const held = heldRoomIds(reservations, today);
+  const ready = (room: RackRoom) =>
+    room.status === "available" &&
+    room.housekeeping === "clean" &&
+    !held.has(room.id) &&
+    !blockedIds?.has(room.id);
   return {
-    available: rooms.filter((r) => r.status === "available" && r.housekeeping === "clean").length,
+    available: rooms.filter(ready).length,
     occupied: rooms.filter((r) => r.status === "occupied").length,
     dirty: rooms.filter((r) => r.housekeeping === "dirty" || r.status === "dirty").length,
     arrivalsToday: reservations.filter((r) => r.check_in.slice(0, 10) === today && r.status === "confirmed").length,

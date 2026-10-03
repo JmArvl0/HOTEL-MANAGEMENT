@@ -150,6 +150,9 @@ export default function FrontOfficeRack({
 
   const rooms = useMemo(() => snapshot?.rooms ?? [], [snapshot]);
   const reservations = useMemo(() => snapshot?.reservations ?? [], [snapshot]);
+  // MGR-002: Maintenance-blocked rooms render as out of service and refuse
+  // assignment, even when their stored status still reads clean+available.
+  const blockedIds = useMemo(() => new Set(snapshot?.blockedRoomIds ?? []), [snapshot]);
   const today = useMemo(
     () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date()),
     []
@@ -191,8 +194,8 @@ export default function FrontOfficeRack({
   const types = useMemo(() => [...new Set(rooms.map((r) => r.type))], [rooms]);
   const floors = useMemo(() => [...new Set(rooms.map((r) => String(r.floor ?? "—")))], [rooms]);
   const states = useMemo(
-    () => new Map(rooms.map((room) => [room.id, roomBoardState(room, reservations, today)] as const)),
-    [rooms, reservations, today]
+    () => new Map(rooms.map((room) => [room.id, roomBoardState(room, reservations, today, blockedIds)] as const)),
+    [rooms, reservations, today, blockedIds]
   );
 
   const visibleRooms = useMemo(() => {
@@ -218,6 +221,11 @@ export default function FrontOfficeRack({
   const hasActiveFilters = query.trim() !== "" || typeFilter !== "all" || statusFilter !== "all" || floorFilter !== "all";
 
   async function assign(reservation: RackReservation, room: RackRoom) {
+    if (blockedIds.has(room.id)) {
+      say("Room is maintenance-blocked — resolve the work order before assigning.", "warning");
+      setConfirm(null);
+      return;
+    }
     const bars = barsForRoom(reservations, room.id, from, days);
     const check = assignableCell(room, reservation, bars);
     if (!check.ok) {
@@ -277,7 +285,7 @@ export default function FrontOfficeRack({
   }
 
   function roomActions(room: RackRoom): BoardAction[] {
-    const board = states.get(room.id) ?? roomBoardState(room, reservations, today);
+    const board = states.get(room.id) ?? roomBoardState(room, reservations, today, blockedIds);
     const stay = board.stay ?? board.upcoming;
     const actions: BoardAction[] = [];
     // Card click opens room details directly — no "View room details" row.
@@ -318,7 +326,7 @@ export default function FrontOfficeRack({
   if (loading && !snapshot) return <div className="rack-skeleton" aria-label="Loading room rack"><span className="pulse-bar" /><span className="pulse-bar" /><span className="pulse-bar short" /></div>;
   if (error && !snapshot) return <div className="rack-error" role="alert"><p>{error}</p><button type="button" onClick={() => void reload()}>Retry</button></div>;
 
-  const activeBoard = activeRoom ? states.get(activeRoom.id) ?? roomBoardState(activeRoom, reservations, today) : null;
+  const activeBoard = activeRoom ? states.get(activeRoom.id) ?? roomBoardState(activeRoom, reservations, today, blockedIds) : null;
 
   return (
     <>
@@ -372,7 +380,7 @@ export default function FrontOfficeRack({
         hasActiveFilters={hasActiveFilters}
       />
       <p className="board-window-note" aria-live="polite">Window from {from} · {days} days</p>
-          <RoomBoard rooms={visibleRooms} reservations={reservations} today={today} selectedRoomId={activeRoom?.id ?? null} onSelectRoom={openRoom} />
+          <RoomBoard rooms={visibleRooms} reservations={reservations} today={today} blockedRoomIds={blockedIds} selectedRoomId={activeRoom?.id ?? null} onSelectRoom={openRoom} />
           </>
           ) : (
           <BoardReservationTabs reservations={reservations} history={history} today={today} tab={tab} onOpenFolio={onOpenFolio} search={query} onSearchChange={setQuery} />

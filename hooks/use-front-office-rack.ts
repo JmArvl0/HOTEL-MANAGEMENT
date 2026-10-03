@@ -8,6 +8,8 @@ export interface RackSnapshot {
   days: number;
   rooms: RackRoom[];
   reservations: RackReservation[];
+  /** Rooms Maintenance has blocked (active blocking diagnosis) — shown as out of service. */
+  blockedRoomIds?: string[];
 }
 
 const todayManila = () =>

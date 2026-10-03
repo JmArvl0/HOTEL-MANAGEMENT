@@ -153,4 +153,23 @@ describe("HavenAiPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Refresh brief" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/ai/brief?refresh=1", { cache: "no-store" }));
   });
+
+  it("surfaces the server's brief failure reason with a working retry (MGR-003)", async () => {
+    const calls: string[] = [];
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      calls.push(url);
+      if (url.includes("refresh=1")) {
+        return Promise.resolve({ ok: true, json: async () => briefPayload } as Response);
+      }
+      return Promise.resolve({ ok: false, status: 429, json: async () => ({ error: "Brief refresh limit reached. Try again in a few minutes." }) } as Response);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<HavenAiPanel />);
+    // The rate-limit reason replaces the generic line, with a retry affordance.
+    await waitFor(() => expect(screen.getByText(/Brief refresh limit reached/)).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(screen.getByText(/Tomorrow runs at 75%/)).toBeTruthy());
+    expect(calls).toContain("/api/ai/brief?refresh=1");
+  });
 });

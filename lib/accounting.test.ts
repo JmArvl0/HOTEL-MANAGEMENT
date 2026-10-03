@@ -246,3 +246,47 @@ describe("single open cash shift (20261024090000)", () => {
     expect(patchRoute).toContain('"Could not find the function"');
   });
 });
+
+describe("shared cash drawer (20261024110000)", () => {
+  const shared = read("supabase/migrations/20261024110000_shared_cash_drawer.sql");
+  const shiftRoute = read("app/api/accounting/cash-shifts/route.ts");
+  const dataLib = read("lib/data.ts");
+
+  it("backs the single-drawer rule with a property-wide unique index", () => {
+    // The per-staff index let two drawers exist at the DB level; the function
+    // guard was the only protection. The partial index is the backstop.
+    expect(shared).toContain("cash_shift_single_open");
+    expect(shared).toContain("where status='open'");
+    expect(shared).toContain("drop index if exists public.cash_shift_one_open_per_staff");
+  });
+
+  it("attaches cash collection to any open shift, keeping collector vs drawer audited", () => {
+    // Regression: second cashier's cash collect raised CASH_SHIFT_REQUIRED
+    // while the drawer was open, because lookup was per-staff.
+    expect(shared).toContain("where cs.status='open'");
+    expect(shared).not.toContain("cs.staff_user_id=p_staff_user_id and cs.status='open'");
+    expect(shared).toContain("CASH_SHIFT_REQUIRED");
+    expect(shared).toContain("PAYMENT_COLLECTION_FORBIDDEN");
+    expect(shared).toContain("received_by");
+    expect(shared).toContain("'cashShiftId',v_shift");
+  });
+
+  it("exposes the shared drawer with ownership, never a per-person empty shift", () => {
+    expect(shiftRoute).toContain('.eq("status","open")');
+    expect(shiftRoute).not.toContain('.eq("staff_user_id",context.actorId).eq("status","open")');
+    expect(shiftRoute).toContain("mine");
+    expect(shiftRoute).toContain("staff_name");
+    expect(dashboard).toContain("mine: Boolean(body.data.mine)");
+    expect(dashboard).toContain("Open · ${myShift.staff_name}");
+  });
+
+  it("blocks only the opener at sign-out so a second cashier is never stranded", () => {
+    expect(dashboard).toContain("body.data?.open && body.data?.mine");
+    expect(dashboard).not.toContain("body.data?.open) { const shift = body.data.shift; const go = await dialogs.askConfirm({ title: \"Close your cash shift first\"");
+  });
+
+  it("derives Front Desk drawer metrics from the shared shift", () => {
+    expect(dataLib).toContain('.eq("status","open").order("opened_at"');
+    expect(dataLib).not.toContain('.eq("staff_user_id",userId).eq("status","open")');
+  });
+});

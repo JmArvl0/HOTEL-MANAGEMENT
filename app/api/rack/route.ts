@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase"; import { maintenanceBlockedRoomIds } from "@/lib/room-rack";
 
 const allowed = new Set(["front_desk", "manager", "owner"]);
 
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
   toDate.setUTCDate(toDate.getUTCDate() + parsed.data.days);
   const to = toDate.toISOString().slice(0, 10);
 
-  const [{ data: rooms }, { data: reservations }, { data: invoices }, { data: types }] = await Promise.all([
+  const [{ data: rooms }, { data: reservations }, { data: invoices }, { data: types }, { data: orders }] = await Promise.all([
     supabase
       .from("rooms")
       .select("id,number,floor,wing,type,status,housekeeping,administratively_active")
@@ -45,7 +45,7 @@ export async function GET(request: Request) {
       .not("status", "in", "(cancelled,no_show)")
       .order("check_in", { ascending: true }),
     supabase.from("invoices").select("reservation_id,balance").not("reservation_id", "is", null),
-    supabase.from("room_types").select("name,badge_color_key"),
+    supabase.from("room_types").select("name,badge_color_key"), supabase.from("maintenance_orders").select("room_id,room_number,status,serviceability_impact").in("status", ["open", "assigned", "in_progress", "waiting_parts", "deferred"]).in("serviceability_impact", ["blocked", "out_of_service"]),
   ]);
 
   const colors = new Map(
@@ -62,9 +62,10 @@ export async function GET(request: Request) {
     ])
   );
 
-  return NextResponse.json({
+  const blockedRoomIds = [...maintenanceBlockedRoomIds(((orders ?? []) as Record<string, unknown>[]).map((row) => ({ room_id: row.room_id, room_number: row.room_number, status: row.status, serviceability_impact: row.serviceability_impact })), ((rooms ?? []) as Record<string, unknown>[]).map((row) => ({ id: String(row.id), number: row.number })))];  return NextResponse.json({
     data: {
       from,
+      blockedRoomIds,
       days: parsed.data.days,
       rooms: ((rooms ?? []) as Record<string, unknown>[]).map((row) => ({
         ...row,

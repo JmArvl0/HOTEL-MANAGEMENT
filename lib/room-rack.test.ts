@@ -3,6 +3,8 @@ import {
   assignableCell,
   barsForRoom,
   groupRoomsByType,
+  heldRoomIds,
+  maintenanceBlockedRoomIds,
   rackSummary,
   roomBoardState,
   unassignedArrivals,
@@ -137,5 +139,70 @@ describe("rackSummary", () => {
       arrivalsToday: 1,
       departuresToday: 1,
     });
+  });
+  it("excludes rooms holding arrivals and blocked rooms from available (MGR-001/MGR-002)", () => {
+    const rooms = [
+      room({ id: "a", status: "available", housekeeping: "clean" }),
+      room({ id: "b", status: "available", housekeeping: "clean" }),
+      room({ id: "c", status: "available", housekeeping: "clean" }),
+    ];
+    const reservations = [
+      stay({ id: "hold", room_id: "b", check_in: "2026-09-22", check_out: "2026-09-24", status: "confirmed" }),
+    ];
+    // Held room b is reserved, not available — the board and the summary agree.
+    expect(rackSummary(rooms, reservations, "2026-09-22").available).toBe(2);
+    expect(rackSummary(rooms, reservations, "2026-09-22", new Set(["c"])).available).toBe(1);
+  });
+});
+
+describe("maintenanceBlockedRoomIds", () => {
+  const rooms = [room({ id: "RM-1", number: "101" }), room({ id: "RM-2", number: "102" })];
+  const order = (overrides: object = {}) => ({
+    room_id: null,
+    room_number: null,
+    status: "open",
+    serviceability_impact: "blocked",
+    ...overrides,
+  });
+  it("matches linked orders by room id", () => {
+    expect([...maintenanceBlockedRoomIds([order({ room_id: "RM-1" })], rooms)]).toEqual(["RM-1"]);
+  });
+  it("falls back to room number when the order carries no room link (MGR-002)", () => {
+    expect([...maintenanceBlockedRoomIds([order({ room_number: "102" })], rooms)]).toEqual(["RM-2"]);
+  });
+  it("ignores inactive orders, non-blocking diagnoses, and unknown numbers", () => {
+    const orders = [
+      order({ room_id: "RM-1", status: "resolved" }),
+      order({ room_id: "RM-1", serviceability_impact: "serviceable" }),
+      order({ room_number: "999" }),
+    ];
+    expect(maintenanceBlockedRoomIds(orders, rooms).size).toBe(0);
+  });
+});
+
+describe("heldRoomIds", () => {
+  it("derives arrival holds exactly the way the board renders reserved (MGR-001)", () => {
+    const rows = [
+      stay({ id: "hold", room_id: "RM-1", check_in: "2026-09-22", check_out: "2026-09-24", status: "confirmed" }),
+      stay({ id: "unassigned", check_in: "2026-09-22", check_out: "2026-09-24", status: "confirmed" }),
+      stay({ id: "past", room_id: "RM-2", check_in: "2026-09-18", check_out: "2026-09-20", status: "confirmed" }),
+      stay({ id: "stay", room_id: "RM-3", check_in: "2026-09-21", check_out: "2026-09-24", status: "checked_in" }),
+      stay({ id: "also-held", room_id: "RM-3", check_in: "2026-09-25", check_out: "2026-09-27", status: "confirmed" }),
+    ];
+    // Hold without a room, departed hold, and a room with an in-house stay never count.
+    expect([...heldRoomIds(rows, "2026-09-22")]).toEqual(["RM-1"]);
+  });
+});
+
+describe("roomBoardState blocked precedence (MGR-002)", () => {
+  it("shows out of service for a blocked room that still reads clean+available", () => {
+    const rows = [stay({ id: "u", room_id: "RM-1", check_in: "2026-09-25", check_out: "2026-09-27" })];
+    expect(roomBoardState(room(), rows, "2026-09-22", new Set(["RM-1"])).state).toBe("out_of_service");
+    expect(roomBoardState(room(), [], "2026-09-22", new Set(["RM-1"])).state).toBe("out_of_service");
+  });
+  it("keeps an in-house stay above the block and stays silent without the set", () => {
+    const rows = [stay({ id: "s", room_id: "RM-1", status: "checked_in", check_in: "2026-09-21", check_out: "2026-09-24" })];
+    expect(roomBoardState(room(), rows, "2026-09-22", new Set(["RM-1"])).state).toBe("occupied");
+    expect(roomBoardState(room(), rows, "2026-09-22").state).toBe("occupied");
   });
 });

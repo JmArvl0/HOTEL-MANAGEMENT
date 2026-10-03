@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { bookedOccupancyTrend } from "@/lib/analytics/occupancy";
 import type { ReservationLike } from "@/lib/analytics/types";
 import { depositSlaSummary, DEFAULT_DEPOSIT_SLA_HOURS } from "@/lib/deposit-sla";
+import { maintenanceBlockedRoomIds, roomBoardState, type RackReservation, type RackRoom } from "@/lib/room-rack";
 import type { DashboardData, RecordItem, Resource, Role } from "@/lib/types";
 
 export const databaseMode = env.databaseMode;
@@ -44,12 +45,22 @@ export async function getDashboard(role: Role, userId?: string): Promise<Dashboa
   const today = hotelToday();
   const occupied = rooms.filter((record) => record.status === "occupied").length;
   const activeMaintenanceStatuses = new Set(["open", "assigned", "in_progress", "waiting_parts", "deferred"]);
-  const blockedMaintenanceRoomIds = new Set(maintenance.filter((order) => activeMaintenanceStatuses.has(String(order.status)) && ["blocked", "out_of_service"].includes(String(order.serviceability_impact))).map((order) => order.room_id));
+  // MGR-002: one shared blocked-room derivation (room_id link with a room
+  // number fallback), so metrics, board, and gates can never disagree.
+  const blockedMaintenanceRoomIds = maintenanceBlockedRoomIds(
+    maintenance.map((order) => ({ room_id: order.room_id, room_number: order.room_number, status: order.status, serviceability_impact: order.serviceability_impact })),
+    rooms.map((room) => ({ id: String(room.id), number: room.number }))
+  );
+  // MGR-001/MGR-002: readiness slices are the board's own state histogram —
+  // one derivation (holds + blocks included) feeding Overview, Reports, and
+  // the board, so the three surfaces cannot disagree with each other.
+  const rackReservations = reservations as unknown as RackReservation[];
+  const boardStateById = new Map(rooms.map((room) => [String(room.id), roomBoardState(room as unknown as RackRoom, rackReservations, today, blockedMaintenanceRoomIds).state]));
+  const countBoardState = (state: string) => rooms.filter((room) => boardStateById.get(String(room.id)) === state).length;
   const serviceableRooms = rooms.filter((record) => record.administratively_active !== false && !blockedMaintenanceRoomIds.has(record.id)).length;
   const financialRole = ["manager", "front_desk", "accounting"].includes(role);
   const operationalRole = ["manager", "front_desk"].includes(role);
   const revenue = financialRole ? invoices.reduce((sum, item) => sum + Number(item.paid || 0), 0) : 0;
-  const counts = (status: string) => rooms.filter((record) => record.status === status).length;
   // Occupancy history is BOOKED occupancy — the reservations themselves, one point per
   // hotel day for the trailing week, on the engine's shared night-covering basis
   // (bookedOccupancyTrend). It is measured from reservation stay dates, so it is not the
@@ -91,11 +102,12 @@ export async function getDashboard(role: Role, userId?: string): Promise<Dashboa
   const collectionsToday=financialRole?settledToday.filter(item=>item.purpose!=="refund").reduce((sum,item)=>sum+Number(item.amount||0),0):0;
   const depositsReceived=financialRole?settledToday.filter(item=>item.purpose==="reservation_deposit").reduce((sum,item)=>sum+Number(item.amount||0),0):0;
   const refundSummary=financialRole?settledToday.filter(item=>item.purpose==="refund").reduce((sum,item)=>sum+Number(item.amount||0),0):0;
-  // Front Desk cash accountability: cash collected on the caller's open shift is
-  // derived from recorded payments (never a separately stored total that could drift).
+  // Single shared drawer: cash accountability reads the property-wide open shift
+  // (not the caller's own), derived from recorded payments so no stored total
+  // can drift. cashThisShift/shiftFloat are drawer totals while it is open.
   let cashThisShift=0;let shiftFloat=0;let shiftOpen=false;
   if(role==="front_desk"&&supabase&&userId){
-    const shift=((await supabase.from("cash_shifts").select("id,opening_amount").eq("staff_user_id",userId).eq("status","open").maybeSingle()).data??null)as RecordItem|null;
+    const shift=((await supabase.from("cash_shifts").select("id,opening_amount").eq("status","open").order("opened_at",{ascending:true}).limit(1).maybeSingle()).data??null)as RecordItem|null;
     if(shift){shiftOpen=true;shiftFloat=Number(shift.opening_amount||0);
       const collected=((await supabase.from("payments").select("amount").eq("cash_shift_id",shift.id).eq("status","paid").neq("purpose","refund")).data??[])as {amount?:unknown}[];
       cashThisShift=Math.round(collected.reduce((sum,row)=>sum+Number(row.amount||0),0)*100)/100;}
@@ -120,7 +132,7 @@ export async function getDashboard(role: Role, userId?: string): Promise<Dashboa
     for (const trip of pendingTrips.slice(0, 5)) notifications.push({ id: `transportation-${trip.id}`, title: "New transportation request", detail: `${String(trip.service_type).replaceAll("_", " ")} - ${trip.pickup_location} → ${trip.dropoff_location} - ${trip.pickup_date}`, section: "transportation", createdAt: typeof trip.created_at === "string" ? trip.created_at : undefined });
   }
   if(role==="manager"){
-    const maintenanceRooms=new Set(maintenance.filter(item=>activeMaintenanceStatuses.has(String(item.status))&&["blocked","out_of_service"].includes(String(item.serviceability_impact))).map(item=>item.room_id));
+    const maintenanceRooms=blockedMaintenanceRoomIds;
     for(const arrival of activeArrivals.filter(item=>!item.room_id).slice(0,5))notifications.push({id:`manager-unassigned-${arrival.id}`,title:"Arrival awaiting room assignment",detail:`${arrival.confirmation_number||arrival.id} - ${arrival.guest_name}`,section:"room_rack"});
     for(const arrival of activeArrivals){const room=rooms.find(item=>item.id===arrival.room_id);if(room&&(room.housekeeping!=="clean"||room.status==="maintenance"||maintenanceRooms.has(room.id)))notifications.push({id:`manager-room-risk-${arrival.id}`,title:"Arrival room readiness risk",detail:`${arrival.confirmation_number||arrival.id} - Room ${room.number}`,section:"room_rack"});}
     for(const order of maintenance.filter(item=>item.status!=="resolved"&&["urgent","critical"].includes(String(item.priority))).slice(0,5))notifications.push({id:`manager-maintenance-${order.id}`,title:"Critical Maintenance issue",detail:`Room ${order.room_number} - ${order.issue}`,section:"maintenance_orders",createdAt:typeof order.created_at==="string"?order.created_at:undefined});
@@ -130,7 +142,7 @@ export async function getDashboard(role: Role, userId?: string): Promise<Dashboa
   }
   if (role === "front_desk") {
     const invoiceByReservation=new Map(invoices.map(invoice=>[invoice.reservation_id,invoice]));
-    const maintenanceRooms=new Set(maintenance.filter(order=>activeMaintenanceStatuses.has(String(order.status))&&["blocked","out_of_service"].includes(String(order.serviceability_impact))).map(order=>order.room_id));
+    const maintenanceRooms=blockedMaintenanceRoomIds;
     for(const reservation of activeArrivals.filter(item=>!item.room_id))notifications.push({id:`unassigned-${reservation.id}`,title:"Arrival needs a room assignment",detail:`${reservation.confirmation_number||reservation.id} - ${reservation.guest_name}`,section:"room_rack"});
     for(const reservation of [...activeArrivals,...activeDepartures]){const invoice=invoiceByReservation.get(reservation.id);if(Number(invoice?.balance||0)>0)notifications.push({id:`balance-${reservation.id}`,title:reservation.check_out===today?"Departure has an outstanding balance":"Arrival balance requires attention",detail:`${reservation.confirmation_number||reservation.id} - ${new Intl.NumberFormat("en-PH",{style:"currency",currency:"PHP"}).format(Number(invoice?.balance||0))}`,section:"room_rack"});const room=rooms.find(item=>item.id===reservation.room_id);if(room&&(room.status==="maintenance"||room.housekeeping!=="clean"||maintenanceRooms.has(room.id)))notifications.push({id:`room-block-${reservation.id}`,title:"Assigned room is not ready",detail:`${reservation.confirmation_number||reservation.id} - Room ${room.number}`,section:"room_rack"});}
     for(const request of requests.filter(item=>item.status!=="completed").slice(0,5))notifications.push({id:`request-${request.id}`,title:"Guest request requires coordination",detail:`${request.department} - ${request.request}`,section:"guest_requests",createdAt:typeof request.created_at==="string"?request.created_at:undefined});
@@ -168,7 +180,7 @@ export async function getDashboard(role: Role, userId?: string): Promise<Dashboa
       departures: activeDepartures.length,
       revenue,
       openTasks: tasks.filter((task) => task.status !== "completed").length,
-      availableRooms: rooms.filter(item=>item.administratively_active!==false&&item.status==="available"&&item.housekeeping==="clean"&&!blockedMaintenanceRoomIds.has(item.id)).length,
+      availableRooms: countBoardState("available"),
       onlineBookings: online.length,
       inHouse: reservations.filter(item=>item.status==="checked_in").length,
       unassignedArrivals: activeArrivals.filter(item=>!item.room_id).length,
@@ -179,7 +191,7 @@ export async function getDashboard(role: Role, userId?: string): Promise<Dashboa
       roomsCleaning:rooms.filter(item=>item.housekeeping==="cleaning").length,roomsAwaitingInspection:rooms.filter(item=>item.housekeeping==="inspection").length,overdueHousekeeping:overdueHousekeeping.length,openMaintenance:maintenance.filter(item=>activeMaintenanceStatuses.has(String(item.status))).length,criticalMaintenance:maintenance.filter(item=>activeMaintenanceStatuses.has(String(item.status))&&["urgent","critical"].includes(String(item.priority))).length,overdueRequests:overdueGuestRequests.length,escalatedIssues:requests.filter(item=>item.escalation_status==="escalated").length,pendingApprovals:approvals.filter(item=>item.status==="pending").length,collectionsToday,depositsReceived,refundSummary,outstandingBalances:financialRole?invoices.reduce((sum,item)=>sum+Number(item.balance||0),0):0,cashThisShift,shiftFloat,shiftOpen,pendingRequestBatches,departmentRequests,transportationRequested,pendingVerifications,pendingRefundCount,depositSlaHours,oldestPendingVerificationMinutes,pendingPastSla
     },
     occupancyTrend,
-    roomMix: [{ name: "Occupied", value: counts("occupied"), color: "#084b55" }, { name: "Available", value: counts("available"), color: "#85cbd0" }, { name: "Reserved", value: counts("reserved"), color: "#dfa062" }, { name: "Service", value: counts("maintenance") + counts("dirty"), color: "#d7d4cb" }],
+    roomMix: [{ name: "Occupied", value: countBoardState("occupied"), color: "#084b55" }, { name: "Available", value: countBoardState("available"), color: "#85cbd0" }, { name: "Reserved", value: countBoardState("reserved"), color: "#dfa062" }, { name: "Service", value: countBoardState("dirty") + countBoardState("out_of_service"), color: "#d7d4cb" }],
     recentReservations,
     notifications
   };

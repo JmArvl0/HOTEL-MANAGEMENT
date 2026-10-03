@@ -25,7 +25,8 @@ const BREAKDOWN_LABEL: Record<string, string> = {
 
 const stayRange = (stay: RackReservation) => `${stay.check_in.slice(0, 10)} → ${stay.check_out.slice(0, 10)}`;
 
-function outOfServiceReason(room: RackRoom): string {
+function outOfServiceReason(room: RackRoom, blocked = false): string {
+  if (blocked) return "Maintenance-blocked";
   if (room.administratively_active === false) return "Retired";
   if (room.status === "maintenance") return "Maintenance";
   return "Cleanup pending";
@@ -36,6 +37,7 @@ function RoomCard({
   stay,
   upcoming,
   state,
+  blocked,
   selected,
   onSelect,
 }: {
@@ -43,6 +45,7 @@ function RoomCard({
   stay: RackReservation | null;
   upcoming: RackReservation | null;
   state: string;
+  blocked?: boolean;
   selected: boolean;
   onSelect: () => void;
 }) {
@@ -61,7 +64,7 @@ function RoomCard({
         <span className={`badge board-state-${state}`}>{STATE_LABEL[state] ?? state}</span>
       </span>
       <span className="board-card-guest">{guest ? `Guest · ${guest}` : "—"}</span>
-      <span className="board-card-floor">Floor {String(room.floor ?? "—")}{state === "out_of_service" ? ` · ${outOfServiceReason(room)}` : ""}</span>
+      <span className="board-card-floor">Floor {String(room.floor ?? "—")}{state === "out_of_service" ? ` · ${outOfServiceReason(room, blocked)}` : ""}</span>
       <span className="board-card-range">{range ?? "—"}</span>
     </button>
   );
@@ -116,20 +119,23 @@ export default function RoomBoard({
   rooms,
   reservations,
   today,
+  blockedRoomIds,
   selectedRoomId,
   onSelectRoom,
 }: {
   rooms: RackRoom[];
   reservations: RackReservation[];
   today: string;
+  blockedRoomIds?: Set<string> | string[] | null;
   selectedRoomId: string | null;
   onSelectRoom: (room: RackRoom) => void;
 }) {
+  const blocked = blockedRoomIds instanceof Set ? blockedRoomIds : new Set(blockedRoomIds ?? []);
   const groups = groupRoomsByType(rooms);
   return (
     <div className="board-groups" role="list" aria-label="Rooms by type">
       {groups.map((group) => {
-        const states = group.rooms.map((room) => roomBoardState(room, reservations, today).state);
+        const states = group.rooms.map((room) => roomBoardState(room, reservations, today, blocked).state);
         const breakdown = (["available", "occupied", "dirty", "reserved", "out_of_service"] as const)
           .map((state) => ({ state, count: states.filter((s) => s === state).length }))
           .filter(({ count }) => count > 0);
@@ -148,7 +154,7 @@ export default function RoomBoard({
             </header>
             <div className="board-cards">
               {group.rooms.map((room) => {
-                const board = roomBoardState(room, reservations, today);
+                const board = roomBoardState(room, reservations, today, blocked);
                 return (
                   <RoomCard
                     key={room.id}
@@ -156,6 +162,7 @@ export default function RoomBoard({
                     stay={board.stay}
                     upcoming={board.upcoming}
                     state={board.state}
+                    blocked={blocked.has(room.id)}
                     selected={selectedRoomId === room.id}
                     onSelect={() => onSelectRoom(room)}
                   />

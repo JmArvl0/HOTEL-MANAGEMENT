@@ -77,19 +77,21 @@ export default function HavenAiPanel({ userName }: { userName?: string | null })
     try {
       const response = await fetch(`/api/ai/brief${refresh ? "?refresh=1" : ""}`, { cache: "no-store" });
       const body = await response.json();
-      if (!response.ok) throw new Error(body?.error ?? "Unable to load the AI brief.");
+      if (!response.ok) throw new Error(body?.message ?? body?.error ?? "Unable to load the AI brief.");
       setIndicators(body.indicators ?? null);
       if (body.data) {
         setBrief(body.data);
         setBriefUnavailable(null);
         setBriefMeta({ model: body.model ?? "", generatedAt: body.generatedAt ?? "", cached: Boolean(body.cached) });
       } else {
+        // MGR-003: show the server's reason (unconfigured, rate-limited,
+        // model failure) instead of a dead-end generic line.
         setBrief(null);
-        setBriefUnavailable(BRIEF_UNAVAILABLE_MESSAGE);
+        setBriefUnavailable(body?.message ?? body?.error ?? BRIEF_UNAVAILABLE_MESSAGE);
       }
-    } catch {
+    } catch (cause) {
       if (!refresh) setIndicators(null);
-      setBriefUnavailable(BRIEF_UNAVAILABLE_MESSAGE);
+      setBriefUnavailable(cause instanceof Error && cause.message ? cause.message : BRIEF_UNAVAILABLE_MESSAGE);
     } finally {
       setLoadingBrief(false);
       setRefreshingBrief(false);
@@ -229,7 +231,11 @@ export default function HavenAiPanel({ userName }: { userName?: string | null })
           ) : (
             <div className="ai-unavailable">
               <Sparkles size={18} aria-hidden="true" />
-              <div><b>Brief unavailable</b><p>{briefUnavailable ?? BRIEF_UNAVAILABLE_MESSAGE}</p></div>
+              <div><b>Brief unavailable</b><p>{briefUnavailable ?? BRIEF_UNAVAILABLE_MESSAGE}</p>
+                <button type="button" className="btn btn-soft btn-sm" onClick={() => void loadBrief(true)} disabled={refreshingBrief}>
+                  <RefreshCw className={refreshingBrief ? "is-spinning" : ""} size={14} aria-hidden="true" /> {refreshingBrief ? "Retrying…" : "Try again"}
+                </button>
+              </div>
             </div>
           )}
         </article>
