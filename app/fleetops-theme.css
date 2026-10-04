@@ -77,3 +77,34 @@
   .saas-page { padding: 16px; padding-bottom: 40px; gap: 12px; }
   .saas-card { padding: 16px; }
 }
+
+/* Rooted primitives: one definition per control, every role inherits. */
+.saas-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 10px 18px; border-radius: 10px; font-weight: 700; font-size: 13px; border: 1px solid transparent; cursor: pointer; }
+.saas-btn-secondary { background: var(--surface); border-color: var(--line); color: var(--text); }
+.saas-btn-ghost { background: transparent; border-color: transparent; color: var(--muted); }
+.saas-btn-danger { background: var(--danger); border-color: var(--danger); color: var(--btn-primary-fg); }
+.saas-btn:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+.saas-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.saas-input, .saas-select, .saas-textarea { width: 100%; min-height: 40px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); font-size: 13px; }
+.saas-input:hover, .saas-select:hover, .saas-textarea:hover { border-color: var(--muted); }
+.saas-input:focus-visible, .saas-select:focus-visible, .saas-textarea:focus-visible { outline: 2px solid var(--info); outline-offset: 1px; border-color: var(--info); }
+
+.saas-badge { display: inline-flex; align-items: center; gap: 5px; min-height: 24px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; border: 1px solid var(--line); background: var(--floor); color: var(--text); }
+.saas-badge[data-tone="success"] { background: var(--surface); border-color: var(--success); color: var(--success-fg); }
+.saas-badge[data-tone="warning"] { background: var(--surface); border-color: var(--warning); color: var(--warning-fg); }
+.saas-badge[data-tone="danger"] { background: var(--surface); border-color: var(--danger); color: var(--danger-fg); }
+.saas-badge[data-tone="info"] { background: var(--surface); border-color: var(--info); color: var(--info-fg); }
+
+.saas-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.saas-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.saas-table th { text-align: left; padding: 10px 12px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; border-bottom: 1px solid var(--line); }
+.saas-table td { padding: 10px 12px; border-bottom: 1px solid var(--line); color: var(--text); }
+.saas-table tr:last-child td { border-bottom: 0; }
+
+.saas-modal { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 24px; color: var(--text); }
+.saas-toast { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; color: var(--text); }
+
+/* Quarantined accents: AI identity and expired-session banner only. */
+.saas-ai-pill { background: var(--ai-navy); color: var(--btn-primary-fg); border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 700; }
+.saas-peach-banner { background: var(--peach); border: 1px solid var(--line); border-radius: 12px; padding: 16px 20px; }

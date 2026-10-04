@@ -38,4 +38,28 @@ describe("fleetops token layer", () => {
     const css = readFileSync(FILE, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
     expect(css).not.toMatch(/#084b55|#f8f6f1|#85cbd0|#141815|#17363f|#c9783c/i);
   });
+
+  it("defines one rooted primitive per control family on tokens", () => {
+    const css = readFileSync(FILE, "utf8");
+    for (const sel of [
+      ".saas-btn",
+      ".saas-btn-secondary",
+      ".saas-btn-ghost",
+      ".saas-btn-danger",
+      ".saas-input",
+      ".saas-badge",
+      '.saas-badge[data-tone="success"]',
+      '.saas-badge[data-tone="danger"]',
+      ".saas-table",
+      ".saas-modal",
+      ".saas-toast",
+      ".saas-ai-pill",
+      ".saas-peach-banner",
+    ]) {
+      expect(css).toContain(sel);
+    }
+    // Primitives reference tokens, never literals (outside the token blocks).
+    const body = css.split(".saas-page")[1] ?? "";
+    expect(body).not.toMatch(/#[0-9a-fA-F]{3,6}/);
+  });
 });
