@@ -55,3 +55,40 @@ describe("fleetops surfaces: guest portal + booking flow", () => {
     }
   });
 });
+
+describe("fleetops surfaces: staff portals", () => {
+  // Ruling 2026-10-04 Slice B: manager-dashboard-theme.css long-tail literals are
+  // NOT remapped — the file is deleted in Slice D. Only its root vars + high-
+  // visibility nav/status/button rules move now. Everything else here is kept.
+  const FILES = [
+    "app/staff-ops-theme.css",
+    "components/front-desk/fused-room-rack-panel.css",
+    "components/ui/haven-data-controls.css",
+    "components/ui/haven-select.css",
+    "components/ui/Modal.css",
+  ];
+
+  it("staff stylesheets carry no legacy coastal/teal hexes", () => {
+    for (const file of FILES) {
+      const css = readFileSync(join(process.cwd(), file), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+      expect(css, file).not.toMatch(LEGACY);
+    }
+  });
+
+  it("staff stylesheets anchor on FleetOps neutrals", () => {
+    for (const file of FILES) {
+      const css = readFileSync(join(process.cwd(), file), "utf8");
+      expect(css, file).toContain("#111827");
+      expect(css, file).toContain("#d1d5db");
+    }
+  });
+
+  it("manager root vars + status severities ride FleetOps (long tail dies in Slice D)", () => {
+    const css = readFileSync(join(process.cwd(), "app/manager-dashboard-theme.css"), "utf8");
+    expect(css).toContain("--db:#0f141b");
+    expect(css).toContain("--dg:#e8edf4");
+    expect(css).toMatch(/\.mr-issue\.high\{[^}]*#ef44441f/);
+    expect(css).toMatch(/\.mr-issue\.warning\{[^}]*#f59e0b1f/);
+    expect(css).toMatch(/\.mr-issue\.info\{[^}]*#3b82f61f/);
+  });
+});

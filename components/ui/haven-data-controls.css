@@ -1,11 +1,11 @@
 /* HAVEN shared data controls: one interaction model, two density contexts. */
 .haven-data-toolbar{
   --hc-surface:var(--ds,#fff);
-  --hc-surface-soft:var(--ds2,#f3f6f4);
-  --hc-line:var(--dl,#dce4e1);
-  --hc-text:var(--dt,#103e48);
-  --hc-muted:var(--dm,#53676b);
-  --hc-accent:var(--dg,#176773);
+  --hc-surface-soft:var(--ds2,#f3f3f3);
+  --hc-line:var(--dl,#d1d5db);
+  --hc-text:var(--dt,#111827);
+  --hc-muted:var(--dm,#5b6472);
+  --hc-accent:var(--dg,#111827);
   display:grid;gap:14px;min-width:0;padding:0;border:0;border-radius:0;
   background:transparent;box-shadow:none;
 }
@@ -27,8 +27,8 @@
   --hc-surface-soft:var(--ops-surface,#ffffff);
   --hc-line:var(--ops-border,#d1d5db);
   --hc-text:var(--ops-ink,#111827);
-  --hc-muted:var(--ops-text-2,#4b5563);
-  --hc-accent:var(--dg,#176773);
+  --hc-muted:var(--ops-text-2,#5b6472);
+  --hc-accent:var(--dg,#111827);
 }
 .haven-toolbar-section{display:grid;gap:7px;min-width:0}
 .haven-data-toolbar.filters-inline{grid-template-columns:minmax(0,1fr) auto;column-gap:16px}
@@ -89,41 +89,41 @@
 .haven-clear-filters:hover{background:color-mix(in srgb,var(--hc-accent) 10%,transparent)}
 .haven-data-toolbar.is-customer .haven-clear-filters{min-height:44px}
 .haven-empty-state{
-  display:grid;place-items:center;min-height:220px;padding:32px;text-align:center;border:1px dashed var(--hc-line,var(--dl,#dce4e1));
-  border-radius:12px;background:var(--hc-surface,var(--ds,#fff));color:var(--hc-muted,var(--dm,#53676b))
+  display:grid;place-items:center;min-height:220px;padding:32px;text-align:center;border:1px dashed var(--hc-line,var(--dl,#d1d5db));
+  border-radius:12px;background:var(--hc-surface,var(--ds,#fff));color:var(--hc-muted,var(--dm,#5b6472))
 }
 .customer-shell .haven-empty-state{--hc-surface:var(--cp-panel);--hc-line:var(--cp-line);--hc-text:var(--cp-text);--hc-muted:var(--cp-muted);--hc-accent:var(--cp-green)}
 .haven-empty-state.is-customer{min-height:260px;border-radius:14px}
-.haven-empty-icon{display:grid;place-items:center;width:44px;height:44px;margin-bottom:12px;border-radius:50%;background:color-mix(in srgb,var(--hc-accent,#176773) 12%,transparent);color:var(--hc-accent,#176773)}
-.haven-empty-state :is(h2,h3){margin:0;color:var(--hc-text,var(--dt,#103e48));font-size:20px}
+.haven-empty-icon{display:grid;place-items:center;width:44px;height:44px;margin-bottom:12px;border-radius:50%;background:color-mix(in srgb,var(--hc-accent,#111827) 12%,transparent);color:var(--hc-accent,#111827)}
+.haven-empty-state :is(h2,h3){margin:0;color:var(--hc-text,var(--dt,#111827));font-size:20px}
 .haven-empty-state p{max-width:52ch;margin:7px 0 0;line-height:1.55}
 .haven-empty-action{margin-top:18px}
 
 /* Shared semantic status badge; informational spans never mimic action controls. */
 .haven-status{
-  --status-bg:#ecefeb;--status-fg:#4f5e59;--status-border:#d7ddda;
+  --status-bg:#f3f3f3;--status-fg:#5b6472;--status-border:#d1d5db;
   display:inline-flex;align-items:center;gap:5px;width:max-content;max-width:100%;
   border:1px solid var(--status-border);border-radius:999px;background:var(--status-bg);
   color:var(--status-fg);font-weight:750;line-height:1.2;white-space:nowrap
 }
 .haven-status--sm{padding:4px 8px;font-size:10px}.haven-status--md{padding:5px 10px;font-size:12px}.haven-status--lg{padding:7px 12px;font-size:14px}
-.haven-status--success{--status-bg:#def1e8;--status-fg:#267056;--status-border:#bfe2d3}
-.haven-status--info{--status-bg:#e1eeeb;--status-fg:#155d65;--status-border:#bddbd8}
-.haven-status--warning{--status-bg:#fff0dd;--status-fg:#8a4c18;--status-border:#f1d3aa}
-.haven-status--danger{--status-bg:#f9e3e1;--status-fg:#923c38;--status-border:#edc2bf}
+.haven-status--success{--status-bg:#10b98114;--status-fg:#047857;--status-border:#10b98114}
+.haven-status--info{--status-bg:#f3f3f3;--status-fg:#111827;--status-border:#d1d5db}
+.haven-status--warning{--status-bg:#f59e0b14;--status-fg:#b45309;--status-border:#f59e0b14}
+.haven-status--danger{--status-bg:#ef444414;--status-fg:#b91c1c;--status-border:#ef444440}
 .customer-shell .haven-status--success{--status-bg:var(--st-pos-bg);--status-fg:var(--st-pos-fg);--status-border:var(--st-pos-bd)}
 .customer-shell .haven-status--info{--status-bg:var(--st-info-bg);--status-fg:var(--st-info-fg);--status-border:var(--st-info-bd)}
 .customer-shell .haven-status--warning{--status-bg:var(--st-warn-bg);--status-fg:var(--st-warn-fg);--status-border:var(--st-warn-bd)}
 .customer-shell .haven-status--danger{--status-bg:var(--st-neg-bg);--status-fg:var(--st-neg-fg);--status-border:var(--st-neg-bd)}
 .customer-shell .haven-status--neutral{--status-bg:var(--st-neutral-bg);--status-fg:var(--st-neutral-fg);--status-border:var(--st-neutral-bd)}
-.app-shell .haven-status--success{--status-bg:#173024;--status-fg:#65d3a5;--status-border:#285441}
-.app-shell .haven-status--info{--status-bg:#17363f;--status-fg:#85cbd0;--status-border:#2e5963}
-.app-shell .haven-status--warning{--status-bg:#34291c;--status-fg:#dfa062;--status-border:#5f482c}
-.app-shell .haven-status--danger{--status-bg:#351f21;--status-fg:#ef797e;--status-border:#67353a}
-.theme-light .app-shell .haven-status--success{--status-bg:#def1e8;--status-fg:#267056;--status-border:#bfe2d3}
-.theme-light .app-shell .haven-status--info{--status-bg:#e1eeeb;--status-fg:#155d65;--status-border:#bddbd8}
-.theme-light .app-shell .haven-status--warning{--status-bg:#fff0dd;--status-fg:#8a4c18;--status-border:#f1d3aa}
-.theme-light .app-shell .haven-status--danger{--status-bg:#f9e3e1;--status-fg:#923c38;--status-border:#edc2bf}
+.app-shell .haven-status--success{--status-bg:#10b9811f;--status-fg:#10b981;--status-border:#10b98140}
+.app-shell .haven-status--info{--status-bg:#111827;--status-fg:#3b82f6;--status-border:#111827}
+.app-shell .haven-status--warning{--status-bg:#f59e0b1f;--status-fg:#f59e0b;--status-border:#b45309}
+.app-shell .haven-status--danger{--status-bg:#ef44441f;--status-fg:#ef4444;--status-border:#b91c1c}
+.theme-light .app-shell .haven-status--success{--status-bg:#10b98114;--status-fg:#047857;--status-border:#10b98114}
+.theme-light .app-shell .haven-status--info{--status-bg:#f3f3f3;--status-fg:#111827;--status-border:#d1d5db}
+.theme-light .app-shell .haven-status--warning{--status-bg:#f59e0b14;--status-fg:#b45309;--status-border:#f59e0b14}
+.theme-light .app-shell .haven-status--danger{--status-bg:#ef444414;--status-fg:#b91c1c;--status-border:#ef444440}
 .haven-status.is-outline{background:transparent}.haven-status.is-soft{border-color:transparent}
 .haven-status svg{width:1em;height:1em;flex:none}
 .haven-status-group{display:flex;flex-wrap:wrap;gap:6px}

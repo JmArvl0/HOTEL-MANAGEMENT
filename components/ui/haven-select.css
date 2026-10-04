@@ -7,44 +7,44 @@
 
 :root {
   --select-bg: #fff;
-  --select-border: #dce2de;
-  --select-border-hover: #9fb0a7;
-  --select-border-focus: #176773;
-  --select-text: #103e48;
-  --select-muted: #657169;
-  --select-hover: #f2f7f5;
-  --select-selected: #e1eeeb;
-  --select-selected-text: #084b55;
+  --select-border: #d1d5db;
+  --select-border-hover: #93a0b4;
+  --select-border-focus: #111827;
+  --select-text: #111827;
+  --select-muted: #5b6472;
+  --select-hover: #f3f3f3;
+  --select-selected: #f3f3f3;
+  --select-selected-text: #111827;
   --select-shadow: 0 12px 32px rgba(16, 62, 72, 0.14);
   --select-ring: rgba(23, 103, 115, 0.18);
-  --select-error: #a94e48;
+  --select-error: #b91c1c;
   --select-error-ring: rgba(169, 78, 72, 0.15);
 }
 
 .app-shell {
-  --select-bg: #141815;
-  --select-border: #2c332f;
-  --select-border-hover: #3b443f;
-  --select-border-focus: #85cbd0;
-  --select-text: #dce2de;
-  --select-muted: #909a94;
-  --select-hover: #1c231f;
-  --select-selected: #173024;
-  --select-selected-text: #65d3a5;
+  --select-bg: #161d27;
+  --select-border: #161d27;
+  --select-border-hover: #5b6472;
+  --select-border-focus: #3b82f6;
+  --select-text: #d1d5db;
+  --select-muted: #93a0b4;
+  --select-hover: #111827;
+  --select-selected: #10b9811f;
+  --select-selected-text: #10b981;
   --select-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
   --select-ring: rgba(133, 203, 208, 0.22);
 }
 
 .theme-light .app-shell {
   --select-bg: #fff;
-  --select-border: #dce2de;
-  --select-border-hover: #9fb0a7;
-  --select-border-focus: #176773;
-  --select-text: #263129;
-  --select-muted: #657169;
-  --select-hover: #f2f7f5;
-  --select-selected: #e1eeeb;
-  --select-selected-text: #084b55;
+  --select-border: #d1d5db;
+  --select-border-hover: #93a0b4;
+  --select-border-focus: #111827;
+  --select-text: #2a3442;
+  --select-muted: #5b6472;
+  --select-hover: #f3f3f3;
+  --select-selected: #f3f3f3;
+  --select-selected-text: #111827;
   --select-shadow: 0 12px 32px rgba(16, 62, 72, 0.14);
   --select-ring: rgba(23, 103, 115, 0.18);
 }

@@ -160,9 +160,9 @@ describe("ManagerReservationsPanel", () => {
   it("paints mr-issue severities from the canonical code in both themes", () => {
     const theme = readFileSync(join(process.cwd(), "app/manager-dashboard-theme.css"), "utf8");
     // high = danger red, warning = amber, info = informing blue (DESIGN.md §21).
-    expect(theme).toMatch(/\.mr-issue\.high\{[^}]*#351f21/);
-    expect(theme).toMatch(/\.mr-issue\.warning\{[^}]*#34291c/);
-    expect(theme).toMatch(/\.mr-issue\.info\{[^}]*#1d2c46/);
-    expect(theme).toMatch(/\.theme-light \.app-shell \.mr-issue\.info\{[^}]*#e3edfb/);
+    expect(theme).toMatch(/\.mr-issue\.high\{[^}]*#ef44441f/);
+    expect(theme).toMatch(/\.mr-issue\.warning\{[^}]*#f59e0b1f/);
+    expect(theme).toMatch(/\.mr-issue\.info\{[^}]*#3b82f61f/);
+    expect(theme).toMatch(/\.theme-light \.app-shell \.mr-issue\.info\{[^}]*#3b82f614/);
   });
 });

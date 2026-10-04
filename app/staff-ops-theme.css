@@ -23,16 +23,16 @@
   --ops-text-3: #6b7280;
   --ops-success: #10b981;
   --ops-success-ink: #047857;
-  --ops-success-tint: #e7f8f1;
+  --ops-success-tint: #10b98114;
   --ops-warning: #f59e0b;
   --ops-warning-ink: #b45309;
-  --ops-warning-tint: #fdf3e2;
+  --ops-warning-tint: #f59e0b14;
   --ops-danger: #ef4444;
   --ops-danger-ink: #b91c1c;
-  --ops-danger-tint: #fdeeee;
+  --ops-danger-tint: #ef444414;
   --ops-info: #3b82f6;
   --ops-info-ink: #1d4ed8;
-  --ops-info-tint: #e9f1fd;
+  --ops-info-tint: #3b82f614;
   --ops-navy: #0b132b;
   --ops-r-control: 12px;
   --ops-r-card: 16px;
@@ -400,7 +400,7 @@
 .theme-light .app-shell .modal-description { color: var(--ops-text-2); font-size: 13px; }
 .theme-light .app-shell .modal-branded .modal-header { background: var(--ops-ink); border-color: var(--ops-ink); }
 .theme-light .app-shell .modal-branded .modal-title { color: #fff; }
-.theme-light .app-shell .modal-branded .modal-description { color: #cbd2dc; }
+.theme-light .app-shell .modal-branded .modal-description { color: #5b6472; }
 .theme-light .app-shell .modal-branded .modal-close { border-color: rgb(255 255 255 / 0.25); background: rgb(255 255 255 / 0.08); color: #fff; }
 .theme-light .app-shell .modal-branded .modal-close:hover { background: rgb(255 255 255 / 0.16); }
 .theme-light .app-shell .modal-branded .modal-close:focus-visible { outline: 2px solid #fff; }
@@ -522,7 +522,7 @@
 .app-shell button.mod-kpi[aria-pressed="true"] { border-color: #8fb4ec; box-shadow: 0 0 0 1px #8fb4ec; }
 .app-shell .mod-kpi > i.attention { background: #3a2d1a; color: #e8b96a; }
 .app-shell .mod-kpi > i.today, .app-shell .mod-kpi > i.active { background: #16233f; color: #8fb4ec; }
-.app-shell .mod-kpi > i.done { background: #173024; color: #65d3a5; }
+.app-shell .mod-kpi > i.done { background: #10b9811f; color: #6ee7b7; }
 .app-shell .panel { background: var(--ds); border: 1px solid var(--dl); border-radius: var(--ops-r-card); box-shadow: var(--ops-shadow-rest); padding: 20px; }
 .app-shell .dashboard-grid { gap: 16px; margin-top: 16px; }
 /* Role-based overview composition: the manager grid leads visually with
@@ -555,10 +555,10 @@
   border-radius: 8px;
 }
 .app-shell .haven-action-item[data-tone="amber"] .haven-action-item-icon { background: #3a2d1a; color: #e8b96a; }
-.app-shell .haven-action-item[data-tone="green"] .haven-action-item-icon { background: #173024; color: #65d3a5; }
-.app-shell .haven-action-item[data-tone="rose"] .haven-action-item-icon { background: #3a1e22; color: #e88a8f; }
+.app-shell .haven-action-item[data-tone="green"] .haven-action-item-icon { background: #10b9811f; color: #6ee7b7; }
+.app-shell .haven-action-item[data-tone="rose"] .haven-action-item-icon { background: #ef44441f; color: #fca5a5; }
 .app-shell .haven-action-item[data-tone="neutral"] .haven-action-item-icon { background: #1a2440; color: #b9c6de; }
-.app-shell .haven-action-item[data-tone="info"] .haven-action-item-icon { background: #1d2c46; color: #8fb8f5; }
+.app-shell .haven-action-item[data-tone="info"] .haven-action-item-icon { background: #3b82f61f; color: #93c5fd; }
 .app-shell .haven-action-item.is-quiet .haven-action-item-icon { background: #1a2440; color: #7c8698; }
 .app-shell .haven-action-item-copy { display: grid; gap: 4px; min-width: 0; }
 .app-shell .haven-action-item-copy > strong { color: #eef1f7; font-size: 14px; font-weight: 600; }
