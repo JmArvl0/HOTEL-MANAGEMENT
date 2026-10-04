@@ -1,0 +1,79 @@
+/* FleetOps token layer — last import in app/layout.tsx, wins the cascade.
+   Dark is the base stylesheet; .theme-light overrides it (see lib/theme.ts).
+   Palette: Midnight Ink #111827, Cool Paper #f3f3f3, Surface White #ffffff,
+   Slate Border #d1d5db, Success #10b981/#047857, Warning #f59e0b,
+   Alert #ef4444/#b91c1c, Info #3b82f6/#1d4ed8, Deep Navy #0b132b (AI only),
+   Sky scale (AI icons only), Session Peach #fff8f3 / dark #27150a (banner only). */
+
+:root {
+  --ink: #111827;
+  --floor: #0f141b;
+  --surface: #161d27;
+  --line: #2a3442;
+  --text: #e8edf4;
+  --muted: #93a0b4;
+  --success: #10b981;
+  --success-fg: #6ee7b7;
+  --warning: #f59e0b;
+  --warning-fg: #fcd34d;
+  --danger: #ef4444;
+  --danger-fg: #fca5a5;
+  --info: #3b82f6;
+  --info-fg: #93c5fd;
+  --ai-navy: #0b132b;
+  --peach: #27150a;
+  --btn-primary-bg: var(--ink);
+  --btn-primary-fg: #fff;
+  color-scheme: dark;
+}
+
+.theme-light {
+  --ink: #111827;
+  --floor: #f3f3f3;
+  --surface: #ffffff;
+  --line: #d1d5db;
+  --text: #111827;
+  --muted: #5b6472;
+  --success: #10b981;
+  --success-fg: #047857;
+  --warning: #f59e0b;
+  --warning-fg: #b45309;
+  --danger: #ef4444;
+  --danger-fg: #b91c1c;
+  --info: #3b82f6;
+  --info-fg: #1d4ed8;
+  --ai-navy: #0b132b;
+  --peach: #fff8f3;
+  --btn-primary-bg: var(--ink);
+  --btn-primary-fg: #fff;
+  color-scheme: light;
+}
+
+/* Anti-scatter roots: every page stacks with gap, every card carries inset. */
+.saas-page {
+  max-width: 1320px;
+  margin-inline: auto;
+  padding: 24px;
+  padding-bottom: 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.saas-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.saas-btn-primary {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+  border: 1px solid var(--btn-primary-bg);
+}
+
+@media (max-width: 680px) {
+  .saas-page { padding: 16px; padding-bottom: 40px; gap: 12px; }
+  .saas-card { padding: 16px; }
+}
