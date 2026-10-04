@@ -16,6 +16,7 @@ import "@/components/customer/notification-history.css";
 import "./customer-portal.css";
 import "./staff-ops-theme.css";
 import "@/components/auth/session-expiry.css";
+import "@/components/ui/app-shell.css";
 import "./fleetops-theme.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
