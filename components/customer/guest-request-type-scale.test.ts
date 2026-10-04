@@ -53,8 +53,8 @@ describe("guest requests type scale", () => {
     const item = ".customer-shell .customer-requests-page .cgr-batch-items li";
     expect(css).toContain(`${item}{position:relative;padding-left:20px}`);
     expect(css).toContain(`${item}::before{content:"";position:absolute;left:2px;top:20px;`);
-    expect(css).toContain("li.cgr-status-in-progress::before{background:#6fb7d6}");
-    expect(css).toContain("li.cgr-status-completed::before{background:#65d3a5}");
-    expect(css).toContain("li.cgr-status-cancelled::before{background:#ef797e}");
+    expect(css).toContain("li.cgr-status-in-progress::before{background:#3b82f6}");
+    expect(css).toContain("li.cgr-status-completed::before{background:#10b981}");
+    expect(css).toContain("li.cgr-status-cancelled::before{background:#ef4444}");
   });
 });

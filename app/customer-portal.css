@@ -10,41 +10,41 @@
 /* ============ 1. Tokens ============ */
 .customer-shell{
   /* Deep forest dark (default) — deliberate role remap, not an inversion of the light palette. */
-  --cp-bg:#0e1613; --cp-panel:#151f1a; --cp-panel-2:#1b2721;
-  --cp-line:#28352e; --cp-line-soft:#222e28;
-  --cp-text:#ede8dc; --cp-muted:#98a69b;
-  --cp-green:#7fc3bd; --cp-accent:#7fc3bd; --cp-gold:#c9a35f;
-  --cp-sage:#1e2b25; --cp-rail:#131c17; --cp-active-fg:#dcefe9;
-  --cp-danger:#e2857d; --cp-warning:#d9a05b; --cp-positive:#8ecdae; --cp-info:#93bdd8;
-  --btn-primary-bg:#7fc3bd; --btn-primary-hover:#a5d8d2; --btn-primary-fg:#06231f;
+  --cp-bg:#0f141b; --cp-panel:#161d27; --cp-panel-2:#0f141b;
+  --cp-line:#2a3442; --cp-line-soft:#2a3442;
+  --cp-text:#e8edf4; --cp-muted:#93a0b4;
+  --cp-green:#6ee7b7; --cp-accent:#e8edf4; --cp-gold:#f59e0b;
+  --cp-sage:#161d27; --cp-rail:#0f141b; --cp-active-fg:#e8edf4;
+  --cp-danger:#fca5a5; --cp-warning:#fcd34d; --cp-positive:#6ee7b7; --cp-info:#93c5fd;
+  --btn-primary-bg:#e8edf4; --btn-primary-hover:#ffffff; --btn-primary-fg:#111827;
   /* Status pills (dot + tint + border, both themes) */
-  --st-pos-bg:#173229;  --st-pos-fg:#8ecdae;  --st-pos-bd:#2b4a3e;
-  --st-warn-bg:#33291a; --st-warn-fg:#dfb371; --st-warn-bd:#4d3f27;
-  --st-neg-bg:#372226;  --st-neg-fg:#e59a94;  --st-neg-bd:#523236;
-  --st-info-bg:#1f2f38; --st-info-fg:#9cc3dc; --st-info-bd:#31474f;
-  --st-neutral-bg:#242e29; --st-neutral-fg:#b9c4bc; --st-neutral-bd:#37453d;
+  --st-pos-bg:#10b9811f;  --st-pos-fg:#6ee7b7;  --st-pos-bd:#10b98140;
+  --st-warn-bg:#f59e0b1f; --st-warn-fg:#fcd34d; --st-warn-bd:#f59e0b40;
+  --st-neg-bg:#ef44441f;  --st-neg-fg:#fca5a5;  --st-neg-bd:#ef444440;
+  --st-info-bg:#3b82f61f; --st-info-fg:#93c5fd; --st-info-bd:#3b82f640;
+  --st-neutral-bg:#e8edf414; --st-neutral-fg:#93a0b4; --st-neutral-bd:#2a3442;
   /* Card family */
   --cp-card-radius:14px; --cp-card-pad:24px;
-  --cp-shadow:0 2px 10px rgba(10,20,15,.28);
-  --cp-shadow-hover:0 10px 26px rgba(10,20,15,.38);
+  --cp-shadow:0 2px 10px rgba(17,24,39,.28);
+  --cp-shadow-hover:0 10px 26px rgba(17,24,39,.38);
   font-size:14px;
 }
 .theme-light .customer-shell{
   /* Warm ivory light — sage secondary surface, forest primary, restrained copper accent. */
-  --cp-bg:#f6f4ed; --cp-panel:#fffdf8; --cp-panel-2:#f1eee4;
-  --cp-line:#e2ddd0; --cp-line-soft:#eae5d8;
-  --cp-text:#1f3a34; --cp-muted:#5f6f66;
-  --cp-green:#084b55; --cp-accent:#084b55; --cp-gold:#b98a4a;
-  --cp-sage:#e9efe8; --cp-rail:#fbfaf4; --cp-active-fg:#0a444d;
-  --cp-danger:#a6433c; --cp-warning:#8b5b18; --cp-positive:#1c6a4f; --cp-info:#2c5f7d;
-  --btn-primary-bg:#084b55; --btn-primary-hover:#136573; --btn-primary-fg:#fff;
-  --st-pos-bg:#e3efe7;  --st-pos-fg:#1c6a4f;  --st-pos-bd:#bcd8c6;
-  --st-warn-bg:#f6eedb; --st-warn-fg:#8b5b18; --st-warn-bd:#e0cfa6;
-  --st-neg-bg:#f7e4e2;  --st-neg-fg:#a6433c;  --st-neg-bd:#e3c2bd;
-  --st-info-bg:#e7eef4; --st-info-fg:#2c5f7d; --st-info-bd:#c4d4e0;
-  --st-neutral-bg:#eeeae0; --st-neutral-fg:#5f6f66; --st-neutral-bd:#dbd4c4;
-  --cp-shadow:0 2px 10px rgba(31,58,52,.06);
-  --cp-shadow-hover:0 10px 26px rgba(31,58,52,.13);
+  --cp-bg:#f3f3f3; --cp-panel:#ffffff; --cp-panel-2:#f3f3f3;
+  --cp-line:#d1d5db; --cp-line-soft:#d1d5db;
+  --cp-text:#111827; --cp-muted:#5b6472;
+  --cp-green:#047857; --cp-accent:#111827; --cp-gold:#b45309;
+  --cp-sage:#f3f3f3; --cp-rail:#ffffff; --cp-active-fg:#111827;
+  --cp-danger:#b91c1c; --cp-warning:#b45309; --cp-positive:#047857; --cp-info:#1d4ed8;
+  --btn-primary-bg:#111827; --btn-primary-hover:#0b132b; --btn-primary-fg:#fff;
+  --st-pos-bg:#10b98114;  --st-pos-fg:#047857;  --st-pos-bd:#10b98140;
+  --st-warn-bg:#f59e0b14; --st-warn-fg:#b45309; --st-warn-bd:#f59e0b40;
+  --st-neg-bg:#ef444414;  --st-neg-fg:#b91c1c;  --st-neg-bd:#ef444440;
+  --st-info-bg:#3b82f614; --st-info-fg:#1d4ed8; --st-info-bd:#3b82f640;
+  --st-neutral-bg:#f3f3f3; --st-neutral-fg:#5b6472; --st-neutral-bd:#d1d5db;
+  --cp-shadow:0 2px 10px rgba(17,24,39,.06);
+  --cp-shadow-hover:0 10px 26px rgba(17,24,39,.13);
 }
 
 /* ============ 2. Type system — floors and sizes ============ */
@@ -152,10 +152,10 @@
    amber while open, blue in progress, green completed, red cancelled/declined.
    Decorative only; status already exists in text and the StatusBadge. */
 .customer-shell .customer-requests-page .cgr-batch-items li{position:relative;padding-left:20px}
-.customer-shell .customer-requests-page .cgr-batch-items li::before{content:"";position:absolute;left:2px;top:20px;width:8px;height:8px;border-radius:999px;background:#d1a35f}
-.customer-shell .customer-requests-page .cgr-batch-items li.cgr-status-in-progress::before{background:#6fb7d6}
-.customer-shell .customer-requests-page .cgr-batch-items li.cgr-status-completed::before{background:#65d3a5}
-.customer-shell .customer-requests-page .cgr-batch-items li.cgr-status-cancelled::before{background:#ef797e}
+.customer-shell .customer-requests-page .cgr-batch-items li::before{content:"";position:absolute;left:2px;top:20px;width:8px;height:8px;border-radius:999px;background:#f59e0b}
+.customer-shell .customer-requests-page .cgr-batch-items li.cgr-status-in-progress::before{background:#3b82f6}
+.customer-shell .customer-requests-page .cgr-batch-items li.cgr-status-completed::before{background:#10b981}
+.customer-shell .customer-requests-page .cgr-batch-items li.cgr-status-cancelled::before{background:#ef4444}
 .customer-shell .ctr-request-invitation p,.customer-shell .cgr-request-invitation p{font-size:11px}
 /* Digital Express Pass */
 .customer-shell .customer-checkin-qr{padding:22px 18px}
@@ -223,7 +223,7 @@
   background:var(--cp-panel);border-color:var(--cp-line);
   box-shadow:0 18px 48px rgba(8,16,12,.4);
 }
-.theme-light .customer-shell .customer-account-popover{box-shadow:0 18px 48px rgba(31,58,52,.14)}
+.theme-light .customer-shell .customer-account-popover{box-shadow:0 18px 48px rgba(17,24,39,.14)}
 
 /* ============ 5. Status pills — one token-driven system ============ */
 /* 5a. .customer-status — adds a status dot via ::before (markup untouched). */
@@ -358,19 +358,19 @@
 .customer-shell .customer-transportation-page .ctr-form{max-width:900px}
 
 /* Customer counterpart to the shared staff module header. */
-.customer-shell .customer-page-title{position:relative;isolation:isolate;min-height:130px;overflow:hidden;margin-bottom:30px;padding:24px 26px;border:1px solid #2e6670;border-radius:12px;background:#0d4650;color:#f8f6f1}
-.customer-shell .customer-page-title::after{content:"";position:absolute;z-index:-1;right:-48px;bottom:-92px;width:250px;height:180px;border:1px solid rgba(133,203,208,.2);border-radius:50%;pointer-events:none}
+.customer-shell .customer-page-title{position:relative;isolation:isolate;min-height:130px;overflow:hidden;margin-bottom:30px;padding:24px 26px;border:1px solid #2a3442;border-radius:12px;background:#111827;color:#ffffff}
+.customer-shell .customer-page-title::after{content:"";position:absolute;z-index:-1;right:-48px;bottom:-92px;width:250px;height:180px;border:1px solid rgba(147,197,253,.2);border-radius:50%;pointer-events:none}
 .customer-shell .customer-page-title.split{align-items:center}
 .customer-shell .customer-page-title>div{min-width:0;max-width:780px}
-.customer-shell .customer-page-title h1{color:#f8f6f1;font-size:clamp(32px,4vw,48px);letter-spacing:-.025em}
+.customer-shell .customer-page-title h1{color:#ffffff;font-size:clamp(32px,4vw,48px);letter-spacing:-.025em}
 .customer-shell .customer-page-title>p:last-child,
-.customer-shell .customer-page-title>div>p:last-child{max-width:72ch;margin-bottom:0;color:#c9dcda;font-size:11px;line-height:1.6}
-.customer-shell .customer-page-title .eyebrow{color:#e5bd84}
+.customer-shell .customer-page-title>div>p:last-child{max-width:72ch;margin-bottom:0;color:#93a0b4;font-size:11px;line-height:1.6}
+.customer-shell .customer-page-title .eyebrow{color:#f59e0b}
 .customer-shell .customer-page-title>.btn{position:relative;z-index:1;flex:none;min-height:42px;border-radius:999px;white-space:nowrap}
-.customer-shell .customer-page-title>.btn-accent{border-color:#f8f6f1;background:#f8f6f1;color:#0d4650}
-.customer-shell .customer-page-title>.btn-accent:hover{border-color:#fff;background:#e1eeeb;color:#083940}
-.customer-shell .customer-page-title>.btn-soft{border-color:rgba(201,220,218,.55);background:transparent;color:#f8f6f1}
-.customer-shell .customer-page-title>.btn-soft:hover{border-color:#f8f6f1;background:rgba(248,246,241,.1);color:#fff}
+.customer-shell .customer-page-title>.btn-accent{border-color:#ffffff;background:#ffffff;color:#111827}
+.customer-shell .customer-page-title>.btn-accent:hover{border-color:#fff;background:#e8edf4;color:#111827}
+.customer-shell .customer-page-title>.btn-soft{border-color:rgba(209,213,219,.55);background:transparent;color:#ffffff}
+.customer-shell .customer-page-title>.btn-soft:hover{border-color:#ffffff;background:rgba(255,255,255,.1);color:#fff}
 @media(max-width:600px){
  .customer-shell .customer-page-title{min-height:0;padding:20px}
  .customer-shell .customer-page-title.split{align-items:stretch;gap:18px}
@@ -387,7 +387,7 @@
 @media(max-width:600px){.customer-shell .folio-summary{grid-template-columns:1fr 1fr}.customer-shell .folio-balance{grid-column:1/-1}}
 
 /* ============ 12. Transportation & Requests — feature-card invitation + floors ============ */
-/* The twin invitation banners (ctr/cgr) move off the hardcoded #084b55 block onto the
+/* The twin invitation banners (ctr/cgr) move off the hardcoded #111827 block onto the
    feature-card treatment: soft green-tinted surface that reads as a hero in BOTH themes. */
 .customer-shell .ctr-request-invitation,
 .customer-shell .cgr-request-invitation{
@@ -601,9 +601,9 @@
 .stay-review h2{display:flex;align-items:center;gap:8px}
 .stay-review-stars{display:flex;gap:6px;margin:12px 0;padding:0}
 .stay-review-stars button{background:none;border:0;padding:6px;min-width:44px;min-height:44px;display:grid;place-items:center;color:var(--cp-muted);cursor:pointer;border-radius:8px}
-.stay-review-stars button.lit{color:#b8860b}
+.stay-review-stars button.lit{color:#f59e0b}
 .stay-review-stars button:focus-visible{outline:2px solid var(--cp-green);outline-offset:2px}
-.stay-review p.stay-review-stars{color:#b8860b}
+.stay-review p.stay-review-stars{color:#f59e0b}
 .stay-review label{display:block;font-size:11px;font-weight:700;margin:8px 0 6px}
 .stay-review textarea{width:100%;border:1px solid var(--cp-line);border-radius:10px;padding:10px 12px;font:inherit;font-size:13px;background:var(--cp-panel);color:var(--cp-text);resize:vertical}
 .stay-review-comment{font-size:13px;line-height:1.6}
@@ -619,19 +619,19 @@
    either theme and on either entry point. */
 .receipt-sheet{
   max-width:720px;margin:0 auto;padding:28px;
-  background:var(--cp-panel,#fff);border:1px solid var(--cp-line,#e3e5df);
+  background:var(--cp-panel,#fff);border:1px solid var(--cp-line,#d1d5db);
   border-radius:var(--cp-card-radius,14px);
-  color:var(--cp-text,#103e48);
+  color:var(--cp-text,#111827);
 }
-.receipt-sheet h1{margin:6px 0 2px;font:500 30px/1.15 var(--font-display,Georgia,serif);color:var(--cp-text,#103e48)}
-.receipt-sheet>p{margin:0;color:var(--cp-muted,#6d7971);font-size:12px}
+.receipt-sheet h1{margin:6px 0 2px;font:500 30px/1.15 var(--font-display,Georgia,serif);color:var(--cp-text,#111827)}
+.receipt-sheet>p{margin:0;color:var(--cp-muted,#5b6472);font-size:12px}
 .receipt-sheet dl{margin:20px 0 0}
-.receipt-sheet dl>div{display:flex;justify-content:space-between;align-items:baseline;gap:18px;padding:10px 0;border-bottom:1px solid var(--cp-line,#e3e5df)}
-.receipt-sheet dt{color:var(--cp-muted,#6d7971);font-size:12px}
+.receipt-sheet dl>div{display:flex;justify-content:space-between;align-items:baseline;gap:18px;padding:10px 0;border-bottom:1px solid var(--cp-line,#d1d5db)}
+.receipt-sheet dt{color:var(--cp-muted,#5b6472);font-size:12px}
 .receipt-sheet dd{margin:0;max-width:65%;text-align:right;font-size:13px;line-height:1.45;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
-.receipt-sheet .detail-balance{margin-top:12px;padding:14px 12px;background:var(--cp-panel-2,#f7f9f6);border-bottom:0;border-radius:8px}
-.receipt-sheet .detail-balance dt{font-weight:700;color:var(--cp-text,#103e48)}
-.receipt-sheet .detail-balance dd{font-size:18px;font-weight:700;color:var(--cp-green,#176773)}
+.receipt-sheet .detail-balance{margin-top:12px;padding:14px 12px;background:var(--cp-panel-2,#f3f3f3);border-bottom:0;border-radius:8px}
+.receipt-sheet .detail-balance dt{font-weight:700;color:var(--cp-text,#111827)}
+.receipt-sheet .detail-balance dd{font-size:18px;font-weight:700;color:var(--cp-green,#047857)}
 .receipt-sheet>p:last-child{margin-top:20px;font-size:12px;line-height:1.6}
 /* Inside the modal the panel already supplies the surface — the sheet drops its
    own chrome so it doesn't nest a card within a card. */
@@ -644,25 +644,25 @@
 /* Receipt actions in the modal footer: the email-unavailable note takes the
    free space, the buttons hold the right edge. */
 .receipt-footer{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:10px;width:100%}
-.receipt-footer-note{margin-right:auto;font-size:12px;color:var(--cp-muted,#6d7971)}
+.receipt-footer-note{margin-right:auto;font-size:12px;color:var(--cp-muted,#5b6472)}
 .receipt-download{position:relative}
 .receipt-download-menu{
   position:absolute;bottom:calc(100% + 8px);right:0;z-index:10;
   min-width:236px;padding:6px;display:flex;flex-direction:column;gap:2px;
-  background:var(--cp-panel,#fff);border:1px solid var(--cp-line,#e3e5df);
+  background:var(--cp-panel,#fff);border:1px solid var(--cp-line,#d1d5db);
   border-radius:10px;box-shadow:0 18px 40px rgba(20,45,35,.2);
 }
 .receipt-download-menu button{
   display:flex;flex-direction:column;gap:2px;text-align:left;min-height:44px;
   padding:10px 12px;border:0;border-radius:7px;background:transparent;cursor:pointer;
-  color:var(--cp-text,#103e48);
+  color:var(--cp-text,#111827);
 }
-.receipt-download-menu button:hover{background:var(--cp-panel-2,#f7f9f6)}
-.receipt-download-menu button:focus-visible{outline:2px solid var(--cp-green,#176773);outline-offset:-2px}
+.receipt-download-menu button:hover{background:var(--cp-panel-2,#f3f3f3)}
+.receipt-download-menu button:focus-visible{outline:2px solid var(--cp-green,#047857);outline-offset:-2px}
 .receipt-download-menu b{font-size:13px;font-weight:600}
-.receipt-download-menu small{font-size:11px;color:var(--cp-muted,#6d7971)}
+.receipt-download-menu small{font-size:11px;color:var(--cp-muted,#5b6472)}
 
-.receipt-state{display:flex;align-items:center;justify-content:center;gap:10px;padding:40px 0;color:var(--cp-muted,#6d7971);font-size:13px}
+.receipt-state{display:flex;align-items:center;justify-content:center;gap:10px;padding:40px 0;color:var(--cp-muted,#5b6472);font-size:13px}
 .receipt-spin{animation:receiptSpin 1s linear infinite}
 @keyframes receiptSpin{to{transform:rotate(360deg)}}
 
@@ -691,7 +691,7 @@
   .modal-body{padding:0;overflow:visible}
   .customer-shell,.customer-main,.customer-content{display:block!important;background:#fff!important}
   .customer-main{margin-left:0!important;padding:0!important}
-  .receipt-sheet{max-width:none;margin:0;padding:0;border:0;background:#fff;color:#103e48}
+  .receipt-sheet{max-width:none;margin:0;padding:0;border:0;background:#fff;color:#111827}
   .receipt-sheet dl>div{break-inside:avoid}
 }
 @page{margin:14mm}
@@ -874,18 +874,18 @@
 .customer-shell .concierge-time{font-size:10px;color:var(--cp-muted)}
 .customer-shell .concierge-foot{display:grid;gap:10px;padding-top:12px;margin-top:4px;border-top:1px solid var(--cp-line)}
 .customer-shell .concierge-user{justify-self:end;text-align:right}
-.customer-shell .concierge-user>p{display:inline-block;padding:8px 12px;border-radius:14px 14px 4px 14px;background:var(--cp-accent);color:#06231f}
-.theme-light .customer-shell .concierge-user>p{background:#084b55;color:#fff}
+.customer-shell .concierge-user>p{display:inline-block;padding:8px 12px;border-radius:14px 14px 4px 14px;background:var(--cp-accent);color:#111827}
+.theme-light .customer-shell .concierge-user>p{background:#111827;color:#fff}
 .customer-shell .concierge-assistant{justify-self:start;color:var(--cp-text)}
 .customer-shell .concierge-draft{display:grid;gap:6px;margin-top:2px;padding:10px 12px;border:1px dashed var(--cp-line);border-radius:10px;background:transparent;font-size:11.5px}
 .customer-shell .concierge-draft strong{font-size:11.5px}
 .customer-shell .concierge-draft p{margin:0;color:var(--cp-muted)}
-.customer-shell .concierge-draft button{justify-self:start;min-height:36px;padding:8px 14px;border:0;border-radius:999px;background:var(--cp-accent);color:#06231f;font-size:11.5px;font-weight:700;cursor:pointer}
-.theme-light .customer-shell .concierge-draft button{background:#084b55;color:#fff}
+.customer-shell .concierge-draft button{justify-self:start;min-height:36px;padding:8px 14px;border:0;border-radius:999px;background:var(--cp-accent);color:#111827;font-size:11.5px;font-weight:700;cursor:pointer}
+.theme-light .customer-shell .concierge-draft button{background:#111827;color:#fff}
 .customer-shell .concierge-skeleton{display:grid;gap:6px}
 .customer-shell .concierge-skeleton .pulse-bar{height:12px;border-radius:6px;background:var(--cp-panel-2)}
 .customer-shell .concierge-skeleton .pulse-bar.short{width:60%}
-.customer-shell .concierge-error{margin:0;font-size:11.5px;color:#ef797e}
+.customer-shell .concierge-error{margin:0;font-size:11.5px;color:#fca5a5}
 .customer-shell .concierge-ok{margin:0;font-size:11.5px;color:var(--cp-accent)}
 .customer-shell .concierge-chips{display:flex;flex-wrap:wrap;gap:6px}
 .customer-shell .concierge-chip{min-height:32px;padding:6px 12px;border:1px solid var(--cp-line);border-radius:999px;background:transparent;color:var(--cp-text);font-size:11px;cursor:pointer}
@@ -894,8 +894,8 @@
 .customer-shell .concierge-form{display:flex;gap:8px}
 .customer-shell .concierge-form input{flex:1;min-width:0;min-height:44px;padding:10px 14px;border:1px solid var(--cp-line);border-radius:12px;background:var(--cp-panel-2);color:var(--cp-text);font-size:13px}
 .customer-shell .concierge-form input:focus{outline:none;border-color:var(--cp-accent)}
-.customer-shell .concierge-form button{flex:none;min-height:44px;padding:10px 16px;border:0;border-radius:12px;background:var(--cp-accent);color:#06231f;font-size:12.5px;font-weight:700;cursor:pointer}
-.theme-light .customer-shell .concierge-form button{background:#084b55;color:#fff}
+.customer-shell .concierge-form button{flex:none;min-height:44px;padding:10px 16px;border:0;border-radius:12px;background:var(--cp-accent);color:#111827;font-size:12.5px;font-weight:700;cursor:pointer}
+.theme-light .customer-shell .concierge-form button{background:#111827;color:#fff}
 .customer-shell .concierge-form button:disabled{opacity:.55;cursor:default}
 .customer-shell .concierge-disclosure{margin:0;font-size:10.5px;line-height:1.5;color:var(--cp-muted)}
 @media(max-width:680px){

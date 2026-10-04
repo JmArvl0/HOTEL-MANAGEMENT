@@ -208,10 +208,10 @@ describe("Review correction contracts (wide premium workspace)", () => {
   it("sets the stay photo to the approved 150–180px band", () => {
     expect(read("app/guest-booking.css")).toContain(".review-stay-photo{position:relative;height:170px");
   });
-  it("uses a warm-cream stay eyebrow and a prominent room total", () => {
+  it("uses a muted stay eyebrow and a prominent room total", () => {
     const css = read("app/guest-booking.css");
     expect(css).toContain(".review-stay-eyebrow{");
-    expect(css).toContain("color:#eed9a8");
+    expect(css).toContain("color:#93a0b4");
     expect(css).toContain(".review-stay-total dt,.review-stay-total dd{font-size:21px");
   });
 });

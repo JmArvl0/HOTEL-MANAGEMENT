@@ -30,3 +30,28 @@ describe("fleetops surfaces: landing + auth", () => {
     }
   });
 });
+
+describe("fleetops surfaces: guest portal + booking flow", () => {
+  const FILES = [
+    "app/customer-portal.css",
+    "app/guest-booking.css",
+    "app/(booking)/booking/search/search.css",
+    "components/booking/room-details.css",
+    "components/customer/notification-history.css",
+  ];
+
+  it("guest + booking stylesheets carry no legacy coastal/teal hexes", () => {
+    for (const file of FILES) {
+      const css = readFileSync(join(process.cwd(), file), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+      expect(css, file).not.toMatch(LEGACY);
+    }
+  });
+
+  it("guest + booking stylesheets anchor on FleetOps neutrals", () => {
+    for (const file of FILES) {
+      const css = readFileSync(join(process.cwd(), file), "utf8");
+      expect(css, file).toContain("#111827");
+      expect(css, file).toContain("#d1d5db");
+    }
+  });
+});
