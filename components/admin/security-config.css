@@ -11,11 +11,11 @@
 .sec-panel>.sec-rows{margin:0;display:grid;gap:0;padding:8px 18px 8px}
 .sec-rows>div{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-top:1px solid var(--dl)}
 .sec-rows>div:first-child{border-top:0}
-.sec-rows dt{color:var(--ops-text-2,#8b95a8);font-size:12px;flex:none}
+.sec-rows dt{color:var(--ops-text-2,#93a0b4);font-size:12px;flex:none}
 .sec-rows dd{margin:0;min-width:0;text-align:right;font-weight:600;font-size:13px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .sec-panel>.sec-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto;padding:16px 18px 18px}
 .sec-locked{position:relative}
-.sec-panel>.sec-warn{margin:12px 18px 0;font-size:12px;color:var(--ops-warning-ink,#90621c)}
+.sec-panel>.sec-warn{margin:12px 18px 0;font-size:12px;color:var(--ops-warning-ink,#b45309)}
 .sec-audit{grid-column:1/-1}
 .sec-audit .empty.admin-module-empty{min-height:0;padding:28px 20px}
 /* Scoped security-state badges: off/disabled must read as a warning at a
@@ -23,9 +23,9 @@
    StatusBadge neutral mapping elsewhere is untouched. Theme-aware: the
    dark app-shell values reuse the shared danger/success badge tokens from
    haven-data-controls.css; no new colors are introduced. */
-.app-shell .sec-wrap .haven-status.sec-badge-off{background-color:#351f21!important;color:#ef797e!important;border:1px solid #67353a!important;font-weight:600}
-.app-shell .sec-wrap .haven-status.sec-badge-on{background-color:#173024!important;color:#65d3a5!important;border:1px solid #285441!important;font-weight:600}
-.theme-light .app-shell .sec-wrap .haven-status.sec-badge-off{background-color:#fef2f2!important;color:#9f1239!important;border:1px solid #fecdd3!important}
-.theme-light .app-shell .sec-wrap .haven-status.sec-badge-on{background-color:#ecfdf5!important;color:#065f46!important;border:1px solid #a7f3d0!important}
+.app-shell .sec-wrap .haven-status.sec-badge-off{background-color:#ef44441f!important;color:#ef4444!important;border:1px solid #b91c1c!important;font-weight:600}
+.app-shell .sec-wrap .haven-status.sec-badge-on{background-color:#10b9811f!important;color:#10b981!important;border:1px solid #10b98140!important;font-weight:600}
+.theme-light .app-shell .sec-wrap .haven-status.sec-badge-off{background-color:#ef444414!important;color:#b91c1c!important;border:1px solid #ef444440!important}
+.theme-light .app-shell .sec-wrap .haven-status.sec-badge-on{background-color:#10b98114!important;color:#047857!important;border:1px solid #6ee7b7!important}
 @media(max-width:900px){.sec-grid{grid-template-columns:1fr}}
 @media(max-width:680px){.sec-rows>div{flex-wrap:wrap;row-gap:4px}.sec-rows dd{flex-basis:100%;text-align:left}}

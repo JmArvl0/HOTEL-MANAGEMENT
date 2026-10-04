@@ -92,3 +92,25 @@ describe("fleetops surfaces: staff portals", () => {
     expect(css).toMatch(/\.mr-issue\.info\{[^}]*#3b82f61f/);
   });
 });
+
+describe("fleetops surfaces: owner + admin", () => {
+  const FILES = [
+    "components/admin/system-health.css",
+    "components/admin/security-config.css",
+  ];
+
+  it("admin stylesheets carry no legacy coastal/teal hexes", () => {
+    for (const file of FILES) {
+      const css = readFileSync(join(process.cwd(), file), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+      expect(css, file).not.toMatch(LEGACY);
+    }
+  });
+
+  it("admin stylesheets anchor on FleetOps semantics (neutrals arrive via vars)", () => {
+    for (const file of FILES) {
+      const css = readFileSync(join(process.cwd(), file), "utf8");
+      expect(css, file).toContain("#10b981");
+      expect(css, file).toContain("#ef4444");
+    }
+  });
+});
