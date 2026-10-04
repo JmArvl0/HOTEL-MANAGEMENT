@@ -36,35 +36,35 @@
 .btn:active:not(:disabled) { transform: translateY(1px); }
 .btn:disabled { cursor: not-allowed; }
 .btn:focus-visible {
-  outline: 2px solid var(--focus-ring, var(--green, #176773));
+  outline: 2px solid var(--focus-ring, var(--green, #111827));
   outline-offset: 2px;
 }
 
 /* Semantic action hierarchy. Legacy .btn-accent/.btn-soft remain supported;
    new shared surfaces should prefer HavenButton and these explicit roles. */
 .haven-button--primary {
-  background: var(--btn-primary-bg, var(--accent, #084b55));
+  background: var(--btn-primary-bg, var(--accent, #111827));
   color: var(--btn-primary-fg, #fff);
 }
-.haven-button--primary:hover:not(:disabled) { background: var(--btn-primary-hover, #136573); }
+.haven-button--primary:hover:not(:disabled) { background: var(--btn-primary-hover, #0b132b); }
 .haven-button--secondary {
-  border: 1px solid var(--btn-secondary-border, var(--line, #dce4e1));
+  border: 1px solid var(--btn-secondary-border, var(--line, #d1d5db));
   background: var(--btn-secondary-bg, #fff);
-  color: var(--btn-secondary-fg, var(--ink, #103e48));
+  color: var(--btn-secondary-fg, var(--ink, #111827));
 }
-.haven-button--secondary:hover:not(:disabled) { background: var(--btn-secondary-hover, #f3f6f4); }
+.haven-button--secondary:hover:not(:disabled) { background: var(--btn-secondary-hover, #f3f3f3); }
 .haven-button--neutral {
-  border: 1px solid var(--btn-secondary-border, var(--line, #dce4e1));
-  background: color-mix(in srgb, var(--btn-secondary-bg, #fff) 72%, var(--btn-secondary-border, #dce4e1));
-  color: var(--btn-secondary-fg, var(--ink, #103e48));
+  border: 1px solid var(--btn-secondary-border, var(--line, #d1d5db));
+  background: color-mix(in srgb, var(--btn-secondary-bg, #fff) 72%, var(--btn-secondary-border, #d1d5db));
+  color: var(--btn-secondary-fg, var(--ink, #111827));
 }
 .haven-button--danger {
-  border: 1px solid color-mix(in srgb, var(--btn-danger-bg, #a94e48) 45%, transparent);
-  background: color-mix(in srgb, var(--btn-danger-bg, #a94e48) 12%, transparent);
-  color: var(--btn-danger-bg, #a94e48);
+  border: 1px solid color-mix(in srgb, var(--btn-danger-bg, #b91c1c) 45%, transparent);
+  background: color-mix(in srgb, var(--btn-danger-bg, #b91c1c) 12%, transparent);
+  color: var(--btn-danger-bg, #b91c1c);
 }
 .haven-button--danger:hover:not(:disabled) {
-  background: var(--btn-danger-bg, #a94e48);
+  background: var(--btn-danger-bg, #b91c1c);
   color: var(--btn-danger-fg, #fff);
 }
 .haven-button--internal { min-height: 36px; padding: 8px 14px; }
@@ -160,34 +160,34 @@
    staff on_leave, escalation escalated. inactive / off_duty / none read as
    the neutral (gray) badge by design — no extra rule needed. Palette pairs
    mirror the existing green / amber / red families in each context. */
-.badge.active      { background: #def1e8; color: #267056; }
-.badge.on_leave    { background: #fff0dd; color: #a45a22; }
+.badge.active      { background: #10b98114; color: #047857; }
+.badge.on_leave    { background: #f59e0b14; color: #b45309; }
 .badge.suspended,
-.badge.escalated   { background: #f9e3e1; color: #a44843; }
+.badge.escalated   { background: #ef444414; color: #b91c1c; }
 
 /* Approval severity + decision badges (manager queue). normal / rejected stay
    the neutral gray default; approved is green, high amber, critical red. */
-.badge.approved   { background: #def1e8; color: #267056; }
-.badge.high       { background: #fff0dd; color: #a45a22; }
-.badge.critical   { background: #f9e3e1; color: #a44843; }
+.badge.approved   { background: #10b98114; color: #047857; }
+.badge.high       { background: #f59e0b14; color: #b45309; }
+.badge.critical   { background: #ef444414; color: #b91c1c; }
 
 /* app-shell dark (staff theme) mirrors */
-.app-shell .badge.active    { background: #173024; color: #65d3a5; }
-.app-shell .badge.on_leave  { background: #34291c; color: #dfa062; }
+.app-shell .badge.active    { background: #10b9811f; color: #10b981; }
+.app-shell .badge.on_leave  { background: #f59e0b1f; color: #f59e0b; }
 .app-shell .badge.suspended,
-.app-shell .badge.escalated { background: #351f21; color: #ef797e; }
-.app-shell .badge.approved  { background: #173024; color: #65d3a5; }
-.app-shell .badge.high      { background: #34291c; color: #dfa062; }
-.app-shell .badge.critical  { background: #351f21; color: #ef797e; }
+.app-shell .badge.escalated { background: #ef44441f; color: #ef4444; }
+.app-shell .badge.approved  { background: #10b9811f; color: #10b981; }
+.app-shell .badge.high      { background: #f59e0b1f; color: #f59e0b; }
+.app-shell .badge.critical  { background: #ef44441f; color: #ef4444; }
 
 /* app-shell light mirrors */
-.theme-light .app-shell .badge.active    { background: #def1e8; color: #267056; }
-.theme-light .app-shell .badge.on_leave  { background: #fff0dd; color: #a45a22; }
+.theme-light .app-shell .badge.active    { background: #10b98114; color: #047857; }
+.theme-light .app-shell .badge.on_leave  { background: #f59e0b14; color: #b45309; }
 .theme-light .app-shell .badge.suspended,
-.theme-light .app-shell .badge.escalated{ background: #f9e3e1; color: #a44843; }
-.theme-light .app-shell .badge.approved  { background: #def1e8; color: #267056; }
-.theme-light .app-shell .badge.high      { background: #fff0dd; color: #a45a22; }
-.theme-light .app-shell .badge.critical  { background: #f9e3e1; color: #a44843; }
+.theme-light .app-shell .badge.escalated{ background: #ef444414; color: #b91c1c; }
+.theme-light .app-shell .badge.approved  { background: #10b98114; color: #047857; }
+.theme-light .app-shell .badge.high      { background: #f59e0b14; color: #b45309; }
+.theme-light .app-shell .badge.critical  { background: #ef444414; color: #b91c1c; }
 
 /* ---- 5. Guest-shell light remnants (DESIGN-STATUS F7) ----------------------
    The booking flow was light-only; inside the dark customer shell a few
@@ -202,6 +202,6 @@
 
 /* ---- 6. System logo tile -------------------------------------------------
    White-bg brand PNG reads as a cream badge on dark + light surfaces. */
-.haven-logo-tile{display:inline-grid;place-items:center;flex:none;overflow:hidden;border-radius:8px;background:#f8f6f1;padding:2px}
+.haven-logo-tile{display:inline-grid;place-items:center;flex:none;overflow:hidden;border-radius:8px;background:#f3f3f3;padding:2px}
 .haven-logo-tile img{width:100%;height:100%;object-fit:contain;border-radius:6px}
 .brand-mark:has(.haven-logo-tile){border:0;color:inherit}

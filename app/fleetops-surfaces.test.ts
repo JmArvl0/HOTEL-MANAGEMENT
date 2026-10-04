@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const LEGACY =
@@ -112,5 +112,36 @@ describe("fleetops surfaces: owner + admin", () => {
       expect(css, file).toContain("#10b981");
       expect(css, file).toContain("#ef4444");
     }
+  });
+});
+
+describe("fleetops surfaces: shared roots + final strip", () => {
+  // Ruling 2026-10-04 Slice D: staff-ops-theme.css is KEPT — it is already the
+  // FleetOps ops layer. Only coastal-theme.css is deleted (globals :root takes
+  // over its var names with FleetOps values). AppShell stays unwired: existing
+  // shells already ride the same tokens, and rewiring risks behavior regressions
+  // for zero visual delta. Shell wiring is a follow-up, not this reskin.
+  const FILES = [
+    "app/globals.css",
+    "app/design-tokens.css",
+    "app/ui-primitives.css",
+    "components/qr/qr-scanner.css",
+    "components/qr/qr-placard.css",
+    "components/ui/haven-loader.css",
+  ];
+
+  it("shared stylesheets carry no legacy coastal/teal hexes", () => {
+    for (const file of FILES) {
+      const css = readFileSync(join(process.cwd(), file), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+      expect(css, file).not.toMatch(LEGACY);
+    }
+  });
+
+  it("coastal-theme.css is deleted and unimported (globals :root owns the base vars)", () => {
+    expect(existsSync(join(process.cwd(), "app/coastal-theme.css"))).toBe(false);
+    const layout = readFileSync(join(process.cwd(), "app/layout.tsx"), "utf8");
+    expect(layout).not.toContain("coastal-theme");
+    const globals = readFileSync(join(process.cwd(), "app/globals.css"), "utf8");
+    expect(globals.replace(/\s+/g, "")).toContain("--ink:#111827");
   });
 });

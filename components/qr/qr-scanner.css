@@ -17,7 +17,7 @@
   aspect-ratio: 1 / 1;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  background: #0f1512;
+  background: #111827;
 }
 
 /* Shorter viewports (1366x768 laptops): keep the whole modal on screen
@@ -42,14 +42,14 @@
   justify-items: center;
   gap: 8px;
   text-align: center;
-  color: #9db3a8;
+  color: #93a0b4;
   padding: 0 28px;
 }
 
 .qr-state-title {
   margin: 0;
   font-size: var(--font-size-sm);
-  color: #cdd9d3;
+  color: #d1d5db;
 }
 
 .qr-state-hint {
@@ -81,7 +81,7 @@
   padding: 5px 6px 5px 14px;
   background: rgba(15, 21, 18, 0.85);
   border-radius: 999px;
-  color: #d7e3dc;
+  color: #d1d5db;
   font-size: var(--font-size-xs);
   white-space: nowrap;
 }
@@ -151,14 +151,14 @@
   content: "";
   flex: 1;
   height: 1px;
-  background: var(--color-line, #e3e5df);
+  background: var(--color-line, #d1d5db);
 }
 
 .qr-manual label {
   display: block;
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-ink, #103e48);
+  color: var(--color-ink, #111827);
   margin-bottom: 6px;
 }
 
@@ -194,7 +194,7 @@
 
 .qr-outcome {
   background: var(--surface-card);
-  border: 1px solid var(--color-line, #dce0da);
+  border: 1px solid var(--color-line, #d1d5db);
   border-radius: var(--radius-xl);
   padding: 20px;
   box-shadow: 0 1px 3px rgba(28, 36, 33, 0.06);
@@ -210,15 +210,15 @@
 .qr-outcome-head h3 {
   font-size: var(--font-size-lg);
   font-family: var(--font-display);
-  color: var(--color-ink, #103e48);
+  color: var(--color-ink, #111827);
 }
 
 .qr-outcome.authorized .qr-outcome-head { color: var(--color-green-700); }
-.qr-outcome.rejected .qr-outcome-head { color: var(--color-danger, #b3372f); }
+.qr-outcome.rejected .qr-outcome-head { color: var(--color-danger, #b91c1c); }
 
 .qr-outcome > p {
   font-size: var(--font-size-sm);
-  color: var(--color-slate-600, #475569);
+  color: var(--color-slate-600, #5b6472);
   line-height: 1.5;
   margin-bottom: 14px;
 }
@@ -227,8 +227,8 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 10px 16px;
-  background: var(--surface-card-hover, #f6f5f1);
-  border: 1px solid var(--color-line, #dce0da);
+  background: var(--surface-card-hover, #f3f3f3);
+  border: 1px solid var(--color-line, #d1d5db);
   border-radius: var(--radius-lg);
   padding: 14px;
   margin-bottom: 16px;
@@ -245,7 +245,7 @@
 .qr-detail dd {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
-  color: var(--color-ink, #103e48);
+  color: var(--color-ink, #111827);
   overflow-wrap: anywhere;
 }
 

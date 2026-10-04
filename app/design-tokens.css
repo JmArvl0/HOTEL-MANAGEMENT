@@ -90,19 +90,19 @@
   --color-slate-950: #020617;
 
   /* Haven Brand Colors (Legacy - mapped to primitives) */
-  --color-forest: #084b55;
-  --color-forest-light: #176773;
-  --color-forest-dark: #082f39;
-  --color-mint: #e1eeeb;
-  --color-cream: #f8f6f1;
+  --color-forest: #111827;
+  --color-forest-light: #111827;
+  --color-forest-dark: #111827;
+  --color-mint: #f3f3f3;
+  --color-cream: #f3f3f3;
   --color-paper: #ffffff;
-  --brand-accent: #084b55;
-  --brand-accent-dark: #136573;
-  --brand-accent-light: #77bec6;
-  --color-ink: #103e48;
-  --color-line: #e3e5df;
-  --color-muted: #6f7974;
-  --brand-danger: #a94e48;
+  --brand-accent: #111827;
+  --brand-accent-dark: #0b132b;
+  --brand-accent-light: #3b82f6;
+  --color-ink: #111827;
+  --color-line: #d1d5db;
+  --color-muted: #5b6472;
+  --brand-danger: #b91c1c;
 
   /* -- Spacing Primitives (4px base unit) -- */
   --space-0: 0;
@@ -295,8 +295,8 @@
   --table-border: var(--color-line);
 
   --sidebar-bg: var(--color-forest-dark);
-  --sidebar-fg: #dbe7e2;
-  --sidebar-border: #29454d;
+  --sidebar-fg: #e8edf4;
+  --sidebar-border: #2a3442;
   --sidebar-hover: rgba(255, 255, 255, 0.1);
   --sidebar-active: rgba(255, 255, 255, 0.15);
   --sidebar-active-border: var(--color-accent);
@@ -449,8 +449,8 @@
     --table-border: var(--color-slate-700);
 
     --sidebar-bg: var(--color-forest-dark);
-    --sidebar-fg: #a9bbb4;
-    --sidebar-border: #29454d;
+    --sidebar-fg: #93a0b4;
+    --sidebar-border: #2a3442;
     --sidebar-hover: rgba(255, 255, 255, 0.08);
     --sidebar-active: rgba(255, 255, 255, 0.12);
     --sidebar-active-border: var(--color-accent-light);
@@ -564,8 +564,8 @@
   --table-border: var(--color-line);
 
   --sidebar-bg: var(--color-forest-dark);
-  --sidebar-fg: #dbe7e2;
-  --sidebar-border: #29454d;
+  --sidebar-fg: #e8edf4;
+  --sidebar-border: #2a3442;
   --sidebar-hover: rgba(255, 255, 255, 0.1);
   --sidebar-active: rgba(255, 255, 255, 0.15);
   --sidebar-active-border: var(--color-accent);
@@ -627,10 +627,10 @@
   /* Branded header (Haven forest surface, from the transportation request modal).
      Fixed brand values like --sidebar-bg: the surface is self-contained dark
      green, so it does not remap between light and dark themes. */
-  --modal-header-branded-bg: #084b55;
-  --modal-header-branded-border: #176773;
+  --modal-header-branded-bg: #111827;
+  --modal-header-branded-border: #111827;
   --modal-header-branded-fg: #fff;
-  --modal-header-branded-muted: #a9c6c3;
+  --modal-header-branded-muted: #93a0b4;
   --modal-header-branded-close-border: rgba(255, 255, 255, 0.17);
   --modal-header-branded-close-bg: rgba(255, 255, 255, 0.05);
   --modal-header-branded-close-hover: rgba(255, 255, 255, 0.1);
@@ -652,10 +652,10 @@
   --toast-border-radius: var(--radius-lg);
 
   /* -- Hero (PageHeader band variant) -- */
-  --hero-bg: #0a4953;
-  --hero-bg-deep: #082f39;
+  --hero-bg: #111827;
+  --hero-bg-deep: #111827;
   --hero-fg: #fff;
-  --hero-muted: #a9c6c3;
+  --hero-muted: #93a0b4;
 }
 
 /* =============================================================================
