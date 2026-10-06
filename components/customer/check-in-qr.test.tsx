@@ -125,4 +125,13 @@ describe("Digital Express Pass layout (Scenario A)", () => {
     expect(screen.getByText("QR expired")).toBeTruthy();
     expect(screen.queryByText("Digital Express Pass")).toBeNull();
   });
+
+  it("links the pass to the express kiosk for self check-in", async () => {
+    stubFetch();
+    const { container } = render(<ReservationDetailView data={data} />);
+    await screen.findByText("Digital Express Pass");
+    const kiosk = screen.getByRole("link", { name: /Express kiosk/ });
+    expect(kiosk.getAttribute("href")).toBe("/checkin/kiosk");
+    expect(container.querySelector(".customer-checkin-qr-action")!.contains(kiosk)).toBe(true);
+  });
 });

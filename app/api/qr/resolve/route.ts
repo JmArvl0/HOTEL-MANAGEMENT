@@ -18,6 +18,13 @@ const ROOM_STAFF = new Set(["front_desk", "manager", "owner", "admin", "housekee
 
 const fail = (status: number, result: string, message: string) => NextResponse.json({ result, message }, { status });
 
+// Hotel-local date (Asia/Manila) seven days out, YYYY-MM-DD — the due-soon
+// window for room assets surfaced on a maintenance scan.
+const dueCutoff = () => {
+  const manila = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit" }).format(Date.now() + 7 * 86400000);
+  return manila;
+};
+
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session || session.user.disabled) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -138,12 +145,25 @@ async function resolveRoom(record: QrTokenRow, userId: string, role: string, aud
 
   if (ROOM_STAFF.has(role)) {
     await auditor("authorized");
-    const [tasks, orders, stay] = await Promise.all([
+    // Actionable item ids ride the response so a scan deep-links the queue
+    // to THIS room's work — the queue's own actions (with their confirms and
+    // role guards) still perform every mutation. Counts stay exact; id lists
+    // are capped because they are navigation context, not the queue itself.
+    const [tasks, taskRows, orders, orderRows, assets, stay] = await Promise.all([
       role === "housekeeping"
         ? supabase!.from("housekeeping_tasks").select("id", { count: "exact", head: true }).eq("room_id", room.id).in("status", ["pending", "in_progress"])
         : Promise.resolve(null),
+      role === "housekeeping"
+        ? supabase!.from("housekeeping_tasks").select("id,status").eq("room_id", room.id).in("status", ["pending", "in_progress"]).order("created_at", { ascending: true }).limit(20)
+        : Promise.resolve(null),
       role === "maintenance"
         ? supabase!.from("maintenance_orders").select("id", { count: "exact", head: true }).eq("room_id", room.id).not("status", "in", "(resolved,cancelled)")
+        : Promise.resolve(null),
+      role === "maintenance"
+        ? supabase!.from("maintenance_orders").select("id,status").eq("room_id", room.id).not("status", "in", "(resolved,cancelled)").order("created_at", { ascending: true }).limit(20)
+        : Promise.resolve(null),
+      role === "maintenance"
+        ? supabase!.from("maintenance_assets").select("id,name,next_service_date").eq("room_id", room.id).eq("active", true).or(`next_service_date.is.null,next_service_date.lte.${dueCutoff()}`).order("next_service_date", { ascending: true, nullsFirst: true }).limit(20)
         : Promise.resolve(null),
       ["front_desk", "manager", "owner", "admin"].includes(role)
         ? supabase!.from("reservations").select("guest_name,check_in,check_out").eq("room_id", room.id).eq("status", "checked_in").order("check_out", { ascending: false }).limit(1).maybeSingle()
@@ -154,7 +174,8 @@ async function resolveRoom(record: QrTokenRow, userId: string, role: string, aud
         result: "authorized", resourceType: "room", action: "room_tasks",
         room: { id: room.id, number: room.number, floor: room.floor, status: room.status, housekeeping: room.housekeeping },
         openTasks: tasks?.count ?? 0,
-        message: `Room ${room.number} opened. Continue in the Housekeeping queue.`
+        tasks: (taskRows?.data ?? []).map((task) => ({ id: task.id, status: task.status })),
+        message: `Room ${room.number} opened — the Housekeeping queue is filtered to this room.`
       });
     }
     if (role === "maintenance") {
@@ -162,7 +183,9 @@ async function resolveRoom(record: QrTokenRow, userId: string, role: string, aud
         result: "authorized", resourceType: "room", action: "work_orders",
         room: { id: room.id, number: room.number, floor: room.floor, status: room.status },
         openOrders: orders?.count ?? 0,
-        message: `Room ${room.number} opened. Continue in the Maintenance module.`
+        orders: (orderRows?.data ?? []).map((order) => ({ id: order.id, status: order.status })),
+        dueAssets: (assets?.data ?? []).map((asset) => ({ id: asset.id, name: asset.name, nextServiceDate: asset.next_service_date })),
+        message: `Room ${room.number} opened — the Maintenance module is filtered to this room.`
       });
     }
     return NextResponse.json({

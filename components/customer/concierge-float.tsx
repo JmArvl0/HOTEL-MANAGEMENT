@@ -32,7 +32,7 @@ export default function ConciergeFloat() {
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [open ]);
+  }, [open]);
 
   return (
     <div className="concierge-float">
@@ -44,7 +44,12 @@ export default function ConciergeFloat() {
               <strong>Ask HAVEN</strong>
             </span>
             <span className="concierge-float-actions">
-              <button type="button" aria-label="Close chat panel" onClick={() => { setOpen(false); launcherRef.current?.focus(); }}>
+              <button
+                type="button"
+                className="concierge-close-btn"
+                aria-label="Close chat panel"
+                onClick={() => { setOpen(false); launcherRef.current?.focus(); }}
+              >
                 <X size={16} aria-hidden="true" />
               </button>
             </span>
@@ -58,6 +63,7 @@ export default function ConciergeFloat() {
         type="button"
         ref={launcherRef}
         className="concierge-float-launcher"
+        aria-controls={panelId}
         aria-expanded={open}
         aria-label={open ? "Close concierge chat" : "Chat with HAVEN concierge"}
         onClick={() => setOpen((value) => !value)}

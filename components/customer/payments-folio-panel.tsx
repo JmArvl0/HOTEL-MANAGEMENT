@@ -100,14 +100,14 @@ export function PaymentsFolioPanel({
   };
 
   const stayOptions = [
-    { value: "all", label: `All Stay Statuses (${stayFacet.length})` },
+    { value: "all", label: `All stays (${stayFacet.length})` },
     ...stayValues.map((value) => ({
       value,
       label: `${STAY_LABELS[value]} (${stayFacet.filter((item) => item.stayState === value).length})`,
     })),
   ];
   const paymentOptions = [
-    { value: "all", label: `All Payment Statuses (${paymentFacet.length})` },
+    { value: "all", label: `All payments (${paymentFacet.length})` },
     ...paymentValues.map((value) => ({
       value,
       label: `${PAYMENT_LABELS[value]} (${paymentFacet.filter((item) => item.paymentState === value).length})`,

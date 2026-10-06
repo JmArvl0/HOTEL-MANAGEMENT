@@ -1,74 +1,70 @@
 /* =============================================================================
    HAVEN — SELECT SYSTEM (shared dropdown visual language)
-   One trigger/menu language for the custom HavenSelect listbox + a styled
-   native <select> fallback for forms/booking/guest flows (mobile UX wins).
-   Palette derives from coastal tokens; metrics live here, not per-module.
+   One unified trigger/menu language for the custom HavenSelect listbox + a styled
+   native <select> fallback for forms/booking/guest flows.
+   Cohesive modern SaaS styling across staff, customer, owner, and admin surfaces.
    ============================================================================= */
 
 :root {
-  --select-bg: #fff;
+  --select-bg: #ffffff;
   --select-border: #d1d5db;
-  --select-border-hover: #93a0b4;
+  --select-border-hover: #9ca3af;
   --select-border-focus: #111827;
   --select-text: #111827;
-  --select-muted: #5b6472;
-  --select-hover: #f3f3f3;
-  --select-selected: #f3f3f3;
+  --select-muted: #6b7280;
+  --select-hover: #f9fafb;
+  --select-selected: #f3f4f6;
   --select-selected-text: #111827;
-  --select-shadow: 0 12px 32px rgba(16, 62, 72, 0.14);
-  --select-ring: rgba(23, 103, 115, 0.18);
-  --select-error: #b91c1c;
-  --select-error-ring: rgba(169, 78, 72, 0.15);
+  --select-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  --select-ring: rgba(17, 24, 39, 0.12);
+  --select-error: #dc2626;
+  --select-error-ring: rgba(220, 38, 38, 0.15);
 }
 
-.app-shell {
-  --select-bg: #161d27;
-  --select-border: #161d27;
-  --select-border-hover: #5b6472;
-  --select-border-focus: #3b82f6;
-  --select-text: #d1d5db;
-  --select-muted: #93a0b4;
-  --select-hover: #111827;
-  --select-selected: #10b9811f;
-  --select-selected-text: #10b981;
-  --select-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
-  --select-ring: rgba(133, 203, 208, 0.22);
-}
-
-.theme-light .app-shell {
-  --select-bg: #fff;
+.theme-light,
+.theme-light .app-shell,
+.theme-light .customer-shell,
+.customer-shell:not(.dark) {
+  --select-bg: #ffffff;
   --select-border: #d1d5db;
-  --select-border-hover: #93a0b4;
+  --select-border-hover: #9ca3af;
   --select-border-focus: #111827;
-  --select-text: #2a3442;
-  --select-muted: #5b6472;
-  --select-hover: #f3f3f3;
-  --select-selected: #f3f3f3;
+  --select-text: #111827;
+  --select-muted: #6b7280;
+  --select-hover: #f9fafb;
+  --select-selected: #f3f4f6;
   --select-selected-text: #111827;
-  --select-shadow: 0 12px 32px rgba(16, 62, 72, 0.14);
-  --select-ring: rgba(23, 103, 115, 0.18);
+  --select-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  --select-ring: rgba(17, 24, 39, 0.12);
 }
-.customer-shell {
-  --select-bg: var(--cp-panel-2);
-  --select-border: var(--cp-line);
-  --select-border-hover: var(--cp-green);
-  --select-border-focus: var(--cp-green);
-  --select-text: var(--cp-text);
-  --select-muted: var(--cp-muted);
-  --select-hover: color-mix(in srgb, var(--cp-green) 9%, var(--cp-panel-2));
-  --select-selected: color-mix(in srgb, var(--cp-green) 15%, var(--cp-panel-2));
-  --select-selected-text: var(--cp-text);
-  --select-ring: color-mix(in srgb, var(--cp-green) 22%, transparent);
+
+.app-shell:not(.theme-light),
+.dark,
+.dark .app-shell,
+.dark .customer-shell,
+[data-theme="dark"],
+[data-theme="dark"] .customer-shell {
+  --select-bg: #161d27;
+  --select-border: #334155;
+  --select-border-hover: #64748b;
+  --select-border-focus: #38bdf8;
+  --select-text: #f1f5f9;
+  --select-muted: #94a3b8;
+  --select-hover: #1e293b;
+  --select-selected: rgba(56, 189, 248, 0.12);
+  --select-selected-text: #38bdf8;
+  --select-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.35);
+  --select-ring: rgba(56, 189, 248, 0.25);
 }
 
 /* ---- HavenSelect custom listbox ---- */
 .haven-select { position: relative; display: inline-flex; min-width: 0; }
 .haven-select-trigger {
-  display: inline-flex; align-items: center; gap: 10px;
-  min-height: 44px; padding: 10px 12px 10px 14px;
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: 40px; padding: 8px 12px 8px 14px;
   background: var(--select-bg); border: 1px solid var(--select-border);
-  border-radius: 11px; color: var(--select-text);
-  font: inherit; font-size: 14px; font-weight: 650; text-align: left;
+  border-radius: 10px; color: var(--select-text);
+  font: inherit; font-size: 13px; font-weight: 550; text-align: left;
   cursor: pointer; max-width: 100%;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
@@ -83,41 +79,43 @@
 .haven-select-chevron.is-open { transform: rotate(180deg); }
 
 .haven-select-menu {
-  position: absolute; top: calc(100% + 6px); left: 0; min-width: 100%; width: max-content; max-width: min(320px, 90vw);
+  position: absolute; top: calc(100% + 5px); left: 0; min-width: 100%; width: max-content; max-width: min(340px, 92vw);
   max-height: 320px; overflow-y: auto; overscroll-behavior: contain;
-  margin: 0; padding: 7px; list-style: none;
+  margin: 0; padding: 6px; list-style: none;
   background: var(--select-bg); border: 1px solid var(--select-border);
-  border-radius: 11px; box-shadow: var(--select-shadow); z-index: 60;
+  border-radius: 10px; box-shadow: var(--select-shadow); z-index: 60;
   animation: havenSelectIn 0.15s ease-out;
 }
 @keyframes havenSelectIn { from { opacity: 0; transform: translateY(-4px) scale(0.99); } to { opacity: 1; transform: none; } }
 .haven-select-group { list-style: none; }
 .haven-select-group > ul { margin: 0; padding: 0; list-style: none; }
 .haven-select-group-label {
-  display: block; padding: 8px 10px 4px;
-  font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  display: block; padding: 7px 10px 4px;
+  font-size: 11px; font-weight: 750; letter-spacing: 0.06em; text-transform: uppercase;
   color: var(--select-muted);
 }
 .haven-select-item {
-  display: flex; align-items: center; gap: 10px;
-  min-height: 42px; padding: 9px 10px; border-radius: 8px;
-  font-size: 14px; font-weight: 550; color: var(--select-text);
+  display: flex; align-items: center; gap: 8px;
+  min-height: 38px; padding: 8px 10px; border-radius: 7px;
+  font-size: 13px; font-weight: 500; color: var(--select-text);
   cursor: pointer; user-select: none;
+  transition: background-color 0.1s ease, color 0.1s ease;
 }
 .haven-select-item:hover, .haven-select-item.is-active { background: var(--select-hover); }
-.haven-select-item.is-selected { background: var(--select-selected); color: var(--select-selected-text); font-weight: 750; }
+.haven-select-item.is-selected { background: var(--select-selected); color: var(--select-selected-text); font-weight: 650; }
 .haven-select-item.is-disabled { opacity: 0.45; cursor: not-allowed; }
 .haven-select-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.haven-select-check { flex-shrink: 0; }
+.haven-select-check { flex-shrink: 0; color: var(--select-selected-text); }
 .haven-select-empty { padding: 12px 10px; font-size: 13px; color: var(--select-muted); }
-.haven-filter { display: inline-flex; align-items: center; gap: 8px; font-size: 9px; color: var(--select-muted); font-weight: 700; }
-.haven-filter > span { white-space: nowrap; }
+
+/* Unified filter wrapper: self-describing dropdowns require no external label */
+.haven-filter { display: inline-flex; align-items: center; min-width: 0; }
+.haven-filter > span { display: none !important; }
 .arrival-field.haven-field { display: grid; gap: 5px; }
 .arrival-field.haven-field > span { display: block; }
 
 /* ---- Styled native <select> fallback (forms, booking, guest) ----
-   Same border/radius/focus language + custom chevron; keeps native
-   menu behavior, mobile pickers, and form validation intact. */
+   Matches HavenSelect border, radius, font, and focus ring. */
 select.form-input,
 .reservation-filters select,
 .approval-filters select,
@@ -128,14 +126,16 @@ select.form-input,
 .booking-search.compact select,
 .customer-request-form select,
 .customer-payment-submit select,
+.customer-shell .account-form select,
 .arrival-field select,
-.coastal-landing .booking-bar select {
+.coastal-landing .booking-bar select,
+.app-shell .modal-content select {
   appearance: none; -webkit-appearance: none;
-  min-height: 44px; padding: 10px 34px 10px 14px;
+  min-height: 40px; padding: 8px 34px 8px 14px;
   background-color: var(--select-bg); border: 1px solid var(--select-border);
-  border-radius: 11px; color: var(--select-text);
-  font: inherit; font-size: 14px; font-weight: 550; line-height: 1.4;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23657169' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  border-radius: 10px; color: var(--select-text);
+  font: inherit; font-size: 13px; font-weight: 500; line-height: 1.4;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 12px center;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
@@ -145,8 +145,13 @@ select.form-input,
 .app-shell .table-tools select,
 .app-shell .filter-input,
 .app-shell .prompt-input,
-.app-shell .arrival-field select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23909a94' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+.app-shell .arrival-field select,
+.app-shell .modal-content select,
+.dark select.form-input,
+.dark .customer-shell select,
+[data-theme="dark"] select.form-input,
+[data-theme="dark"] .customer-shell select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 select.form-input:hover:not(:disabled),
 .reservation-filters select:hover:not(:disabled),
@@ -154,7 +159,9 @@ select.form-input:hover:not(:disabled),
 .table-tools select:hover:not(:disabled),
 .filter-input:hover:not(:disabled),
 .arrival-field select:hover:not(:disabled),
-.booking-search.compact select:hover:not(:disabled) { border-color: var(--select-border-hover); }
+.booking-search.compact select:hover:not(:disabled),
+.customer-shell .account-form select:hover:not(:disabled),
+.app-shell .modal-content select:hover:not(:disabled) { border-color: var(--select-border-hover); }
 select.form-input:focus,
 .reservation-filters select:focus,
 .approval-filters select:focus,
@@ -162,25 +169,29 @@ select.form-input:focus,
 .filter-input:focus,
 .prompt-input:focus,
 .arrival-field select:focus,
-.booking-search.compact select:focus {
+.booking-search.compact select:focus,
+.customer-shell .account-form select:focus,
+.app-shell .modal-content select:focus {
   outline: none; border-color: var(--select-border-focus);
   box-shadow: 0 0 0 3px var(--select-ring);
 }
 select.form-input:disabled,
 .reservation-filters select:disabled,
 .approval-filters select:disabled,
-.arrival-field select:disabled { opacity: 0.55; cursor: not-allowed; }
+.arrival-field select:disabled,
+.customer-shell .account-form select:disabled,
+.app-shell .modal-content select:disabled { opacity: 0.55; cursor: not-allowed; }
 select.form-input.error, .prompt-input.error { border-color: var(--select-error); }
 select.form-input.error:focus, .prompt-input.error:focus { box-shadow: 0 0 0 3px var(--select-error-ring); }
 select.form-input option, .prompt-input option { background: var(--select-bg); color: var(--select-text); }
 
-/* Compact filter-row density: keep 40px floor, full Haven language. */
+/* Compact filter-row density */
 .approval-filters select, .reservation-filters select { min-height: 40px; font-size: 13px; }
 
 /* Mobile: full-width filters, touch floors, menu stays in viewport. */
 @media (max-width: 720px) {
   .haven-select { width: 100%; }
-  .haven-select-trigger { width: 100%; min-height: 44px; }
+  .haven-select-trigger { width: 100%; min-height: 40px; }
   .haven-select-menu { left: 0; right: 0; width: auto; max-width: none; max-height: 60vh; }
   .approval-filters > label:not(.approval-search),
   .approval-filters > .haven-filter,

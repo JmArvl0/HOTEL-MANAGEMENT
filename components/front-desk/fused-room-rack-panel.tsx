@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { BedDouble, CalendarDays, DoorOpen, QrCode, Sparkles, SprayCan } from "lucide-react";
+import { BedDouble, CalendarDays, DoorOpen, Plus, QrCode, Sparkles, SprayCan } from "lucide-react";
 import { Modal, ConfirmDialog } from "@/components/ui/Modal";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { HavenDataToolbar, HavenSearchInput } from "@/components/ui";
@@ -330,6 +330,31 @@ export default function FrontOfficeRack({
 
   return (
     <>
+      <div className="page-title module-title">
+        <div>
+          <p className="eyebrow">Front Office</p>
+          <h1>Room Reservations</h1>
+          <p>
+            Interactive room board and reservations ledger. Assign arrivals, manage in-house stays,
+            and monitor turnover.
+          </p>
+        </div>
+        {(onScan || onNewReservation) && (
+          <div className="title-actions">
+            {onScan && (
+              <button type="button" className="btn btn-soft" onClick={onScan}>
+                <QrCode size={17} aria-hidden="true" /> Scan QR
+              </button>
+            )}
+            {onNewReservation && (
+              <button type="button" className="btn btn-accent" onClick={onNewReservation}>
+                <Plus size={17} aria-hidden="true" /> New reservation
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
       <ModuleSummaryCards
         ariaLabel="Front office summary"
         cards={[

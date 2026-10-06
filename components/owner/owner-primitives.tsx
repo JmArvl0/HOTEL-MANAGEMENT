@@ -60,7 +60,6 @@ export function OwnerToolbar({
         <>
         {filters.map((filter) => (
           <div className="haven-filter" key={filter.label}>
-            <span>{filter.label}</span>
             <HavenSelect
               value={filter.value}
               onChange={filter.onChange}

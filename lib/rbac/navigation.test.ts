@@ -39,6 +39,17 @@ describe("role navigation structure", () => {
     }
   });
 
+  it("billing is scoped to collection roles only", () => {
+    expect(sectionsFor("front_desk")).toContain("invoices");
+    expect(sectionsFor("accounting")).toContain("invoices");
+    for (const role of ["manager", "housekeeping", "maintenance"] as const) {
+      expect(sectionsFor(role)).not.toContain("invoices");
+    }
+    for (const role of ["front_desk", "accounting"] as const) {
+      expect(canAccess(role as Role, "invoices")).toBe(true);
+    }
+  });
+
   it("approval review authority stays with the manager", () => {
     expect(canReviewManagerApprovals("manager")).toBe(true);
     for (const role of ["front_desk", "housekeeping", "maintenance", "accounting"] as const) {
@@ -92,6 +103,14 @@ describe("domain-separation surface contracts", () => {
     expect(client).toContain('useState(canReview ? "all" : "mine")');
     expect(client).toContain("My requests");
     expect(client).toContain("actorId={user.id}");
+  });
+
+  it("billing and folio state their distinct purposes", () => {
+    const client = read("components/manager/manager-dashboard-client.tsx");
+    expect(client).toContain("Staff billing across all stays");
+    expect(client).toContain("A guest's own bill lives in Payments & Folio");
+    const folio = read("app/(booking)/(customer)/account/payments/page.tsx");
+    expect(folio).toContain("Stay totals, verified payments, remaining balances");
   });
 
   it("nav structure lives in config, dashboard only adds icons", () => {

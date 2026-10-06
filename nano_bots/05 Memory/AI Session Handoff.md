@@ -2,7 +2,319 @@
 
 Current execution state. Concise — detail lives in linked session notes.
 
-## Current task (retest remainders: Billing, housekeeping footer, export, 2026-10-02)
+## Parallel task (Landing Featured Stays Scroll Pane, 2026-10-06)
+
+The full landing SaaS redesign was rolled back by the user ("instead add a scroll pane"); `landing.css` is back at HEAD plus this change only.
+- `components/landing/booking-intent.tsx` `FeaturedStays`: shows **all** active room types (no `slice(0, 4)`) in a horizontal snap track; `.coast-room-grid` remains the GSAP reveal unit. Prev/next buttons step one card; a progress rail mirrors scroll; controls hide when nothing overflows; right-edge fade hidden at end.
+- `app/(landing-page)/landing.css`: `.coast-room-grid` uses `grid-auto-flow:column` + `--room-cols` (4 / 2.2 @900px / 1.12 @600px peek), `scroll-snap-type:x mandatory`, hidden scrollbar; new `.coast-room-pane/-controls/-rail/-nav` block. Pin regexes in `landing-hero-structure.test.tsx` still match.
+- Verified: typecheck clean, eslint clean, landing + fleetops-surfaces + room-catalog vitest 54/54. Browser QA not yet run (manual).
+
+## Current task (Guest Rewards & Loyalty Module Redesign, 2026-10-06)
+
+COMPLETE locally, all gates green:
+1. Redesigned the guest account Rewards module (`/account/loyalty`) with UI/UX Pro Max and modern SaaS (TailAdmin / Finwise) excellence:
+   - **Executive Header (`app/(booking)/(customer)/account/loyalty/page.tsx`)**: Replaced plain header with `customer-page-title.split` featuring balanced typography, amber pill eyebrow, and high-contrast CTA button (`Book stay to earn`).
+   - **Membership KPI Cards (`.loyalty-kpi-grid`)**:
+     - *Active Tier & Balance*: Executive card styling with subtle luxury gradient, crown/award icon badge, bold points balance, and multiplier tag (`1×/1.25×/1.5× earning`).
+     - *Lifetime Qualifying Spend (`.loyalty-kpi-lifetime`)*: Dedicated 4th executive KPI card highlighting total verified folio spend (`₱75,400.00`) establishing tier status, featuring gold `Coins` token with warm glow, "Tier Qualifying" pill badge, large tabular currency numerals, and explanatory copy.
+     - *Tier Progress*: Clear distance to next tier (`₱10,000.00 to Gold`), percentage pill badge (`50% to Gold`), and glowing animated progress bar.
+     - *Purchasing Power*: Direct translation of points to Philippine Pesos (`₱150.00`), instant redemption indicator (`1 pt = ₱1.00`), and stay discount explanation.
+   - **Interactive Tier Privileges Matrix (`.loyalty-comparison`)**:
+     - Distinct luxury cards for Silver, Gold, and Platinum with spend range pills, multiplier badges, and interactive selection.
+     - *Executive Lifetime Spend Header Badge (`.loyalty-lifetime-spend`)*: Elevated from a dim gray footnote into a prominent, noticeable executive status badge with gold gradient styling, glowing coin token, uppercase tracking label, bold tabular currency, and active tier indicator pill (`Gold unlocked`).
+     - Added an itemized privileges checklist for each tier (`.loyalty-tier-perks-list`) showcasing key member perks.
+     - Glassmorphic tier detail banner (`.loyalty-tier-detail`) with active status indicator and unlock milestones.
+   - **Program Guide Strip (`.loyalty-how-it-works`)**:
+     - Added 3-step guide explaining how Haven Rewards works: Stay & Earn (01), Ascend Tiers (02), and Redeem 1:1 (03).
+   - **Transaction Ledger (`.loyalty-ledger-card`)**:
+     - Modern SaaS table design with monospace reference pill badges, status activity pills (`Earned`, `Redeemed`, `Adjusted`), and green positive point values (`+150`).
+     - Guided empty state with next action link (`Explore rooms to start earning`).
+   - **Styling & Tokens (`app/customer-portal.css`)**: Overhauled using FleetOps tokens (`var(--cp-*)`, `var(--st-*)`, `var(--cp-gold)`, `color-mix(...)`) with 0 legacy coastal hexes and responsive 4-column desktop / 2-column tablet grid.
+2. Verification:
+   - `npm run typecheck`: clean (0 errors).
+   - `vitest`: targeted loyalty and customer shell suites passed (22/22 tests).
+   - `npm run build`: clean (all 88 routes compiled with Turbopack).
+
+See [[2026-10-06 - Guest Rewards and Loyalty Module Redesign]].
+
+## Previous: Unified Dropdown Styling & Self-Describing Filter Options (2026-10-06)
+
+
+## Previous: Classic Guest AI Concierge Restoration & UI/UX Pro Max Polish (2026-10-06)
+
+COMPLETE locally, all gates green:
+1. Restored the classic aesthetic and structural layout of the floating chatbot per the user's uploaded reference screenshot, elevating each element with UI/UX Pro Max taste:
+   - **Floating Trigger Button**: Restored the classic 56px circular floating action button (`border-radius: 50%`) with centered icons (`Sparkles` when closed, `X` when open). Enhanced with multi-stage drop shadows, smooth micro-scale hover/active feedback, and accessible focus outlines.
+   - **Header**: Single-line header featuring an emerald `Sparkles` icon, bold `Ask HAVEN` title, and a refined 32px square-rounded close button with subtle border and smooth hover state.
+   - **Chat Body & Thread**: Restored the clean initial prompt (`"Ask about check-in times, amenities, Wi-Fi, or nearby places."`) and pure flex layout preventing nested scrollbars.
+   - **Prompt Chips Rail**: Horizontal rail of rounded pill chips with micro-lift hover interactions and subtle background tints.
+   - **Input & Send Controls**: Resolved the broken layout where `<input>` and `<button>` fell back to unstyled browser defaults. Crafted a modern flex row with 40px height, 10px rounded corners, smooth focus rings (`0 0 0 3px rgba(59, 130, 246, 0.15)`), and high-contrast send button.
+   - **Footer Footnote**: Clean, centered disclosure text with muted tone and proper line height.
+2. Verification:
+   - `npm run typecheck`: clean (0 errors).
+   - `eslint`: clean (0 errors).
+   - `vitest`: targeted suites passed (17/17 tests).
+   - `npm run build`: clean (all 88 routes compiled with Turbopack).
+
+## Previous: Global Root Modal Architecture & Viewport Backdrop Dimming Fix (2026-10-06)
+
+COMPLETE locally, all gates green:
+1. Standardized modal viewing across the entire application globally so all modals follow strict modal format:
+   - **Full-Viewport Backdrop Dimming**: Fixed backdrop dimming to cover the entire window (100vw, 100vh), completely overlaying headers (`.customer-content-header`, `.app-header`), sidebars/navbars (`.customer-sidebar`, `.sidebar`), and content without getting trapped inside inner containers or ancestor stacking contexts.
+   - **Root Portaling by Default**: In `components/ui/Modal.tsx`, changed `portal = true` as standard default for `Modal`, `ConfirmDialog`, `PromptDialog`, and `SelectDialog`. In `components/ui/FormDialog.tsx`, propagated `portal = true` to `FormDialog`, `MultiStepFormDialog`, `RoomSelectDialog`, and `ChecklistDialog`. In `components/ui/command-palette.tsx`, portaled via `createPortal(..., document.body)`.
+   - **Complete Page Scroll Lock**: Implemented reference-counted scroll locking (`activeModalCount`, `lockBodyScroll`, `unlockBodyScroll`) in `components/ui/Modal.tsx` that locks both `document.body` and `document.documentElement` (`overflow: hidden !important`), adds `haven-modal-open` CSS class, and prevents stacked modals from prematurely unlocking scrolling.
+   - **Keyboard Focus Trapping**: Enhanced `trapFocus` so Tab and Shift+Tab wrap around cleanly between first and last focusable elements in the modal dialog, preventing focus leakage to background elements.
+   - **Theme & Shell Cascading**: Wrapped portaled modal content in `<div className="haven-modal-portal ...">` with `display: contents;` and auto-detected `.customer-shell` / `.app-shell` classes so scoped styles and theme rules continue to cascade cleanly.
+2. Verification:
+   - `npm run typecheck`: clean (0 errors).
+   - `vitest`: 186 test files passed, 2,068 tests passed (100% green).
+   - `npm run build`: clean (all 88 routes compiled with Turbopack).
+
+See [[2026-10-06 - Global Root Modal Architecture and Backdrop Fix]].
+
+## Previous: Cancelled Stay Refund Explanation & Modal Feature (2026-10-06)
+
+## Previous: Guest AI Concierge Modern SaaS Design Overhaul (2026-10-06)
+
+COMPLETE locally, all gates green:
+1. Elevated guest account chatbot (`ConciergeFloat` & `GuestAiConciergePanel`) to modern SaaS (TailAdmin/Finwise) aesthetics:
+   - **Floating Launcher (`components/customer/concierge-float.tsx`)**: Modern SaaS pill with pulsing green live status beacon (`.concierge-live-beacon`), refined icon badge, and backdrop blur.
+   - **Elevated Header**: Dual-line header with brand avatar (Sparkles), "Ask HAVEN" title, "AI Host" pill badge, live "Virtual Concierge · Online" status dot, and sleek close button.
+   - **Welcome Hero Card (`components/customer/guest-ai-concierge-panel.tsx`)**: Replaced bare empty text with an elevated welcome hero card featuring sparkles icon badge and greeting while preserving `.concierge-empty` for test contracts.
+   - **Message Bubbles & Markdown**: Assistant turns feature elevated surface cards with crisp borders and clean typography; user turns feature modern SaaS gradient/ink fills with high-contrast white text.
+   - **Action Draft Cards**: Highlighted draft requests with "Action Draft" tags, clear details, and primary CTA buttons ("Confirm Request").
+   - **Typing Indicator**: 3-dot bouncing wave animation alongside backwards-compatible pulse bars.
+   - **Input Box**: Seamless container with focus-within ring and dedicated send button with icon.
+   - **Full Flexbox Geometry in `app/customer-portal.css`**: Removed fixed 300px thread height cutoff; now uses flexbox column layout with zero nested scrollbars. Strict FleetOps neutrals (`#111827`, `#d1d5db`) maintained.
+2. Verification:
+   - `npm run typecheck`: clean (0 errors).
+   - `eslint`: clean on touched files (0 errors).
+   - `vitest`: 184 test files passed, 2,052 tests passed.
+   - `npm run build`: clean (all 88 routes compiled with Turbopack).
+
+See [[2026-10-06 - Guest AI Concierge Modern SaaS Design Overhaul]].
+
+## Previous: Account Dropdown Popover Preservation & Dedicated "My Profile" Modal View (2026-10-06)
+
+COMPLETE locally, all gates green:
+1. Restored native header dropdown popovers across all account triggers:
+   - **Customer Shell (`components/customer/customer-shell.tsx`)**: Header account button toggles an undimmed dropdown popover (`.customer-account-popover`) directly beneath the trigger button (`Carl Garcia` / `CG`). Removed extra `.customer-popover-gap` container to ensure tight, reliable anchoring.
+   - **Dropdown Items**:
+     - User header (`{user.name}`, `{user.email}`)
+     - `<a class="haven-account-row-item" href="/account/profile">` for "My Profile"
+     - `<button class="haven-account-row-item">` for "Account security"
+     - `<button class="haven-account-row-item haven-account-row-danger">` for "Sign Out"
+   - **"My Profile" Modal Viewing**: Clicking "My Profile" inside the dropdown closes the dropdown and opens the dedicated `CustomerProfileModal` with full-viewport dimmed backdrop (`portal={true}` via Haven `<Modal headerVariant="branded">`), luxury typography, hero identity card with verified guest badge, live editable fields (Name, Mobile, Nationality, Address), save via `PATCH /api/account/profile`, and direct button to Account Security.
+   - **Staff / Manager, Admin, Owner Dashboards**: Reverted header account menus from full modals back to native dropdown popovers (`.profile-popover` within `.profile-menu-wrap`) with outside-click handlers and Settings modal trigger intact.
+2. Verification:
+   - `npm run typecheck`: clean (0 errors).
+   - `vitest`: 184 test files passed, 2,048 tests passed (100% green).
+   - `npm run build`: clean (all 88 routes compiled with Turbopack).
+
+## Previous: Global Account Identity Modal Standardization (2026-10-06)
+
+COMPLETE locally, all gates green:
+1. Standardized and rooted the account identity popover (`.customer-account-popover` / `.profile-popover`) into a canonical modal dialog (`HavenAccountModal`) with full background dimming (`dialog-backdrop`), full accessibility (`role="dialog"`, `aria-modal="true"`, focus trap, Escape key dismiss, backdrop click dismiss, return focus to trigger button):
+   - **Canonical Component (`components/ui/haven-account-modal.tsx`)**: Wraps Haven `<Modal size="sm" headerVariant="branded">`. Displays luxury hero identity card (avatar initials, user name, email, role badge), action items list (`My Profile` link, `Account security` button, `Settings` button, `Notification sound` toggle, `Sign Out` button with danger accent).
+   - **Dedicated CSS (`components/ui/haven-account-modal.css`)**: Deep dimmed backdrop tint (`rgba(4, 10, 18, 0.65)` dark / `rgba(15, 23, 42, 0.48)` light) with 4px backdrop blur, TailAdmin 16px radius, hover transitions, and popover class overrides. Loaded globally in `app/layout.tsx`. Exported via `components/ui/index.ts`.
+   - **Globally Rooted Across All 4 Account Surfaces**:
+     - Customer Shell (`components/customer/customer-shell.tsx`)
+     - Manager & Staff Dashboard (`components/manager/manager-dashboard-client.tsx`)
+     - Admin Dashboard (`components/admin/admin-dashboard-client.tsx`)
+     - Owner Dashboard (`components/owner/owner-dashboard-client.tsx`)
+     - All instances mounted outside `<header>` to prevent `backdrop-filter` clipping and ensure full-screen overlay backdrop coverage.
+2. Verification:
+   - `npm run typecheck`: clean (0 errors).
+   - `vitest`: 183 test files passed, 2,041 tests passed (100% green, including new `components/ui/haven-account-modal.test.tsx`).
+   - `npm run build`: clean (all 88 routes compiled with Turbopack).
+
+See [[2026-10-06 - Global Account Identity Modal Standardization]].
+
+## Previous: Notification Popover Color & Hierarchy Standardization (2026-10-06)
+
+COMPLETE locally, all gates green:
+1. Standardized color coding, visual hierarchy, and contrast across the notification popover (`.haven-notification-popover`):
+   - **Semantic Severity Color Harmony**: Coordinated icon wash, icon glyph, glowing unread dot, and severity badge across the 4 canonical severities (`critical`, `attention`, `success`, `info`). Critical items now consistently present red icons and dots instead of conflicting green ones; Attention items present amber; Success presents emerald; Info presents blue.
+   - **Theme-Aware Unread Rows**: Replaced hardcoded `#f3f3f3` white-patch background with theme-aware `rgba(255, 255, 255, 0.04)` in dark mode and clean `#f8fafc` in light mode.
+   - **Action Controls**: Replaced arbitrary green "Mark all as read" and "View all" buttons with modern Haven SaaS primary blue accents (`#60a5fa` dark / `#2563eb` light).
+   - **Group Counters**: Styled unread count pill with subtle blue accent for immediate recognition.
+   - **Class Hook**: Added `is-sev-${severity}` to `.cnr` in `components/ui/haven-notifications.tsx`.
+2. Verification:
+   - `npm run typecheck`: clean (0 errors).
+   - `eslint`: clean on touched files (0 errors).
+   - `vitest`: 182 test files passed, 2,036 tests passed (100% green).
+   - `npm run build`: clean (all 88 routes compiled with Turbopack).
+
+## Previous: Room Title Typography System Check & Standardization (2026-10-06)
+
+COMPLETE locally, all gates green:
+1. Conducted an exhaustive system check across customer, booking, and staff surfaces for room type title headings.
+2. Standardized all room title display headings to the dedicated luxury editorial serif style (`var(--font-display, Georgia, serif)`, Playfair Display) with `font-weight: 500; letter-spacing: -0.025em; text-wrap: balance;`:
+   - **Customer Overview Stay Hero (`/account`)**: Changed `.customer-stay-copy h2` in `app/customer-portal.css` from `var(--font-sans)` to `var(--font-display, Georgia, serif) !important; font-weight: 500;` and added `.room-title` in `app/(booking)/(customer)/account/page.tsx`.
+   - **My Reservations (`/my-reservations`)**: Added `.room-title` to `<h3>{reservation.room_type}</h3>` in `app/(booking)/(customer)/my-reservations/page.tsx` and protected `.reservation-card-copy h3` and `.customer-reservation-card h3` under `var(--font-display)`.
+   - **Reservation Details (`/my-reservations/[id]`)**: Added `.room-title` to `<h1>{data.roomType}</h1>` in `components/customer/reservation-detail-view.tsx` and protected `.customer-reservation-heading h1` under `var(--font-display)`.
+   - **Payments & Folio Cards (`/account/payments`)**: Added `.room-title` to `<h2>{record.room_type}</h2>` in `app/(booking)/(customer)/account/payments/page.tsx` and protected `.customer-financial-list article header h2` under `var(--font-display)`.
+   - **Booking Stay Summary**: Added `.room-title` to `<h2>{roomType}</h2>` in `components/booking/booking-stay-summary.tsx` and protected `.review-stay-body h2`.
+   - **Search & Landing**: Added `.room-title` to `#search-title` in `app/(booking)/booking/search/page.tsx` and `<h3>` in `components/landing/booking-intent.tsx`.
+   - **Stylesheets**: Updated `app/customer-portal.css`, `app/haven-tailadmin-theme.css`, `app/guest-booking.css`, and `app/(booking)/booking/search/search.css` to exempt all room titles from the SaaS sans-serif rule and preserve `var(--font-display)`.
+3. Verification:
+   - `npm run typecheck`: clean (0 errors).
+   - `eslint`: clean on all 7 touched files (0 errors).
+   - `vitest`: 182 test files passed, 2,036 tests passed (100% green).
+   - `npm run build`: clean (all 88 routes compiled with Turbopack).
+
+See [[2026-10-06 - TailAdmin Haven UI Standardization]].
+
+## Previous: TailAdmin HAVEN UI Standardization (2026-10-06)
+
+COMPLETE locally, all gates green:
+1. Established ONE cohesive HAVEN SaaS Design System using TailAdmin Next.js (`TailAdmin/free-nextjs-admin-dashboard`) as the structural & component implementation reference:
+   - **Preserved Brand Identity:** Maintained HAVEN brand logo, HAVEN blue (`#1d4ed8`/`#1e3a8a`), HAVEN red (`#dc2626`/`#ef4444`), warm hospitality gold (`#f59e0b`), Inter typography, and hotel branding (never generic TailAdmin branding).
+   - **Zero Backend Alterations:** 100% preservation of Supabase/Postgres, migrations, API routes, NextAuth, RBAC, reservation/accounting/room availability logic, Front Desk/Housekeeping/Maintenance workflows, reports, and Haven AI.
+   - **Global Theme Engine (`app/haven-tailadmin-theme.css`):** Comprehensive design tokens for Light and Dark modes; 5 modern elevation shadows; 7 geometry radii; standardized layouts for Sidebar (280px / 80px rail, squircle brand mark, accordion groups, active indicators), Header (70px sticky, search command button with `⌘K`, notification bell, profile menu), Page Headers & Breadcrumbs, Component Cards, Stat Cards (`EcommerceMetrics` pattern), Data Tables (`BasicTableOne` format), Form Controls, Status Badges (10%-tint soft pills with pulse), Modals, Pagination, and Skeletons.
+   - **Component Suite (`components/ui/tailadmin-haven.tsx` & `components/ui/index.ts`):** Created and exported `ComponentCard`, `StatCard`, `TailAdminPageHeader`, `TailAdminButton`, `TailAdminBadge`, `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableCell`, `TableHead`, `TailAdminInput`, `TailAdminSelect`, `TailAdminTabs`, `TailAdminAlert`, `TailAdminEmptyState`, `TailAdminSkeleton`, and `TailAdminPagination`.
+   - **Visual Template Showcase (`components/manager/haven-tailadmin-visual-template.tsx`):** Interactive demonstration covering all components (Operations Overview with KPI cards & Recharts area chart, Reservations Table with filters & pagination, Form Controls & Modals, Badges & Buttons).
+   - **Unified Across All 14 Modules:** Mapped existing module classes across Dashboard, Reservations, Rooms, Guests, Front Desk, Housekeeping, Maintenance, Accounting, Reports, Staff, Hotel Policies, Catalog, System Health, and Settings directly into the TailAdmin design system tokens.
+2. Verification:
+   - `npm run typecheck`: clean (0 errors).
+   - `vitest`: 182 test files passed, 2,036 tests passed (100% green).
+   - `npm run build`: clean (all 88 routes compiled with Turbopack).
+
+See [[2026-10-06 - TailAdmin Haven UI Standardization]].
+
+## Previous: Global Notification Button and Icon Format Standardization (2026-10-05)
+
+COMPLETE locally, all gates green:
+1. Standardized and rooted the notification button (`.haven-notification-bell`), its icon, and unread badge across all roles and accounts in HAVEN (Customer, Staff/Manager, Admin, Owner):
+   - **Button Geometry & Alignment:** Standardized to `38px` × `38px` (`min-width: 38px; min-height: 38px; flex: 0 0 38px;`), `border-radius: 10px;` (matches modern SaaS 10px squircle format of `.saas-header-search-btn` and theme toggle), `display: inline-flex; align-items: center; justify-content: center; line-height: 0; box-sizing: border-box; overflow: visible;`.
+   - **Absolute Optical Icon Centering & Animation:** Styled `.haven-notification-bell .haven-bell-icon`, `.haven-notification-bell svg.lucide-bell`, and `.haven-notification-bell svg` with `position: absolute !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; width: 18px !important; height: 18px !important; margin: 0 !important; padding: 0 !important; pointer-events: none !important; transform-origin: 50% 15% !important; transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.18s ease !important;`. Added subtle 14-degree bell chime rotation on hover (`transform: translate(-50%, -50%) rotate(14deg) !important;`). Absolute centering decouples the bell icon from flex sibling flow or badge presence (0, 3, or 99+), guaranteeing mathematical dead-center alignment at (19px, 19px) inside the 38px box.
+   - **Rooted Badge Format:** Rooted `.haven-notification-badge`, `.customer-bell-badge`, and `.haven-notification-bell .nav-badge` to `position: absolute !important; top: -4px !important; right: -4px !important; z-index: 4 !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; min-width: 18px !important; height: 18px !important; padding: 0 4px !important; border-radius: 999px !important; background: #ef4444 !important; color: #ffffff !important; font-size: 9.5px !important; font-weight: 800 !important; font-variant-numeric: tabular-nums !important; border: 2px solid var(--cp-panel, #161d27) !important; box-shadow: 0 2px 6px rgba(239, 68, 68, 0.45) !important;`.
+   - **Fixed Dot Collision:** Excluded badges from `.icon-button i` dot styling in `app/globals.css`, resolving the visual glitch where a 7px dot crushed the unread counter and bell icon.
+   - **Light Theme Support:** Unified crisp `#ffffff` background, `#d1d5db` border, `#5b6472` icon ink, and white border badge cutout across dark and light modes.
+   - **Harmonized Shells:** Synchronized `guest-booking.css`, `customer-portal.css`, `manager-dashboard-theme.css`, `staff-ops-theme.css`, and `globals.css`.
+2. Verification:
+   - `npm run typecheck`: clean (0 errors).
+   - `npx vitest run`: targeted notification suites 100% green (42/42 tests).
+   - `npm run build`: clean (88/88 routes compiled).
+
+See [[2026-10-05 - Global Notification Button and Icon Format Standardization]].
+
+## Previous: Find a Room Availability Indicator Redesign (2026-10-05)
+
+## Previous: Global SaaS Header Search and Command Palette Standardization (2026-10-05)
+
+COMPLETE locally, all gates green:
+1. Standardized and elevated the SaaS header search button (`.saas-header-search-btn`) across all accounts in HAVEN (Customer, Staff/Manager, Admin, Owner):
+   - Redesigned search bar into a prominent 250px–280px wide toolbar command control (38px height, 9px radius, subtle interior spacing and alignment).
+   - Styled pinned `.saas-kbd` keyboard shortcut pill (`⌘K`) with high-contrast badge geometry.
+   - Refined dark theme styling (`rgba(22, 29, 39, 0.75)` surface, `#2a3442` border, subtle blur, blue glow on hover) and light theme styling (crisp `#ffffff` / `#f9fafb` gradient, `#d1d5db` border, subtle elevation shadow on hover).
+   - Enhanced `.saas-cmd-dialog` geometry: widened modal max-width from 580px to 680px (+100px), expanded `.saas-cmd-search-wrap` padding to 18px 24px (+44% vertical room) with 20px search icon and 16px input, expanded `.saas-cmd-footer` padding to 14px 24px (+40% vertical room) with 18px key gaps and 10.5px kbd pills, added 34px tactile icon boxes to items, and expanded list max-height to 420px.
+   - Added responsive breakpoints: 200px width at `<=1024px`, collapses to a square 38px icon button at `<=768px` so headers never overflow on mobile.
+2. Globally loaded `components/ui/command-palette.css` in root `app/layout.tsx`.
+3. Standardized across all 4 account tiers with active `CommandPalette` (`Cmd+K` / `Ctrl+K`):
+   - Customer Shell (`components/customer/customer-shell.tsx`)
+   - Manager Dashboard (`components/manager/manager-dashboard-client.tsx`)
+   - Admin Dashboard (`components/admin/admin-dashboard-client.tsx`)
+   - Owner Dashboard (`components/owner/owner-dashboard-client.tsx`)
+4. Verification:
+   - `npm run typecheck`: clean (0 errors).
+   - `npm run build`: clean (all 88 routes compiled).
+   - `npx vitest run`: targeted test suites 100% green (`header-status`, `owner-dashboard-layout`, `fleetops-surfaces`, `command-palette`, `lib/qr/tokens`).
+
+See [[2026-10-05 - Global SaaS Header Search and Command Palette]].
+
+## Previous: Cross-Role Modern SaaS Page Header Standardization (2026-10-05)
+
+COMPLETE locally, all gates green:
+1. Standardized page header/title across all roles and modules (Staff, Manager, Front Desk, Housekeeping, Maintenance, Accounting, Admin, Owner, and Guest) to match the thin, high-efficiency modern SaaS toolbar format established in `section.customer-page-title`:
+   - Replaced legacy 108px–112px heights with compact `min-height: 0`, 12px 20px padding, 16px bottom margin, 12px border radius.
+   - Removed legacy 250px decorative circles (`::after`) and vertical accent bars (`::before`).
+   - Standardized typography: title `h1` at `clamp(17px, 1.8vw, 21px)` (700 weight, -0.02em letter spacing, 1.25 line height), subtitle `p` at `12px` (1.45 line height, max-width 78ch), amber pill eyebrow (`9.5px`, 750 weight, 0.06em uppercase), and compact 34px buttons (`border-radius: 8px`).
+   - Dark theme: `linear-gradient(135deg, #161d27 0%, #111827 100%)`, `#2a3442` border, `#ffffff` title, `#93a0b4` subtitle, `#f59e0b` pill.
+   - Light theme: `linear-gradient(135deg, #ffffff 0%, #f9fafb 100%)`, `#d1d5db` border, `#111827` title, `#5b6472` subtitle, `#b45309` pill.
+   - Preserved critical functional behavior: `.page-title:has(.new-reservation-menu)` `overflow: visible; z-index: 100`.
+   - Updated across: `staff-ops-theme.css`, `manager-dashboard-theme.css` (including `.insights-title`, `.haven-ai-hero`, `.admin-overview-title`, and `.workspace-body .page-title`), `customer-portal.css`, and `guest-booking.css`.
+2. Verification:
+   - `npm run typecheck`: clean (0 errors).
+   - `npm run build`: clean (all 88 routes compiled and static pages generated).
+   - `npx vitest run`: targeted test suites 100% green (111/111 passing).
+
+See [[2026-10-05 - Cross-Role Modern SaaS Page Header Standardization]].
+
+## Previous: Thin Page Title Container (2026-10-04)
+
+COMPLETE locally, all gates green:
+1. Streamlined `section.customer-page-title.split` and `.customer-page-title` across all customer modules into a thin, compact modern SaaS toolbar:
+   - Shaved vertical padding from 26px down to 12px; removed forced `min-height: 120px` → `0`.
+   - Shaved bottom margin from 30px down to 16px; reduced `.customer-shell .customer-content` top gap from 38px down to 22px.
+   - Refined typography scale: `h1` reduced from 28px–42px down to crisp `17px–21px` (`clamp(17px, 1.8vw, 21px)`), eyebrow to `9.5px`, subtitle to `12px` (`line-height: 1.45`), buttons to `min-height: 34px`.
+   - Vertically centered `.split` layout; hidden the oversized `::after` decorative circle.
+   - Total vertical space reclaimed: ~120px–140px of screen real estate.
+2. Verification:
+   - `npm run typecheck`: clean (0 errors).
+   - `npm run build`: clean (88/88 routes compiled).
+   - `npm test`: **182/182 test files passed, 2,034/2,034 tests passed (100% green)**.
+
+See [[2026-10-04 - Thin Page Title Container]].
+
+## Previous: profile Server-Component context crash (2026-10-04)
+
+FIXED locally: every guest clicking My Profile crashed `/account/profile` with `React Context is unavailable in Server Components` — the async server page directly imported `SessionProvider` from `next-auth/react` (no `"use client"` in that package). New `ProfileWithSession` client export in `components/account/account-forms.tsx` owns the provider; the page is pure server again; `client-fetch-resilience.test.ts` now pins the boundary instead of the bug.
+
+See [[2026-10-04 - Profile Server Context Fix]].
+
+## Previous: Guest Portal Modern SaaS UX Overhaul (2026-10-04)
+
+COMPLETE locally, all gates green:
+1. Finwise-inspired SaaS modernization across the entire Customer Account Portal and all its modules:
+   - Elevated root tokens in `app/customer-portal.css` with Finwise elevation shadows (`--cp-shadow`, `--cp-shadow-hover`) and FleetOps neutral color scales (`#111827`, `#d1d5db`, `#f3f3f3`, `#ffffff`).
+   - Redesigned `.theme-light .customer-shell .customer-page-title` with crisp white card surface, hairline slate border, amber pill eyebrow, balanced title typography, and high-contrast purpose-driven buttons (eliminating the legacy dark-box-in-light-mode appearance).
+   - Overhauled `.customer-stay-hero` with a 240px wide aspect-ratio room thumbnail, subtle scale on hover, glass status badge cluster, 26px–32px tabular typography, and dual Midnight Ink CTA & QR access buttons.
+   - Redesigned `.customer-attention` warning/action cards with soft amber backgrounds, subtle borders, and smooth arrow hover micro-slides.
+   - Overhauled `.customer-overview-grid` metric cards with 40px icon containers, uppercase tracked eyebrows, 24px tabular figures, and clean key-value rows.
+   - Modernized `.customer-quick-actions` to a 4-column Finwise card grid with hover lift and micro-interactions.
+   - Modernized `.folio-kpi-grid` and `.folio-kpi-card` with clean icon boxes, large tabular totals, and status indicators.
+   - Refined `.crd-stepper`, `.crd-tabs`, `.crd-folio-strip`, `.customer-reservation-card`, `.customer-profile-card`, and shared table grammar.
+2. Environmental test fix: Added `stubStorage` helper to `components/account/account-security-dialog.test.tsx` to handle Node 22 jsdom `localStorage` environment.
+3. Verification:
+   - `npm run typecheck`: clean (0 errors).
+   - `npm run build`: clean (all 88 static & dynamic routes compiled).
+   - `npm test`: **182/182 test files passed, 2,034/2,034 tests passed** (100% green).
+   - Zero migrations, zero database schema changes.
+
+See [[2026-10-04 - Guest Portal Modern SaaS UX Overhaul]].
+
+## Previous: Guest portal table grammar + transportation title (2026-10-04)
+
+IMPLEMENTED locally:
+1. Shared table grammar in `app/customer-portal.css` (§14, tokens-only, zero hex literals): native `.guest-table` canonical class aliased with `.loyalty-ledger-table`; folio `.payment-history` sections read as table sections (small-caps h3 header, hairline rows, right-aligned tabular amounts, hover + focus-within); folio-figure strip dividers; request/transport row hover + focus; page-title `text-wrap:balance`; 44px touch floors on quick-actions + filter chips; reduced-motion guard.
+2. Transportation converged to the shared module hierarchy: `transportation/page.tsx` now renders `customer-page-title` + eyebrow; deleted the 3 dead intro rules in `app/guest-booking.css`. All 13 guest modules now share one title grammar.
+
+See [[2026-10-04 - Guest Portal Table Grammar]].
+
+## Previous: Finwise Modern SaaS Design & Root CSS Modernization (2026-10-04)
+
+COMPLETE locally across all systems (localhost only):
+1. Root CSS Audit & Conflict Resolution:
+   - Modernized `app/globals.css`: purged `.btn-soft:hover{border-color:var(--green);color:var(--green)}` and replaced with neutral hover (`#f3f4f6` / `#9ca3af`); updated global focus rings from archaic green to modern Info Blue (`#3b82f6`); neutralized metric cards, panel headers, and trend tags.
+   - Purged lingering coastal teal RGBs (`rgba(8,75,85,...)`, `rgba(201,220,218,...)`, `rgba(133,203,208,...)`, `rgba(248,246,241,...)`) in `app/globals.css` and `app/manager-dashboard-theme.css`.
+   - Raised staff `.app-shell .btn` from 9px font size to standard 12px/13px with 8px radius and 36px min-height; corrected `.theme-light .app-shell` `--dt` from blue (`#3b82f6`) to Midnight Ink (`#111827`); replaced green navigation and table hover (`#10b98114`) with neutral paper hover (`#f3f3f3`).
+2. Purpose-Driven Button System:
+   - Primary CTA: Solid Midnight Ink (`#111827` light / `#ffffff` dark), crisp white/dark text, subtle elevation shadow.
+   - Secondary / Soft: Crisp neutral border (`#d1d5db`), surface white, dark slate text (`#111827`), hover `#f3f4f6` (never green).
+   - Destructive / Danger: Solid Red (`#ef4444`) with white text and clean hover.
+   - Ghost / Subtle: Transparent base with soft neutral hover.
+3. System-Wide Finwise Polish in `app/fleetops-theme.css`:
+   - Enforced 12px-16px card radii, subtle elevation shadows, tabular numerics for monetary values and metrics, 13px clean data tables with uppercase 11px gray headers, and uniform form controls.
+4. Verification & Gate Checks:
+   - `npm run typecheck` clean.
+   - `vitest` theme & manager suites green (103/103 passing).
+   - Full `npm test`: 181/182 test files passing, 2,033/2,034 tests passing (1 pre-existing environmental jsdom localStorage failure).
+   - `npm run build`: compiled all 88 routes cleanly with 0 errors.
+
+See [[2026-10-04 - Full FleetOps SaaS Reskin]].
+
+## Previous: retest remainders (Billing, housekeeping footer, export, 2026-10-02)
 
 IMPLEMENTED locally, all gates green. Billing: live probe refutes
 over-matching (1/24 rows holds "rene") — scoped predicate + decoy tests
@@ -488,6 +800,28 @@ production approval. No push, no prod mutation performed.
   1531/1531, build, diff-check.
 
 ## Completed (verified)
+
+- `AGENTS.md` created — canonical shared router for Claude Code, OpenCode,
+  Codex (both auto-discover root AGENTS.md; verified against official docs).
+- `05 Memory/Project Memory.md` created — durable knowledge + links.
+- This file created — replaces ad-hoc handoff state.
+- `CLAUDE.md` preserved; pointer appended. `Memory Index.md` refreshed.
+- `Sessions/{Claude Code,OpenCode,Codex}/` created for new sessions.
+- Option B env fix committed (`d2be55b`, pushed to `origin/main`):
+  pairing rule skipped only during `next build`; runtime strict.
+  Gates were green: typecheck, eslint 0 errors, 1525/1525, build.
+
+## Remaining / blockers
+
+- Validate: link check, AGENTS.md size, secret grep, CLI probes.
+- Manual browser QA still pending per KI-005 (no runner in repo).
+- Rotate chat-exposed secrets (service-role, SMTP, NEXTAUTH, OTP, Gemini).
+- HostForge deploy is the user's step (both vars must be saved in panel).
+
+## Next action
+
+Finish validation, report, then resume normal development on `main`
+(large uncommitted tree from parallel streams — coordinate, don't overwrite).
 
 - `AGENTS.md` created — canonical shared router for Claude Code, OpenCode,
   Codex (both auto-discover root AGENTS.md; verified against official docs).

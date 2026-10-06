@@ -1,16 +1,37 @@
-/* Modal System - Accessible Dialog with Focus Trap */
+/* Modal System - Accessible Dialog with Focus Trap & Global Viewport Dimming */
+
+.haven-modal-portal {
+  display: contents;
+}
+
+html.haven-modal-open,
+body.haven-modal-open,
+html:has(.dialog-backdrop),
+body:has(.dialog-backdrop) {
+  overflow: hidden !important;
+}
 
 .dialog-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(4, 12, 9, 0.55);
-  backdrop-filter: blur(2px);
-  z-index: 1000;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(4, 10, 18, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: var(--z-index-modal-backdrop, 1000);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
+  touch-action: none;
+  overscroll-behavior: contain;
   animation: modalBackdropIn 0.15s ease-out;
+  cursor: pointer;
+}
+
+.theme-light .dialog-backdrop {
+  background: rgba(15, 23, 42, 0.5);
 }
 
 .dialog-backdrop.reduce-motion,
@@ -19,24 +40,27 @@
   transition: none;
 }
 
-/* The dialog wrapper is a full-viewport, click-transparent overlay that
-   centers the panel. It must NOT reuse the legacy `.modal` class: that name
-   belongs to the dashboard modal styles in globals.css, and the collision
-   scrambled both. */
+/* The dialog wrapper is a full-viewport overlay that centers the panel. It must
+   NOT reuse the legacy `.modal` class: that name belongs to the dashboard modal
+   styles in globals.css, and the collision scrambled both. */
 .dialog {
   position: fixed;
   inset: 0;
-  z-index: 1001; /* above .dialog-backdrop (1000) */
+  width: 100vw;
+  height: 100vh;
+  z-index: var(--z-index-modal, 1001); /* above .dialog-backdrop (1000) */
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
-  pointer-events: none; /* let clicks on the dim area reach the backdrop (close) */
+  pointer-events: auto;
+  overscroll-behavior: contain;
   animation: modalIn 0.18s ease-out;
 }
 
 .dialog .modal-content {
   pointer-events: auto;
+  cursor: default;
 }
 
 @keyframes modalBackdropIn {

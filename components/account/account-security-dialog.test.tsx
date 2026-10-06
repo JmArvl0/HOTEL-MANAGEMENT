@@ -6,13 +6,33 @@
 // trigger opens the same instance via the provider.
 import { useState } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next-auth/react", () => ({ signOut: vi.fn(), useSession: () => ({ update: vi.fn() }) }));
 
 import { AccountSecurityButton, AccountSecurityDialog, AccountSecurityProvider } from "./account-security-dialog";
 
-afterEach(cleanup);
+function stubStorage() {
+  const store = new Map<string, string>();
+  const storage = {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => { store.set(key, value); },
+    removeItem: (key: string) => { store.delete(key); },
+    clear: () => store.clear(),
+  };
+  vi.stubGlobal("localStorage", storage);
+  Object.defineProperty(window, "localStorage", { value: storage, configurable: true });
+  return store;
+}
+
+beforeEach(() => {
+  stubStorage();
+});
+
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 function Harness() {
   const [open, setOpen] = useState(false);
@@ -60,11 +80,12 @@ describe("AccountSecurityDialog", () => {
     fireEvent.keyDown(document, { key: "Escape" });
     expect(onClose).toHaveBeenCalledTimes(1);
 
-    fireEvent.click(container.querySelector(".dialog-backdrop")!);
+    const backdrop = container.querySelector(".dialog-backdrop") || document.querySelector(".dialog-backdrop");
+    fireEvent.click(backdrop!);
     expect(onClose).toHaveBeenCalledTimes(2);
 
     // Nothing inside the dialog is a link to the settings page any more.
-    expect(container.querySelector('a[href="/account/settings"]')).toBeNull();
+    expect((container.querySelector('a[href="/account/settings"]') || document.querySelector('a[href="/account/settings"]'))).toBeNull();
   });
 });
 

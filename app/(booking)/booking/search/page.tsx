@@ -97,7 +97,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           <BackButton />
           <div className="booking-search-heading">
             <div>
-              {focusRoomType && !availability ? <><h1 id="search-title">{focusRoomType}</h1><p>Explore this room, or compare it with the rest of the HAVEN collection.</p></>
+              {focusRoomType && !availability ? <><h1 id="search-title" className="room-title">{focusRoomType}</h1><p>Explore this room, or compare it with the rest of the HAVEN collection.</p></>
               : availability ? <><h1 id="search-title">Choose the room that feels right.</h1><p>Live availability and current rates for the stay you selected.</p></>
               : <><h1 id="search-title">A room for your kind of stay.</h1><p>Browse HAVEN’s room types, then choose dates to see live availability.</p></>}
             </div>

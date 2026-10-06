@@ -17,7 +17,7 @@ Rules:
 - Every number must come from the input. Do not invent or recompute figures.
 - Distinguish FACT (observed data), PREDICTION (HAVEN analytics output) and RECOMMENDATION (your suggestion) in your wording.
 - summary: 3-6 sentences covering tomorrow's occupancy outlook, arrivals/departures, housekeeping workload and the most pressing risks.
-- priority_actions: 1-4 ordered actions the Manager should consider, each with a short rationale.
+- priority_actions: 1-4 ordered actions the Manager should consider, each with a short rationale. Tag each action with the owning queue when one fits: housekeeping_tasks, maintenance_orders, inventory, guest_requests, transportation or approvals — omit the tag when no queue fits.
 - warnings: anything needing attention (inventory shortages, recurring maintenance, escalated requests).
 - prediction_explanations: one entry per forecast you reference, labeled with the forecast name and noting its data quality when limited.`;
 

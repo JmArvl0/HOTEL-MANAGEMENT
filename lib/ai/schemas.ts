@@ -9,9 +9,14 @@ import { z } from "zod";
 
 // ---- AI daily brief ---------------------------------------------------------
 
+// Queues a brief priority action may link into. The HAVEN AI panel renders a
+// navigation button only for these values; an unknown tag fails validation
+// and the whole brief falls back to the unavailable state, never a half-shape.
+export const BriefActionQueues = ["housekeeping_tasks", "maintenance_orders", "inventory", "guest_requests", "transportation", "approvals"] as const;
+
 export const BriefSchema = z.object({
   summary: z.string().min(1).max(1200),
-  priority_actions: z.array(z.object({ action: z.string().min(1).max(300), rationale: z.string().max(500) })).min(1).max(6),
+  priority_actions: z.array(z.object({ action: z.string().min(1).max(300), rationale: z.string().max(500), queue: z.enum(BriefActionQueues).optional() })).min(1).max(6),
   warnings: z.array(z.string().min(1).max(400)).max(6).default([]),
   prediction_explanations: z.array(z.object({ label: z.string().min(1).max(120), text: z.string().min(1).max(600) })).max(6).default([])
 });
@@ -21,7 +26,7 @@ export const BriefResponseSchema: Schema = {
   type: Type.OBJECT,
   properties: {
     summary: { type: Type.STRING },
-    priority_actions: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { action: { type: Type.STRING }, rationale: { type: Type.STRING } }, required: ["action"] } },
+    priority_actions: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { action: { type: Type.STRING }, rationale: { type: Type.STRING }, queue: { type: Type.STRING } }, required: ["action"] } },
     warnings: { type: Type.ARRAY, items: { type: Type.STRING } },
     prediction_explanations: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { label: { type: Type.STRING }, text: { type: Type.STRING } }, required: ["label", "text"] } }
   },

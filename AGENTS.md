@@ -81,3 +81,16 @@ Never claim a check passed without running it.
 Record verified outcomes (never plans as done) in the session file, refresh
 `AI Session Handoff.md`, and touch `Current Status` / `Decisions` / `Project
 Memory` only when each genuinely changed. Keep entries small and linked.
+
+## 7. Skills
+
+Before design, planning, implementation, debugging, testing, or review work,
+check the harness's skill tool for a matching skill; if one matches, load it
+and follow it. Examples: `brainstorming` before new design, `writing-plans`
+before multi-step work, `systematic-debugging` for bugs, `test-driven-development`
+for behavior changes, `requesting-code-review` between tasks. Skills supplement
+§§1–6; they never override `SYSTEM.md`, the authority order, or verification.
+
+One-agent rule (§1 header) stands, with one narrow exception: a subagent may be
+used only when a loaded skill explicitly directs it (e.g. a review or dispatch
+step), scoped to the current task. Otherwise never spawn or delegate.

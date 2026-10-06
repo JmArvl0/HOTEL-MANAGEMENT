@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   Award,
   Check,
@@ -16,6 +17,7 @@ import {
   LOYALTY_TIERS,
   POINTS_TO_PESO,
   TIER_MULTIPLIERS,
+  TIER_THRESHOLDS,
   nextTier,
   normalizeTier,
   spendToNextTier,
@@ -47,10 +49,34 @@ type LoyaltyData = {
   ledger: LedgerRow[];
 };
 
-const TIER_DETAILS: Record<LoyaltyTier, { range: string; perk: string }> = {
-  silver: { range: "₱0 – ₱19,999 settled spend", perk: "Standard member privileges" },
-  gold: { range: "₱20,000 – ₱49,999 settled spend", perk: "Priority early check-in requests" },
-  platinum: { range: "₱50,000+ settled spend", perk: "Priority upgrades and enhanced privileges" },
+const TIER_DETAILS: Record<LoyaltyTier, { range: string; perk: string; perks: string[] }> = {
+  silver: {
+    range: "₱0 – ₱19,999 settled spend",
+    perk: "Standard member privileges",
+    perks: [
+      "1× points for every ₱100 in settled spend",
+      "Member-only rate guarantee across all rooms",
+      "Digital key & express mobile check-in",
+    ],
+  },
+  gold: {
+    range: "₱20,000 – ₱49,999 settled spend",
+    perk: "Priority early check-in requests",
+    perks: [
+      "1.25× points for every ₱100 spend (+25% bonus)",
+      "Priority early check-in & late checkout requests",
+      "Complimentary welcome beverage & amenities",
+    ],
+  },
+  platinum: {
+    range: "₱50,000+ settled spend",
+    perk: "Priority upgrades and enhanced privileges",
+    perks: [
+      "1.5× points for every ₱100 spend (+50% bonus)",
+      "Priority room upgrades upon availability",
+      "Dedicated concierge & VIP arrival lounge access",
+    ],
+  },
 };
 
 function peso(value: number) {
@@ -75,19 +101,19 @@ function parseLoyaltyData(value: unknown): LoyaltyData | null {
   const upcomingTier = nextTier(tier);
   const ledger = Array.isArray(record.ledger)
     ? record.ledger.flatMap((entry): LedgerRow[] => {
-        if (!entry || typeof entry !== "object") return [];
-        const row = entry as Record<string, unknown>;
-        const transactionType = String(row.transaction_type ?? "").toLowerCase();
-        if (!["earned", "redeemed", "adjusted", "expired"].includes(transactionType)) return [];
-        return [{
-          id: String(row.id ?? ""),
-          points: Number.isFinite(Number(row.points)) ? Number(row.points) : 0,
-          transaction_type: transactionType as LedgerType,
-          notes: row.notes === null || row.notes === undefined ? null : String(row.notes),
-          reservation_id: row.reservation_id === null || row.reservation_id === undefined ? null : String(row.reservation_id),
-          created_at: String(row.created_at ?? ""),
-        }];
-      })
+      if (!entry || typeof entry !== "object") return [];
+      const row = entry as Record<string, unknown>;
+      const transactionType = String(row.transaction_type ?? "").toLowerCase();
+      if (!["earned", "redeemed", "adjusted", "expired"].includes(transactionType)) return [];
+      return [{
+        id: String(row.id ?? ""),
+        points: Number.isFinite(Number(row.points)) ? Number(row.points) : 0,
+        transaction_type: transactionType as LedgerType,
+        notes: row.notes === null || row.notes === undefined ? null : String(row.notes),
+        reservation_id: row.reservation_id === null || row.reservation_id === undefined ? null : String(row.reservation_id),
+        created_at: String(row.created_at ?? ""),
+      }];
+    })
     : [];
 
   return {
@@ -114,7 +140,7 @@ function LoyaltyLoading() {
   return (
     <div className="loyalty-loading" aria-label="Loading loyalty rewards" aria-busy="true">
       <div className="loyalty-kpi-grid" aria-hidden="true">
-        {[0, 1, 2].map((item) => <span className="loyalty-skeleton loyalty-skeleton-kpi" key={item} />)}
+        {[0, 1, 2, 3].map((item) => <span className="loyalty-skeleton loyalty-skeleton-kpi" key={item} />)}
       </div>
       <div className="loyalty-skeleton loyalty-skeleton-heading" aria-hidden="true" />
       <div className="loyalty-tier-grid" aria-hidden="true">
@@ -135,19 +161,47 @@ function LoyaltyContent({ data }: { data: LoyaltyData }) {
   return (
     <>
       <section className="loyalty-kpi-grid" aria-label="Rewards summary">
-        <article className="loyalty-kpi-card">
-          <span className="loyalty-kpi-icon"><Award aria-hidden="true" size={21} /></span>
-          <div>
-            <small>Active tier &amp; balance</small>
+        <article className="loyalty-kpi-card loyalty-kpi-balance">
+          <div className="loyalty-kpi-top">
+            <span className={"loyalty-kpi-icon tier-" + data.tier}>
+              {data.tier === "platinum" ? <Crown aria-hidden="true" size={22} /> : <Award aria-hidden="true" size={22} />}
+            </span>
             <span className={"loyalty-tier-badge tier-" + data.tier}>{data.tierLabel}</span>
-            <strong>{data.points.toLocaleString("en-PH")} <em>points</em></strong>
+          </div>
+          <div className="loyalty-kpi-content">
+            <small>Active tier &amp; balance</small>
+            <div className="loyalty-balance-display">
+              <strong>{data.points.toLocaleString("en-PH")} <em>points</em></strong>
+              <span className="loyalty-multiplier-chip">{TIER_MULTIPLIERS[data.tier]}× earning</span>
+            </div>
             <p>{TIER_MULTIPLIERS[data.tier]}× points for every ₱100 in settled stay spend</p>
           </div>
         </article>
 
-        <article className="loyalty-kpi-card">
-          <span className="loyalty-kpi-icon"><TrendingUp aria-hidden="true" size={21} /></span>
-          <div>
+        <article className="loyalty-kpi-card loyalty-kpi-lifetime">
+          <div className="loyalty-kpi-top">
+            <span className="loyalty-kpi-icon loyalty-kpi-icon-gold">
+              <Coins aria-hidden="true" size={22} />
+            </span>
+            <span className="loyalty-spend-qualifying-badge">Tier Qualifying</span>
+          </div>
+          <div className="loyalty-kpi-content">
+            <small>Lifetime settled spend</small>
+            <strong>{peso(data.lifetimeSpend)}</strong>
+            <p>Total verified folio spend establishing your tier milestone</p>
+          </div>
+        </article>
+
+        <article className="loyalty-kpi-card loyalty-kpi-progress">
+          <div className="loyalty-kpi-top">
+            <span className="loyalty-kpi-icon">
+              <TrendingUp aria-hidden="true" size={22} />
+            </span>
+            <span className="loyalty-progress-badge">
+              {data.nextTier ? `${progressPercent}% to ${data.nextTierLabel}` : "Max tier"}
+            </span>
+          </div>
+          <div className="loyalty-kpi-content">
             <small>Tier progress</small>
             <strong>{data.nextTier ? peso(data.spendToNext) : "Top tier unlocked"}</strong>
             <p>{data.nextTier ? "more to reach " + data.nextTierLabel : "Platinum privileges are active"}</p>
@@ -164,9 +218,14 @@ function LoyaltyContent({ data }: { data: LoyaltyData }) {
           </div>
         </article>
 
-        <article className="loyalty-kpi-card">
-          <span className="loyalty-kpi-icon"><WalletCards aria-hidden="true" size={21} /></span>
-          <div>
+        <article className="loyalty-kpi-card loyalty-kpi-power">
+          <div className="loyalty-kpi-top">
+            <span className="loyalty-kpi-icon">
+              <WalletCards aria-hidden="true" size={22} />
+            </span>
+            <span className="loyalty-conversion-badge">1 pt = ₱1.00</span>
+          </div>
+          <div className="loyalty-kpi-content">
             <small>Reward purchasing power</small>
             <strong>{peso(data.points * POINTS_TO_PESO)}</strong>
             <p>Available stay discount · 1 point equals ₱1.00 off</p>
@@ -177,12 +236,21 @@ function LoyaltyContent({ data }: { data: LoyaltyData }) {
       <section className="loyalty-comparison" aria-labelledby="loyalty-tiers-heading">
         <header>
           <div>
+            <span className="loyalty-section-eyebrow">Tier Privileges</span>
             <h2 id="loyalty-tiers-heading">Compare membership tiers</h2>
             <p>Choose a tier to review how lifetime settled spend unlocks additional privileges.</p>
           </div>
-          <span className="loyalty-lifetime-spend">
-            <Coins aria-hidden="true" size={17} />
-            <span>Lifetime spend <strong>{peso(data.lifetimeSpend)}</strong></span>
+          <span className="loyalty-lifetime-spend" aria-label={`Lifetime spend: ${peso(data.lifetimeSpend)}`}>
+            <span className="loyalty-lifetime-spend-icon" aria-hidden="true">
+              <Coins size={18} />
+            </span>
+            <span className="loyalty-lifetime-spend-details">
+              <span className="loyalty-lifetime-spend-label">Lifetime spend</span>
+              <strong className="loyalty-lifetime-spend-amount">{peso(data.lifetimeSpend)}</strong>
+            </span>
+            <span className={"loyalty-lifetime-tier-pill tier-" + data.tier}>
+              {data.tierLabel} unlocked
+            </span>
           </span>
         </header>
 
@@ -199,41 +267,118 @@ function LoyaltyContent({ data }: { data: LoyaltyData }) {
                 aria-pressed={chosen}
                 onClick={() => setSelectedTier(tier)}
               >
-                <span className="loyalty-tier-option-top">
+                <div className="loyalty-tier-option-top">
                   <span className={"loyalty-tier-mark tier-" + tier}>
                     {tier === "platinum" ? <Crown aria-hidden="true" size={18} /> : <Award aria-hidden="true" size={18} />}
                   </span>
-                  {active ? <span className="loyalty-active-tier"><Check aria-hidden="true" size={12} /> Active tier</span> : null}
-                </span>
-                <strong>{tierLabel(tier)}</strong>
-                <span>{details.range}</span>
-                <b>{TIER_MULTIPLIERS[tier]}× points multiplier</b>
-                <small>{details.perk}</small>
+                  {active ? (
+                    <span className="loyalty-active-tier">
+                      <Check aria-hidden="true" size={12} /> Active tier
+                    </span>
+                  ) : (
+                    <span className="loyalty-tier-status-hint">
+                      {chosen ? "Viewing perks" : "Select to compare"}
+                    </span>
+                  )}
+                </div>
+                <div className="loyalty-tier-name-row">
+                  <strong>{tierLabel(tier)}</strong>
+                  <span className="loyalty-tier-spend-range">{details.range}</span>
+                </div>
+                <div className="loyalty-tier-multiplier-banner">
+                  <b>{TIER_MULTIPLIERS[tier]}× points multiplier</b>
+                </div>
+                <small className="loyalty-tier-lead-perk">{details.perk}</small>
+                <ul className="loyalty-tier-perks-list" aria-label={`${tierLabel(tier)} key privileges`}>
+                  {details.perks.map((item, index) => (
+                    <li key={index}>
+                      <Check aria-hidden="true" size={13} className="loyalty-perk-check" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
               </button>
             );
           })}
         </div>
 
         <div className={"loyalty-tier-detail tier-" + selected} aria-live="polite">
-          <Sparkles aria-hidden="true" size={18} />
-          <p><strong>{tierLabel(selected)} privileges:</strong> {TIER_DETAILS[selected].perk}. Earn {TIER_MULTIPLIERS[selected]}× points on eligible settled stay spend.</p>
+          <div className="loyalty-tier-detail-icon">
+            <Sparkles aria-hidden="true" size={20} />
+          </div>
+          <div className="loyalty-tier-detail-copy">
+            <p>
+              <strong>{tierLabel(selected)} privileges:</strong> {TIER_DETAILS[selected].perk}. Earn {TIER_MULTIPLIERS[selected]}× points on eligible settled stay spend.
+            </p>
+            <span className="loyalty-tier-detail-meta">
+              {selected === data.tier
+                ? "You are currently enjoying these benefits on every stay."
+                : selected === "gold" && data.tier === "silver"
+                  ? `₱${data.spendToNext.toLocaleString("en-PH")} more settled spend required to unlock Gold status.`
+                  : selected === "platinum"
+                    ? `₱${TIER_THRESHOLDS.platinum.toLocaleString("en-PH")} in lifetime settled spend required to achieve Platinum status.`
+                    : "Base membership tier automatically included with every guest profile."}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section className="loyalty-how-it-works" aria-labelledby="loyalty-how-heading">
+        <header className="loyalty-how-header">
+          <span className="loyalty-section-eyebrow">Program Guide</span>
+          <h2 id="loyalty-how-heading">How Haven Rewards works</h2>
+          <p>A transparent, automated loyalty program designed to reward your return to Haven.</p>
+        </header>
+        <div className="loyalty-steps-grid">
+          <div className="loyalty-step-card">
+            <span className="loyalty-step-number">01</span>
+            <div className="loyalty-step-content">
+              <h3>Stay &amp; Earn</h3>
+              <p>Earn 1× to 1.5× points on every ₱100 in settled folio spend. Points credit automatically to your ledger upon checkout.</p>
+            </div>
+          </div>
+          <div className="loyalty-step-card">
+            <span className="loyalty-step-number">02</span>
+            <div className="loyalty-step-content">
+              <h3>Ascend Tiers</h3>
+              <p>Unlock Gold at ₱20,000 and Platinum at ₱50,000 lifetime spend for boosted multipliers and VIP room privileges.</p>
+            </div>
+          </div>
+          <div className="loyalty-step-card">
+            <span className="loyalty-step-number">03</span>
+            <div className="loyalty-step-content">
+              <h3>Redeem 1:1</h3>
+              <p>Redeem your points directly during checkout for ₱1.00 off per point against room charges and stay folios.</p>
+            </div>
+          </div>
         </div>
       </section>
 
       <section className="loyalty-ledger-card" aria-labelledby="loyalty-history-heading">
         <header>
-          <span className="loyalty-section-icon"><History aria-hidden="true" size={20} /></span>
-          <div>
-            <h2 id="loyalty-history-heading">Points transaction history</h2>
-            <p>A clear record of points earned, redeemed, adjusted, or expired.</p>
+          <div className="loyalty-ledger-head-left">
+            <span className="loyalty-section-icon"><History aria-hidden="true" size={20} /></span>
+            <div>
+              <h2 id="loyalty-history-heading">Points transaction history</h2>
+              <p>A clear record of points earned, redeemed, adjusted, or expired.</p>
+            </div>
           </div>
+          {data.ledger.length > 0 && (
+            <span className="loyalty-ledger-count">
+              {data.ledger.length} {data.ledger.length === 1 ? "entry" : "entries"}
+            </span>
+          )}
         </header>
 
         {data.ledger.length === 0 ? (
           <div className="loyalty-empty">
-            <span><ReceiptText aria-hidden="true" size={25} /></span>
+            <span className="loyalty-empty-icon"><ReceiptText aria-hidden="true" size={26} /></span>
             <h3>Your points story starts after checkout</h3>
             <p>Eligible points will appear here automatically once a completed stay is settled.</p>
+            <Link href="/account/find-room" className="btn btn-soft loyalty-empty-cta">
+              <Sparkles aria-hidden="true" size={14} />
+              Book your next stay to start earning
+            </Link>
           </div>
         ) : (
           <>
@@ -253,8 +398,10 @@ function LoyaltyContent({ data }: { data: LoyaltyData }) {
                       <td data-label="Date"><time dateTime={row.created_at}>{formatHotelDateTime(row.created_at)}</time></td>
                       <td data-label="Reservation ref"><span className="loyalty-reference">{row.reservation_id ?? "Account adjustment"}</span></td>
                       <td data-label="Activity">
-                        <span className={"loyalty-transaction-badge type-" + row.transaction_type}>{transactionLabel(row.transaction_type)}</span>
-                        {row.notes ? <small>{row.notes}</small> : null}
+                        <div className="loyalty-activity-cell">
+                          <span className={"loyalty-transaction-badge type-" + row.transaction_type}>{transactionLabel(row.transaction_type)}</span>
+                          {row.notes ? <small className="loyalty-activity-notes">{row.notes}</small> : null}
+                        </div>
                       </td>
                       <td data-label="Points" className={row.points > 0 ? "points-positive" : "points-negative"}>
                         {row.points > 0 ? "+" : ""}{row.points.toLocaleString("en-PH")}
@@ -309,8 +456,10 @@ export default function LoyaltyCardPanel() {
   if (error) {
     return (
       <section className="loyalty-error" role="alert">
-        <Award aria-hidden="true" size={26} />
-        <div>
+        <div className="loyalty-error-icon">
+          <Award aria-hidden="true" size={24} />
+        </div>
+        <div className="loyalty-error-copy">
           <h2>We couldn&apos;t load your rewards</h2>
           <p>{error} Check your connection and try again.</p>
         </div>

@@ -90,8 +90,7 @@ export const HavenNotificationBell = forwardRef<HTMLButtonElement, HavenNotifica
       title="Notifications"
       onClick={onToggle}
     >
-      <Bell size={18} aria-hidden="true" />
-      {count > 0 && (
+      <Bell size={18} className="haven-bell-icon" aria-hidden="true" />{count > 0 && (
         <i className={`haven-notification-badge ${badgeClassName}`.trim()} aria-hidden="true">
           {count > 99 ? "99+" : count}
         </i>
@@ -139,7 +138,7 @@ export function HavenNotificationItem({
       {(item.href || onOpen) && <ChevronRight size={15} aria-hidden="true" className="cnr-chevron" />}
     </>
   );
-  const className = `cnr density-${density}${unread ? " is-unread" : ""}${item.href || onOpen ? " is-actionable" : ""}`;
+  const className = `cnr density-${density} is-sev-${severity}${unread ? " is-unread" : ""}${item.href || onOpen ? " is-actionable" : ""}`;
   if (item.href) {
     return <Link className={className} href={item.href} onClick={() => onOpen?.(item)}>{body}</Link>;
   }

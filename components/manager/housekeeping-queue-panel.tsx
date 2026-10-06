@@ -152,7 +152,7 @@ export default function HousekeepingQueuePanel({ role, userId, items, allItems, 
 
   return <>
     <div className="hk-hero">
-      <div><p className="hk-eyebrow">Hotel operations</p><h1>Housekeeping</h1><p>Live room-care queue from turnover through inspection and readiness.</p></div>
+      <div><p className="hk-eyebrow">Hotel operations</p><h1>Housekeeping</h1><p>Live room-care queue from turnover through inspection and readiness. Tomorrow&apos;s workload forecast lives in Predictive Insights; plain-language explanations in HAVEN AI.</p></div>
     </div>
     <ModuleSummaryCards cards={[
       { label: "Needs attention", value: totals.needs_attention, hint: "Unassigned or urgent", icon: ClipboardCheck, tone: "attention" },
@@ -192,8 +192,8 @@ export default function HousekeepingQueuePanel({ role, userId, items, allItems, 
       filtersLayout="compact"
       search={<HavenSearchInput value={search} onValueChange={setSearch} label="Search the room-care queue" placeholder="Search the room-care queue..." />}
       advancedFilters={<>
-        <div className="haven-filter"><span>Work type</span><HavenSelect value={workType} onChange={setWorkType} ariaLabel="Filter by work type" options={[{ value: "all", label: "All work types" }, ...taskTypes.map((type) => ({ value: type, label: label(type) }))]} /></div>
-        <div className="haven-filter"><span>Task status</span><HavenSelect value={workStatus} onChange={setWorkStatus} ariaLabel="Filter by task status" options={[{ value: "all", label: "All statuses" }, ...workStatuses.map((status) => ({ value: status, label: label(status) }))]} /></div>
+        <div className="haven-filter"><HavenSelect value={workType} onChange={setWorkType} ariaLabel="Filter by work type" options={[{ value: "all", label: "All work types" }, ...taskTypes.map((type) => ({ value: type, label: label(type) }))]} /></div>
+        <div className="haven-filter"><HavenSelect value={workStatus} onChange={setWorkStatus} ariaLabel="Filter by task status" options={[{ value: "all", label: "All task statuses" }, ...workStatuses.map((status) => ({ value: status, label: label(status) }))]} /></div>
       </>}
       resultCount={visibleCount}
       resultNoun={`task${visibleCount !== 1 ? "s" : ""} of ${queueItems.length}`}

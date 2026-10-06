@@ -67,6 +67,7 @@ export function CheckInQr({ reservationId, confirmationNumber }: { reservationId
       <div className="customer-checkin-qr-action">
         <p className="customer-checkin-qr-status"><i aria-hidden="true" /> Ready for Express Check-In</p>
         <button type="button" className="btn btn-soft" onClick={download}><Download size={14} aria-hidden="true" />Download QR</button>
+        <a className="btn btn-soft" href="/checkin/kiosk">Use Express kiosk</a>
       </div>
     </div>
   );

@@ -30,6 +30,8 @@ export function RoomResults({
   return <div className="availability-grid">{rooms.map((room, index) => {
     const priced = "availableUnits" in room;
     const soldOut = priced && room.availableUnits <= 0;
+    const isLow = priced && !soldOut && room.availableUnits <= 2;
+    const chipModifier = !priced ? " is-browse" : soldOut ? " is-off" : isLow ? " is-low" : "";
     const photo = roomPrimary(room.photos, room.name);
     const focused = focusRoomType === room.name;
     const extraAmenities = Math.max(0, room.amenities.length - CARD_AMENITY_LIMIT);
@@ -41,7 +43,7 @@ export function RoomResults({
       <div className={`available-room-image${photo ? " room-photo" : ""}`}>
         {photo ? <Image src={photo} alt={`${room.name} room`} fill sizes="(max-width: 760px) 100vw, 420px" /> : null}
         {photo ? <RoomPhotoTrigger photos={roomPhotosFor(room.photos, room.name)} roomName={room.name} /> : null}
-        <span className={`room-availability-chip${soldOut ? " is-off" : ""}`}>{priced ? (soldOut ? "Unavailable" : `${room.availableUnits} available`) : "Check dates"}</span>
+        <span className={`room-availability-chip${chipModifier}`}>{priced ? (soldOut ? "Unavailable" : `${room.availableUnits} available`) : "Check dates"}</span>
         {room.photos.length > 1 ? <small className="room-photo-count">{room.photos.length} photos</small> : null}
       </div>
       <div className="available-room-copy">

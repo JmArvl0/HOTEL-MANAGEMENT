@@ -36,6 +36,9 @@ interface ResolveResponse {
   room?: { id?: string; number: string; floor?: number; type?: string; status?: string; housekeeping?: string };
   openTasks?: number;
   openOrders?: number;
+  tasks?: { id: string; status: string }[];
+  orders?: { id: string; status: string }[];
+  dueAssets?: { id: string; name: string; nextServiceDate: string | null }[];
   currentStay?: { guestName: string; checkIn: string; checkOut: string } | null;
 }
 
@@ -44,7 +47,9 @@ interface ResolveResponse {
 type CameraState = "idle" | "starting" | "on" | { error: "blocked" | "unavailable" | "insecure" };
 
 // Outcome CTAs are dashboard actions now — the dashboard maps them to sections
-// (or opens the reservation detail) instead of navigating to a page.
+// (or opens the reservation detail) instead of navigating to a page. Room
+// outcomes carry the room number so the queue opens pre-filtered to the
+// scanned room; the queue's own actions still perform every mutation.
 const CTA_LABELS: Record<string, string> = {
   check_in: "Open reservation",
   room_tasks: "Open Housekeeping queue",
@@ -52,7 +57,13 @@ const CTA_LABELS: Record<string, string> = {
   room_summary: "Done"
 };
 
-export function QrScannerModal({ onClose, onCta }: { onClose: () => void; onCta: (action: string, reservationId?: string) => void }) {
+const roomCtaLabel = (outcome: ResolveResponse): string | undefined => {
+  if (outcome.action === "room_tasks" && outcome.room?.number) return `Open Room ${outcome.room.number} tasks`;
+  if (outcome.action === "work_orders" && outcome.room?.number) return `Open Room ${outcome.room.number} orders`;
+  return outcome.action ? CTA_LABELS[outcome.action] : undefined;
+};
+
+export function QrScannerModal({ onClose, onCta }: { onClose: () => void; onCta: (action: string, reservationId?: string, roomNumber?: string) => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -145,7 +156,7 @@ export function QrScannerModal({ onClose, onCta }: { onClose: () => void; onCta:
   // only the outcome is cleared.
   const reset = () => setOutcome(null);
 
-  const ctaLabel = outcome?.action ? CTA_LABELS[outcome.action] : undefined;
+  const ctaLabel = outcome ? roomCtaLabel(outcome) : undefined;
   const authorized = outcome?.result === "authorized";
 
   const errorKind = typeof camera === "object" ? camera.error : null;
@@ -260,13 +271,14 @@ export function QrScannerModal({ onClose, onCta }: { onClose: () => void; onCta:
               {outcome.room.housekeeping && <div><dt>Housekeeping</dt><dd>{outcome.room.housekeeping}</dd></div>}
               {outcome.openTasks !== undefined && <div><dt>Open tasks</dt><dd>{outcome.openTasks}</dd></div>}
               {outcome.openOrders !== undefined && <div><dt>Open work orders</dt><dd>{outcome.openOrders}</dd></div>}
+              {outcome.dueAssets !== undefined && outcome.dueAssets.length > 0 && <div><dt>Assets due</dt><dd>{outcome.dueAssets.map((asset) => asset.name).join(", ")}</dd></div>}
               {outcome.currentStay && <div><dt>Current guest</dt><dd>{outcome.currentStay.guestName} ({outcome.currentStay.checkIn} → {outcome.currentStay.checkOut})</dd></div>}
             </dl>
           )}
 
           <div className="qr-outcome-actions">
             <button type="button" className="btn btn-soft" onClick={reset}>Scan another code</button>
-            {ctaLabel && <button type="button" className="btn btn-accent" onClick={() => onCta(outcome.action!, outcome.reservation?.id)}>{ctaLabel}</button>}
+            {ctaLabel && <button type="button" className="btn btn-accent" onClick={() => onCta(outcome.action!, outcome.reservation?.id, outcome.room?.number)}>{ctaLabel}</button>}
           </div>
         </section>
       )}

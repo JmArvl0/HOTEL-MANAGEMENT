@@ -66,7 +66,7 @@ export function BookingStaySummary({
       </div>
       <div className="review-stay-body">
         <p className="review-stay-eyebrow">Your stay</p>
-        <h2>{roomType}</h2>
+        <h2 className="room-title">{roomType}</h2>
         <dl>
           <div>
             <dt>

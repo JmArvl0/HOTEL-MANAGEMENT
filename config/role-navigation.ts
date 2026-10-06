@@ -43,7 +43,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Maintenance", section: "maintenance_orders", group: "operations" },
   { label: "Inventory", section: "inventory", group: "operations" },
   { label: "Reports", section: "reports", roles: ["manager", "accounting", "front_desk"], group: "operations" },
-  { label: "Billing", section: "invoices", group: "finance" },
+  { label: "Billing", section: "invoices", roles: ["front_desk", "accounting"], group: "finance" },
   { label: "Transactions", section: "transactions", roles: ["front_desk", "accounting"], group: "finance" },
   { label: "Guest Folios", section: "folios", roles: ["front_desk", "accounting"], group: "finance" },
   { label: "Deposit Verification", section: "payments", group: "finance" },

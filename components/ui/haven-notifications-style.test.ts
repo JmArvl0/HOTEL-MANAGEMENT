@@ -34,4 +34,22 @@ describe("shared notification layout contract", () => {
     // Uppercase micro-label: color never travels without text.
     expect(css).toMatch(/\.cnr-severity\s*\{[\s\S]*?text-transform:\s*uppercase/);
   });
+
+  it("locks the root notification bell button and icon to absolute center alignment", () => {
+    expect(css).toContain(".haven-notification-bell");
+    expect(css).toMatch(/\.haven-notification-bell\s*\{[\s\S]*?width:\s*38px\s*!important/);
+    expect(css).toMatch(/\.haven-notification-bell\s*\{[\s\S]*?height:\s*38px\s*!important/);
+    expect(css).toMatch(/\.haven-notification-bell\s*\{[\s\S]*?overflow:\s*visible\s*!important/);
+    expect(css).toMatch(/\.haven-notification-bell\s+\.haven-bell-icon[\s\S]*?position:\s*absolute\s*!important/);
+    expect(css).toMatch(/\.haven-notification-bell\s+\.haven-bell-icon[\s\S]*?top:\s*50%\s*!important/);
+    expect(css).toMatch(/\.haven-notification-bell\s+\.haven-bell-icon[\s\S]*?left:\s*50%\s*!important/);
+    expect(css).toMatch(/\.haven-notification-bell\s+\.haven-bell-icon[\s\S]*?transform:\s*translate\(-50%,\s*-50%\)\s*!important/);
+  });
+
+  it("anchors the notification badge to the top-right corner with tabular numbers", () => {
+    expect(css).toMatch(/\.haven-notification-badge[\s\S]*?position:\s*absolute\s*!important/);
+    expect(css).toMatch(/\.haven-notification-badge[\s\S]*?top:\s*-4px\s*!important/);
+    expect(css).toMatch(/\.haven-notification-badge[\s\S]*?right:\s*-4px\s*!important/);
+    expect(css).toMatch(/\.haven-notification-badge[\s\S]*?font-variant-numeric:\s*tabular-nums\s*!important/);
+  });
 });

@@ -16,6 +16,9 @@ import "./customer-portal.css";
 import "./staff-ops-theme.css";
 import "@/components/auth/session-expiry.css";
 import "@/components/ui/app-shell.css";
+import "@/components/ui/command-palette.css";
+import "@/components/ui/haven-account-modal.css";
+import "./haven-tailadmin-theme.css";
 import "./fleetops-theme.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });

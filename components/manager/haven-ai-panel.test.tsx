@@ -172,4 +172,36 @@ describe("HavenAiPanel", () => {
     await waitFor(() => expect(screen.getByText(/Tomorrow runs at 75%/)).toBeTruthy());
     expect(calls).toContain("/api/ai/brief?refresh=1");
   });
+
+  it("links a queue-tagged brief action into its module", async () => {
+    const tagged = {
+      ...briefPayload,
+      data: {
+        ...brief,
+        priority_actions: [
+          { action: "Schedule an extra room attendant for tomorrow morning", rationale: "7 checkout cleans.", queue: "housekeeping_tasks" },
+          { action: "Restock bath towels", rationale: "Shortage predicted." }
+        ]
+      }
+    };
+    const opened: string[] = [];
+    mockFetch({ "/api/ai/brief": tagged });
+    render(<HavenAiPanel userName="Maya Reyes" onOpenQueue={(section) => void opened.push(section)} />);
+    await waitFor(() => expect(screen.getByText(/Tomorrow runs at 75%/)).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Open Housekeeping queue" }));
+    expect(opened).toEqual(["housekeeping_tasks"]);
+    // The untagged action stays plain text with no navigation button.
+    expect(screen.queryByRole("button", { name: /Open.*towels/i })).toBeNull();
+  });
+
+  it("renders queue-tagged actions as plain text without a navigation handler", async () => {
+    const tagged = {
+      ...briefPayload,
+      data: { ...brief, priority_actions: [{ action: "Check the generator fuel", rationale: "Storm season.", queue: "maintenance_orders" }] }
+    };
+    mockFetch({ "/api/ai/brief": tagged });
+    render(<HavenAiPanel />);
+    await waitFor(() => expect(screen.getByText("Check the generator fuel")).toBeTruthy());
+    expect(screen.queryByRole("button", { name: /Open Maintenance/ })).toBeNull();
+  });
 });

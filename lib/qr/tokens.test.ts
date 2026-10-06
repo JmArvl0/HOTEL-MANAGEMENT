@@ -217,6 +217,21 @@ describe("resolve route authorization (string-asserted)", () => {
     expect(resolveRoute).toMatch(/status !== "confirmed" && [\s\S]{0,80}status !== "checked_in"/);
   });
 
+  it("hands housekeeping its actionable room tasks — ids, not just a count", () => {
+    expect(resolveRoute).toMatch(/role === "housekeeping"[\s\S]{0,600}housekeeping_tasks/);
+    expect(resolveRoute).toMatch(/select\("id,status"\)/);
+  });
+
+  it("hands maintenance its actionable room orders plus due assets for the room", () => {
+    expect(resolveRoute).toMatch(/role === "maintenance"[\s\S]{0,800}maintenance_orders/);
+    expect(resolveRoute).toMatch(/maintenance_assets/);
+    expect(resolveRoute).toMatch(/next_service_date/);
+  });
+
+  it("never leaks task or order ids to guests or other roles", () => {
+    expect(resolveRoute).not.toMatch(/role === "guest"[\s\S]{0,200}housekeeping_tasks/);
+  });
+
   it("never performs check-in from a scan — resolution only identifies the reservation", () => {
     expect(resolveRoute).not.toContain("front_desk_check_in(");
     expect(resolveRoute).not.toContain("supabase.rpc(");

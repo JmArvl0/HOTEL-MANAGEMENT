@@ -8,6 +8,7 @@ import { CustomerShell } from "./customer-shell";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/account",
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 
 type SeedItem = { id: string; title: string; detail: string; createdAt: string; href: string; readAt: string | null; type?: string };
@@ -27,9 +28,11 @@ const capSeed = Array.from({ length: 9 }, (_, index) => ({
 beforeAll(() => {
   if (!window.matchMedia) {
     window.matchMedia = (query: string) =>
-      ({ matches: false, media: query, onchange: null,
-         addListener: () => {}, removeListener: () => {},
-         addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false }) as MediaQueryList;
+      ({
+        matches: false, media: query, onchange: null,
+        addListener: () => { }, removeListener: () => { },
+        addEventListener: () => { }, removeEventListener: () => { }, dispatchEvent: () => false
+      }) as MediaQueryList;
   }
 });
 
@@ -283,4 +286,61 @@ describe("CustomerShell account menu", () => {
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Account security" })).toBeNull());
     expect(screen.getByText("Stay content")).toBeTruthy();
   });
+
+  it("renders the account menu as an undimmed dropdown popover, not a modal", () => {
+    const { container } = renderShell();
+
+    // No modal backdrop on page load
+    expect(document.querySelector(".dialog-backdrop")).toBeNull();
+
+    // Open account menu
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+
+    // Dropdown popover is visible and anchored
+    const popover = container.querySelector(".customer-account-popover");
+    expect(popover).toBeTruthy();
+
+    // Account menu trigger does NOT open a full-page modal backdrop
+    expect(document.querySelector(".dialog-backdrop")).toBeNull();
+  });
+
+  it("opens My Profile in a modal dialog when My Profile row is clicked, without navigating away", async () => {
+    const { container } = renderShell();
+
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    const profileRow = screen.getByRole("link", { name: /My Profile/ });
+    expect(profileRow.getAttribute("href")).toBe("/account/profile");
+
+    // Click My Profile row
+    fireEvent.click(profileRow);
+
+    // Popover closes
+    expect(container.querySelector(".customer-account-popover")).toBeNull();
+
+    // Modal dialog opens
+    const dialog = await screen.findByRole("dialog", { name: "My Profile" });
+    expect(dialog).toBeTruthy();
+    expect(dialog.getAttribute("aria-modal")).toBe("true");
+
+    // Backdrop exists for modal viewing
+    expect(document.querySelector(".dialog-backdrop")).toBeTruthy();
+
+    // Contains editable profile fields
+    expect(screen.getByLabelText(/Full Name/)).toBeTruthy();
+    expect(screen.getByLabelText(/Email Address/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Save Changes/ })).toBeTruthy();
+  });
+
+  it("closes the My Profile dialog with Escape and leaves the page content mounted", async () => {
+    renderShell();
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    fireEvent.click(screen.getByRole("link", { name: /My Profile/ }));
+    await screen.findByRole("dialog", { name: "My Profile" });
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "My Profile" })).toBeNull());
+    expect(screen.getByText("Stay content")).toBeTruthy();
+  });
 });
+

@@ -130,7 +130,7 @@ export default async function MyReservationsPage({
                               <StatusBadge status={reservation.payment_status} size="sm" />
                             </div>
                             <p className="reservation-card-reference">{reservation.confirmation_number ?? reservation.id}</p>
-                            <h3>{reservation.room_type}</h3>
+                            <h3 className="room-title">{reservation.room_type}</h3>
                             <div className="reservation-card-facts">
                               <span><CalendarDays size={15} />{formatStayRange(reservation.check_in, reservation.check_out)}</span>
                               <span><Users size={15} />{reservation.guests} guest{reservation.guests !== 1 ? "s" : ""} · {nights} night{nights !== 1 ? "s" : ""}</span>

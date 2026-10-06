@@ -1,5 +1,243 @@
 # Current Status
 
+## Guest Rewards & Loyalty Module Redesign (2026-10-06)
+
+- Completely redesigned the guest account Rewards module ([`app/(booking)/(customer)/account/loyalty/page.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/app/%28booking%29/%28customer%29/account/loyalty/page.tsx) and [`components/customer/loyalty-card-panel.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/components/customer/loyalty-card-panel.tsx)) using modern SaaS (TailAdmin / Finwise) paradigms, elevated UI/UX Pro Max aesthetics, and full responsive design:
+  1. **Executive Page Header**: Standardized to `section.customer-page-title.split` with amber pill eyebrow, balanced title typography, and a prominent primary action CTA (`Book stay to earn` linking directly to `/account/find-room`).
+  2. **Membership KPI Cards Grid (`.loyalty-kpi-grid`)**:
+     - **Active Tier & Balance**: Digital executive membership card aesthetic with luxury background gradient, live tier badge, crown/award icon badge, bold points balance, and multiplier rate tag (`1×/1.25×/1.5× earning`).
+     - **Lifetime Qualifying Spend (`.loyalty-kpi-lifetime`)**: Dedicated 4th executive KPI card highlighting total verified folio spend (`₱75,400.00`) establishing tier status, featuring gold `Coins` token with warm glow, "Tier Qualifying" pill badge, large tabular currency numerals, and explanatory copy.
+     - **Tier Progress**: Real-time milestone tracker displaying distance to next tier (`₱10,000.00 to Gold`), percentage pill badge (`50% to Gold`), and a glowing animated progress bar.
+     - **Purchasing Power**: Financial translation of points to Philippine Pesos (`₱150.00`), instant conversion rate pill (`1 pt = ₱1.00`), and stay discount explanation.
+  3. **Interactive Tier Privileges Matrix (`.loyalty-comparison`)**:
+     - Distinct luxury cards for Silver, Gold, and Platinum with spend range pills, multiplier badges, and interactive comparison selection.
+     - **Executive Lifetime Spend Header Badge (`.loyalty-lifetime-spend`)**: Elevated from a dim gray footnote into a prominent, noticeable executive status badge with gold gradient styling, glowing coin token, uppercase tracking label, bold tabular currency, and active tier indicator pill (`Gold unlocked`).
+     - Itemized privileges checklist (`.loyalty-tier-perks-list`) for each tier highlighting key member perks (rate guarantees, digital key, early check-in, room upgrades, concierge access).
+     - Glassmorphic tier detail banner (`.loyalty-tier-detail`) with active status indicator and unlock milestones.
+  4. **Program Guide Strip (`.loyalty-how-it-works`)**:
+     - Clear 3-step guide explaining how Haven Rewards works: Stay & Earn (01), Ascend Tiers (02), and Redeem 1:1 (03).
+  5. **Transaction Ledger (`.loyalty-ledger-card`)**:
+     - Modern SaaS table design with monospace reference pill badges, status activity pills (`Earned`, `Redeemed`, `Adjusted`), and green positive point values (`+150`).
+     - Guided empty state with next action link (`Explore rooms to start earning`).
+  6. **Styling & Tokens ([`app/customer-portal.css`](file:///c:/Projects/HOTEL-MANAGEMENT/app/customer-portal.css))**:
+     - Section 10 overhauled using FleetOps tokens (`var(--cp-*)`, `var(--st-*)`, `var(--cp-gold)`, `color-mix(...)`) with 0 legacy coastal hexes.
+     - Responsive layout: 4-column KPI grid on desktop, 2-column on tablet, full-width balanced stack on mobile (`<=680px`).
+  7. **Verification**:
+     - `npm run typecheck`: clean (0 errors).
+     - `vitest`: targeted loyalty and customer shell suites passed (22/22 tests).
+     - `npm run build`: clean (all 88 routes compiled with Turbopack).
+
+## Classic Guest AI Concierge Restoration & UI/UX Pro Max Refinement (2026-10-06)
+
+- Restored the clean classic appearance of the floating AI chatbot to match the original design captured in the user screenshot, elevated with UI/UX Pro Max polish and impeccable craftsmanship:
+  1. **Classic Circular Floating Launcher ([`components/customer/concierge-float.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/components/customer/concierge-float.tsx))**:
+     - Restored the 56px circular floating trigger button with centered icon (`Sparkles` when closed, `X` when open).
+     - Elevated micro-interactions: smooth scale transition (`scale(1.05)` on hover, `scale(0.96)` on press), multi-stage elevation shadow (`0 10px 25px -4px rgba(0,0,0,0.16)`), and accessible focus ring.
+  2. **Clean Minimal Header Layout**:
+     - Single-row header with emerald `Sparkles` icon and bold `Ask HAVEN` title (`14px font-weight: 700;`).
+     - Distinct tactile 32px close button with subtle border and smooth hover background.
+  3. **Classic Empty State & Suggested Prompts ([`components/customer/guest-ai-concierge-panel.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/components/customer/guest-ai-concierge-panel.tsx))**:
+     - Clean, unobtrusive initial prompt: *"Ask about check-in times, amenities, Wi-Fi, or nearby places."*
+     - Horizontal rail of rounded pill chips with micro-lift hover interactions for fast questions.
+  4. **Form Controls & Input Row ([`app/customer-portal.css`](file:///c:/Projects/HOTEL-MANAGEMENT/app/customer-portal.css))**:
+     - Fixed broken styling where input and button previously rendered as unstyled browser controls.
+     - Direct `<input>` and `<button>Send</button>` flex layout with 40px height, 10px rounded corners, smooth focus rings (`0 0 0 3px rgba(59, 130, 246, 0.15)`), and high-contrast Midnight Ink / blue send button.
+     - Footnote disclosure with proper contrast and muted sizing.
+  5. **Verification**:
+     - `npm run typecheck`: clean (0 errors).
+     - `eslint`: clean (0 errors).
+     - `vitest`: targeted suites passed (17/17 tests).
+     - `npm run build`: clean (all 88 routes compiled with Turbopack).
+
+## Cancelled Stay Refund Explanation & Modal Feature (2026-10-06)
+
+- Added an informative, luxury "See more" modal feature to the cancelled reservation refund section (`.crd-refund-status`) on `/my-reservations/[id]`:
+  1. **Trigger Affordance (`.crd-refund-status`)**:
+     - When a cancelled reservation is not eligible for a refund (`!activeRefund`), added `<button type="button" className="customer-inline-action crd-refund-more-btn" onClick={() => setRefundInfoOpen(true)}>`.
+     - Includes `HelpCircle` icon, "See more" label, and `aria-label="See more details about why no refund is due"`.
+  2. **Refund Policy & Eligibility Modal**:
+     - Built using Haven's accessible `<Modal>` primitive with `portal={true}` (full-viewport dimming and focus trapping) and `headerVariant="branded"`.
+     - Contextual reason card tailored to the reservation state:
+       - **Zero Payments Collected** (`money.paid === 0`): explains that no reservation deposit or stay payments were recorded, so there is no collected amount to refund.
+       - **No-Show Forfeiture**: explains that reservations marked as a no-show past the check-in cutoff forfeit the reservation deposit.
+       - **Non-Refundable Notice Window**: explains that cancellations requested inside the notice cutoff window (< 7 days before arrival) forfeit the deposit to offset reserved inventory.
+     - Structured financial breakdown card (Stay Total, Amount Paid, Folio Balance = ₱0.00, Eligible Refund = ₱0.00).
+     - Visual policy tiers recap (100% full refund window, partial refund percentage, non-refundable cutoff, and no-show arrival cutoff).
+     - Guidance note for extenuating circumstances and direct link to Help & Support (`/account/help`).
+  3. **Verification**:
+     - `npm run typecheck`: clean (0 errors).
+     - `vitest`: 184 test files passed, 2,052 tests passed (100% green).
+     - `npm run build`: clean (all 88 routes compiled with Turbopack).
+
+## Guest AI Concierge Modern SaaS Design Overhaul (2026-10-06)
+
+- Completely elevated the guest account floating AI concierge chatbot (`ConciergeFloat` & `GuestAiConciergePanel`) to match the renewed HAVEN modern SaaS (TailAdmin/Finwise) design language:
+  1. **Floating Launcher Pill ([`components/customer/concierge-float.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/components/customer/concierge-float.tsx))**:
+     - Upgraded from a plain circular button to a modern SaaS floating pill with backdrop blur, subtle shadow, and a pulsing emerald live status beacon (`.concierge-live-beacon`) showing active availability.
+     - Preserves full accessibility: `aria-expanded`, `aria-label="Chat with HAVEN concierge"` (closed) / `"Close concierge chat"` (open).
+  2. **Elevated Header & Identity**:
+     - Modern two-line brand layout: dedicated avatar badge with Sparkles, bold title ("Ask HAVEN"), "AI Host" pill badge, and live "Virtual Concierge · Online" status indicator dot.
+     - Accessible close button with hover feedback and `aria-label="Close chat panel"`.
+  3. **Welcome Hero Card ([`components/customer/guest-ai-concierge-panel.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/components/customer/guest-ai-concierge-panel.tsx))**:
+     - Transformed bare empty text into an elevated welcoming hero card (`.concierge-welcome-card`) with sparkles icon badge, bold greeting ("How can we assist you today?"), and clear prompt suggestions. Preserves `.concierge-empty` for test suite invariants.
+  4. **Chat Bubbles & Action Cards**:
+     - **Assistant Messages**: Elevated card surface with crisp border, refined typography, and full markdown rendering.
+     - **User Messages**: Modern SaaS gradient / deep ink fill with crisp high-contrast white text and subtle shadow elevation.
+     - **Action Draft Cards**: Highlighted service request drafts with "Action Draft" tags, request details, and primary CTA buttons ("Confirm Request").
+     - **Typing Indicator**: Animated 3-dot bounce wave (`.concierge-typing-dots`) alongside backwards-compatible pulse bars.
+     - **Input Form**: Seamless container wrapper (`.concierge-input-wrap`) with focus-within ring and dedicated send button with icon.
+  5. **Flexbox Architecture in [`app/customer-portal.css`](file:///c:/Projects/HOTEL-MANAGEMENT/app/customer-portal.css)**:
+     - Eliminated fixed 300px thread height cutoff; implemented full flexbox layout (`flex: 1; min-height: 0; overflow-y: auto`) inside an elevated 20px radius card (`410px` wide, max `600px` height) with zero nested scrollbars.
+     - Fully compliant with FleetOps neutral tokens (`#111827`, `#d1d5db`) and zero legacy coastal hexes.
+- Verification:
+  - `npm run typecheck`: clean (0 errors).
+  - `eslint`: clean on touched files (0 errors).
+  - `vitest`: 184 test files passed, 2,052 tests passed (100% green).
+  - `npm run build`: clean (all 88 routes compiled with Turbopack).
+
+## Account Dropdown Popover Preservation & Dedicated "My Profile" Modal View (2026-10-06)
+
+- Restored native header dropdown popover behavior across all account triggers while dedicating modal viewing exclusively to "My Profile":
+  1. **Customer Shell ([`components/customer/customer-shell.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/components/customer/customer-shell.tsx))**:
+     - Header account button (`Carl Garcia` / `CG`) opens an undimmed, luxury dropdown popover directly anchored beneath the header button.
+     - Dropdown contains user identity header, "My Profile" item (`<a class="haven-account-row-item" href="/account/profile">`), "Account security" item, and "Sign Out" item.
+     - Clicking "My Profile" intercepts navigation, closes the dropdown popover, and opens the dedicated modal view.
+  2. **Dedicated Customer Profile Modal ([`components/account/customer-profile-modal.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/components/account/customer-profile-modal.tsx))**:
+     - Uses Haven `<Modal size="md" headerVariant="branded" portal={true}>` to guarantee full-viewport backdrop dimming (`dialog-backdrop`) without clipping by sticky headers or CSS transforms.
+     - Hero Identity Card with monogram avatar, verified guest badge, legal name, and email.
+     - Live editable form inputs (Full Name, Mobile Number, Nationality, Address) and read-only verified email with Front Desk notice.
+     - Form submission sends `PATCH /api/account/profile` with input validation, success/error feedback alerts, and router refresh.
+     - Footer includes seamless transition button to Account Security (`onOpenSecurity`).
+  3. **Staff / Manager, Admin, and Owner Dashboards**:
+     - Reverted header account triggers from full modals back to native dropdown popovers (`.profile-popover` inside `.profile-menu-wrap`), preserving their outside-click dismissals and Settings dialog triggers.
+- Verification:
+  - `npm run typecheck`: clean (0 errors).
+  - `vitest`: 184 test files passed, 2,048 tests passed (100% green).
+  - `npm run build`: clean (all 88 routes compiled with Turbopack).
+
+## Reservation Booking Policy Formatting & Visual Scannability Redesign (2026-10-06)
+
+- Completely overhauled the formatting of the reservation booking policy panel (`<section class="customer-policy crd-panel" id="crd-panel-policy">`), transforming raw wall-of-text sentence paragraphs into structured, high-contrast, scannable components:
+  1. **Check-in & Check-out**: Formatted into a dedicated 3-column schedule bar (`.crd-policy-metrics`) highlighting Check-in (`From 3:00 PM`), Check-out (`By 12:00 PM`), and Timezone (`Asia/Manila (PHT)`).
+  2. **Valid ID & Minimum Age**: Structured into clear specification rows with status badge pills (`Required at check-in` / `18+ years old`) and concise secondary explanation copy.
+  3. **Balance & Incidentals**: Formatted with a dedicated settlement timing pill (`Due at checkout`) and clear scope breakdown (remaining room balance and incidental charges incurred).
+  4. **Cancellation Refunds**: Replaced dense sentence clauses with a visual tiered refund breakdown (`.crd-policy-tiers`):
+     - **100% Refund**: Emerald tier card for cancellations ≥ 14 days before arrival.
+     - **50% Refund**: Amber tier card for cancellations ≥ 7 days before arrival.
+     - **Non-Refundable**: Rose/critical tier card for cancellations < 7 days before arrival.
+     - **No-Show Rule**: Clear bottom notice for deposit forfeiture past 11:59 PM on arrival day.
+  5. **Changes to Your Booking**: Structured into a notice window row (`≥ 3 days before arrival`) with condition details (availability, repricing, staff approval).
+  6. **Special Requests**: Structured into a fulfillment status row with a clear "Subject to availability" tag and arrival fulfillment explanation.
+  7. **House Rules**: Transformed inline sentences into a visual 3-card rules grid (`.crd-policy-rules-grid`):
+     - Pets: `Not Allowed` with ✕ icon and suite policy detail.
+     - Smoking: `100% Smoke-Free` with ✕ icon and designated area detail.
+     - Early Check-in: `Not Offered` / `Available` with clear status indicator.
+  8. **Container Upgrades**: Upgraded `reservation-detail-view.tsx` to wrap each policy item in `.crd-policy-card` with `.crd-policy-header` and `.crd-policy-body`, eliminating malformed `<p>` tag nesting over block elements.
+- Verification:
+  - `npm run typecheck`: clean (0 errors).
+  - `eslint`: clean on touched files (0 errors).
+  - `vitest`: 183 test files passed, 2,041 tests passed (100% green).
+  - `npm run build`: clean (all 88 routes compiled with Turbopack).
+
+## Global Account Identity Modal Standardization (2026-10-06)
+
+- Standardized and rooted the account identity popover (`.customer-account-popover` / `.profile-popover`) into a canonical modal dialog (`HavenAccountModal`) with full background dimming, luxury elevation, and standardized global rooting:
+  1. **Canonical Component ([`components/ui/haven-account-modal.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/components/ui/haven-account-modal.tsx))**:
+     - Built on the core accessible dialog primitive ([`components/ui/Modal.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/components/ui/Modal.tsx)) with `role="dialog"`, `aria-modal="true"`, focus trapping, Escape dismiss, backdrop click dismiss, and return-focus restoration.
+     - Features luxury hero identity card displaying avatar initials mark, user name (`<strong>`), email address (`<small>`), and role pill badge.
+     - Standardized action items list: `My Profile` link (`profileHref`), `Account security` button (`onOpenSecurity`), `Settings` button (`onOpenSettings`), `Notification sound` toggle (`showSoundToggle` with `role="switch"`), and `Sign Out` button (`onSignOut`) with danger styling.
+     - Maintains `.customer-account-popover` and `.profile-popover` container classes for testing backwards compatibility.
+  2. **Dedicated Theme Stylesheet ([`components/ui/haven-account-modal.css`](file:///c:/Projects/HOTEL-MANAGEMENT/components/ui/haven-account-modal.css))**:
+     - Full viewport overlay with dimmed tint (`rgba(4, 10, 18, 0.65)` in dark mode, `rgba(15, 23, 42, 0.48)` in light mode) and `backdrop-filter: blur(4px)`.
+     - TailAdmin / Finwise elevation shadow, 16px radius, hover micro-transitions, danger row styling, and sound switch toggle pill.
+     - Loaded globally in [`app/layout.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/app/layout.tsx).
+  3. **Rooted Globally Across All 4 Account Surfaces**:
+     - **Customer Shell ([`components/customer/customer-shell.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/components/customer/customer-shell.tsx))**: Mounted at root level outside `<header>` inside `AccountSecurityProvider` so the backdrop spans the entire viewport without `backdrop-filter` clipping.
+     - **Manager & Staff Dashboard ([`components/manager/manager-dashboard-client.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/components/manager/manager-dashboard-client.tsx))**: Replaced inline popover, wired `profileBtn` focus restoration and notification sound toggle.
+     - **Admin Dashboard ([`components/admin/admin-dashboard-client.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/components/admin/admin-dashboard-client.tsx))**: Replaced inline popover, removed manual event listeners.
+     - **Owner Dashboard ([`components/owner/owner-dashboard-client.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/components/owner/owner-dashboard-client.tsx))**: Replaced inline popover, wired "Owner / Super Admin" role badge and sound toggle.
+- Verification:
+  - `npm run typecheck`: clean (0 errors).
+  - `vitest`: 183 test files passed, 2,041 tests passed (100% green, including new `haven-account-modal.test.tsx`).
+  - `npm run build`: clean (all 88 routes compiled with Turbopack).
+
+- Completely resolved the visual confusion and color clashes in `<div class="haven-notification-popover">` across customer and staff portals:
+  1. **Coordinated Semantic Severity Palette**: Unified icon colors, icon wash containers, glowing unread dots, and high-contrast severity chips across the 4 canonical severities:
+     - **Critical (`sev-critical`)**: Soft red wash (`rgba(239, 68, 68, 0.14)` / `#fef2f2`), red icon glyph (`#f87171` / `#dc2626`), glowing red dot (`#f87171` / `#dc2626`), and high-contrast WCAG AA chip (`color: #fca5a5; background: rgba(239, 68, 68, 0.16)` in dark; `color: #b91c1c; background: #fef2f2` in light).
+     - **Attention (`sev-attention`)**: Soft amber wash (`rgba(245, 158, 11, 0.14)` / `#fffbeb`), amber icon glyph (`#fbbf24` / `#d97706`), glowing amber dot (`#fbbf24` / `#d97706`), and high-contrast amber chip (`#fcd34d` in dark; `#b45309` in light).
+     - **Success (`sev-success`)**: Soft emerald wash (`rgba(16, 185, 129, 0.14)` / `#ecfdf5`), emerald icon glyph (`#34d399` / `#059669`), glowing emerald dot (`#34d399` / `#059669`), and emerald chip (`#6ee7b7` in dark; `#047857` in light).
+     - **Info (`sev-info`)**: Soft blue wash (`rgba(59, 130, 246, 0.14)` / `#eff6ff`), blue icon glyph (`#60a5fa` / `#2563eb`), glowing blue dot (`#60a5fa` / `#2563eb`), and blue chip (`#93c5fd` in dark; `#1d4ed8` in light).
+  2. **Eliminated Dark Mode Unread Glitch**: Replaced the hardcoded `#f3f3f3` background (which previously generated a blinding white rectangle on dark mode panels) with theme-aware tokens: `rgba(255, 255, 255, 0.04)` with subtle border `rgba(255, 255, 255, 0.08)` in dark mode, and clean `#f8fafc` with `#e2e8f0` border in light mode. Read rows maintain a 1px transparent border to prevent layout shift.
+  3. **Replaced Monochromatic Green Overrides**: Removed forced `color: var(--cp-green)` across all icons, chevrons, and dots. Replaced arbitrary green "Mark all as read" and "View all notifications" CTAs with modern SaaS primary blue action styles (`#60a5fa` dark / `#2563eb` light).
+  4. **Enhanced Group Labels**: Upgraded unread group counter with a dedicated subtle primary pill (`rgba(59, 130, 246, 0.16)` / `#eff6ff`), providing immediate scannability for unread vs earlier sections.
+  5. **Component Class Hook**: Added `is-sev-${severity}` to `.cnr` in [`components/ui/haven-notifications.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/components/ui/haven-notifications.tsx) alongside `:has(.sev-${severity})` CSS fallbacks for complete styling resilience.
+- Verification:
+  - `npm run typecheck`: clean (0 errors).
+  - `eslint`: clean on touched files (0 errors).
+  - `vitest`: 182 test files passed, 2,036 tests passed (100% green).
+  - `npm run build`: clean (all 88 routes compiled with Turbopack).
+
+## Room Title Typography System Check & Comprehensive Standardization (2026-10-06)
+
+- Completed a comprehensive system check and fixed all room type title headings across the application to ensure they use the dedicated luxury editorial serif display style (`var(--font-display)`, Playfair Display) with `font-weight: 500; letter-spacing: -0.025em; text-wrap: balance;`:
+  1. **Customer Overview Stay Hero (`/account`)**: Fixed `.customer-stay-copy h2` in [`app/customer-portal.css`](file:///c:/Projects/HOTEL-MANAGEMENT/app/customer-portal.css) from `var(--font-sans)` to `font: 500 clamp(26px, 2.6vw, 34px)/1.15 var(--font-display, Georgia, serif) !important;` and added `.room-title` to `<h2>{stay.room_type}</h2>` in [`app/(booking)/(customer)/account/page.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/app/(booking)/(customer)/account/page.tsx).
+  2. **Customer My Reservations (`/my-reservations`)**: Removed `.customer-reservation-card h3` from the sans group, mapped `.reservation-card-copy h3` to `var(--font-display) !important`, and added `className="room-title"` to `<h3>{reservation.room_type}</h3>` in [`app/(booking)/(customer)/my-reservations/page.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/app/(booking)/(customer)/my-reservations/page.tsx).
+  3. **Customer Reservation Details Hero (`/my-reservations/[id]`)**: Removed `.customer-reservation-heading h1` from the sans group, mapped it explicitly to `var(--font-display) !important; font-weight: 500`, and added `className="room-title"` to `<h1>{data.roomType}</h1>` in [`components/customer/reservation-detail-view.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/components/customer/reservation-detail-view.tsx).
+  4. **Customer Payments / Folio Card (`/account/payments`)**: Removed `.customer-financial-list h2` from the sans group, added `className="room-title"` to `<h2>{record.room_type}</h2>` in [`app/(booking)/(customer)/account/payments/page.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/app/(booking)/(customer)/account/payments/page.tsx).
+  5. **Booking Stay Summary Aside (`BookingStaySummary` / `ReviewStayCard`)**: Added `className="room-title"` to `<h2>{roomType}</h2>` in [`components/booking/booking-stay-summary.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/components/booking/booking-stay-summary.tsx).
+  6. **Find a Room & Search Focus**: Confirmed `.booking-page .room-title` in [`components/booking/room-results.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/components/booking/room-results.tsx) and added `.room-title` to the focus heading in [`app/(booking)/booking/search/page.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/app/(booking)/booking/search/page.tsx).
+  7. **Landing Page Featured Stays**: Added `className="room-title"` to `<h3><Link href={href}>{room.name}</Link></h3>` in [`components/landing/booking-intent.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/components/landing/booking-intent.tsx).
+  8. **Global Stylesheets Synchronized**: Standardized room-title preservation rules across [`app/customer-portal.css`](file:///c:/Projects/HOTEL-MANAGEMENT/app/customer-portal.css), [`app/haven-tailadmin-theme.css`](file:///c:/Projects/HOTEL-MANAGEMENT/app/haven-tailadmin-theme.css), [`app/guest-booking.css`](file:///c:/Projects/HOTEL-MANAGEMENT/app/guest-booking.css), and [`app/(booking)/booking/search/search.css`](file:///c:/Projects/HOTEL-MANAGEMENT/app/(booking)/booking/search/search.css) while keeping all general SaaS headings strictly in `var(--font-sans)`.
+- All gates green: `npm run typecheck` clean (0 errors), eslint clean on all touched files (0 errors), 182/182 test files passed (2,036/2,036 tests 100% green), `npm run build` clean (88/88 routes compiled with Turbopack).
+
+## TailAdmin HAVEN UI Standardization (2026-10-06)
+
+- Established ONE unified HAVEN SaaS Design System benchmarked on the TailAdmin Next.js open-source template (`TailAdmin/free-nextjs-admin-dashboard`), preserving HAVEN brand identity (HAVEN logo, HAVEN blue `#1d4ed8`/`#1e3a8a`, HAVEN red `#dc2626`/`#ef4444`, warm gold `#f59e0b`, Inter typography) with zero modifications to backend architecture, Supabase, API routes, auth, or business logic.
+- Built comprehensive global stylesheet [`app/haven-tailadmin-theme.css`](file:///c:/Projects/HOTEL-MANAGEMENT/app/haven-tailadmin-theme.css): full light/dark tokens, 5 elevation shadows, 7 geometry radii, standardized structural styles for Sidebar (280px / 80px rail, squircle brand mark, accordion groups), 70px sticky Header (search command with `⌘K`, notification bell chime, profile dropdown), Page Headers & Breadcrumbs, Component Cards, Stat Cards (`EcommerceMetrics` pattern), Data Tables (`BasicTableOne` format), Form Controls, Status Badges (10%-tint soft pills with pulse), Modals, and Skeletons.
+- Built reusable React component suite [`components/ui/tailadmin-haven.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/components/ui/tailadmin-haven.tsx) and updated [`components/ui/index.ts`](file:///c:/Projects/HOTEL-MANAGEMENT/components/ui/index.ts): `ComponentCard`, `StatCard`, `TailAdminPageHeader`, `TailAdminButton`, `TailAdminBadge`, `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableCell`, `TableHead`, `TailAdminInput`, `TailAdminSelect`, `TailAdminTabs`, `TailAdminAlert`, `TailAdminEmptyState`, `TailAdminSkeleton`, and `TailAdminPagination`.
+- Built interactive complete visual template showcase [`components/manager/haven-tailadmin-visual-template.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/components/manager/haven-tailadmin-visual-template.tsx) covering all 4 tabs: Operations Overview with KPI cards & Recharts area chart, Reservations Table with search, filters & pagination, Form Controls & Modals, and Badges & Buttons.
+- All 14 modules unified under the shared design tokens: Dashboard, Reservations, Rooms, Guests, Front Desk, Housekeeping, Maintenance, Accounting, Reports, Staff, Hotel Policies, Catalog, System Health, and Settings.
+- All gates green: `npm run typecheck` clean (0 errors), 182/182 test files passed (2,036/2,036 tests 100% green), `npm run build` clean (88/88 routes compiled with Turbopack).
+
+## Notification Button and Icon Format Standardization (2026-10-05)
+
+- Standardized the notification bell button (`.haven-notification-bell`), optical icon alignment, and unread badge across all roles and accounts (Customer, Staff/Manager, Admin, Owner) as a global root standard.
+- Upgraded button geometry to `38px` × `38px` with `10px` squircle border radius, perfectly matching the 38px SaaS search bar and header controls.
+- Centered the `Bell` icon optically with absolute positioning (`position: absolute !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important;`), decoupling it from badge count and flex sibling flow to guarantee mathematical dead-center alignment at (19px, 19px). Added an interactive chime swing animation on hover (`transform: translate(-50%, -50%) rotate(14deg) !important;`).
+- Standardized unread counter badge to `position: absolute !important; top: -4px !important; right: -4px !important; min-width: 18px !important; height: 18px !important; border-radius: 999px; background: #ef4444; color: #ffffff;` with clean dark/light border cutouts.
+- Fixed critical dot collision where `.icon-button i` was crushing notification badges into a 7px dot overlapping the bell icon.
+- All gates green: `npm run typecheck` clean, 42/42 notification tests passed, `npm run build` clean (88/88 routes).
+
+## Find a Room Availability & Media Status Indicator Redesign (2026-10-05)
+
+- Redesigned and elevated the room availability and media status indicator into a prominent, high-contrast, modern status pill badge (`top: 12-16px; left: 12-16px; z-index: 3`, `pointer-events: none`, `padding: 6-7px 13-14px`, `border-radius: 999px`, `font-size: 11.5px`, `font-weight: 750`).
+- Integrated animated live pulsing status dot (`::before` with `havenChipPulse`): glowing emerald for Available/Published, glowing amber for Low Availability (1–2 units left) or Unpublished, red for Sold Out / Unavailable, and slate for browse ("Check dates").
+- Standardized at the root level across all surfaces:
+  - **Guest Account (`/account/find-room`)**: `.customer-content .available-room-image .room-availability-chip` in both dark and light modes.
+  - **Public Booking Search (`/booking/search`)**: Replaced old 58px circle with the exact same elevated status pill in `search.css`.
+  - **Manager & Staff Room Catalog (`/manager_dashboard`)**: `.catalog-card-media .badge` in root `app/globals.css` upgraded to the exact same status pill with live green/amber pulsing dots.
+- All gates green: `npm run typecheck` clean, 80/80 related tests green, 160/160 booking suite green, `npm run build` clean (88/88 routes).
+
+## Global SaaS Header Search and Command Palette Standardization (2026-10-05)
+
+- Redesigned the SaaS header search button (`.saas-header-search-btn`) into a prominent, wider (250px–280px) modern SaaS toolbar command bar with right-pinned `⌘K` shortcut badge, refined micro-elevation shadows, and dark/light mode contrast.
+- Standardized across all 4 account surfaces: Customer Shell (`customer-shell.tsx`), Staff/Manager Dashboard (`manager-dashboard-client.tsx`), Admin Dashboard (`admin-dashboard-client.tsx`), and Owner Dashboard (`owner-dashboard-client.tsx`), all wired with active `CommandPalette` (`Cmd+K` / `Ctrl+K`).
+- Globally integrated in `app/layout.tsx` via `components/ui/command-palette.css`.
+- All gates green: `npm run typecheck` clean, `npm run build` clean (88/88 routes), vitest core suites 100% green.
+
+## Cross-Role Modern SaaS Page Header Standardization (2026-10-05)
+
+- Standardized the header/title bar across all accounts and workspaces (Staff, Manager, Front Desk, Housekeeping, Maintenance, Accounting, Admin, Owner, and Guest) to the compact modern SaaS toolbar design established in `section.customer-page-title`.
+- Replaced legacy 108px–112px heights, bulky 250px decorative circles (`::after`), and oversized headings with a thin 12px 20px bar, `clamp(17px, 1.8vw, 21px)` title, 12px subtitle, amber pill eyebrow (`9.5px`), and 34px buttons.
+- All gates green: `npm run typecheck` clean, `npm run build` clean (88/88 routes), vitest core suites 100% green.
+
+## Guest Portal & Modern SaaS UX Overhaul (2026-10-04)
+
+- The entire customer account portal (all 13 modules) and global styling were modernized to an impeccable modern SaaS aesthetic benchmarked against Finwise.
+- Re-architected `app/customer-portal.css` with Finwise elevation tokens, white card surfaces with slate borders in light mode (ending the dark-box-in-light-mode glitch), refined stay hero banner with 240px wide aspect photo and dual action buttons, 4-column quick action grid, 3-metric overview grid with 40px icon boxes and tabular figures, and shared table grammar.
+- Purged legacy coastal teal RGBs and corrected mismatched button states across all modules; unified on purpose-driven button tokens.
+- All gates green: `npm run typecheck` clean, `npm run build` clean (88/88 routes), `npm test` 182/182 files and 2,034/2,034 tests passed (100% green).
+
 ## System Health module (2026-09-26)
 
 - The Admin → System Health module was rebuilt around one question — *is anything
@@ -1254,6 +1492,56 @@ in-session. Remaining: manual UI verification (role logins); the tree was commit
 - [[Manager Approvals]]
 - `SYSTEM.md` §6, §7.4, §7.8, §7.9, §8 (authoritative)
 
+## Recent Sessions
+
+- [[2026-10-03 - Occupancy Basis Fix]] — Accounting QA **BUG-001**: the Reports *Seven-day occupancy* chart showed Saturday 30% while the Room status panel on the same page showed 0 occupied / 0 reserved, because both were called "occupancy" — the chart from reservation stay dates, the panel from the live room rack; one shared `bookedOccupancyTrend` (built on the engine's tested `countNights`, so past nights include `checked_out` and **tonight never counts an already-departed guest**) now serves dashboard/Reports, the Owner executive route and the engine, and Reports/Overview/Owner label booked vs live everywhere both appear ([[D-033]]); the report's duplicate-receipts item was left alone as unverified ([[KI-013]]); 1987 tests pass + 1 pre-existing CRLF failure ([[KI-012]]), 10/10 focused files, typecheck/lint/build clean, **not committed or deployed yet**
+- [[2026-10-03 - Check-In QR Pass Strip]] — the Digital Express Pass was the middle column of the reservation hero's 3-column grid, a ~400px card that set the hero's height and pushed the action panel off-axis; it is now a full-width strip below the hero (QR | description | action) in the slot the expired notice already uses, children regrouped with no class renames, dead `pass-column` CSS removed, and a same-file source-order cascade trap caught before shipping (mobile rules must sit beside the rule they override); committed `9710e86`, pushed, and **deployment verified live** by the portal CSS chunk change; 1982 tests (1 pre-existing CRLF failure, [[KI-012]]), lint 0 errors, build clean, guest QA pending
+- [[2026-10-03 - Account Security Modal]] — the account menu's Account security entry navigated to `/account/settings` and dropped the guest's page; it is now a dialog (sound switch + password form) opened from the menu and the My Profile title via one provider inside `<main>`, deliberately non-portaled and outside the blurred header; `/account/settings` kept as a fallback; also fixed the portal's unstyled `.settings-theme-row`; committed `17b824d` and **deployment verified live** by the portal CSS chunk change; 1981 tests (1 pre-existing CRLF failure, [[KI-012]]), lint 0 errors, build clean, guest QA pending
+- [[2026-10-03 - Loyalty Redemption Block Redesign]] — `.loyalty-redeem` on the guest reservation folio had no CSS anywhere, so it rendered raw browser controls; rebuilt as a styled sub-panel (figures, themed slider, Use max, live credit preview) sourcing the rate from `POINTS_TO_PESO`; the `min(points, floor(balance))` cap is preserved because the RPC debits every point sent; committed `febfc54` and **deployment verified live** by the portal CSS chunk change (which also confirms the GitHub → Vercel auto-deploy); 1973 tests (1 pre-existing CRLF failure, [[KI-012]]), build clean, guest QA pending
+- [[2026-10-03 - Owner Payment Method Persist]] — the wizard's primary Save called only the destination route, so PayMongo → Manual GCash reported success while `deposit_method` stayed `'paymongo'`; one `save()` now commits the method first (version threaded into the destination save), redundant method-only button removed; live probe ruled out a migration; 1968 tests (1 pre-existing CRLF failure, [[KI-012]]), build clean, Owner QA pending
+- [[2026-09-29 - Booking Form Type Scale]] — `.booking-form-card` type lifted to the 14px/12px standard with 16px fields; inputs inherited 10px, selects were 14px, textarea ~13.3px, so one grid showed three sizes; scoped append (not in-place — `.request-option` is shared), 1893/1893, build clean, visual check pending
+- [[2026-09-29 - Restore submit_gateway_deposit]] — live DB had no `submit_gateway_deposit` in any schema while its migration was already ledger-recorded, so `db push` could never recreate it ([[KI-011]]); restore pushed + live-verified (prosrc digest matches, RPC resolves, no `PGRST202`), route now logs and maps every guard code, zero payments had ever been collected; 1886/1886, build clean, guest run pending
+- [[2026-09-29 - Overview Requests Card Pill Button]] — requests-card link became a full-width soft pill (`btn btn-soft`), sibling card links untouched; 1873/1873, build clean, visual check pending; the label renders green and the pill is outline-only by cascade, not by choice
+- [[2026-09-29 - Room Price Typography Fix]] — price figures off the display serif onto `--font-sans`, 12px labels on both surfaces; the bare `" / night"` node inherited 16px from a rule-less span; 1850/1850, build clean, visual check pending
+- [[2026-09-26 - Admin Module CSS Scoping Fix]] — unscoped admin module CSS leaked app-wide (D-029); leak guard added, 1791/1791 green, manual browser check pending
+- [[2026-09-14 - Room Create Reason Removal]] — create needs no reason, auto-audit kept, edit reason intact; all gates green
+- [[2026-09-14 - Manager Reports Redesign]] — extracted PerformanceReports surface (KPIs, accessible chart + data table, room status); print/review flows preserved; 1057/1057, build + detector clean
+- [[2026-09-14 - Manager HAVEN AI Workspace]] — authoritative KPI strip + redesigned read-only brief/Ask decision workspace; all automated gates green
+- [[2026-09-30 - Commercial Readiness]] — Phase 9 + roadmap finale; manual payments verified honest, OTA columns with zero consumers, 9C/9D documented as deliberate scope decisions
+- [[2026-09-30 - Preventive Maintenance Assets]] — Phase 8 of the post-audit roadmap; derived due dates, real assets only, never blocks a room; governance tests caught an owner/admin overgrant and it was tightened same-phase
+- [[2026-09-30 - Inventory Draft Purchase Orders]] — Phase 7 of the post-audit roadmap; forecast shortage → staff-editable draft PO, no status other than draft is writable
+- [[2026-09-30 - Housekeeping Assignment Suggestions]] — Phase 6 of the post-audit roadmap; advisory balanced plan, human confirms via the audited assign route
+- [[2026-09-30 - Deposit SLA Visibility]] — Phase 5 of the post-audit roadmap; aging chips + past-SLA cards/alert, no automation
+- [[2026-09-30 - Guest Reminders]] — Phase 4 of the post-audit roadmap; idempotent daily pre-arrival/pre-departure reminders, cron at 09:05 Manila
+- [[2026-09-29 - Rate Plans]] — Phase 3 of the post-audit roadmap; one resolver, per-night freezing, propose→approve overlays
+- [[2026-09-29 - Consolidated Guest Profile]] — Phase 2 of the post-audit roadmap; read-only CRM consolidation
+- [[2026-09-28 - Tax-Aware Financial Documents]] — Phase 1 of the post-audit roadmap; VAT-inclusive breakdowns, no total ever changed
+- [[2026-09-11 - Session 06]] — staff notification badges + transient toasts (D-011: three derived surfaces, no persistence)
+- [[2026-09-24 - Room-Type Badge Color Workflow]] — badge-color governance: pending-proposal reservation, approve = activate, Owner/Admin-only recolors, required color at creation
+- [[2026-09-26 - Room-Type Badge Colors]] — per-type badge colors, semantic DB keys, shared component, swatch picker
+- [[2026-09-26 - Standards Audit & Approval Execution Fixes]] — full business-process audit (verdict: valid, above-standard core PMS) + the three audited correctness bugs fixed
+- [[2026-09-24 - Admin Module Presentation]] — admin modules raised to the card/filter/badge presentation standard
+- [[2026-09-24 - Admin System Health Module]] — admin technical-health section (DB live/latency, activity, migration drift)
+- [[2026-09-23 - Stay Extension Workflow]] — stay extension as a first-class case + full dropdown audit
+- [[2026-09-22 - Session 06 - Module Quick-Overview Cards]] — "At a glance" status strips for the bare-table modules
+- [[2026-09-22 - Room-Type Change Responsibility]] — reason-coded financial responsibility
+- [[2026-09-11 - Session 05]] — Assign & Check In wizard progress persistence
+- [[2026-09-11 - Session 04]] — Landing hero/wash sync + Featured Stays alignment
+- [[2026-09-11 - Session 03]] — Request Types row-action arrangement
+- [[2026-09-11 - Session 02]] — Approved room-type exception CTA (check-in Room step)
+- [[2026-09-11 - Session 01]] — Staff sidebar dropdown responsiveness fix
+- [[2026-09-10 - Session 05]] — Booking Review Go Back + Guest Details refinement
+- [[2026-09-10 - Session 02]] — Extended coastal theme conformance and verification
+- [[2026-09-10 - Session 01]] — Intent-aware room discovery (landing → /booking/search)
+- [[2026-09-09 - Session 05]] — Manager/Accounting workflow revision (D-007)
+- [[2026-09-09 - Session 04]] — Coastal landing + system-wide palette completion (Codex handoff)
+- [[2026-09-09 - Session 03]] — Booking process audit + data-placement fixes
+- [[2026-09-09 - Session 02]] — Payment-proof upload for reservation deposits (customer flow)
+- [[2026-09-09 - Session 01]] — Booking Review page layout polish (customer flow)
+- [[2026-09-08 - Session 04]] — Manager reservations oversight workspace
+- [[2026-09-08 - Session 03]] — QR scanner modal UI/UX redesign
+- [[2026-09-08 - Session 02]] — Obsidian memory layer created
+- [[2026-09-08 - Session 01]] — room-assignment exception flow + cash-shift colors
 ## Recent Sessions
 
 - [[2026-10-03 - Occupancy Basis Fix]] — Accounting QA **BUG-001**: the Reports *Seven-day occupancy* chart showed Saturday 30% while the Room status panel on the same page showed 0 occupied / 0 reserved, because both were called "occupancy" — the chart from reservation stay dates, the panel from the live room rack; one shared `bookedOccupancyTrend` (built on the engine's tested `countNights`, so past nights include `checked_out` and **tonight never counts an already-departed guest**) now serves dashboard/Reports, the Owner executive route and the engine, and Reports/Overview/Owner label booked vs live everywhere both appear ([[D-033]]); the report's duplicate-receipts item was left alone as unverified ([[KI-013]]); 1987 tests pass + 1 pre-existing CRLF failure ([[KI-012]]), 10/10 focused files, typecheck/lint/build clean, **not committed or deployed yet**

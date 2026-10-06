@@ -87,4 +87,27 @@ describe("QrScannerModal", () => {
 
     expect(track.stop).toHaveBeenCalledTimes(1);
   });
+
+  it("deep-links a room scan into that room's queue with its actionable ids", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        result: "authorized", resourceType: "room", action: "room_tasks",
+        room: { id: "RM-1", number: "305", floor: 3, status: "dirty", housekeeping: "dirty" },
+        openTasks: 2, tasks: [{ id: "HKT-1", status: "pending" }, { id: "HKT-2", status: "in_progress" }],
+        message: "Room 305 opened."
+      })
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    mockGetUserMedia();
+    const onCta = vi.fn();
+    render(<QrScannerModal onClose={vi.fn()} onCta={onCta} />);
+
+    fireEvent.change(screen.getByLabelText("QR / Check-in code"), { target: { value: "ROOMTOKEN" } });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: /Check code/ })); });
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Open Room 305 tasks" })).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Open Room 305 tasks" }));
+    expect(onCta).toHaveBeenCalledWith("room_tasks", undefined, "305");
+  });
 });

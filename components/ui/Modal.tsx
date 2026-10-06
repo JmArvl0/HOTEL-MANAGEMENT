@@ -4,6 +4,44 @@ import { Fragment, ReactNode, useEffect, useId, useRef, useCallback, useState } 
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
+let activeModalCount = 0;
+let originalBodyOverflow = "";
+let originalHtmlOverflow = "";
+
+function lockBodyScroll() {
+  if (typeof document === "undefined") return;
+  if (activeModalCount === 0) {
+    originalBodyOverflow = document.body.style.overflow;
+    originalHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    document.body.classList.add("haven-modal-open");
+    document.documentElement.classList.add("haven-modal-open");
+  }
+  activeModalCount++;
+}
+
+function unlockBodyScroll() {
+  if (typeof document === "undefined") return;
+  activeModalCount = Math.max(0, activeModalCount - 1);
+  if (activeModalCount === 0) {
+    document.body.style.overflow = originalBodyOverflow;
+    document.documentElement.style.overflow = originalHtmlOverflow;
+    document.body.classList.remove("haven-modal-open");
+    document.documentElement.classList.remove("haven-modal-open");
+  }
+}
+
+export function resetModalScrollLockForTesting() {
+  activeModalCount = 0;
+  if (typeof document !== "undefined") {
+    document.body.style.overflow = "";
+    document.documentElement.style.overflow = "";
+    document.body.classList.remove("haven-modal-open");
+    document.documentElement.classList.remove("haven-modal-open");
+  }
+}
+
 export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -21,10 +59,11 @@ export interface ModalProps {
   returnFocusRef?: React.RefObject<HTMLElement>;
   className?: string;
   footer?: ReactNode;
-  /** Render at document.body via a portal. Required when an ancestor has a
-   *  transform/filter (e.g. a hover lift or entrance animation): such
-   *  ancestors become the containing block for position:fixed, so the
-   *  dialog would position relative to them instead of the viewport. */
+  /**
+   * Render at document.body via a portal. Defaults to true across the system so all
+   * dialogs dim the full viewport (including header, sidebar, and navbars) without
+   * being trapped inside ancestor transformed/filtered containers or layout bounds.
+   */
   portal?: boolean;
 }
 
@@ -44,12 +83,26 @@ export function Modal({
   returnFocusRef,
   className = "",
   footer,
-  portal = false,
+  portal = true,
 }: ModalProps) {
+  const hostRef = useRef<HTMLSpanElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const previousActiveElement = useRef<HTMLElement | null>(null);
+  const [shellClass, setShellClass] = useState("");
   const generatedId = useId();
   const titleId = `modal-title-${generatedId}`;
+
+  useEffect(() => {
+    if (hostRef.current) {
+      const el = hostRef.current;
+      const isApp = Boolean(el.closest(".app-shell"));
+      const isCustomer = Boolean(el.closest(".customer-shell"));
+      const classes = [isApp ? "app-shell" : "", isCustomer ? "customer-shell" : ""].filter(Boolean).join(" ");
+      if (classes !== shellClass) {
+        setShellClass(classes);
+      }
+    }
+  }, [isOpen, shellClass]);
   const descriptionId = `modal-description-${generatedId}`;
 
   // Callers almost always pass inline arrows (onClose) and fresh objects
@@ -83,22 +136,31 @@ export function Modal({
   const trapFocus = useCallback((event: KeyboardEvent) => {
     if (latest.current.disableFocusTrap || event.key !== "Tab" || !modalRef.current) return;
 
-    const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-    );
+    const modal = modalRef.current;
+    const focusableElements = Array.from(
+      modal.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )
+    ).filter((el) => el.getAttribute("aria-hidden") !== "true" && el.style.display !== "none" && el.style.visibility !== "hidden");
+
+    if (focusableElements.length === 0) {
+      event.preventDefault();
+      modal.focus();
+      return;
+    }
 
     const firstElement = focusableElements[0];
     const lastElement = focusableElements[focusableElements.length - 1];
 
     if (event.shiftKey) {
-      if (document.activeElement === firstElement) {
+      if (document.activeElement === firstElement || document.activeElement === modal || !modal.contains(document.activeElement)) {
         event.preventDefault();
-        lastElement?.focus();
+        lastElement.focus();
       }
     } else {
-      if (document.activeElement === lastElement) {
+      if (document.activeElement === lastElement || !modal.contains(document.activeElement)) {
         event.preventDefault();
-        firstElement?.focus();
+        firstElement.focus();
       }
     }
   }, [disableFocusTrap]);
@@ -107,7 +169,7 @@ export function Modal({
     if (!isOpen) return;
 
     previousActiveElement.current = document.activeElement as HTMLElement;
-    document.body.style.overflow = "hidden";
+    lockBodyScroll();
     document.addEventListener("keydown", handleKeyDown);
     document.addEventListener("keydown", trapFocus);
 
@@ -121,7 +183,7 @@ export function Modal({
     }
 
     return () => {
-      document.body.style.overflow = "";
+      unlockBodyScroll();
       document.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("keydown", trapFocus);
       const { returnFocusRef: returnFocus } = latest.current;
@@ -139,6 +201,19 @@ export function Modal({
     typeof window.matchMedia === "function" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+  const detectedShell = shellClass || (() => {
+    if (typeof document === "undefined") return "";
+    if (hostRef.current) {
+      const el = hostRef.current;
+      const isApp = Boolean(el.closest(".app-shell"));
+      const isCustomer = Boolean(el.closest(".customer-shell"));
+      return [isApp ? "app-shell" : "", isCustomer ? "customer-shell" : ""].filter(Boolean).join(" ");
+    }
+    const hasApp = Boolean(document.querySelector(".app-shell"));
+    const hasCustomer = Boolean(document.querySelector(".customer-shell"));
+    return [hasApp ? "app-shell" : "", hasCustomer ? "customer-shell" : ""].filter(Boolean).join(" ");
+  })();
+
   const content = (
     <Fragment>
       <div
@@ -154,8 +229,12 @@ export function Modal({
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
+        onClick={handleOverlayClick}
       >
-        <div className={`modal-content modal-${size}${headerVariant === "branded" ? " modal-branded" : ""}`}>
+        <div
+          className={`modal-content modal-${size}${headerVariant === "branded" ? " modal-branded" : ""}`}
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="modal-header">
             <div className="modal-header-text">
               <h2 id={titleId} className="modal-title">{title}</h2>
@@ -182,7 +261,19 @@ export function Modal({
       </div>
     </Fragment>
   );
-  return portal ? createPortal(content, document.body) : content;
+
+  const portaledContent = (
+    <div className={`haven-modal-portal ${detectedShell}`.trim()}>
+      {content}
+    </div>
+  );
+
+  return (
+    <Fragment>
+      <span ref={hostRef} style={{ display: "none" }} aria-hidden="true" />
+      {portal ? createPortal(portaledContent, document.body) : content}
+    </Fragment>
+  );
 }
 
 export interface ConfirmDialogProps {
@@ -211,7 +302,7 @@ export function ConfirmDialog({
   variant = "default",
   loading = false,
   disabled = false,
-  portal = false,
+  portal = true,
   headerVariant = "plain",
 }: ConfirmDialogProps) {
   const cancelRef = useRef<HTMLButtonElement>(null);
@@ -308,7 +399,7 @@ export function PromptDialog({
   loading = false,
   multiline = false,
   rows = 4,
-  portal = false,
+  portal = true,
   headerVariant = "plain",
 }: PromptDialogProps) {
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
@@ -419,6 +510,8 @@ export interface SelectDialogProps {
   required?: boolean;
   loading?: boolean;
   multiple?: boolean;
+  portal?: boolean;
+  headerVariant?: "branded" | "plain";
 }
 
 export function SelectDialog({
@@ -435,6 +528,8 @@ export function SelectDialog({
   required = false,
   loading = false,
   multiple = false,
+  portal = true,
+  headerVariant = "plain",
 }: SelectDialogProps) {
   const selectRef = useRef<HTMLSelectElement>(null);
   const [value, setValue] = useState(defaultValue);
@@ -465,6 +560,8 @@ export function SelectDialog({
       onClose={onClose}
       title={title}
       size="sm"
+      portal={portal}
+      headerVariant={headerVariant}
       initialFocusRef={selectRef}
     >
       <form onSubmit={handleSubmit} className="prompt-dialog">

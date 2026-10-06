@@ -34,7 +34,7 @@ function FolioCard({ record, emailAvailable }: { record: FinancialRecord; emailA
       <header>
         <div>
           <p>{record.confirmation_number ?? record.id}</p>
-          <h2>{record.room_type}</h2>
+          <h2 className="room-title">{record.room_type}</h2>
           <small>{formatStayRange(record.check_in, record.check_out)}</small>
         </div>
         <StatusBadge status={invoice?.status ?? record.payment_status} size="sm" className={`customer-folio-status ${invoice?.status ?? record.payment_status}`} />

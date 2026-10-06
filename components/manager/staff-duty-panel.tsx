@@ -156,8 +156,8 @@ export default function StaffDutyPanel() {
                 filtersLayout="compact"
                 search={<HavenSearchInput value={search} onValueChange={setSearch} label="Search staff" placeholder="Search staff, department, assignment…" />}
                 advancedFilters={<>
-                  <div className="haven-filter"><span>Department</span><HavenSelect value={department} onChange={setDepartment} ariaLabel="Filter by department" options={[{ value: "all", label: "All departments" }, ...data.departments.map((dept) => ({ value: dept.name, label: dept.name }))]} /></div>
-                  <div className="haven-filter"><span>Duty status</span><HavenSelect value={duty} onChange={setDuty} ariaLabel="Filter by duty status" options={[{ value: "all", label: "All duty states" }, { value: "working", label: "Working now" }, { value: "assigned", label: "Assigned work" }, { value: "no_active_work", label: "No active work" }]} /></div>
+                  <div className="haven-filter"><HavenSelect value={department} onChange={setDepartment} ariaLabel="Filter by department" options={[{ value: "all", label: "All departments" }, ...data.departments.map((dept) => ({ value: dept.name, label: dept.name }))]} /></div>
+                  <div className="haven-filter"><HavenSelect value={duty} onChange={setDuty} ariaLabel="Filter by duty status" options={[{ value: "all", label: "All duty statuses" }, { value: "working", label: "Working now" }, { value: "assigned", label: "Assigned work" }, { value: "no_active_work", label: "No active work" }]} /></div>
                 </>}
                 resultCount={filtered.length}
                 resultNoun="staff"

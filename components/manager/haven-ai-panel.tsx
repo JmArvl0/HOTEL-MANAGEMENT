@@ -29,9 +29,26 @@ import AiMarkdown from "./ai-markdown";
 const AI_DISCLOSURE = "AI-generated operational guidance. Verify important decisions using authoritative HAVEN records.";
 const BRIEF_UNAVAILABLE_MESSAGE = "HAVEN AI is temporarily unavailable. Hotel operations are not affected.";
 
+type BriefActionQueue = "housekeeping_tasks" | "maintenance_orders" | "inventory" | "guest_requests" | "transportation" | "approvals";
+
+// Queues a brief action may link into. The button renders only for a tag on
+// this list AND a provided onOpenQueue handler — otherwise plain text, so a
+// forged or future tag can never navigate anywhere unexpected.
+const QUEUE_LABELS: Record<BriefActionQueue, string> = {
+  housekeeping_tasks: "Housekeeping queue",
+  maintenance_orders: "Maintenance orders",
+  inventory: "Inventory",
+  guest_requests: "Guest requests",
+  transportation: "Transportation",
+  approvals: "Approvals & Escalations"
+};
+
+const briefActionQueue = (value: unknown): BriefActionQueue | null =>
+  typeof value === "string" && value in QUEUE_LABELS ? (value as BriefActionQueue) : null;
+
 type Brief = {
   summary: string;
-  priority_actions: { action: string; rationale: string }[];
+  priority_actions: { action: string; rationale: string; queue?: string }[];
   warnings: string[];
   prediction_explanations: { label: string; text: string }[];
 };
@@ -57,7 +74,7 @@ const fmtStamp = (value: string | null) => value
   ? new Intl.DateTimeFormat("en-PH", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(value))
   : "—";
 
-export default function HavenAiPanel({ userName }: { userName?: string | null }) {
+export default function HavenAiPanel({ userName, onOpenQueue }: { userName?: string | null; onOpenQueue?: (section: BriefActionQueue) => void }) {
   const [brief, setBrief] = useState<Brief | null>(null);
   const [indicators, setIndicators] = useState<BriefIndicators | null>(null);
   const [briefMeta, setBriefMeta] = useState<{ model: string; generatedAt: string; cached: boolean } | null>(null);
@@ -200,9 +217,16 @@ export default function HavenAiPanel({ userName }: { userName?: string | null })
                 <section className="ai-brief-block priorities">
                   <h3><Lightbulb size={15} aria-hidden="true"/>Priority actions to consider</h3>
                   <ol>
-                    {brief.priority_actions.map((action, index) => (
-                      <li key={index}><span>{index + 1}</span><div><b>{action.action}</b>{action.rationale && <small>{action.rationale}</small>}</div></li>
-                    ))}
+                    {brief.priority_actions.map((action, index) => {
+                      const queue = onOpenQueue ? briefActionQueue(action.queue) : null;
+                      return (
+                        <li key={index}><span>{index + 1}</span><div><b>{action.action}</b>{action.rationale && <small>{action.rationale}</small>}{queue && (
+                          <button type="button" className="btn btn-soft btn-sm ai-brief-queue-link" onClick={() => onOpenQueue?.(queue)}>
+                            Open {QUEUE_LABELS[queue]} <ArrowRight size={14} aria-hidden="true" />
+                          </button>
+                        )}</div></li>
+                      );
+                    })}
                   </ol>
                 </section>
               )}

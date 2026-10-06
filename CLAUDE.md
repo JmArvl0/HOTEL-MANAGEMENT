@@ -33,6 +33,8 @@ Shared rules live in `AGENTS.md` (repo root) — authority order, the
 commands. They agree with this file by design; where they overlap, `AGENTS.md`
 is canonical. Do not duplicate them here — edit them there.
 
+Skills: same advisory check as `AGENTS.md` §7 — check, load if matched, follow.
+
 ## Session Handoff
 
 At the end of meaningful work, update the memory layer according to:

@@ -40,7 +40,7 @@ export function setMode(next: ThemeMode, event?: { clientX?: number; clientY?: n
     apply(next);
     emit();
   };
-  const doc = document as Document & { startViewTransition?: (cb: () => void) => { finished: Promise<void> } };
+  const doc = document as Document & { startViewTransition?: (cb: () => void) => { ready: Promise<void>; updateCallbackDone: Promise<void>; finished: Promise<void> } };
   const canAnimate = typeof doc.startViewTransition === "function" && !doc.hidden && !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   if (!canAnimate || from === to) { commit(); return; }
 
@@ -58,6 +58,11 @@ export function setMode(next: ThemeMode, event?: { clientX?: number; clientY?: n
   root.dataset.themeTransition = to === "dark" ? "expand" : "shrink";
   try {
     const transition = doc.startViewTransition!(commit);
+    // Chrome rejects EVERY lifecycle promise on abort (hidden tab, snapshot
+    // capture failure, superseded transition) — an unhandled one surfaces as
+    // a global InvalidStateError even though the theme already applied.
+    transition.ready.catch(() => {});
+    transition.updateCallbackDone.catch(() => {});
     transition.finished.catch(() => {}).finally(() => {
       delete root.dataset.themeTransition;
       for (const prop of ["--theme-x", "--theme-y", "--theme-r"]) root.style.removeProperty(prop);

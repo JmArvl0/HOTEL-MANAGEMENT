@@ -75,13 +75,12 @@ export function ReservationHistoryToolbar({
       }
       advancedFilters={
         <div className="haven-filter">
-          <span>Sort by</span>
           <HavenSelect
             value={sort}
             onChange={changeSort}
             ariaLabel="Sort reservations"
             options={[
-              { value: "recommended", label: "Recommended" },
+              { value: "recommended", label: "All bookings" },
               { value: "stay-oldest", label: "Stay date: oldest first" },
               { value: "stay-newest", label: "Stay date: newest first" },
               { value: "booked-newest", label: "Recently booked" },

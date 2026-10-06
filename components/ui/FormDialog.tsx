@@ -76,6 +76,7 @@ export function FormDialog({
   closeOnOverlayClick = true,
   closeOnEscape = true,
   className = "",
+  portal = true,
 }: FormDialogProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const [values, setValues] = useState<Record<string, string | number | boolean>>(() =>
@@ -176,6 +177,7 @@ export function FormDialog({
       description={description}
       size={size}
       headerVariant={headerVariant}
+      portal={portal}
       showCloseButton={showCloseButton}
       closeOnOverlayClick={closeOnOverlayClick}
       closeOnEscape={closeOnEscape}
@@ -367,6 +369,7 @@ export function MultiStepFormDialog({
   closeOnOverlayClick = true,
   closeOnEscape = true,
   className = "",
+  portal = true,
 }: MultiStepFormDialogProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [values, setValues] = useState<Record<string, string | number | boolean>>(() =>
@@ -456,6 +459,7 @@ export function MultiStepFormDialog({
       description={description || currentStepData.description}
       size={size}
       headerVariant={headerVariant}
+      portal={portal}
       showCloseButton={showCloseButton}
       closeOnOverlayClick={closeOnOverlayClick}
       closeOnEscape={closeOnEscape}
@@ -639,6 +643,7 @@ export interface RoomSelectDialogProps {
   rooms: { number: string; type: string; id?: string; colorKey?: string | null }[];
   currentRoom?: string;
   loading?: boolean;
+  portal?: boolean;
 }
 
 export function RoomSelectDialog({
@@ -650,6 +655,7 @@ export function RoomSelectDialog({
   rooms,
   currentRoom,
   loading = false,
+  portal = true,
 }: RoomSelectDialogProps) {
   const [selectedRoom, setSelectedRoom] = useState(currentRoom || "");
   const [error, setError] = useState("");
@@ -682,6 +688,7 @@ export function RoomSelectDialog({
       title={title}
       size="md"
       headerVariant="branded"
+      portal={portal}
     >
       <div className="room-select-dialog">
         <p className="room-select-message">{message}</p>
@@ -727,6 +734,7 @@ export interface ChecklistDialogProps {
   submitText?: string;
   cancelText?: string;
   loading?: boolean;
+  portal?: boolean;
 }
 
 export function ChecklistDialog({
@@ -739,6 +747,7 @@ export function ChecklistDialog({
   submitText = "Complete",
   cancelText = "Cancel",
   loading = false,
+  portal = true,
 }: ChecklistDialogProps) {
   const [values, setValues] = useState<Record<string, boolean>>({});
 
@@ -768,6 +777,7 @@ export function ChecklistDialog({
       title={title}
       size="md"
       headerVariant="branded"
+      portal={portal}
     >
       <div className="checklist-dialog">
         {message && <p className="checklist-message">{message}</p>}

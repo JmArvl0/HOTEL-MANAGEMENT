@@ -1,5 +1,7 @@
 "use client";
-import{useCallback,useEffect,useRef,useState,type ElementType}from"react";import{signOut}from"next-auth/react";import Link from"next/link";import{Activity,AlertTriangle,BedDouble,Building2,CarTaxiFront,CheckCircle2,CheckSquare,ChevronDown,ChevronRight,ClipboardCheck,CircleDollarSign,Clock,Cpu,CreditCard,Crown,Database,FileText,FlaskConical,Globe,HardDrive,HeartPulse,History,Hourglass,Info,KeyRound,Layers,Lock,LogOut,Mail,MailCheck,MapPin,PanelLeftClose,Pencil,Percent,Receipt,RefreshCw,Search,Send,Settings,Shield,ShieldCheck,Sparkles,Star,Tag,Timer,User,UserCheck,Users,Wrench,Bell,CalendarDays,CircleDot}from"lucide-react";import{ThemeToggle}from"@/components/theme-toggle";import{ToastStack,useToasts}from"@/components/ui/toast-stack";import{SettingsDialog}from"@/components/ui/SettingsDialog";import{Modal}from"@/components/ui/Modal";import type{RecordItem,Role}from"@/lib/types";
+import { useCallback, useEffect, useMemo, useRef, useState, type ElementType } from "react"; import { signOut } from "next-auth/react"; import Link from "next/link"; import { Activity, AlertTriangle, BedDouble, Building2, CarTaxiFront, CheckCircle2, CheckSquare, ChevronDown, ChevronRight, ClipboardCheck, CircleDollarSign, Clock, Cpu, CreditCard, Crown, Database, FileText, FlaskConical, Globe, HardDrive, HeartPulse, History, Hourglass, Info, KeyRound, Layers, Lock, LogOut, Mail, MailCheck, MapPin, PanelLeftClose, Pencil, Percent, Receipt, RefreshCw, Search, Send, Settings, Shield, ShieldCheck, Sparkles, Star, Tag, Timer, User, UserCheck, Users, Wrench, Bell, CalendarDays, CircleDot } from "lucide-react"; import { ThemeToggle } from "@/components/theme-toggle"; import { ToastStack, useToasts } from "@/components/ui/toast-stack"; import { SettingsDialog } from "@/components/ui/SettingsDialog"; import { Modal } from "@/components/ui/Modal"; import type { RecordItem, Role } from "@/lib/types";
+import { SoundToggleMenuItem } from "@/components/ui/sound-toggle";
+import { CommandPalette, type CommandItem } from "@/components/ui/command-palette";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { HavenButton } from "@/components/ui/haven-button";
@@ -19,477 +21,538 @@ import { PendingMigrationsModal } from "@/components/admin/pending-migrations-mo
 import { SystemHealthLedger } from "@/components/admin/system-health-ledger";
 import { migrationStatus, type SystemHealth } from "@/lib/system-health";
 import { SessionExpiryGuard } from "@/components/auth/session-expiry-guard";
-type Section="overview"|"users"|"roles"|"rooms"|"room_types"|"transport_services"|"policy"|"audit"|"security"|"security_config"|"password_resets"|"reports"|"system";type User={id:string;name?:string|null;email?:string|null;role:Role};type Overview={metrics:Record<string,number>;roleCounts:Record<string,number>;recentAudit:RecordItem[]};
-const nav:[Section,string,React.ElementType][]=[["overview","Overview",Activity],["users","Users & Staff",Users],["roles","Roles & Permissions",ShieldCheck],["rooms","Room Configuration",Building2],["room_types","Room Types",Building2],["transport_services","Transfer Vehicles",CarTaxiFront],["policy","Hotel Policies",Settings],["audit","Audit Logs",FileText],["security","Security events",KeyRound],["security_config","Security Configuration",ShieldCheck],["password_resets","Password reset audit",UserCheck],["reports","Admin Reports",ClipboardCheck],["system","System Health",HeartPulse]];
+type Section = "overview" | "users" | "roles" | "rooms" | "room_types" | "transport_services" | "policy" | "audit" | "security" | "security_config" | "password_resets" | "reports" | "system"; type User = { id: string; name?: string | null; email?: string | null; role: Role }; type Overview = { metrics: Record<string, number>; roleCounts: Record<string, number>; recentAudit: RecordItem[] };
+const nav: [Section, string, React.ElementType][] = [["overview", "Overview", Activity], ["users", "Users & Staff", Users], ["roles", "Roles & Permissions", ShieldCheck], ["rooms", "Room Configuration", Building2], ["room_types", "Room Types", Building2], ["transport_services", "Transfer Vehicles", CarTaxiFront], ["policy", "Hotel Policies", Settings], ["audit", "Audit Logs", FileText], ["security", "Security events", KeyRound], ["security_config", "Security Configuration", ShieldCheck], ["password_resets", "Password reset audit", UserCheck], ["reports", "Admin Reports", ClipboardCheck], ["system", "System Health", HeartPulse]];
 // Presentational grouping only — admin sees every module; no RBAC filtering on this client.
-export const NAV_GROUPS:{id:string;label:string;sections:Section[]}[]=[{id:"workspace",label:"Workspace",sections:["overview"]},{id:"accounts",label:"Accounts",sections:["users","roles"]},{id:"configuration",label:"Configuration",sections:["rooms","room_types","transport_services","policy"]},{id:"governance",label:"Governance",sections:["audit","security","security_config","password_resets","reports","system"]}];
-const label=(value:unknown)=>String(value??"—").replaceAll("_"," ");
+export const NAV_GROUPS: { id: string; label: string; sections: Section[] }[] = [{ id: "workspace", label: "Workspace", sections: ["overview"] }, { id: "accounts", label: "Accounts", sections: ["users", "roles"] }, { id: "configuration", label: "Configuration", sections: ["rooms", "room_types", "transport_services", "policy"] }, { id: "governance", label: "Governance", sections: ["audit", "security", "security_config", "password_resets", "reports", "system"] }];
+const label = (value: unknown) => String(value ?? "—").replaceAll("_", " ");
 // System Administrator display name: internal role id stays "admin"; only
 // user-facing role renders use this.
-const roleLabel=(role:unknown)=>String(role)==="admin"?"System Administrator":label(role);
-const requiredText=(msg:string)=>(value:unknown)=>typeof value==="string"&&value.trim()?null:`${msg} is required`;
-const requiredNumber=(msg:string)=>(value:unknown)=>{const n=value===""?NaN:Number(value);return Number.isFinite(n)?null:`${msg} is required`};
-const emailField=(msg:string)=>(value:unknown)=>requiredText(msg)(value)??(typeof value==="string"&&/^\S+@\S+\.\S+$/.test(value.trim())?null:"Enter a valid email address");
-const timeField=(msg:string)=>(value:unknown)=>typeof value==="string"&&/^([01]\d|2[0-3]):[0-5]\d$/.test(value)?null:`${msg} must be HH:MM (24-hour)`;
-const ROLE_OPTIONS=[["manager","Manager"],["front_desk","Front desk"],["housekeeping","Housekeeping"],["maintenance","Maintenance"],["accounting","Accounting"]].map(([value,optLabel])=>({value,label:optLabel}));
-const STATUS_OPTIONS=[["active","Active"],["inactive","Inactive"],["suspended","Suspended"]].map(([value,optLabel])=>({value,label:optLabel}));
+const roleLabel = (role: unknown) => String(role) === "admin" ? "System Administrator" : label(role);
+const requiredText = (msg: string) => (value: unknown) => typeof value === "string" && value.trim() ? null : `${msg} is required`;
+const requiredNumber = (msg: string) => (value: unknown) => { const n = value === "" ? NaN : Number(value); return Number.isFinite(n) ? null : `${msg} is required` };
+const emailField = (msg: string) => (value: unknown) => requiredText(msg)(value) ?? (typeof value === "string" && /^\S+@\S+\.\S+$/.test(value.trim()) ? null : "Enter a valid email address");
+const timeField = (msg: string) => (value: unknown) => typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value) ? null : `${msg} must be HH:MM (24-hour)`;
+const ROLE_OPTIONS = [["manager", "Manager"], ["front_desk", "Front desk"], ["housekeeping", "Housekeeping"], ["maintenance", "Maintenance"], ["accounting", "Accounting"]].map(([value, optLabel]) => ({ value, label: optLabel }));
+const STATUS_OPTIONS = [["active", "Active"], ["inactive", "Inactive"], ["suspended", "Suspended"]].map(([value, optLabel]) => ({ value, label: optLabel }));
 // Sidebar category dropdowns own their open/closed state here so a toggle
 // re-renders only the sidebar, not the whole admin workspace (the root-level
 // state made the dropdowns feel unresponsive on click).
-function AdminSidebarNav({section,onSelect}:{section:Section;onSelect:(section:Section)=>void}){const[openGroups,setOpenGroups]=useState<Record<string,boolean>>({});const toggleGroup=(id:string)=>setOpenGroups(prev=>{const next={...prev,[id]:!(prev[id]??false)};localStorage.setItem("haven-admin-sidebar-groups",JSON.stringify(next));return next});useEffect(()=>{const timer=setTimeout(()=>{try{const saved:unknown=JSON.parse(localStorage.getItem("haven-admin-sidebar-groups")??"{}");if(saved&&typeof saved==="object")setOpenGroups(saved as Record<string,boolean>)}catch{}},0);return()=>clearTimeout(timer)},[]);return <nav aria-label="Modules">{NAV_GROUPS.map(group=>{const open=(openGroups[group.id]??false)||group.sections.includes(section);return <div className="nav-group-wrap" key={group.id}><button className="nav-caption nav-group-header" aria-expanded={open} aria-controls={`nav-group-${group.id}`} onClick={()=>toggleGroup(group.id)}><span className="nav-group-label">{group.label}</span><ChevronRight size={13} className="nav-group-chevron" aria-hidden="true"/></button><div className={`nav-group${open?" open":""}`} id={`nav-group-${group.id}`}><div className="nav-group-items">{nav.filter(([key])=>group.sections.includes(key)).map(([key,text,Icon])=><button key={key} className={section===key?"active":""} onClick={()=>onSelect(key)} title={text}><Icon size={18}/><span className="nav-label">{text}</span></button>)}</div></div></div>})}</nav>}
-export default function AdminDashboardClient({user,sessionExpiresAt}:{user:User;sessionExpiresAt?:string|null}){const[section,setSection]=useState<Section>("overview"),[data,setData]=useState<unknown>(null),[loadedSection,setLoadedSection]=useState<Section|null>(null),[loading,setLoading]=useState(true),[loadError,setLoadError]=useState(""),[collapsed,setCollapsed]=useState(false),[menu,setMenu]=useState(false),[profileOpen,setProfileOpen]=useState(false),[settingsOpen,setSettingsOpen]=useState(false);const profileMenu=useRef<HTMLDivElement>(null);const loadRequest=useRef(0);
-useEffect(()=>{try{if(localStorage.getItem("haven-admin-sidebar-collapsed")==="true")setCollapsed(true)}catch{}},[]);
-useEffect(()=>{if(!profileOpen)return;const outside=(event:Event)=>{if(profileMenu.current&&!profileMenu.current.contains(event.target as Node))setProfileOpen(false)};const escape=(event:KeyboardEvent)=>{if(event.key==="Escape")setProfileOpen(false)};document.addEventListener("pointerdown",outside);document.addEventListener("keydown",escape);return()=>{document.removeEventListener("pointerdown",outside);document.removeEventListener("keydown",escape)}},[profileOpen]);
+function AdminSidebarNav({ section, onSelect }: { section: Section; onSelect: (section: Section) => void }) { const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({}); const toggleGroup = (id: string) => setOpenGroups(prev => { const next = { ...prev, [id]: !(prev[id] ?? false) }; localStorage.setItem("haven-admin-sidebar-groups", JSON.stringify(next)); return next }); useEffect(() => { const timer = setTimeout(() => { try { const saved: unknown = JSON.parse(localStorage.getItem("haven-admin-sidebar-groups") ?? "{}"); if (saved && typeof saved === "object") setOpenGroups(saved as Record<string, boolean>) } catch { } }, 0); return () => clearTimeout(timer) }, []); return <nav aria-label="Modules">{NAV_GROUPS.map(group => { const open = (openGroups[group.id] ?? false) || group.sections.includes(section); return <div className="nav-group-wrap" key={group.id}><button className="nav-caption nav-group-header" aria-expanded={open} aria-controls={`nav-group-${group.id}`} onClick={() => toggleGroup(group.id)}><span className="nav-group-label">{group.label}</span><ChevronRight size={13} className="nav-group-chevron" aria-hidden="true" /></button><div className={`nav-group${open ? " open" : ""}`} id={`nav-group-${group.id}`}><div className="nav-group-items">{nav.filter(([key]) => group.sections.includes(key)).map(([key, text, Icon]) => <button key={key} className={section === key ? "active" : ""} onClick={() => onSelect(key)} title={text}><Icon size={18} /><span className="nav-label">{text}</span></button>)}</div></div></div> })}</nav> }
+export default function AdminDashboardClient({ user, sessionExpiresAt }: { user: User; sessionExpiresAt?: string | null }) {
+  const [section, setSection] = useState<Section>("overview"), [data, setData] = useState<unknown>(null), [loadedSection, setLoadedSection] = useState<Section | null>(null), [loading, setLoading] = useState(true), [loadError, setLoadError] = useState(""), [collapsed, setCollapsed] = useState(false), [menu, setMenu] = useState(false), [profileOpen, setProfileOpen] = useState(false), [settingsOpen, setSettingsOpen] = useState(false); const profileMenu = useRef<HTMLDivElement>(null); const profileBtn = useRef<HTMLButtonElement>(null); const loadRequest = useRef(0);
+  useEffect(() => { if (!profileOpen) return; const outside = (event: Event) => { if (profileMenu.current && !profileMenu.current.contains(event.target as Node)) setProfileOpen(false) }; const escape = (event: KeyboardEvent) => { if (event.key === "Escape") setProfileOpen(false) }; document.addEventListener("pointerdown", outside); document.addEventListener("keydown", escape); return () => { document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", escape) } }, [profileOpen]);
+  useEffect(() => { try { if (localStorage.getItem("haven-admin-sidebar-collapsed") === "true") setCollapsed(true) } catch { } }, []);
+
 
   const dialogs = useActionDialogs();
 
-  const toastController=useToasts();const notify=(message:string)=>{toastController.push({title:message})};
+  const [cmdOpen, setCmdOpen] = useState(false);
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setCmdOpen(v => !v);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
-  const load=useCallback(async(silent=false)=>{const requestedSection=section;const requestId=++loadRequest.current;if(requestedSection==="room_types"||requestedSection==="transport_services"){setLoadedSection(requestedSection);setLoadError("");setLoading(false);return}if(!silent){setLoading(true);setLoadError("")}const url=requestedSection==="security_config"?"/api/admin/security-policy":`/api/admin/data?section=${requestedSection}`;try{const response=await fetch(url,{cache:"no-store"}),body=await response.json().catch(()=>({}));if(requestId!==loadRequest.current)return;if(!response.ok)throw new Error(body.error??"Unable to load administrative data.");setData(body.data);setLoadedSection(requestedSection);setLoadError("")}catch(cause){if(requestId!==loadRequest.current||silent)return;setLoadError(cause instanceof Error&&cause.message!=="Failed to fetch"?cause.message:"Unable to reach the administration service. Check your connection and try again.")}finally{if(requestId===loadRequest.current&&!silent)setLoading(false)}},[section]);useEffect(()=>{const timer=setTimeout(()=>load(),0);return()=>clearTimeout(timer)},[load]);
- // System Health re-probes every minute while open; the silent flag keeps the
- // loading state off so the refresh does not blank the cards.
- useEffect(()=>{if(section!=="system")return;const timer=setInterval(()=>{load(true)},60000);return()=>clearInterval(timer)},[section,load]);
- async function post(url:string,payload:Record<string,unknown>){const response=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}),body=await response.json();if(!response.ok){notify(body.error??"Administrative action failed.");return null}await load();return body}
- async function patch(url:string,payload:Record<string,unknown>){const response=await fetch(url,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}),body=await response.json();if(!response.ok){notify(body.error??"Configuration update failed.");return null}await load();return body}
- async function createStaff(){
-  const data=await dialogs.askForm({
-    title:"Create staff account",
-    description:"New accounts start inactive and require a secure recovery link to set a password.",
-    submitText:"Create account",
-    fields:[
-      {key:"name",label:"Full name",type:"text",required:true,validation:requiredText("Full name")},
-      {key:"email",label:"Work email",type:"email",required:true,validation:emailField("Work email")},
-      {key:"role",label:"Role",type:"select",required:true,defaultValue:"front_desk",options:ROLE_OPTIONS},
-      {key:"department",label:"Department",type:"text",defaultValue:"front desk",helpText:"Usually matches the assigned role."},
-      {key:"employeeReference",label:"Employee reference (optional)",type:"text"},
-      {key:"reason",label:"Creation reason",type:"textarea",required:true,validation:requiredText("Creation reason")},
-    ],
-  });
-  if(!data)return;
-  const email=String(data.email).trim();
-  const body=await post("/api/admin/users",{name:String(data.name),email,role:String(data.role),department:String(data.department??""),employeeReference:String(data.employeeReference??""),reason:String(data.reason),idempotencyKey:crypto.randomUUID()});
-  if(body)notify(`Staff account created inactive. Initiate recovery for ${email} to set a password.`)
-}
- async function userAction(item:RecordItem,action:"status"|"role"|"metadata"|"recovery"){
-  const converting=action==="role"&&String(item.role)==="guest";
-  const title=action==="status"?"Change account status":converting?"Convert guest to staff":action==="role"?"Change account role":action==="metadata"?"Edit account metadata":"Reset account access";
-  const description=converting?`${item.name} · ${item.email}. Conversion creates an inactive staff account and a one-hour recovery link; accounts with booking or financial history need the Owner-only history-carrying conversion.`:`${item.name} · ${item.email}`;
-  const reason:FormField={key:"reason",label:"Reason",type:"textarea",required:true,validation:requiredText("Reason")};
-  let fields:FormField[]=[reason];
-  if(action==="status")fields=[{key:"status",label:"New status",type:"select",required:true,defaultValue:String(item.account_status),options:STATUS_OPTIONS},reason];
-  if(action==="role")fields=[
-    {key:"role",label:"New role",type:"select",required:true,defaultValue:converting?"front_desk":String(item.role),options:ROLE_OPTIONS},
-    ...(converting?[{key:"department",label:"Department",type:"text",helpText:"Leave blank to use the department assigned to this role."} as FormField,{key:"employeeReference",label:"Employee reference (optional)",type:"text"} as FormField,{key:"withHistory",label:"Carry existing booking history (Owner only)",type:"checkbox",helpText:"Converts despite holds/reservations; history is preserved and audited. Requires an active Owner session."} as FormField]:[]),
-    reason
-  ];
-  if(action==="metadata")fields=[
-    {key:"name",label:"Name",type:"text",required:true,defaultValue:String(item.name??""),validation:requiredText("Name")},
-    {key:"phone",label:"Phone",type:"tel",defaultValue:String(item.phone??"")},
-    {key:"department",label:"Department",type:"text",defaultValue:String(item.department??"")},
-    {key:"employeeReference",label:"Employee reference",type:"text",defaultValue:String(item.employee_reference??"")},
-    reason,
-  ];
-  const data=await dialogs.askForm({title,description,submitText:"Apply change",fields});
-  if(!data)return;
-  const payload:Record<string,unknown>={action:converting?"convert":action,reason:String(data.reason),version:item.auth_version};
-  if(action==="status")payload.status=String(data.status);
-  if(action==="role")payload.role=String(data.role);
-  if(converting){payload.expectedEmail=item.email;payload.department=String(data.department??"");payload.employeeReference=String(data.employeeReference??"");payload.withHistory=Boolean(data.withHistory)}
-  if(action==="metadata"){
-    payload.name=String(data.name??"");
-    payload.phone=String(data.phone??"");
-    payload.department=String(data.department??"");
-    payload.employeeReference=String(data.employeeReference??"");
+  const adminCommandItems: CommandItem[] = useMemo(() => {
+    const navItems: CommandItem[] = nav.map(([key, text, Icon]) => ({
+      id: `nav-${key}`,
+      label: text,
+      category: "Navigation",
+      hint: `Navigate to ${text}`,
+      icon: Icon,
+      onSelect: () => {
+        setSection(key);
+        setMenu(false);
+      }
+    }));
+    const actionItems: CommandItem[] = [
+      {
+        id: "action-create-staff",
+        label: "Create Staff Account",
+        category: "Actions",
+        hint: "Create a new inactive staff account",
+        icon: Users,
+        onSelect: () => { void createStaff(); }
+      },
+      {
+        id: "action-settings",
+        label: "Settings & Preferences",
+        category: "Actions",
+        hint: "Configure preferences & sound",
+        icon: Settings,
+        onSelect: () => setSettingsOpen(true)
+      },
+      {
+        id: "action-signout",
+        label: "Sign Out",
+        category: "Security & System",
+        hint: "End administration session securely",
+        icon: LogOut,
+        onSelect: () => { void signOut({ callbackUrl: "/" }); }
+      }
+    ];
+    return [...navItems, ...actionItems];
+  }, []);
+
+  const toastController = useToasts(); const notify = (message: string) => { toastController.push({ title: message }) };
+
+  const load = useCallback(async (silent = false) => { const requestedSection = section; const requestId = ++loadRequest.current; if (requestedSection === "room_types" || requestedSection === "transport_services") { setLoadedSection(requestedSection); setLoadError(""); setLoading(false); return } if (!silent) { setLoading(true); setLoadError("") } const url = requestedSection === "security_config" ? "/api/admin/security-policy" : `/api/admin/data?section=${requestedSection}`; try { const response = await fetch(url, { cache: "no-store" }), body = await response.json().catch(() => ({})); if (requestId !== loadRequest.current) return; if (!response.ok) throw new Error(body.error ?? "Unable to load administrative data."); setData(body.data); setLoadedSection(requestedSection); setLoadError("") } catch (cause) { if (requestId !== loadRequest.current || silent) return; setLoadError(cause instanceof Error && cause.message !== "Failed to fetch" ? cause.message : "Unable to reach the administration service. Check your connection and try again.") } finally { if (requestId === loadRequest.current && !silent) setLoading(false) } }, [section]); useEffect(() => { const timer = setTimeout(() => load(), 0); return () => clearTimeout(timer) }, [load]);
+  // System Health re-probes every minute while open; the silent flag keeps the
+  // loading state off so the refresh does not blank the cards.
+  useEffect(() => { if (section !== "system") return; const timer = setInterval(() => { load(true) }, 60000); return () => clearInterval(timer) }, [section, load]);
+  async function post(url: string, payload: Record<string, unknown>) { const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }), body = await response.json(); if (!response.ok) { notify(body.error ?? "Administrative action failed."); return null } await load(); return body }
+  async function patch(url: string, payload: Record<string, unknown>) { const response = await fetch(url, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }), body = await response.json(); if (!response.ok) { notify(body.error ?? "Configuration update failed."); return null } await load(); return body }
+  async function createStaff() {
+    const data = await dialogs.askForm({
+      title: "Create staff account",
+      description: "New accounts start inactive and require a secure recovery link to set a password.",
+      submitText: "Create account",
+      fields: [
+        { key: "name", label: "Full name", type: "text", required: true, validation: requiredText("Full name") },
+        { key: "email", label: "Work email", type: "email", required: true, validation: emailField("Work email") },
+        { key: "role", label: "Role", type: "select", required: true, defaultValue: "front_desk", options: ROLE_OPTIONS },
+        { key: "department", label: "Department", type: "text", defaultValue: "front desk", helpText: "Usually matches the assigned role." },
+        { key: "employeeReference", label: "Employee reference (optional)", type: "text" },
+        { key: "reason", label: "Creation reason", type: "textarea", required: true, validation: requiredText("Creation reason") },
+      ],
+    });
+    if (!data) return;
+    const email = String(data.email).trim();
+    const body = await post("/api/admin/users", { name: String(data.name), email, role: String(data.role), department: String(data.department ?? ""), employeeReference: String(data.employeeReference ?? ""), reason: String(data.reason), idempotencyKey: crypto.randomUUID() });
+    if (body) notify(`Staff account created inactive. Initiate recovery for ${email} to set a password.`)
   }
-  const body=await post(`/api/admin/users/${item.id}/action`,payload);
-  if(body&&(action==="recovery"||converting)){await navigator.clipboard.writeText(body.data.recoveryUrl);notify(`${converting?"Guest converted to inactive staff. ":""}Recovery link copied. It expires at ${new Date(body.data.expiresAt).toLocaleString()}.`)}
- }
- async function editRoom(item:RecordItem){
-  const data=await dialogs.askForm({
-    title:`Configure room ${item.number}`,
-    description:"Administrative metadata only — occupancy, Housekeeping, and Maintenance state are never touched.",
-    submitText:"Save configuration",
-    fields:[
-      {key:"floor",label:"Floor",type:"number",required:true,defaultValue:Number(item.floor),min:0,max:99,validation:requiredNumber("Floor")},
-      {key:"type",label:"Room type",type:"text",required:true,defaultValue:String(item.type??""),validation:requiredText("Room type")},
-      {key:"wing",label:"Wing",type:"text",defaultValue:String(item.wing??"")},
-      {key:"designation",label:"Administrative designation",type:"text",defaultValue:String(item.administrative_designation??"")},
-      {key:"active",label:"Administrative status",type:"select",required:true,defaultValue:item.administratively_active?"active":"inactive",options:[{value:"active",label:"Active"},{value:"inactive",label:"Inactive"}]},
-      {key:"reason",label:"Configuration reason",type:"textarea",required:true,validation:requiredText("Configuration reason")},
-    ],
-  });
-  if(!data)return;
-  const body=await patch(`/api/admin/rooms/${item.id}`,{floor:Number(data.floor),type:String(data.type),wing:String(data.wing??""),designation:String(data.designation??""),active:data.active==="active",reason:String(data.reason),version:item.configuration_version});
-  if(body)notify("Room metadata updated without changing occupancy, Housekeeping, or Maintenance state.")
+  async function userAction(item: RecordItem, action: "status" | "role" | "metadata" | "recovery") {
+    const converting = action === "role" && String(item.role) === "guest";
+    const title = action === "status" ? "Change account status" : converting ? "Convert guest to staff" : action === "role" ? "Change account role" : action === "metadata" ? "Edit account metadata" : "Reset account access";
+    const description = converting ? `${item.name} · ${item.email}. Conversion creates an inactive staff account and a one-hour recovery link; accounts with booking or financial history need the Owner-only history-carrying conversion.` : `${item.name} · ${item.email}`;
+    const reason: FormField = { key: "reason", label: "Reason", type: "textarea", required: true, validation: requiredText("Reason") };
+    let fields: FormField[] = [reason];
+    if (action === "status") fields = [{ key: "status", label: "New status", type: "select", required: true, defaultValue: String(item.account_status), options: STATUS_OPTIONS }, reason];
+    if (action === "role") fields = [
+      { key: "role", label: "New role", type: "select", required: true, defaultValue: converting ? "front_desk" : String(item.role), options: ROLE_OPTIONS },
+      ...(converting ? [{ key: "department", label: "Department", type: "text", helpText: "Leave blank to use the department assigned to this role." } as FormField, { key: "employeeReference", label: "Employee reference (optional)", type: "text" } as FormField, { key: "withHistory", label: "Carry existing booking history (Owner only)", type: "checkbox", helpText: "Converts despite holds/reservations; history is preserved and audited. Requires an active Owner session." } as FormField] : []),
+      reason
+    ];
+    if (action === "metadata") fields = [
+      { key: "name", label: "Name", type: "text", required: true, defaultValue: String(item.name ?? ""), validation: requiredText("Name") },
+      { key: "phone", label: "Phone", type: "tel", defaultValue: String(item.phone ?? "") },
+      { key: "department", label: "Department", type: "text", defaultValue: String(item.department ?? "") },
+      { key: "employeeReference", label: "Employee reference", type: "text", defaultValue: String(item.employee_reference ?? "") },
+      reason,
+    ];
+    const data = await dialogs.askForm({ title, description, submitText: "Apply change", fields });
+    if (!data) return;
+    const payload: Record<string, unknown> = { action: converting ? "convert" : action, reason: String(data.reason), version: item.auth_version };
+    if (action === "status") payload.status = String(data.status);
+    if (action === "role") payload.role = String(data.role);
+    if (converting) { payload.expectedEmail = item.email; payload.department = String(data.department ?? ""); payload.employeeReference = String(data.employeeReference ?? ""); payload.withHistory = Boolean(data.withHistory) }
+    if (action === "metadata") {
+      payload.name = String(data.name ?? "");
+      payload.phone = String(data.phone ?? "");
+      payload.department = String(data.department ?? "");
+      payload.employeeReference = String(data.employeeReference ?? "");
+    }
+    const body = await post(`/api/admin/users/${item.id}/action`, payload);
+    if (body && (action === "recovery" || converting)) { await navigator.clipboard.writeText(body.data.recoveryUrl); notify(`${converting ? "Guest converted to inactive staff. " : ""}Recovery link copied. It expires at ${new Date(body.data.expiresAt).toLocaleString()}.`) }
+  }
+  async function editRoom(item: RecordItem) {
+    const data = await dialogs.askForm({
+      title: `Configure room ${item.number}`,
+      description: "Administrative metadata only — occupancy, Housekeeping, and Maintenance state are never touched.",
+      submitText: "Save configuration",
+      fields: [
+        { key: "floor", label: "Floor", type: "number", required: true, defaultValue: Number(item.floor), min: 0, max: 99, validation: requiredNumber("Floor") },
+        { key: "type", label: "Room type", type: "text", required: true, defaultValue: String(item.type ?? ""), validation: requiredText("Room type") },
+        { key: "wing", label: "Wing", type: "text", defaultValue: String(item.wing ?? "") },
+        { key: "designation", label: "Administrative designation", type: "text", defaultValue: String(item.administrative_designation ?? "") },
+        { key: "active", label: "Administrative status", type: "select", required: true, defaultValue: item.administratively_active ? "active" : "inactive", options: [{ value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }] },
+        { key: "reason", label: "Configuration reason", type: "textarea", required: true, validation: requiredText("Configuration reason") },
+      ],
+    });
+    if (!data) return;
+    const body = await patch(`/api/admin/rooms/${item.id}`, { floor: Number(data.floor), type: String(data.type), wing: String(data.wing ?? ""), designation: String(data.designation ?? ""), active: data.active === "active", reason: String(data.reason), version: item.configuration_version });
+    if (body) notify("Room metadata updated without changing occupancy, Housekeeping, or Maintenance state.")
+  }
+  async function editPolicy(item: RecordItem, groupTitle?: string) {
+    const time = (raw: unknown) => String(raw ?? "").slice(0, 5);
+    const pct = Number(item.cancellation_partial_refund_basis_points) / 100;
+    // Master dialog fields tagged by admin policy group. Scoped edits show one
+    // card's fields + reason; submit merges with live values (full RPC payload).
+    const master: (FormField & { group: string })[] = [
+      { key: "hotelTimezone", group: "Locale and daily schedule", label: "Hotel timezone", type: "text", required: true, defaultValue: String(item.hotel_timezone ?? ""), validation: requiredText("Hotel timezone") },
+      { key: "checkInTime", group: "Locale and daily schedule", label: "Check-in time", type: "text", required: true, defaultValue: time(item.check_in_time), validation: timeField("Check-in time") },
+      { key: "checkOutTime", group: "Locale and daily schedule", label: "Checkout time", type: "text", required: true, defaultValue: time(item.check_out_time), validation: timeField("Checkout time") },
+      { key: "noShowCutoffTime", group: "Locale and daily schedule", label: "No-show cutoff", type: "text", required: true, defaultValue: time(item.no_show_cutoff_time), validation: timeField("No-show cutoff") },
+      { key: "minimumBookingAge", group: "Booking eligibility", label: "Minimum booking age", type: "number", required: true, defaultValue: Number(item.minimum_booking_age), min: 0, validation: requiredNumber("Minimum booking age") },
+      { key: "full", group: "Cancellation and refunds", label: "Full-refund days", type: "number", required: true, defaultValue: Number(item.cancellation_full_refund_days), min: 0, validation: requiredNumber("Full-refund days") },
+      { key: "partial", group: "Cancellation and refunds", label: "Partial-refund days", type: "number", required: true, defaultValue: Number(item.cancellation_partial_refund_days), min: 0, validation: requiredNumber("Partial-refund days") },
+      { key: "percent", group: "Cancellation and refunds", label: "Partial refund percent", type: "number", required: true, defaultValue: pct, min: 0, max: 100, step: 0.01, validation: requiredNumber("Partial refund percent") },
+      { key: "modification", group: "Self-service and operations", label: "Self-service modification days", type: "number", required: true, defaultValue: Number(item.self_service_modification_days), min: 0, validation: requiredNumber("Self-service modification days") },
+      { key: "depositSla", group: "Self-service and operations", label: "Deposit verification SLA (hours)", type: "number", required: true, defaultValue: Number(item.deposit_sla_hours ?? 4), min: 0, max: 72, validation: requiredNumber("Deposit SLA") },
+      { key: "vat", group: "Tax and financial documents", label: "VAT rate (%) — inclusive, shown on documents", type: "number", required: true, defaultValue: Number(item.vat_rate_bp ?? 1200) / 100, min: 0, max: 100, step: 0.01, validation: requiredNumber("VAT rate") },
+      { key: "serviceCharge", group: "Tax and financial documents", label: "Service charge (%) — inclusive, shown on documents", type: "number", required: true, defaultValue: Number(item.service_charge_bp ?? 1000) / 100, min: 0, max: 100, step: 0.01, validation: requiredNumber("Service charge rate") },
+    ];
+    const scoped = groupTitle ? master.filter(field => field.group === groupTitle) : master;
+    if (!scoped.length) return;
+    const form = await dialogs.askForm({
+      title: groupTitle ? `Update ${groupTitle}` : "Update operational policy",
+      description: "Applies to future transactions only — existing reservation snapshots are unchanged.",
+      size: "lg",
+      submitText: "Save changes",
+      fields: [
+        ...scoped,
+        { key: "reason", label: "Policy change reason", type: "textarea", required: true, validation: requiredText("Policy change reason") },
+      ],
+    });
+    if (!form) return;
+    const data = Object.fromEntries(master.map(field => [field.key, field.key in form ? form[field.key] : field.defaultValue]));
+    data.reason = form.reason;
+    const body = await patch("/api/admin/policy", { hotelTimezone: String(data.hotelTimezone), checkInTime: String(data.checkInTime), checkOutTime: String(data.checkOutTime), noShowCutoffTime: String(data.noShowCutoffTime), validIdRequired: Boolean(item.valid_id_required), minimumBookingAge: Number(data.minimumBookingAge), cancellationFullRefundDays: Number(data.full), cancellationPartialRefundDays: Number(data.partial), cancellationPartialRefundBasisPoints: Math.round(Number(data.percent) * 100), selfServiceModificationDays: Number(data.modification), earlyCheckInAllowed: Boolean(item.early_check_in_allowed), housekeepingInspectionRequired: Boolean(item.housekeeping_inspection_required), vatRateBp: Math.round(Number(data.vat) * 100), serviceChargeBp: Math.round(Number(data.serviceCharge) * 100), depositSlaHours: Number(data.depositSla), reason: String(data.reason), version: item.version });
+    if (body) notify("Policy updated for future transactions; existing reservation snapshots were unchanged.")
+  }
+  async function saveSessionPolicy(item: RecordItem) {
+    const idleOpts = [["1", "1 minute"], ["2", "2 minutes"], ["3", "3 minutes"], ["4", "4 minutes"], ["5", "5 minutes"], ["10", "10 minutes"], ["15", "15 minutes"], ["20", "20 minutes"], ["25", "25 minutes"], ["30", "30 minutes"], ["35", "35 minutes"], ["40", "40 minutes"], ["45", "45 minutes"], ["50", "50 minutes"], ["55", "55 minutes"], ["59", "59 minutes"], ["60", "1 hour"], ["120", "2 hours"], ["240", "4 hours"], ["480", "8 hours"]].map(([value, optLabel]) => ({ value, label: optLabel }));
+    const absoluteOpts = [["5", "5 minutes"], ["10", "10 minutes"], ["15", "15 minutes"], ["30", "30 minutes"], ["60", "1 hour"], ["120", "2 hours"], ["240", "4 hours"], ["480", "8 hours"], ["720", "12 hours"], ["1440", "24 hours"]].map(([value, optLabel]) => ({ value, label: optLabel }));
+    const data = await dialogs.askForm({
+      title: "Configure session settings",
+      description: "Takes effect at the next session validation. Existing sessions are never silently revoked.",
+      size: "lg",
+      submitText: "Save changes",
+      fields: [
+        { key: "cookie", label: "Cookie policy", type: "select", required: true, defaultValue: item.cookie_enabled !== false ? "on" : "off", helpText: "Off: session policy is suspended — browser-session cookies only, no countdown, no \"Keep me signed in\". On: full session policy with persistence and timeouts below.", options: [{ value: "on", label: "Enabled — Session policy on" }, { value: "off", label: "Disabled — Session policy off" }] },
+        { key: "idle", label: "Inactivity timeout", type: "select", required: true, defaultValue: String(item.idle_timeout_minutes ?? 30), options: idleOpts },
+        { key: "absolute", label: "Maximum session lifetime", type: "select", required: true, defaultValue: String(item.absolute_session_minutes ?? 480), options: absoluteOpts },
+        { key: "reason", label: "Reason for change", type: "textarea", required: true, validation: requiredText("Reason for change") },
+      ],
+    });
+    if (!data) return;
+    // Remember Me is always available by default — the cookie-policy toggle is
+    // the single session-policy switch, so persistence is always submitted on.
+    const cookie = String(data.cookie) !== "off", idle = Number(data.idle), absolute = Number(data.absolute);
+    if (!Number.isInteger(idle) || idle < 1 || idle > 480 || !Number.isInteger(absolute) || absolute < idle) { notify("Maximum session lifetime must not be shorter than the inactivity timeout."); return }
+    const fmt = (minutes: number) => minutes < 60 ? `${minutes} min` : `${minutes / 60} h`;
+    const changes: string[] = [];
+    if (cookie !== (item.cookie_enabled !== false)) changes.push(`Cookie policy\n${item.cookie_enabled !== false ? "Enabled" : "Disabled"} → ${cookie ? "Enabled" : "Disabled"}`);
+    if (idle !== Number(item.idle_timeout_minutes)) changes.push(`Inactivity timeout\n${fmt(Number(item.idle_timeout_minutes))} → ${fmt(idle)}`);
+    if (absolute !== Number(item.absolute_session_minutes)) changes.push(`Maximum session lifetime\n${fmt(Number(item.absolute_session_minutes))} → ${fmt(absolute)}`);
+    if (!changes.length) { notify("No session changes to apply."); return }
+    const ok = await dialogs.askConfirm({ title: "Update session settings?", message: `These changes affect authentication and session behavior for HAVEN users.\n\nSummary:\n\n${changes.join("\n\n")}`, confirmText: "Confirm update", variant: "warning" });
+    if (!ok) return;
+    const body = await patch("/api/admin/security-policy", { persistentSessionEnabled: true, cookieEnabled: cookie, idleTimeoutMinutes: idle, absoluteSessionMinutes: absolute, loginOtpEnabled: Boolean(item.login_otp_enabled), otpTtlSeconds: Number(item.otp_ttl_seconds ?? 300), otpResendCooldownSeconds: Number(item.otp_resend_cooldown_seconds ?? 60), otpMaxAttempts: Number(item.otp_max_attempts ?? 5), reason: String(data.reason), version: item.version });
+    if (body) notify("Session settings updated and audited.")
+  }
+  async function saveOtpPolicy(item: RecordItem) {
+    const data = await dialogs.askForm({
+      title: "Manage OTP policy",
+      description: "Password plus a single-use emailed code at login. Takes effect for new sign-ins.",
+      size: "lg",
+      submitText: "Save changes",
+      fields: [
+        { key: "otp", label: "Login OTP security", type: "select", required: true, defaultValue: item.login_otp_enabled ? "on" : "off", helpText: "Off: password-only login. On: a single-use emailed code is required at every login.", options: [{ value: "on", label: "Enabled — Require Email OTP at Login (On)" }, { value: "off", label: "Disabled — Password Only Login (Off)" }] },
+        { key: "ttl", label: "OTP validity", type: "select", required: true, defaultValue: String(item.otp_ttl_seconds ?? 300), helpText: "Preserved when login OTP is disabled; applies again when re-enabled.", options: [["180", "3 minutes"], ["300", "5 minutes"], ["600", "10 minutes"]].map(([value, optLabel]) => ({ value, label: optLabel })) },
+        { key: "cooldown", label: "Resend cooldown", type: "select", required: true, defaultValue: String(item.otp_resend_cooldown_seconds ?? 60), options: [["30", "30 seconds"], ["60", "60 seconds"], ["120", "120 seconds"]].map(([value, optLabel]) => ({ value, label: optLabel })) },
+        { key: "attempts", label: "Maximum attempts", type: "select", required: true, defaultValue: String(item.otp_max_attempts ?? 5), options: [["3", "3 attempts"], ["5", "5 attempts"], ["10", "10 attempts"]].map(([value, optLabel]) => ({ value, label: optLabel })) },
+        { key: "reason", label: "Reason for change", type: "textarea", required: true, validation: requiredText("Reason for change") },
+      ],
+    });
+    if (!data) return;
+    const otp = String(data.otp) === "on", ttl = Number(data.ttl), cooldown = Number(data.cooldown), attempts = Number(data.attempts);
+    const ttlFmt = (s: number) => `${s / 60} min`;
+    const changes: string[] = [];
+    if (otp !== Boolean(item.login_otp_enabled)) changes.push(`Login OTP security\n${item.login_otp_enabled ? "Enabled" : "Disabled"} → ${otp ? "Enabled" : "Disabled"}`);
+    if (ttl !== Number(item.otp_ttl_seconds ?? 300)) changes.push(`OTP validity\n${ttlFmt(Number(item.otp_ttl_seconds ?? 300))} → ${ttlFmt(ttl)}`);
+    if (cooldown !== Number(item.otp_resend_cooldown_seconds ?? 60)) changes.push(`Resend cooldown\n${Number(item.otp_resend_cooldown_seconds ?? 60)} sec → ${cooldown} sec`);
+    if (attempts !== Number(item.otp_max_attempts ?? 5)) changes.push(`Maximum attempts\n${Number(item.otp_max_attempts ?? 5)} → ${attempts}`);
+    if (!changes.length) { notify("No OTP changes to apply."); return }
+    const enablingOtp = otp && !item.login_otp_enabled;
+    const ok = await dialogs.askConfirm({ title: "Update OTP policy?", message: `These changes affect authentication and session behavior for HAVEN users.\n\nSummary:\n\n${changes.join("\n\n")}${enablingOtp ? "\n\nEnable login OTP only after SMTP is configured and the connection test passes — without delivery, nobody can sign in." : ""}`, confirmText: "Confirm update", variant: "warning" });
+    if (!ok) return;
+    const body = await patch("/api/admin/security-policy", { persistentSessionEnabled: true, cookieEnabled: item.cookie_enabled !== false, idleTimeoutMinutes: Number(item.idle_timeout_minutes), absoluteSessionMinutes: Number(item.absolute_session_minutes), loginOtpEnabled: otp, otpTtlSeconds: ttl, otpResendCooldownSeconds: cooldown, otpMaxAttempts: attempts, reason: String(data.reason), version: item.version });
+    if (body) notify("OTP policy updated and audited.")
+  }
+
+  const rows = Array.isArray(data) ? data as RecordItem[] : []; const contentLoading = loading || (!loadError && loadedSection !== section); return <div className={`app-shell${collapsed ? " sidebar-collapsed" : ""}`}><aside id="admin-navigation" className={`sidebar${menu ? " open" : ""}${collapsed ? " collapsed" : ""}`}><div className="sidebar-top"><div className="brand"><button className="brand-mark sidebar-brand-toggle" onClick={() => { if (window.matchMedia("(max-width: 1000px)").matches) { setMenu(false) } else { const next = !collapsed; setCollapsed(next); localStorage.setItem("haven-admin-sidebar-collapsed", String(next)) } }} aria-label={collapsed ? "Expand navigation" : "Collapse navigation"} aria-controls="admin-navigation" aria-expanded={!collapsed} title={collapsed ? "Expand navigation" : "Collapse navigation"}><HavenLogo size={29} small /></button><Link href="/" className="brand-copy" aria-label="Hotel homepage" title="Hotel homepage">HAVEN<small>SYSTEM ADMINISTRATION</small></Link><button className="sidebar-collapse-button" onClick={() => { if (!window.matchMedia("(max-width: 1000px)").matches) { const next = !collapsed; setCollapsed(next); localStorage.setItem("haven-admin-sidebar-collapsed", String(next)) } }} aria-label="Collapse navigation" aria-controls="admin-navigation" aria-expanded={!collapsed} title="Collapse navigation"><PanelLeftClose size={16} /></button></div></div><div className="property-pill" title="HAVEN Hotel & Residences"><span>HV</span><div className="property-copy"><b>HAVEN</b><small>HOTEL &amp; RESIDENCES</small></div></div><AdminSidebarNav section={section} onSelect={(key) => { setSection(key); setMenu(false) }} /></aside><main className="workspace"><header className="app-header"><button className="menu-btn brand-menu-btn" onClick={() => setMenu(true)}><span className="brand-mark"><HavenLogo size={31} small /></span></button><div><p>{nav.find(x => x[0] === section)?.[1]}</p><small>Secure hotel governance workspace</small></div><div className="header-actions"><button type="button" className="saas-header-search-btn" onClick={() => setCmdOpen(true)} aria-label="Search or jump to... (Press Cmd+K)" title="Search or jump to... (Cmd+K)"><Search size={14} /><span>Search...</span><kbd className="saas-kbd">⌘K</kbd></button><SessionExpiryGuard expiresAt={sessionExpiresAt} /><ThemeToggle /><div className="profile-menu-wrap" ref={profileMenu}><button ref={profileBtn} type="button" className="profile-menu-btn" onClick={() => setProfileOpen((value) => !value)} aria-expanded={profileOpen} aria-haspopup="menu" aria-label="Account menu"><b>{(user.name ?? "A").slice(0, 2).toUpperCase()}</b><span>{user.name}</span><ChevronDown size={14} /></button>{profileOpen && <div className="popover-gap"><div className="profile-popover"><p><strong>{user.name}</strong><small>{user.email}</small><small>{roleLabel(user.role)}</small></p><button type="button" onClick={() => { setProfileOpen(false); setSettingsOpen(true) }}><Settings size={15} />Settings</button><SoundToggleMenuItem onToggle={() => setProfileOpen(false)} /><button type="button" onClick={() => signOut({ callbackUrl: "/" })}><LogOut size={15} />Sign Out</button></div></div>}</div></div></header><ToastStack controller={toastController} /><div className={`workspace-body admin-workspace admin-section-${section}`} aria-busy={contentLoading}>{contentLoading ? <div className="empty admin-loading"><Activity /><h3>Loading governance data…</h3><p>Preparing the {nav.find(x => x[0] === section)?.[1].toLowerCase()} workspace.</p></div> : loadError ? <div className="empty admin-loading" role="alert"><Activity /><h3>Administrative data unavailable</h3><p>{loadError}</p><button className="btn btn-accent" onClick={() => void load()}>Try again</button></div> : section === "overview" ? <Overview data={data as Overview} setSection={setSection} /> : section === "users" ? <UsersView rows={rows} create={createStaff} action={userAction} /> : section === "rooms" ? <RoomsView rows={rows} configure={editRoom} /> : section === "room_types" ? <RoomCatalogPanel role="admin" /> : section === "transport_services" ? <TransportServicesPanel /> : section === "security_config" ? <SecurityConfigView item={data as RecordItem} saveSession={saveSessionPolicy} saveOtp={saveOtpPolicy} notify={notify} /> : section === "policy" ? <PolicyView item={data as RecordItem} edit={editPolicy} /> : section === "roles" ? <RolesView data={data} /> : section === "password_resets" ? <PasswordResetAuditView rows={rows} notify={notify} /> : section === "audit" || section === "security" ? <AuditView security={section === "security"} rows={rows} /> : section === "system" ? <SystemHealthView data={data as SystemHealth} onRefresh={() => load()} notify={notify} goSection={(s) => setSection(s)} /> : <Reports data={data as Overview} />}</div></main>{settingsOpen && <SettingsDialog isOpen onClose={() => setSettingsOpen(false)} />}{dialogs.view}<CommandPalette isOpen={cmdOpen} onClose={() => setCmdOpen(false)} items={adminCommandItems} /></div>
 }
- async function editPolicy(item:RecordItem,groupTitle?:string){
-  const time=(raw:unknown)=>String(raw??"").slice(0,5);
-  const pct=Number(item.cancellation_partial_refund_basis_points)/100;
-  // Master dialog fields tagged by admin policy group. Scoped edits show one
-  // card's fields + reason; submit merges with live values (full RPC payload).
-  const master:(FormField&{group:string})[]=[
-    {key:"hotelTimezone",group:"Locale and daily schedule",label:"Hotel timezone",type:"text",required:true,defaultValue:String(item.hotel_timezone??""),validation:requiredText("Hotel timezone")},
-    {key:"checkInTime",group:"Locale and daily schedule",label:"Check-in time",type:"text",required:true,defaultValue:time(item.check_in_time),validation:timeField("Check-in time")},
-    {key:"checkOutTime",group:"Locale and daily schedule",label:"Checkout time",type:"text",required:true,defaultValue:time(item.check_out_time),validation:timeField("Checkout time")},
-    {key:"noShowCutoffTime",group:"Locale and daily schedule",label:"No-show cutoff",type:"text",required:true,defaultValue:time(item.no_show_cutoff_time),validation:timeField("No-show cutoff")},
-    {key:"minimumBookingAge",group:"Booking eligibility",label:"Minimum booking age",type:"number",required:true,defaultValue:Number(item.minimum_booking_age),min:0,validation:requiredNumber("Minimum booking age")},
-    {key:"full",group:"Cancellation and refunds",label:"Full-refund days",type:"number",required:true,defaultValue:Number(item.cancellation_full_refund_days),min:0,validation:requiredNumber("Full-refund days")},
-    {key:"partial",group:"Cancellation and refunds",label:"Partial-refund days",type:"number",required:true,defaultValue:Number(item.cancellation_partial_refund_days),min:0,validation:requiredNumber("Partial-refund days")},
-    {key:"percent",group:"Cancellation and refunds",label:"Partial refund percent",type:"number",required:true,defaultValue:pct,min:0,max:100,step:0.01,validation:requiredNumber("Partial refund percent")},
-    {key:"modification",group:"Self-service and operations",label:"Self-service modification days",type:"number",required:true,defaultValue:Number(item.self_service_modification_days),min:0,validation:requiredNumber("Self-service modification days")},
-    {key:"depositSla",group:"Self-service and operations",label:"Deposit verification SLA (hours)",type:"number",required:true,defaultValue:Number(item.deposit_sla_hours??4),min:0,max:72,validation:requiredNumber("Deposit SLA")},
-    {key:"vat",group:"Tax and financial documents",label:"VAT rate (%) — inclusive, shown on documents",type:"number",required:true,defaultValue:Number(item.vat_rate_bp??1200)/100,min:0,max:100,step:0.01,validation:requiredNumber("VAT rate")},
-    {key:"serviceCharge",group:"Tax and financial documents",label:"Service charge (%) — inclusive, shown on documents",type:"number",required:true,defaultValue:Number(item.service_charge_bp??1000)/100,min:0,max:100,step:0.01,validation:requiredNumber("Service charge rate")},
+function Overview({ data, setSection }: { data: Overview; setSection: (s: Section) => void }) {
+  const m = data.metrics ?? {}, attention = Number(m.attention ?? 0);
+  const quickActions: { label: string; detail: string; section: Section; Icon: React.ElementType }[] = [
+    { label: "Manage accounts", detail: "Create staff and manage lifecycle", section: "users", Icon: Users },
+    { label: "Review permissions", detail: "Inspect the fixed role catalogue", section: "roles", Icon: ShieldCheck },
+    { label: "Configure rooms", detail: "Maintain room metadata and status", section: "rooms", Icon: Building2 },
+    { label: "Update hotel policy", detail: "Control rules for future bookings", section: "policy", Icon: Settings },
+    { label: "Review security", detail: "Inspect access and recovery events", section: "security", Icon: KeyRound },
+    { label: "Security configuration", detail: "Control session and verification safeguards", section: "security_config", Icon: ShieldCheck },
   ];
-  const scoped=groupTitle?master.filter(field=>field.group===groupTitle):master;
-  if(!scoped.length)return;
-  const form=await dialogs.askForm({
-    title:groupTitle?`Update ${groupTitle}`:"Update operational policy",
-    description:"Applies to future transactions only — existing reservation snapshots are unchanged.",
-    size:"lg",
-    submitText:"Save changes",
-    fields:[
-      ...scoped,
-      {key:"reason",label:"Policy change reason",type:"textarea",required:true,validation:requiredText("Policy change reason")},
-    ],
-  });
-  if(!form)return;
-  const data=Object.fromEntries(master.map(field=>[field.key,field.key in form?form[field.key]:field.defaultValue]));
-  data.reason=form.reason;
-  const body=await patch("/api/admin/policy",{hotelTimezone:String(data.hotelTimezone),checkInTime:String(data.checkInTime),checkOutTime:String(data.checkOutTime),noShowCutoffTime:String(data.noShowCutoffTime),validIdRequired:Boolean(item.valid_id_required),minimumBookingAge:Number(data.minimumBookingAge),cancellationFullRefundDays:Number(data.full),cancellationPartialRefundDays:Number(data.partial),cancellationPartialRefundBasisPoints:Math.round(Number(data.percent)*100),selfServiceModificationDays:Number(data.modification),earlyCheckInAllowed:Boolean(item.early_check_in_allowed),housekeepingInspectionRequired:Boolean(item.housekeeping_inspection_required),vatRateBp:Math.round(Number(data.vat)*100),serviceChargeBp:Math.round(Number(data.serviceCharge)*100),depositSlaHours:Number(data.depositSla),reason:String(data.reason),version:item.version});
-  if(body)notify("Policy updated for future transactions; existing reservation snapshots were unchanged.")
-}
- async function saveSessionPolicy(item:RecordItem){
-  const idleOpts=[["1","1 minute"],["2","2 minutes"],["3","3 minutes"],["4","4 minutes"],["5","5 minutes"],["10","10 minutes"],["15","15 minutes"],["20","20 minutes"],["25","25 minutes"],["30","30 minutes"],["35","35 minutes"],["40","40 minutes"],["45","45 minutes"],["50","50 minutes"],["55","55 minutes"],["59","59 minutes"],["60","1 hour"],["120","2 hours"],["240","4 hours"],["480","8 hours"]].map(([value,optLabel])=>({value,label:optLabel}));
-  const absoluteOpts=[["5","5 minutes"],["10","10 minutes"],["15","15 minutes"],["30","30 minutes"],["60","1 hour"],["120","2 hours"],["240","4 hours"],["480","8 hours"],["720","12 hours"],["1440","24 hours"]].map(([value,optLabel])=>({value,label:optLabel}));
-  const data=await dialogs.askForm({
-    title:"Configure session settings",
-    description:"Takes effect at the next session validation. Existing sessions are never silently revoked.",
-    size:"lg",
-    submitText:"Save changes",
-    fields:[
-      {key:"cookie",label:"Cookie policy",type:"select",required:true,defaultValue:item.cookie_enabled!==false?"on":"off",helpText:"Off: session policy is suspended — browser-session cookies only, no countdown, no \"Keep me signed in\". On: full session policy with persistence and timeouts below.",options:[{value:"on",label:"Enabled — Session policy on"},{value:"off",label:"Disabled — Session policy off"}]},
-      {key:"idle",label:"Inactivity timeout",type:"select",required:true,defaultValue:String(item.idle_timeout_minutes??30),options:idleOpts},
-      {key:"absolute",label:"Maximum session lifetime",type:"select",required:true,defaultValue:String(item.absolute_session_minutes??480),options:absoluteOpts},
-      {key:"reason",label:"Reason for change",type:"textarea",required:true,validation:requiredText("Reason for change")},
-    ],
-  });
-  if(!data)return;
-  // Remember Me is always available by default — the cookie-policy toggle is
-  // the single session-policy switch, so persistence is always submitted on.
-  const cookie=String(data.cookie)!=="off",idle=Number(data.idle),absolute=Number(data.absolute);
-  if(!Number.isInteger(idle)||idle<1||idle>480||!Number.isInteger(absolute)||absolute<idle){notify("Maximum session lifetime must not be shorter than the inactivity timeout.");return}
-  const fmt=(minutes:number)=>minutes<60?`${minutes} min`:`${minutes/60} h`;
-  const changes:string[]=[];
-  if(cookie!==(item.cookie_enabled!==false))changes.push(`Cookie policy\n${item.cookie_enabled!==false?"Enabled":"Disabled"} → ${cookie?"Enabled":"Disabled"}`);
-  if(idle!==Number(item.idle_timeout_minutes))changes.push(`Inactivity timeout\n${fmt(Number(item.idle_timeout_minutes))} → ${fmt(idle)}`);
-  if(absolute!==Number(item.absolute_session_minutes))changes.push(`Maximum session lifetime\n${fmt(Number(item.absolute_session_minutes))} → ${fmt(absolute)}`);
-  if(!changes.length){notify("No session changes to apply.");return}
-  const ok=await dialogs.askConfirm({title:"Update session settings?",message:`These changes affect authentication and session behavior for HAVEN users.\n\nSummary:\n\n${changes.join("\n\n")}`,confirmText:"Confirm update",variant:"warning"});
-  if(!ok)return;
-  const body=await patch("/api/admin/security-policy",{persistentSessionEnabled:true,cookieEnabled:cookie,idleTimeoutMinutes:idle,absoluteSessionMinutes:absolute,loginOtpEnabled:Boolean(item.login_otp_enabled),otpTtlSeconds:Number(item.otp_ttl_seconds??300),otpResendCooldownSeconds:Number(item.otp_resend_cooldown_seconds??60),otpMaxAttempts:Number(item.otp_max_attempts??5),reason:String(data.reason),version:item.version});
-  if(body)notify("Session settings updated and audited.")
-}
- async function saveOtpPolicy(item:RecordItem){
-  const data=await dialogs.askForm({
-    title:"Manage OTP policy",
-    description:"Password plus a single-use emailed code at login. Takes effect for new sign-ins.",
-    size:"lg",
-    submitText:"Save changes",
-    fields:[
-      {key:"otp",label:"Login OTP security",type:"select",required:true,defaultValue:item.login_otp_enabled?"on":"off",helpText:"Off: password-only login. On: a single-use emailed code is required at every login.",options:[{value:"on",label:"Enabled — Require Email OTP at Login (On)"},{value:"off",label:"Disabled — Password Only Login (Off)"}]},
-      {key:"ttl",label:"OTP validity",type:"select",required:true,defaultValue:String(item.otp_ttl_seconds??300),helpText:"Preserved when login OTP is disabled; applies again when re-enabled.",options:[["180","3 minutes"],["300","5 minutes"],["600","10 minutes"]].map(([value,optLabel])=>({value,label:optLabel}))},
-      {key:"cooldown",label:"Resend cooldown",type:"select",required:true,defaultValue:String(item.otp_resend_cooldown_seconds??60),options:[["30","30 seconds"],["60","60 seconds"],["120","120 seconds"]].map(([value,optLabel])=>({value,label:optLabel}))},
-      {key:"attempts",label:"Maximum attempts",type:"select",required:true,defaultValue:String(item.otp_max_attempts??5),options:[["3","3 attempts"],["5","5 attempts"],["10","10 attempts"]].map(([value,optLabel])=>({value,label:optLabel}))},
-      {key:"reason",label:"Reason for change",type:"textarea",required:true,validation:requiredText("Reason for change")},
-    ],
-  });
-  if(!data)return;
-  const otp=String(data.otp)==="on",ttl=Number(data.ttl),cooldown=Number(data.cooldown),attempts=Number(data.attempts);
-  const ttlFmt=(s:number)=>`${s/60} min`;
-  const changes:string[]=[];
-  if(otp!==Boolean(item.login_otp_enabled))changes.push(`Login OTP security\n${item.login_otp_enabled?"Enabled":"Disabled"} → ${otp?"Enabled":"Disabled"}`);
-  if(ttl!==Number(item.otp_ttl_seconds??300))changes.push(`OTP validity\n${ttlFmt(Number(item.otp_ttl_seconds??300))} → ${ttlFmt(ttl)}`);
-  if(cooldown!==Number(item.otp_resend_cooldown_seconds??60))changes.push(`Resend cooldown\n${Number(item.otp_resend_cooldown_seconds??60)} sec → ${cooldown} sec`);
-  if(attempts!==Number(item.otp_max_attempts??5))changes.push(`Maximum attempts\n${Number(item.otp_max_attempts??5)} → ${attempts}`);
-  if(!changes.length){notify("No OTP changes to apply.");return}
-  const enablingOtp=otp&&!item.login_otp_enabled;
-  const ok=await dialogs.askConfirm({title:"Update OTP policy?",message:`These changes affect authentication and session behavior for HAVEN users.\n\nSummary:\n\n${changes.join("\n\n")}${enablingOtp?"\n\nEnable login OTP only after SMTP is configured and the connection test passes — without delivery, nobody can sign in.":""}`,confirmText:"Confirm update",variant:"warning"});
-  if(!ok)return;
-  const body=await patch("/api/admin/security-policy",{persistentSessionEnabled:true,cookieEnabled:item.cookie_enabled!==false,idleTimeoutMinutes:Number(item.idle_timeout_minutes),absoluteSessionMinutes:Number(item.absolute_session_minutes),loginOtpEnabled:otp,otpTtlSeconds:ttl,otpResendCooldownSeconds:cooldown,otpMaxAttempts:attempts,reason:String(data.reason),version:item.version});
-  if(body)notify("OTP policy updated and audited.")
-}
- 
- const rows=Array.isArray(data)?data as RecordItem[]:[];const contentLoading=loading||(!loadError&&loadedSection!==section);return <div className={`app-shell${collapsed?" sidebar-collapsed":""}`}><aside id="admin-navigation" className={`sidebar${menu?" open":""}${collapsed?" collapsed":""}`}><div className="sidebar-top"><div className="brand"><button className="brand-mark sidebar-brand-toggle" onClick={()=>{if(window.matchMedia("(max-width: 1000px)").matches){setMenu(false)}else{const next=!collapsed;setCollapsed(next);localStorage.setItem("haven-admin-sidebar-collapsed",String(next))}}} aria-label={collapsed?"Expand navigation":"Collapse navigation"} aria-controls="admin-navigation" aria-expanded={!collapsed} title={collapsed?"Expand navigation":"Collapse navigation"}><HavenLogo size={29} small /></button><Link href="/" className="brand-copy" aria-label="Hotel homepage" title="Hotel homepage">HAVEN<small>SYSTEM ADMINISTRATION</small></Link><button className="sidebar-collapse-button" onClick={()=>{if(!window.matchMedia("(max-width: 1000px)").matches){const next=!collapsed;setCollapsed(next);localStorage.setItem("haven-admin-sidebar-collapsed",String(next))}}} aria-label="Collapse navigation" aria-controls="admin-navigation" aria-expanded={!collapsed} title="Collapse navigation"><PanelLeftClose size={16}/></button></div></div><div className="property-pill" title="HAVEN Hotel & Residences"><span>HV</span><div className="property-copy"><b>HAVEN</b><small>HOTEL &amp; RESIDENCES</small></div></div><AdminSidebarNav section={section} onSelect={(key)=>{setSection(key);setMenu(false)}}/></aside><main className="workspace"><header className="app-header"><button className="menu-btn brand-menu-btn" onClick={()=>setMenu(true)}><span className="brand-mark"><HavenLogo size={31} small /></span></button><div><p>{nav.find(x=>x[0]===section)?.[1]}</p><small>Secure hotel governance workspace</small></div><div className="header-actions"><SessionExpiryGuard expiresAt={sessionExpiresAt}/><ThemeToggle/><div className="profile-menu-wrap" ref={profileMenu}><button className="profile-menu-btn" onClick={()=>setProfileOpen((value)=>!value)} aria-expanded={profileOpen} aria-haspopup="menu" aria-label="Account menu"><b>{(user.name??"A").slice(0,2).toUpperCase()}</b><span>{user.name}</span><ChevronDown size={14}/></button>{profileOpen&&<div className="popover-gap"><div className="profile-popover"><p><strong>{user.name}</strong><small>{user.email}</small><small>{roleLabel(user.role)}</small></p><button onClick={()=>{setProfileOpen(false);setSettingsOpen(true)}}><Settings size={15}/>Settings</button><button onClick={()=>signOut({callbackUrl:"/"})}><LogOut size={15}/>Sign Out</button></div></div>}</div></div></header><ToastStack controller={toastController}/><div className={`workspace-body admin-workspace admin-section-${section}`} aria-busy={contentLoading}>{contentLoading?<div className="empty admin-loading"><Activity/><h3>Loading governance data…</h3><p>Preparing the {nav.find(x=>x[0]===section)?.[1].toLowerCase()} workspace.</p></div>:loadError?<div className="empty admin-loading" role="alert"><Activity/><h3>Administrative data unavailable</h3><p>{loadError}</p><button className="btn btn-accent" onClick={()=>void load()}>Try again</button></div>:section==="overview"?<Overview data={data as Overview} setSection={setSection}/>:section==="users"?<UsersView rows={rows} create={createStaff} action={userAction}/>:section==="rooms"?<RoomsView rows={rows} configure={editRoom}/>:section==="room_types"?<RoomCatalogPanel role="admin"/>:section==="transport_services"?<TransportServicesPanel/>:section==="security_config"?<SecurityConfigView item={data as RecordItem} saveSession={saveSessionPolicy} saveOtp={saveOtpPolicy} notify={notify}/>:section==="policy"?<PolicyView item={data as RecordItem} edit={editPolicy}/>:section==="roles"?<RolesView data={data}/>:section==="password_resets"?<PasswordResetAuditView rows={rows} notify={notify}/>:section==="audit"||section==="security"?<AuditView security={section==="security"} rows={rows}/>:section==="system"?<SystemHealthView data={data as SystemHealth} onRefresh={()=>load()} notify={notify} goSection={(s)=>setSection(s)} />:<Reports data={data as Overview}/>}</div></main>{settingsOpen&&<SettingsDialog isOpen onClose={()=>setSettingsOpen(false)}/>}{dialogs.view}</div>}
-function Overview({data,setSection}:{data:Overview;setSection:(s:Section)=>void}){
- const m=data.metrics??{},attention=Number(m.attention??0);
- const quickActions:{label:string;detail:string;section:Section;Icon:React.ElementType}[]=[
-  {label:"Manage accounts",detail:"Create staff and manage lifecycle",section:"users",Icon:Users},
-  {label:"Review permissions",detail:"Inspect the fixed role catalogue",section:"roles",Icon:ShieldCheck},
-  {label:"Configure rooms",detail:"Maintain room metadata and status",section:"rooms",Icon:Building2},
-  {label:"Update hotel policy",detail:"Control rules for future bookings",section:"policy",Icon:Settings},
-  {label:"Review security",detail:"Inspect access and recovery events",section:"security",Icon:KeyRound},
-  {label:"Security configuration",detail:"Control session and verification safeguards",section:"security_config",Icon:ShieldCheck},
- ];
- const health:{label:string;value:number;detail:string;section:Section;Icon:React.ElementType;tone:string}[]=[
-  {label:"Needs attention",value:attention,detail:"Suspended or recovery-required",section:"security",Icon:KeyRound,tone:attention>0?"attention":"healthy"},
-  {label:"Active recovery links",value:Number(m.activeRecoveryTokens??0),detail:"Unused links that have not expired",section:"security",Icon:ShieldCheck,tone:Number(m.activeRecoveryTokens??0)>0?"caution":"neutral"},
-  {label:"Inactive rooms",value:Number(m.inactiveRooms??0),detail:"Administratively disabled records",section:"rooms",Icon:Building2,tone:Number(m.inactiveRooms??0)>0?"caution":"neutral"},
-  {label:"Inactive users",value:Number(m.inactiveUsers??0),detail:"Accounts currently disabled",section:"users",Icon:Users,tone:Number(m.inactiveUsers??0)>0?"caution":"neutral"},
-  {label:"Active users",value:Number(m.activeUsers??0),detail:"Accounts currently enabled",section:"users",Icon:Users,tone:"healthy"},
-  {label:"Staff accounts",value:Number(m.staffAccounts??0),detail:"Operational and governance users",section:"users",Icon:Users,tone:"neutral"},
-  {label:"Guest accounts",value:Number(m.guestAccounts??0),detail:"Customer portal users",section:"users",Icon:Users,tone:"neutral"},
-  {label:"Room types",value:Number(m.roomTypes??0),detail:"Room categories in the catalogue",section:"room_types",Icon:Building2,tone:"neutral"},
- ];
-  const healthTone=(tone:string):HavenActionItemTone=>tone==="attention"?"rose":tone==="caution"?"amber":tone==="healthy"?"green":"neutral";
-  const healthQuiet=(tone:string,value:number)=>value===0&&(tone==="attention"||tone==="caution");
-  const roles=Object.entries(data.roleCounts??{}).sort((a,b)=>b[1]-a[1]),maxRole=Math.max(1,...roles.map(([,count])=>count));
- return <div className="admin-overview">
-  <div className="page-title admin-overview-title"><div><h1>Governance at a glance</h1><p>Live account health, hotel configuration, and immutable administrative activity.</p></div><div className={`admin-posture ${attention>0?"attention":"healthy"}`}><ShieldCheck size={19}/><span><strong>{attention>0?`${attention} account${attention===1?"":"s"} need review`:"Account access is clear"}</strong><small>Based on suspension and recovery flags</small></span><button type="button" onClick={()=>setSection("security")}>Review<ChevronRight size={15}/></button></div></div>
-   <section className="admin-quick-section" aria-labelledby="admin-quick-title"><div className="admin-section-heading"><div><h2 id="admin-quick-title">Quick actions</h2><p>Open the most-used administration tools.</p></div></div><div className="admin-quick-actions">{quickActions.map(({label:actionLabel,detail,section:target,Icon})=><HavenActionItem key={target} icon={Icon} tone="neutral" title={actionLabel} description={detail} onAction={()=>setSection(target)} />)}</div></section>
-   <section className="admin-health-section" aria-labelledby="admin-health-title"><div className="admin-section-heading"><div><h2 id="admin-health-title">System health</h2><p>Select an indicator to open its source module.</p></div><span>Live Supabase records</span></div><div className="admin-health-grid">{health.map(({label:metricLabel,value,detail,section:target,Icon,tone})=><HavenActionItem key={metricLabel} variant="stat" icon={Icon} tone={healthTone(tone)} quiet={healthQuiet(tone,Number(value))} title={metricLabel} value={value} description={detail} onAction={()=>setSection(target)} actionLabel={`${metricLabel}: ${value}. Open ${nav.find(([key])=>key===target)?.[1]??target}`} />)}</div></section>
-  <div className="admin-overview-lower">
-   <section className="panel admin-role-panel" aria-labelledby="admin-role-title"><div className="panel-heading"><div><h3 id="admin-role-title">Account distribution</h3><p>Current accounts by assigned role</p></div><button type="button" className="btn btn-soft btn-sm" onClick={()=>setSection("roles")}>Review permissions</button></div><div className="admin-role-list">{roles.map(([role,count])=><div className="admin-role-row" key={role}><span><strong>{roleLabel(role)}</strong><small>{count} account{count===1?"":"s"}</small></span><div className="admin-role-meter" aria-hidden="true"><i style={{width:`${Math.max(4,count/maxRole*100)}%`}}/></div><b>{count}</b></div>)}</div></section>
-   <section className="data-panel admin-audit-panel" aria-labelledby="admin-audit-title"><div className="panel-heading"><div><h3 id="admin-audit-title">Recent governance activity</h3><p>Latest immutable administrative events</p></div><button type="button" className="btn btn-soft btn-sm" onClick={()=>setSection("audit")}>View audit log</button></div><AuditRows rows={data.recentAudit??[]}/></section>
+  const health: { label: string; value: number; detail: string; section: Section; Icon: React.ElementType; tone: string }[] = [
+    { label: "Needs attention", value: attention, detail: "Suspended or recovery-required", section: "security", Icon: KeyRound, tone: attention > 0 ? "attention" : "healthy" },
+    { label: "Active recovery links", value: Number(m.activeRecoveryTokens ?? 0), detail: "Unused links that have not expired", section: "security", Icon: ShieldCheck, tone: Number(m.activeRecoveryTokens ?? 0) > 0 ? "caution" : "neutral" },
+    { label: "Inactive rooms", value: Number(m.inactiveRooms ?? 0), detail: "Administratively disabled records", section: "rooms", Icon: Building2, tone: Number(m.inactiveRooms ?? 0) > 0 ? "caution" : "neutral" },
+    { label: "Inactive users", value: Number(m.inactiveUsers ?? 0), detail: "Accounts currently disabled", section: "users", Icon: Users, tone: Number(m.inactiveUsers ?? 0) > 0 ? "caution" : "neutral" },
+    { label: "Active users", value: Number(m.activeUsers ?? 0), detail: "Accounts currently enabled", section: "users", Icon: Users, tone: "healthy" },
+    { label: "Staff accounts", value: Number(m.staffAccounts ?? 0), detail: "Operational and governance users", section: "users", Icon: Users, tone: "neutral" },
+    { label: "Guest accounts", value: Number(m.guestAccounts ?? 0), detail: "Customer portal users", section: "users", Icon: Users, tone: "neutral" },
+    { label: "Room types", value: Number(m.roomTypes ?? 0), detail: "Room categories in the catalogue", section: "room_types", Icon: Building2, tone: "neutral" },
+  ];
+  const healthTone = (tone: string): HavenActionItemTone => tone === "attention" ? "rose" : tone === "caution" ? "amber" : tone === "healthy" ? "green" : "neutral";
+  const healthQuiet = (tone: string, value: number) => value === 0 && (tone === "attention" || tone === "caution");
+  const roles = Object.entries(data.roleCounts ?? {}).sort((a, b) => b[1] - a[1]), maxRole = Math.max(1, ...roles.map(([, count]) => count));
+  return <div className="admin-overview">
+    <div className="page-title admin-overview-title"><div><h1>Governance at a glance</h1><p>Live account health, hotel configuration, and immutable administrative activity.</p></div><div className={`admin-posture ${attention > 0 ? "attention" : "healthy"}`}><ShieldCheck size={19} /><span><strong>{attention > 0 ? `${attention} account${attention === 1 ? "" : "s"} need review` : "Account access is clear"}</strong><small>Based on suspension and recovery flags</small></span><button type="button" onClick={() => setSection("security")}>Review<ChevronRight size={15} /></button></div></div>
+    <section className="admin-quick-section" aria-labelledby="admin-quick-title"><div className="admin-section-heading"><div><h2 id="admin-quick-title">Quick actions</h2><p>Open the most-used administration tools.</p></div></div><div className="admin-quick-actions">{quickActions.map(({ label: actionLabel, detail, section: target, Icon }) => <HavenActionItem key={target} icon={Icon} tone="neutral" title={actionLabel} description={detail} onAction={() => setSection(target)} />)}</div></section>
+    <section className="admin-health-section" aria-labelledby="admin-health-title"><div className="admin-section-heading"><div><h2 id="admin-health-title">System health</h2><p>Select an indicator to open its source module.</p></div><span>Live Supabase records</span></div><div className="admin-health-grid">{health.map(({ label: metricLabel, value, detail, section: target, Icon, tone }) => <HavenActionItem key={metricLabel} variant="stat" icon={Icon} tone={healthTone(tone)} quiet={healthQuiet(tone, Number(value))} title={metricLabel} value={value} description={detail} onAction={() => setSection(target)} actionLabel={`${metricLabel}: ${value}. Open ${nav.find(([key]) => key === target)?.[1] ?? target}`} />)}</div></section>
+    <div className="admin-overview-lower">
+      <section className="panel admin-role-panel" aria-labelledby="admin-role-title"><div className="panel-heading"><div><h3 id="admin-role-title">Account distribution</h3><p>Current accounts by assigned role</p></div><button type="button" className="btn btn-soft btn-sm" onClick={() => setSection("roles")}>Review permissions</button></div><div className="admin-role-list">{roles.map(([role, count]) => <div className="admin-role-row" key={role}><span><strong>{roleLabel(role)}</strong><small>{count} account{count === 1 ? "" : "s"}</small></span><div className="admin-role-meter" aria-hidden="true"><i style={{ width: `${Math.max(4, count / maxRole * 100)}%` }} /></div><b>{count}</b></div>)}</div></section>
+      <section className="data-panel admin-audit-panel" aria-labelledby="admin-audit-title"><div className="panel-heading"><div><h3 id="admin-audit-title">Recent governance activity</h3><p>Latest immutable administrative events</p></div><button type="button" className="btn btn-soft btn-sm" onClick={() => setSection("audit")}>View audit log</button></div><AuditRows rows={data.recentAudit ?? []} /></section>
+    </div>
   </div>
- </div>
 }
 // Exported for the jsdom render test (users-view.test.tsx). Filters are
 // client-side over the already-loaded rows — same pattern as the
 // approvals toolbar — and the option lists derive from the data so a select
 // never offers a value that isn't there.
-export function UsersView({rows,create,action}:{rows:RecordItem[];create:()=>void;action:(x:RecordItem,a:"status"|"role"|"metadata"|"recovery")=>void}){const[role,setRole]=useState("all");const[status,setStatus]=useState("all");const[recovery,setRecovery]=useState("all");const[department,setDepartment]=useState("all");const[search,setSearch]=useState("");
- const roles=Array.from(new Set(rows.map(item=>String(item.role))));const departments=Array.from(new Set(rows.map(item=>String(item.department??"")).filter(Boolean)));
- const visible=sortTableRows(rows.filter(item=>(role==="all"||String(item.role)===role)&&(status==="all"||String(item.account_status)===status)&&(recovery==="all"||(recovery==="required")===Boolean(item.recovery_required))&&(department==="all"||String(item.department??"")===department)&&[item.name,item.email,item.department,item.employee_reference].some(value=>String(value??"").toLowerCase().includes(search.toLowerCase()))),item=>String(item.name??item.email??""));
- const page=useTablePagination(visible);
-  const clearFilters=()=>{setRole("all");setStatus("all");setRecovery("all");setDepartment("all");setSearch("")};
- // Snapshot cards reuse the exact filter predicates, so a card count always
- // equals what its filter shows (card == select == table rows).
- const counts={active:rows.filter(item=>String(item.account_status)==="active").length,suspended:rows.filter(item=>String(item.account_status)==="suspended").length,recovery:rows.filter(item=>Boolean(item.recovery_required)).length,staff:rows.filter(item=>String(item.role)!=="guest").length};
- const linkedQueue=status!=="all"?`status:${status}`:recovery==="required"?"recovery:required":undefined;
- const selectCard=(queue:string)=>{const[key,value]=queue.split(":");if(key==="status")setStatus(value);if(key==="recovery")setRecovery(value)};
- return <><div className="page-title"><div><p className="admin-section-context">Account governance</p><h1>Users and staff accounts</h1><p>Lifecycle, role, metadata, and secure recovery. Business history is never deleted.</p></div><button className="btn btn-accent" onClick={create}>Create staff account</button></div>
- <ModuleSummaryCards ariaLabel="Accounts summary" activeQueue={linkedQueue} onSelect={selectCard} cards={[
-  {label:"Accounts on record",value:rows.length,hint:"Immutable account history",icon:Users,tone:"active"},
-  {label:"Active",value:counts.active,hint:"Enabled accounts",icon:ShieldCheck,tone:"done",queue:"status:active"},
-  {label:"Suspended",value:counts.suspended,hint:"Access suspended",icon:KeyRound,tone:"attention",queue:"status:suspended"},
-  {label:"Recovery required",value:counts.recovery,hint:"Awaiting an access reset",icon:KeyRound,tone:"today",queue:"recovery:required"},
-  {label:"Staff accounts",value:counts.staff,hint:"Operational and governance roles",icon:Users},
- ]}/>
- <div className="reservation-filters approval-toolbar"><div className="approval-filters">   <HavenSearchInput value={search} onValueChange={setSearch} label="Search accounts" placeholder="Search name, email, department, or reference..."/><div className="haven-filter"><span>Role</span><HavenSelect value={role} onChange={setRole} ariaLabel="Filter by role" options={[{ value: "all", label: "All roles" }, ...roles.map(value=>({ value, label: roleLabel(value) }))]} /></div><div className="haven-filter"><span>Status</span><HavenSelect value={status} onChange={setStatus} ariaLabel="Filter by status" options={[{ value: "all", label: "All statuses" }, ...STATUS_OPTIONS.map(option=>({ value: option.value, label: option.label }))]} /></div><div className="haven-filter"><span>Recovery</span><HavenSelect value={recovery} onChange={setRecovery} ariaLabel="Filter by recovery state" options={[{ value: "all", label: "All accounts" }, { value: "required", label: "Recovery required" }, { value: "no", label: "No recovery needed" }]} /></div><div className="haven-filter"><span>Department</span><HavenSelect value={department} onChange={setDepartment} ariaLabel="Filter by department" options={[{ value: "all", label: "All departments" }, ...departments.map(value=>({ value, label: label(value) }))]} /></div></div></div>
- <div className="data-panel"><div className="table-scroll"><table aria-label="Staff accounts"><thead><tr>{["Name","Email","Role","Department","Status","Recovery","Version","Actions"].map(x=><th key={x}>{x}</th>)}</tr></thead><tbody>{page.rows.map(item=><tr key={item.id}><td><strong>{item.name}</strong></td><td>{item.email}</td><td>{roleLabel(item.role)}</td><td>{label(item.department)}</td><td><span className={`badge ${item.account_status}`}>{label(item.account_status)}</span></td><td>{item.recovery_required?"Required":"No"}</td><td>{item.auth_version}</td><td><div className="reservation-actions"><button className="table-action" onClick={()=>action(item,"metadata")}>Edit</button><button className="table-action" onClick={()=>action(item,"role")}>Role</button><button className="table-action" onClick={()=>action(item,"status")}>Lifecycle</button><button className="table-action" onClick={()=>action(item,"recovery")}>Recovery</button></div></td></tr>)}</tbody></table></div>
- {visible.length===0&&<div className="empty"><Search/><h3>No accounts match these filters</h3><p>Try clearing the filters to see every account.</p><button className="table-action" onClick={clearFilters}>Clear filters</button></div>}
- <TablePagination {...page} onPageChange={page.setPage} noun={`account${rows.length!==1?"s":""}`} allTotal={rows.length} note="Every lifecycle, role, and recovery change is server-authorized and audited."/></div></>}
+export function UsersView({ rows, create, action }: { rows: RecordItem[]; create: () => void; action: (x: RecordItem, a: "status" | "role" | "metadata" | "recovery") => void }) {
+  const [role, setRole] = useState("all"); const [status, setStatus] = useState("all"); const [recovery, setRecovery] = useState("all"); const [department, setDepartment] = useState("all"); const [search, setSearch] = useState("");
+  const roles = Array.from(new Set(rows.map(item => String(item.role)))); const departments = Array.from(new Set(rows.map(item => String(item.department ?? "")).filter(Boolean)));
+  const visible = sortTableRows(rows.filter(item => (role === "all" || String(item.role) === role) && (status === "all" || String(item.account_status) === status) && (recovery === "all" || (recovery === "required") === Boolean(item.recovery_required)) && (department === "all" || String(item.department ?? "") === department) && [item.name, item.email, item.department, item.employee_reference].some(value => String(value ?? "").toLowerCase().includes(search.toLowerCase()))), item => String(item.name ?? item.email ?? ""));
+  const page = useTablePagination(visible);
+  const clearFilters = () => { setRole("all"); setStatus("all"); setRecovery("all"); setDepartment("all"); setSearch("") };
+  // Snapshot cards reuse the exact filter predicates, so a card count always
+  // equals what its filter shows (card == select == table rows).
+  const counts = { active: rows.filter(item => String(item.account_status) === "active").length, suspended: rows.filter(item => String(item.account_status) === "suspended").length, recovery: rows.filter(item => Boolean(item.recovery_required)).length, staff: rows.filter(item => String(item.role) !== "guest").length };
+  const linkedQueue = status !== "all" ? `status:${status}` : recovery === "required" ? "recovery:required" : undefined;
+  const selectCard = (queue: string) => { const [key, value] = queue.split(":"); if (key === "status") setStatus(value); if (key === "recovery") setRecovery(value) };
+  return <><div className="page-title"><div><p className="admin-section-context">Account governance</p><h1>Users and staff accounts</h1><p>Lifecycle, role, metadata, and secure recovery. Business history is never deleted.</p></div><button className="btn btn-accent" onClick={create}>Create staff account</button></div>
+    <ModuleSummaryCards ariaLabel="Accounts summary" activeQueue={linkedQueue} onSelect={selectCard} cards={[
+      { label: "Accounts on record", value: rows.length, hint: "Immutable account history", icon: Users, tone: "active" },
+      { label: "Active", value: counts.active, hint: "Enabled accounts", icon: ShieldCheck, tone: "done", queue: "status:active" },
+      { label: "Suspended", value: counts.suspended, hint: "Access suspended", icon: KeyRound, tone: "attention", queue: "status:suspended" },
+      { label: "Recovery required", value: counts.recovery, hint: "Awaiting an access reset", icon: KeyRound, tone: "today", queue: "recovery:required" },
+      { label: "Staff accounts", value: counts.staff, hint: "Operational and governance roles", icon: Users },
+    ]} />
+    <div className="reservation-filters approval-toolbar"><div className="approval-filters">   <HavenSearchInput value={search} onValueChange={setSearch} label="Search accounts" placeholder="Search name, email, department, or reference..." /><div className="haven-filter"><HavenSelect value={role} onChange={setRole} ariaLabel="Filter by role" options={[{ value: "all", label: "All roles" }, ...roles.map(value => ({ value, label: roleLabel(value) }))]} /></div><div className="haven-filter"><HavenSelect value={status} onChange={setStatus} ariaLabel="Filter by status" options={[{ value: "all", label: "All statuses" }, ...STATUS_OPTIONS.map(option => ({ value: option.value, label: option.label }))]} /></div><div className="haven-filter"><HavenSelect value={recovery} onChange={setRecovery} ariaLabel="Filter by recovery state" options={[{ value: "all", label: "All accounts" }, { value: "required", label: "Recovery required" }, { value: "no", label: "No recovery needed" }]} /></div><div className="haven-filter"><HavenSelect value={department} onChange={setDepartment} ariaLabel="Filter by department" options={[{ value: "all", label: "All departments" }, ...departments.map(value => ({ value, label: label(value) }))]} /></div></div></div>
+    <div className="data-panel"><div className="table-scroll"><table aria-label="Staff accounts"><thead><tr>{["Name", "Email", "Role", "Department", "Status", "Recovery", "Version", "Actions"].map(x => <th key={x}>{x}</th>)}</tr></thead><tbody>{page.rows.map(item => <tr key={item.id}><td><strong>{item.name}</strong></td><td>{item.email}</td><td>{roleLabel(item.role)}</td><td>{label(item.department)}</td><td><span className={`badge ${item.account_status}`}>{label(item.account_status)}</span></td><td>{item.recovery_required ? "Required" : "No"}</td><td>{item.auth_version}</td><td><div className="reservation-actions"><button className="table-action" onClick={() => action(item, "metadata")}>Edit</button><button className="table-action" onClick={() => action(item, "role")}>Role</button><button className="table-action" onClick={() => action(item, "status")}>Lifecycle</button><button className="table-action" onClick={() => action(item, "recovery")}>Recovery</button></div></td></tr>)}</tbody></table></div>
+      {visible.length === 0 && <div className="empty"><Search /><h3>No accounts match these filters</h3><p>Try clearing the filters to see every account.</p><button className="table-action" onClick={clearFilters}>Clear filters</button></div>}
+      <TablePagination {...page} onPageChange={page.setPage} noun={`account${rows.length !== 1 ? "s" : ""}`} allTotal={rows.length} note="Every lifecycle, role, and recovery change is server-authorized and audited." /></div></>
+}
 // Room metadata workspace. Operational state (status, housekeeping) is shown
 // read-only for orientation; the only write path is administrative metadata
 // (editRoom). Filters, cards, and the footer all count the same loaded rows.
-export function RoomsView({rows,configure}:{rows:RecordItem[];configure:(x:RecordItem)=>void}){
- const[active,setActive]=useState("all");const[type,setType]=useState("all");const[wing,setWing]=useState("all");const[search,setSearch]=useState("");
- const types=Array.from(new Set(rows.map(item=>String(item.type??"")).filter(Boolean)));const wings=Array.from(new Set(rows.map(item=>String(item.wing??"")).filter(Boolean)));const floors=new Set(rows.map(item=>String(item.floor??""))).size;
- const visible=sortTableRows(rows.filter(item=>(active==="all"||(active==="active")===Boolean(item.administratively_active))&&(type==="all"||String(item.type)===type)&&(wing==="all"||String(item.wing)===wing)&&[item.number,item.type,item.wing,item.administrative_designation].some(value=>String(value??"").toLowerCase().includes(search.toLowerCase()))),item=>String(item.number??""));
- const page=useTablePagination(visible);
- const clearFilters=()=>{setActive("all");setType("all");setWing("all");setSearch("")};
- const inactive=rows.filter(item=>!item.administratively_active).length;
- return <><div className="page-title"><div><p className="admin-section-context">Hotel configuration</p><h1>Physical room metadata</h1><p>Administrative configuration only — occupancy, Housekeeping, and Maintenance state are read-only.</p></div></div>
- <ModuleSummaryCards ariaLabel="Room configuration summary" activeQueue={active} onSelect={setActive} cards={[
-  {label:"Rooms on record",value:rows.length,hint:"Every physical room",icon:BedDouble,tone:"active"},
-  {label:"Administratively inactive",value:inactive,hint:"Disabled for governance reasons",icon:Building2,tone:inactive>0?"attention":"done",queue:"inactive"},
-  {label:"Room types",value:types.length,hint:"Types present in inventory",icon:Building2},
-  {label:"Floors",value:floors,hint:"Distinct floor levels",icon:Building2,tone:"today"},
- ]}/>
- <div className="reservation-filters approval-toolbar"><div className="approval-filters">
-   <HavenSearchInput value={search} onValueChange={setSearch} label="Search rooms" placeholder="Search number, type, wing, or designation..."/>
-  <div className="haven-filter"><span>Status</span><HavenSelect value={active} onChange={setActive} ariaLabel="Filter by administrative status" options={[{ value: "all", label: "All statuses" }, { value: "active", label: "Administratively active" }, { value: "inactive", label: "Administratively inactive" }]} /></div>
-  <div className="haven-filter"><span>Type</span><HavenSelect value={type} onChange={setType} ariaLabel="Filter by room type" options={[{ value: "all", label: "All types" }, ...types.map(value=>({ value, label: value }))]} /></div>
-  <div className="haven-filter"><span>Wing</span><HavenSelect value={wing} onChange={setWing} ariaLabel="Filter by wing" options={[{ value: "all", label: "All wings" }, ...wings.map(value=>({ value, label: label(value) }))]} /></div>
- </div></div>
- <div className="data-panel"><div className="table-scroll"><table aria-label="Room configuration"><thead><tr>{["Room","Floor","Type","Wing","Designation","Admin status","Operational status","Housekeeping","Actions"].map(x=><th key={x}>{x}</th>)}</tr></thead><tbody>{page.rows.map(item=><tr key={item.id}><td><strong>{label(item.number)}</strong></td><td>{label(item.floor)}</td><td>{label(item.type)}</td><td>{label(item.wing)}</td><td>{label(item.administrative_designation)}</td><td><span className={`badge ${item.administratively_active?"active":"inactive"}`}>{item.administratively_active?"Active":"Inactive"}</span></td><td><span className={`badge ${item.status}`}>{label(item.status)}</span></td><td><span className={`badge ${item.housekeeping}`}>{label(item.housekeeping)}</span></td><td><div className="reservation-actions"><button className="table-action" onClick={()=>configure(item)}>Configure</button></div></td></tr>)}</tbody></table></div>
- {visible.length===0&&<div className="empty"><Search/><h3>No rooms match these filters</h3><p>Try clearing the filters to see every room.</p><button className="table-action" onClick={clearFilters}>Clear filters</button></div>}
- <TablePagination {...page} onPageChange={page.setPage} noun={`room${rows.length!==1?"s":""}`} allTotal={rows.length} note="Occupancy and housekeeping state change only through their own departments."/></div></>
+export function RoomsView({ rows, configure }: { rows: RecordItem[]; configure: (x: RecordItem) => void }) {
+  const [active, setActive] = useState("all"); const [type, setType] = useState("all"); const [wing, setWing] = useState("all"); const [search, setSearch] = useState("");
+  const types = Array.from(new Set(rows.map(item => String(item.type ?? "")).filter(Boolean))); const wings = Array.from(new Set(rows.map(item => String(item.wing ?? "")).filter(Boolean))); const floors = new Set(rows.map(item => String(item.floor ?? ""))).size;
+  const visible = sortTableRows(rows.filter(item => (active === "all" || (active === "active") === Boolean(item.administratively_active)) && (type === "all" || String(item.type) === type) && (wing === "all" || String(item.wing) === wing) && [item.number, item.type, item.wing, item.administrative_designation].some(value => String(value ?? "").toLowerCase().includes(search.toLowerCase()))), item => String(item.number ?? ""));
+  const page = useTablePagination(visible);
+  const clearFilters = () => { setActive("all"); setType("all"); setWing("all"); setSearch("") };
+  const inactive = rows.filter(item => !item.administratively_active).length;
+  return <><div className="page-title"><div><p className="admin-section-context">Hotel configuration</p><h1>Physical room metadata</h1><p>Administrative configuration only — occupancy, Housekeeping, and Maintenance state are read-only.</p></div></div>
+    <ModuleSummaryCards ariaLabel="Room configuration summary" activeQueue={active} onSelect={setActive} cards={[
+      { label: "Rooms on record", value: rows.length, hint: "Every physical room", icon: BedDouble, tone: "active" },
+      { label: "Administratively inactive", value: inactive, hint: "Disabled for governance reasons", icon: Building2, tone: inactive > 0 ? "attention" : "done", queue: "inactive" },
+      { label: "Room types", value: types.length, hint: "Types present in inventory", icon: Building2 },
+      { label: "Floors", value: floors, hint: "Distinct floor levels", icon: Building2, tone: "today" },
+    ]} />
+    <div className="reservation-filters approval-toolbar"><div className="approval-filters">
+      <HavenSearchInput value={search} onValueChange={setSearch} label="Search rooms" placeholder="Search number, type, wing, or designation..." />
+      <div className="haven-filter"><HavenSelect value={active} onChange={setActive} ariaLabel="Filter by administrative status" options={[{ value: "all", label: "All statuses" }, { value: "active", label: "Administratively active" }, { value: "inactive", label: "Administratively inactive" }]} /></div>
+      <div className="haven-filter"><HavenSelect value={type} onChange={setType} ariaLabel="Filter by room type" options={[{ value: "all", label: "All types" }, ...types.map(value => ({ value, label: value }))]} /></div>
+      <div className="haven-filter"><HavenSelect value={wing} onChange={setWing} ariaLabel="Filter by wing" options={[{ value: "all", label: "All wings" }, ...wings.map(value => ({ value, label: label(value) }))]} /></div>
+    </div></div>
+    <div className="data-panel"><div className="table-scroll"><table aria-label="Room configuration"><thead><tr>{["Room", "Floor", "Type", "Wing", "Designation", "Admin status", "Operational status", "Housekeeping", "Actions"].map(x => <th key={x}>{x}</th>)}</tr></thead><tbody>{page.rows.map(item => <tr key={item.id}><td><strong>{label(item.number)}</strong></td><td>{label(item.floor)}</td><td>{label(item.type)}</td><td>{label(item.wing)}</td><td>{label(item.administrative_designation)}</td><td><span className={`badge ${item.administratively_active ? "active" : "inactive"}`}>{item.administratively_active ? "Active" : "Inactive"}</span></td><td><span className={`badge ${item.status}`}>{label(item.status)}</span></td><td><span className={`badge ${item.housekeeping}`}>{label(item.housekeeping)}</span></td><td><div className="reservation-actions"><button className="table-action" onClick={() => configure(item)}>Configure</button></div></td></tr>)}</tbody></table></div>
+      {visible.length === 0 && <div className="empty"><Search /><h3>No rooms match these filters</h3><p>Try clearing the filters to see every room.</p><button className="table-action" onClick={clearFilters}>Clear filters</button></div>}
+      <TablePagination {...page} onPageChange={page.setPage} noun={`room${rows.length !== 1 ? "s" : ""}`} allTotal={rows.length} note="Occupancy and housekeeping state change only through their own departments." /></div></>
 }
 // Password reset audit: every self-service and link-based reset attempt with
 // its OTP state and staged identity selfie. Selfies open in a signed-URL
 // preview modal — paths never render as links and bytes never pass through JSON.
 // Exported for the jsdom render test (admin-views.test.tsx).
-export function PasswordResetAuditView({rows,notify}:{rows:RecordItem[];notify:(message:string)=>void}){
- const[status,setStatus]=useState("all");const[search,setSearch]=useState("");
- const[preview,setPreview]=useState<{email:string;url:string}|null>(null);const[previewBusy,setPreviewBusy]=useState<string|null>(null);
- const visible=rows.filter(item=>(status==="all"||String(item.status)===status)&&[item.email,item.ip_address,item.status].some(value=>String(value??"").toLowerCase().includes(search.toLowerCase())));
- const page=useTablePagination(visible);
- const clearFilters=()=>{setStatus("all");setSearch("")};
- const counts={requested:rows.filter(item=>String(item.status)==="requested").length,verified:rows.filter(item=>String(item.status)==="otp_verified").length,completed:rows.filter(item=>String(item.status)==="completed").length,failed:rows.filter(item=>String(item.status)==="failed").length};
- const stamp=(value:unknown)=>new Date(String(value)).toLocaleString("en-PH",{dateStyle:"medium",timeStyle:"short"});
- async function inspect(item:RecordItem){
-  setPreviewBusy(String(item.id));
-  try{const response=await fetch(`/api/admin/password-resets/${item.id}/selfie`,{cache:"no-store"});const body=await response.json().catch(()=>null);
-   if(!response.ok||typeof body?.data?.url!=="string"){notify(body?.error??"The selfie could not be loaded.");return}
-   setPreview({email:String(item.email??"—"),url:String(body.data.url)});
-  }finally{setPreviewBusy(null)}
- }
- return <><div className="page-title"><div><p className="admin-section-context">Authentication & session security</p><h1>Password reset audit</h1><p>Every reset attempt with OTP state and identity-selfie evidence. Selfies are human-reviewed proof — never automatic approval.</p></div></div>
- <ModuleSummaryCards ariaLabel="Password reset summary" cards={[
-  {label:"Attempts on record",value:rows.length,hint:"Most recent first",icon:KeyRound,tone:"active"},
-  {label:"Completed",value:counts.completed,hint:"Password changed with selfie proof",icon:ShieldCheck,tone:"done"},
-  {label:"Awaiting completion",value:counts.requested+counts.verified,hint:"Link issued, reset not finished",icon:Activity,tone:counts.requested+counts.verified>0?"today":"done"},
-  {label:"Failed",value:counts.failed,hint:"Expired, invalid, or undelivered",icon:KeyRound,tone:counts.failed>0?"attention":"done"},
- ]}/>
- <div className="reservation-filters approval-toolbar"><div className="approval-filters"><HavenSearchInput value={search} onValueChange={setSearch} label="Search reset attempts" placeholder="Search email, IP, or status..."/><div className="haven-filter"><span>Status</span><HavenSelect value={status} onChange={setStatus} ariaLabel="Filter by reset status" options={[{value:"all",label:"All statuses"},{value:"requested",label:"Requested"},{value:"otp_verified",label:"OTP verified"},{value:"completed",label:"Completed"},{value:"failed",label:"Failed"}]}/></div></div></div>
- <div className="data-panel"><div className="table-scroll"><table aria-label="Password reset attempts"><thead><tr>{["Time","Email","IP address","OTP","Status","Selfie proof"].map(x=><th key={x}>{x}</th>)}</tr></thead><tbody>{page.rows.map(item=><tr key={item.id}><td>{stamp(item.created_at)}</td><td><strong>{label(item.email)}</strong></td><td>{label(item.ip_address)}</td><td><span className={`badge ${item.otp_verified?"paid":"expired"}`}>{item.otp_verified?"Verified":"Pending"}</span></td><td><span className={`badge ${item.status}`}>{label(item.status)}</span></td><td>{item.has_selfie?<button className="table-action" onClick={()=>inspect(item)} disabled={previewBusy!==null}>{previewBusy===String(item.id)?"Loading…":"Inspect selfie"}</button>:"—"}</td></tr>)}</tbody></table></div>
- {visible.length===0&&<div className="empty"><Search/><h3>No reset attempts match these filters</h3><p>Try clearing the filters to see every attempt.</p><button className="table-action" onClick={clearFilters}>Clear filters</button></div>}
- <TablePagination {...page} onPageChange={page.setPage} noun="attempts" allTotal={rows.length} note="Selfie images are staged evidence; the password change itself is the audited event."/></div>
- {preview&&<Modal isOpen onClose={()=>setPreview(null)} title="Identity selfie proof" description={`Staged for ${preview.email} — compare against a known photo before trusting the reset.`} size="md"><img src={preview.url} alt={`Identity selfie staged for ${preview.email}`} style={{maxWidth:"100%",borderRadius:12}}/></Modal>}</>
+export function PasswordResetAuditView({ rows, notify }: { rows: RecordItem[]; notify: (message: string) => void }) {
+  const [status, setStatus] = useState("all"); const [search, setSearch] = useState("");
+  const [preview, setPreview] = useState<{ email: string; url: string } | null>(null); const [previewBusy, setPreviewBusy] = useState<string | null>(null);
+  const visible = rows.filter(item => (status === "all" || String(item.status) === status) && [item.email, item.ip_address, item.status].some(value => String(value ?? "").toLowerCase().includes(search.toLowerCase())));
+  const page = useTablePagination(visible);
+  const clearFilters = () => { setStatus("all"); setSearch("") };
+  const counts = { requested: rows.filter(item => String(item.status) === "requested").length, verified: rows.filter(item => String(item.status) === "otp_verified").length, completed: rows.filter(item => String(item.status) === "completed").length, failed: rows.filter(item => String(item.status) === "failed").length };
+  const stamp = (value: unknown) => new Date(String(value)).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" });
+  async function inspect(item: RecordItem) {
+    setPreviewBusy(String(item.id));
+    try {
+      const response = await fetch(`/api/admin/password-resets/${item.id}/selfie`, { cache: "no-store" }); const body = await response.json().catch(() => null);
+      if (!response.ok || typeof body?.data?.url !== "string") { notify(body?.error ?? "The selfie could not be loaded."); return }
+      setPreview({ email: String(item.email ?? "—"), url: String(body.data.url) });
+    } finally { setPreviewBusy(null) }
+  }
+  return <><div className="page-title"><div><p className="admin-section-context">Authentication & session security</p><h1>Password reset audit</h1><p>Every reset attempt with OTP state and identity-selfie evidence. Selfies are human-reviewed proof — never automatic approval.</p></div></div>
+    <ModuleSummaryCards ariaLabel="Password reset summary" cards={[
+      { label: "Attempts on record", value: rows.length, hint: "Most recent first", icon: KeyRound, tone: "active" },
+      { label: "Completed", value: counts.completed, hint: "Password changed with selfie proof", icon: ShieldCheck, tone: "done" },
+      { label: "Awaiting completion", value: counts.requested + counts.verified, hint: "Link issued, reset not finished", icon: Activity, tone: counts.requested + counts.verified > 0 ? "today" : "done" },
+      { label: "Failed", value: counts.failed, hint: "Expired, invalid, or undelivered", icon: KeyRound, tone: counts.failed > 0 ? "attention" : "done" },
+    ]} />
+    <div className="reservation-filters approval-toolbar"><div className="approval-filters"><HavenSearchInput value={search} onValueChange={setSearch} label="Search reset attempts" placeholder="Search email, IP, or status..." /><div className="haven-filter"><HavenSelect value={status} onChange={setStatus} ariaLabel="Filter by reset status" options={[{ value: "all", label: "All statuses" }, { value: "requested", label: "Requested" }, { value: "otp_verified", label: "OTP verified" }, { value: "completed", label: "Completed" }, { value: "failed", label: "Failed" }]} /></div></div></div>
+    <div className="data-panel"><div className="table-scroll"><table aria-label="Password reset attempts"><thead><tr>{["Time", "Email", "IP address", "OTP", "Status", "Selfie proof"].map(x => <th key={x}>{x}</th>)}</tr></thead><tbody>{page.rows.map(item => <tr key={item.id}><td>{stamp(item.created_at)}</td><td><strong>{label(item.email)}</strong></td><td>{label(item.ip_address)}</td><td><span className={`badge ${item.otp_verified ? "paid" : "expired"}`}>{item.otp_verified ? "Verified" : "Pending"}</span></td><td><span className={`badge ${item.status}`}>{label(item.status)}</span></td><td>{item.has_selfie ? <button className="table-action" onClick={() => inspect(item)} disabled={previewBusy !== null}>{previewBusy === String(item.id) ? "Loading…" : "Inspect selfie"}</button> : "—"}</td></tr>)}</tbody></table></div>
+      {visible.length === 0 && <div className="empty"><Search /><h3>No reset attempts match these filters</h3><p>Try clearing the filters to see every attempt.</p><button className="table-action" onClick={clearFilters}>Clear filters</button></div>}
+      <TablePagination {...page} onPageChange={page.setPage} noun="attempts" allTotal={rows.length} note="Selfie images are staged evidence; the password change itself is the audited event." /></div>
+    {preview && <Modal isOpen onClose={() => setPreview(null)} title="Identity selfie proof" description={`Staged for ${preview.email} — compare against a known photo before trusting the reset.`} size="md"><img src={preview.url} alt={`Identity selfie staged for ${preview.email}`} style={{ maxWidth: "100%", borderRadius: 12 }} /></Modal>}</>
 }
 // Audit Logs and Security share one immutable event stream; the section only
 // changes the framing. Filters and cards are client-side over the loaded page
 // of events, same pattern as UsersView.
-export function AuditView({security,rows}:{security:boolean;rows:RecordItem[]}){
- const[action,setAction]=useState("all");const[entity,setEntity]=useState("all");const[search,setSearch]=useState("");
- const actions=Array.from(new Set(rows.map(item=>String(item.action))));const entities=Array.from(new Set(rows.map(item=>String(item.entity_type))));
- const visible=rows.filter(item=>(action==="all"||String(item.action)===action)&&(entity==="all"||String(item.entity_type)===entity)&&[item.action,item.entity_type,item.entity_id].some(value=>String(value??"").toLowerCase().includes(search.toLowerCase())));
- const page=useTablePagination(visible);
- const clearFilters=()=>{setAction("all");setEntity("all");setSearch("")};
- const dayAgo=new Date().getTime()-24*60*60*1000;const last24h=rows.filter(item=>new Date(String(item.created_at)).getTime()>dayAgo).length;
- const latest=rows[0]?new Date(String(rows[0].created_at)).toLocaleString("en-PH",{dateStyle:"medium",timeStyle:"short"}):null;
- const stamp=(value:unknown)=>new Date(String(value)).toLocaleString("en-PH",{dateStyle:"medium",timeStyle:"short"});
- return <><div className="page-title"><div><p className="admin-section-context">{security?"Access and recovery":"Administrative history"}</p><h1>{security?"Security and account events":"Administrative audit"}</h1><p>Immutable administrative history; secrets and password hashes are never returned.</p></div></div>
- <ModuleSummaryCards ariaLabel="Audit summary" cards={[
-  {label:"Events on record",value:rows.length,hint:"Most recent first",icon:FileText,tone:"active"},
-  {label:"Last 24 hours",value:last24h,hint:"Since this time yesterday",icon:Activity,tone:last24h>0?"today":"done"},
-  {label:"Action types",value:actions.length,hint:"Distinct recorded actions",icon:ClipboardCheck},
-  {label:"Latest event",value:latest?latest.split(", ")[0]:"—",hint:latest?`Recorded ${latest}`:"No events yet",icon:Activity},
- ]}/>
- <div className="reservation-filters approval-toolbar"><div className="approval-filters">
-   <HavenSearchInput value={search} onValueChange={setSearch} label="Search events" placeholder="Search action, entity, or record..."/>
-  <div className="haven-filter"><span>Action</span><HavenSelect value={action} onChange={setAction} ariaLabel="Filter by action" options={[{ value: "all", label: "All actions" }, ...actions.map(value=>({ value, label: label(value) }))]} /></div>
-  <div className="haven-filter"><span>Entity</span><HavenSelect value={entity} onChange={setEntity} ariaLabel="Filter by entity" options={[{ value: "all", label: "All entities" }, ...entities.map(value=>({ value, label: label(value) }))]} /></div>
- </div></div>
- <div className="data-panel"><div className="table-scroll"><table aria-label="Event log"><thead><tr>{["Time","Action","Entity","Record"].map(x=><th key={x}>{x}</th>)}</tr></thead><tbody>{page.rows.map(item=><tr key={item.id}><td>{stamp(item.created_at)}</td><td><span className="badge pending">{label(item.action)}</span></td><td>{label(item.entity_type)}</td><td><code className="audit-record">{label(item.entity_id)}</code></td></tr>)}</tbody></table></div>
- {visible.length===0&&<div className="empty"><Search/><h3>No events match these filters</h3><p>Try clearing the filters to see every recorded event.</p><button className="table-action" onClick={clearFilters}>Clear filters</button></div>}
- <TablePagination {...page} onPageChange={page.setPage} noun={`event${rows.length!==1?"s":""}`} allTotal={rows.length} note="Newest first — the full history stays immutable in the database."/></div></>
+export function AuditView({ security, rows }: { security: boolean; rows: RecordItem[] }) {
+  const [action, setAction] = useState("all"); const [entity, setEntity] = useState("all"); const [search, setSearch] = useState("");
+  const actions = Array.from(new Set(rows.map(item => String(item.action)))); const entities = Array.from(new Set(rows.map(item => String(item.entity_type))));
+  const visible = rows.filter(item => (action === "all" || String(item.action) === action) && (entity === "all" || String(item.entity_type) === entity) && [item.action, item.entity_type, item.entity_id].some(value => String(value ?? "").toLowerCase().includes(search.toLowerCase())));
+  const page = useTablePagination(visible);
+  const clearFilters = () => { setAction("all"); setEntity("all"); setSearch("") };
+  const dayAgo = new Date().getTime() - 24 * 60 * 60 * 1000; const last24h = rows.filter(item => new Date(String(item.created_at)).getTime() > dayAgo).length;
+  const latest = rows[0] ? new Date(String(rows[0].created_at)).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" }) : null;
+  const stamp = (value: unknown) => new Date(String(value)).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" });
+  return <><div className="page-title"><div><p className="admin-section-context">{security ? "Access and recovery" : "Administrative history"}</p><h1>{security ? "Security and account events" : "Administrative audit"}</h1><p>Immutable administrative history; secrets and password hashes are never returned.</p></div></div>
+    <ModuleSummaryCards ariaLabel="Audit summary" cards={[
+      { label: "Events on record", value: rows.length, hint: "Most recent first", icon: FileText, tone: "active" },
+      { label: "Last 24 hours", value: last24h, hint: "Since this time yesterday", icon: Activity, tone: last24h > 0 ? "today" : "done" },
+      { label: "Action types", value: actions.length, hint: "Distinct recorded actions", icon: ClipboardCheck },
+      { label: "Latest event", value: latest ? latest.split(", ")[0] : "—", hint: latest ? `Recorded ${latest}` : "No events yet", icon: Activity },
+    ]} />
+    <div className="reservation-filters approval-toolbar"><div className="approval-filters">
+      <HavenSearchInput value={search} onValueChange={setSearch} label="Search events" placeholder="Search action, entity, or record..." />
+      <div className="haven-filter"><HavenSelect value={action} onChange={setAction} ariaLabel="Filter by action" options={[{ value: "all", label: "All actions" }, ...actions.map(value => ({ value, label: label(value) }))]} /></div>
+      <div className="haven-filter"><HavenSelect value={entity} onChange={setEntity} ariaLabel="Filter by entity" options={[{ value: "all", label: "All entities" }, ...entities.map(value => ({ value, label: label(value) }))]} /></div>
+    </div></div>
+    <div className="data-panel"><div className="table-scroll"><table aria-label="Event log"><thead><tr>{["Time", "Action", "Entity", "Record"].map(x => <th key={x}>{x}</th>)}</tr></thead><tbody>{page.rows.map(item => <tr key={item.id}><td>{stamp(item.created_at)}</td><td><span className="badge pending">{label(item.action)}</span></td><td>{label(item.entity_type)}</td><td><code className="audit-record">{label(item.entity_id)}</code></td></tr>)}</tbody></table></div>
+      {visible.length === 0 && <div className="empty"><Search /><h3>No events match these filters</h3><p>Try clearing the filters to see every recorded event.</p><button className="table-action" onClick={clearFilters}>Clear filters</button></div>}
+      <TablePagination {...page} onPageChange={page.setPage} noun={`event${rows.length !== 1 ? "s" : ""}`} allTotal={rows.length} note="Newest first — the full history stays immutable in the database." /></div></>
 }
 // One-line framing per fixed role; the capability lists come from
 // ROLE_CAPABILITIES server-side. Display only — permissions are never edited.
-const ROLE_META:Record<string,{summary:string;Icon:React.ElementType}>={
- owner:{summary:"Protected authority over the platform and its administrators",Icon:Crown},
- admin:{summary:"Governance of accounts, configuration, and policy",Icon:ShieldCheck},
- manager:{summary:"Operational oversight, approvals, and escalations",Icon:ClipboardCheck},
- front_desk:{summary:"Reservations, arrival, and departure coordination",Icon:Users},
- housekeeping:{summary:"Room care, inspection, and maintenance reporting",Icon:Sparkles},
- maintenance:{summary:"Work orders and technical serviceability",Icon:Wrench},
- accounting:{summary:"Payments, folios, refunds, and reconciliation",Icon:CircleDollarSign},
- guest:{summary:"Self-service access to own reservations and requests",Icon:User},
+const ROLE_META: Record<string, { summary: string; Icon: React.ElementType }> = {
+  owner: { summary: "Protected authority over the platform and its administrators", Icon: Crown },
+  admin: { summary: "Governance of accounts, configuration, and policy", Icon: ShieldCheck },
+  manager: { summary: "Operational oversight, approvals, and escalations", Icon: ClipboardCheck },
+  front_desk: { summary: "Reservations, arrival, and departure coordination", Icon: Users },
+  housekeeping: { summary: "Room care, inspection, and maintenance reporting", Icon: Sparkles },
+  maintenance: { summary: "Work orders and technical serviceability", Icon: Wrench },
+  accounting: { summary: "Payments, folios, refunds, and reconciliation", Icon: CircleDollarSign },
+  guest: { summary: "Self-service access to own reservations and requests", Icon: User },
 };
-export const normalizeRoleCapabilities=(data:unknown):[string,string[]][]=>{if(!data||typeof data!=="object"||Array.isArray(data))return[];return Object.entries(data).filter((entry):entry is[string,string[]]=>entry[0] in ROLE_META&&Array.isArray(entry[1])&&entry[1].every(value=>typeof value==="string")).map(([role,values])=>[role,[...values].sort((a,b)=>a.localeCompare(b))] as [string,string[]]).sort(([a],[b])=>a.localeCompare(b))};
-export function RolesView({data}:{data:unknown}){const roles=normalizeRoleCapabilities(data);return <><div className="page-title"><div><p className="admin-section-context">Controlled catalogue</p><h1>Roles and permissions</h1><p>Review the fixed access catalogue. Admin may assign permitted roles but cannot invent permissions or grant Owner authority.</p></div><span className="admin-title-stat"><b>{roles.length}</b> fixed roles</span></div>{roles.length?<div className="admin-roles-grid">{roles.map(([role,values])=>{const meta=ROLE_META[role];const Icon=meta?.Icon;return <article className="panel admin-role-card" key={role}><header>{Icon&&<span className="admin-role-icon"><Icon size={17} aria-hidden="true"/></span>}<div><h3>{roleLabel(role)}</h3><small>{meta?.summary??"Fixed system role"}</small></div><span className="admin-role-count">{values.length}</span></header><ul>{values.map(value=><li key={value}>{value}</li>)}</ul></article>})}</div>:<div className="empty admin-module-empty"><ShieldCheck/><h3>Role catalogue unavailable</h3><p>The permission catalogue could not be read. Refresh the module to try again.</p></div>}</>}
+export const normalizeRoleCapabilities = (data: unknown): [string, string[]][] => { if (!data || typeof data !== "object" || Array.isArray(data)) return []; return Object.entries(data).filter((entry): entry is [string, string[]] => entry[0] in ROLE_META && Array.isArray(entry[1]) && entry[1].every(value => typeof value === "string")).map(([role, values]) => [role, [...values].sort((a, b) => a.localeCompare(b))] as [string, string[]]).sort(([a], [b]) => a.localeCompare(b)) };
+export function RolesView({ data }: { data: unknown }) { const roles = normalizeRoleCapabilities(data); return <><div className="page-title"><div><p className="admin-section-context">Controlled catalogue</p><h1>Roles and permissions</h1><p>Review the fixed access catalogue. Admin may assign permitted roles but cannot invent permissions or grant Owner authority.</p></div><span className="admin-title-stat"><b>{roles.length}</b> fixed roles</span></div>{roles.length ? <div className="admin-roles-grid">{roles.map(([role, values]) => { const meta = ROLE_META[role]; const Icon = meta?.Icon; return <article className="panel admin-role-card" key={role}><header>{Icon && <span className="admin-role-icon"><Icon size={17} aria-hidden="true" /></span>}<div><h3>{roleLabel(role)}</h3><small>{meta?.summary ?? "Fixed system role"}</small></div><span className="admin-role-count">{values.length}</span></header><ul>{values.map(value => <li key={value}>{value}</li>)}</ul></article> })}</div> : <div className="empty admin-module-empty"><ShieldCheck /><h3>Role catalogue unavailable</h3><p>The permission catalogue could not be read. Refresh the module to try again.</p></div>}</> }
 // Policy display: raw snake_case columns become grouped, labeled, formatted
 // sections. Unknown keys (schema additions) fall into "Additional settings"
 // so nothing is ever hidden. The edit form (editPolicy) is untouched.
-const POLICY_GROUPS:{title:string;note:string;fields:[string,string][]}[]=[
- {title:"Locale and daily schedule",note:"Times are enforced in the hotel timezone",fields:[["hotel_timezone","Hotel timezone"],["check_in_time","Check-in time"],["check_out_time","Checkout time"],["no_show_cutoff_time","No-show cutoff"]]},
- {title:"Booking eligibility",note:"Applies to every new public reservation",fields:[["minimum_booking_age","Minimum booking age"],["valid_id_required","Valid ID required at check-in"]]},
- {title:"Cancellation and refunds",note:"Windows count back from the arrival date",fields:[["cancellation_full_refund_days","Full-refund window (days)"],["cancellation_partial_refund_days","Partial-refund window (days)"],["cancellation_partial_refund_basis_points","Partial refund rate"]]},
- {title:"Self-service and operations",note:"What guests and staff may do without approval",fields:[["self_service_modification_days","Self-service modification window (days)"],["early_check_in_allowed","Early check-in allowed"],["housekeeping_inspection_required","Inspection before re-occupancy"],["deposit_sla_hours","Deposit verification SLA (hours)"]]},
- {title:"Tax and financial documents",note:"Inclusive rates — displayed prices are the full amount guests pay; documents derive the breakdown",fields:[["vat_rate_bp","VAT rate"],["service_charge_bp","Service charge rate"]]},
+const POLICY_GROUPS: { title: string; note: string; fields: [string, string][] }[] = [
+  { title: "Locale and daily schedule", note: "Times are enforced in the hotel timezone", fields: [["hotel_timezone", "Hotel timezone"], ["check_in_time", "Check-in time"], ["check_out_time", "Checkout time"], ["no_show_cutoff_time", "No-show cutoff"]] },
+  { title: "Booking eligibility", note: "Applies to every new public reservation", fields: [["minimum_booking_age", "Minimum booking age"], ["valid_id_required", "Valid ID required at check-in"]] },
+  { title: "Cancellation and refunds", note: "Windows count back from the arrival date", fields: [["cancellation_full_refund_days", "Full-refund window (days)"], ["cancellation_partial_refund_days", "Partial-refund window (days)"], ["cancellation_partial_refund_basis_points", "Partial refund rate"]] },
+  { title: "Self-service and operations", note: "What guests and staff may do without approval", fields: [["self_service_modification_days", "Self-service modification window (days)"], ["early_check_in_allowed", "Early check-in allowed"], ["housekeeping_inspection_required", "Inspection before re-occupancy"], ["deposit_sla_hours", "Deposit verification SLA (hours)"]] },
+  { title: "Tax and financial documents", note: "Inclusive rates — displayed prices are the full amount guests pay; documents derive the breakdown", fields: [["vat_rate_bp", "VAT rate"], ["service_charge_bp", "Service charge rate"]] },
 ];
-const policyValue=(key:string,value:unknown)=>{if(key==="cancellation_partial_refund_basis_points"||key==="vat_rate_bp"||key==="service_charge_bp")return `${Number(value)/100}%`;if(typeof value==="boolean")return value?"Yes":"No";if(key.endsWith("_time"))return String(value??"").slice(0,5);return label(value)};
-const ADMIN_POLICY_GROUP_ICONS:Record<string,ElementType>={"Locale and daily schedule":Clock,"Booking eligibility":ShieldCheck,"Cancellation and refunds":CalendarDays,"Self-service and operations":Settings,"Tax and financial documents":Receipt,"Additional settings":Tag};
-const ADMIN_POLICY_EDITABLE_GROUPS=new Set(["Locale and daily schedule","Booking eligibility","Cancellation and refunds","Self-service and operations","Tax and financial documents"]);
-function adminPolicyFieldIcon(key:string):ElementType{
-  if(key.includes("timezone"))return Globe;
-  if(key.includes("time")||key.includes("sla"))return key.includes("sla")?Timer:Clock;
-  if(key.includes("days"))return CalendarDays;
-  if(key.includes("basis_points")||key.includes("rate"))return Percent;
-  if(key.includes("age"))return Users;
-  if(key.includes("allowed")||key.includes("required"))return ShieldCheck;
+const policyValue = (key: string, value: unknown) => { if (key === "cancellation_partial_refund_basis_points" || key === "vat_rate_bp" || key === "service_charge_bp") return `${Number(value) / 100}%`; if (typeof value === "boolean") return value ? "Yes" : "No"; if (key.endsWith("_time")) return String(value ?? "").slice(0, 5); return label(value) };
+const ADMIN_POLICY_GROUP_ICONS: Record<string, ElementType> = { "Locale and daily schedule": Clock, "Booking eligibility": ShieldCheck, "Cancellation and refunds": CalendarDays, "Self-service and operations": Settings, "Tax and financial documents": Receipt, "Additional settings": Tag };
+const ADMIN_POLICY_EDITABLE_GROUPS = new Set(["Locale and daily schedule", "Booking eligibility", "Cancellation and refunds", "Self-service and operations", "Tax and financial documents"]);
+function adminPolicyFieldIcon(key: string): ElementType {
+  if (key.includes("timezone")) return Globe;
+  if (key.includes("time") || key.includes("sla")) return key.includes("sla") ? Timer : Clock;
+  if (key.includes("days")) return CalendarDays;
+  if (key.includes("basis_points") || key.includes("rate")) return Percent;
+  if (key.includes("age")) return Users;
+  if (key.includes("allowed") || key.includes("required")) return ShieldCheck;
   return CircleDot;
 }
 // Exported for the jsdom render test (admin-views.test.tsx).
-export function PolicyView({item,edit}:{item:RecordItem;edit:(x:RecordItem,group?:string)=>void}){const entries=Object.entries(item??{}).filter(([key])=>!["key","version"].includes(key));const known=new Set(POLICY_GROUPS.flatMap(group=>group.fields.map(([key])=>key)));const extras=entries.filter(([key])=>!known.has(key)&&key!=="updated_at");const groups=[...POLICY_GROUPS,...extras.length?[{title:"Additional settings",note:"Recorded on the policy row",fields:extras.map(([key])=>[key,label(key).replace(/^./,c=>c.toUpperCase())] as [string,string])}]:[]];return <><div className="page-title"><div><p className="admin-section-context">Future operations</p><h1>Operational policy</h1><p>Updates affect future transactions. Existing reservation snapshots remain unchanged.</p></div><button className="btn btn-accent" onClick={()=>edit(item)}>Update policy</button></div><div className="data-panel admin-policy-panel">{item?.updated_at&&<p className="admin-policy-meta">Version {label(item.version)} · updated {new Date(String(item.updated_at)).toLocaleString("en-PH",{dateStyle:"medium",timeStyle:"short"})}</p>}<div className="admin-policy-groups">{groups.map(group=>{const GroupIcon=ADMIN_POLICY_GROUP_ICONS[group.title]??Tag;const editable=ADMIN_POLICY_EDITABLE_GROUPS.has(group.title);return <section key={group.title} className="admin-policy-card"><div className="admin-policy-head"><span className="admin-policy-icon" aria-hidden="true"><GroupIcon size={17}/></span><div><h4>{group.title}</h4><p>{group.note}</p></div>{editable&&<button type="button" className="table-action" onClick={()=>edit(item,group.title)} aria-label={`Edit ${group.title}`}><Pencil size={13} aria-hidden="true"/>Edit</button>}</div><dl>{group.fields.filter(([key])=>key in (item??{})).map(([key,name])=>{const FieldIcon=adminPolicyFieldIcon(key);return <div key={key} className="admin-policy-field"><span className="admin-policy-field-icon" aria-hidden="true"><FieldIcon size={14}/></span><div className="admin-policy-field-copy"><dt>{name}</dt><dd>{policyValue(key,item?.[key])}</dd></div></div>})}</dl></section>})}</div></div></>}
+export function PolicyView({ item, edit }: { item: RecordItem; edit: (x: RecordItem, group?: string) => void }) { const entries = Object.entries(item ?? {}).filter(([key]) => !["key", "version"].includes(key)); const known = new Set(POLICY_GROUPS.flatMap(group => group.fields.map(([key]) => key))); const extras = entries.filter(([key]) => !known.has(key) && key !== "updated_at"); const groups = [...POLICY_GROUPS, ...extras.length ? [{ title: "Additional settings", note: "Recorded on the policy row", fields: extras.map(([key]) => [key, label(key).replace(/^./, c => c.toUpperCase())] as [string, string]) }] : []]; return <><div className="page-title"><div><p className="admin-section-context">Future operations</p><h1>Operational policy</h1><p>Updates affect future transactions. Existing reservation snapshots remain unchanged.</p></div><button className="btn btn-accent" onClick={() => edit(item)}>Update policy</button></div><div className="data-panel admin-policy-panel">{item?.updated_at && <p className="admin-policy-meta">Version {label(item.version)} · updated {new Date(String(item.updated_at)).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" })}</p>}<div className="admin-policy-groups">{groups.map(group => { const GroupIcon = ADMIN_POLICY_GROUP_ICONS[group.title] ?? Tag; const editable = ADMIN_POLICY_EDITABLE_GROUPS.has(group.title); return <section key={group.title} className="admin-policy-card"><div className="admin-policy-head"><span className="admin-policy-icon" aria-hidden="true"><GroupIcon size={17} /></span><div><h4>{group.title}</h4><p>{group.note}</p></div>{editable && <button type="button" className="table-action" onClick={() => edit(item, group.title)} aria-label={`Edit ${group.title}`}><Pencil size={13} aria-hidden="true" />Edit</button>}</div><dl>{group.fields.filter(([key]) => key in (item ?? {})).map(([key, name]) => { const FieldIcon = adminPolicyFieldIcon(key); return <div key={key} className="admin-policy-field"><span className="admin-policy-field-icon" aria-hidden="true"><FieldIcon size={14} /></span><div className="admin-policy-field-copy"><dt>{name}</dt><dd>{policyValue(key, item?.[key])}</dd></div></div> })}</dl></section> })}</div></div></> }
 // Security Configuration: the unified authentication and session-security
 // workspace. Editable policy (session + email OTP) is interactive; enforced
 // protections and delivery status are read-only facts, never styled as inputs.
-type DeliveryStatus={configured:boolean;sender:string|null;lastChecked:string|null;lastResult:string|null;otpReady:boolean};
-function EmailDeliveryPanel({notify,onStatus}:{notify:(message:string)=>void;onStatus?:(status:DeliveryStatus|null)=>void}){
- const[status,setStatus]=useState<DeliveryStatus|null>(null);
- const[busy,setBusy]=useState<"verify"|"send"|null>(null);
- const statusRef=useRef<((status:DeliveryStatus|null)=>void)|undefined>(undefined);
- useEffect(()=>{statusRef.current=onStatus});
- const load=useCallback(async()=>{const response=await fetch("/api/admin/email-delivery",{cache:"no-store"});const body=await response.json().catch(()=>null);if(response.ok&&body?.data){setStatus(body.data);statusRef.current?.(body.data)}},[]);
- useEffect(()=>{void load()},[load]);
- async function act(action:"verify"|"send"){
-  setBusy(action);
-  const response=await fetch("/api/admin/email-delivery",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action})});
-  const body=await response.json().catch(()=>null);
-  setBusy(null);
-  if(response.ok){notify(action==="verify"?"SMTP connection passed.":"Test email sent to your address.");await load()}
-  else notify(body?.error??"Delivery check failed.");
- }
-  const state=status?(status.otpReady?"Ready":status.configured?(status.lastResult==="passed"?"Configured":"Not ready"):"Not configured"):"Checking…";
-   return <div className="data-panel sec-panel"><div className="panel-heading"><div><h3><Send size={17} aria-hidden="true"/>Email delivery (SMTP)</h3><p>Real delivery state — Ready appears only after a passing connection test.</p></div><StatusBadge status={status?(status.otpReady?"passed":status.configured?"not_ready":"not_configured"):"pending"} /></div><dl className="sec-rows">
-   <div><dt>SMTP configuration</dt><dd>{status?(status.configured?"Configured":"Not configured"):state}</dd></div>
-   <div><dt>Last connection test</dt><dd>{status?(status.lastResult==="passed"?"Passed":status.lastResult==="failed"?"Failed":"Not yet tested"):state}</dd></div>
-   <div><dt>Delivery readiness</dt><dd>{state}</dd></div>
+type DeliveryStatus = { configured: boolean; sender: string | null; lastChecked: string | null; lastResult: string | null; otpReady: boolean };
+function EmailDeliveryPanel({ notify, onStatus }: { notify: (message: string) => void; onStatus?: (status: DeliveryStatus | null) => void }) {
+  const [status, setStatus] = useState<DeliveryStatus | null>(null);
+  const [busy, setBusy] = useState<"verify" | "send" | null>(null);
+  const statusRef = useRef<((status: DeliveryStatus | null) => void) | undefined>(undefined);
+  useEffect(() => { statusRef.current = onStatus });
+  const load = useCallback(async () => { const response = await fetch("/api/admin/email-delivery", { cache: "no-store" }); const body = await response.json().catch(() => null); if (response.ok && body?.data) { setStatus(body.data); statusRef.current?.(body.data) } }, []);
+  useEffect(() => { void load() }, [load]);
+  async function act(action: "verify" | "send") {
+    setBusy(action);
+    const response = await fetch("/api/admin/email-delivery", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
+    const body = await response.json().catch(() => null);
+    setBusy(null);
+    if (response.ok) { notify(action === "verify" ? "SMTP connection passed." : "Test email sent to your address."); await load() }
+    else notify(body?.error ?? "Delivery check failed.");
+  }
+  const state = status ? (status.otpReady ? "Ready" : status.configured ? (status.lastResult === "passed" ? "Configured" : "Not ready") : "Not configured") : "Checking…";
+  return <div className="data-panel sec-panel"><div className="panel-heading"><div><h3><Send size={17} aria-hidden="true" />Email delivery (SMTP)</h3><p>Real delivery state — Ready appears only after a passing connection test.</p></div><StatusBadge status={status ? (status.otpReady ? "passed" : status.configured ? "not_ready" : "not_configured") : "pending"} /></div><dl className="sec-rows">
+    <div><dt>SMTP configuration</dt><dd>{status ? (status.configured ? "Configured" : "Not configured") : state}</dd></div>
+    <div><dt>Last connection test</dt><dd>{status ? (status.lastResult === "passed" ? "Passed" : status.lastResult === "failed" ? "Failed" : "Not yet tested") : state}</dd></div>
+    <div><dt>Delivery readiness</dt><dd>{state}</dd></div>
   </dl>
-  {status&&!status.configured&&<p className="sec-warn">Configure SMTP before enabling login OTP — without delivery, nobody can sign in.</p>}
-  <div className="sec-actions"><HavenButton variant="neutral" icon={<FlaskConical size={15} aria-hidden="true"/>} onClick={()=>act("verify")} disabled={busy!==null}>{busy==="verify"?"Testing…":"Test connection"}</HavenButton><HavenButton variant="neutral" icon={<Mail size={15} aria-hidden="true"/>} onClick={()=>act("send")} disabled={busy!==null}>{busy==="send"?"Sending…":"Send test email"}</HavenButton></div></div>;
+    {status && !status.configured && <p className="sec-warn">Configure SMTP before enabling login OTP — without delivery, nobody can sign in.</p>}
+    <div className="sec-actions"><HavenButton variant="neutral" icon={<FlaskConical size={15} aria-hidden="true" />} onClick={() => act("verify")} disabled={busy !== null}>{busy === "verify" ? "Testing…" : "Test connection"}</HavenButton><HavenButton variant="neutral" icon={<Mail size={15} aria-hidden="true" />} onClick={() => act("send")} disabled={busy !== null}>{busy === "send" ? "Sending…" : "Send test email"}</HavenButton></div></div>;
 }
-export function SecurityConfigView({item,saveSession,saveOtp,notify}:{item:RecordItem;saveSession:(x:RecordItem)=>void;saveOtp:(x:RecordItem)=>void;notify:(message:string)=>void}){
- const fmt=(minutes:number)=>Number.isFinite(minutes)?(minutes<60?`${minutes} min`:`${minutes/60} h`):"—";
- const[delivery,setDelivery]=useState<DeliveryStatus|null>(null);
-  if(!item||item.idle_timeout_minutes==null)return <><div className="sec-wrap"><div className="page-title"><div><p className="admin-section-context">Authentication & session security</p><h1>Security configuration</h1><p>Manage how HAVEN protects account access.</p></div></div><div className="empty admin-module-empty"><ShieldCheck/><h3>Security configuration unavailable</h3><p>The security policy could not be read. Refresh the module to try again.</p></div></div></>;
-  const cookie=item.cookie_enabled!==false;
- const idle=Number(item.idle_timeout_minutes),absolute=Number(item.absolute_session_minutes);
- const otp=item.login_otp_enabled===true;
- const ttlMin=Math.round(Number(item.otp_ttl_seconds??300)/60),cooldownSec=Number(item.otp_resend_cooldown_seconds??60),attempts=Number(item.otp_max_attempts??5);
- const history=(item.history??null) as null|{updatedAt?:unknown;updatedBy?:unknown;reason?:unknown;version?:unknown;changes?:{label?:unknown;from?:unknown;to?:unknown}[]};
- const historyChanges=Array.isArray(history?.changes)?(history?.changes??[]).filter((c)=>c&&typeof c.label==="string"):[];
+export function SecurityConfigView({ item, saveSession, saveOtp, notify }: { item: RecordItem; saveSession: (x: RecordItem) => void; saveOtp: (x: RecordItem) => void; notify: (message: string) => void }) {
+  const fmt = (minutes: number) => Number.isFinite(minutes) ? (minutes < 60 ? `${minutes} min` : `${minutes / 60} h`) : "—";
+  const [delivery, setDelivery] = useState<DeliveryStatus | null>(null);
+  if (!item || item.idle_timeout_minutes == null) return <><div className="sec-wrap"><div className="page-title"><div><p className="admin-section-context">Authentication & session security</p><h1>Security configuration</h1><p>Manage how HAVEN protects account access.</p></div></div><div className="empty admin-module-empty"><ShieldCheck /><h3>Security configuration unavailable</h3><p>The security policy could not be read. Refresh the module to try again.</p></div></div></>;
+  const cookie = item.cookie_enabled !== false;
+  const idle = Number(item.idle_timeout_minutes), absolute = Number(item.absolute_session_minutes);
+  const otp = item.login_otp_enabled === true;
+  const ttlMin = Math.round(Number(item.otp_ttl_seconds ?? 300) / 60), cooldownSec = Number(item.otp_resend_cooldown_seconds ?? 60), attempts = Number(item.otp_max_attempts ?? 5);
+  const history = (item.history ?? null) as null | { updatedAt?: unknown; updatedBy?: unknown; reason?: unknown; version?: unknown; changes?: { label?: unknown; from?: unknown; to?: unknown }[] };
+  const historyChanges = Array.isArray(history?.changes) ? (history?.changes ?? []).filter((c) => c && typeof c.label === "string") : [];
   return <><div className="sec-wrap"><div className="page-title"><div><p className="admin-section-context">Authentication & session security</p><h1>Security configuration</h1><p>Manage how HAVEN protects account access.</p></div></div>
-   <ModuleSummaryCards ariaLabel="Security summary" cards={[
-     {label:"Login OTP",value:otp?"Enabled":"Disabled",hint:otp?`${ttlMin} min code · ${attempts} attempts`:"Password only",icon:KeyRound,tone:otp?"active":"attention"},
-    {label:"Idle timeout",value:fmt(idle),hint:"Inactivity limit",icon:Hourglass,tone:"today"},
-    {label:"Max session lifetime",value:fmt(absolute),hint:"Absolute session limit",icon:Hourglass,tone:"today"},
-    {label:"Email delivery",value:delivery?(delivery.otpReady?"SMTP Connected":delivery.configured?"Configured":"Not configured"):"Checking…",hint:"Live SMTP state",icon:MailCheck,tone:delivery?(delivery.otpReady?"active":"attention"):"today"},
-   ]} />
-   <div className="sec-grid">
-    <section className="data-panel sec-panel" aria-labelledby="sec-session"><div className="panel-heading"><div><h3 id="sec-session"><Lock size={17} aria-hidden="true"/>Session & cookie security</h3><p>The cookie-policy toggle is the single session-policy switch — it governs persistence, timeouts, and the header countdown, always with a recorded reason.</p></div></div><dl className="sec-rows">
-      <div><dt>Cookie policy</dt><dd><StatusBadge status={cookie?"enabled":"disabled"} icon={cookie?<CheckCircle2 size={12} aria-hidden="true"/>:<AlertTriangle size={12} aria-hidden="true"/>} className={cookie?"sec-badge-on":"sec-badge-off"} /></dd></div>
-      <div><dt>Keep me signed in</dt><dd>Always available</dd></div>
-    <div><dt>Inactivity timeout</dt><dd>{fmt(idle)}</dd></div>
-    <div><dt>Maximum session lifetime</dt><dd>{fmt(absolute)}</dd></div>
-   </dl>{!cookie&&<p className="sec-warn"><AlertTriangle size={13} aria-hidden="true"/>Cookie policy is disabled — sessions do not expire. Re-enable to restore timeouts.</p>}<div className="sec-actions"><HavenButton variant="secondary" icon={<Settings size={15} aria-hidden="true"/>} onClick={()=>saveSession(item)}>Configure session settings</HavenButton></div></section>
-   <section className="data-panel sec-panel" aria-labelledby="sec-otp"><div className="panel-heading"><div><h3 id="sec-otp"><KeyRound size={17} aria-hidden="true"/>Email OTP security</h3><p>Password plus a single-use emailed code at login. Account recovery links stay separate.</p></div><StatusBadge status={otp?"enabled":"disabled"} icon={otp?<CheckCircle2 size={12} aria-hidden="true"/>:<AlertTriangle size={12} aria-hidden="true"/>} className={otp?"sec-badge-on":"sec-badge-off"} /></div><dl className="sec-rows">
-    <div><dt>Require email OTP at login</dt><dd><StatusBadge status={otp?"enabled":"disabled"} icon={otp?<CheckCircle2 size={12} aria-hidden="true"/>:<AlertTriangle size={12} aria-hidden="true"/>} className={otp?"sec-badge-on":"sec-badge-off"} /></dd></div>
-    <div><dt>OTP validity window</dt><dd>{ttlMin} min</dd></div>
-    <div><dt>Resend cooldown</dt><dd>{cooldownSec} sec</dd></div>
-    <div><dt>Maximum attempt limit</dt><dd>{attempts} attempts</dd></div>
-   </dl><div className="sec-actions"><HavenButton variant="secondary" icon={<Shield size={15} aria-hidden="true"/>} onClick={()=>saveOtp(item)}>Manage OTP policy</HavenButton></div></section>
-   <EmailDeliveryPanel notify={notify} onStatus={setDelivery}/>
-   <section className="data-panel sec-panel sec-locked" aria-labelledby="sec-enforced"><div className="panel-heading"><div><h3 id="sec-enforced"><ShieldCheck size={17} aria-hidden="true"/>Enforced security protections</h3><p>Always on. No administrator control can disable these.</p></div></div><dl className="sec-rows">
-    <div><dt>HttpOnly cookies</dt><dd>Enforced</dd></div>
-    <div><dt>Secure transport (TLS/SSL)</dt><dd>Enforced in production</dd></div>
-    <div><dt>SameSite policy</dt><dd>Strict</dd></div>
-    <div><dt>Password hashing</dt><dd>bcrypt (cost 12)</dd></div>
-   </dl><div className="sec-actions"><StatusBadge status="active" /></div></section>
-  <section className="data-panel sec-panel sec-audit" aria-labelledby="sec-audit"><div className="panel-heading"><div><h3 id="sec-audit"><History size={17} aria-hidden="true"/>Security configuration audit log</h3><p>Latest audited security-policy change.</p></div></div>{historyChanges.length>0?<div className="table-scroll"><table aria-label="Security configuration audit log"><thead><tr><th>Time</th><th>Admin</th><th>Setting modified</th><th>Previous value</th><th>New value</th></tr></thead><tbody>{historyChanges.map((c)=><tr key={String(c.label)}><td>{history?.updatedAt?formatHotelDateTime(String(history.updatedAt)):"—"}</td><td>{String(history?.updatedBy??"—")}</td><td>{String(c.label)}</td><td>{String(c.from)}</td><td>{String(c.to)}</td></tr>)}</tbody></table></div>:<div className="empty admin-module-empty"><History size={22} aria-hidden="true"/><h3>No configuration changes yet</h3><p>Audited security-policy changes will appear here.</p></div>}</section>
-  </div></div></>
+    <ModuleSummaryCards ariaLabel="Security summary" cards={[
+      { label: "Login OTP", value: otp ? "Enabled" : "Disabled", hint: otp ? `${ttlMin} min code · ${attempts} attempts` : "Password only", icon: KeyRound, tone: otp ? "active" : "attention" },
+      { label: "Idle timeout", value: fmt(idle), hint: "Inactivity limit", icon: Hourglass, tone: "today" },
+      { label: "Max session lifetime", value: fmt(absolute), hint: "Absolute session limit", icon: Hourglass, tone: "today" },
+      { label: "Email delivery", value: delivery ? (delivery.otpReady ? "SMTP Connected" : delivery.configured ? "Configured" : "Not configured") : "Checking…", hint: "Live SMTP state", icon: MailCheck, tone: delivery ? (delivery.otpReady ? "active" : "attention") : "today" },
+    ]} />
+    <div className="sec-grid">
+      <section className="data-panel sec-panel" aria-labelledby="sec-session"><div className="panel-heading"><div><h3 id="sec-session"><Lock size={17} aria-hidden="true" />Session & cookie security</h3><p>The cookie-policy toggle is the single session-policy switch — it governs persistence, timeouts, and the header countdown, always with a recorded reason.</p></div></div><dl className="sec-rows">
+        <div><dt>Cookie policy</dt><dd><StatusBadge status={cookie ? "enabled" : "disabled"} icon={cookie ? <CheckCircle2 size={12} aria-hidden="true" /> : <AlertTriangle size={12} aria-hidden="true" />} className={cookie ? "sec-badge-on" : "sec-badge-off"} /></dd></div>
+        <div><dt>Keep me signed in</dt><dd>Always available</dd></div>
+        <div><dt>Inactivity timeout</dt><dd>{fmt(idle)}</dd></div>
+        <div><dt>Maximum session lifetime</dt><dd>{fmt(absolute)}</dd></div>
+      </dl>{!cookie && <p className="sec-warn"><AlertTriangle size={13} aria-hidden="true" />Cookie policy is disabled — sessions do not expire. Re-enable to restore timeouts.</p>}<div className="sec-actions"><HavenButton variant="secondary" icon={<Settings size={15} aria-hidden="true" />} onClick={() => saveSession(item)}>Configure session settings</HavenButton></div></section>
+      <section className="data-panel sec-panel" aria-labelledby="sec-otp"><div className="panel-heading"><div><h3 id="sec-otp"><KeyRound size={17} aria-hidden="true" />Email OTP security</h3><p>Password plus a single-use emailed code at login. Account recovery links stay separate.</p></div><StatusBadge status={otp ? "enabled" : "disabled"} icon={otp ? <CheckCircle2 size={12} aria-hidden="true" /> : <AlertTriangle size={12} aria-hidden="true" />} className={otp ? "sec-badge-on" : "sec-badge-off"} /></div><dl className="sec-rows">
+        <div><dt>Require email OTP at login</dt><dd><StatusBadge status={otp ? "enabled" : "disabled"} icon={otp ? <CheckCircle2 size={12} aria-hidden="true" /> : <AlertTriangle size={12} aria-hidden="true" />} className={otp ? "sec-badge-on" : "sec-badge-off"} /></dd></div>
+        <div><dt>OTP validity window</dt><dd>{ttlMin} min</dd></div>
+        <div><dt>Resend cooldown</dt><dd>{cooldownSec} sec</dd></div>
+        <div><dt>Maximum attempt limit</dt><dd>{attempts} attempts</dd></div>
+      </dl><div className="sec-actions"><HavenButton variant="secondary" icon={<Shield size={15} aria-hidden="true" />} onClick={() => saveOtp(item)}>Manage OTP policy</HavenButton></div></section>
+      <EmailDeliveryPanel notify={notify} onStatus={setDelivery} />
+      <section className="data-panel sec-panel sec-locked" aria-labelledby="sec-enforced"><div className="panel-heading"><div><h3 id="sec-enforced"><ShieldCheck size={17} aria-hidden="true" />Enforced security protections</h3><p>Always on. No administrator control can disable these.</p></div></div><dl className="sec-rows">
+        <div><dt>HttpOnly cookies</dt><dd>Enforced</dd></div>
+        <div><dt>Secure transport (TLS/SSL)</dt><dd>Enforced in production</dd></div>
+        <div><dt>SameSite policy</dt><dd>Strict</dd></div>
+        <div><dt>Password hashing</dt><dd>bcrypt (cost 12)</dd></div>
+      </dl><div className="sec-actions"><StatusBadge status="active" /></div></section>
+      <section className="data-panel sec-panel sec-audit" aria-labelledby="sec-audit"><div className="panel-heading"><div><h3 id="sec-audit"><History size={17} aria-hidden="true" />Security configuration audit log</h3><p>Latest audited security-policy change.</p></div></div>{historyChanges.length > 0 ? <div className="table-scroll"><table aria-label="Security configuration audit log"><thead><tr><th>Time</th><th>Admin</th><th>Setting modified</th><th>Previous value</th><th>New value</th></tr></thead><tbody>{historyChanges.map((c) => <tr key={String(c.label)}><td>{history?.updatedAt ? formatHotelDateTime(String(history.updatedAt)) : "—"}</td><td>{String(history?.updatedBy ?? "—")}</td><td>{String(c.label)}</td><td>{String(c.from)}</td><td>{String(c.to)}</td></tr>)}</tbody></table></div> : <div className="empty admin-module-empty"><History size={22} aria-hidden="true" /><h3>No configuration changes yet</h3><p>Audited security-policy changes will appear here.</p></div>}</section>
+    </div></div></>
 }
-function AuditRows({rows}:{rows:RecordItem[]}){const page=useTablePagination(rows,5);if(!rows.length)return <div className="admin-audit-empty"><FileText size={22}/><h3>No governance activity yet</h3><p>Administrative and security changes will appear here as they are recorded.</p></div>;return <><div className="table-scroll"><table aria-label="Activity log"><thead><tr><th>Time</th><th>Action</th><th>Entity</th><th>Record</th></tr></thead><tbody>{page.rows.map(item=><tr key={item.id}><td>{new Date(String(item.created_at)).toLocaleString()}</td><td>{label(item.action)}</td><td>{label(item.entity_type)}</td><td>{label(item.entity_id)}</td></tr>)}</tbody></table></div><TablePagination {...page} onPageChange={page.setPage} noun="events" note="Newest governance activity first."/></>}
+function AuditRows({ rows }: { rows: RecordItem[] }) { const page = useTablePagination(rows, 5); if (!rows.length) return <div className="admin-audit-empty"><FileText size={22} /><h3>No governance activity yet</h3><p>Administrative and security changes will appear here as they are recorded.</p></div>; return <><div className="table-scroll"><table aria-label="Activity log"><thead><tr><th>Time</th><th>Action</th><th>Entity</th><th>Record</th></tr></thead><tbody>{page.rows.map(item => <tr key={item.id}><td>{new Date(String(item.created_at)).toLocaleString()}</td><td>{label(item.action)}</td><td>{label(item.entity_type)}</td><td>{label(item.entity_id)}</td></tr>)}</tbody></table></div><TablePagination {...page} onPageChange={page.setPage} noun="events" note="Newest governance activity first." /></> }
 // Governance report over the same overview payload the landing section uses:
 // account totals, role distribution with shares, and configuration state.
 // Reporting only — operational and financial execution stay in departments.
-function Reports({data}:{data:Overview}){const m=data?.metrics??{};const total=Number(m.activeUsers??0)+Number(m.inactiveUsers??0);const roles=sortTableRows(Object.entries(data?.roleCounts??{}),([role])=>role);const page=useTablePagination(roles);return <><div className="page-title"><div><p className="admin-section-context">Administrative reporting</p><h1>Account and configuration summary</h1><p>Governance reporting only — operational and financial execution remain in their departments.</p></div></div>
- <ModuleSummaryCards ariaLabel="Governance report summary" cards={[
-  {label:"Accounts on record",value:total,hint:"Every account ever created",icon:Users,tone:"active"},
-  {label:"Staff accounts",value:Number(m.staffAccounts??0),hint:"Operational and governance roles",icon:ShieldCheck},
-  {label:"Guest accounts",value:Number(m.guestAccounts??0),hint:"Customer portal users",icon:User},
-  {label:"Needs attention",value:Number(m.attention??0),hint:"Suspended or recovery-required",icon:KeyRound,tone:Number(m.attention??0)>0?"attention":"done"},
-  {label:"Rooms disabled",value:Number(m.inactiveRooms??0),hint:"Administratively inactive",icon:Building2,tone:Number(m.inactiveRooms??0)>0?"today":"done"},
-  {label:"Room types inactive",value:Number(m.inactiveRoomTypes??0),hint:"Hidden from the catalogue",icon:Building2,tone:Number(m.inactiveRoomTypes??0)>0?"today":"done"},
- ]}/>
- <div className="admin-report-lower">
-  <section className="data-panel" aria-labelledby="admin-report-roles"><div className="panel-heading"><div><h3 id="admin-report-roles">Accounts by role</h3><p>Current distribution across the fixed role catalogue</p></div></div><div className="table-scroll"><table aria-label="Accounts by role"><thead><tr><th>Role</th><th>Accounts</th><th>Share</th></tr></thead><tbody>{page.rows.map(([role,count])=><tr key={role}><td><strong>{roleLabel(role)}</strong></td><td>{count}</td><td>{total?`${Math.round(count/total*100)}%`:"—"}</td></tr>)}</tbody></table></div><TablePagination {...page} onPageChange={page.setPage} noun="roles" note={`${total} account${total!==1?"s":""} on record · one fixed role per account`}/></section>
-  <section className="data-panel" aria-labelledby="admin-report-config"><div className="panel-heading"><div><h3 id="admin-report-config">Configuration summary</h3><p>Live hotel configuration state</p></div></div><ul className="admin-config-list"><li><span>Room types in catalogue</span><b>{Number(m.roomTypes??0)}</b></li><li><span>Room types inactive</span><b>{Number(m.inactiveRoomTypes??0)}</b></li><li><span>Rooms administratively inactive</span><b>{Number(m.inactiveRooms??0)}</b></li><li><span>Unused recovery links</span><b>{Number(m.activeRecoveryTokens??0)}</b></li><li><span>Accounts needing attention</span><b>{Number(m.attention??0)}</b></li></ul></section>
- </div></>}
+function Reports({ data }: { data: Overview }) {
+  const m = data?.metrics ?? {}; const total = Number(m.activeUsers ?? 0) + Number(m.inactiveUsers ?? 0); const roles = sortTableRows(Object.entries(data?.roleCounts ?? {}), ([role]) => role); const page = useTablePagination(roles); return <><div className="page-title"><div><p className="admin-section-context">Administrative reporting</p><h1>Account and configuration summary</h1><p>Governance reporting only — operational and financial execution remain in their departments.</p></div></div>
+    <ModuleSummaryCards ariaLabel="Governance report summary" cards={[
+      { label: "Accounts on record", value: total, hint: "Every account ever created", icon: Users, tone: "active" },
+      { label: "Staff accounts", value: Number(m.staffAccounts ?? 0), hint: "Operational and governance roles", icon: ShieldCheck },
+      { label: "Guest accounts", value: Number(m.guestAccounts ?? 0), hint: "Customer portal users", icon: User },
+      { label: "Needs attention", value: Number(m.attention ?? 0), hint: "Suspended or recovery-required", icon: KeyRound, tone: Number(m.attention ?? 0) > 0 ? "attention" : "done" },
+      { label: "Rooms disabled", value: Number(m.inactiveRooms ?? 0), hint: "Administratively inactive", icon: Building2, tone: Number(m.inactiveRooms ?? 0) > 0 ? "today" : "done" },
+      { label: "Room types inactive", value: Number(m.inactiveRoomTypes ?? 0), hint: "Hidden from the catalogue", icon: Building2, tone: Number(m.inactiveRoomTypes ?? 0) > 0 ? "today" : "done" },
+    ]} />
+    <div className="admin-report-lower">
+      <section className="data-panel" aria-labelledby="admin-report-roles"><div className="panel-heading"><div><h3 id="admin-report-roles">Accounts by role</h3><p>Current distribution across the fixed role catalogue</p></div></div><div className="table-scroll"><table aria-label="Accounts by role"><thead><tr><th>Role</th><th>Accounts</th><th>Share</th></tr></thead><tbody>{page.rows.map(([role, count]) => <tr key={role}><td><strong>{roleLabel(role)}</strong></td><td>{count}</td><td>{total ? `${Math.round(count / total * 100)}%` : "—"}</td></tr>)}</tbody></table></div><TablePagination {...page} onPageChange={page.setPage} noun="roles" note={`${total} account${total !== 1 ? "s" : ""} on record · one fixed role per account`} /></section>
+      <section className="data-panel" aria-labelledby="admin-report-config"><div className="panel-heading"><div><h3 id="admin-report-config">Configuration summary</h3><p>Live hotel configuration state</p></div></div><ul className="admin-config-list"><li><span>Room types in catalogue</span><b>{Number(m.roomTypes ?? 0)}</b></li><li><span>Room types inactive</span><b>{Number(m.inactiveRoomTypes ?? 0)}</b></li><li><span>Rooms administratively inactive</span><b>{Number(m.inactiveRooms ?? 0)}</b></li><li><span>Unused recovery links</span><b>{Number(m.activeRecoveryTokens ?? 0)}</b></li><li><span>Accounts needing attention</span><b>{Number(m.attention ?? 0)}</b></li></ul></section>
+    </div></>
+}
 // Exported for the jsdom render test (system-health-view.test.tsx). All
 // figures arrive server-computed; the view only formats them. Auto-refreshes
 // Payment configuration health: Owner-controlled business values are masked
@@ -505,57 +568,59 @@ export { PaymentHealthPanel } from "./system-health-ledger";
 // already reports → the evidence ledger beside the automations rail. Every
 // figure arrives server-computed; the view only formats. Tabs switch visibility
 // only — no refetch, the single `data` prop feeds all three.
-export function SystemHealthView({data,onRefresh,notify,goSection}:{data:SystemHealth;onRefresh:()=>void|Promise<unknown>;notify?:(message:string)=>void;goSection?:(s:"security_config")=>void}){
- // Shape-safe: during a section switch the view renders once with the previous
- // section's data before the new fetch lands (and a failed fetch keeps it), so
- // every field is defaulted rather than assumed.
- const db=data?.db??{},activity=data?.activity??{},rows=data?.migrations?.applied??[];
- const appliedCount=data?.migrations?.appliedCount??rows.length,localCount=data?.migrations?.localCount??null;
- const status=migrationStatus(appliedCount,localCount);
- const behind=(localCount??0)-appliedCount;
- const checked=db.checkedAt?new Date(db.checkedAt).toLocaleTimeString():"—";
- // Extended sections default to honest Unknowns while data is still loading.
- const app=data?.application??{environment:"Unknown",version:"Unknown",commit:null};
- const storageStatus=data?.storage?.status??"unknown";
- const emailLabel=!data?.email?"Unknown":data.email.status==="configured"?"Configured":"Not configured";
- const automations=data?.automations??[];
- const gateway=data?.gateway??null;
- const gatewayLabel=!gateway?"Unknown":gateway.status==="listening_live"?"Listening · Live":gateway.status==="listening_test"?"Listening · Test":"Not configured";
- const deploy=data?.deployment??null;
- const domainStatus=data?.domain?.status??"not_connected";
-  const issues=data?.issues??[];
-  const[isRefreshing,setIsRefreshing]=useState(false);
-  const[pendingOpen,setPendingOpen]=useState(false);
-  const[runningJob,setRunningJob]=useState<string|null>(null);
-  const pending=data?.migrations?.pending??[];
-  const refresh=async()=>{if(isRefreshing)return;setIsRefreshing(true);try{await onRefresh();notify?.("System probes refreshed successfully.")}finally{setIsRefreshing(false)}};
+export function SystemHealthView({ data, onRefresh, notify, goSection }: { data: SystemHealth; onRefresh: () => void | Promise<unknown>; notify?: (message: string) => void; goSection?: (s: "security_config") => void }) {
+  // Shape-safe: during a section switch the view renders once with the previous
+  // section's data before the new fetch lands (and a failed fetch keeps it), so
+  // every field is defaulted rather than assumed.
+  const db = data?.db ?? {}, activity = data?.activity ?? {}, rows = data?.migrations?.applied ?? [];
+  const appliedCount = data?.migrations?.appliedCount ?? rows.length, localCount = data?.migrations?.localCount ?? null;
+  const status = migrationStatus(appliedCount, localCount);
+  const behind = (localCount ?? 0) - appliedCount;
+  const checked = db.checkedAt ? new Date(db.checkedAt).toLocaleTimeString() : "—";
+  // Extended sections default to honest Unknowns while data is still loading.
+  const app = data?.application ?? { environment: "Unknown", version: "Unknown", commit: null };
+  const storageStatus = data?.storage?.status ?? "unknown";
+  const emailLabel = !data?.email ? "Unknown" : data.email.status === "configured" ? "Configured" : "Not configured";
+  const automations = data?.automations ?? [];
+  const gateway = data?.gateway ?? null;
+  const gatewayLabel = !gateway ? "Unknown" : gateway.status === "listening_live" ? "Listening · Live" : gateway.status === "listening_test" ? "Listening · Test" : "Not configured";
+  const deploy = data?.deployment ?? null;
+  const domainStatus = data?.domain?.status ?? "not_connected";
+  const issues = data?.issues ?? [];
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pendingOpen, setPendingOpen] = useState(false);
+  const [runningJob, setRunningJob] = useState<string | null>(null);
+  const pending = data?.migrations?.pending ?? [];
+  const refresh = async () => { if (isRefreshing) return; setIsRefreshing(true); try { await onRefresh(); notify?.("System probes refreshed successfully.") } finally { setIsRefreshing(false) } };
   // A manual run reports through the toast only. The durable record of what
   // happened is the server-side run timestamp the panel reads on refresh —
   // keeping a second, weaker "did it run" flag in local state meant two
   // sources of truth for the same fact.
-  const runJob=async(job:string)=>{if(runningJob)return;setRunningJob(job);try{
-    const url=job==="Guest reminders"?"/api/guest-reminders":"/api/analytics/generate";
-    const response=await fetch(url,{method:"POST"});const ok=response.ok;
-    notify?.(ok?`${job} triggered successfully.`:`${job} run failed.`);
-  }catch{notify?.(`${job} run failed.`)}finally{setRunningJob(null)}};
-  const verifyEmail=async()=>{try{const response=await fetch("/api/admin/email-delivery",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"verify"})});const body=await response.json().catch(()=>({}));notify?.(response.ok?"SMTP connection passed.":(body?.error??"Delivery check failed."))}catch{notify?.("Delivery check failed.")}};
+  const runJob = async (job: string) => {
+    if (runningJob) return; setRunningJob(job); try {
+      const url = job === "Guest reminders" ? "/api/guest-reminders" : "/api/analytics/generate";
+      const response = await fetch(url, { method: "POST" }); const ok = response.ok;
+      notify?.(ok ? `${job} triggered successfully.` : `${job} run failed.`);
+    } catch { notify?.(`${job} run failed.`) } finally { setRunningJob(null) }
+  };
+  const verifyEmail = async () => { try { const response = await fetch("/api/admin/email-delivery", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "verify" }) }); const body = await response.json().catch(() => ({})); notify?.(response.ok ? "SMTP connection passed." : (body?.error ?? "Delivery check failed.")) } catch { notify?.("Delivery check failed.") } };
   // Overall posture is a pure count over the existing probe states — no
   // invented health algorithm. Deployment now reports a real state when the
   // Vercel API is reachable (VERCEL_TOKEN); without it the serving deployment's
   // own facts are shown but the newest build's outcome stays Unknown, so it is
   // counted as undetermined rather than healthy.
-  const svcStates:{key:string;state:"healthy"|"attention"|"unknown"|"critical"}[]=[
-   {key:"db",state:!db.checkedAt?"unknown":db.live?"healthy":"critical"},
-   {key:"storage",state:storageStatus==="operational"?"healthy":storageStatus==="unavailable"?"attention":"unknown"},
-   {key:"email",state:!data?.email?"unknown":data.email.status==="configured"?"healthy":"attention"},
-   {key:"gateway",state:!gateway?"unknown":gateway.status==="listening_live"?"healthy":gateway.status==="listening_test"?"attention":"unknown"},
-   {key:"migrations",state:status==="in_sync"?"healthy":status==="remote_behind"?"attention":"unknown"},
-   {key:"app",state:app.environment==="Unknown"?"unknown":"healthy"},
-   {key:"deployment",state:!deploy||deploy.buildStatus==="unknown"?"unknown":deploy.buildStatus==="ready"?"healthy":"attention"},
+  const svcStates: { key: string; state: "healthy" | "attention" | "unknown" | "critical" }[] = [
+    { key: "db", state: !db.checkedAt ? "unknown" : db.live ? "healthy" : "critical" },
+    { key: "storage", state: storageStatus === "operational" ? "healthy" : storageStatus === "unavailable" ? "attention" : "unknown" },
+    { key: "email", state: !data?.email ? "unknown" : data.email.status === "configured" ? "healthy" : "attention" },
+    { key: "gateway", state: !gateway ? "unknown" : gateway.status === "listening_live" ? "healthy" : gateway.status === "listening_test" ? "attention" : "unknown" },
+    { key: "migrations", state: status === "in_sync" ? "healthy" : status === "remote_behind" ? "attention" : "unknown" },
+    { key: "app", state: app.environment === "Unknown" ? "unknown" : "healthy" },
+    { key: "deployment", state: !deploy || deploy.buildStatus === "unknown" ? "unknown" : deploy.buildStatus === "ready" ? "healthy" : "attention" },
   ];
-  const svcCount=(s:string)=>svcStates.filter(svc=>svc.state===s).length;
-  const verdict=!db.live&&db.checkedAt?"critical":svcCount("attention")>0?"attention":"steady";
-  const verdictCopy=verdict==="critical"?"Critical infrastructure issue detected.":verdict==="attention"?`${svcCount("attention")} monitored service${svcCount("attention")===1?" requires":"s require"} attention.`:"No critical issues. Statuses the system cannot determine are listed as Unknown.";
+  const svcCount = (s: string) => svcStates.filter(svc => svc.state === s).length;
+  const verdict = !db.live && db.checkedAt ? "critical" : svcCount("attention") > 0 ? "attention" : "steady";
+  const verdictCopy = verdict === "critical" ? "Critical infrastructure issue detected." : verdict === "attention" ? `${svcCount("attention")} monitored service${svcCount("attention") === 1 ? " requires" : "s require"} attention.` : "No critical issues. Statuses the system cannot determine are listed as Unknown.";
   // Only the facts the service cards above do NOT already carry. An item earns a
   // place here by adding information, not by restating a card: drift, storage,
   // gateway test-mode and unconfigured email were all removed because their card
@@ -563,54 +628,55 @@ export function SystemHealthView({data,onRefresh,notify,goSection}:{data:SystemH
   // what made this page read as noise. What remains is genuinely different in
   // kind: an unreachable database (role="alert"), the public domain, which has
   // no card at all, and free-form server notices.
-  const alertItems:{severity:"critical"|"attention"|"info";title:string;body:string;action?:{label:string;run:()=>void}}[]=[
-   ...(!db.live&&db.checkedAt?[{severity:"critical" as const,title:"Database unreachable",body:db.error??"The live database did not respond to the health probe."}]:[]),
-   ...(domainStatus==="not_connected"?[{severity:"info" as const,title:"Public domain",body:"Not connected — no domain feed exists, so domain health is not measured here."}]:[]),
-   ...issues.filter(issue=>!issue.startsWith("Database unreachable")&&!issue.includes("not applied")).map(issue=>({severity:"info" as const,title:"System notice",body:issue})),
+  const alertItems: { severity: "critical" | "attention" | "info"; title: string; body: string; action?: { label: string; run: () => void } }[] = [
+    ...(!db.live && db.checkedAt ? [{ severity: "critical" as const, title: "Database unreachable", body: db.error ?? "The live database did not respond to the health probe." }] : []),
+    ...(domainStatus === "not_connected" ? [{ severity: "info" as const, title: "Public domain", body: "Not connected — no domain feed exists, so domain health is not measured here." }] : []),
+    ...issues.filter(issue => !issue.startsWith("Database unreachable") && !issue.includes("not applied")).map(issue => ({ severity: "info" as const, title: "System notice", body: issue })),
   ];
-  const alertSeverity=alertItems.some(item=>item.severity==="critical")?"critical":alertItems.length>0?"attention":"clear";
+  const alertSeverity = alertItems.some(item => item.severity === "critical") ? "critical" : alertItems.length > 0 ? "attention" : "clear";
   // Service-health rows: name + real state words + honest explanation + the
   // one existing action, if any. Tone is text + icon, never color alone. The
   // tone class lands on the value line only (see the markup below) — tinting a
   // whole card turned every label and paragraph into colored body text, which
   // both looked like noise and failed contrast at those sizes.
-  type CardTone="ok"|"warn"|"bad"|"neutral";
-  type HealthCard={name:string;Icon:React.ElementType;value:string;tone:CardTone;explain:string;action?:{label:string;aria:string;run:()=>void}};
-  const cardIcon=(tone:CardTone)=>tone==="ok"?<CheckCircle2 size={14} aria-hidden="true"/>:tone==="neutral"?<Info size={14} aria-hidden="true"/>:<AlertTriangle size={14} aria-hidden="true"/>;
-  const dbTone:CardTone=!db.checkedAt?"neutral":db.live?"ok":"bad";
+  type CardTone = "ok" | "warn" | "bad" | "neutral";
+  type HealthCard = { name: string; Icon: React.ElementType; value: string; tone: CardTone; explain: string; action?: { label: string; aria: string; run: () => void } };
+  const cardIcon = (tone: CardTone) => tone === "ok" ? <CheckCircle2 size={14} aria-hidden="true" /> : tone === "neutral" ? <Info size={14} aria-hidden="true" /> : <AlertTriangle size={14} aria-hidden="true" />;
+  const dbTone: CardTone = !db.checkedAt ? "neutral" : db.live ? "ok" : "bad";
   // Deployment: the headline is the newest build's outcome, which is the signal
   // that actually matters. Without VERCEL_TOKEN the newest build cannot be read,
   // so the card reports the facts of the deployment serving this request and
   // says plainly which part is missing — an honest partial, not a bare Unknown
   // and not a claim of health.
-  const buildTone:CardTone=!deploy||deploy.buildStatus==="unknown"?"neutral":deploy.buildStatus==="ready"?"ok":deploy.buildStatus==="error"||deploy.buildStatus==="canceled"?"bad":"warn";
-  const buildValue=!deploy||deploy.buildStatus==="unknown"?(deploy?.environment?"Serving":"Undetermined"):({ready:"Ready",building:"Building",error:"Build failed",canceled:"Canceled",queued:"Queued"} as const)[deploy.buildStatus];
-  const deployFacts=[deploy?.environment,deploy?.branch&&deploy?.commit?`${deploy.branch}@${deploy.commit}`:deploy?.commit].filter(Boolean).join(" · ");
-  const deployExplain=!deploy?"No deployment facts available.":deploy.source==="api"?`${deployFacts} · newest build status read from the Vercel API`:deploy.source==="environment"?`${deployFacts} · serving this request — newest build status needs VERCEL_TOKEN`:"No deployment facts — running outside Vercel, or without its environment variables.";
-  const cards:HealthCard[]=[
-   {name:"Database (Postgres)",Icon:Database,value:db.checkedAt?(db.live?"Connected":"Unreachable"):"Checking…",tone:dbTone,explain:db.live?`${db.latencyMs!==null?`${db.latencyMs} ms response · `:""}Supabase PostgreSQL`:db.checkedAt?"Connection failed — the live database did not respond.":"Waiting for first probe",action:{label:"Re-probe",aria:"Re-probe database connectivity",run:()=>void refresh()}},
-   {name:"Application Env",Icon:Cpu,value:app.environment,tone:app.environment==="Unknown"?"neutral":"ok",explain:`v${app.version}${app.commit?` · ${app.commit}`:" · commit unknown"}`},
-   {name:"Storage Bucket",Icon:HardDrive,value:storageStatus==="operational"?"Operational":storageStatus==="unavailable"?"Unavailable":"Unknown",tone:storageStatus==="operational"?"ok":storageStatus==="unavailable"?"warn":"neutral",explain:storageStatus==="unknown"?"Photo bucket probe has not reported yet":"Photo bucket probe"},
-   {name:"Email Service (Resend)",Icon:Mail,value:emailLabel,tone:!data?.email?"neutral":data.email.status==="configured"?"ok":"warn",explain:!data?.email?"Delivery state not reported yet":data.email.status==="configured"?"Delivery configured":"SMTP configuration is not available — guest email copies are skipped, in-app notifications are unaffected",action:{label:"Test connection",aria:"Test email delivery connection",run:()=>void verifyEmail()}},
-   {name:"Deployment (Vercel)",Icon:Globe,value:buildValue,tone:buildTone,explain:deployExplain},
-    {name:"PayMongo Webhook",Icon:CreditCard,value:gatewayLabel,tone:!gateway||gateway.status==="not_configured"?"neutral":gateway.status==="listening_live"?"ok":"warn",explain:gateway&&gateway.status!=="not_configured"?`${gateway.status==="listening_live"?"/api/webhooks/payments · Live (sk_live_)":"/api/webhooks/payments · Test (sk_test_) — live GCash needs sk_live_"} · deposits: ${gateway.depositMethod??"manual"}`:`Missing: ${[!gateway?.hasSecretKey&&"PAYMONGO_SECRET_KEY",!gateway?.hasWebhookSecret&&"PAYMONGO_WEBHOOK_SECRET"].filter(Boolean).join(", ")||"PAYMONGO_*"} — vercel env add, then redeploy · deposits: ${gateway?.depositMethod??"manual"}`,action:gateway&&gateway.status!=="not_configured"?{label:"Verify presence",aria:"Verify webhook endpoint presence",run:()=>notify?.(gateway.status==="listening_live"?"PayMongo endpoint configured · Live mode.":"PayMongo endpoint configured · Test mode.")}:undefined},
-   {name:"Migrations Applied",Icon:Layers,value:`${appliedCount}${localCount!==null?` / ${localCount}`:""}`,tone:status==="in_sync"?"ok":status==="remote_behind"?"warn":"neutral",explain:status==="in_sync"?"Schema in sync":status==="remote_behind"?`${behind} local migration${behind===1?" is":"s are"} not applied to the live database`:"Local files unavailable — status could not be determined",action:status==="remote_behind"?{label:"View pending",aria:`View ${behind} pending migrations`,run:()=>setPendingOpen(true)}:undefined},
-   {name:"Pending Approvals",Icon:CheckSquare,value:`${activity.pendingApprovals??0} Pending`,tone:(activity.pendingApprovals??0)>0?"warn":"neutral",explain:"Awaiting Manager review in the approvals queue"},
+  const buildTone: CardTone = !deploy || deploy.buildStatus === "unknown" ? "neutral" : deploy.buildStatus === "ready" ? "ok" : deploy.buildStatus === "error" || deploy.buildStatus === "canceled" ? "bad" : "warn";
+  const buildValue = !deploy || deploy.buildStatus === "unknown" ? (deploy?.environment ? "Serving" : "Undetermined") : ({ ready: "Ready", building: "Building", error: "Build failed", canceled: "Canceled", queued: "Queued" } as const)[deploy.buildStatus];
+  const deployFacts = [deploy?.environment, deploy?.branch && deploy?.commit ? `${deploy.branch}@${deploy.commit}` : deploy?.commit].filter(Boolean).join(" · ");
+  const deployExplain = !deploy ? "No deployment facts available." : deploy.source === "api" ? `${deployFacts} · newest build status read from the Vercel API` : deploy.source === "environment" ? `${deployFacts} · serving this request — newest build status needs VERCEL_TOKEN` : "No deployment facts — running outside Vercel, or without its environment variables.";
+  const cards: HealthCard[] = [
+    { name: "Database (Postgres)", Icon: Database, value: db.checkedAt ? (db.live ? "Connected" : "Unreachable") : "Checking…", tone: dbTone, explain: db.live ? `${db.latencyMs !== null ? `${db.latencyMs} ms response · ` : ""}Supabase PostgreSQL` : db.checkedAt ? "Connection failed — the live database did not respond." : "Waiting for first probe", action: { label: "Re-probe", aria: "Re-probe database connectivity", run: () => void refresh() } },
+    { name: "Application Env", Icon: Cpu, value: app.environment, tone: app.environment === "Unknown" ? "neutral" : "ok", explain: `v${app.version}${app.commit ? ` · ${app.commit}` : " · commit unknown"}` },
+    { name: "Storage Bucket", Icon: HardDrive, value: storageStatus === "operational" ? "Operational" : storageStatus === "unavailable" ? "Unavailable" : "Unknown", tone: storageStatus === "operational" ? "ok" : storageStatus === "unavailable" ? "warn" : "neutral", explain: storageStatus === "unknown" ? "Photo bucket probe has not reported yet" : "Photo bucket probe" },
+    { name: "Email Service (Resend)", Icon: Mail, value: emailLabel, tone: !data?.email ? "neutral" : data.email.status === "configured" ? "ok" : "warn", explain: !data?.email ? "Delivery state not reported yet" : data.email.status === "configured" ? "Delivery configured" : "SMTP configuration is not available — guest email copies are skipped, in-app notifications are unaffected", action: { label: "Test connection", aria: "Test email delivery connection", run: () => void verifyEmail() } },
+    { name: "Deployment (Vercel)", Icon: Globe, value: buildValue, tone: buildTone, explain: deployExplain },
+    { name: "PayMongo Webhook", Icon: CreditCard, value: gatewayLabel, tone: !gateway || gateway.status === "not_configured" ? "neutral" : gateway.status === "listening_live" ? "ok" : "warn", explain: gateway && gateway.status !== "not_configured" ? `${gateway.status === "listening_live" ? "/api/webhooks/payments · Live (sk_live_)" : "/api/webhooks/payments · Test (sk_test_) — live GCash needs sk_live_"} · deposits: ${gateway.depositMethod ?? "manual"}` : `Missing: ${[!gateway?.hasSecretKey && "PAYMONGO_SECRET_KEY", !gateway?.hasWebhookSecret && "PAYMONGO_WEBHOOK_SECRET"].filter(Boolean).join(", ") || "PAYMONGO_*"} — vercel env add, then redeploy · deposits: ${gateway?.depositMethod ?? "manual"}`, action: gateway && gateway.status !== "not_configured" ? { label: "Verify presence", aria: "Verify webhook endpoint presence", run: () => notify?.(gateway.status === "listening_live" ? "PayMongo endpoint configured · Live mode." : "PayMongo endpoint configured · Test mode.") } : undefined },
+    { name: "Migrations Applied", Icon: Layers, value: `${appliedCount}${localCount !== null ? ` / ${localCount}` : ""}`, tone: status === "in_sync" ? "ok" : status === "remote_behind" ? "warn" : "neutral", explain: status === "in_sync" ? "Schema in sync" : status === "remote_behind" ? `${behind} local migration${behind === 1 ? " is" : "s are"} not applied to the live database` : "Local files unavailable — status could not be determined", action: status === "remote_behind" ? { label: "View pending", aria: `View ${behind} pending migrations`, run: () => setPendingOpen(true) } : undefined },
+    { name: "Pending Approvals", Icon: CheckSquare, value: `${activity.pendingApprovals ?? 0} Pending`, tone: (activity.pendingApprovals ?? 0) > 0 ? "warn" : "neutral", explain: "Awaiting Manager review in the approvals queue" },
   ];
-  const verdictWord=verdict==="critical"?"Critical":verdict==="attention"?"Attention required":"System steady";
-  return <><div className="page-title sys-health-title"><div><p className="admin-section-context">Technical operations</p><h1><span className="sys-ico" aria-hidden="true"><Activity size={18}/></span>System Health & Infrastructure</h1><p>{verdictWord} · {svcStates.length} monitored · {svcCount("healthy")} healthy · {svcCount("attention")} need attention · {svcCount("unknown")} undetermined · Last checked {checked} · auto-refresh every 60 seconds.</p></div><div className="title-actions"><button className="btn btn-accent" onClick={()=>void refresh()} disabled={isRefreshing} aria-busy={isRefreshing}><RefreshCw size={15} aria-hidden="true" className={isRefreshing?"sys-spin":""}/>Run Health Probes</button><button type="button" className="btn btn-soft" onClick={()=>goSection?.("security_config")}><ShieldCheck size={14} aria-hidden="true"/>Open Security Configuration</button></div></div>
-  <div className="sys-health-grid-4" role="list" aria-label="Service health indicators">{cards.map(card=>(
-   <article key={card.name} role="listitem" className="data-panel sys-health-card"><p className="sys-card-name"><span className={`sys-ico sys-ico-${card.tone}`} aria-hidden="true"><card.Icon size={15}/></span>{card.name}</p><p className={`sys-card-value sys-tone-${card.tone}`}>{cardIcon(card.tone)}<b>{card.value}</b></p><p className="sys-card-explain">{card.explain}</p><div className="sys-card-action">{card.action?<button type="button" className="table-action" onClick={card.action.run} aria-label={card.action.aria}>{card.action.label}</button>:null}</div></article>))}
-  </div>
-  <div className="sys-lower-split">
-   <div className="sys-main">
-     <SystemHealthLedger data={data} checked={checked} onProbe={()=>void refresh()} notify={notify}/>
-  </div>
-  <aside className="sys-rail" aria-label="Operational panels">
-  {alertItems.length>0?
-  <section className="data-panel sys-attention" aria-labelledby="sys-attention"><div className="panel-heading"><div><h3 id="sys-attention"><span className="sys-ico" aria-hidden="true"><AlertTriangle size={16}/></span>Needs attention</h3><p>Only what the service cards above do not already report. Most urgent first.</p></div><span className={`badge ${alertSeverity==="critical"?"expired":"pending"}`}>{alertSeverity==="critical"?"Critical":"Attention"}</span></div>
-     <ul className="sys-queue">{alertItems.map(item=><li key={item.title} className={`sys-queue-row sys-sev-${item.severity}`} {...(item.severity==="critical"?{role:"alert"}:{})}><span className={`badge ${item.severity==="critical"?"expired":item.severity==="attention"?"pending":"info"}`}>{item.severity==="critical"?"Critical":item.severity==="attention"?"Attention":"Info"}</span><div><strong>{item.title}</strong><p>{item.body}</p>{item.action&&<button type="button" className="table-action" onClick={item.action.run}>{item.action.label}</button>}</div></li>)}</ul></section>
-  :<section className="data-panel sys-attention" aria-labelledby="sys-attention"><div className="panel-heading"><div><h3 id="sys-attention"><span className="sys-ico" aria-hidden="true"><CheckCircle2 size={16}/></span>Needs attention</h3></div><span className="badge healthy">Clear</span></div><p className="sys-steady"><CheckCircle2 size={14} aria-hidden="true"/>Nothing beyond the service cards needs attention. {verdictCopy} Last checked {checked}.</p></section>}
-    <section className="data-panel sys-automations" aria-labelledby="sys-automations"><div className="panel-heading"><div><h3 id="sys-automations"><span className="sys-ico" aria-hidden="true"><Clock size={16}/></span>Scheduled Automations</h3><p>Last run is read from the table each job writes</p></div></div>{automations.length>0?<ul className="sys-jobs" aria-label="Scheduled automations">{automations.map(job=>{const runCopy=job.lastRun?`${job.lastRunLabel} ${formatHotelDateTime(job.lastRun)}`:job.lastRunLabel==="Last send"?"No sends recorded":"No runs recorded";return <li key={job.name} className="sys-job"><div className="sys-job-main"><strong>{job.name}</strong><span>{job.schedule}</span></div><div className="sys-job-foot"><span className="sys-job-status">{runCopy}</span><div className="sys-job-tail">{job.lastStatus!=="unknown"&&<span className={`badge ${job.lastStatus==="succeeded"?"succeeded":"failed"}`}>{job.lastStatus==="succeeded"?"Succeeded":"Failed"}</span>}<button type="button" className="table-action" onClick={()=>void runJob(job.name)} disabled={runningJob===job.name} aria-label={`Run ${job.name} now`}>{runningJob===job.name?<RefreshCw size={12} aria-hidden="true" className="sys-spin"/>:<Clock size={12} aria-hidden="true"/>}{runningJob===job.name?"Running…":"Run Now"}</button></div></div></li>})}</ul>:<p>No scheduled jobs registered.</p>}</section>
-  </aside>
- </div><PendingMigrationsModal open={pendingOpen} onClose={()=>setPendingOpen(false)} pending={pending} onCopied={()=>notify?.("Deploy command copied to clipboard.")}/></>}
+  const verdictWord = verdict === "critical" ? "Critical" : verdict === "attention" ? "Attention required" : "System steady";
+  return <><div className="page-title sys-health-title"><div><p className="admin-section-context">Technical operations</p><h1><span className="sys-ico" aria-hidden="true"><Activity size={18} /></span>System Health & Infrastructure</h1><p>{verdictWord} · {svcStates.length} monitored · {svcCount("healthy")} healthy · {svcCount("attention")} need attention · {svcCount("unknown")} undetermined · Last checked {checked} · auto-refresh every 60 seconds.</p></div><div className="title-actions"><button className="btn btn-accent" onClick={() => void refresh()} disabled={isRefreshing} aria-busy={isRefreshing}><RefreshCw size={15} aria-hidden="true" className={isRefreshing ? "sys-spin" : ""} />Run Health Probes</button><button type="button" className="btn btn-soft" onClick={() => goSection?.("security_config")}><ShieldCheck size={14} aria-hidden="true" />Open Security Configuration</button></div></div>
+    <div className="sys-health-grid-4" role="list" aria-label="Service health indicators">{cards.map(card => (
+      <article key={card.name} role="listitem" className="data-panel sys-health-card"><p className="sys-card-name"><span className={`sys-ico sys-ico-${card.tone}`} aria-hidden="true"><card.Icon size={15} /></span>{card.name}</p><p className={`sys-card-value sys-tone-${card.tone}`}>{cardIcon(card.tone)}<b>{card.value}</b></p><p className="sys-card-explain">{card.explain}</p><div className="sys-card-action">{card.action ? <button type="button" className="table-action" onClick={card.action.run} aria-label={card.action.aria}>{card.action.label}</button> : null}</div></article>))}
+    </div>
+    <div className="sys-lower-split">
+      <div className="sys-main">
+        <SystemHealthLedger data={data} checked={checked} onProbe={() => void refresh()} notify={notify} />
+      </div>
+      <aside className="sys-rail" aria-label="Operational panels">
+        {alertItems.length > 0 ?
+          <section className="data-panel sys-attention" aria-labelledby="sys-attention"><div className="panel-heading"><div><h3 id="sys-attention"><span className="sys-ico" aria-hidden="true"><AlertTriangle size={16} /></span>Needs attention</h3><p>Only what the service cards above do not already report. Most urgent first.</p></div><span className={`badge ${alertSeverity === "critical" ? "expired" : "pending"}`}>{alertSeverity === "critical" ? "Critical" : "Attention"}</span></div>
+            <ul className="sys-queue">{alertItems.map(item => <li key={item.title} className={`sys-queue-row sys-sev-${item.severity}`} {...(item.severity === "critical" ? { role: "alert" } : {})}><span className={`badge ${item.severity === "critical" ? "expired" : item.severity === "attention" ? "pending" : "info"}`}>{item.severity === "critical" ? "Critical" : item.severity === "attention" ? "Attention" : "Info"}</span><div><strong>{item.title}</strong><p>{item.body}</p>{item.action && <button type="button" className="table-action" onClick={item.action.run}>{item.action.label}</button>}</div></li>)}</ul></section>
+          : <section className="data-panel sys-attention" aria-labelledby="sys-attention"><div className="panel-heading"><div><h3 id="sys-attention"><span className="sys-ico" aria-hidden="true"><CheckCircle2 size={16} /></span>Needs attention</h3></div><span className="badge healthy">Clear</span></div><p className="sys-steady"><CheckCircle2 size={14} aria-hidden="true" />Nothing beyond the service cards needs attention. {verdictCopy} Last checked {checked}.</p></section>}
+        <section className="data-panel sys-automations" aria-labelledby="sys-automations"><div className="panel-heading"><div><h3 id="sys-automations"><span className="sys-ico" aria-hidden="true"><Clock size={16} /></span>Scheduled Automations</h3><p>Last run is read from the table each job writes</p></div></div>{automations.length > 0 ? <ul className="sys-jobs" aria-label="Scheduled automations">{automations.map(job => { const runCopy = job.lastRun ? `${job.lastRunLabel} ${formatHotelDateTime(job.lastRun)}` : job.lastRunLabel === "Last send" ? "No sends recorded" : "No runs recorded"; return <li key={job.name} className="sys-job"><div className="sys-job-main"><strong>{job.name}</strong><span>{job.schedule}</span></div><div className="sys-job-foot"><span className="sys-job-status">{runCopy}</span><div className="sys-job-tail">{job.lastStatus !== "unknown" && <span className={`badge ${job.lastStatus === "succeeded" ? "succeeded" : "failed"}`}>{job.lastStatus === "succeeded" ? "Succeeded" : "Failed"}</span>}<button type="button" className="table-action" onClick={() => void runJob(job.name)} disabled={runningJob === job.name} aria-label={`Run ${job.name} now`}>{runningJob === job.name ? <RefreshCw size={12} aria-hidden="true" className="sys-spin" /> : <Clock size={12} aria-hidden="true" />}{runningJob === job.name ? "Running…" : "Run Now"}</button></div></div></li> })}</ul> : <p>No scheduled jobs registered.</p>}</section>
+      </aside>
+    </div><PendingMigrationsModal open={pendingOpen} onClose={() => setPendingOpen(false)} pending={pending} onCopied={() => notify?.("Deploy command copied to clipboard.")} /></>
+}

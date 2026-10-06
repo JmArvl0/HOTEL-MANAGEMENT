@@ -28,7 +28,7 @@ describe("LoyaltyCardPanel", () => {
   it("renders stable loading geometry before the rewards response arrives", () => {
     vi.stubGlobal("fetch", vi.fn(() => new Promise(() => undefined)));
     const { container } = render(<LoyaltyCardPanel />);
-    expect(container.querySelectorAll(".loyalty-skeleton-kpi")).toHaveLength(3);
+    expect(container.querySelectorAll(".loyalty-skeleton-kpi")).toHaveLength(4);
     expect(screen.getByLabelText("Loading loyalty rewards").getAttribute("aria-busy")).toBe("true");
   });
 
@@ -36,7 +36,10 @@ describe("LoyaltyCardPanel", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => response }));
     render(<LoyaltyCardPanel />);
 
-    expect((await screen.findByLabelText("Rewards summary")).textContent).toContain("150 points");
+    const summary = await screen.findByLabelText("Rewards summary");
+    expect(summary.textContent).toContain("150 points");
+    expect(summary.textContent).toContain("₱10,000.00");
+    expect(screen.getByText("Lifetime settled spend")).toBeTruthy();
     expect(screen.getByText("₱150.00")).toBeTruthy();
     expect(screen.getByRole("progressbar", { name: "Progress to Gold" }).getAttribute("aria-valuenow")).toBe("50");
     expect(screen.getByText("HVN-260921")).toBeTruthy();

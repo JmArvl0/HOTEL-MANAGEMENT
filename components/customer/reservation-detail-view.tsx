@@ -6,12 +6,13 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft, BedDouble, BookOpenText, CalendarDays, CarTaxiFront,
   Check, ChevronDown, ClipboardCheck, CreditCard, Copy,
-  FileText, ReceiptText, RotateCcw, Users,
+  FileText, HelpCircle, Info, ReceiptText, RotateCcw, Users,
 } from "lucide-react";
 import { formatPeso } from "@/lib/format";
 import { CheckInQr, CheckInQrExpired } from "@/components/customer/check-in-qr";
 import { ReservationActions, type OpenChangeRequest } from "@/components/customer/reservation-actions";
 import LoyaltyRedemptionSelector from "@/components/booking/loyalty-redemption-selector";
+import { Modal } from "@/components/ui/Modal";
 import {
   SERVICE_TYPE_LABELS, isAssignmentVisible,
   type CustomerTransportationRequest,
@@ -46,6 +47,13 @@ export type ReservationDetailViewData = {
   transportLines: { name: string; price: number; note?: string | null }[];
   policyText: string;
   policyItems?: PolicyItem[];
+  cancellationPolicy?: {
+    fullRefundDays: number;
+    partialRefundDays: number;
+    partialRefundPercent: number;
+    noShowCutoffTime: string;
+    hotelTimezone: string;
+  };
   pendingNotice: string | null;
   money: {
     stayTotal: number;
@@ -136,7 +144,21 @@ function TimelineDot({ tone }: { tone: "payment" | "refund" | "charge" | "change
 export function ReservationDetailView({ data }: { data: ReservationDetailViewData }) {
   const [tab, setTab] = useState<TabKey>("stay");
   const [copied, setCopied] = useState(false);
+  const [refundInfoOpen, setRefundInfoOpen] = useState(false);
   const router = useRouter();
+
+  const cancellationPolicy = data.cancellationPolicy ?? {
+    fullRefundDays: 14,
+    partialRefundDays: 7,
+    partialRefundPercent: 50,
+    noShowCutoffTime: "11:59 PM",
+    hotelTimezone: "Asia/Manila",
+  };
+  const isNoShow = Boolean(
+    data.cancellationReason &&
+    (data.cancellationReason.toLowerCase().includes("no-show") ||
+     data.cancellationReason.toLowerCase().includes("no show"))
+  );
 
   const goBack = useCallback(() => {
     if (typeof window !== "undefined" && window.history.length > 1) router.back();
@@ -207,7 +229,7 @@ export function ReservationDetailView({ data }: { data: ReservationDetailViewDat
               </button>
               <span className="crd-copy-status" role="status" aria-live="polite">{copied ? "Copied" : ""}</span>
             </p>
-            <h1>{data.roomType}</h1>
+            <h1 className="room-title">{data.roomType}</h1>
             <p className="customer-reservation-dates">{formatStayDate(data.checkIn)} – {formatStayDate(data.checkOut)}</p>
             <p className="crd-hero-facts">
               <span><CalendarDays size={14} aria-hidden="true" />{data.nights} night{data.nights !== 1 ? "s" : ""}</span>
@@ -263,6 +285,15 @@ export function ReservationDetailView({ data }: { data: ReservationDetailViewDat
               <>
                 <p className="crd-change-state">No refund due</p>
                 <p>This cancellation is not eligible for a refund under the policy that applies to this reservation.</p>
+                <button
+                  type="button"
+                  className="customer-inline-action crd-refund-more-btn"
+                  onClick={() => setRefundInfoOpen(true)}
+                  aria-label="See more details about why no refund is due"
+                >
+                  <HelpCircle size={15} aria-hidden="true" />
+                  <span>See more</span>
+                </button>
               </>
             )}
           </section>
@@ -416,16 +447,134 @@ export function ReservationDetailView({ data }: { data: ReservationDetailViewDat
         {data.policyItems && data.policyItems.length > 0 ? (
           <ul className="crd-policy-list">
             {data.policyItems.map((item) => (
-              <li key={item.title}>
-                <h3>{item.title}</h3>
-                <p>{item.body}</p>
+              <li key={item.title} className="crd-policy-card">
+                <header className="crd-policy-header">
+                  <h3>{item.title}</h3>
+                </header>
+                <div className="crd-policy-body">{item.body}</div>
               </li>
             ))}
           </ul>
         ) : (
-          <p>{data.policyText}</p>
+          <p className="crd-policy-fallback">{data.policyText}</p>
         )}
       </section>
+
+      {/* Refund eligibility explanation modal */}
+      <Modal
+        isOpen={refundInfoOpen}
+        onClose={() => setRefundInfoOpen(false)}
+        title="Refund Policy & Eligibility"
+        description={`Reservation ${data.confirmationNumber} · ${data.roomType}`}
+        size="md"
+        headerVariant="branded"
+        portal={true}
+        footer={
+          <div className="prompt-actions">
+            <button
+              type="button"
+              className="btn btn-soft"
+              onClick={() => setRefundInfoOpen(false)}
+            >
+              Close
+            </button>
+            <Link
+              href="/account/help"
+              className="btn btn-accent"
+              onClick={() => setRefundInfoOpen(false)}
+            >
+              Help &amp; Support
+            </Link>
+          </div>
+        }
+      >
+        <div className="crd-refund-modal">
+          {money.paid === 0 ? (
+            <div className="crd-refund-reason-card info">
+              <span className="crd-refund-reason-icon" aria-hidden="true">
+                <Info size={18} />
+              </span>
+              <div className="crd-refund-reason-text">
+                <h3>No payments or deposits collected</h3>
+                <p>
+                  No reservation deposit or stay payment was collected or verified for this booking prior to cancellation. Because the verified deposit and amount paid were {formatPeso(0)}, there is no collected payment balance to refund.
+                </p>
+              </div>
+            </div>
+          ) : isNoShow ? (
+            <div className="crd-refund-reason-card warning">
+              <span className="crd-refund-reason-icon" aria-hidden="true">
+                <Info size={18} />
+              </span>
+              <div className="crd-refund-reason-text">
+                <h3>No-show forfeiture</h3>
+                <p>
+                  This reservation was marked as a no-show past the property&apos;s arrival cutoff time ({cancellationPolicy.noShowCutoffTime}). Under Haven&apos;s booking policy, deposits for no-show reservations are non-refundable.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="crd-refund-reason-card warning">
+              <span className="crd-refund-reason-icon" aria-hidden="true">
+                <Info size={18} />
+              </span>
+              <div className="crd-refund-reason-text">
+                <h3>Non-refundable notice window</h3>
+                <p>
+                  A deposit of {formatPeso(money.paid)} was recorded for this stay. However, under the cancellation policy agreed to at booking, cancellations submitted less than {cancellationPolicy.partialRefundDays} days before scheduled arrival forfeit the reservation deposit.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="crd-refund-summary-box">
+            <div className="crd-refund-summary-head">Reservation financial breakdown</div>
+            <div className="crd-refund-summary-grid">
+              <div className="crd-refund-summary-item">
+                <span>Total stay folio</span>
+                <strong>{formatPeso(money.folioTotal)}</strong>
+              </div>
+              <div className="crd-refund-summary-item">
+                <span>Amount paid</span>
+                <strong>{formatPeso(money.paid)}</strong>
+              </div>
+              <div className="crd-refund-summary-item">
+                <span>Balance outstanding</span>
+                <strong>{formatPeso(0)}</strong>
+              </div>
+              <div className="crd-refund-summary-item">
+                <span>Eligible refund due</span>
+                <strong className="highlight-zero">{formatPeso(0)}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div className="crd-refund-policy-section">
+            <h4>Booking cancellation policy rules</h4>
+            <div className="crd-refund-tiers-mini">
+              <div className="crd-refund-tier-chip">
+                <b>100% Refund</b>
+                <small>&ge; {cancellationPolicy.fullRefundDays} days before arrival</small>
+              </div>
+              <div className="crd-refund-tier-chip">
+                <b>{cancellationPolicy.partialRefundPercent}% Refund</b>
+                <small>&ge; {cancellationPolicy.partialRefundDays} days before arrival</small>
+              </div>
+              <div className={`crd-refund-tier-chip ${money.paid > 0 ? "active-outcome" : ""}`}>
+                <b>Non-Refundable</b>
+                <small>&lt; {cancellationPolicy.partialRefundDays} days before arrival</small>
+              </div>
+            </div>
+            <p className="crd-refund-policy-footnote">
+              Arrival day cutoff: past {cancellationPolicy.noShowCutoffTime} on arrival forfeits the deposit.
+            </p>
+          </div>
+
+          <div className="crd-refund-help-note">
+            <strong>Extenuating circumstances:</strong> If this cancellation was caused by an unexpected medical emergency or travel disruption, please visit our Help &amp; Support page or contact Guest Concierge to have your reservation reviewed.
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

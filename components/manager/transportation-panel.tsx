@@ -187,7 +187,7 @@ export default function TransportationPanel({ role }: { role: Role }) {
     <HavenDataToolbar
       search={<HavenSearchInput value={search} onValueChange={setSearch} label="Search transportation requests" placeholder="Search guest, reservation, route, location…" />}
       quickFilters={<HavenFilterBadges value={queue} onChange={setQueue} label="Filter transportation requests" options={QUEUES.map(([value, text]) => ({ value, label: text, count: counts[value] }))} />}
-      advancedFilters={<div className="haven-filter"><span>Service</span><HavenSelect value={serviceFilter} onChange={setServiceFilter} ariaLabel="Filter by service type" options={[{ value: "all", label: "All services" }, { value: "PICKUP", label: "Airport Pickup" }, { value: "DROPOFF", label: "Hotel Drop-off" }, { value: "ROUND_TRIP", label: "Round Trip" }]} /></div>}
+      advancedFilters={<div className="haven-filter"><HavenSelect value={serviceFilter} onChange={setServiceFilter} ariaLabel="Filter by service type" options={[{ value: "all", label: "All services" }, { value: "PICKUP", label: "Airport Pickup" }, { value: "DROPOFF", label: "Hotel Drop-off" }, { value: "ROUND_TRIP", label: "Round Trip" }]} /></div>}
       resultCount={visible.length}
       resultNoun="transportation requests"
       hasActiveFilters={hasActiveFilters}

@@ -26,7 +26,7 @@ export default async function CustomerOverviewPage(){
     {stayPhoto&&<div className="customer-stay-photo"><Image src={stayPhoto} alt={`${stay.room_type} at Haven`} fill sizes="(max-width: 900px) 100vw, 460px" /></div>}
     <div className="customer-stay-copy">
       <div className="customer-stay-badges"><StatusBadge status={stay.status} size="sm" /><span className="customer-stay-kind">{stay.status==="pending"?"Awaiting deposit verification":data.groups.current.length?"Current stay":"Upcoming stay"}</span></div>
-      <h2>{stay.room_type}</h2>
+      <h2 className="room-title">{stay.room_type}</h2>
       <strong>{formatStayRange(stay.check_in,stay.check_out)}</strong>
       <small>{calculateNights(stay.check_in,stay.check_out)} nights · {stay.guests} guest{stay.guests!==1?"s":""} · {stay.confirmation_number??stay.id}</small>
       <div className="customer-stay-actions"><Link className="btn" href={`/my-reservations/${stay.id}`}>Manage stay <ArrowRight size={15}/></Link>{(stay.status==="confirmed"||stay.status==="checked_in")&&<Link className="customer-stay-qr" href={`/my-reservations/${stay.id}`}><QrCode size={15}/>Check-in QR</Link>}</div>

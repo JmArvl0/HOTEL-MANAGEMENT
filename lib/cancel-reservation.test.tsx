@@ -8,7 +8,7 @@
 //   manual "Request Refund" step), retries stay idempotent,
 // - the customer gets toast + bell confirmation and a folio handoff,
 // - cancellation/inventory/refund responsibilities stay separated.
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -255,6 +255,45 @@ describe("cancelled detail refund section", () => {
       />,
     );
     expect(screen.getByText("Completed")).toBeTruthy();
+  });
+
+  it("opens the refund explanation modal when clicking 'See more' on a no-refund reservation", () => {
+    render(<ReservationDetailView data={base} />);
+    const seeMoreBtn = screen.getByRole("button", { name: /see more/i });
+    expect(seeMoreBtn).toBeTruthy();
+
+    // Modal is initially closed
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    // Click "See more"
+    fireEvent.click(seeMoreBtn);
+
+    // Modal opens
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toBeTruthy();
+    expect(screen.getByText("Refund Policy & Eligibility")).toBeTruthy();
+    expect(screen.getByText("Non-refundable notice window")).toBeTruthy();
+    expect(screen.getByText("Reservation financial breakdown")).toBeTruthy();
+    expect(screen.getByText("Booking cancellation policy rules")).toBeTruthy();
+
+    // Click Close
+    const closeBtn = screen.getByRole("button", { name: "Close" });
+    fireEvent.click(closeBtn);
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("explains zero payments collected when deposit paid is 0", () => {
+    render(
+      <ReservationDetailView
+        data={{
+          ...base,
+          money: { ...base.money, paid: 0 },
+        }}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /see more/i }));
+    expect(screen.getByText("No payments or deposits collected")).toBeTruthy();
+    expect(screen.getByText(/No reservation deposit or stay payment was collected/)).toBeTruthy();
   });
 });
 

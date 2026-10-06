@@ -1,6 +1,7 @@
+// @vitest-environment jsdom
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
-import { effectiveTheme, parseMode } from "./theme";
+import { describe, expect, it, vi } from "vitest";
+import { effectiveTheme, parseMode, setMode } from "./theme";
 
 describe("theme mode resolution", () => {
   it("only 'system' follows the OS", () => {
@@ -35,5 +36,54 @@ describe("light is the default for every account", () => {
     expect(layout).toContain("localStorage.getItem('haven-dashboard-theme')!=='dark'");
     expect(layout).toContain("classList.add('theme-light')");
     expect(layout).not.toContain("prefers-color-scheme");
+  });
+});
+
+describe("theme toggle view transition", () => {
+  const flush = () => new Promise<void>((resolve) => { setTimeout(resolve, 20); });
+
+  it("never leaks an unhandled rejection when the browser aborts the transition", async () => {
+    const rejections: unknown[] = [];
+    const onUnhandled = (reason: unknown) => { rejections.push(reason); };
+    process.on("unhandledRejection", onUnhandled);
+    // jsdom in this repo ships without localStorage/matchMedia — stub the
+    // two browser surfaces setMode touches.
+    const store = new Map<string, string>([["haven-dashboard-theme", "dark"]]);
+    Object.defineProperty(window, "localStorage", {
+      value: {
+        getItem: (key: string) => store.get(key) ?? null,
+        setItem: (key: string, value: string) => void store.set(key, value),
+        removeItem: (key: string) => void store.delete(key)
+      },
+      configurable: true
+    });
+    Object.defineProperty(window, "matchMedia", {
+      value: () => ({ matches: false, addEventListener: () => {}, removeEventListener: () => {} }),
+      configurable: true
+    });
+    try {
+      const aborted = (name: string) => Promise.reject(Object.assign(new Error(name), { name: "InvalidStateError" }));
+      Object.defineProperty(document, "startViewTransition", {
+        value: vi.fn((commit: () => void) => {
+          commit();
+          // Chrome rejects every lifecycle promise on abort (hidden tab,
+          // capture failure, superseded transition) — not just `finished`.
+          return { ready: aborted("ready"), updateCallbackDone: aborted("update"), finished: aborted("finished") };
+        }),
+        configurable: true
+      });
+      window.localStorage.setItem("haven-dashboard-theme", "dark");
+      setMode("light");
+      await flush();
+      // The update callback runs regardless: the theme applies, only the
+      // animation is skipped.
+      expect(document.documentElement.classList.contains("theme-light")).toBe(true);
+      expect(window.localStorage.getItem("haven-dashboard-theme")).toBe("light");
+      expect(rejections).toEqual([]);
+    } finally {
+      process.removeListener("unhandledRejection", onUnhandled);
+      // @ts-expect-error restoring the non-standard API absence
+      delete document.startViewTransition;
+    }
   });
 });
