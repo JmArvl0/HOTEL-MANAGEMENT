@@ -18,14 +18,14 @@ This doc and `app/ui-primitives.css` are the current system.
 |---|---|---|
 | 1 | `app/globals.css` | Shared base: tokens, `.btn`, `.badge`, `.modal`, `.toast`, landing + login + app-shell base |
 | 2 | `app/guest-booking.css` | Booking flow, guest/account portal (`--cp-*` palette) |
-| 3 | `app/manager-dashboard-theme.css` | Staff `.app-shell` dark theme + `.theme-light` overrides |
+| 3 | `app/staff-theme.css` | **THE staff layer (2026-10-06 rewrite)** — merged `manager-dashboard-theme` + `staff-ops` + `haven-tailadmin` + `fleetops` into one sheet, per-property newest-wins; all rules `.app-shell`-scoped |
 | 4 | `app/responsive.css` | Mobile hardening, touch targets, micro-interactions, reduced-motion |
 | 5 | `components/ui/Modal.css` | Modal / form-dialog component styles |
 | 6 | `components/booking/room-details.css` | Room detail sheets |
 | 7 | `app/design-tokens.css` | Legacy token re-map (trimmed 2026-09-05 — no dead `--md-*`) |
 | 8 | `app/ui-primitives.css` | **Normalization layer** — shared control metrics + action-row spacing |
 | 9 | `app/coastal-theme.css` | **Coastal brand palette override (2026-09-09)** — wins the cascade for public/guest/customer surfaces; includes a dark-mode `@media` block for the shell. `landing.css` remains page-scoped (loads with the landing chunk) |
-| 10 | `app/staff-ops-theme.css` | **Org Executive Dashboard theme (2026-09-20, §16) — last import, wins for staff only**; every rule scoped under `.app-shell`, so landing/customer/auth are unreachable |
+| 10 | _(retired 2026-10-06 — folded into `app/staff-theme.css`)_ | ~~Org Executive Dashboard theme~~ — see row 3 |
 
 Page-scoped sheets import with their chunk: `(landing-page)/landing.css`,
 `(booking)/booking/search/search.css`, `components/auth/login.css`, `auth-vault.css`,

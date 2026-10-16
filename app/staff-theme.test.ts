@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const FILE = join(process.cwd(), "app/fleetops-theme.css");
+const FILE = join(process.cwd(), "app/staff-theme.css");
 
-describe("fleetops token layer", () => {
+describe("staff theme layer", () => {
   it("exists and carries the full FleetOps palette in both themes", () => {
     expect(existsSync(FILE)).toBe(true);
     const css = readFileSync(FILE, "utf8");
@@ -31,7 +31,7 @@ describe("fleetops token layer", () => {
   it("is the last stylesheet import in app/layout.tsx so it wins the cascade", () => {
     const layout = readFileSync(join(process.cwd(), "app/layout.tsx"), "utf8");
     const imports = [...layout.matchAll(/import\s+["']([^"']+\.css)["']/g)].map((m) => m[1]);
-    expect(imports[imports.length - 1]).toMatch(/fleetops-theme\.css/);
+    expect(imports[imports.length - 1]).toMatch(/staff-theme\.css/);
   });
 
   it("introduces no legacy coastal/teal hexes itself", () => {

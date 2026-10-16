@@ -57,11 +57,11 @@ describe("fleetops surfaces: guest portal + booking flow", () => {
 });
 
 describe("fleetops surfaces: staff portals", () => {
-  // Ruling 2026-10-04 Slice B: manager-dashboard-theme.css long-tail literals are
-  // NOT remapped — the file is deleted in Slice D. Only its root vars + high-
-  // visibility nav/status/button rules move now. Everything else here is kept.
+  // 2026-10-06 rewrite: the four staff layers merged into app/staff-theme.css
+  // (per-property newest-wins). FILE lists below point at the merged sheet;
+  // the Slice B/D rulings stay as history.
   const FILES = [
-    "app/staff-ops-theme.css",
+    "app/staff-theme.css",
     "components/front-desk/fused-room-rack-panel.css",
     "components/ui/haven-data-controls.css",
     "components/ui/haven-select.css",
@@ -84,17 +84,19 @@ describe("fleetops surfaces: staff portals", () => {
   });
 
   it("manager theme carries no legacy hexes anywhere — no exemptions (Slice E)", () => {
-    const css = readFileSync(join(process.cwd(), "app/manager-dashboard-theme.css"), "utf8").replace(
+    const css = readFileSync(join(process.cwd(), "app/staff-theme.css"), "utf8").replace(
       /\/\*[\s\S]*?\*\//g,
       ""
     );
     expect(css).not.toMatch(LEGACY);
   });
 
-  it("manager root vars + status severities ride FleetOps (long tail dies in Slice D)", () => {
-    const css = readFileSync(join(process.cwd(), "app/manager-dashboard-theme.css"), "utf8");
-    expect(css).toContain("--db:#0f141b");
-    expect(css).toContain("--dg:#e8edf4");
+  it("manager root vars + status severities ride FleetOps (long tail merged 2026-10-06)", () => {
+    const css = readFileSync(join(process.cwd(), "app/staff-theme.css"), "utf8");
+    // --db/--dg carry the actually-rendered winners (staff-ops beat manager
+    // at equal specificity before the merge, so the merge keeps them).
+    expect(css).toContain("--db: #0d1320");
+    expect(css).toContain("--dg: #7ea4e8");
     expect(css).toMatch(/\.mr-issue\.high\{[^}]*#ef44441f/);
     expect(css).toMatch(/\.mr-issue\.warning\{[^}]*#f59e0b1f/);
     expect(css).toMatch(/\.mr-issue\.info\{[^}]*#3b82f61f/);
