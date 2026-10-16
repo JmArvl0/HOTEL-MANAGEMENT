@@ -161,10 +161,10 @@ describe("ManagerApprovalView", () => {
     // Severity badges use honest classes with theme rules (DESIGN.md §21):
     // critical rides the danger family, high the warning family.
     expect(within(criticalRow).getByText("critical").className).toMatch(/critical/);
-    const managerTheme = readFileSync(join(process.cwd(), "app/manager-dashboard-theme.css"), "utf8");
+    const managerTheme = readFileSync(join(process.cwd(), "app/staff-theme.css"), "utf8");
     expect(managerTheme).toContain(".app-shell .badge.critical");
     expect(managerTheme).toContain(".app-shell .badge.high");
-    const opsTheme = readFileSync(join(process.cwd(), "app/staff-ops-theme.css"), "utf8");
+    const opsTheme = readFileSync(join(process.cwd(), "app/staff-theme.css"), "utf8");
     expect(opsTheme).toContain(".badge.critical");
     expect(opsTheme).toContain(".badge.high");
   });

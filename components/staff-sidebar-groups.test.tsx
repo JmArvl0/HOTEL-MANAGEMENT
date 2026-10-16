@@ -42,7 +42,7 @@ describe("shared collapsible sidebar rail", () => {
   });
 
   it("hides the secondary toggle in icon-rail and mobile-drawer modes", () => {
-    const staffCss = readFileSync(resolve(process.cwd(), "app/manager-dashboard-theme.css"), "utf8");
+    const staffCss = readFileSync(resolve(process.cwd(), "app/staff-theme.css"), "utf8");
     const customerCss = readFileSync(resolve(process.cwd(), "app/customer-portal.css"), "utf8");
 
     expect(staffCss).toMatch(/\.sidebar\.collapsed \.sidebar-collapse-button\{display:none\}/);

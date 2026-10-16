@@ -78,10 +78,12 @@ describe("sidebar category grouping", () => {
 
 describe("sidebar overflow", () => {
   it("keeps vertical navigation scrolling without exposing a horizontal scrollbar", () => {
-    const theme = readFileSync(resolve(process.cwd(), "app/manager-dashboard-theme.css"), "utf8");
+    const theme = readFileSync(resolve(process.cwd(), "app/staff-theme.css"), "utf8");
 
     expect(theme).toMatch(/\.app-shell \.sidebar nav\{[^}]*overflow-x:hidden[^}]*overflow-y:auto[^}]*\}/);
-    expect(theme).toMatch(/\.app-shell \.sidebar \.nav-group-header\{[^}]*width:calc\(100% - 8px\)[^}]*\}/);
+    // 2026-10-06 rewrite: the tailadmin full-width header won over the old
+    // manager calc rule at equal specificity, so the merge keeps width:100%.
+    expect(theme).toMatch(/\.app-shell \.sidebar \.nav-group-header\{[^}]*width:\s*100%[^}]*\}/);
   });
 });
 

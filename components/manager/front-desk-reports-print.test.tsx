@@ -51,7 +51,7 @@ describe("FrontDeskReportsPanel export", () => {
 });
 
 describe("report print CSS", () => {
-  const css = readFileSync(join(process.cwd(), "app/manager-dashboard-theme.css"), "utf8");
+  const css = readFileSync(join(process.cwd(), "app/staff-theme.css"), "utf8");
 
   it("lets the tall report preview break across printed pages", () => {
     // Regression: globals.css forces break-inside:avoid on every panel, so a

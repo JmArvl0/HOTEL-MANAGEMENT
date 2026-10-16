@@ -110,7 +110,7 @@ describe("HavenActionItem", () => {
   });
 
   it("paints the info tone from the staff theme in both modes", () => {
-    const css = readFileSync(join(process.cwd(), "app/staff-ops-theme.css"), "utf8");
+    const css = readFileSync(join(process.cwd(), "app/staff-theme.css"), "utf8");
     expect(css).toContain('.app-shell .haven-action-item[data-tone="info"]');
     expect(css).toContain('.theme-light .app-shell .haven-action-item[data-tone="info"]');
   });

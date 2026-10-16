@@ -86,7 +86,7 @@ describe("Accounting deposit verification presentation", () => {
   });
 
   it("scopes the shared action hierarchy to internal application pages", () => {
-    const css = readFileSync("app/manager-dashboard-theme.css", "utf8");
+    const css = readFileSync("app/staff-theme.css", "utf8");
     expect(css).toContain(".app-shell .table-action.action-primary");
     expect(css).toContain(".app-shell .table-action.action-neutral");
     expect(css).toContain(".app-shell .table-action.action-danger");

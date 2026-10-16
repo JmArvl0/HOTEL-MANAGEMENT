@@ -32,7 +32,7 @@ export type HavenActionItemProps = {
  * Owns the visual layout, never the business data. Renders a <button> only
  * when it performs an action; informational cards are plain <div>s so nothing
  * looks clickable that isn't. Staff-scoped styling lives in
- * app/staff-ops-theme.css (.haven-action-item).
+ * app/staff-theme.css (.haven-action-item).
  */
 export function HavenActionItem({
   icon: Icon,

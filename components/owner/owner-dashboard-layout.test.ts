@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 const dashboard = readFileSync("components/owner/owner-dashboard-client.tsx", "utf8");
 const paymentSettings = readFileSync("components/owner/payment-settings-panel.tsx", "utf8");
-const theme = readFileSync("app/manager-dashboard-theme.css", "utf8");
+const theme = readFileSync("app/staff-theme.css", "utf8");
 
 describe("Owner executive workspace layout", () => {
   it("uses Owner-scoped layouts for each information pattern", () => {
@@ -70,6 +70,8 @@ describe("Owner executive workspace layout", () => {
     expect(theme).toContain(".app-shell.owner-workspace .owner-metric-grid");
     expect(theme).toContain("@media(max-width:1200px)");
     expect(theme).toContain("@media(max-width:760px)");
-    expect(theme).toContain(".app-shell.owner-workspace .owner-role-grid,");
+    // 2026-10-06 rewrite: the merge emits one selector per rule, so the old
+    // grouped selector is asserted in its merged single-selector form.
+    expect(theme).toContain(".app-shell.owner-workspace .owner-role-grid{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))");
   });
 });

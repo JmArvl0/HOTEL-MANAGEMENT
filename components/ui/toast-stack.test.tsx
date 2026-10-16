@@ -148,7 +148,7 @@ describe("centered notification viewport contracts", () => {
   const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 
   it("positions the stack centered below the header, under modals", () => {
-    const css = read("app/manager-dashboard-theme.css");
+    const css = read("app/staff-theme.css");
     expect(css).toContain(".toast-stack{position:fixed;top:calc(58px");
     expect(css).toContain("translateX(-50%)");
     expect(css).toContain("z-index:900");
@@ -158,7 +158,7 @@ describe("centered notification viewport contracts", () => {
   });
 
   it("tints every tone card so info stops blending into panels, both themes", () => {
-    const css = read("app/manager-dashboard-theme.css");
+    const css = read("app/staff-theme.css");
     for (const tone of ["info", "success", "warning", "error"]) {
       expect(css).toContain(`.toast-stack .toast-card.${tone}{border-color:`);
       expect(css).toContain(`.theme-light .toast-stack .toast-card.${tone}{border-color:`);

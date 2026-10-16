@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 // layout, so rendered fit (no clipping/overflow) remains a manual
 // screenshot checklist (see session note). Never cite these tests as
 // visual verification.
-const css = readFileSync(join(process.cwd(), "app/staff-ops-theme.css"), "utf8");
+const css = readFileSync(join(process.cwd(), "app/staff-theme.css"), "utf8");
 
 describe("staff sidebar fitting contract", () => {
   it("lets the sidebar role label wrap to a second line instead of clipping", () => {
