@@ -50,7 +50,7 @@ describe("history-carrying guest-to-staff conversion (D-024)", () => {
     expect(actions).toContain("admin_convert_guest_to_staff_with_history");
     expect(adminGuard).toContain("OWNER_AUTHORITY_REQUIRED");
     expect(dashboard).toContain("withHistory");
-    expect(dashboard).toContain("payload.withHistory=Boolean(data.withHistory)");
+    expect(dashboard).toMatch(/payload\.withHistory\s*=\s*Boolean\(data\.withHistory\)/);
   });
 
   it("cannot leak guest workflows to converted staff: customer routes still require the guest role", () => {

@@ -296,14 +296,14 @@ describe("enforcement surface contracts", () => {
 
   it("the OTP modal has one explicit enable/disable control and preserves dependent values", () => {
     const client = read("components/admin/admin-dashboard-client.tsx");
-    expect(client).toMatch(/label:"Login OTP security"/);
-    expect(client).toMatch(/Enabled — Require Email OTP at Login \(On\)/);
-    expect(client).toMatch(/Disabled — Password Only Login \(Off\)/);
+    expect(client).toMatch(/label:\s*"Login OTP security"/);
+    expect(client).toMatch(/Enabled [-—] Require Email OTP at Login \(On\)/);
+    expect(client).toMatch(/Disabled [-—] Password Only Login \(Off\)/);
     // No second OTP boolean: exactly one loginOtpEnabled reference in the form.
     expect(client.match(/loginOtpEnabled/g)?.length).toBeGreaterThan(0);
     expect(client).not.toMatch(/\b(otp_enabled|require_email_otp|login_otp_required)\b/i);
     // Dependent values are always submitted (never destroyed when disabled).
-    expect(client).toMatch(/otpTtlSeconds:ttl,otpResendCooldownSeconds:cooldown,otpMaxAttempts:attempts/);
+    expect(client).toMatch(/otpTtlSeconds:\s*ttl,\s*otpResendCooldownSeconds:\s*cooldown,\s*otpMaxAttempts:\s*attempts/);
     expect(client).toMatch(/Preserved when login OTP is disabled/);
   });
 
@@ -364,11 +364,11 @@ describe("enforcement surface contracts", () => {
 
   it("the session form has one switch — the cookie policy — with Remember Me always on", () => {
     const client = read("components/admin/admin-dashboard-client.tsx");
-    expect(client).toMatch(/label:"Cookie policy"/);
-    expect(client).toMatch(/cookieEnabled:cookie/);
+    expect(client).toMatch(/label:\s*"Cookie policy"/);
+    expect(client).toMatch(/cookieEnabled:\s*cookie/);
     expect(client).not.toMatch(/label:"Persistent login \/ Remember Me"/);
-    expect(client).toMatch(/persistentSessionEnabled:true/);
-    expect(client).toMatch(/\["59","59 minutes"\]/);
-    expect(client).toMatch(/\["5","5 minutes"\]/);
+    expect(client).toMatch(/persistentSessionEnabled:\s*true/);
+    expect(client).toMatch(/\["59",\s*"59 minutes"\]/);
+    expect(client).toMatch(/\["5",\s*"5 minutes"\]/);
   });
 });

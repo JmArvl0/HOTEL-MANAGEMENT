@@ -93,14 +93,16 @@ export function Modal({
   const titleId = `modal-title-${generatedId}`;
 
   useEffect(() => {
-    if (hostRef.current) {
-      const el = hostRef.current;
-      const isApp = Boolean(el.closest(".app-shell"));
-      const isCustomer = Boolean(el.closest(".customer-shell"));
-      const classes = [isApp ? "app-shell" : "", isCustomer ? "customer-shell" : ""].filter(Boolean).join(" ");
-      if (classes !== shellClass) {
-        setShellClass(classes);
-      }
+    const host = hostRef.current;
+    const isApp = host
+      ? Boolean(host.closest(".app-shell"))
+      : typeof document !== "undefined" && Boolean(document.querySelector(".app-shell"));
+    const isCustomer = host
+      ? Boolean(host.closest(".customer-shell"))
+      : typeof document !== "undefined" && Boolean(document.querySelector(".customer-shell"));
+    const classes = [isApp ? "app-shell" : "", isCustomer ? "customer-shell" : ""].filter(Boolean).join(" ");
+    if (classes !== shellClass) {
+      setShellClass(classes);
     }
   }, [isOpen, shellClass]);
   const descriptionId = `modal-description-${generatedId}`;
@@ -201,19 +203,6 @@ export function Modal({
     typeof window.matchMedia === "function" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  const detectedShell = shellClass || (() => {
-    if (typeof document === "undefined") return "";
-    if (hostRef.current) {
-      const el = hostRef.current;
-      const isApp = Boolean(el.closest(".app-shell"));
-      const isCustomer = Boolean(el.closest(".customer-shell"));
-      return [isApp ? "app-shell" : "", isCustomer ? "customer-shell" : ""].filter(Boolean).join(" ");
-    }
-    const hasApp = Boolean(document.querySelector(".app-shell"));
-    const hasCustomer = Boolean(document.querySelector(".customer-shell"));
-    return [hasApp ? "app-shell" : "", hasCustomer ? "customer-shell" : ""].filter(Boolean).join(" ");
-  })();
-
   const content = (
     <Fragment>
       <div
@@ -263,7 +252,7 @@ export function Modal({
   );
 
   const portaledContent = (
-    <div className={`haven-modal-portal ${detectedShell}`.trim()}>
+    <div className={`haven-modal-portal ${shellClass}`.trim()}>
       {content}
     </div>
   );

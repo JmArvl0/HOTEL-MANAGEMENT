@@ -109,7 +109,7 @@ describe("D-006 refund queue surfacing", () => {
   });
   it("keeps Manager off every financial mutation surface", () => {
     const access = dashboard.match(/const access: Record<Role, Section\[\]> = \{([^}]*)\}/)![1];
-    const managerSections = access.match(/manager:\[([^\]]*)\]/)![1];
+    const managerSections = access.match(/manager:\s*\[([^\]]*)\]/)![1];
     for (const section of ["refunds", "cash_shifts", "reconciliation", "documents", "transactions", "folios"]) expect(managerSections, section).not.toContain(`"${section}"`);
   });
 });

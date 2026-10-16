@@ -26,7 +26,7 @@ describe("client fetch resilience", () => {
   it("turns an initial admin dashboard fetch rejection into a retryable state", () => {
     const source = read("components/admin/admin-dashboard-client.tsx");
     expect(source).toContain("setLoadError");
-    expect(source).toContain("catch(cause)");
+    expect(source).toMatch(/catch\s*\(cause\)/);
     expect(source).toContain("Unable to reach the administration service");
     expect(source).toContain("Try again");
   });

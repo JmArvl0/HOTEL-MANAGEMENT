@@ -140,7 +140,7 @@ describe("System Administrator timezone authority (Q1)", () => {
   });
 
   it("labels the timezone field without an Owner-only claim", () => {
-    expect(dashboard).toContain('label:"Hotel timezone"');
+    expect(dashboard).toMatch(/label:\s*"Hotel timezone"/);
     expect(dashboard).not.toContain("Owner-only to change");
   });
 });

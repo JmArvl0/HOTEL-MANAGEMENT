@@ -52,9 +52,9 @@ describe("guest-to-staff conversion governance", () => {
   });
 
   it("routes a guest Role action through conversion onboarding, never a label-only role update", () => {
-    expect(dashboard).toContain('const converting=action==="role"&&String(item.role)==="guest"');
-    expect(dashboard).toContain('action:converting?"convert":action');
-    expect(dashboard).toContain("payload.expectedEmail=item.email");
+    expect(dashboard).toMatch(/const converting\s*=\s*action\s*===\s*"role"\s*&&\s*String\(item\.role\)\s*===\s*"guest"/);
+    expect(dashboard).toMatch(/action:\s*converting\s*\?\s*"convert"\s*:\s*action/);
+    expect(dashboard).toMatch(/payload\.expectedEmail\s*=\s*item\.email/);
     expect(dashboard).toContain("Conversion creates an inactive staff account");
   });
 
