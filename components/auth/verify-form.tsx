@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -73,7 +73,7 @@ export default function VerifyForm({ callbackUrl = "/manager_dashboard" }: { cal
       setDead("invalid");
       return;
     }
-    fail(body?.error ?? "That code didnâ€™t work. Try again.");
+    fail(body?.error ?? "That code didn’t work. Try again.");
   }
 
   async function resend() {
@@ -128,7 +128,7 @@ export default function VerifyForm({ callbackUrl = "/manager_dashboard" }: { cal
 
       {error && (
         <div ref={errorRef} tabIndex={-1} role="alert" className="haven-vault__error">
-          <strong>That code didnâ€™t work</strong>
+          <strong>That code didn’t work</strong>
           <span>{error}</span>
         </div>
       )}
@@ -145,7 +145,7 @@ export default function VerifyForm({ callbackUrl = "/manager_dashboard" }: { cal
             onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
             autoComplete="one-time-code"
             inputMode="numeric"
-            placeholder="â€¢â€¢â€¢â€¢â€¢â€¢"
+            placeholder="••••••"
             required
             className="haven-vault__otp"
             autoFocus
@@ -154,7 +154,7 @@ export default function VerifyForm({ callbackUrl = "/manager_dashboard" }: { cal
         </label>
 
         <button className="haven-vault__submit" disabled={busy} aria-busy={busy}>
-          {busy ? "Verifyingâ€¦" : "Verify and continue"} <ArrowRight size={15} aria-hidden="true" />
+          {busy ? "Verifying…" : "Verify and continue"} <ArrowRight size={15} aria-hidden="true" />
         </button>
       </form>
 
@@ -162,7 +162,7 @@ export default function VerifyForm({ callbackUrl = "/manager_dashboard" }: { cal
         {meta && <span>Code expires in {countdown(meta.expiresAt, now)}</span>}
         {resendReady ? (
           <button type="button" className="haven-vault__link" onClick={resend} disabled={resending}>
-            <RefreshCw size={12} aria-hidden="true" /> {resending ? "Sendingâ€¦" : "Resend code"}
+            <RefreshCw size={12} aria-hidden="true" /> {resending ? "Sending…" : "Resend code"}
           </button>
         ) : (
           meta && <span>Resend code in {countdown(meta.resendAvailableAt, now)}</span>
@@ -170,7 +170,7 @@ export default function VerifyForm({ callbackUrl = "/manager_dashboard" }: { cal
       </div>
 
       <p className="haven-vault__foot">
-        Didnâ€™t request this? <Link href="/login">Back to sign in</Link>
+        Didn’t request this? <Link href="/login">Back to sign in</Link>
       </p>
     </>
   );

@@ -1,4 +1,4 @@
-﻿/* =============================================================================
+/* =============================================================================
    HAVEN HOTEL MANAGEMENT - UNIFIED DESIGN TOKENS
    =============================================================================
    Single source of truth for all design tokens across the application.
@@ -90,7 +90,6 @@
   --color-slate-950: #020617;
 
   /* Haven Brand Colors (Legacy - mapped to primitives) */
-  
   --color-mint: #f3f3f3;
   --color-cream: #f3f3f3;
   --color-paper: #ffffff;

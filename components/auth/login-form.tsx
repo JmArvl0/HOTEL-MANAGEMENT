@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { getSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -44,7 +44,7 @@ export default function LoginForm({
     const result = await signIn("credentials", { email, password, remember: rememberOffered && remember ? "1" : "0", callbackUrl, redirect: false });
     setLoading(false);
     if (result?.error) {
-      setError("That email or password doesnâ€™t match our records.");
+      setError("That email or password doesn’t match our records.");
       requestAnimationFrame(() => errorRef.current?.focus());
     } else {
       // Password accepted but OTP pending: the session is still unauthenticated.
@@ -77,7 +77,7 @@ export default function LoginForm({
 
       {error && (
         <div ref={errorRef} tabIndex={-1} role="alert" className="haven-vault__error">
-          <strong>We couldnâ€™t sign you in</strong>
+          <strong>We couldn’t sign you in</strong>
           <span>{error}</span>
           <a href="#haven-email">Go to email</a>
         </div>
@@ -111,7 +111,7 @@ export default function LoginForm({
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
-              placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+              placeholder="••••••••"
               required
             />
           </label>
@@ -139,7 +139,7 @@ export default function LoginForm({
         )}
 
         <button className="haven-vault__submit" disabled={loading} aria-busy={loading}>
-          {loading ? "Signing inâ€¦" : "Sign in"} <ArrowRight size={15} aria-hidden="true" />
+          {loading ? "Signing in…" : "Sign in"} <ArrowRight size={15} aria-hidden="true" />
         </button>
       </form>
 
@@ -150,7 +150,7 @@ export default function LoginForm({
         Forgot your password? <Link href="/forgot-password">Reset it with email verification</Link>
       </p>
 
-      <div className="haven-vault__trust"><span>Secure credentials</span><span>â€¢</span><span>Role-based access</span></div>
+      <div className="haven-vault__trust"><span>Secure credentials</span><span>•</span><span>Role-based access</span></div>
     </>
   );
 }
