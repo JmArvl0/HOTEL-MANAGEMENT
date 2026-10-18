@@ -5,8 +5,8 @@ The source-of-truth reference for the shipped UI. **Do not apply
 This doc and `app/ui-primitives.css` are the current system.
 
 - **Companions:** `DESIGN-STATUS.md` (what is off / what got fixed), `SYSTEM.md` (behavior).
-- **Snapshot:** working tree on `main`, 2026-09-10 (coastal brand refresh plus the public booking
-  search surface; see `DESIGN-STATUS.md` and `.impeccable/surfaces/app-booking-search.md`).
+- **Snapshot:** working tree on `main`, 2026-10-06 staff-layer rewrite fold
+  (see `DESIGN-STATUS.md` and `.impeccable/surfaces/app-booking-search.md`).
 
 ---
 
@@ -16,20 +16,25 @@ This doc and `app/ui-primitives.css` are the current system.
 
 | # | File | Role |
 |---|---|---|
-| 1 | `app/globals.css` | Shared base: tokens, `.btn`, `.badge`, `.modal`, `.toast`, landing + login + app-shell base |
-| 2 | `app/guest-booking.css` | Booking flow, guest/account portal (`--cp-*` palette) |
-| 3 | `app/staff-theme.css` | **THE staff layer (2026-10-06 rewrite)** — merged `manager-dashboard-theme` + `staff-ops` + `haven-tailadmin` + `fleetops` into one sheet, per-property newest-wins; all rules `.app-shell`-scoped |
-| 4 | `app/responsive.css` | Mobile hardening, touch targets, micro-interactions, reduced-motion |
-| 5 | `components/ui/Modal.css` | Modal / form-dialog component styles |
-| 6 | `components/booking/room-details.css` | Room detail sheets |
-| 7 | `app/design-tokens.css` | Legacy token re-map (trimmed 2026-09-05 — no dead `--md-*`) |
-| 8 | `app/ui-primitives.css` | **Normalization layer** — shared control metrics + action-row spacing |
-| 9 | `app/coastal-theme.css` | **Coastal brand palette override (2026-09-09)** — wins the cascade for public/guest/customer surfaces; includes a dark-mode `@media` block for the shell. `landing.css` remains page-scoped (loads with the landing chunk) |
-| 10 | _(retired 2026-10-06 — folded into `app/staff-theme.css`)_ | ~~Org Executive Dashboard theme~~ — see row 3 |
+| 1 | `app/globals.css` | Shared base: tokens, `.btn`, `.badge`, `.modal`, `.toast`, landing + login + app-shell base (staff mobile drawer: `.sidebar{transform…}` at ≤1000px) |
+| 2 | `app/guest-booking.css` | Booking flow, guest/account portal |
+| 3 | `app/responsive.css` | Mobile hardening, touch targets, micro-interactions, reduced-motion |
+| 4 | `components/ui/Modal.css` | Modal / form-dialog, Breadcrumb, PageHeader, chart styles |
+| 5 | `components/ui/haven-select.css` | HavenSelect listbox |
+| 6 | `components/ui/haven-data-controls.css` | Toolbar / search / filter badges / empty state |
+| 7 | `components/booking/room-details.css` | Room detail sheets |
+| 8 | `app/design-tokens.css` | Legacy token re-map (legacy OS-dark `@media` block kept off-path) |
+| 9 | `app/ui-primitives.css` | **Normalization layer** — shared control metrics + action-row spacing |
+| 10 | `components/customer/notification-history.css` | Notification history modal |
+| 11 | `app/customer-portal.css` | Customer portal palette + layout (`.customer-shell`) |
+| 12 | `components/auth/session-expiry.css` | Session expiry banner |
+| 13 | `components/ui/command-palette.css` | Command palette |
+| 14 | `components/ui/haven-account-modal.css` | Account modal |
+| 15 | `app/staff-theme.css` | **THE staff layer (2026-10-06 rewrite, last import)** — merged `manager-dashboard-theme` + `staff-ops` + `haven-tailadmin` + `fleetops` into one sheet, per-property newest-wins; all rules `.app-shell`-scoped |
 
 Page-scoped sheets import with their chunk: `(landing-page)/landing.css`,
-`(booking)/booking/search/search.css`, `components/auth/login.css`, `auth-vault.css`,
-`components/ui/haven-loader.css`.
+`(booking)/booking/search/search.css`, `components/auth/login.css`,
+`auth-vault.css`, `components/ui/haven-loader.css`.
 
 Rule of thumb: **palettes live in each surface's scoped rules** (`.customer-shell …`, `.app-shell …`,
 `.theme-light …`); **shared control *metrics* and spacing live in `ui-primitives.css`**. That split
@@ -38,16 +43,19 @@ motion, focus ring, and action-row gap.
 
 ## 2. Color
 
-One coastal palette across surfaces (brand refresh 2026-09-09), differentiated per portal:
+Palettes live inside each surface's scoped rules (the 2026-09-09 `coastal-theme.css` overlay was
+retired with the 2026-10-06 staff-layer rewrite — its file is deleted and its hexes no longer ship
+in any sheet; the same hexes may remain in DESIGN-STATUS history):
 
-- **Primary deep ocean teal** `#084b55` · **hover** `#136573` · **warm ivory** `#f8f6f1` ·
-  **sea-glass** `#85cbd0` (dark-shell accents) / `#e1eeeb` (light surfaces) · **ink** `#103e48` ·
-  **line** `#dce4e1` · **muted** `#53676b`. Terracotta `#c9783c` is retired from brand use.
-  These live in `app/coastal-theme.css` (last import in `app/layout.tsx`, so it overrides the
-  legacy per-surface hexes).
-- **Guest / booking / customer:** the `--cp-*` scale (`guest-booking.css`) is remapped by
-  `coastal-theme.css`; dark ground `#0c2027`, light ground `#f6f5f0`, and sea-glass accent
-  `#85cbd0` (dark) / `#176773` (light). Both themes complete.
+- **Staff dashboards:** `.app-shell` dark FleetOps neutrals (`--db/--ds/--ds2/--dl/--dt/--dm/--dg`
+  in `app/staff-theme.css`, plus `--tail-*` primitives); `.theme-light` mirrors use the
+  `--ops-*` scale. Light mode is a `.theme-light` rule set (colors only — sizes/metrics inherit
+  the dark block).
+- **Guest / booking:** neutral ink family in `app/globals.css` — `--ink/--forest/--accent` all
+  alias `#111827` (dark-consumable), `--green` `#10b981`, grays for line/muted. Terracotta
+  `#c9783c` is retired from brand use.
+- **Customer portal:** the `--cp-*` scale (`app/customer-portal.css`, dark base + `.theme-light`
+  mirrors); light `var(--tail-*)`-adjacent values also re-declared in `globals.css` scope.
 - **Extended-family retirement (2026-09-10):** descendant-local modal tokens, booking-search
   gradients, room details, QR placards, staff accent literals, chart slices, loader copy, and
   guest-email presentation were audited and moved from the surviving forest/terracotta family to
@@ -76,8 +84,8 @@ One coastal palette across surfaces (brand refresh 2026-09-09), differentiated p
   Physical rooms inherit their type's key — there is no per-room color control anywhere.
 
 **Theming:** `.theme-light` on `<html>`, set pre-paint by the inline script in `app/layout.tsx`.
-`coastal-theme.css` adds a dark-mode `@media (prefers-color-scheme: dark)` block for the shell.
-The landing is **light-only** via `landing.css` `color-scheme: light`. A second, OS-driven block in
+A staff light palette is a `.theme-light` rule set inside `app/staff-theme.css`. The landing is
+**light-only** via `landing.css` `color-scheme: light`. A second, OS-driven block in
 `design-tokens.css` is legacy and can drift — keep new dark-theme work
 inside `.theme-light`-aware rules, not `@media (prefers-color-scheme: dark)`.
 
@@ -178,7 +186,7 @@ errors include a retry action.
 ## 10. Module quick-overview cards (staff dashboards)
 
 `ModuleSummaryCards` (`components/manager/module-summary-cards.tsx`, styled by the
-`.mod-kpis` / `.mod-kpi` block in `manager-dashboard-theme.css` — dark and `.theme-light`
+`.mod-kpis` / `.mod-kpi` block in `app/staff-theme.css` — dark and `.theme-light`
 mirrors) is the single pattern for the compact operational snapshot at the top of a staff
 module. Each card is label / strong value (count or peso total) / one-line hint / icon chip.
 It is deliberately **not** the big Overview `metric-card`: 10px label, 22px number, 9px
@@ -208,7 +216,7 @@ hint, 13–14px padding — dense enough to read as a snapshot above a table.
   Roles & Permissions renders role cards with capability chips; Hotel Policies groups the
   raw columns into labeled stat tiles (times `HH:MM`, booleans Yes/No, basis points as a
    percent) with a fallback group so schema additions are never hidden. Admin CSS lives in
-   the `admin-*` block of `manager-dashboard-theme.css` (dark + `.theme-light` mirrors).
+   the `admin-*` block of `app/staff-theme.css` (dark + `.theme-light` mirrors).
 
 - **Data toolbar convention (search-first).** Every combined search/filter surface
   follows the same DOM and visual order: search → quick-filter badges → advanced
@@ -249,7 +257,7 @@ Radix/shadcn — banned in `docs/ui-motion-guidelines.md`).
 ## 12. Performance reports surface (staff Reports section)
 
 `PerformanceReports` (`components/manager/performance-reports.tsx`, styles in
-the report block of `manager-dashboard-theme.css` — dark and `.theme-light`
+the report block of `app/staff-theme.css` — dark and `.theme-light`
 mirrors) is the analytics half of the Reports section; the immutable daily
 operations-report review (`FrontDeskReportsPanel`) renders below it as a
 visually distinct second workflow, never a competing page header.
@@ -318,7 +326,7 @@ module, table, form, modal, report, notification surface under `.app-shell`,
 plus staff-only `qr-placard`). Landing, customer portal, booking flow, and
 auth screens are explicitly out of scope and untouched.
 
-- **Delivery mechanism:** `app/staff-ops-theme.css`, imported last in
+- **Delivery mechanism:** `app/staff-theme.css`, imported last in
   `app/layout.tsx`. Every rule is scoped under `.app-shell` (dark base) or
   `.theme-light .app-shell` (light default) and wins by import order at equal
   specificity — no shared-file edits, no `!important` sprawl.

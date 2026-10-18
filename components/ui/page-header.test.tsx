@@ -32,4 +32,20 @@ describe("PageHeader", () => {
     expect(header.className).toContain("band");
     expect(screen.getByRole("heading", { name: "Overview" })).toBeTruthy();
   });
+
+  it("composes the shared Breadcrumb, not a private one", () => {
+    render(
+      <PageHeader
+        title="Housekeeping"
+        breadcrumb={[
+          { label: "Home", href: "/" },
+          { label: "Housekeeping", current: true },
+        ]}
+      />
+    );
+    const header = screen.getByRole("banner");
+    expect(header.querySelector("nav.breadcrumb")).toBeTruthy();
+    expect(header.querySelectorAll(".breadcrumb-item").length).toBe(2);
+    expect(header.querySelector(".breadcrumb-current")?.textContent).toBe("Housekeeping");
+  });
 });

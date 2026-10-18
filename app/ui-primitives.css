@@ -1,9 +1,9 @@
 /* =============================================================================
    HAVEN — UI PRIMITIVES (normalization layer)  ·  added 2026-09-05
    -----------------------------------------------------------------------------
-   Loaded LAST in app/layout.tsx (after design-tokens.css) so, at equal
-   specificity, these rules win the cascade over the three legacy sheets
-   (globals.css, guest-booking.css, manager-dashboard-theme.css).
+   Loaded midway in app/layout.tsx (before staff-theme.css, which loads
+   last) so, at equal specificity, staff-theme wins the cascade over
+   these rules.
 
    Scope: SHARED CONTROL METRICS + action-row spacing only. It deliberately
    does NOT re-paint any portal. Colors/palettes stay in each surface's own
@@ -13,7 +13,7 @@
    Findings addressed: button/action spacing slop, the ≤680px blank
    header-button bug, DESIGN-STATUS F5 (badge coverage) and F7 (guest-shell
    light remnants). F4 (staff type floor) is raised in-place in
-   manager-dashboard-theme.css; F3 is trimmed in design-tokens.css.
+   app/staff-theme.css; F3 is trimmed in design-tokens.css.
    ============================================================================= */
 
 /* ---- 1. One canonical .btn metric block (overrides globals.css:1) ----------
@@ -21,7 +21,7 @@
    icon gap, shares the radius/focus tokens and keeps one hover/active curve.
    Colors are untouched — each portal's .btn-accent / .btn-soft rules still
    decide the palette. Staff `.app-shell .btn` keeps its intentional compact
-   scale (see manager-dashboard-theme.css) but shares this radius + motion. */
+    scale (see app/staff-theme.css) but shares this radius + motion. */
 .btn {
   min-height: 40px;                 /* --btn-height-md */
   gap: 8px;
@@ -123,7 +123,7 @@
 }
 .table-action svg { flex-shrink: 0; }
 /* Interaction metrics for the staff table-action chips (palette lives in
-   manager-dashboard-theme.css, per the DESIGN.md scope split). */
+   app/staff-theme.css, per the DESIGN.md scope split). */
 .table-action {
   transition: background-color .18s ease, border-color .18s ease,
               color .18s ease, transform .12s ease;

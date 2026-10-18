@@ -13,7 +13,6 @@ import "./ui-primitives.css";
 import "@/components/customer/notification-history.css";
 import "./customer-portal.css";
 import "@/components/auth/session-expiry.css";
-import "@/components/ui/app-shell.css";
 import "@/components/ui/command-palette.css";
 import "@/components/ui/haven-account-modal.css";
 import "./staff-theme.css";

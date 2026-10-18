@@ -17,7 +17,7 @@ export {
 } from "./haven-notifications";
 export type { HavenNotification, HavenNotificationDensity } from "./haven-notifications";
 export type { HavenButtonProps, HavenButtonVariant, HavenButtonDensity } from "./haven-button";
-export { NavGroup, Sidebar, Breadcrumb, PageHeader } from "./Navigation";
+export { Breadcrumb, PageHeader } from "./Navigation";
 export { HavenLogo } from "./haven-logo";
 export { AccessibleChart, LineChart, AreaChart, BarChart, PieChart, VisuallyHidden } from "./AccessibleChart";
 export { useSSE, useRealTimeData, useVirtualizedList, useDebouncedValue, useStableCallback, useIntersectionObserver, usePerformanceMonitor, lazyImport, preloadComponent, addResourceHints, performanceUtils } from "./Performance";
@@ -25,7 +25,7 @@ export type { ModalProps, ConfirmDialogProps, PromptDialogProps, SelectDialogPro
 export type { FormDialogProps, FormField as DialogFormField, MultiStepFormDialogProps, RoomSelectDialogProps, ChecklistDialogProps } from "./FormDialog";
 export type { StatusBadgeProps } from "./StatusBadge";
 export type { FormFieldProps, InputProps, TextareaProps, SelectProps, CheckboxProps, RadioGroupProps, ErrorSummaryProps } from "./FormField";
-export type { NavItem, NavGroupProps, SidebarProps, BreadcrumbItem, BreadcrumbProps, PageHeaderProps } from "./Navigation";
+export type { BreadcrumbItem, BreadcrumbProps, PageHeaderProps } from "./Navigation";
 export type { AccessibleChartProps, LineChartProps, AreaChartProps, BarChartProps, PieChartProps, VisuallyHiddenProps } from "./AccessibleChart";
 export type { SSEOptions, SSEResult, UseRealTimeDataOptions, VirtualizedListOptions, VirtualizedListResult, IntersectionObserverOptions } from "./Performance";
 export {

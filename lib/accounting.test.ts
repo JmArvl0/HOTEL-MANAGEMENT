@@ -291,22 +291,31 @@ describe("shared cash drawer (20261024110000)", () => {
   });
 });
 
-describe("suspended cash-shift close (temporary defense, 2026-10-03)", () => {
+describe("cash-shift close re-enabled (2026-10-18)", () => {
   const patchRoute = read("app/api/accounting/cash-shifts/[id]/route.ts");
 
-  it("hides the Close action and announces the suspension on the dashboard", () => {
-    // While reopen is broken, the drawer must stay open: no Close button,
-    // a visible banner, and sign-out that warns instead of trapping.
-    expect(dashboard).toContain("CASH_SHIFT_CLOSE_SUSPENDED");
-    expect(dashboard).toContain("!CASH_SHIFT_CLOSE_SUSPENDED && row.status === \"open\"");
-    expect(dashboard).toContain("Shift closing is temporarily suspended");
-    expect(dashboard).toContain("sign-out proceeds; closing is temporarily suspended.");
+  it("offers Close & count again with no suspension gate on the dashboard", () => {
+    // The 2026-10-03 suspension existed because one closed shared drawer
+    // stranded every cash collection behind CASH_SHIFT_REQUIRED. The
+    // 20261024090000 single-open rule with its advisory lock fixed the open
+    // failure, and the 20261024120000 unattributed-cash bypass (route flag
+    // CASH_BYPASS_ACTIVE=true) keeps cash collecting while no drawer is open,
+    // so closing no longer strands check-ins. Defense is reverted.
+    expect(dashboard).not.toContain("CASH_SHIFT_CLOSE_SUSPENDED");
+    expect(dashboard).not.toContain("temporarily suspended");
+    expect(dashboard).toContain("canOperateShift && row.status === \"open\"");
+    expect(dashboard).toContain("closeCashShift(row as RecordItem)");
   });
 
-  it("rejects close at the API backstop while reconcile stays untouched", () => {
-    expect(patchRoute).toContain("TEMPORARY (cash-shift defense");
-    expect(patchRoute).toContain("Shift closing is temporarily suspended");
-    expect(patchRoute).toContain('if(closing)return NextResponse.json({error:"Shift closing is temporarily suspended');
+  it("still blocks sign-out only for the open-shift owner", () => {
+    expect(dashboard).toContain("body.data?.open && body.data?.mine");
+    expect(dashboard).toContain('if (go) { setSection("cash_shifts"); setProfileOpen(false); } return;');
+  });
+
+  it("serves close through the accounting RPC with safe error mapping", () => {
+    expect(patchRoute).not.toContain("Shift closing is temporarily suspended");
+    expect(patchRoute).toContain("accounting_close_cash_shift");
     expect(patchRoute).toContain("accounting_reconcile_cash_shift");
+    expect(patchRoute).toContain("CASH_SHIFT_NOT_OPEN:\"That cash shift is already closed.\"");
   });
 });
