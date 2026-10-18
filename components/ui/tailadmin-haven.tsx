@@ -1,7 +1,6 @@
 "use client";
 
 import React, { ReactNode, forwardRef } from "react";
-import Link from "next/link";
 import {
   ChevronRight,
   ChevronLeft,
@@ -156,72 +155,11 @@ export function StatCard({
 }
 
 /* =============================================================================
-   3. TAILADMIN PAGE BREADCRUMB & PAGE HEADER
+   3. PAGE HEADER — consolidated into the canonical `PageHeader`
+      (components/ui/Navigation.tsx). Removed 2026-10-18 (HUI-010): it was a
+      second, parallel implementation whose only consumer was the visual
+      template; the canonical component now owns that composition too.
    ============================================================================= */
-export interface BreadcrumbCrumb {
-  label: string;
-  href?: string;
-}
-
-export interface TailAdminPageHeaderProps {
-  pageTitle: string;
-  subtitle?: string;
-  eyebrow?: string;
-  breadcrumbs?: BreadcrumbCrumb[];
-  actions?: ReactNode;
-  className?: string;
-}
-
-export function TailAdminPageHeader({
-  pageTitle,
-  subtitle,
-  eyebrow = "HAVEN MAKATI",
-  breadcrumbs,
-  actions,
-  className = "",
-}: TailAdminPageHeaderProps) {
-  return (
-    <div className={`page-title page-header ${className}`.trim()}>
-      <div className="flex-1 min-w-0">
-        {eyebrow && <span className="eyebrow">{eyebrow}</span>}
-        <h1>{pageTitle}</h1>
-        {subtitle && <p>{subtitle}</p>}
-      </div>
-
-      <div className="flex items-center gap-4 flex-wrap">
-        {breadcrumbs && breadcrumbs.length > 0 && (
-          <nav className="breadcrumb" aria-label="Breadcrumb">
-            <ol className="breadcrumb-list">
-              <li>
-                <Link href="/" className="breadcrumb-link">
-                  Home
-                </Link>
-              </li>
-              {breadcrumbs.map((crumb, idx) => {
-                const isLast = idx === breadcrumbs.length - 1;
-                return (
-                  <li key={idx} className="breadcrumb-item">
-                    <span className="breadcrumb-separator" aria-hidden="true">
-                      <ChevronRight size={14} />
-                    </span>
-                    {crumb.href && !isLast ? (
-                      <Link href={crumb.href} className="breadcrumb-link">
-                        {crumb.label}
-                      </Link>
-                    ) : (
-                      <span className="breadcrumb-current">{crumb.label}</span>
-                    )}
-                  </li>
-                );
-              })}
-            </ol>
-          </nav>
-        )}
-        {actions && <div className="page-header-actions">{actions}</div>}
-      </div>
-    </div>
-  );
-}
 
 /* =============================================================================
    4. TAILADMIN BUTTON

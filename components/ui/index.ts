@@ -31,7 +31,6 @@ export type { SSEOptions, SSEResult, UseRealTimeDataOptions, VirtualizedListOpti
 export {
   ComponentCard,
   StatCard,
-  TailAdminPageHeader,
   TailAdminButton,
   TailAdminBadge,
   Table,
@@ -51,7 +50,6 @@ export {
 export type {
   ComponentCardProps,
   StatCardProps,
-  TailAdminPageHeaderProps,
   TailAdminButtonProps,
   TailAdminBadgeProps,
   TailAdminInputProps,

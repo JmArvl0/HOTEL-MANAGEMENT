@@ -3,6 +3,8 @@
 // is the compact premium header and the band variant is the deep-teal hero
 // treatment. Same markup either way — only the surface changes.
 import { afterEach, describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { cleanup, render, screen } from "@testing-library/react";
 import { PageHeader } from "./Navigation";
 
@@ -47,5 +49,11 @@ describe("PageHeader", () => {
     expect(header.querySelector("nav.breadcrumb")).toBeTruthy();
     expect(header.querySelectorAll(".breadcrumb-item").length).toBe(2);
     expect(header.querySelector(".breadcrumb-current")?.textContent).toBe("Housekeeping");
+  });
+
+  it("is the only page-header implementation in components/ui", () => {
+    const index = readFileSync(join(process.cwd(), "components/ui/index.ts"), "utf8")
+      + readFileSync(join(process.cwd(), "components/ui/tailadmin-haven.tsx"), "utf8");
+    expect(index).not.toContain("TailAdminPageHeader");
   });
 });

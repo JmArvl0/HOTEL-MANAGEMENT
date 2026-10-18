@@ -21,10 +21,10 @@ import {
   MoreVertical,
   ExternalLink,
 } from "lucide-react";
+import { PageHeader } from "@/components/ui";
 import {
   ComponentCard,
   StatCard,
-  TailAdminPageHeader,
   TailAdminButton,
   TailAdminBadge,
   Table,
@@ -127,15 +127,16 @@ export default function HavenTailAdminVisualTemplate() {
 
   return (
     <div className="space-y-6">
-      {/* 1. TailAdmin Standard Page Header with Breadcrumbs */}
-      <TailAdminPageHeader
-        pageTitle="HAVEN SaaS Visual Template"
+      {/* 1. Canonical Page Header with Breadcrumbs */}
+      <PageHeader
+        title="HAVEN SaaS Visual Template"
         subtitle="Complete TailAdmin Next.js design system standardization for HAVEN Hotel Management System"
         eyebrow="DESIGN SYSTEM SPECIFICATION"
-        breadcrumbs={[
+        breadcrumb={[
+          { label: "Home", href: "/" },
           { label: "Dashboard", href: "/manager_dashboard" },
           { label: "Design System", href: "#" },
-          { label: "TailAdmin Standard" },
+          { label: "TailAdmin Standard", current: true },
         ]}
         actions={
           <div className="flex items-center gap-3">
