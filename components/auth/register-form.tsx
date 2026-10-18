@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { FormEvent, useRef, useState } from "react";
 import { getSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -48,7 +48,7 @@ export function RegisterForm({ callbackUrl }: { callbackUrl: string }) {
   return (
     <>
       <div className="haven-vault__head">
-        <p className="eyebrow" style={{ color: "var(--color-forest-light)", margin: 0 }}>
+        <p className="eyebrow" style={{ color: "var(--color-ink)", margin: 0 }}>
           Guest registration
         </p>
         <h1>Create your Haven account</h1>
@@ -57,7 +57,7 @@ export function RegisterForm({ callbackUrl }: { callbackUrl: string }) {
 
       {error && (
         <div ref={errorRef} tabIndex={-1} role="alert" className="haven-vault__error">
-          <strong>We couldn’t create your account</strong>
+          <strong>We couldnâ€™t create your account</strong>
           <span>{error}</span>
         </div>
       )}
@@ -99,7 +99,7 @@ export function RegisterForm({ callbackUrl }: { callbackUrl: string }) {
         </label>
 
         <button className="haven-vault__submit" disabled={loading} aria-busy={loading}>
-          {loading ? "Creating account…" : "Create guest account"} <ArrowRight size={15} aria-hidden="true" />
+          {loading ? "Creating accountâ€¦" : "Create guest account"} <ArrowRight size={15} aria-hidden="true" />
         </button>
       </form>
 

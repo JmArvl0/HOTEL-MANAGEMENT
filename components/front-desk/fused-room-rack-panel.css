@@ -1,4 +1,4 @@
-/* Room Reservations as an interactive Room Board — scoped
+﻿/* Room Reservations as an interactive Room Board â€” scoped
    presentation only. .mod-kpis is owned by ModuleSummaryCards (spacing guard
    only below). Toolbar wrapper stays transparent per HAVEN_UI_STANDARDS. */
 .app-shell .room-rack.data-panel,
@@ -12,7 +12,7 @@
 .rack-notice{margin:0;padding:10px 12px;border:1px solid var(--dl);border-radius:8px;background:var(--ds2);color:var(--dt);font-size:12px;line-height:1.5}
 .board-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,260px);gap:16px;align-items:start}
 .board-main{display:grid;gap:16px;min-width:0}
-.board-groups{display:grid;gap:0;border:1px solid var(--dl);border-radius:12px;background:var(--ds);box-shadow:var(--tail-shadow-xs,0 1px 2px rgba(0,0,0,.05));overflow:hidden}
+.board-groups{display:grid;gap:0;border:1px solid var(--dl);border-radius:12px;background:var(--ds);box-shadow:var(--st-shadow-xs,0 1px 2px rgba(0,0,0,.05));overflow:hidden}
 .board-group{display:grid;grid-template-columns:132px minmax(0,1fr);border-top:1px solid var(--dl)}
 .board-group:first-child{border-top:0}
 .board-group-head{display:grid;gap:2px;align-content:start;justify-items:start;padding:12px;border-right:1px solid var(--dl);background:var(--ds2)}
