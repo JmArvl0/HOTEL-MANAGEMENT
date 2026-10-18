@@ -4,6 +4,7 @@ import { ReactNode } from "react";
 
 export interface StatusBadgeProps {
   status: string;
+  label?: string;
   icon?: ReactNode;
   size?: "sm" | "md" | "lg";
   variant?: "default" | "outline" | "soft";
@@ -17,8 +18,10 @@ const statusIcons: Record<string, ReactNode> = {
   confirmed: <CheckCircleIcon />,
   checked_in: <UserCheckIcon />,
   checked_out: <ArchiveIcon />,
-  cancelled: <XCircleIcon />,
-  no_show: <AlertCircleIcon />,
+    cancelled: <XCircleIcon />,
+    no_show: <AlertCircleIcon />,
+    rejected: <XCircleIcon />,
+    verified: <CheckCircleIcon />,
   
   // Payment statuses
   paid: <CheckCircleIcon />,
@@ -75,6 +78,8 @@ const statusLabels: Record<string, string> = {
   checked_out: "Checked Out",
   cancelled: "Cancelled",
   no_show: "No Show",
+  rejected: "Rejected",
+  verified: "Verified",
   paid: "Paid",
   unpaid: "Unpaid",
   partial: "Partial",
@@ -195,6 +200,7 @@ const variantClasses = {
 
 export function StatusBadge({ 
   status, 
+  label: labelProp,
   icon, 
   size = "md", 
   variant = "default", 
@@ -203,7 +209,7 @@ export function StatusBadge({
 }: StatusBadgeProps) {
   const normalizedStatus = String(status).toLowerCase().replace(/\s+/g, "_");
   const Icon = icon || statusIcons[normalizedStatus];
-  const label = statusLabels[normalizedStatus] || String(status).replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  const label = labelProp ?? statusLabels[normalizedStatus] ?? String(status).replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
   
   const baseClasses = "haven-status";
   const sizeClass = sizeClasses[size];
@@ -247,6 +253,7 @@ export function StatusBadge({
     // Red states
     cancelled: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
     no_show: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+    rejected: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
     unpaid: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
     failed: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
     expired: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
