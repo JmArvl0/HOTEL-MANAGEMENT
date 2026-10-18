@@ -108,6 +108,25 @@ inside `.theme-light`-aware rules, not `@media (prefers-color-scheme: dark)`.
 - A single 12px rhythm separates stacked cards/sections in the guest shell (e.g.
   `.customer-request-list-wrap`, `.customer-detail-grid + .customer-detail-card`).
 
+### 4a. Breakpoints — the 6-step scale (HUI-008 contract)
+
+New responsive rules **must** use one of these `max-width` steps — not an ad-hoc
+width. The named scale covers phone → executive desktop:
+
+| Step | Purpose |
+|---|---|
+| 360 | smallest phone (390px iPhone class gets inside this gate) |
+| 480 | large phone / small foldables |
+| 680 | tablet-portrait / narrow window (the existing touch-floor gate) |
+| 900 | tablet-landscape / small laptop split collapse |
+| 1100 | desktop sidebar + dense-grid collapse |
+| 1440 | executive desktop (4+ column arrangements) |
+
+`min-width` variants use the same numbers (e.g. `@media(min-width:1201px)`
+exceptions already shipped may stay; new ones pick 1101/1441 conventions).
+Migration is **opportunistic** — migrate a module's media query when you are
+already editing it; do not bulk-rewrite working blocks.
+
 ## 5. Buttons — one metric system, two densities
 
 Canonical base (in `ui-primitives.css`, overrides the three legacy `.btn` blocks):
@@ -282,8 +301,10 @@ visually distinct second workflow, never a competing page header.
   interactive landing redesign consolidated every landing rule into `app/(landing-page)/landing.css`;
   `globals.css` / `guest-booking.css` / `responsive.css` keep only shared primitives (`.btn` family,
   `.eyebrow`, `.brand`, focus-visible, `scroll-padding-top`).
-- **`.customer-status` vs `StatusBadge`** convergence on the guest portal: documented as the guest
-  surface's own pill; convergence deferred.
+- **`.customer-status` vs `StatusBadge`** convergence on the guest portal: started 2026-10-18 —
+  payments surfaces now render StatusBadge (with label passthrough preserving the
+  STATUS_LABELS copy); remaining `.customer-status` consumers (reservation detail,
+  transportation list) migrate when edited next.
 
 ## 14. Universal interaction foundation
 
