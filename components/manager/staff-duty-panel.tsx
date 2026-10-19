@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Activity, BedDouble, Building2, Calculator, ChevronRight, CircleDollarSign, ClipboardCheck, ClipboardList, ConciergeBell, Eye, Info, Lightbulb, RefreshCw, Search, Settings, Users, Wrench, X, type LucideIcon } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { ModuleSummaryCards, type ModuleSummaryCard } from "@/components/manager/module-summary-cards";
 import { HavenSelect } from "@/components/ui/haven-select";
 import { HavenDataToolbar, HavenSearchInput } from "@/components/ui/haven-data-controls";
 import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination";
@@ -91,10 +92,11 @@ export default function StaffDutyPanel() {
   const hasActiveFilters = Boolean(search.trim()) || department !== "all" || duty !== "all";
   const clearFilters = () => { setSearch(""); setDepartment("all"); setDuty("all"); };
 
-  const kpis: { key: StaffDutyStatus | "all"; name: string; value: number; hint: string; icon: typeof Activity; tone: string }[] = [
-    { key: "working", name: "Working now", value: data?.summary.working ?? 0, hint: "In-progress work or an open cash shift", icon: Activity, tone: "done" },
-    { key: "assigned", name: "Assigned work", value: data?.summary.assigned ?? 0, hint: "Open work, not yet started", icon: ClipboardList, tone: "attention" },
-    { key: "no_active_work", name: "No active work", value: data?.summary.noActiveWork ?? 0, hint: "No live operational records right now", icon: Users, tone: "" }
+  const kpis: ModuleSummaryCard[] = [
+    { label: "Working now", value: data?.summary.working ?? 0, hint: "In-progress work or an open cash shift", icon: Activity, tone: "done", queue: "working", disabled: (data?.summary.working ?? 0) === 0 },
+    { label: "Assigned work", value: data?.summary.assigned ?? 0, hint: "Open work, not yet started", icon: ClipboardList, tone: "attention", queue: "assigned", disabled: (data?.summary.assigned ?? 0) === 0 },
+    { label: "No active work", value: data?.summary.noActiveWork ?? 0, hint: "No live operational records right now", icon: Users, queue: "no_active_work", disabled: (data?.summary.noActiveWork ?? 0) === 0 },
+    { label: "Departments", value: data?.summary.departments ?? 0, hint: "Operational departments in this view", icon: Building2, tone: "today" }
   ];
 
   const renderRow = (member: StaffDutyMember) => (
@@ -138,14 +140,12 @@ export default function StaffDutyPanel() {
         <div className="data-panel"><div className="sd-skeleton" role="status" aria-label="Loading staff duty"><i /><i /><i /><i /><i /></div></div>
       ) : (
         <>
-          <div className="sd-kpis" role="status" aria-label="Duty summary">
-            {kpis.map(({ key, name, value, hint, icon: Icon, tone }) => (
-              <button type="button" className={`sd-kpi${tone ? ` ${tone}` : ""}${duty === key ? " active" : ""}`} key={key} aria-pressed={duty === key} disabled={value === 0} onClick={() => setDuty(duty === key ? "all" : key)}>
-                <span>{name}</span><b>{value}</b><small>{hint}</small><i aria-hidden="true"><Icon size={16} /></i>
-              </button>
-            ))}
-            <div className="sd-kpi info" aria-label="Operational departments"><span>Departments</span><b>{data.summary.departments}</b><small>Operational departments in this view</small><i aria-hidden="true"><Building2 size={16} /></i></div>
-          </div>
+          <ModuleSummaryCards
+            cards={kpis}
+            ariaLabel="Duty summary"
+            activeQueue={duty === "all" ? undefined : duty}
+            onSelect={(queue) => setDuty(duty === queue ? "all" : (queue as StaffDutyStatus))}
+          />
 
           <div className="sd-workspace">
             <div className="sd-main">
