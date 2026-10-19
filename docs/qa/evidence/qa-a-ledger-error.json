@@ -1,0 +1,10 @@
+[
+  {
+    "item": "A1-1 OPEN-SHIFT",
+    "route": "Cash & Shifts -> Open cash shift (float 0)",
+    "role": "front_desk",
+    "status": "DEFECT",
+    "actual": "open attempt via UI: toast 'Unable to open a cash shift' visible=true; server log: 'function hashtextended(unknown, integer) does not exist' (pg 42883) from migration 20261024090000_single_open_cash_shift.sql advisory lock; open=false",
+    "evidence": "a1-after-open-attempt.png"
+  }
+]
