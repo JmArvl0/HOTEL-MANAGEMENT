@@ -3,7 +3,7 @@
 // is the compact premium header and the band variant is the deep-teal hero
 // treatment. Same markup either way — only the surface changes.
 import { afterEach, describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { cleanup, render, screen } from "@testing-library/react";
 import { PageHeader } from "./Navigation";
@@ -52,8 +52,11 @@ describe("PageHeader", () => {
   });
 
   it("is the only page-header implementation in components/ui", () => {
-    const index = readFileSync(join(process.cwd(), "components/ui/index.ts"), "utf8")
-      + readFileSync(join(process.cwd(), "components/ui/tailadmin-haven.tsx"), "utf8");
+    // Stage 2 C5: the tailadmin-haven kit was deleted outright (no routes
+    // consumed it), so PageHeader's uniqueness is now "the file is gone".
+    expect(existsSync(join(process.cwd(), "components/ui/tailadmin-haven.tsx"))).toBe(false);
+    const index = readFileSync(join(process.cwd(), "components/ui/index.ts"), "utf8");
     expect(index).not.toContain("TailAdminPageHeader");
+    expect(index).not.toContain("tailadmin-haven");
   });
 });
