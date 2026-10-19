@@ -17,6 +17,8 @@ export type ModuleSummaryCard = {
   tone?: ModuleSummaryTone;
   /** Filter value this card activates when clicked; absent → informational. */
   queue?: string;
+  /** Disables the clickable card (e.g. module busy); only affects cards with `queue`. */
+  disabled?: boolean;
 };
 
 export function ModuleSummaryCards({ cards, activeQueue, onSelect, ariaLabel }: {
@@ -32,7 +34,7 @@ export function ModuleSummaryCards({ cards, activeQueue, onSelect, ariaLabel }: 
   return <div className="mod-kpis" role="group" aria-label={ariaLabel ?? "Module summary"}>
     {cards.map((card) => {
       const Icon = card.icon;
-      const clickable = Boolean(card.queue && onSelect);
+      const clickable = Boolean(card.queue && onSelect) && !card.disabled;
       const content = <>
         <span>{card.label}</span>
         <b>{card.value}</b>
@@ -40,7 +42,7 @@ export function ModuleSummaryCards({ cards, activeQueue, onSelect, ariaLabel }: 
         {Icon && <i className={card.tone} aria-hidden="true"><Icon size={16} /></i>}
       </>;
       return clickable
-        ? <button type="button" className={`mod-kpi${activeQueue === card.queue ? " active" : ""}`} key={card.label} aria-pressed={activeQueue === card.queue} onClick={() => onSelect!(card.queue!)}>{content}</button>
+        ? <button type="button" className="mod-kpi" key={card.label} aria-pressed={activeQueue === card.queue} disabled={card.disabled} aria-disabled={card.disabled || undefined} onClick={() => onSelect!(card.queue!)}>{content}</button>
         : <article className="mod-kpi" key={card.label}>{content}</article>;
     })}
   </div>;

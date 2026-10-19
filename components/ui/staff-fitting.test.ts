@@ -8,6 +8,8 @@ import { describe, expect, it } from "vitest";
 // screenshot checklist (see session note). Never cite these tests as
 // visual verification.
 const css = readFileSync(join(process.cwd(), "app/staff-theme.css"), "utf8");
+// .mod-kpi moved here in Stage 2 (reference-design 2026-10-19); fitting rules live with it.
+const uiPrimitives = readFileSync(join(process.cwd(), "app/ui-primitives.css"), "utf8");
 
 describe("staff sidebar fitting contract", () => {
   it("lets the sidebar role label wrap to a second line instead of clipping", () => {
@@ -36,7 +38,7 @@ describe("staff headers/cards/panels fitting contract", () => {
   });
 
   it("lets extreme KPI figures wrap instead of overflowing the card", () => {
-    expect(css).toMatch(/\.mod-kpi b[\s\S]*?overflow-wrap:\s*anywhere/);
+    expect(uiPrimitives).toMatch(/\.mod-kpi b[\s\S]*?overflow-wrap:\s*anywhere/);
   });
 
   it("keeps panel View actions off the title", () => {
@@ -61,6 +63,21 @@ describe("staff tables/forms/modals fitting contract", () => {
 
   it("constrains popovers to the viewport at narrow widths", () => {
     expect(css).toMatch(/\.notification-popover\s*\{[\s\S]*?max-width:\s*calc\(100vw - 32px\)/);
+  });
+});
+
+describe("shared KPI card single-home contract", () => {
+  it("defines .mod-kpi structurally once — in ui-primitives.css", () => {
+    const structural = /\.mod-kpi\{|\.mod-kpi:hover\{|\.mod-kpi b\{|\.mod-kpi span\{|\.mod-kpi small\{|\.mod-kpi>i\{|mod-kpis\{/;
+    expect(uiPrimitives).toMatch(structural);
+    // staff-theme keeps only the move pointer comment, admin-context spacing
+    // and print chrome — no card-format rules may return here.
+    const remnants = (css.match(/^[^\n]*\.mod-kp[^\n{}]*\{[^{}]*\}/gm) ?? []).map((s) => s.trim());
+    expect(remnants).toEqual([
+      ".app-shell .admin-workspace>.mod-kpis{margin-bottom:10px}",
+      ".app-shell .admin-workspace .workspace-body-inner>.mod-kpis{margin-bottom:10px}",
+      "@media print{.app-shell .mod-kpi{background: #fff !important;color: #111 !important}",
+    ]);
   });
 });
 

@@ -16,7 +16,8 @@ const customerCancelRoute = readFileSync("app/api/account/transportation/[id]/ca
 const staffListRoute = readFileSync("app/api/transportation/route.ts", "utf8");
 const staffTransitionRoute = readFileSync("app/api/transportation/[id]/transition/route.ts", "utf8");
 const managerPanel = readFileSync("components/manager/transportation-panel.tsx", "utf8");
-const managerTheme = readFileSync("app/staff-theme.css", "utf8");
+// Stage 2 (2026-10-19): the shared card family (.mod-kpis/.mod-kpi) lives in ui-primitives.css.
+const uiPrimitives = readFileSync("app/ui-primitives.css", "utf8");
 const customerList = readFileSync("components/customer/transportation-request-list.tsx", "utf8");
 const holdsRoute = readFileSync("app/api/booking/holds/route.ts", "utf8");
 const guestDetailsForm = readFileSync("components/booking/guest-details-form.tsx", "utf8");
@@ -125,7 +126,11 @@ describe("transportation workspace layout", () => {
     // 2026-10-06 rewrite: the tailadmin auto-fit grid won over the old manager
     // rule at equal specificity (and is what renders today), so the merged
     // sheet carries it — same one-row intent, new home.
-    expect(managerTheme).toContain(".app-shell .mod-kpis{display: grid;grid-template-columns: repeat(auto-fit, minmax(220px, 1fr))");
+    // 2026-10-19 Stage 2: the card family moved to the cross-surface sheet —
+    // same auto-fit grid, now staff+guest unified.
+    expect(uiPrimitives).toContain(
+      ".mod-kpis{\n  display:grid;\n  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));\n  gap:20px;\n  margin-bottom:24px;\n}",
+    );
   });
 });
 
