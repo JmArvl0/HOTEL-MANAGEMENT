@@ -960,17 +960,17 @@
 .customer-folio-status.refunded,.customer-folio-status.partial_refund{border-color:#1d4ed8;background:#111827;color:#9bc7e2}
 .customer-folio-status.credit{border-color:#35685f;background:#111827;color:#6ee7b7}
 /* Payments & folio module — summary first, transparent controls, live local filtering */
-.folio-kpi-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:24px}
-.folio-kpi-card{display:flex;align-items:center;gap:14px;min-width:0;padding:18px 20px;border:1px solid var(--cp-line);border-radius:14px;background:var(--cp-panel);transition:border-color .18s ease,transform .18s ease}
-.folio-kpi-card:hover{border-color:color-mix(in srgb,var(--cp-accent) 38%,var(--cp-line));transform:translateY(-1px)}
-.folio-kpi-card>div{display:grid;gap:3px;min-width:0}
-.folio-kpi-card small{color:var(--cp-muted);font-size:9px;font-weight:750;letter-spacing:.06em;text-transform:uppercase}
-.folio-kpi-card strong{color:var(--cp-text);font-size:23px;line-height:1.15;font-variant-numeric:tabular-nums}
-.folio-kpi-card p{margin:0;color:var(--cp-muted);font-size:10px}
-.folio-kpi-icon{display:grid;place-items:center;flex:0 0 42px;width:42px;height:42px;border-radius:12px;background:color-mix(in srgb,var(--cp-accent) 12%,var(--cp-panel));color:var(--cp-accent)}
-.folio-kpi-card.has-balance .folio-kpi-icon{background:var(--st-warn-bg);color:var(--st-warn-fg)}
-.folio-kpi-card.has-balance strong{color:var(--st-warn-fg)}
-.folio-kpi-card.is-clear .folio-kpi-icon,.folio-kpi-card.is-paid .folio-kpi-icon{background:var(--st-pos-bg);color:var(--st-pos-fg)}
+
+
+
+
+
+
+
+
+
+
+
 .customer-content--payments .haven-data-toolbar{margin-bottom:24px}
 .customer-content--payments .haven-data-toolbar.filters-compact{display:flex;flex-wrap:wrap;justify-content:flex-start;align-items:center;column-gap:10px;gap:10px}
 .customer-content--payments .haven-toolbar-search{flex:0 1 340px}
@@ -997,9 +997,9 @@
 .folio-progress-fill.partial{background:var(--cp-accent)}
 .folio-progress-fill.clear{background:var(--cp-green)}
 .folio-empty .btn{margin-top:16px}
-@media(max-width:760px){.folio-kpi-grid{grid-template-columns:1fr}.folio-kpi-card{min-height:90px}}
+
 @media(max-width:720px){.customer-content--payments .folio-filter-control{width:100%;min-width:0}}
-@media(prefers-reduced-motion:reduce){.folio-kpi-card{transition:none}.folio-kpi-card:hover{transform:none}}/* Customer guest-requests page: submission-batch cards + request modal */
+/* Customer guest-requests page: submission-batch cards + request modal */
 .cgr-request-invitation{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:20px;padding:22px 24px;border:1px solid #111827;border-radius:14px;background:#111827;color:#fff}
 .cgr-invitation-icon{width:48px;height:48px;display:grid;place-items:center;border-radius:12px;background:#ffffff12;color:#6ee7b7}
 .cgr-request-invitation h2{margin:0;font:500 28px/1.1 var(--font-display)}
