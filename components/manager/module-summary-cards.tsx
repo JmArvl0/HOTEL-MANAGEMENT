@@ -1,5 +1,6 @@
 "use client";
 import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
 // Shared module-level quick-overview cards — the compact operational snapshot
 // above a module's filters/table (NOT the Overview dashboard's big KPI cards).
@@ -8,7 +9,7 @@ import type { LucideIcon } from "lucide-react";
 // selected state; a card without one is informational and renders as a plain
 // article. Visual system lifted from the Transportation KPI cards (.mod-kpi,
 // formerly .tp-kpi) — tones reuse the same semantic icon-chip accents.
-export type ModuleSummaryTone = "attention" | "today" | "active" | "done" | "danger";
+export type ModuleSummaryTone = "attention" | "today" | "active" | "done" | "danger" | "gold";
 export type ModuleSummaryCard = {
   label: string;
   value: string | number;
@@ -19,6 +20,8 @@ export type ModuleSummaryCard = {
   queue?: string;
   /** Disables the clickable card (e.g. module busy); only affects cards with `queue`. */
   disabled?: boolean;
+  /** Optional extra content rendered under the hint (progress bar, footnote…). */
+  extra?: ReactNode;
 };
 
 export function ModuleSummaryCards({ cards, activeQueue, onSelect, ariaLabel }: {
@@ -39,6 +42,7 @@ export function ModuleSummaryCards({ cards, activeQueue, onSelect, ariaLabel }: 
         <span>{card.label}</span>
         <b>{card.value}</b>
         {card.hint && <small>{card.hint}</small>}
+        {card.extra}
         {Icon && <i className={card.tone} aria-hidden="true"><Icon size={16} /></i>}
       </>;
       return clickable
