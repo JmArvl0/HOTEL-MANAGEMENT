@@ -1209,13 +1209,6 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 @media(prefers-reduced-motion:reduce){.app-shell .insights-tabpanel{animation:none}}
 .app-shell .performance-reports{display:grid;gap:12px;min-width:0}
 .app-shell .performance-reports .reports-title{margin:0}
-.app-shell .report-kpi-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.app-shell .report-kpi-card{display:flex;align-items:flex-start;gap:13px;min-width:0;padding:17px;border:1px solid var(--dl);border-radius:10px;background:var(--ds)}
-.app-shell .report-kpi-icon{display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;border:1px solid #3b82f640;border-radius:9px;background:#3b82f61f;color:#93c5fd}
-.app-shell .report-kpi-card>div{min-width:0}
-.app-shell .report-kpi-card p{margin:0;color:var(--dm);font-size:9px;font-weight:700}
-.app-shell .report-kpi-card strong{display:block;margin:7px 0 5px;color:var(--dt);font-size:24px;line-height:1;font-variant-numeric:tabular-nums}
-.app-shell .report-kpi-card small{display:block;color:var(--dg);font-size:9px;line-height:1.5}
 .app-shell .report-analysis-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(260px,.75fr);gap:10px;align-items:stretch;min-width:0}
 .app-shell .report-analysis-panel{min-width:0;margin:0;padding:20px;border-radius:10px}
 .app-shell .report-panel-heading{align-items:flex-start;gap:12px;margin-bottom:12px}
@@ -1244,8 +1237,6 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .app-shell .performance-reports+.page-title.module-title::after{display:none}
 .app-shell .performance-reports+.page-title.module-title h1{color:var(--dt);font-size:20px}
 .app-shell .performance-reports+.page-title.module-title>div>p:last-child{color:var(--dm)}
-.theme-light .app-shell .report-kpi-card{background:#fff;box-shadow:0 8px 24px rgba(30,52,41,.04)}
-.theme-light .app-shell .report-kpi-icon{border-color:#3b82f640;background:#3b82f614;color:#1d4ed8}
 .theme-light .app-shell .report-chart-canvas{border-color:#f3f3f3;background:#10b98114}
 .theme-light .app-shell .report-chart-canvas .recharts-cartesian-grid line{stroke:#f3f3f3}
 .theme-light .app-shell .report-change{border-color:#3b82f640;background:#3b82f614;color:#1d4ed8}
@@ -1255,20 +1246,15 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .theme-light .app-shell .performance-reports+.page-title.module-title{background:#fff;box-shadow:0 8px 24px rgba(30,52,41,.04)}
 @media(max-width:1050px){.app-shell .report-analysis-grid{grid-template-columns:1fr}}
 @media(max-width:1050px){.app-shell .report-room-status ul{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:760px){.app-shell .report-kpi-grid{grid-template-columns:1fr}}
 @media(max-width:760px){.app-shell .report-analysis-panel{padding:16px}}
 @media(max-width:760px){.app-shell .report-panel-heading{flex-direction:column}}
 @media(max-width:760px){.app-shell .report-room-status ul{grid-template-columns:1fr}}
 @media(max-width:760px){.app-shell .performance-reports+.page-title.module-title{align-items:stretch;flex-direction:column;padding:17px}}
 @media print{.app-shell .performance-reports{gap:10px}}
-@media print{.app-shell .report-kpi-grid{grid-template-columns:repeat(3,1fr)}}
 @media print{.app-shell .report-analysis-grid{grid-template-columns:1.65fr .75fr}}
 @media print{.app-shell .report-data-details{display:none}}
 @media print{.app-shell .report-chart-canvas{border-color:#e8edf4!important;background:#fff!important;box-shadow:none!important}}
-@media print{.app-shell .report-kpi-card{border-color:#e8edf4!important;background:#fff!important;box-shadow:none!important}}
 @media print{.app-shell .report-analysis-panel{border-color:#e8edf4!important;background:#fff!important;box-shadow:none!important}}
-@media print{.app-shell .report-kpi-card p{color:#161d27!important}}
-@media print{.app-shell .report-kpi-card small{color:#161d27!important}}
 @media print{.app-shell .report-room-status li small{color:#161d27!important}}
 .theme-light .app-shell .ai-brief-summary{color:#111827}
 .theme-light .app-shell .ai-brief h4{color:#047857}

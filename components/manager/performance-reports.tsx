@@ -3,6 +3,8 @@
 import { BedDouble, Download, Gauge, TrendingDown, TrendingUp, Wallet } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { DashboardData, Role } from "@/lib/types";
+import { CHART_REPORT_OCCUPANCY } from "@/lib/chart-tokens";
+import { ModuleSummaryCards, type ModuleSummaryCard } from "@/components/manager/module-summary-cards";
 
 const peso = (value: unknown) => new Intl.NumberFormat("en-PH", {
   style: "currency",
@@ -34,21 +36,14 @@ export default function PerformanceReports({ data, role }: { data: DashboardData
       </button>
     </div>
 
-    <div className="report-kpi-grid" aria-label="Performance summary">
-      <article className="report-kpi-card">
-        <span className="report-kpi-icon"><Wallet size={18} aria-hidden="true"/></span>
-        <div><p>{role === "manager" ? "Collections today" : "Estimated room revenue"}</p><strong>{peso(moneyValue)}</strong>
-          <small>{role === "manager" ? `${peso(data.metrics.depositsReceived)} deposits · ${peso(data.metrics.refundSummary)} refunds` : "Based on current folios"}</small></div>
-      </article>
-      <article className="report-kpi-card">
-        <span className="report-kpi-icon"><TrendIcon size={18} aria-hidden="true"/></span>
-        <div><p>Average booked occupancy</p><strong>{averageOccupancy}%</strong><small>{occupancyChange >= 0 ? "+" : ""}{occupancyChange} points across the seven-day view</small></div>
-      </article>
-      <article className="report-kpi-card">
-        <span className="report-kpi-icon"><Gauge size={18} aria-hidden="true"/></span>
-        <div><p>Operational readiness</p><strong>{readiness}%</strong><small>{serviceableRooms} of {totalRooms} rooms serviceable</small></div>
-      </article>
-    </div>
+    <ModuleSummaryCards
+      cards={[
+        { label: role === "manager" ? "Collections today" : "Estimated room revenue", value: peso(moneyValue), hint: role === "manager" ? `${peso(data.metrics.depositsReceived)} deposits · ${peso(data.metrics.refundSummary)} refunds` : "Based on current folios", icon: Wallet, tone: "today" },
+        { label: "Average booked occupancy", value: `${averageOccupancy}%`, hint: `${occupancyChange >= 0 ? "+" : ""}${occupancyChange} points across the seven-day view`, icon: TrendIcon, tone: "today" },
+        { label: "Operational readiness", value: `${readiness}%`, hint: `${serviceableRooms} of ${totalRooms} rooms serviceable`, icon: Gauge, tone: "today" },
+      ]}
+      ariaLabel="Performance summary"
+    />
 
     <div className="report-analysis-grid">
       <article className="panel report-chart report-analysis-panel">
@@ -59,12 +54,12 @@ export default function PerformanceReports({ data, role }: { data: DashboardData
         <div className="report-chart-canvas" role="img" aria-label={`Seven-day booked occupancy chart. Average ${averageOccupancy} percent, ending at ${latestOccupancy} percent booked for today.`}>
           <ResponsiveContainer width="100%" height={285}>
             <AreaChart data={data.occupancyTrend} margin={{ top: 12, right: 8, left: -14, bottom: 0 }}>
-              <defs><linearGradient id="reportOccupancyFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#2a9098" stopOpacity={.34}/><stop offset="100%" stopColor="#2a9098" stopOpacity={.02}/></linearGradient></defs>
+              <defs><linearGradient id="reportOccupancyFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={CHART_REPORT_OCCUPANCY} stopOpacity={.34}/><stop offset="100%" stopColor={CHART_REPORT_OCCUPANCY} stopOpacity={.02}/></linearGradient></defs>
               <CartesianGrid strokeDasharray="3 5" vertical={false}/>
               <XAxis dataKey="day" axisLine={false} tickLine={false}/>
               <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tickFormatter={(value) => `${value}%`}/>
               <Tooltip formatter={(value) => [`${Number(value)}%`, "Occupancy"]}/>
-              <Area type="monotone" dataKey="occupancy" stroke="#2a9098" fill="url(#reportOccupancyFill)" strokeWidth={3}/>
+              <Area type="monotone" dataKey="occupancy" stroke={CHART_REPORT_OCCUPANCY} fill="url(#reportOccupancyFill)" strokeWidth={3}/>
             </AreaChart>
           </ResponsiveContainer>
         </div>

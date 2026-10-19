@@ -292,6 +292,11 @@ button.mod-kpi[aria-pressed="true"]{
   .mod-kpi{transition:none}
   .mod-kpi:hover{transform:none;box-shadow:none}
 }
+@media print{
+  .mod-kpi,.mod-kpi b,.mod-kpi span,.mod-kpi small{
+    background:#fff !important;color:#111 !important;box-shadow:none !important;border-color:#e8edf4 !important;
+  }
+}
 /* Staff dark accents (the .app-shell default): amber/blue chip tints from the
    merged staff layer (formerly staff-theme.css:2370-2373), pale-blue accent. */
 .app-shell .mod-kpi{
