@@ -201,6 +201,17 @@
    SEMANTIC TOKENS - Light Mode (Default)
    ============================================================================= */
 
+/*
+   Chart colors: recharts SVG attributes need raw hexes, so chart panels must
+   import from `lib/chart-tokens.ts` (single source, pinned by
+   `lib/chart-tokens.test.ts`) instead of declaring private palettes.
+
+   Status tint grammar (FleetOps reference rule, applies app-wide):
+   fills/chips use the status color at 10% over the surface; text on those
+   tints - and any status text below 14px - always uses the 700/800-level
+   variant (`--color-*-fg`, AA-safe), never the base status color.
+   */
+
 :root {
   /* -- Color Semantics -- */
   --color-bg: var(--color-cream);

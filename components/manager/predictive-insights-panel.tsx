@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Activity, BedDouble, Boxes, RefreshCw, Sparkles, Wrench } from "lucide-react";
 import { usePrefersReducedMotion } from "@/lib/motion/reduced-motion";
+import { CHART_FORECAST, CHART_GRID, CHART_OCCUPANCY } from "@/lib/chart-tokens";
 import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination";
 import PredictivePricingPanel from "@/components/manager/predictive-pricing-panel";
 import type { RiskLevel } from "@/lib/analytics/types";
@@ -279,12 +280,12 @@ export default function PredictiveInsightsPanel() {
             </div>
             <ResponsiveContainer width="100%" height={280}>
               <ComposedChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--line, #e8e7e2)" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={`var(--line, ${CHART_GRID})`} />
                 <XAxis dataKey="day" axisLine={false} tickLine={false} />
                 <YAxis domain={[0, 100]} axisLine={false} tickLine={false} unit="%" width={44} />
                 <Tooltip />
-                <Bar dataKey="Booked (fact)" fill="#176773" radius={[3, 3, 0, 0]} maxBarSize={38} isAnimationActive={chartAnimated} />
-                <Line type="monotone" dataKey="Predicted" stroke="#b8860b" strokeWidth={2.5} strokeDasharray="6 4" dot={{ r: 3 }} connectNulls isAnimationActive={chartAnimated} />
+                <Bar dataKey="Booked (fact)" fill={CHART_OCCUPANCY} radius={[3, 3, 0, 0]} maxBarSize={38} isAnimationActive={chartAnimated} />
+                <Line type="monotone" dataKey="Predicted" stroke={CHART_FORECAST} strokeWidth={2.5} strokeDasharray="6 4" dot={{ r: 3 }} connectNulls isAnimationActive={chartAnimated} />
               </ComposedChart>
             </ResponsiveContainer>
             <p className="snapshot-hint">
