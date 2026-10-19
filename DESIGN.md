@@ -484,3 +484,28 @@ kept); `refunded`/`closed` moved to green as completed outcomes while
 gained real theme rules (danger red / warning amber — previously unstyled
 gray); reservation `.mr-issue.info` moved from neutral gray to informing blue.
 Modal `danger`/`warning` map to the same red/amber tokens — no change needed.
+
+UPDATE 2026-10-19 - Stage 1 chart-token consolidation (reference-design roadmap).
+Recharts panels no longer declare private palettes: lib/chart-tokens.ts is the single source for chart hexes (grid, axis, occupancy fact #176773, report occupancy #2a9098, forecast #b8860b, template line #1d4ed8), consumed by the manager overview, HAVEN AI predictive chart, performance reports, and the tailadmin visual template; lib/chart-tokens.test.ts pins the values and forbids raw hex series attributes in those files. Values shipped unchanged - this is an ownership consolidation, no visual change expected; rendered-chart spot checks go to the manual browser checklist. The status tint grammar (10% fill + 700/800-level text variant, FleetOps reference rule) is now stated in app/design-tokens.css comment form.
+
+UPDATE 2026-10-19 - Stage 2: THE one KPI/overview card (reference-design roadmap,
+commits b964270..1244d58). One card format for staff AND guest surfaces:
+.mod-kpis/.mod-kpi lives solely in app/ui-primitives.css (section 7), painted
+per-surface by token fallback chains (--st-* staff, --cp-* customer) with
+--kpi-* component tokens set by two small theme mirrors (staff dark / light).
+Absorbed families deleted outright: .sd-kpi (staff-duty), .report-kpi
+(performance reports, horizontal -> vertical form change), .haven-ai-kpi
+(HAVEN AI; skeleton kept until Stage 3 shared skeleton work), .folio-kpi-card
+(guest payments), .loyalty-kpi (executive gradients + corner badges retired
+per product decision), and the unrouted tailadmin-haven kit + visual template
+(StatCard/TailAdmin* deleted from components/ui). Component:
+components/manager/module-summary-cards.tsx - tones attention/today/active/
+done/danger/gold (icon-chip tints follow the 10% fill + 700-ink grammar),
+aria-pressed queue cards (buttons), articles otherwise, disabled support,
+optional 'extra' slot (loyalty progressbar). Known visual deltas on staff
+surfaces: dark cards drop to 16px 18px padding / 24px stat radius (light
+theme's documented values), chips become 46x46 absolute top-right with the
+dark theme acquiring the light theme's tone-tint grammar; HAVEN AI's 5-across
+mini strip becomes the standard card at 20px gap; report cards go vertical.
+Manual browser checks required: staff dark + light, guest payments + loyalty,
+HAVEN AI skeleton, report print.
