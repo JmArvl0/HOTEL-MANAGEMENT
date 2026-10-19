@@ -8,7 +8,7 @@ import type { LucideIcon } from "lucide-react";
 // selected state; a card without one is informational and renders as a plain
 // article. Visual system lifted from the Transportation KPI cards (.mod-kpi,
 // formerly .tp-kpi) — tones reuse the same semantic icon-chip accents.
-export type ModuleSummaryTone = "attention" | "today" | "active" | "done";
+export type ModuleSummaryTone = "attention" | "today" | "active" | "done" | "danger";
 export type ModuleSummaryCard = {
   label: string;
   value: string | number;

@@ -274,6 +274,7 @@ button.mod-kpi[disabled]{opacity:.55;cursor:default}
 .mod-kpi>i.today{background:var(--kpi-today-bg,var(--ops-info-tint,#3b82f614));border-color:transparent;color:var(--kpi-today-ink,var(--ops-info-ink,#1d4ed8))}
 .mod-kpi>i.active{background:var(--kpi-active-bg,var(--ops-info-tint,#3b82f614));border-color:transparent;color:var(--kpi-active-ink,var(--ops-info-ink,#1d4ed8))}
 .mod-kpi>i.done{background:var(--kpi-done-bg,var(--ops-success-tint,#10b98114));border-color:transparent;color:var(--kpi-done-ink,var(--ops-success-ink,#047857))}
+.mod-kpi>i.danger{background:var(--kpi-danger-bg,#ef444414);border-color:transparent;color:var(--kpi-danger-ink,#b91c1c)}
 .danger-tone>i{background:var(--ops-danger-tint,var(--color-red-100,#fee2e2));border-color:transparent;color:var(--ops-danger-ink,var(--color-red-800,#991b1b))}
 .success-tone>i{background:var(--ops-success-tint,var(--color-green-100,#dcfce7));border-color:transparent;color:var(--ops-success-ink,var(--color-green-800,#166534))}
 .gold-tone>i{background:var(--kpi-gold-bg,var(--haven-gold-100,#fef3c7));border-color:transparent;color:var(--kpi-gold-ink,var(--haven-gold-700,#b45309))}
@@ -309,6 +310,7 @@ button.mod-kpi[aria-pressed="true"]{
   --kpi-today-bg:#16233f;        --kpi-today-ink:#8fb4ec;
   --kpi-active-bg:#16233f;       --kpi-active-ink:#8fb4ec;
   --kpi-done-bg:#10b9811f;       --kpi-done-ink:#6ee7b7;
+  --kpi-danger-bg:#3a1f26;       --kpi-danger-ink:#fca5a5;
 }
 /* Staff light (.theme-light) accents: ink accent/default chip on the brand
    ramp, ops tints for the four tones (formerly staff-theme.css:2247-2255). */
@@ -322,4 +324,5 @@ button.mod-kpi[aria-pressed="true"]{
   --kpi-today-bg:var(--ops-info-tint,#3b82f614);        --kpi-today-ink:var(--ops-info-ink,#1d4ed8);
   --kpi-active-bg:var(--ops-info-tint,#3b82f614);       --kpi-active-ink:var(--ops-info-ink,#1d4ed8);
   --kpi-done-bg:var(--ops-success-tint,#10b98114);      --kpi-done-ink:var(--ops-success-ink,#047857);
+  --kpi-danger-bg:#ef444414;      --kpi-danger-ink:#b91c1c;
 }

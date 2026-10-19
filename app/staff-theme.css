@@ -1296,15 +1296,10 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .app-shell .haven-ai-section-heading{display:flex;align-items:end;justify-content:space-between;gap:16px}
 .app-shell .haven-ai-section-heading h2{margin:0;color:var(--dt);font:650 15px var(--font-sans);letter-spacing:-.01em}
 .app-shell .haven-ai-section-heading p{margin:0;color:var(--dm);font-size:9px;line-height:1.5}
-.app-shell .haven-ai-kpi-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}
-.app-shell .haven-ai-kpi>svg{flex:none;padding:8px;box-sizing:content-box;border-radius:10px;background:#3b82f61f;color:#93c5fd}
-.app-shell .haven-ai-kpi.warning>svg{background:#f59e0b1f;color:#fcd34d}
-.app-shell .haven-ai-kpi.risk>svg{background:#ef44441f;color:#fca5a5}
-.app-shell .haven-ai-kpi>span{display:grid;min-width:0;gap:4px}
-.app-shell .haven-ai-kpi small{color:var(--dm);font-size:9px;font-weight:650;line-height:1.35}
-.app-shell .haven-ai-kpi b{color:var(--dt);font-size:15px;line-height:1.2;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
-.app-shell .haven-ai-kpi em{color:var(--dm);font-size:9px;font-style:normal;line-height:1.4}
-.app-shell .haven-ai-kpi-skeleton{min-height:100px;border:1px solid var(--dl);border-radius:12px;background:linear-gradient(90deg,var(--ds) 25%,var(--ds2) 50%,var(--ds) 75%);background-size:200% 100%;animation:aiSkeleton 1.2s ease-in-out infinite}
+/* .haven-ai-kpi cards absorbed into the shared .mod-kpis family
+   (app/ui-primitives.css 2026-10-19, Stage 2 C4); only the loading
+   skeleton remains — slated for the shared skeleton pattern (Stage 3). */
+.app-shell .haven-ai-kpi-skeleton>i{display:block;min-height:100px;border:1px solid var(--dl);border-radius:12px;background:linear-gradient(90deg,var(--ds) 25%,var(--ds2) 50%,var(--ds) 75%);background-size:200% 100%;animation:aiSkeleton 1.2s ease-in-out infinite}
 .app-shell .haven-ai-main-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(310px,.95fr);gap:12px;align-items:stretch;min-width:0}
 .app-shell .haven-ai-main-grid>.panel{min-width:0;margin:0;padding:19px;border-radius:12px}
 .app-shell .haven-ai-main-grid>.panel>.panel-heading{align-items:flex-start;margin-bottom:14px;padding-bottom:13px;border-bottom:1px solid var(--dl);gap:14px}
@@ -1375,9 +1370,6 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .theme-light .app-shell .haven-ai-advisory{border-inline-start-color:#d1d5db;color: #fff;background: var(--ops-navy);border-radius: 999px;font-size: 11px;font-weight: 600}
 .theme-light .app-shell .haven-ai-advisory b{color: #ffffff}
 .theme-light .app-shell .haven-ai-advisory small{color: #93c5fd}
-.theme-light .app-shell .haven-ai-kpi>svg{background:#3b82f614;color:#1d4ed8}
-.theme-light .app-shell .haven-ai-kpi.warning>svg{background:#fff0dd;color:#b45309}
-.theme-light .app-shell .haven-ai-kpi.risk>svg{background:#ef444414;color:#b91c1c}
 .theme-light .app-shell .ai-brief-loading i{background:linear-gradient(90deg,#f3f3f3 25%,#f3f3f3 50%,#f3f3f3 75%);background-size:200% 100%}
 .theme-light .app-shell .ai-brief .ai-brief-block{background:#10b98114}
 .theme-light .app-shell .ai-brief .ai-brief-block.summary{background:#3b82f614}
@@ -1397,8 +1389,6 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .theme-light .app-shell .ai-conversation-empty{background:#10b98114}
 .theme-light .app-shell .ai-workflow-step{background:#10b98114}
 .theme-light .app-shell .ai-workflow-flow aside{border-color:#10b98140;background:#10b98114}
-@media(max-width:1240px){.app-shell .haven-ai-kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:1240px){.app-shell .haven-ai-kpi:last-child{grid-column:span 2}}
 @media(max-width:1240px){.app-shell .haven-ai-main-grid{grid-template-columns:minmax(0,1.35fr) minmax(300px,1fr)}}
 @media(max-width:1240px){.app-shell .ai-workflow-flow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:1240px){.app-shell .ai-workflow-arrow{display:none}}
@@ -1411,8 +1401,6 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 @media(max-width:680px){.app-shell .haven-ai-hero{padding:19px}}
 @media(max-width:680px){.app-shell .haven-ai-hero h1{font-size:26px}}
 @media(max-width:680px){.app-shell .haven-ai-section-heading{align-items:flex-start;flex-direction:column;gap:4px}}
-@media(max-width:680px){.app-shell .haven-ai-kpi-grid{grid-template-columns:1fr}}
-@media(max-width:680px){.app-shell .haven-ai-kpi:last-child{grid-column:auto}}
 @media(max-width:680px){.app-shell .haven-ai-main-grid>.panel{padding:15px}}
 @media(max-width:680px){.app-shell .haven-ai-main-grid>.panel>.panel-heading{flex-direction:column}}
 @media(max-width:680px){.app-shell .ai-brief-controls{width:100%;justify-content:space-between}}
@@ -1426,7 +1414,7 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 @media(max-width:420px){.app-shell .ai-brief-controls .btn{width:100%}}
 @media(max-width:420px){.app-shell .ai-ask-form{flex-direction:column}}
 @media(max-width:420px){.app-shell .ai-ask-form .btn{width:100%}}
-@media(prefers-reduced-motion:reduce){.app-shell .haven-ai-kpi-skeleton{animation:none}}
+@media(prefers-reduced-motion:reduce){.app-shell .haven-ai-kpi-skeleton>i{animation:none}}
 @media(prefers-reduced-motion:reduce){.app-shell .ai-brief-loading i{animation:none}}
 @media(prefers-reduced-motion:reduce){.app-shell .ai-brief-controls .is-spinning{animation:none}}
 @media(prefers-reduced-motion:reduce){.app-shell .ai-suggested button svg{transition:none}}
@@ -2269,8 +2257,6 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .theme-light .app-shell .haven-ai-hero > div > p:last-child{color: var(--ops-text-2)}
 .theme-light .app-shell .ai-brief{background: var(--ops-paper);border-radius: var(--ops-r-card)}
 .theme-light .app-shell .ai-conversation{background: var(--ops-paper);border-radius: var(--ops-r-card)}
-.theme-light .app-shell .haven-ai-kpi-grid{gap: 16px}
-.theme-light .app-shell .haven-ai-kpi{background: var(--ops-surface);border: 1px solid var(--ops-border);border-radius: var(--ops-r-stat);font-variant-numeric: var(--ops-tnum)}
 .theme-light .app-shell .ai-turn.assistant{background: var(--ops-surface);border: 1px solid var(--ops-border)}
 .theme-light .app-shell .ai-turn.assistant .ai-md h3{color: var(--ops-ink)}
 .theme-light .app-shell .ai-turn.assistant .ai-md h4{color: var(--ops-ink)}
@@ -2765,7 +2751,6 @@ tbody tr:hover{background: var(--surface-hover)}
 .app-shell .workspace-body .page-title > .btn{flex: none;display: flex;flex-wrap: wrap;gap: 8px}
 .app-shell .page-header-actions{flex: none;display: flex;flex-wrap: wrap;gap: 8px}
 .app-shell .metric-card b{margin: 6px 0 4px;color: var(--st-text-primary);font-family: var(--font-sans);font-size: 28px;font-weight: 750;font-variant-numeric: tabular-nums;overflow-wrap: anywhere;min-width: 0;letter-spacing: -0.02em;line-height: 1.15}
-.app-shell .haven-ai-kpi{display:flex;align-items:flex-start;gap:11px;min-width: 0;min-height:100px;padding:14px;border:1px solid var(--dl);border-radius: var(--ops-r-stat);background:var(--ds);font-variant-numeric: var(--ops-tnum);overflow-wrap: anywhere}
 .app-shell .panel-heading{margin-bottom:13px;display: flex;flex-wrap: wrap;gap: 12px;align-items: center;justify-content: space-between;padding: 18px 24px;border-bottom: 1px solid var(--st-border-color);background: var(--st-bg-surface)}
 .app-shell .panel-heading > div:first-child{flex: 1 1 200px;min-width: 0}
 .app-shell .panel-heading button{color: #b9c6de;font-size: 12px;font-weight: 600;flex: none}

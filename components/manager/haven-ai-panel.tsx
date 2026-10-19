@@ -17,6 +17,7 @@ import {
   Wrench
 } from "lucide-react";
 import AiMarkdown from "./ai-markdown";
+import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 
 /**
  * HAVEN AI — the Gemini assistance workspace for the Manager. Two features:
@@ -177,17 +178,22 @@ export default function HavenAiPanel({ userName, onOpenQueue }: { userName?: str
           <h2 id="ai-indicators-title">Key operational indicators from today&apos;s data</h2>
           <p>Direct values from HAVEN&apos;s operational records.</p>
         </div>
-        <div className="haven-ai-kpi-grid">
-          {loadingBrief ? Array.from({ length: 5 }, (_, index) => <div className="haven-ai-kpi-skeleton" key={index} aria-hidden="true" />) : (
-            <>
-              <article className="haven-ai-kpi"><BedDouble size={18} aria-hidden="true"/><span><small>Occupied now</small><b>{metricValue(indicators?.occupiedNow, "rooms")}</b><em>Current room status</em></span></article>
-              <article className="haven-ai-kpi"><CalendarCheck2 size={18} aria-hidden="true"/><span><small>Arrivals tomorrow</small><b>{metricValue(indicators?.arrivalsTomorrow, "reservations")}</b><em>Confirmed and checked-in stays</em></span></article>
-              <article className="haven-ai-kpi"><ClipboardList size={18} aria-hidden="true"/><span><small>Open guest requests</small><b>{metricValue(indicators?.openGuestRequests, "requests")}</b><em>Awaiting completion</em></span></article>
-              <article className="haven-ai-kpi warning"><PackageSearch size={18} aria-hidden="true"/><span><small>High-risk supplies</small><b>{metricValue(indicators?.highRiskSupplies, "items")}</b><em>Flagged by HAVEN analytics</em></span></article>
-              <article className="haven-ai-kpi risk"><Wrench size={18} aria-hidden="true"/><span><small>Open maintenance items</small><b>{metricValue(indicators?.openMaintenanceItems, "items")}</b><em>Unresolved work orders</em></span></article>
-            </>
-          )}
-        </div>
+        {loadingBrief ? (
+          <div className="mod-kpis haven-ai-kpi-skeleton" role="status" aria-label="Loading operational indicators">
+            {Array.from({ length: 5 }, (_, index) => <i key={index} />)}
+          </div>
+        ) : (
+          <ModuleSummaryCards
+            cards={[
+              { label: "Occupied now", value: metricValue(indicators?.occupiedNow, "rooms"), hint: "Current room status", icon: BedDouble, tone: "today" },
+              { label: "Arrivals tomorrow", value: metricValue(indicators?.arrivalsTomorrow, "reservations"), hint: "Confirmed and checked-in stays", icon: CalendarCheck2, tone: "today" },
+              { label: "Open guest requests", value: metricValue(indicators?.openGuestRequests, "requests"), hint: "Awaiting completion", icon: ClipboardList, tone: "today" },
+              { label: "High-risk supplies", value: metricValue(indicators?.highRiskSupplies, "items"), hint: "Flagged by HAVEN analytics", icon: PackageSearch, tone: "attention" },
+              { label: "Open maintenance items", value: metricValue(indicators?.openMaintenanceItems, "items"), hint: "Unresolved work orders", icon: Wrench, tone: "danger" },
+            ]}
+            ariaLabel="Key operational indicators"
+          />
+        )}
       </section>
 
       <div className="haven-ai-main-grid">
