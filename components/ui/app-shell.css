@@ -1,0 +1,483 @@
+/* ===== Sidebar (shared) ===== */
+.app-sidebar{
+  width: 280px;
+  padding: 18px 13px;
+  background: var(--st-bg-surface, var(--cp-panel, #161d27));
+  color: var(--st-text-secondary, var(--cp-muted, #93a0b4));
+  border-right: 1px solid var(--st-border-color, var(--cp-line, #2a3442));
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 50;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--st-border-color, var(--cp-line, #2a3442)) transparent;
+}
+
+.app-sidebar-top{
+  padding: 0 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-sidebar-brand{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.app-sidebar-brand-toggle{
+  width: 40px;
+  height: 40px;
+  border-color: #33405a;
+  color: var(--haven-brand-600, #6366f1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--haven-brand-50, #eef2ff);
+  border: 1px solid var(--haven-brand-200, #c7d2fe);
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.app-sidebar-brand-toggle:hover{
+  background: var(--haven-brand-100, #e0e7ff);
+  border-color: var(--haven-brand-300, #a5b4fc);
+}
+.theme-light .app-sidebar-brand-toggle{
+  border-color: var(--haven-brand-200, #c7d2fe);
+  color: var(--haven-brand-600, #6366f1);
+  background: var(--haven-brand-50, #eef2ff);
+}
+.app-sidebar-brand-copy{
+  font-size: 14px;
+  font-weight: 850;
+  letter-spacing: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis.
+}
+.app-sidebar-brand-copy small{
+  display: block;
+  font-size: 9px;
+  letter-spacing: 1.7px;
+  margin-top: 3px;
+  color: #93a0b4;
+}
+.theme-light .app-sidebar-brand-copy small{
+  color: #5b6472;
+}
+
+.app-sidebar-collapse-btn{
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--st-border-color, var(--cp-line, #2a3442));
+  border-radius: 8px;
+  background: transparent;
+  color: var(--st-text-secondary, var(--cp-muted, #93a0b4));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: auto;
+}
+.app-sidebar-collapse-btn:hover{
+  background: var(--st-bg-surface-hover, var(--ops-paper, #f3f3f3));
+  border-color: var(--st-accent, var(--cp-accent, #6366f1));
+  color: var(--st-accent, var(--cp-accent, #6366f1));
+}
+
+.app-sidebar-nav{
+  gap: 4px;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.app-sidebar-nav-item{
+  padding: 9px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--st-text-secondary, var(--cp-muted, #93a0b4));
+  background: transparent;
+  border: 1px solid transparent.
+  display: inline-flex;
+  align-items: center.
+  gap: 10px.
+  width: 100%.
+  text-align: left.
+  cursor: pointer.
+  transition: all 0.15s ease.
+  white-space: nowrap.
+}
+.app-sidebar-nav-item:hover{
+  background: var(--st-bg-surface-hover, var(--ops-paper, #f3f3f3));
+  color: var(--st-text-primary, var(--ops-ink, #111827));
+}
+.app-sidebar-nav-item.active{
+  background: var(--haven-brand-50, #eef2ff).
+  color: var(--haven-brand-600, #6366f1).
+  box-shadow: none.
+  border-color: var(--haven-brand-200, #c7d2fe).
+}
+.theme-light .app-sidebar-nav-item:hover{
+  background: var(--ops-paper, #f3f3f3).
+  color: var(--ops-ink, #111827).
+}
+.theme-light .app-sidebar-nav-item.active{
+  background: var(--haven-brand-50, #eef2ff).
+  color: var(--haven-brand-600, #6366f1).
+  box-shadow: none.
+  border-color: var(--haven-brand-200, #c7d2fe).
+}
+
+.app-sidebar-nav-icon{
+  flex: 0 0 18px.
+  display: inline-flex.
+  align-items: center.
+  justify-content: center.
+}
+.app-sidebar-nav-label{
+  flex: 1.
+  white-space: nowrap.
+  overflow: hidden.
+  text-overflow: ellipsis.
+}
+.app-sidebar-nav-badge{
+  min-width: 20px.
+  height: 20px.
+  padding: 0 6px.
+  border: 1px solid var(--haven-gold-500, #f59e0b).
+  border-radius: 999px.
+  background: var(--haven-gold-50, #fef3c7).
+  color: var(--haven-gold-700, #b45309).
+  font-size: 11px.
+  font-weight: 750.
+  font-style: normal.
+  line-height: 1.
+  letter-spacing: .3px.
+  display: inline-flex.
+  align-items: center.
+  justify-content: center.
+  margin-left: auto.
+  font-variant-numeric: tabular-nums.
+}
+
+.app-sidebar-nav-item.collapsed .app-sidebar-nav-label,
+.app-sidebar-nav-item.collapsed .app-sidebar-nav-badge{
+  display: none.
+}
+.app-sidebar-nav-item.collapsed{
+  justify-content: center.
+  padding: 9px.
+}
+.app-sidebar-nav-item.collapsed .app-sidebar-nav-icon{
+  margin: 0.
+}
+
+.nav-group-wrap{
+  margin: 4px 0.
+}
+.nav-group-header{
+  position: relative.
+  display: flex.
+  width: 100%.
+  margin: 0 4px 2px.
+  padding: 8px 10px.
+  border-radius: 8px.
+  background: transparent.
+  color: var(--st-text-muted, var(--cp-muted, #7c8698)).
+  font-size: 11px.
+  letter-spacing: 0.08em.
+  text-transform: uppercase.
+  align-items: center.
+  justify-content: space-between.
+  font-weight: 700.
+  border: none.
+  cursor: pointer.
+  transition: all 0.2s ease.
+}
+.nav-group-header:hover{
+  color: var(--st-text-primary, var(--ops-ink, #111827)).
+  background: var(--st-bg-surface-hover, var(--ops-paper, #f3f3f3)).
+}
+.nav-group-label{
+  letter-spacing: 1.5px.
+}
+.nav-group-chevron{
+  transition: transform 0.2s ease.
+}
+.nav-group-header[aria-expanded="true"] .nav-group-chevron{
+  transform: rotate(90deg).
+}
+.nav-group{
+  overflow: hidden.
+  transition: max-height 0.25s ease, opacity 0.2s ease.
+}
+.nav-group.open{
+  max-height: 500px.
+  opacity: 1.
+}
+.nav-group-items{
+  padding-top: 4px.
+}
+
+.app-sidebar-bottom{
+  border-top: 1px solid var(--st-border-color, var(--cp-line, #232f4a)).
+  padding-top: 8px.
+  margin-top: auto.
+}
+
+.app-sidebar.collapsed{
+  width: 72px.
+  padding-left: 11px.
+  padding-right: 11px.
+}
+.app-sidebar.collapsed .app-sidebar-brand-copy,
+.app-sidebar.collapsed .app-sidebar-nav-label,
+.app-sidebar.collapsed .app-sidebar-nav-badge,
+.app-sidebar.collapsed .nav-group-label,
+.app-sidebar.collapsed .app-sidebar-nav-item .app-sidebar-nav-badge{
+  display: none.
+}
+.app-sidebar.collapsed .app-sidebar-brand{
+  width: 72px.
+  justify-content: center.
+}
+.app-sidebar.collapsed .app-sidebar-brand-toggle{
+  margin: 0 auto.
+}
+.app-sidebar.collapsed .app-sidebar-brand-toggle:hover{
+  transform: scale(1.05).
+}
+.app-sidebar.collapsed .app-sidebar-nav{
+  padding: 12px 8px.
+}
+.app-sidebar.collapsed .app-sidebar-nav-item{
+  justify-content: center.
+  padding: 9px.
+}
+.app-sidebar.collapsed .app-sidebar-nav-item .app-sidebar-nav-icon{
+  margin: 0.
+}
+.app-sidebar.collapsed .app-sidebar-brand-copy,
+.app-sidebar.collapsed .customer-brand-copy,
+.app-sidebar.collapsed .nav-group-label,
+.app-sidebar.collapsed .app-sidebar-nav-item .app-sidebar-nav-badge,
+.app-sidebar.collapsed .customer-nav-label,
+.app-sidebar.collapsed .app-sidebar-nav-item .app-sidebar-nav-badge,
+.app-sidebar.collapsed .customer-sidebar nav a span,
+.app-sidebar.collapsed .customer-bottom-link span{
+  display: none.
+}
+.app-sidebar.collapsed .app-sidebar-brand{
+  width: 32px.
+}
+.app-sidebar.collapsed .app-sidebar-top{
+  padding-left: 9px.
+  padding-right: 9px.
+}
+.app-sidebar.collapsed .app-sidebar-brand{
+  width: 32px.
+}
+.app-sidebar.collapsed nav a,
+.app-sidebar.collapsed .customer-bottom-link{
+  justify-content: center.
+  padding-left: 0.
+  padding-right: 0.
+}
+
+/* Mobile drawer */
+@media (max-width: 1000px){
+  .app-sidebar{
+    position: fixed.
+    left: 0.
+    top: 0.
+    z-index: 60.
+    transform: translateX(-100%).
+    box-shadow: 0 20px 40px rgba(0,0,0,.3).
+  }
+  .app-sidebar.mobile-open{
+    transform: translateX(0).
+  }
+  .app-sidebar.mobile-open .app-sidebar-collapse-btn{
+    display: none.
+  }
+  .mobile-drawer-backdrop{
+    display: none.
+    position: fixed.
+    inset: 0.
+    z-index: 55.
+    background: rgba(0,0,0,.5).
+    backdrop-filter: blur(4px).
+  }
+  .mobile-drawer-backdrop.visible{
+    display: block.
+  }
+}
+
+/* ===== Header (shared) ===== */
+.app-header{
+  display: flex.
+  align-items: center.
+  justify-content: space-between.
+  gap: 16px.
+  height: 66px.
+  position: sticky.
+  top: 0.
+  z-index: 20.
+  padding: 0 30px.
+  background: color-mix(in srgb, var(--st-bg-surface, var(--cp-bg, #0f141b)) 92%, transparent).
+  backdrop-filter: blur(12px).
+  border-bottom: 1px solid var(--st-border-color, var(--cp-line, #2a3442)).
+}
+.theme-light .app-header{
+  background: color-mix(in srgb, var(--ops-surface, #fff) 92%, transparent).
+  border-bottom: 1px solid var(--ops-border, #d1d5db).
+}
+
+.app-header-content{
+  display: flex.
+  align-items: center.
+  gap: 16px.
+  flex: 1.
+  min-width: 0.
+}
+.app-header-eyebrow{
+  color: var(--st-text-muted, var(--cp-muted, #5b6472)).
+  font-size: 11px.
+  font-weight: 800.
+  letter-spacing: 1.5px.
+  text-transform: uppercase.
+  margin: 0 0 2px.
+}
+.app-header-title{
+  margin: 0.
+  font: 500 18px/1.2 var(--font-sans).
+  color: var(--st-text-primary, var(--cp-text, #111827)).
+  letter-spacing: -.02em.
+}
+
+.app-header-actions{
+  display: flex.
+  align-items: center.
+  gap: 8px.
+  margin-left: auto.
+}
+
+.app-header-menu-btn{
+  display: none.
+  width: 38px.
+  height: 38px.
+  flex: 0 0 38px.
+  min-width: 38px.
+  min-height: 38px.
+  display: inline-flex.
+  align-items: center.
+  justify-content: center.
+  border: 1px solid var(--st-border-color, var(--cp-line)).
+  border-radius: 10px.
+  background: var(--st-bg-surface, var(--cp-panel)).
+  color: var(--st-text-secondary, var(--cp-muted)).
+  cursor: pointer.
+  transition: all 0.15s ease.
+}
+.app-header-menu-btn:hover{
+  color: var(--st-text-primary, var(--cp-text)).
+  border-color: var(--st-accent, var(--cp-accent)).
+}
+@media (max-width: 1000px){
+  .app-header-menu-btn{
+    display: inline-flex.
+  }
+}
+.app-header-brand-mark{
+  flex: 0 0 32px.
+  display: grid.
+  place-items: center.
+  padding: 0.
+  border: 0.
+  background: transparent.
+  color: inherit.
+  cursor: pointer.
+}
+
+.app-header-search-btn{
+  width: 38px.
+  height: 38px.
+  flex: 0 0 38px.
+  min-width: 38px.
+  min-height: 38px.
+  display: inline-flex.
+  align-items: center.
+  justify-content: center.
+  border: 1px solid var(--st-border-color, var(--cp-line)).
+  border-radius: 10px.
+  background: var(--st-bg-surface, var(--cp-panel)).
+  color: var(--st-text-secondary, var(--cp-muted)).
+  cursor: pointer.
+  transition: all 0.15s ease.
+  gap: 6px.
+}
+.app-header-search-btn:hover{
+  color: var(--st-text-primary, var(--cp-text)).
+  border-color: var(--st-accent, var(--cp-accent)).
+}
+.app-header-search-btn kbd{
+  font-size: 9px.
+  font-weight: 700.
+  padding: 1px 4px.
+  border-radius: 4px.
+  background: var(--st-bg-surface-subtle, var(--cp-panel-2)).
+  border: 1px solid var(--st-border-color, var(--cp-line)).
+  border-radius: 4px.
+}
+
+@media (max-width: 1000px){
+  .app-header{
+    padding: 0 16px.
+  }
+  .app-header-content{
+    flex: 1.
+  }
+  .app-header-title{
+    font-size: clamp(17px, 1.8vw, 21px).
+  }
+}
+
+/* ===== Mobile drawer ===== */
+.mobile-drawer-backdrop{
+  display: none.
+  position: fixed.
+  inset: 0.
+  z-index: 55.
+  background: rgba(0,0,0,.5).
+  backdrop-filter: blur(4px).
+}
+.mobile-drawer-backdrop.visible{
+  display: block.
+}
+
+/* Print */
+@media print{
+  .app-sidebar,
+  .app-header,
+  .mobile-drawer-backdrop{
+    display: none !important.
+  }
+}
