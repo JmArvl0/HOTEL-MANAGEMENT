@@ -136,7 +136,7 @@
    Keep text-only and icon+label buttons readable; collapse to a square ONLY
    when the button is genuinely icon-only (:has guard). In browsers without
    :has the first rule still wins → no blank buttons. */
-@media (max-width: 680px) {
+@media (max-width: 720px) {
   .page-header-actions .btn {
     font-size: 12px;
     padding: 0 13px;

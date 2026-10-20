@@ -253,7 +253,7 @@ body:has(.dialog-backdrop) {
   padding: 24px 28px;
 }
 
-@media (max-width: 680px) {
+@media (max-width: 720px) {
   .modal-branded .modal-header,
   .modal-branded .modal-body {
     padding-left: 20px;
@@ -1458,7 +1458,7 @@ body:has(.dialog-backdrop) {
 }
 
 /* Responsive: Mobile cards on small screens */
-@media (max-width: 768px) {
+@media (max-width: 720px) {
   .data-table-wrapper {
     display: none;
   }
@@ -1645,7 +1645,7 @@ body:has(.dialog-backdrop) {
 .page-header.band .breadcrumb-current { color: var(--hero-muted, #d1d5db); }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 720px) {
   .page-header {
     flex-direction: column;
     gap: 16px;

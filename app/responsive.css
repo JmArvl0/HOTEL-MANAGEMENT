@@ -20,8 +20,8 @@ a, button, [role="button"]{ overflow-wrap: anywhere; }
 
 /* Adaptive gutters: 16px at 320 → 24px at 768 → 40–56px at 1024+ */
 :root{ --haven-gutter: 16px; }
-@media (min-width: 768px){ :root{ --haven-gutter: 24px; } }
-@media (min-width: 1024px){ :root{ --haven-gutter: 40px; } }
+@media (min-width: 720px){ :root{ --haven-gutter: 24px; } }
+@media (min-width: 1100px){ :root{ --haven-gutter: 40px; } }
 @media (min-width: 1440px){ :root{ --haven-gutter: 56px; } }
 
 /* Tables: card layout fallback on very small screens + horizontal scroll where needed */
@@ -36,7 +36,7 @@ a, button, [role="button"]{ overflow-wrap: anywhere; }
 }
 
 /* Touch-friendly: ensure primary CTAs are >=44px on mobile */
-@media (max-width: 680px){
+@media (max-width: 720px){
   .btn, .btn-accent, .btn-soft, .btn-cream{
     min-height: 44px;
     padding-top: 12px; padding-bottom: 12px;
@@ -57,7 +57,7 @@ a, button, [role="button"]{ overflow-wrap: anywhere; }
 }
 
 /* Booking flows: compact search + stage stacks */
-@media (max-width: 768px){
+@media (max-width: 720px){
   .booking-header{ padding:0 var(--haven-gutter, 16px); gap:16px }
   .booking-hero{ padding:32px var(--haven-gutter, 16px) }
   .booking-content{ padding:24px var(--haven-gutter, 16px) 40px }
@@ -65,7 +65,7 @@ a, button, [role="button"]{ overflow-wrap: anywhere; }
 }
 
 /* Customer shell: already handled at 900, add 375 fine tune */
-@media (max-width: 375px){
+@media (max-width: 480px){
   .customer-content{ padding:18px 14px 40px }
   .customer-content-header{ padding-left:56px; padding-right:14px }
   .customer-header-actions{ gap:6px }
@@ -73,7 +73,7 @@ a, button, [role="button"]{ overflow-wrap: anywhere; }
 }
 
 /* App shell: prevent sidebar overlap at 320 */
-@media (max-width: 360px){
+@media (max-width: 480px){
   .app-shell .sidebar, .app-shell .sidebar.collapsed{ width: 88vw }
   .workspace-body{ padding:16px 12px }
   .page-header .page-header-title{ font-size:20px }

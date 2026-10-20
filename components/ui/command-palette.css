@@ -538,14 +538,14 @@
   outline-offset: 1px;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1100px) {
   .saas-header-search-btn {
     width: 200px;
     min-width: 170px;
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 720px) {
   .saas-cmd-overlay {
     padding: 16px 12px;
     align-items: flex-start;
