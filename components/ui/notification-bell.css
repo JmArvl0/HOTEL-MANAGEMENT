@@ -1,0 +1,157 @@
+/* Notification Bell — single source for bell + badge styles.
+   Removes the !important walls from staff-theme.css / guest-booking.css. */
+
+.haven-notification-bell{
+  position:relative;
+  width:38px;
+  height:38px;
+  min-width:38px;
+  min-height:38px;
+  flex:0 0 38px;
+  padding:0;
+  margin:0;
+  border-radius:10px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box;
+  overflow:visible;
+  background:transparent;
+  border:1px solid transparent;
+  color:var(--hc-muted, var(--dm, #5b6472));
+  transition:background .15s ease,color .15s ease,border-color .15s ease;
+}
+.haven-notification-bell:hover{
+  background:color-mix(in srgb,var(--hc-accent) 12%,transparent);
+  color:var(--hc-text,var(--dt,#111827));
+}
+.haven-notification-bell:focus-visible{
+  outline:2px solid var(--focus-ring,var(--dg,#111827));
+  outline-offset:2px;
+}
+.haven-notification-bell[aria-expanded="true"]{
+  background:color-mix(in srgb,var(--hc-accent) 16%,transparent);
+  border-color:var(--hc-accent);
+  color:var(--hc-accent);
+}
+
+/* Bell icon */
+.haven-bell-icon{
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  width:18px;
+  height:18px;
+  margin:0;
+  padding:0;
+  pointer-events:none;
+  transform-origin:50% 15%;
+  transition:transform .28s cubic-bezier(0.34,1.56,0.64,1),color .18s ease;
+}
+.haven-notification-bell:hover .haven-bell-icon{
+  transform:translate(-50%,-50%) rotate(14deg);
+}
+.haven-notification-bell[aria-expanded="true"] .haven-bell-icon{
+  transform:translate(-50%,-50%) rotate(-14deg);
+}
+
+/* Badge */
+.haven-notification-badge{
+  position:absolute;
+  right:-4px;
+  top:-4px;
+  left:auto;
+  bottom:auto;
+  z-index:4;
+  min-width:18px;
+  height:18px;
+  width:auto;
+  padding:0 4px;
+  border:2px solid var(--haven-bell-badge-border, var(--ds, #0f141b));
+  border-radius:999px;
+  background:#ef4444;
+  color:#ffffff;
+  font-size:9.5px;
+  font-weight:800;
+  font-style:normal;
+  line-height:1;
+  white-space:nowrap;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 2px 6px rgba(239,68,68,.4);
+  pointer-events:none;
+  transform:none;
+  box-sizing:border-box;
+}
+
+/* Customer variant */
+.customer-shell .haven-notification-bell{
+  width:38px;
+  height:38px;
+  min-width:38px;
+  min-height:38px;
+  flex:0 0 38px;
+  border:1px solid var(--cp-line);
+  border-radius:10px;
+  background:var(--cp-panel);
+  color:var(--cp-muted);
+}
+.customer-shell .haven-notification-bell:hover{
+  color:var(--cp-text);
+  border-color:var(--cp-accent);
+  background:var(--cp-panel-2);
+}
+.customer-shell .haven-notification-bell:focus-visible{
+  outline:2px solid var(--focus-ring,var(--cp-green));
+  outline-offset:2px;
+}
+.customer-shell .haven-notification-bell[aria-expanded="true"]{
+  color:var(--cp-accent);
+  border-color:var(--cp-accent);
+  background:var(--cp-panel-2);
+}
+.customer-shell .haven-notification-badge{
+  background:#ef4444;
+  color:#ffffff;
+  border-color:#ffffff;
+  box-shadow:0 2px 6px rgba(239,68,68,.3);
+}
+
+/* Light theme overrides for staff */
+.theme-light .app-shell .haven-notification-bell{
+  border:1px solid var(--ops-border);
+  background:var(--ops-surface);
+  color:var(--ops-text-2);
+}
+.theme-light .app-shell .haven-notification-bell:hover{
+  background:var(--ops-paper);
+  border-color:var(--ops-accent);
+  color:var(--ops-ink);
+}
+.theme-light .app-shell .haven-notification-bell:focus-visible{
+  outline:2px solid var(--focus-ring,var(--ops-info));
+  outline-offset:2px;
+}
+.theme-light .app-shell .haven-notification-bell[aria-expanded="true"]{
+  border-color:var(--ops-accent);
+  background:var(--ops-info-tint);
+  color:var(--ops-info-ink);
+}
+.theme-light .app-shell .haven-notification-badge{
+  background:#ef4444;
+  color:#ffffff;
+  border-color:#ffffff;
+  box-shadow:0 2px 6px rgba(239,68,68,.3);
+}
+
+/* Reduced motion */
+@media(prefers-reduced-motion:reduce){
+  .haven-bell-icon{transition:none}
+}
+
+/* Print */
+@media print{
+  .haven-notification-badge{display:none}
+}

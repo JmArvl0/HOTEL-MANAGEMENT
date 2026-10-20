@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react"; import Link from "next/link"; import { usePathname, useRouter } from "next/navigation"; import { signOut } from "next-auth/react"; import { Award, Bell, BookOpenText, CalendarDays, CarTaxiFront, ChevronDown, ChevronRight, CircleHelp, Compass, Home, LogOut, Menu, PanelLeftClose, ReceiptText, Search, Settings, UserRound, X } from "lucide-react"; import { ThemeToggle } from "@/components/theme-toggle"; import { CUSTOMER_SIDEBAR_KEY, isBookingFlow, isCustomerNavActive, parseSidebarCollapsed } from "@/lib/customer-nav";
-import { HavenNotificationBell, HavenNotificationModal, HavenNotificationPopover, type HavenNotification } from "@/components/ui/haven-notifications";
+import { HavenNotificationPopover, HavenNotificationModal, type HavenNotification } from "@/components/ui/haven-notifications";
+import { HavenNotificationBell } from "@/components/ui";
 import { CustomerToastProvider } from "@/components/customer/customer-toast";
 import { SessionExpiryGuard } from "@/components/auth/session-expiry-guard";
 import { AccountSecurityProvider } from "@/components/account/account-security-dialog";

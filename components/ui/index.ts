@@ -12,12 +12,12 @@ export type { HavenSkeletonProps } from "./haven-skeleton";
 export { HavenActionItem } from "./haven-action-item";
 export type { HavenActionItemProps, HavenActionItemTone, HavenActionItemVariant } from "./haven-action-item";
 export {
-  HavenNotificationBell,
   HavenNotificationItem,
   HavenNotificationPopover,
   HavenNotificationModal,
 } from "./haven-notifications";
 export type { HavenNotification, HavenNotificationDensity } from "./haven-notifications";
+export { HavenNotificationBell } from "./notification-bell";
 export type { HavenButtonProps, HavenButtonVariant, HavenButtonDensity } from "./haven-button";
 export { Breadcrumb, PageHeader } from "./Navigation";
 export { HavenLogo } from "./haven-logo";

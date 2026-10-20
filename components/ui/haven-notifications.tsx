@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { forwardRef, useMemo, useState, type RefObject } from "react";
+import { useMemo, useState, type RefObject } from "react";
 import { Bell, CalendarDays, ChevronRight, List, type LucideIcon } from "lucide-react";
 import { HavenSelect } from "@/components/ui/haven-select";
 import { HavenSkeleton } from "@/components/ui/haven-skeleton";
@@ -61,44 +61,6 @@ function createdTime(value: unknown): number {
   const time = new Date(String(value ?? "")).getTime();
   return Number.isNaN(time) ? 0 : time;
 }
-
-interface HavenNotificationBellProps {
-  count: number;
-  expanded: boolean;
-  onToggle: () => void;
-  buttonRef?: RefObject<HTMLButtonElement>;
-  className?: string;
-  badgeClassName?: string;
-}
-
-export const HavenNotificationBell = forwardRef<HTMLButtonElement, HavenNotificationBellProps>(function HavenNotificationBell({
-  count,
-  expanded,
-  onToggle,
-  buttonRef,
-  className = "",
-  badgeClassName = "",
-}, forwardedRef) {
-  const label = count > 0 ? `Notifications, ${count} unread` : "Notifications";
-  return (
-    <button
-      ref={buttonRef ?? forwardedRef}
-      type="button"
-      className={`haven-notification-bell ${className}`.trim()}
-      aria-label={label}
-      aria-expanded={expanded}
-      aria-haspopup="dialog"
-      title="Notifications"
-      onClick={onToggle}
-    >
-      <Bell size={18} className="haven-bell-icon" aria-hidden="true" />{count > 0 && (
-        <i className={`haven-notification-badge ${badgeClassName}`.trim()} aria-hidden="true">
-          {count > 99 ? "99+" : count}
-        </i>
-      )}
-    </button>
-  );
-});
 
 export function HavenNotificationItem({
   item,
