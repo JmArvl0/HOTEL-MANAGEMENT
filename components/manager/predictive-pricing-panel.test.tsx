@@ -18,7 +18,7 @@ describe("PredictivePricingPanel", () => {
   it("separates prediction from facts and exposes transparent demand reasoning", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({ data: { modelRunId: "11111111-1111-4111-8111-111111111111", modelVersion: "dynamic-pricing-v1", confidence: { level: "medium", basis: "Supported forecast." }, recommendations: [recommendation] } }) })));
     render(<PredictivePricingPanel />);
-    expect(screen.getByRole("status")).toBeTruthy();
+    expect(screen.getByLabelText("Loading predictive pricing")).toBeTruthy();
     await waitFor(() => expect(screen.getByText("Garden Twin")).toBeTruthy());
     expect(screen.getByText("PREDICTION")).toBeTruthy();
     expect(screen.getByText("FACT")).toBeTruthy();

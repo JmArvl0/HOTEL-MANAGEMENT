@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowRight, Check, CircleDollarSign, RefreshCw, SlidersHorizontal, TrendingDown, TrendingUp } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
-import { HavenSkeleton } from "@/components/ui/haven-skeleton";
+import { HavenSkeletonCard, HavenErrorAlert } from "@/components/ui/haven-data-controls";
 import type { DynamicRateRecommendation } from "@/lib/analytics/dynamic-pricing";
 
 type PricingResponse = {
@@ -95,8 +95,8 @@ export default function PredictivePricingPanel() {
     }
   };
 
-  if (loading) return <aside className="pricing-workspace pricing-workspace-loading" role="status" aria-label="Loading predictive pricing"><HavenSkeleton size="sm" width="62%" /><HavenSkeleton size="sm" /><HavenSkeleton height={92} /></aside>;
-  if (error) return <aside className="pricing-workspace pricing-workspace-error" role="alert"><CircleDollarSign size={20} /><h4>Pricing outlook unavailable</h4><p>{error}</p><button type="button" className="btn btn-soft btn-sm" onClick={() => void load()}><RefreshCw size={14} /> Try again</button></aside>;
+  if (loading) return <div role="status" aria-label="Loading predictive pricing"><HavenSkeletonCard hasHeader /></div>;
+  if (error) return <HavenErrorAlert title="Pricing outlook unavailable" body={error} action={<button type="button" className="btn btn-soft btn-sm" onClick={() => void load()}><RefreshCw size={14} /> Try again</button>} variant="internal" />;
   if (!data) return null;
 
   return <>

@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import AiMarkdown from "./ai-markdown";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
-import { HavenSkeleton } from "@/components/ui/haven-skeleton";
+import { HavenSkeletonKPI, HavenSkeletonList } from "@/components/ui/haven-data-controls";
 import { PageHeader } from "@/components/ui";
 
 /**
@@ -182,7 +182,7 @@ export default function HavenAiPanel({ userName, onOpenQueue }: { userName?: str
         </div>
         {loadingBrief ? (
           <div className="mod-kpis" role="status" aria-label="Loading operational indicators">
-            {Array.from({ length: 5 }, (_, index) => <HavenSkeleton key={index} size="tile" className="mod-kpi-skeleton" />)}
+            {Array.from({ length: 5 }, (_, index) => <HavenSkeletonKPI key={index} />)}
           </div>
         ) : (
           <ModuleSummaryCards
@@ -214,7 +214,7 @@ export default function HavenAiPanel({ userName, onOpenQueue }: { userName?: str
           </div>
 
           {loadingBrief ? (
-            <div className="haven-skeleton-lines" role="status" aria-label="Preparing today's brief"><HavenSkeleton size="lg" height={86} /><HavenSkeleton size="lg" /><HavenSkeleton size="lg" /><HavenSkeleton size="lg" /></div>
+            <div role="status" aria-label="Preparing today's brief"><HavenSkeletonList lines={4} lineSize="lg" /></div>
           ) : brief ? (
             <div className="ai-brief">
               <section className="ai-brief-block summary">
