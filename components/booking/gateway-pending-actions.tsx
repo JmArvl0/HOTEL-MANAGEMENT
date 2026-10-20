@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { HavenErrorAlert } from "@/components/ui/haven-data-controls";
 
 /**
  * Way out of an abandoned gateway checkout. Cancelling voids the unsettled
@@ -51,9 +52,7 @@ export function GatewayPendingActions({
         {busy ? "Cancelling…" : "Cancel this attempt and try again"}
       </button>
       {error && (
-        <p role="alert" className="booking-error">
-          {error}
-        </p>
+        <HavenErrorAlert title="Cancellation failed" body={error} variant="customer" />
       )}
     </div>
   );

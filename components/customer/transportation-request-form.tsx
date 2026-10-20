@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { HavenErrorAlert } from "@/components/ui/haven-data-controls";
 import { useRouter } from "next/navigation";
 import { CarTaxiFront, Hotel, Plane, PlaneTakeoff, Repeat, Send } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
@@ -76,7 +77,7 @@ export function TransportationRequestForm({ reservations, hotelLabel }: { reserv
       <label>Passengers<input name="passengerCount" type="number" min={1} max={20} defaultValue={1} required /></label>
     </div>
     <label>Special instructions <small className="customer-data-note">Optional</small><textarea name="specialInstructions" rows={3} maxLength={500} placeholder="e.g. flight number, luggage, child seat" /></label>
-    {error && <p className="booking-error" role="alert">{error}</p>}
+    {error && <HavenErrorAlert title="Request failed" body={error} variant="customer" />}
     <div className="ctr-modal-actions"><button type="button" className="btn btn-soft" onClick={() => setOpen(false)}>Cancel</button><button className="btn btn-accent" disabled={loading}><Send size={15} aria-hidden="true" />{loading ? "Submitting…" : "Submit transportation request"}</button></div>
   </form></Modal></>;
 }
