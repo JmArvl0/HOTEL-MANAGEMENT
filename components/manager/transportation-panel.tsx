@@ -6,6 +6,7 @@ import { useActionDialogs } from "@/components/ui/action-dialogs";
 import { HavenDataToolbar, HavenFilterBadges, HavenSearchInput } from "@/components/ui/haven-data-controls";
 import { HavenEmptyState } from "@/components/ui/haven-data-controls";
 import { HavenSkeleton } from "@/components/ui/haven-skeleton";
+import { PageHeader } from "@/components/ui";
 import { HavenSelect } from "@/components/ui/haven-select";
 import { TablePagination, useTablePagination } from "@/components/ui/table-pagination";
 import type { FormField } from "@/components/ui/FormDialog";
@@ -177,7 +178,7 @@ export default function TransportationPanel({ role }: { role: Role }) {
   const when = (trip: StaffTrip) => <div className={`tp-when${trip.pickup_date === today ? " today" : ""}`}><b>{formatDate(trip.pickup_date)} · {formatTime(trip.pickup_time)}</b>{trip.service_type === "ROUND_TRIP" && trip.return_date && <small>Return {formatDate(trip.return_date)} · {formatTime(trip.return_time!)}</small>}</div>;
 
   return <>
-    <div className="page-title module-title"><div><p className="eyebrow">Hotel operations</p><h1>Transportation</h1><p>Review, schedule, assign and complete guest pickup, drop-off and round-trip trips.</p></div></div>
+    <PageHeader variant="band" eyebrow="Hotel operations" title="Transportation" subtitle="Review, schedule, assign and complete guest pickup, drop-off and round-trip trips." />
     {error && <HavenEmptyState icon={<CarTaxiFront size={22} aria-hidden="true" />} title="Transportation unavailable" body={error} />}
     {!error && (<>
     <ModuleSummaryCards cards={[

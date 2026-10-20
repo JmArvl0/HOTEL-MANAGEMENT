@@ -186,13 +186,13 @@
    side, right-aligned, vertically centered.
    SCOPING IS LOAD-BEARING: this file is imported by admin-dashboard-client.tsx,
    which renders every admin section, so Next.js hoists it into the route bundle
-   and these rules apply app-wide. As bare .page-title/.panel-heading selectors
-   they leaked onto every admin page and tied globals.css on specificity — so
+   and these rules apply app-wide. As bare header/panel selectors they leaked
+   onto every admin page and tied globals.css on specificity — so
    later layout edits lost to whichever chunk the bundler injected last. See the
    leak guard in system-health-view.test.tsx before unscoping anything here. */
-.sys-health-title .title-actions{display:flex;gap:10px;align-items:center;flex:none}
-.sys-health-title h1{display:flex;align-items:center;gap:10px}
-.sys-health-title h1 .sys-ico,
+.sys-health-title .page-header-actions{gap:10px}
+.sys-health-title .page-header-title{display:flex;align-items:center;gap:10px}
+.sys-health-title .page-header-title .sys-ico,
 .sys-card-name .sys-ico,
 .panel-heading h3 .sys-ico{margin-right:2px}
 /* Panel-heading flex row — System Health panels only. Globally this forced

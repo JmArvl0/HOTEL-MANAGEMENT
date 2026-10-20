@@ -131,24 +131,24 @@
 .app-shell .table-action svg { width: 13px; height: 13px; }
 
 /* ---- 3. Mobile header buttons (globals.css:6 bug) --------------------------
-   globals.css collapses every `.page-title .btn` to `font-size:0` under
-   680px, turning icon-less header CTAs (Manage users, Update policy, …) into
-   blank squares. Keep text-only and icon+label buttons readable; collapse to
-   a square ONLY when the button is genuinely icon-only (:has guard). In
-   browsers without :has the first rule still wins → no blank buttons. */
+   globals.css collapses every header CTA to `font-size:0` under 680px, turning
+   icon-less header CTAs (Manage users, Update policy, …) into blank squares.
+   Keep text-only and icon+label buttons readable; collapse to a square ONLY
+   when the button is genuinely icon-only (:has guard). In browsers without
+   :has the first rule still wins → no blank buttons. */
 @media (max-width: 680px) {
-  .page-title .btn {
+  .page-header-actions .btn {
     font-size: 12px;
     padding: 0 13px;
     min-height: 44px;
     white-space: nowrap;
   }
-  .page-title .btn:has(> svg:only-child) {
+  .page-header-actions .btn:has(> svg:only-child) {
     font-size: 0;
     padding: 0;
     width: 44px;
   }
-  .page-title .btn svg { margin: 0; }
+  .page-header-actions .btn svg { margin: 0; }
   /* Touch floor for every button, staff shell included (keeps 44px on
      phones; desktop density untouched). */
   .app-shell .btn,

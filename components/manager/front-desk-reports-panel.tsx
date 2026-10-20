@@ -4,6 +4,7 @@ import { CalendarDays, ClipboardCheck, Download, FileText, Send, Sparkles, X } f
 import { AI_DISCLOSURE } from "@/lib/ai/prompts";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { TablePagination } from "@/components/ui/table-pagination";
+import { PageHeader } from "@/components/ui";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
 import { canGenerateFrontDeskReport, canReviewFrontDeskReports } from "@/lib/permissions";
 import { REPORT_PAGE_SIZE } from "@/lib/front-desk-reports";
@@ -196,11 +197,7 @@ export default function FrontDeskReportsPanel({ role }: { role: Role }) {
 
   const visible = rows.filter((row) => status === "all" || row.status === status);
   return <>
-    <div className="page-title module-title">
-      <div><p className="eyebrow">{canGenerate ? "Hotel operations" : "Management control"}</p><h1>{canGenerate ? "Daily operations report" : "Front desk reports"}</h1>
-      <p>{canGenerate ? "One daily snapshot of front desk operations. Export prints or saves the preview — it never submits. Submitting stores an immutable snapshot for Manager review." : "Daily front desk operations snapshots submitted for review. Acknowledge to close, or return with a note for resubmission."}</p></div>
-      {canGenerate && <div className="report-tools"><label>Report date<input type="date" value={date} max={today} onChange={(event) => setDate(event.target.value)}/></label><button className="btn btn-accent" onClick={() => void generate()} disabled={building}>{building ? "Building…" : "Generate preview"}</button></div>}
-    </div>
+    <PageHeader variant="band" eyebrow={canGenerate ? "Hotel operations" : "Management control"} title={canGenerate ? "Daily operations report" : "Front desk reports"} subtitle={canGenerate ? "One daily snapshot of front desk operations. Export prints or saves the preview — it never submits. Submitting stores an immutable snapshot for Manager review." : "Daily front desk operations snapshots submitted for review. Acknowledge to close, or return with a note for resubmission."} actions={canGenerate && <div className="report-tools"><label>Report date<input type="date" value={date} max={today} onChange={(event) => setDate(event.target.value)}/></label><button className="btn btn-accent" onClick={() => void generate()} disabled={building}>{building ? "Building…" : "Generate preview"}</button></div>} />
     {error && <div className="empty"><FileText/><h3>Reports unavailable</h3><p>{error}</p></div>}
     {canReview && <ExecutiveDigestCard reportDate={viewing ? viewing.report_date.slice(0, 10) : date} />}
     {(preview || viewing) && <article className="panel report-preview">

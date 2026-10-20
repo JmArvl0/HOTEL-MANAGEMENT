@@ -100,8 +100,10 @@ describe("shared header CTA metric single-home contract (Stage 3d)", () => {
   it("declares the 34px header-button metric exactly twice — dark + light mirror", () => {
     const metric = /min-height: 34px;border-radius: 8px;font-size: 12px;font-weight: 600;/g;
     expect((css.match(metric) ?? []).length).toBe(2);
-    for (const context of ["page-header .btn", "page-header-actions .btn", "page-title .btn", "workspace-body .page-title .btn"])
+    for (const context of ["page-header .btn", "page-header-actions .btn"])
       expect(css).toContain(context);
+    // The pre-3d page-title/button family must stay gone (Stage 3b adoption).
+    expect(css).not.toMatch(/page-title/);
   });
 });
 

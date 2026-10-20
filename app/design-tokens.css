@@ -724,7 +724,7 @@
 @media print {
   .sidebar,
   .app-header,
-  .page-title .btn,
+  .page-header-actions .btn,
   .table-tools,
   .dialog-backdrop,
   .dialog,

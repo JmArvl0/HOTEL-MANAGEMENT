@@ -101,7 +101,7 @@ describe("SystemHealthView", () => {
   it("summarizes posture in the header from probe counts without inventing an algorithm", () => {
     render(<SystemHealthView data={health()} onRefresh={() => {}} />);
     expect(screen.getByText(/Attention required · 7 monitored/)).toBeTruthy();
-    const headerLine = document.querySelector(".page-title p:not(.admin-section-context)")!;
+    const headerLine = document.querySelector(".page-header-subtitle")!;
     expect(headerLine.textContent).toMatch(/Last checked/);
     // Tier 1 deployment: the serving environment is named, and the part the
     // system cannot read (the newest build) is named as the gap — never as
@@ -121,7 +121,7 @@ describe("SystemHealthView", () => {
 
   it("orders the page verdict → cards → split with ledger and rail panels", () => {
     render(<SystemHealthView data={health()} onRefresh={() => {}} />);
-    const order = ["page-title", "sys-health-grid-4", "sys-lower-split", "sys-panel-migrations"]
+    const order = ["page-header", "sys-health-grid-4", "sys-lower-split", "sys-panel-migrations"]
       .map((cls) => document.body.innerHTML.indexOf(cls));
     expect(order.every((pos, i) => i === 0 || pos > order[i - 1])).toBe(true);
     // Right rail carries both panels: needs-attention on top, automations
@@ -428,11 +428,14 @@ describe("SystemHealthView", () => {
   it("never leaks unscoped shell selectors onto the admin app", () => {
     // Both module stylesheets are imported by admin-dashboard-client.tsx, which
     // renders every admin section, so Next.js applies them app-wide. Unscoped
-    // .page-title/.panel-heading rules beat the themes' own rules for every other
-    // section — keep selectors namespaced to .sys-* / .sec-*.
+    // header/panel-heading rules beat the themes' own rules for every other
+    // section — keep selectors namespaced to .sys-* / .sec-*. Since Stage 3b
+    // the shared PageHeader owns the header; module rules may only add gaps.
     const leaks = [
       /^\.page-title h1\{/m,
       /^\.page-title \.title-actions\{/m,
+      /^\.page-header h1\{/m,
+      /^\.sys-health-title h1\{/m,
       /^\.panel-heading h3\{/m,
     ];
     for (const file of ["system-health.css", "security-config.css"]) {

@@ -5,6 +5,7 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import type { DashboardData, Role } from "@/lib/types";
 import { CHART_REPORT_OCCUPANCY } from "@/lib/chart-tokens";
 import { ModuleSummaryCards, type ModuleSummaryCard } from "@/components/manager/module-summary-cards";
+import { PageHeader } from "@/components/ui";
 
 const peso = (value: unknown) => new Intl.NumberFormat("en-PH", {
   style: "currency",
@@ -24,17 +25,10 @@ export default function PerformanceReports({ data, role }: { data: DashboardData
   const TrendIcon = occupancyChange < 0 ? TrendingDown : TrendingUp;
   const moneyValue = role === "manager" ? data.metrics.collectionsToday : data.metrics.revenue;
 
-  return <section className="performance-reports" aria-labelledby="performance-reports-title">
-    <div className="page-title reports-title">
-      <div>
-        <p className="eyebrow">Administration &amp; analytics</p>
-        <h1 id="performance-reports-title">Property performance</h1>
-        <p>Review revenue movement, occupancy, and room readiness from the hotel&apos;s current operational records.</p>
-      </div>
-      <button className="btn btn-accent" type="button" onClick={() => window.print()} aria-label="Export property performance report">
+  return <section className="performance-reports" aria-label="Property performance">
+    <PageHeader variant="band" className="reports-title" eyebrow="Administration & analytics" title="Property performance" subtitle="Review revenue movement, occupancy, and room readiness from the hotel's current operational records." actions={<button className="btn btn-accent" type="button" onClick={() => window.print()} aria-label="Export property performance report">
         <Download size={17} aria-hidden="true"/> Export report
-      </button>
-    </div>
+      </button>} />
 
     <ModuleSummaryCards
       cards={[

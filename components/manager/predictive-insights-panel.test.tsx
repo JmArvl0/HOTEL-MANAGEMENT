@@ -148,7 +148,7 @@ describe("PredictiveInsightsPanel", () => {
     const hero = container.querySelector(".insights-title")!;
     expect(hero).toBeTruthy();
     expect(hero.querySelector("img")).toBeNull();
-    const actions = hero.querySelector(".insights-title-actions")!;
+    const actions = hero.querySelector(".page-header-actions")!;
     expect(actions).toBeTruthy();
     expect(actions.textContent).toContain("Live outlook");
     expect(actions.textContent).toContain("Refresh predictions");

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { BedDouble, Bell, Boxes, ClipboardCheck, Search } from "lucide-react";
 import { HavenDataToolbar, HavenFilterBadges, HavenSearchInput } from "@/components/ui/haven-data-controls";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
+import { PageHeader } from "@/components/ui";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
 import { canAccess } from "@/lib/permissions";
 import { requestLabel } from "@/lib/request-options";
@@ -154,9 +155,7 @@ export default function GuestRequestsPanel({ role, onEscalate }: { role: Role; o
   // region starts below it so the inventory rail aligns with the request
   // content, not the page heading.
   return <div>
-    <div className="page-title module-title">
-      <div><p className="eyebrow">Hotel operations</p><h1>Guest requests</h1><p>{role === "housekeeping" ? "Approved guest requests routed to Housekeeping. Start and complete each item as the work is done; escalate unresolved work when coordination is needed." : "Customer submissions grouped as they were filed. Front Desk approves or declines each submission as one decision; approved items route to their department queue."}</p></div>
-    </div>
+    <PageHeader variant="band" eyebrow="Hotel operations" title="Guest requests" subtitle={role === "housekeeping" ? "Approved guest requests routed to Housekeeping. Start and complete each item as the work is done; escalate unresolved work when coordination is needed." : "Customer submissions grouped as they were filed. Front Desk approves or declines each submission as one decision; approved items route to their department queue."} />
     {error && <div className="empty"><Bell /><h3>Guest requests unavailable</h3><p>{error}</p></div>}
     {!error && (<>
       <ModuleSummaryCards cards={[

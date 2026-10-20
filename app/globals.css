@@ -349,21 +349,6 @@ a {
   max-width:1480px;
   margin:auto
 }
-.page-title {
-  display:flex;
-  align-items:flex-end;
-  justify-content:space-between;
-  margin-bottom:28px
-}
-.page-title h1 {
-  font:500 34px var(--font-display);
-  margin:0
-}
-.page-title>div>p:last-child {
-  margin:7px 0 0;
-  color:var(--muted);
-  font-size:12px
-}
 .metric-grid {
   display:grid;
   grid-template-columns:repeat(4,1fr);
@@ -689,13 +674,6 @@ tbody tr:hover {
   .mode-pill {
     display:none
   }
-  .page-title {
-    align-items:flex-start;
-    gap:20px
-  }
-  .page-title h1 {
-    font-size:28px
-  }
   .metric-grid {
     grid-template-columns:1fr 1fr;
     gap:8px
@@ -724,7 +702,7 @@ tbody tr:hover {
 }
 
 @media print {
-  .sidebar,.app-header,.page-title .btn,.table-tools {
+  .sidebar,.app-header,.page-header-actions .btn,.table-tools {
     display:none!important
   }
   .workspace {

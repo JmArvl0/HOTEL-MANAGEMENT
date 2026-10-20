@@ -19,6 +19,7 @@ import {
 import AiMarkdown from "./ai-markdown";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { HavenSkeleton } from "@/components/ui/haven-skeleton";
+import { PageHeader } from "@/components/ui";
 
 /**
  * HAVEN AI — the Gemini assistance workspace for the Manager. Two features:
@@ -162,17 +163,17 @@ export default function HavenAiPanel({ userName, onOpenQueue }: { userName?: str
 
   return (
     <section className="haven-ai-workspace">
-      <header className="page-title haven-ai-hero">
-        <div>
-          <p className="eyebrow">Gemini AI assistance</p>
-          <h1>HAVEN AI</h1>
-          <p>Advisory intelligence over HAVEN&apos;s own data. Forecasts come from HAVEN predictive analytics; AI explains, summarizes and recommends. It never executes operations.</p>
-        </div>
-        <aside className="haven-ai-advisory" aria-label="HAVEN AI permission boundary">
+      <PageHeader
+        variant="band"
+        className="haven-ai-hero"
+        eyebrow="Gemini AI assistance"
+        title="HAVEN AI"
+        subtitle="Advisory intelligence over HAVEN's own data. Forecasts come from HAVEN predictive analytics; AI explains, summarizes and recommends. It never executes operations."
+        actions={<aside className="haven-ai-advisory" aria-label="HAVEN AI permission boundary">
           <ShieldCheck size={20} aria-hidden="true" />
           <span><b>Read-only advisory</b><small>AI can&apos;t make changes in HAVEN.</small></span>
-        </aside>
-      </header>
+        </aside>}
+      />
 
       <section className="haven-ai-indicators" aria-labelledby="ai-indicators-title">
         <div className="haven-ai-section-heading">

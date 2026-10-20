@@ -6,6 +6,7 @@ import { Activity, BedDouble, Boxes, RefreshCw, Sparkles, Wrench } from "lucide-
 import { usePrefersReducedMotion } from "@/lib/motion/reduced-motion";
 import { CHART_FORECAST, CHART_GRID, CHART_OCCUPANCY } from "@/lib/chart-tokens";
 import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination";
+import { PageHeader } from "@/components/ui";
 import PredictivePricingPanel from "@/components/manager/predictive-pricing-panel";
 import type { RiskLevel } from "@/lib/analytics/types";
 import type { PredictionMetrics } from "@/lib/analytics/runner";
@@ -201,18 +202,12 @@ export default function PredictiveInsightsPanel() {
 
   return (
     <div className="predictive-insights">
-      <div className="page-title insights-title">
-        <div>
-          <h1>What is coming this week?</h1>
-          <p>HAVEN&apos;s own forecast models — occupancy, housekeeping workload, inventory demand and maintenance risk — computed from live operational data.</p>
-        </div>
-        <div className="insights-title-actions">
+      <PageHeader variant="band" className="insights-title" title="What is coming this week?" subtitle="HAVEN's own forecast models — occupancy, housekeeping workload, inventory demand and maintenance risk — computed from live operational data." actions={<>
           <span className="insights-freshness"><Activity size={15} /><span><b>{data.databaseMode === "demo" ? "Demo outlook" : "Live outlook"}</b><small>Generated {fmtStamp(data.generatedAt)}</small></span></span>
           <button type="button" className="btn btn-accent" onClick={refresh} disabled={refreshing}>
             <RefreshCw className={refreshing ? "is-spinning" : ""} size={16} /> {refreshing ? "Refreshing…" : "Refresh predictions"}
           </button>
-        </div>
-      </div>
+        </>} />
 
       {toast && <p className="insights-toast" role="status">{toast}</p>}
 

@@ -659,23 +659,18 @@ function ReservationsTable({ items, canCheckIn, canRequestApproval, viewReservat
 // committed and in-use last; room number ascending inside each group.
 const roomStatusRank: Record<string, number> = { available: 0, dirty: 1, maintenance: 2, reserved: 3, occupied: 4 }; export function ResourceView({ resource, items, depositSlaHours, replenishment, createDraftPo, submitPo, receivePo, cancelPo, assets, registerAsset, assetAction, search, setSearch, open, advance, checkIn, verifyDeposit, rejectDeposit, viewReservation, viewRoom, viewGuest, processRefund, failRefund, requestApproval, escalateGuestRequest, progressGuestRequest, canProgressGuestRequest, coordinateHousekeeping, coordinateMaintenance, housekeepingAction, maintenanceAction, createReservation, openWalkIn, canMaintain, canAssignOthers, canHousekeep, canCheckIn, canVerify, canProcessRefund, canCreate, canAdvance, canCoordinate, canRequestApproval, manageRooms, onScan, allItems }: { resource: Resource; items: RecordItem[]; depositSlaHours: number; replenishment: { suggestions: ReplenishmentSuggestion[]; drafts: RecordItem[]; vendors: { id: string; name: string }[]; } | null; createDraftPo: (s: ReplenishmentSuggestion) => void; submitPo: (o: RecordItem) => void; receivePo: (o: RecordItem) => void; cancelPo: (o: RecordItem) => void; assets: MaintenanceAsset[] | null; registerAsset: () => void; assetAction: (a: MaintenanceAsset, action: "record-service" | "update" | "deactivate") => void; search: string; setSearch: (s: string) => void; open: () => void; advance: (x: RecordItem) => void; checkIn: (x: RecordItem) => void; verifyDeposit: (x: RecordItem) => void; rejectDeposit: (x: RecordItem) => void; viewReservation: (x: RecordItem) => void; viewRoom: (x: RecordItem) => void; viewGuest: (x: RecordItem) => void; processRefund: (x: RecordItem) => void; failRefund: (x: RecordItem) => void; requestApproval: (x: RecordItem) => void; escalateGuestRequest: (x: RecordItem) => void; progressGuestRequest: (x: RecordItem, action: "start" | "complete") => void; canProgressGuestRequest: (x: RecordItem) => boolean; coordinateHousekeeping: (x: RecordItem) => void; coordinateMaintenance: (x: RecordItem) => void; housekeepingAction: (x: RecordItem, action: "assign" | "start" | "complete" | "inspect" | "defer" | "maintenance") => void; maintenanceAction: (x: RecordItem, action: "assign" | "start" | "diagnose" | "defer" | "progress" | "resolve" | "close" | "cancel") => void; createReservation: () => void; openWalkIn: () => void; canMaintain: boolean; canAssignOthers: boolean; canHousekeep: boolean; canCheckIn: boolean; canVerify: boolean; canProcessRefund: boolean; canCreate: boolean; canAdvance: boolean; canCoordinate: boolean; canRequestApproval: boolean; manageRooms: (() => void) | null; onScan: (() => void) | null; allItems: RecordItem[]; }) {
   const c = config[resource]; const [queue, setQueue] = useState("all"); const [source, setSource] = useState("all"); const [roomType, setRoomType] = useState("all"); const [loyaltyTier, setLoyaltyTier] = useState(ALL_LOYALTY_TIERS); const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date()); const sources = resource === "reservations" ? Array.from(new Set(items.map(item => String(item.source || "Direct")))) : []; const roomTypes = resource === "rooms" ? Array.from(new Set(items.map(item => String(item.type)))).sort() : []; const loyaltyTiers = resource === "guests" ? loyaltyTierOptions(allItems) : []; const queueCounts = resource === "reservations" ? new Map([["all", items.length], ...[["upcoming"], ["arrivals"], ["departures"], ["in_house"], ["cancelled"], ["no_show"]].map(([value]) => [value as string, items.filter(item => queueFilter(item, value as string, "all", today)).length] as [string, number])]) : null; const matched = resource !== "reservations" ? resource === "rooms" ? items.filter(item => roomType === "all" || String(item.type) === roomType).sort((a, b) => (roomStatusRank[String(a.status)] ?? 9) - (roomStatusRank[String(b.status)] ?? 9) || String(a.number).localeCompare(String(b.number), undefined, { numeric: true })) : resource === "guests" ? items.filter(item => matchesLoyaltyTier(item, loyaltyTier)) : items : items.filter(item => queueFilter(item, queue, source, today)); const ordered = ["guests", "inventory"].includes(resource) ? sortTableRows(matched, item => String(item.name ?? item.number ?? item.id)) : matched; const page = useTablePagination(ordered); const visible = page.rows; return <>
-    <div className="page-title module-title">
-      <div>
-        <p className="eyebrow">Hotel operations</p>
-        <h1>{c.title}</h1>
-        <p>{c.subtitle}</p>
-      </div>
-      {resource === "reservations" && <div className="title-actions">
+    <PageHeader variant="band" eyebrow="Hotel operations" title={c.title} subtitle={c.subtitle} actions={<>
+      {resource === "reservations" && <>
         {onScan && <button className="btn btn-soft" onClick={onScan}>
           <QrCode size={17} /> Scan QR
         </button>}
         {canCheckIn && <NewReservationMenu onNew={createReservation} onWalkIn={openWalkIn} />}
-      </div>}
+      </>}
       {resource === "rooms" && manageRooms && <button className="btn btn-accent" onClick={manageRooms}><DoorClosed size={15} /> Manage rooms</button>}
       {!["payments", "refunds", "reservations"].includes(resource) && canCreate && <button className="btn btn-accent" onClick={open}>
         <Plus size={17} /> Add {c.title.split(" ")[0].toLowerCase()}
       </button>}
-    </div>
+    </>} />
     <ModuleSummaryCards cards={moduleSummary(resource, items, today, depositSlaHours)} activeQueue={resource === "reservations" ? queue : undefined} onSelect={resource === "reservations" ? target => setQueue(target) : undefined} ariaLabel={`${c.title} summary`} />
     {resource === "inventory" && replenishment && replenishment.suggestions.length > 0 && <div className="data-panel hk-queue" aria-label="Replenishment suggestions">
       <section className="hk-queue-group">
@@ -1437,17 +1432,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
 export function ManagerApprovalView({ items, search, setSearch, review, execute, executeException, financialExecute, escalateOwner, canReview, canExecute, canFinancialExecute, actorId }: { items: RecordItem[]; search: string; setSearch: (value: string) => void; review: (item: RecordItem, decision: "approve" | "reject") => Promise<boolean>; execute: (item: RecordItem) => Promise<boolean>; executeException: (item: RecordItem) => Promise<boolean>; financialExecute: (item: RecordItem) => Promise<boolean>; escalateOwner: (item: RecordItem) => Promise<boolean>; canReview: boolean; canExecute: boolean; canFinancialExecute: boolean; actorId?: string; }) {
   const [status, setStatus] = useState("all"); const [scope, setScope] = useState(canReview ? "all" : "mine"); const [type, setType] = useState("all"); const [severity, setSeverity] = useState("all"); const [department, setDepartment] = useState("all"); const [reviewing, setReviewing] = useState<RecordItem | null>(null); const types = Array.from(new Set(items.map(item => String(item.request_type)))); const departments = Array.from(new Set(items.map(item => String(item.department)))); const visible = items.filter(item => (scope === "all" || !actorId || String(item.requested_by) === actorId) && (status === "all" || item.status === status) && (type === "all" || item.request_type === type) && (severity === "all" || item.severity === severity) && (department === "all" || item.department === department) && JSON.stringify(item).toLowerCase().includes(search.toLowerCase())); // Pending queue reads severity-first, longest-waiting next; decision history keeps the API's newest-first order.
   const allQueue = status === "pending" ? [...visible].sort(compareApprovalUrgency) : visible; const page = useTablePagination(allQueue); const queue = page.rows; const pending = items.filter(item => item.status === "pending"); const highPending = pending.filter(item => ["high", "critical"].includes(String(item.severity))).length; const openEscalations = pending.filter(item => approvalKind(item.request_type) === "escalation").length; const awaitingAccounting = items.filter(item => item.status === "approved" && item.execution_status === "awaiting_execution" && ["guest_compensation", "refund_exception"].includes(String(item.request_type))).length; const oldestWaiting = pending.length ? waitingSince(pending.map(item => String(item.requested_at ?? "")).filter(Boolean).sort()[0]) : "—"; const hasFilters = type !== "all" || severity !== "all" || department !== "all" || search.trim() !== ""; const clearFilters = () => { setType("all"); setSeverity("all"); setDepartment("all"); setSearch(""); }; return <>
-    <div className="page-title module-title">
-      <div>
-        <p className="eyebrow">Management control</p>
-        <h1>Approvals &amp; Escalations</h1>
-        <p>
-          Review exceptions against current operations and policy. Approval
-          authorizes the responsible department; it does not perform their
-          work.
-        </p>
-      </div>
-    </div>
+    <PageHeader variant="band" eyebrow="Management control" title="Approvals & Escalations" subtitle="Review exceptions against current operations and policy. Approval authorizes the responsible department; it does not perform their work." />
     <ModuleSummaryCards cards={[{ label: "Pending", value: pending.length, hint: "Awaiting a decision", icon: ClipboardCheck, tone: "attention", queue: "pending" }, { label: "High priority", value: highPending, hint: "High or critical severity", icon: AlertTriangle, tone: "attention" }, { label: "Escalations", value: openEscalations, hint: "Guest issues raised to Manager", icon: Bell, tone: "today" }, { label: "Awaiting Accounting", value: awaitingAccounting, hint: "Approved, not yet executed", icon: CircleDollarSign, tone: "active" }, { label: "Oldest waiting", value: oldestWaiting, hint: "Longest pending request", icon: Activity, tone: "today" }]} activeQueue={status === "pending" || status === "approved" || status === "rejected" ? status : undefined} onSelect={target => setStatus(target)} ariaLabel="Approvals queue summary" />
     <div className="reservation-filters approval-toolbar">
       <div className="table-tools approval-search-row">
@@ -1901,19 +1886,14 @@ function ApprovalReviewModal({ item, close, review, execute, executeException, f
       </button>
     </div>; return <span>{label(row.created_at)}</span>;
   }; return <>
-    <div className="page-title module-title">
-      <div>
-        <p className="eyebrow">Accounting</p>
-        <h1>{view.title}</h1>
-        <p>{view.subtitle}</p>
-      </div>
+    <PageHeader variant="band" eyebrow="Accounting" title={view.title} subtitle={view.subtitle} actions={<>
       {section === "cash_shifts" && canOperateShift && <button className="btn btn-accent" onClick={openCashShift} disabled={ledger.metrics.openCashShifts > 0} title={ledger.metrics.openCashShifts > 0 ? "A cash shift is already open — only one stays open at a time" : undefined}>
         <Plus size={17} /> Open cash shift
       </button>}
       {section === "reconciliation" && canReconcile && <button className="btn btn-accent" onClick={recordReconciliation}>
         <Plus size={17} /> Record reconciliation
       </button>}
-    </div>
+    </>} />
     <ModuleSummaryCards cards={cards[section].map(card => ({ label: card.label, value: card.value, hint: card.hint }))} ariaLabel={`${view.title} summary`} />
     <HavenDataToolbar
       search={<HavenSearchInput value={search} onValueChange={setSearch} label={`Search ${view.title.toLowerCase()}`} placeholder={`Search ${view.title.toLowerCase()}...`} />}

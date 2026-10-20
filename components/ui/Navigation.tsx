@@ -50,7 +50,8 @@ export function Breadcrumb({
 }
 
 export interface PageHeaderProps {
-  title: string;
+  /** String or node — node exists for the admin system-health h1 icon. */
+  title: string | ReactNode;
   subtitle?: string;
   eyebrow?: string;
   actions?: ReactNode;
@@ -72,7 +73,7 @@ export function PageHeader({
   breadcrumb,
   className = "",
   variant = "default",
-}: PageHeaderProps) {
+}: PageHeaderProps): ReactNode {
   return (
     <header className={`page-header${variant === "band" ? " band" : ""} ${className}`}>
       {breadcrumb && <Breadcrumb items={breadcrumb} />}

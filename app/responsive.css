@@ -76,7 +76,7 @@ a, button, [role="button"]{ overflow-wrap: anywhere; }
 @media (max-width: 360px){
   .app-shell .sidebar, .app-shell .sidebar.collapsed{ width: 88vw }
   .workspace-body{ padding:16px 12px }
-  .page-title h1{ font-size:20px }
+  .page-header .page-header-title{ font-size:20px }
 }
 
 /* Small-phone landing fine-tuning lives in app/(landing-page)/landing.css (375px block). */
