@@ -471,23 +471,20 @@ describe("SystemHealthView", () => {
     })} onRefresh={() => {}} />);
     // Migrations and jobs never borrow the payment-success family.
     for (const cell of screen.getAllByText("Applied", { exact: true })) {
-      expect(cell.classList.contains("applied")).toBe(true);
-      expect(cell.classList.contains("paid")).toBe(false);
+      expect(cell.closest(".haven-status")?.className).toContain("haven-status--success");
     }
-    expect(screen.getByText("Succeeded").className).toMatch(/succeeded/);
-    expect(screen.getByText("Failed").className).toMatch(/failed/);
+    expect(screen.getByText("Succeeded").closest(".haven-status")?.className).toContain("haven-status--success");
+    expect(screen.getByText("Failed").closest(".haven-status")?.className).toContain("haven-status--danger");
     // Info queue rows ride the info-blue family, not healthy green.
     const infoRow = screen.getByText("Public domain").closest("li")!;
-    expect(infoRow.querySelector(".badge.info")).toBeTruthy();
-    // New families exist in both themes in the module scope (leak-safe).
+    expect(infoRow.querySelector(".haven-status")?.className).toContain("haven-status--info");
+    // The shared StatusBadge home carries the tones — the raw .badge family is
+    // retired from the module scope (Stage 3a single-home).
     const css = readFileSync(resolve(process.cwd(), "components/admin/system-health.css"), "utf8");
-    for (const selector of [
-      ".theme-light .system-health-ledger-content .badge.applied",
-      ".theme-light .sys-automations .badge.succeeded",
-      ".theme-light .sys-automations .badge.failed",
-      ".theme-light .sys-queue .badge.info",
-    ]) {
-      expect(css).toContain(selector);
+    expect(css).not.toMatch(/^\.badge\./m);
+    const shared = readFileSync(resolve(process.cwd(), "components/ui/haven-data-controls.css"), "utf8");
+    for (const selector of [".haven-status--success", ".haven-status--danger", ".haven-status--info"]) {
+      expect(shared).toContain(selector);
     }
   });
 
@@ -500,7 +497,7 @@ describe("SystemHealthView", () => {
       },
     })} onRefresh={() => {}} />);
     fireEvent.click(screen.getByRole("tab", { name: /Payment Configuration/ }));
-    const paidBadges = Array.from(document.querySelectorAll(".badge.paid"));
+    const paidBadges = Array.from(document.querySelectorAll("#sys-panel-payment .panel-heading .haven-status"));
     expect(paidBadges).toHaveLength(1);
     expect(paidBadges[0].textContent).toBe("Active");
   });

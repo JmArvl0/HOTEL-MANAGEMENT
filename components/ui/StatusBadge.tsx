@@ -370,12 +370,12 @@ export function StatusBadge({
     cleaning: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
     reversed: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
     approved_exception: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+    info: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
 
     // Neutral states — intentionally disabled/unconfigured is not an error.
     disabled: "",
     not_configured: "",
     off_duty: "",
-    info: "",
     not_active: "",
     // Warning — configured but not yet validated, operator action required.
     not_ready: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",

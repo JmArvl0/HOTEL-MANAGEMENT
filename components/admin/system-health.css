@@ -200,21 +200,9 @@
 .sys-attention .panel-heading h3,
 .sys-automations .panel-heading h3,
 .system-health-ledger .panel-heading h3{display:flex;align-items:center;gap:10px}
-/* Module badge vocabulary (design.mdd one-state-one-color). These classes
-   name ledger/job states honestly instead of borrowing the payment-success
-   `paid` family: Applied/Succeeded share the success values, Failed the
-   danger values, Info the info-blue values. Scoped under this module's own
-   sys and system-health selectors so the shared badge families are untouched;
-   both themes defined here because .badge.failed/.badge.info/.badge.applied/
-   .badge.succeeded have no app-shell rules. Text stays on the AA-safe step. */
-.system-health-ledger-content .badge.applied,
-.sys-automations .badge.succeeded{background:#10b9811f;color:#10b981}
-.sys-automations .badge.failed{background:#ef44441f;color:#ef4444}
-.sys-queue .badge.info{background:#3b82f61f;color:#93c5fd}
-.theme-light .system-health-ledger-content .badge.applied,
-.theme-light .sys-automations .badge.succeeded{background:#10b98114;color:#047857}
-.theme-light .sys-automations .badge.failed{background:#ef444414;color:#b91c1c}
-.theme-light .sys-queue .badge.info{background:#3b82f614;color:#1d4ed8}
+/* Ledger, job, and queue chips render through the shared StatusBadge atom
+   (haven-status--success/--danger/--info tonality lives in the shared home
+   haven-data-controls.css since Stage 3a — one chip vocabulary, both themes). */
 /* Tone lands on the value line and its icon ONLY. Tinting the whole card
     turned every label and paragraph into colored body text — noisy, and it
     failed contrast at those sizes. These are the semantic foreground tokens,

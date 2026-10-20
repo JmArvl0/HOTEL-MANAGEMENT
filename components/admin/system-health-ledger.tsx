@@ -2,6 +2,7 @@
 import { useRef, useState } from "react";
 import { CreditCard, FileText, Layers, ShieldAlert } from "lucide-react";
 import { HavenSearchInput } from "@/components/ui/haven-data-controls";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { TablePagination, useTablePagination } from "@/components/ui/table-pagination";
 import type { SystemHealth } from "@/lib/system-health";
 
@@ -120,9 +121,7 @@ export function PaymentHealthPanel({ payments, gateway, notify, onRefresh }: { p
               payment-provider connectivity are maintained by System Administration.
             </p>
         </div>
-        <span className={`badge ${payments.status === "Active" ? "paid" : "expired"}`}>
-          {payments.status}
-        </span>
+        <StatusBadge status={payments.status === "Active" ? "paid" : "expired"} label={payments.status} />
       </div>
       <dl className="system-health-config">
         <div>
@@ -253,11 +252,10 @@ export function SystemHealthLedger({
               <h3>Applied migrations</h3>
               <p>Newest first — the live supabase migration ledger, read server-side</p>
             </div>
-            <span
-              className={`badge ${status === "in_sync" ? "healthy" : status === "remote_behind" ? "pending" : ""}`}
-            >
-              {label(status)}
-            </span>
+            <StatusBadge
+              status={status === "in_sync" ? "healthy" : status === "remote_behind" ? "pending" : ""}
+              label={label(status)}
+            />
           </div>
           <div className="system-health-searchrow">
             <HavenSearchInput
@@ -322,7 +320,7 @@ export function SystemHealthLedger({
                         )}
                       </td>
                       <td>
-                        <span className="badge applied">Applied</span>
+                        <StatusBadge status="applied" />
                       </td>
                     </tr>
                   ))}
