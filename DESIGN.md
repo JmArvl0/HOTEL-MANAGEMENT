@@ -306,6 +306,18 @@ visually distinct second workflow, never a competing page header.
   STATUS_LABELS copy); remaining `.customer-status` consumers (reservation detail,
   transportation list) migrate when edited next.
 
+- **Stage 3a StatusBadge entity-map unification** (2026-10-20, commits 6309c1a, 83824a5, 85001c2):
+  retired informational `badge ${...}` spans across manager, owner, catalog, guest requests,
+  housekeeping, staff duty, transportation, unified room matrix; unified to `StatusBadge`
+  with canonical vocabulary (haven-status tokens in `haven-data-controls.css`). Tone
+  canonicalization: checked_in→green (was amber), assigned→amber (was amber), audit chips
+  info-blue (was amber), inactive→amber (was red), info→blue (was neutral). Raw `.badge`
+  families retained: advance buttons (→ `.room-advance` in `haven-data-controls.css`),
+  loyalty tiers, source badges, nav badges, demand badges, gateway badges, customer
+  portal pills. Generic `.app-shell .badge.*` rules removed from `staff-theme.css` (86 lines);
+  scoped families retained (room-card header, room-rack, grp-inventory, tp-table,
+  grp-approval, owner-workspace). `.room-advance` added to `haven-data-controls.css`.
+
 ## 14. Universal interaction foundation
 
 `HavenDataToolbar`, `HavenSearchInput`, `HavenFilterBadges`, `HavenEmptyState`,

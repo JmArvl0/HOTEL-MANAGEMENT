@@ -125,3 +125,20 @@ observations go to this file.
 - [ ] **G7 (regression)** No page still references .sd-kpi, .report-kpi,
       .haven-ai-kpi (non-skeleton), .folio-kpi, .loyalty-kpi, StatCard or
       TailAdmin* components (grep pass + visual check of the old routes).
+
+## H. Stage 3 StatusBadge entity-map unification (reference-design, commits 6309c1a..83824a5..85001c2)
+
+All informational `badge ${...}` spans retired across manager/owner/catalog/guest/housekeeping/staff/transport/unified-room-matrix; unified to `StatusBadge` with canonical vocabulary (haven-status tokens). Raw `.badge` families retained: advance buttons (→ `.room-advance`), loyalty tiers, source badges, nav badges, demand badges, gateway badges, customer portal pills.
+
+- [ ] **H1 (manager dark/light)** Manager dashboard tables, detail drawers, approvals view: chips render via StatusBadge (haven-status tokens); tone deltas accepted (checked_in green, assigned amber, audit chips info-blue).
+- [ ] **H2 (room detail modal)** Reservation status, task priority/status, order priority/serviceability/status: StatusBadge chips; advance button kept raw (`.room-advance`).
+- [ ] **H3 (owner)** Dashboard badge helper, payment settings: StatusBadge; loyalty tier badges raw.
+- [ ] **H4 (catalog)** Room catalog, transport vehicle types: active/inactive chips via StatusBadge.
+- [ ] **H5 (guest requests)** Status chips unified; grp-overdue SLA chip amber.
+- [ ] **H6 (housekeeping)** Suggestion priority, task priority/status, room state: StatusBadge.
+- [ ] **H7 (staff duty)** Work status chips unified.
+- [ ] **H8 (transportation)** Trip status chips (toLowerCase) via StatusBadge with TRANSPORTATION_STATUS_LABELS.
+- [ ] **H9 (unified room matrix)** Room state, housekeeping chips via StatusBadge; advance buttons raw (`.room-advance`).
+- [ ] **H10 (regression)** Grep for raw `badge ${` / `className="badge"` in migrated files returns zero; scoped raw families only (loyalty, source, nav, demand, gateway, advance, customer pills).
+- [ ] **H11 (CSS)** staff-theme.css generic `.app-shell .badge.*` rules removed (86 lines); scoped families retained (room-card header, room-rack, grp-inventory, tp-table, grp-approval, owner-workspace); `.room-advance` added to haven-data-controls.css.
+- [ ] **H12 (test)** approvals-view.test.tsx updated to check haven-data-controls.css for haven-status tokens instead of raw badge CSS.
