@@ -110,7 +110,7 @@ describe("executive shift summary", () => {
     expect(panel).toContain("AI Executive Digest");
     expect(panel).toContain('mode: "digest"');
     expect(panel).toContain("canReview && <ExecutiveDigestCard");
-    expect(panel).toContain("pulse-skeleton");
+    expect(panel).toContain("HavenSkeletonCard");
     expect(panel).toContain("AI_DISCLOSURE");
   });
 });
