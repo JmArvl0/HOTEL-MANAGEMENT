@@ -3,6 +3,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, CarTaxiFront } from "lucide-react";
 import { preArrivalServices, type PreArrivalOptions } from "@/lib/inventory-request-options";
+import { HavenErrorAlert } from "@/components/ui/haven-data-controls";
 
 type TransportationPreferences = { serviceType: "PICKUP" | "DROPOFF" | "ROUND_TRIP"; pickupLocation?: string; dropoffLocation?: string; pickupDate: string; pickupTime: string; returnLocation?: string; returnDate?: string; returnTime?: string; passengerCount: number; specialInstructions?: string };
 
@@ -90,6 +91,6 @@ export function GuestDetailsForm({ roomType, checkIn, checkOut, guests, checkInF
       </div>
     </div>
     <label className="booking-form-other"><span>Anything else?</span><small>Optional — tell us more and we will pass it to the front desk.</small><textarea name="specialRequests" defaultValue={defaults.specialRequests} maxLength={1000} rows={3}/></label>
-    {error && <p className="booking-error" role="alert">{error}</p>}<button className="btn btn-accent" disabled={loading}>{loading ? "Securing your room…" : "Review booking"}<ArrowRight size={17}/></button>
+    {error && <HavenErrorAlert title="Booking failed" body={error} variant="customer" />}<button className="btn btn-accent" disabled={loading}>{loading ? "Securing your room…" : "Review booking"}<ArrowRight size={17}/></button>
   </form>;
 }

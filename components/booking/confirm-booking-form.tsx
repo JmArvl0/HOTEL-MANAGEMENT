@@ -6,6 +6,7 @@ import { formatPeso } from "@/lib/format";
 import type { DepositPolicy } from "@/lib/booking";
 import type { OperationalPolicy } from "@/lib/hotel-policy";
 import { DepositPolicyPanel } from "./deposit-policy-panel";
+import { HavenErrorAlert } from "@/components/ui/haven-data-controls";
 
 const PROOF_MAX_BYTES = 5 * 1024 * 1024;
 const PROOF_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -95,7 +96,7 @@ export function ConfirmBookingForm({ token, deposit, accountName, mobileNumber, 
       {qrDataUrl
         ? /* eslint-disable-next-line @next/next/no-img-element -- Owner-configured QR bytes served inline by the page */
           <img src={qrDataUrl} alt={`Official GCash QR for ${accountName}`} className="gcash-qr" width={240} height={240} />
-        : <p className="booking-error" role="alert">The official QR is unavailable right now. Please try again shortly.</p>}
+        : <HavenErrorAlert title="QR unavailable" body="The official QR is unavailable right now. Please try again shortly." variant="customer" />}
       <dl className="gcash-details">
         <div><dt>Account name</dt><dd>{accountName}</dd></div>
         <div><dt>GCash number</dt><dd>{mobileNumber} <button type="button" className="btn btn-soft btn-sm" onClick={copyNumber} aria-live="polite">{copied ? <><Check size={14} aria-hidden="true" /> Copied</> : <><Copy size={14} aria-hidden="true" /> Copy</>}</button></dd></div>
@@ -132,7 +133,7 @@ export function ConfirmBookingForm({ token, deposit, accountName, mobileNumber, 
           </button>}
     </div>
     <p className="deposit-verification-note">Haven does not currently have an automated payment gateway. Submitting your reference and receipt creates a pending payment for staff verification; it does not mark the deposit as paid.</p>
-    {error && <p className="booking-error" role="alert">{error}</p>}
+    {error && <HavenErrorAlert title="Booking failed" body={error} variant="customer" />}
     <button className="btn btn-accent" disabled={loading || uploading || !staged || !qrDataUrl}><ShieldCheck size={17} />{loading ? "Submitting…" : uploading ? "Uploading proof…" : `Submit ${formatPeso(deposit)} Deposit for Verification`}</button>
   </form>;
 }

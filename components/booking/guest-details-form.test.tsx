@@ -111,8 +111,8 @@ describe("expected arrival — simple time input", () => {
     const { container } = renderForm();
     submitForm(container);
     const alert = await screen.findByRole("alert");
-    expect(alert.textContent).toBe("Select your expected arrival time.");
-    expect(alert.className).toBe("booking-error");
+    expect(alert.textContent).toContain("Select your expected arrival time.");
+    expect(alert.className).toContain("haven-error-alert");
     expect(fetchMock).not.toHaveBeenCalled();
     expect(push).not.toHaveBeenCalled();
   });
