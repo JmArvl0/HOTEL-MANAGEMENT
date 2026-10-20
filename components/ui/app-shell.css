@@ -481,3 +481,43 @@
     display: none !important.
   }
 }
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .app-sidebar,
+  .app-header,
+  .app-header-menu-btn,
+  .app-header-search-btn,
+  .saas-header-search-btn,
+  .app-sidebar-brand-toggle,
+  .app-sidebar-collapse-btn,
+  .app-sidebar-nav-item,
+  .nav-group-header,
+  .app-sidebar-collapse-btn,
+  .mobile-drawer-backdrop,
+  .btn,
+  .table-action,
+  .haven-select-trigger,
+  .haven-filter-badge,
+  .haven-clear-filters,
+  .haven-search-clear,
+  .haven-cmd-overlay,
+  .saas-cmd-dialog,
+  .saas-cmd-item,
+  .saas-cmd-item-icon,
+  .saas-cmd-item-hint,
+  .saas-cmd-item-badge,
+  .saas-cmd-esc-badge,
+  .saas-cmd-search-icon,
+  .saas-header-search-btn {
+    animation: none !important;
+    transition: none !important;
+  }
+  .app-sidebar,
+  .app-header {
+    transition: none !important;
+  }
+  .mobile-drawer-backdrop.visible {
+    animation: none !important;
+  }
+}

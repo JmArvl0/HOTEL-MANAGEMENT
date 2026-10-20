@@ -24,6 +24,31 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .saas-cmd-overlay,
+  .saas-cmd-dialog,
+  .saas-cmd-item,
+  .saas-cmd-item-icon,
+  .saas-cmd-item-hint,
+  .saas-cmd-item-badge,
+  .saas-cmd-esc-badge,
+  .saas-cmd-search-icon,
+  .saas-cmd-esc-badge,
+  .saas-header-search-btn,
+  .saas-header-search-btn svg,
+  .saas-header-search-btn .lucide-search,
+  .saas-header-search-btn .saas-kbd {
+    animation: none !important;
+    transition: none !important;
+  }
+  .saas-cmd-overlay {
+    animation: none !important;
+  }
+  .saas-cmd-dialog {
+    animation: none !important;
+  }
+}
+
 .saas-cmd-dialog {
   width: 100%;
   max-width: 680px;
