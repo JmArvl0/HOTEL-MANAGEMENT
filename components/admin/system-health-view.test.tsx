@@ -290,7 +290,7 @@ describe("SystemHealthView", () => {
     expect(screen.getByText("security policy updated")).toBeTruthy();
     expect(screen.getByText(/37 in the last 24 hours/)).toBeTruthy();
     fireEvent.click(screen.getByRole("tab", { name: /Payment Configuration/ }));
-    expect(screen.getByText("Payment health is still loading.")).toBeTruthy();
+    expect(screen.getByRole("status", { name: "Loading panel" })).toBeTruthy();
     expect(onRefresh).not.toHaveBeenCalled();
   });
 
@@ -538,7 +538,7 @@ describe("SystemHealthView", () => {
   it("owns honest loading and empty states for payment and audit", () => {
     render(<SystemHealthView data={health({ payments: null as unknown as SystemHealth["payments"] })} onRefresh={() => {}} />);
     fireEvent.click(screen.getByRole("tab", { name: /Payment Configuration/ }));
-    expect(screen.getByRole("status", { name: "Loading payment configuration" })).toBeTruthy();
+    expect(screen.getByRole("status", { name: "Loading panel" })).toBeTruthy();
     cleanup();
     const onRefresh = vi.fn();
     render(<SystemHealthView data={health({ recentProbes: [] })} onRefresh={onRefresh} />);

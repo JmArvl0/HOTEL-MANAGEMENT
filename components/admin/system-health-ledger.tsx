@@ -1,7 +1,7 @@
 "use client";
 import { useRef, useState } from "react";
 import { CreditCard, FileText, Layers, ShieldAlert } from "lucide-react";
-import { HavenSearchInput } from "@/components/ui/haven-data-controls";
+import { HavenSearchInput, HavenSkeletonCard, HavenSkeletonList } from "@/components/ui/haven-data-controls";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { TablePagination, useTablePagination } from "@/components/ui/table-pagination";
 import type { SystemHealth } from "@/lib/system-health";
@@ -91,24 +91,7 @@ function DepositMethodSwitch({
 export function PaymentHealthPanel({ payments, gateway, notify, onRefresh }: { payments: SystemHealth["payments"]; gateway?: SystemHealth["gateway"]; notify?: (message: string) => void; onRefresh?: () => void }) {
   if (!payments)
     return (
-      <>
-        <div className="panel-heading">
-          <div>
-            <h3>Payment configuration</h3>
-            <p>Payment health is still loading.</p>
-          </div>
-        </div>
-        {/* Honest loading state: reserves the panel's row shape (design.mdd
-            Honest Feed Rule) instead of a bare heading. */}
-        <dl className="system-health-config" role="status" aria-label="Loading payment configuration">
-          {[0, 1, 2].map((row) => (
-            <div key={row} aria-hidden="true">
-              <dt><span className="sys-skel sys-skel-dt" /></dt>
-              <dd><span className="sys-skel sys-skel-dd" /></dd>
-            </div>
-          ))}
-        </dl>
-      </>
+      <HavenSkeletonCard hasHeader />
     );
   return (
     <>
