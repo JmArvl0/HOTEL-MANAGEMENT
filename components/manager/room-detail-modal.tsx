@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { BedDouble, CalendarDays, ClipboardCheck, DoorOpen, Wrench } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { HavenSkeleton } from "@/components/ui/haven-skeleton";
 import { formatPeso } from "@/lib/format";
 import { roomPrimary } from "@/lib/room-images";
 import type { RecordItem } from "@/lib/types";
@@ -97,9 +98,9 @@ export default function RoomDetailModal({ room, onClose, onViewReservation, acti
 
         {error && <div className="empty"><h3>Room details unavailable</h3><p>{error}</p></div>}
         {!error && !detail && (
-          <div className="room-skeleton" aria-label="Loading room details">
-            <span className="room-skeleton-tabs"><i /><i /><i /><i /></span>
-            <span className="room-skeleton-grid">{Array.from({ length: 8 }, (_, index) => <i key={index} />)}</span>
+          <div className="room-skeleton" aria-label="Loading room details" role="status">
+            <span className="room-skeleton-tabs"><HavenSkeleton width={110} height={31} radius={999} /><HavenSkeleton width={110} height={31} radius={999} /><HavenSkeleton width={110} height={31} radius={999} /><HavenSkeleton width={110} height={31} radius={999} /></span>
+            <span className="room-skeleton-grid">{Array.from({ length: 8 }, (_, index) => <HavenSkeleton key={index} height={118} />)}</span>
           </div>
         )}
 

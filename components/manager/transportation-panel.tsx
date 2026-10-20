@@ -4,6 +4,8 @@ import { CalendarDays, CarFront, CarTaxiFront, CheckCircle2, ClipboardCheck, X }
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
 import { HavenDataToolbar, HavenFilterBadges, HavenSearchInput } from "@/components/ui/haven-data-controls";
+import { HavenEmptyState } from "@/components/ui/haven-data-controls";
+import { HavenSkeleton } from "@/components/ui/haven-skeleton";
 import { HavenSelect } from "@/components/ui/haven-select";
 import { TablePagination, useTablePagination } from "@/components/ui/table-pagination";
 import type { FormField } from "@/components/ui/FormDialog";
@@ -176,7 +178,7 @@ export default function TransportationPanel({ role }: { role: Role }) {
 
   return <>
     <div className="page-title module-title"><div><p className="eyebrow">Hotel operations</p><h1>Transportation</h1><p>Review, schedule, assign and complete guest pickup, drop-off and round-trip trips.</p></div></div>
-    {error && <div className="tp-empty"><span className="tp-empty-icon"><CarTaxiFront size={22}/></span><h3>Transportation unavailable</h3><p>{error}</p></div>}
+    {error && <HavenEmptyState icon={<CarTaxiFront size={22} aria-hidden="true" />} title="Transportation unavailable" body={error} />}
     {!error && (<>
     <ModuleSummaryCards cards={[
       { label: "Needs review", value: trips.filter((trip) => ["REQUESTED", "REVIEWED"].includes(trip.status)).length, hint: "Requested or reviewed", queue: "pending", icon: ClipboardCheck, tone: "attention" },
@@ -197,8 +199,8 @@ export default function TransportationPanel({ role }: { role: Role }) {
     />
     <p className="tp-note">Locations are recorded as text — coordinate trips by phone; there is no external mapping or fleet service.</p>
     <div className="data-panel">
-      {loading ? <div className="tp-skeleton" role="status" aria-label="Loading transportation requests"><i/><i/><i/><i/></div>
-      : visible.length === 0 ? <div className="tp-empty"><span className="tp-empty-icon"><CarTaxiFront size={22}/></span><h3>No transportation requests</h3><p>{trips.length === 0 ? "Guest transfer requests appear here as soon as they are submitted at booking or from the guest account." : "No requests match the current filters or search."}</p>{trips.length > 0 && hasActiveFilters && <button className="tp-clear" onClick={clearFilters}><X size={13}/>Clear filters</button>}</div>
+      {loading ? <div className="haven-skeleton-list" role="status" aria-label="Loading transportation requests"><HavenSkeleton /><HavenSkeleton /><HavenSkeleton /><HavenSkeleton /></div>
+      : visible.length === 0 ? <HavenEmptyState icon={<CarTaxiFront size={22} aria-hidden="true" />} title="No transportation requests" body={trips.length === 0 ? "Guest transfer requests appear here as soon as they are submitted at booking or from the guest account." : "No requests match the current filters or search."} action={trips.length > 0 && hasActiveFilters && <button type="button" className="btn btn-soft btn-sm" onClick={clearFilters}><X size={13} />Clear filters</button>} />
       : <>
       <div className="table-scroll tp-table-wrap"><table className="tp-table" aria-label="Transportation requests"><thead><tr><th>Guest / reservation</th><th>Service</th><th>Route</th><th>When</th><th>Passengers</th><th>Status</th><th>Driver / vehicle</th><th>Actions</th></tr></thead>
         <tbody>{page.rows.map((trip) => <tr key={trip.id}>

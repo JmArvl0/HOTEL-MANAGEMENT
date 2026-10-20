@@ -2,12 +2,16 @@
 // panel renders must be defined in the scoped CSS, so the module can never
 // silently fall back to unstyled global buttons again. .mod-kpis is owned by
 // the shared summary strip (spacing guard only here); the toolbar wrapper
-// stays transparent per HAVEN_UI_STANDARDS.
+// stays transparent per HAVEN_UI_STANDARDS. Skeleton placeholders are the
+// shared .haven-skeleton atom (app/ui-primitives.css §8, Stage 3 3c) — its
+// reduced-motion kill lives there.
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const css = readFileSync(new URL("./fused-room-rack-panel.css", import.meta.url), "utf8");
 const tsx = readFileSync(new URL("./fused-room-rack-panel.tsx", import.meta.url), "utf8");
+const uiPrimitives = readFileSync(join(process.cwd(), "app/ui-primitives.css"), "utf8");
 
 describe("fused room rack style contract", () => {
   it("defines every board/ops class the panel renders", () => {
@@ -67,9 +71,10 @@ describe("fused room rack style contract", () => {
     expect(css).toMatch(/\.theme-light \.app-shell \.board-date-input\{[^}]*color-scheme:\s*light/);
     expect(css).not.toMatch(/color-scheme:\s*light dark/);
   });
-  it("covers light theme, reduced motion, and the narrow-viewport stack", () => {
+  it("covers light theme, atom-based loading, and the narrow-viewport stack", () => {
     expect(css).toContain(".theme-light");
-    expect(css).toContain("prefers-reduced-motion");
+    expect(tsx).toContain("HavenSkeleton");
+    expect(uiPrimitives).toMatch(/@media\(prefers-reduced-motion:reduce\)\{\.haven-skeleton\{animation:none\}\}/);
     expect(css).toContain("@media(max-width:1100px)");
   });
 

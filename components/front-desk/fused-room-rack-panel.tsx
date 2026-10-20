@@ -21,6 +21,7 @@ import {
 } from "@/lib/room-rack";
 import type { RecordItem } from "@/lib/types";
 import type { ToastTone } from "@/components/ui/toast-stack";
+import { HavenSkeleton } from "@/components/ui/haven-skeleton";
 import "./fused-room-rack-panel.css";
 
 const asRecord = (value: object): RecordItem => value as unknown as RecordItem;
@@ -323,7 +324,7 @@ export default function FrontOfficeRack({
     setActiveRoom(room);
   }
 
-  if (loading && !snapshot) return <div className="rack-skeleton" aria-label="Loading room rack"><span className="pulse-bar" /><span className="pulse-bar" /><span className="pulse-bar short" /></div>;
+  if (loading && !snapshot) return <div className="rack-skeleton" role="status" aria-label="Loading room rack"><HavenSkeleton radius={8} /><HavenSkeleton radius={8} /><HavenSkeleton radius={8} width="60%" /></div>;
   if (error && !snapshot) return <div className="rack-error" role="alert"><p>{error}</p><button type="button" onClick={() => void reload()}>Retry</button></div>;
 
   const activeBoard = activeRoom ? states.get(activeRoom.id) ?? roomBoardState(activeRoom, reservations, today, blockedIds) : null;

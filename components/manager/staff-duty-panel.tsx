@@ -5,7 +5,8 @@ import { Activity, BedDouble, Building2, Calculator, ChevronRight, CircleDollarS
 import { Modal } from "@/components/ui/Modal";
 import { ModuleSummaryCards, type ModuleSummaryCard } from "@/components/manager/module-summary-cards";
 import { HavenSelect } from "@/components/ui/haven-select";
-import { HavenDataToolbar, HavenSearchInput } from "@/components/ui/haven-data-controls";
+import { HavenDataToolbar, HavenEmptyState, HavenSearchInput } from "@/components/ui/haven-data-controls";
+import { HavenSkeleton } from "@/components/ui/haven-skeleton";
 import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination";
 import { STAFF_DUTY_BASIS_NOTE, type StaffDutyMember, type StaffDutySnapshot, type StaffDutyStatus } from "@/lib/staff-duty";
 
@@ -135,9 +136,9 @@ export default function StaffDutyPanel() {
 
       {error ? (
         // A failed request must never read as "no staff" — the error state says so explicitly.
-        <div className="data-panel"><div className="sd-empty"><span className="sd-empty-icon"><Users size={22} /></span><h3>Staff duty unavailable</h3><p>{error}</p><button type="button" className="sd-clear" onClick={() => { setError(""); setLoading(true); void load(); }}><RefreshCw size={13} />Try again</button></div></div>
+        <div className="data-panel"><HavenEmptyState icon={<Users size={22} aria-hidden="true" />} title="Staff duty unavailable" body={error} action={<button type="button" className="btn btn-soft btn-sm" onClick={() => { setError(""); setLoading(true); void load(); }}><RefreshCw size={13} />Try again</button>} /></div>
       ) : loading || !data ? (
-        <div className="data-panel"><div className="sd-skeleton" role="status" aria-label="Loading staff duty"><i /><i /><i /><i /><i /></div></div>
+        <div className="data-panel"><div className="haven-skeleton-list" role="status" aria-label="Loading staff duty"><HavenSkeleton /><HavenSkeleton /><HavenSkeleton /><HavenSkeleton /><HavenSkeleton /></div></div>
       ) : (
         <>
           <ModuleSummaryCards
@@ -167,9 +168,9 @@ export default function StaffDutyPanel() {
 
               <div className="data-panel">
                 {data.staff.length === 0 ? (
-                  <div className="sd-empty"><span className="sd-empty-icon"><Users size={22} /></span><h3>No staff on record</h3><p>No active operational staff accounts exist yet. Owner/Admin create staff accounts in governance.</p></div>
+                  <HavenEmptyState icon={<Users size={22} aria-hidden="true" />} title="No staff on record" body="No active operational staff accounts exist yet. Owner/Admin create staff accounts in governance." />
                 ) : filtered.length === 0 ? (
-                  <div className="sd-empty"><span className="sd-empty-icon"><Search size={22} /></span><h3>No matching staff</h3><p>No staff match the current search and filters.</p><button type="button" className="sd-clear" onClick={clearFilters}><X size={13} />Clear filters</button></div>
+                  <HavenEmptyState icon={<Search size={22} aria-hidden="true" />} title="No matching staff" body="No staff match the current search and filters." action={<button type="button" className="btn btn-soft btn-sm" onClick={clearFilters}><X size={13} />Clear filters</button>} />
                 ) : (
                   <>
                     <div className="table-scroll sd-table-wrap">

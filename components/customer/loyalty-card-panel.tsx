@@ -28,6 +28,7 @@ import {
 import { formatHotelDateTime } from "@/lib/format";
 import { TablePagination, useTablePagination } from "@/components/ui/table-pagination";
 import { ModuleSummaryCards, type ModuleSummaryCard } from "@/components/manager/module-summary-cards";
+import { HavenSkeleton } from "@/components/ui/haven-skeleton";
 
 type LedgerType = "earned" | "redeemed" | "adjusted" | "expired";
 type LedgerRow = {
@@ -141,13 +142,13 @@ function LoyaltyLoading() {
   return (
     <div className="loyalty-loading" aria-label="Loading loyalty rewards" aria-busy="true">
       <div className="mod-kpis" aria-hidden="true">
-        {[0, 1, 2, 3].map((item) => <span className="loyalty-skeleton loyalty-skeleton-kpi" key={item} />)}
+        {[0, 1, 2, 3].map((item) => <HavenSkeleton key={item} size="tile" height={132} />)}
       </div>
-      <div className="loyalty-skeleton loyalty-skeleton-heading" aria-hidden="true" />
+      <HavenSkeleton size="sm" width={240} height={28} />
       <div className="loyalty-tier-grid" aria-hidden="true">
-        {[0, 1, 2].map((item) => <span className="loyalty-skeleton loyalty-skeleton-tier" key={item} />)}
+        {[0, 1, 2].map((item) => <HavenSkeleton key={item} size="tile" height={190} />)}
       </div>
-      <div className="loyalty-skeleton loyalty-skeleton-ledger" aria-hidden="true" />
+      <HavenSkeleton height={245} />
       <span className="sr-only">Loading your rewards.</span>
     </div>
   );

@@ -789,9 +789,6 @@
 .loyalty-error h2{font-size:14px}.loyalty-error p{margin-top:4px;font-size:11px;line-height:1.5}
 .loyalty-error .btn{min-height:40px}
 .loyalty-loading{display:grid;gap:24px}
-.loyalty-skeleton{display:block;border-radius:var(--cp-card-radius);background:linear-gradient(100deg,var(--cp-panel-2) 20%,color-mix(in srgb,var(--cp-panel) 72%,var(--cp-line)) 50%,var(--cp-panel-2) 80%);background-size:220% 100%;animation:loyaltyShimmer 1.4s ease-in-out infinite}
-.loyalty-skeleton-kpi{height:132px}.loyalty-skeleton-heading{width:240px;height:28px}.loyalty-skeleton-tier{height:190px}.loyalty-skeleton-ledger{height:245px}
-@keyframes loyaltyShimmer{to{background-position:-220% 0}}
 
 /* Redemption sub-panel — guest reservation "Rate & folio", not the rewards page.
    The surrounding .customer-detail-card supplies the page padding, so this is a
@@ -861,7 +858,6 @@
 @media(prefers-reduced-motion:reduce){
   .loyalty-tier-option,.loyalty-progress>span,.loyalty-ledger-table tbody tr{transition:none}
   .loyalty-redeem-max{transition:none}
-  .loyalty-skeleton{animation:none}
 }
 
 /* Floating virtual-concierge widget — bottom-right, every guest module. */
@@ -898,8 +894,6 @@
 .customer-shell .concierge-draft button{justify-self:start;min-height:36px;padding:8px 14px;border:0;border-radius:999px;background:var(--cp-accent);color:#111827;font-size:11.5px;font-weight:700;cursor:pointer}
 .theme-light .customer-shell .concierge-draft button{background:#111827;color:#fff}
 .customer-shell .concierge-skeleton{display:grid;gap:6px}
-.customer-shell .concierge-skeleton .pulse-bar{height:12px;border-radius:6px;background:var(--cp-panel-2)}
-.customer-shell .concierge-skeleton .pulse-bar.short{width:60%}
 .customer-shell .concierge-error{margin:0;font-size:11.5px;color:#fca5a5}
 .customer-shell .concierge-ok{margin:0;font-size:11.5px;color:var(--cp-accent)}
 .customer-shell .concierge-chips{display:flex;flex-wrap:wrap;gap:6px}

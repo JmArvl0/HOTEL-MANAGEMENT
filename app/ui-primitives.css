@@ -324,3 +324,20 @@ button.mod-kpi[aria-pressed="true"]{
   --kpi-done-bg:var(--ops-success-tint,#10b98114);      --kpi-done-ink:var(--ops-success-ink,#047857);
   --kpi-danger-bg:#ef444414;      --kpi-danger-ink:#b91c1c;
 }
+
+/* ---- 8. Skeleton atom (.haven-skeleton) -------------------------------------
+   One loading placeholder shape app-wide (Stage 3 3c): staff panels, guest
+   portal, rack, notifications, and modals all pulse the same atom. Paint rides
+   each shell's panel/line tokens; reduced-motion kills the pulse everywhere.
+------------------------------------------------------------------------------ */
+.haven-skeleton{display:block;border-radius:6px;background:var(--ds2,var(--cp-panel-2,#e8ecf2));animation:haven-skeleton-pulse 1.2s ease-in-out infinite}
+.haven-skeleton[data-size="sm"]{height:16px;border-radius:5px}
+.haven-skeleton[data-size="md"]{height:44px;border-radius:6px}
+.haven-skeleton[data-size="lg"]{height:62px;border-radius:10px}
+.haven-skeleton[data-size="tile"]{min-height:100px;border:1px solid var(--dl,var(--cp-line,#e2e6ec));border-radius:12px;background:var(--ds,var(--cp-panel,#f2f4f7))}
+@keyframes haven-skeleton-pulse{0%,100%{opacity:.5}50%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.haven-skeleton{animation:none}}
+/* Loading containers: pane-inset list (data-panel wrappers) vs bare lines
+   (inside padded panels). */
+.haven-skeleton-list{display:grid;gap:10px;padding:14px}
+.haven-skeleton-lines{display:grid;gap:10px}

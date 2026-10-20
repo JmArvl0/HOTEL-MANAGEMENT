@@ -4,6 +4,7 @@ import Link from "next/link";
 import { forwardRef, useMemo, useState, type RefObject } from "react";
 import { Bell, CalendarDays, ChevronRight, List, type LucideIcon } from "lucide-react";
 import { HavenSelect } from "@/components/ui/haven-select";
+import { HavenSkeleton } from "@/components/ui/haven-skeleton";
 import { Modal } from "@/components/ui/Modal";
 import {
   BELL_PREVIEW_LIMIT,
@@ -185,7 +186,7 @@ export function HavenNotificationPopover({
       <div className="haven-notification-preview">
         {loading && !items.length ? (
           <div role="status" aria-label="Loading notifications">
-            {Array.from({ length: 3 }, (_, index) => <div className="customer-notif-skeleton" key={index} aria-hidden="true"><i /><div /></div>)}
+            {Array.from({ length: 3 }, (_, index) => <div className="customer-notif-skeleton" key={index} aria-hidden="true"><HavenSkeleton size="sm" radius={8} width={28} height={28} /><HavenSkeleton height={12} radius={6} grow /></div>)}
           </div>
         ) : error && !items.length ? (
           <div className="customer-notifications-empty" role="alert">
@@ -324,7 +325,7 @@ export function HavenNotificationModal({
       </div>
       <div className="nh-body" aria-busy={loading || undefined}>
         {loading && !items.length ? (
-          <><p className="nh-empty" role="status">Loading notifications…</p>{Array.from({ length: 4 }, (_, index) => <div className="nh-skeleton" key={index} aria-hidden="true"><i /><div /></div>)}</>
+          <><p className="nh-empty" role="status">Loading notifications…</p>{Array.from({ length: 4 }, (_, index) => <div className="nh-skeleton" key={index} aria-hidden="true"><HavenSkeleton radius={8} width={30} height={30} /><HavenSkeleton height={12} radius={6} grow /></div>)}</>
         ) : !tabItems.length ? (
           <div className="nh-empty-state"><Bell size={26} aria-hidden="true" /><strong>{emptyCopy}</strong>{tab === "unread" && <span>No action is needed right now.</span>}</div>
         ) : dayKey ? (

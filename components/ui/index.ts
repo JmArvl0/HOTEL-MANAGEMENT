@@ -7,6 +7,8 @@ export type { HavenSelectOption, HavenSelectGroup } from "./haven-select";
 export { HavenDataToolbar, HavenEmptyState, HavenFilterBadges, HavenSearchInput } from "./haven-data-controls";
 export type { HavenControlVariant, HavenFilterBadgeOption } from "./haven-data-controls";
 export { HavenButton } from "./haven-button";
+export { HavenSkeleton } from "./haven-skeleton";
+export type { HavenSkeletonProps } from "./haven-skeleton";
 export { HavenActionItem } from "./haven-action-item";
 export type { HavenActionItemProps, HavenActionItemTone, HavenActionItemVariant } from "./haven-action-item";
 export {

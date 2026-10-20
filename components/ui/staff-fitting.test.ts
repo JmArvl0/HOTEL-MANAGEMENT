@@ -81,6 +81,21 @@ describe("shared KPI card single-home contract", () => {
   });
 });
 
+describe("shared skeleton atom single-home contract", () => {
+  it("defines .haven-skeleton structurally once — in ui-primitives.css", () => {
+    expect(uiPrimitives).toMatch(/\.haven-skeleton\{[\s\S]*?animation:\s*haven-skeleton-pulse/);
+    expect(uiPrimitives).toMatch(/@keyframes haven-skeleton-pulse/);
+    expect(uiPrimitives).toMatch(/\.haven-skeleton-list\{[\s\S]*?padding:\s*14px/);
+    // No per-panel skeleton format rules may return to the staff theme —
+    // panels compose the atom; only layout containers may stay local.
+    const remnants = (css.match(/^[^\n]*(tp-skeleton|sd-skeleton|pricing-skeleton|ai-brief-loading|haven-ai-kpi-skeleton)[^\n{}]*\{[^{}]*\}/gm) ?? []);
+    expect(remnants).toEqual([]);
+    // The room-detail skeleton keeps layout containers only — no painted i/cells.
+    const painted = (css.match(/^[^\n]*room-skeleton[^{}]*\{[^{}]*background[^{}]*\}/gm) ?? []);
+    expect(painted).toEqual([]);
+  });
+});
+
 describe("staff fitting scope protection", () => {
   it("scopes every fitting selector under .app-shell", () => {
     const fitting = css.slice(css.indexOf("CONTENT FITTING"));

@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import AiMarkdown from "./ai-markdown";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
+import { HavenSkeleton } from "@/components/ui/haven-skeleton";
 
 /**
  * HAVEN AI — the Gemini assistance workspace for the Manager. Two features:
@@ -179,8 +180,8 @@ export default function HavenAiPanel({ userName, onOpenQueue }: { userName?: str
           <p>Direct values from HAVEN&apos;s operational records.</p>
         </div>
         {loadingBrief ? (
-          <div className="mod-kpis haven-ai-kpi-skeleton" role="status" aria-label="Loading operational indicators">
-            {Array.from({ length: 5 }, (_, index) => <i key={index} />)}
+          <div className="mod-kpis" role="status" aria-label="Loading operational indicators">
+            {Array.from({ length: 5 }, (_, index) => <HavenSkeleton key={index} size="tile" className="mod-kpi-skeleton" />)}
           </div>
         ) : (
           <ModuleSummaryCards
@@ -212,7 +213,7 @@ export default function HavenAiPanel({ userName, onOpenQueue }: { userName?: str
           </div>
 
           {loadingBrief ? (
-            <div className="ai-brief-loading" aria-label="Preparing today's brief"><i/><i/><i/><i/></div>
+            <div className="haven-skeleton-lines" role="status" aria-label="Preparing today's brief"><HavenSkeleton size="lg" height={86} /><HavenSkeleton size="lg" /><HavenSkeleton size="lg" /><HavenSkeleton size="lg" /></div>
           ) : brief ? (
             <div className="ai-brief">
               <section className="ai-brief-block summary">

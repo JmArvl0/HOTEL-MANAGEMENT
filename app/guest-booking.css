@@ -1108,11 +1108,7 @@
 }
 .customer-checkin-qr[aria-busy="true"]{animation:none}
 .customer-checkin-qr-skeleton{display:grid;gap:8px;justify-items:center;min-width:0}
-.customer-checkin-qr-skeleton i{height:9px;width:120px;border-radius:99px;background:var(--cp-panel-2);animation:qrPulse 1.2s ease-in-out infinite}
-.customer-checkin-qr-skeleton i:nth-child(2){width:80px}
 .customer-checkin-qr-skeleton small{color:var(--cp-muted);font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase}
-.customer-checkin-qr-tile{width:176px;height:176px;border-radius:12px;background:var(--cp-panel-2);animation:qrPulse 1.2s ease-in-out infinite}
-@keyframes qrPulse{0%,100%{opacity:1}50%{opacity:.45}}
 /* Expired/closed notice: full-width band, left-aligned like a notice strip */
 .customer-checkin-qr-band{grid-template-columns:auto minmax(0,1fr);align-items:start;gap:16px 26px;margin-bottom:16px;padding:22px 26px;text-align:left;justify-items:start}
 .customer-checkin-qr-band .customer-checkin-qr-head{justify-items:start}
