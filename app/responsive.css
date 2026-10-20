@@ -103,7 +103,7 @@ a, button, [role="button"]{ overflow-wrap: anywhere; }
    desktop density (this block is width-gated). */
 @media (max-width: 720px){
   .app-shell .table-action{
-    min-height: 40px;
+    min-height: 44px;
     padding: 8px 13px;
     font-size: 12px;
     line-height: 1.2;
@@ -116,17 +116,17 @@ a, button, [role="button"]{ overflow-wrap: anywhere; }
   /* Photo-tile reorder arrows live on top of thumbnails — keep them compact
      pills so a taller row of chips never covers the whole preview. */
   .app-shell .photo-tile-actions .table-action{
-    min-height: 34px;
+    min-height: 44px;
     padding: 5px 10px;
   }
   .app-shell .reservation-filters button{
-    min-height: 40px;
+    min-height: 44px;
     padding: 8px 14px;
     font-size: 11px;
   }
   .app-shell .reservation-filters select,
   .app-shell .table-tools input{
-    min-height: 40px;
+    min-height: 44px;
     font-size: 16px; /* 16px text prevents iOS auto-zoom on focus */
   }
   .app-shell .table-tools label{
@@ -179,18 +179,18 @@ a, button, [role="button"]{ overflow-wrap: anywhere; }
 @media (pointer: coarse) {
   .btn, .btn-sm { min-height: 44px; }
   .table-action {
-    min-height: 40px;
+    min-height: 44px;
     padding: 8px 13px;
     font-size: 12px;
   }
   /* Photo-tile reorder arrows stay compact pills (same exception as ≤720px). */
   .photo-tile-actions .table-action {
-    min-height: 34px;
+    min-height: 44px;
     padding: 5px 10px;
   }
   .table-tools input, .table-tools select,
   .reservation-filters select {
-    min-height: 40px;
+    min-height: 44px;
     font-size: 16px; /* 16px text prevents iOS auto-zoom on focus */
   }
   /* No hover on touch — give every tap real feedback instead. */

@@ -23,7 +23,7 @@
    decide the palette. Staff `.app-shell .btn` keeps its intentional compact
     scale (see app/staff-theme.css) but shares this radius + motion. */
 .btn {
-  min-height: 40px;                 /* --btn-height-md */
+  min-height: 44px;                 /* --btn-height-md */
   gap: 8px;
   border-radius: 8px;               /* --radius-btn / --radius-md */
   transition: transform .18s ease, box-shadow .18s ease,
@@ -67,13 +67,13 @@
   background: var(--btn-danger-bg, #b91c1c);
   color: var(--btn-danger-fg, #fff);
 }
-.haven-button--internal { min-height: 36px; padding: 8px 14px; }
+.haven-button--internal { min-height: 44px; padding: 8px 14px; }
 .haven-button--customer { min-height: 44px; padding: 11px 18px; border-radius: 8px; }
 .haven-button-icon { display: inline-grid; place-items: center; }
 
 /* Size opt-ins on the shared scale (--btn-height-sm/md/lg). */
 .btn-sm {
-  min-height: 32px;
+  min-height: 44px;
   padding-top: 5px;
   padding-bottom: 5px;
   padding-inline: 12px;
@@ -110,7 +110,7 @@
    read on desktop. Raise the floor; mobile already lifts them to 40px hit
    areas in responsive.css. */
 .table-action {
-  min-height: 26px;
+  min-height: 44px;
   padding: 5px 9px;
   font-size: 10px;
   line-height: 1.2;
