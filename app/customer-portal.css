@@ -119,19 +119,19 @@
 .customer-shell .crd-transport-card b{font-size:12px}
 .customer-shell .crd-transport-card small{font-size:10px}
 /* ctr-* transportation */
-.customer-shell .ctr-service-options legend{font-size:10px}
+.customer-shell .ctr-service-options legend{font-size:11px}
 .customer-shell .ctr-service-option b{font-size:12px}
-.customer-shell .ctr-service-option small{font-size:10px}
-.customer-shell .ctr-hotel-end span{font-size:10px}
+.customer-shell .ctr-service-option small{font-size:9px}
+.customer-shell .ctr-hotel-end span{font-size:9px}
 .customer-shell .ctr-hotel-end b{font-size:11px}
 .customer-shell .ctr-route-stops b{font-size:11px}
-.customer-shell .ctr-route-stops small{font-size:10px}
+.customer-shell .ctr-route-stops small{font-size:9px}
 .customer-shell .ctr-card-header b{font-size:12px}
-.customer-shell .ctr-card-header small{font-size:10px}
+.customer-shell .ctr-card-header small{font-size:9px}
 .customer-shell .ctr-card-meta{font-size:11px}
-.customer-shell .ctr-note{font-size:10px}
-.customer-shell .ctr-note b{font-size:10px}
-.customer-shell .ctr-stay-window span{font-size:10px}
+.customer-shell .ctr-note{font-size:9px}
+.customer-shell .ctr-note b{font-size:9px}
+.customer-shell .ctr-stay-window span{font-size:9px}
 /* cgr-* guest requests — readable type scale (system standard: 14px titles, 12px meta) */
 .customer-shell .cgr-batch-heading small{font-size:12px}
 .customer-shell .cgr-batch-count{font-size:12px;font-variant-numeric:tabular-nums}
