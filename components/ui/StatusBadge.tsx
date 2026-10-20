@@ -10,6 +10,7 @@ export interface StatusBadgeProps {
   variant?: "default" | "outline" | "soft";
   showIcon?: boolean;
   className?: string;
+  title?: string;
 }
 
 const statusIcons: Record<string, ReactNode> = {
@@ -69,6 +70,39 @@ const statusIcons: Record<string, ReactNode> = {
   high: <AlertTriangleIcon />,
   urgent: <AlertTriangleIcon />,
   critical: <AlertOctagonIcon />,
+
+  // Shared chip vocabulary — residual statuses that the retired `.badge`
+  // classes used to paint (Stage 3a entity-map unification).
+  on_duty: <CheckCircleIcon />,
+  off_duty: <InfoIcon />,
+  available: <CheckCircleIcon />,
+  occupied: <UserCheckIcon />,
+  in_house: <UserCheckIcon />,
+  unverified: <AlertCircleIcon />,
+  scheduled: <ClockIcon />,
+  booked: <ClockIcon />,
+  arrived: <CheckCircleIcon />,
+  en_route: <LoaderIcon />,
+  posted: <CheckCircleIcon />,
+  reversed: <RotateCcwIcon />,
+  submitted: <ClockIcon />,
+  acknowledged: <CheckCircleIcon />,
+  returned: <AlertTriangleIcon />,
+  escalated: <AlertTriangleIcon />,
+  approved: <CheckCircleIcon />,
+  within_policy: <CheckCircleIcon />,
+  approval_required: <ClockIcon />,
+  approved_exception: <InfoIcon />,
+  sla_breach: <AlertTriangleIcon />,
+  sla_attention: <ClockIcon />,
+  applied: <CheckCircleIcon />,
+  succeeded: <CheckCircleIcon />,
+  in_sync: <CheckCircleIcon />,
+  remote_behind: <AlertTriangleIcon />,
+  info: <InfoIcon />,
+  maintenance: <BanIcon />,
+  serviceable: <CheckCircleIcon />,
+  not_active: <InfoIcon />,
 };
 
 const statusLabels: Record<string, string> = {
@@ -117,6 +151,38 @@ const statusLabels: Record<string, string> = {
   high: "High Priority",
   urgent: "Urgent",
   critical: "Critical",
+
+  // Shared chip vocabulary (Stage 3a) — safe defaults; call sites override.
+  on_duty: "On Duty",
+  off_duty: "Off Duty",
+  available: "Available",
+  occupied: "Occupied",
+  in_house: "In House",
+  unverified: "Unverified",
+  scheduled: "Scheduled",
+  booked: "Booked",
+  arrived: "Arrived",
+  en_route: "En Route",
+  posted: "Posted",
+  reversed: "Reversed",
+  submitted: "Submitted",
+  acknowledged: "Acknowledged",
+  returned: "Returned",
+  escalated: "Escalated",
+  approved: "Approved",
+  within_policy: "Within policy",
+  approval_required: "Approval required",
+  approved_exception: "Approved exception",
+  sla_breach: "SLA breach",
+  sla_attention: "SLA attention",
+  applied: "Applied",
+  succeeded: "Succeeded",
+  in_sync: "In Sync",
+  remote_behind: "Remote behind",
+  info: "Info",
+  maintenance: "Maintenance",
+  serviceable: "Serviceable",
+  not_active: "Not active",
 };
 
 function ClockIcon({ className }: { className?: string }) {
@@ -205,7 +271,8 @@ export function StatusBadge({
   size = "md", 
   variant = "default", 
   showIcon = true,
-  className = "" 
+  className = "",
+  title
 }: StatusBadgeProps) {
   const normalizedStatus = String(status).toLowerCase().replace(/\s+/g, "_");
   const Icon = icon || statusIcons[normalizedStatus];
@@ -230,6 +297,21 @@ export function StatusBadge({
     active: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
     enabled: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
     healthy: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+
+    // Shared vocabulary — settled/approved outcomes (Stage 3a).
+    on_duty: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+    available: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+    in_house: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+    reconciled: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+    arrived: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+    posted: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+    approved: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+    acknowledged: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+    within_policy: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+    applied: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+    succeeded: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+    in_sync: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+    serviceable: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
     
     // Amber states — the single attention family (DESIGN.md §21). Urgent
     // keeps its triangle icon + "Urgent" label for emphasis, not a color.
@@ -249,6 +331,16 @@ export function StatusBadge({
     normal: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
     high: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
     urgent: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
+
+    // Shared vocabulary — attention/holding states (Stage 3a).
+    unverified: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
+    inactive: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
+    submitted: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
+    inspection: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
+    sla_attention: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
+    approval_required: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
+    remote_behind: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
+    en_route: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
     
     // Red states
     cancelled: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
@@ -259,17 +351,32 @@ export function StatusBadge({
     expired: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
     blocked: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
     out_of_service: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
-    inactive: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
     suspended: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
     out: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
     critical: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
-    
+
+    // Shared vocabulary — failure/alarm states (Stage 3a).
+    returned: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+    escalated: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+    maintenance: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+    reclean_required: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+    sla_breach: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+
     // Blue states — informational records, never outcomes.
     checked_out: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+    occupied: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+    booked: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+    scheduled: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+    cleaning: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+    reversed: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+    approved_exception: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
 
     // Neutral states — intentionally disabled/unconfigured is not an error.
     disabled: "",
     not_configured: "",
+    off_duty: "",
+    info: "",
+    not_active: "",
     // Warning — configured but not yet validated, operator action required.
     not_ready: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
   };
@@ -286,7 +393,7 @@ export function StatusBadge({
           : "haven-status--neutral";
 
   return (
-    <span className={`${baseClasses} ${sizeClass} ${variantClass} ${colorClass} ${className}`}>
+    <span className={`${baseClasses} ${sizeClass} ${variantClass} ${colorClass} ${className}`} title={title}>
       {showIcon && Icon && <span aria-hidden="true">{Icon}</span>}
       <span>{label}</span>
     </span>

@@ -198,6 +198,27 @@ describe("shared state primitives", () => {
     expect(screen.getByText("Closed").closest(".haven-status")?.className).toContain("haven-status--success");
   });
 
+  it("owns the chip vocabulary retired from the raw .badge classes (Stage 3a)", () => {
+    cleanup();
+    render(<><StatusBadge status="maintenance" /><StatusBadge status="occupied" /><StatusBadge status="within_policy" /><StatusBadge status="sla_breach" /><StatusBadge status="sla_attention" /><StatusBadge status="approved_exception" /><StatusBadge status="escalated" /><StatusBadge status="applied" /><StatusBadge status="inactive" /></>);
+    const tone = (text: string) => screen.getByText(text).closest(".haven-status")?.className ?? "";
+    expect(tone("Maintenance")).toContain("haven-status--danger");
+    expect(tone("Occupied")).toContain("haven-status--info");
+    expect(tone("Within policy")).toContain("haven-status--success");
+    expect(tone("SLA breach")).toContain("haven-status--danger");
+    expect(tone("SLA attention")).toContain("haven-status--warning");
+    expect(tone("Approved exception")).toContain("haven-status--info");
+    expect(tone("Escalated")).toContain("haven-status--danger");
+    expect(tone("Applied")).toContain("haven-status--success");
+    expect(tone("Inactive")).toContain("haven-status--warning");
+  });
+
+  it("passes through a tooltip title for derived operator chips", () => {
+    cleanup();
+    render(<StatusBadge status="within_policy" label="Within policy" title="Computed from policy" />);
+    expect(screen.getByText("Within policy").closest(".haven-status")?.getAttribute("title")).toBe("Computed from policy");
+  });
+
   it("renders explicit semantic button variants", () => {
     render(<HavenButton variant="danger">Reject request</HavenButton>);
     const button = screen.getByRole("button", { name: "Reject request" });
