@@ -96,6 +96,15 @@ describe("shared skeleton atom single-home contract", () => {
   });
 });
 
+describe("shared header CTA metric single-home contract (Stage 3d)", () => {
+  it("declares the 34px header-button metric exactly twice — dark + light mirror", () => {
+    const metric = /min-height: 34px;border-radius: 8px;font-size: 12px;font-weight: 600;/g;
+    expect((css.match(metric) ?? []).length).toBe(2);
+    for (const context of ["page-header .btn", "page-header-actions .btn", "page-title .btn", "workspace-body .page-title .btn"])
+      expect(css).toContain(context);
+  });
+});
+
 describe("staff fitting scope protection", () => {
   it("scopes every fitting selector under .app-shell", () => {
     const fitting = css.slice(css.indexOf("CONTENT FITTING"));
