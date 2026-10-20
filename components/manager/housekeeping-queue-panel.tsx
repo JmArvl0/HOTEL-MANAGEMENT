@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { BedDouble, Bell, ChevronDown, ClipboardCheck, Search, Sparkles, Wand2, Wrench } from "lucide-react";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { HavenSelect } from "@/components/ui/haven-select";
@@ -175,7 +176,7 @@ export default function HousekeepingQueuePanel({ role, userId, items, allItems, 
             <header>
               <b>Room {suggestion.roomNumber}</b>
               <span className="hk-queue-type">{suggestion.taskType}</span>
-              <span className={`badge ${suggestion.priority}`}>{suggestion.priority}</span>
+              <StatusBadge status={suggestion.priority} label={suggestion.priority} />
             </header>
             <p className="hk-queue-service"><strong>{suggestion.staffName}</strong></p>
             <small>{suggestion.reason}</small>
@@ -237,8 +238,8 @@ function QueueCard({ item, canHousekeep, canCoordinate, housekeepingAction, coor
       <header>
         <b>Room {label(item.room_number)}</b>
         <span className="hk-queue-type">{label(item.room_type)}</span>
-        <span className={`badge ${String(item.priority)}`}>{label(item.priority)}</span>
-        <span className={`badge ${status}`}>{label(status)}</span>
+        <StatusBadge status={String(item.priority)} label={label(item.priority)} />
+        <StatusBadge status={status} label={label(status)} />
         {item.maintenance_blocked === true && <span className="badge maintenance">maintenance</span>}
       </header>
       <p className="hk-queue-service"><strong>{label(type)}</strong> · {label(item.task)}</p>
@@ -249,7 +250,7 @@ function QueueCard({ item, canHousekeep, canCoordinate, housekeepingAction, coor
         {arrival ? ` · ${arrival}` : ""}
       </small>
       <small>
-        Room state: <span className={`badge ${String(item.room_housekeeping)}`}>{label(item.room_housekeeping)}</span>
+        Room state: <StatusBadge status={String(item.room_housekeeping)} label={label(item.room_housekeeping)} />
         {String(item.inspection_status) === "pending" ? " · awaiting inspection" : ""}
         {String(item.inspection_status) === "failed" ? ` · inspection failed: ${label(item.inspection_reason)}` : ""}
         {String(item.inspection_status) === "passed" ? " · inspection passed" : ""}

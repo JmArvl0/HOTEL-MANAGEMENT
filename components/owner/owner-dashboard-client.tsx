@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { Activity, BarChart3, BedDouble, Bell, Building2, CalendarDays, CarTaxiFront, ChevronDown, ChevronRight, CircleDollarSign, CircleDot, ClipboardCheck, Clock, Eye, FileText, Globe, Image, KeyRound, LogOut, Mail, MapPin, PanelLeftClose, Percent, Pencil, QrCode, Receipt, Search, Settings, ShieldCheck, Sparkles, Star, Tag, Timer, Users } from "lucide-react";
@@ -53,7 +54,7 @@ const label = (value: unknown) => String(value ?? "—").replace(/([a-z])([A-Z])
 // System Administrator display name: internal role id stays "admin".
 const roleLabel = (role: unknown) => String(role) === "admin" ? "System Administrator" : label(role);
 const money = (value: unknown) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(Number(value || 0));
-const badge = (value: unknown) => <span className={`badge ${String(value ?? "")}`}>{label(value)}</span>;
+const badge = (value: unknown) => <StatusBadge status={String(value ?? "")} label={label(value)} />;
 const shortId = (value: unknown) => { const text = String(value ?? ""); return text.length > 12 ? `${text.slice(0, 8)}…` : text; };
 const sub = (main: unknown, secondary: unknown) => <>{label(main)}{secondary !== null && secondary !== undefined && String(secondary) !== "" ? <><br /><small>{String(secondary)}</small></> : null}</>;
 // Presentation-only value formatting (delegates to the shared primitive so

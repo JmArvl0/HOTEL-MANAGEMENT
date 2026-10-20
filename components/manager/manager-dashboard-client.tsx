@@ -3,6 +3,7 @@ import UnifiedRoomMatrix from "@/components/shared/unified-room-matrix";
 import { NAV_GROUPS, NAV_ITEMS, groupedNav as buildGroupedNav, type NavGroupId } from "@/config/role-navigation"; type ReservationDetail = { reservation: RecordItem; guest: RecordItem | null; invoice: RecordItem | null; payments: RecordItem[]; charges: RecordItem[]; adjustments: RecordItem[]; refunds: RecordItem[]; refundAttempts: RecordItem[]; documents: RecordItem[]; changeRequests: RecordItem[]; assignments: RecordItem[]; requests: RecordItem[]; room: RecordItem | null; maintenance: RecordItem[]; transportation?: RecordItem[]; approvals?: RecordItem[]; turnover?: RecordItem | null; }; // Read-only consolidated guest profile (GET /api/staff/guests/[id]) — identity,
 import { HavenNotificationBell as SharedNotificationBell, HavenNotificationPopover } from "@/components/ui/haven-notifications";
 import { PageHeader } from "@/components/ui/Navigation";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { HavenLogo } from "@/components/ui/haven-logo";
 import { CommandPalette, type CommandItem } from "@/components/ui/command-palette";
 import { SessionExpiryGuard } from "@/components/auth/session-expiry-guard";
@@ -70,13 +71,9 @@ const requestStamp = new Intl.DateTimeFormat("en-PH", { month: "short", day: "nu
 // the amount. Badges mirror the server-side distinction (exception_approval_id).
 // Exported for the jsdom queue-badge test (approvals-view.test.tsx).
 export const refundBasisBadge = (item: RecordItem) => {
-  if (!item.exception_approval_id) return <span className="badge within-policy" title="Computed from the reservation's frozen cancellation policy — no Manager approval required">
-    Within policy
-  </span>; if (item.approval_status === "pending") return <span className="badge approval-required" title="Awaiting Manager review before this refund can exist">
-    Manager approval required
-  </span>; return <span className="badge approved-exception" title={`Manager-approved exception${Number(item.normal_policy_amount || 0) > 0 ? ` — policy amount was ${pesoExact(item.normal_policy_amount)}` : ""}`}>
-    Approved exception
-  </span>;
+  if (!item.exception_approval_id) return <StatusBadge status="within_policy" label="Within policy" title="Computed from the reservation's frozen cancellation policy — no Manager approval required" />;
+  if (item.approval_status === "pending") return <StatusBadge status="approval_required" label="Manager approval required" title="Awaiting Manager review before this refund can exist" />;
+  return <StatusBadge status="approved_exception" label="Approved exception" title={`Manager-approved exception${Number(item.normal_policy_amount || 0) > 0 ? ` — policy amount was ${pesoExact(item.normal_policy_amount)}` : ""}`} />;
 }; // Quick-overview cards for the operational modules: status counts derived purely
 // from the already-loaded rows (the /api/resources list is unpaginated, so these
 // ARE the module totals), computed with the same queue predicates the filters
@@ -511,7 +508,7 @@ export function Overview({ data, setSection, allowed, role, onScan, onOpenRack, 
               {r.room_type} {r.check_in}
             </small>
           </div>
-          <span className={`badge ${r.status}`}>{label(r.status)}</span>
+          <StatusBadge status={String(r.status)} label={label(r.status)} />
         </div>)}
       </article> : role === "housekeeping" || role === "maintenance" ? null : <article className="panel room-activity-panel">
         <div className="panel-heading">
@@ -631,12 +628,10 @@ function ReservationsTable({ items, canCheckIn, canRequestApproval, viewReservat
             </div>
           </td>
           <td>
-            <span className={`badge ${item.payment_status}`}>
-              {label(item.payment_status)}
-            </span>
+            <StatusBadge status={String(item.payment_status)} label={label(item.payment_status)} />
           </td>
           <td>
-            <span className={`badge ${status}`}>{label(status)}</span>
+            <StatusBadge status={String(status)} label={label(status)} />
           </td>
           <td>
             <div className="reservation-actions">
@@ -693,9 +688,7 @@ const roomStatusRank: Record<string, number> = { available: 0, dirty: 1, mainten
               <span className="hk-queue-type">
                 {label(suggestion.unit)}
               </span>
-              <span className={`badge ${suggestion.risk}`}>
-                {label(suggestion.risk)}
-              </span>
+              <StatusBadge status={String(suggestion.risk)} label={label(suggestion.risk)} />
             </header>
             <p className="hk-queue-service">
               <strong>Stock {suggestion.currentStock}</strong> · reorder
@@ -759,13 +752,7 @@ const roomStatusRank: Record<string, number> = { available: 0, dirty: 1, mainten
                   {asset.room_number ? <span className="hk-queue-type">
                     Room {asset.room_number}
                   </span> : null}
-                  {days === null ? <span className="badge">No history</span> : days < 0 ? <span className="badge sla-breach">
-                    Overdue {Math.abs(days)}d
-                  </span> : days <= 7 ? <span className="badge sla-attention">
-                    In {days}d
-                  </span> : <span className="badge">
-                    {fmtDate(asset.next_service_date)}
-                  </span>}
+                  {days === null ? <StatusBadge status="not_active" label="No history" /> : days < 0 ? <StatusBadge status="sla_breach" label={`Overdue ${Math.abs(days)}d`} /> : days <= 7 ? <StatusBadge status="sla_attention" label={`In ${days}d`} /> : <StatusBadge status="" label={fmtDate(asset.next_service_date)} /> }
                 </header>
                 <p className="hk-queue-service">
                   <strong>
@@ -833,9 +820,7 @@ const roomStatusRank: Record<string, number> = { available: 0, dirty: 1, mainten
             {visible.map(item => <tr key={item.id}>
               {c.columns.map(column => <td key={column.key}>
                 {column.key === "payment_identity" ? <PaymentIdentity item={item} /> : column.key === "submitted_at" ? formatPaymentSubmittedAt(item[column.key]) : column.key === "status" ? resource === "payments" ? <div className="payment-status">
-                  <span className={`badge ${item.status}`}>
-                    {label(item.status)}
-                  </span>
+                  <StatusBadge status={String(item.status)} label={label(item.status)} />
                   {item.status === "pending_verification" && (() => {
                     const age = depositAgeMinutes(item.submitted_at); const band = depositAgeBand(item.submitted_at, depositSlaHours); // Source contract: depositAgeBand(item.submitted_at,depositSlaHours)
                     // is display-only and never advances payment state.
@@ -845,14 +830,10 @@ const roomStatusRank: Record<string, number> = { available: 0, dirty: 1, mainten
                     </span>;
                   })()}
                   {item.status === "failed" && item.decision_reason && <small>{label(item.decision_reason)}</small>}
-                  {item.status === "pending_verification" && String(item.method ?? "") === "gateway_paymongo" && <span className="badge gateway-pending" title="Online payment — confirms automatically once the provider settles">Awaiting provider</span>}
+                  {item.status === "pending_verification" && String(item.method ?? "") === "gateway_paymongo" && <StatusBadge status="pending" label="Awaiting provider" title="Online payment — confirms automatically once the provider settles" showIcon={false} />}
                 </div> : canAdvance ? <button className={`badge ${item.status}`} onClick={() => advance(item)} title="Click to move to next status">
                   {label(item.status)}
-                </button> : <span className={`badge ${item.status}`}>
-                  {label(item.status)}
-                </span> : column.key === "basis" ? refundBasisBadge(item) : column.key === "payment_status" ? <span className={`badge ${item.payment_status}`}>
-                  {label(item.payment_status)}
-                </span> : column.key === "source" ? <span className={`source-badge ${String(item.source).toLowerCase()}`}>
+                </button> : <StatusBadge status={String(item.status)} label={label(item.status)} /> : column.key === "basis" ? refundBasisBadge(item) : column.key === "payment_status" ? <StatusBadge status={String(item.payment_status)} label={label(item.payment_status)} /> : column.key === "source" ? <span className={`source-badge ${String(item.source).toLowerCase()}`}>
                   {label(item.source)}
                 </span> : column.money ? <strong>{peso(item[column.key])}</strong> : column.key === "guest_name" || column.key === "name" ? <strong>{label(item[column.key])}</strong> : label(item[column.key])}
               </td>)}
@@ -892,9 +873,7 @@ const roomStatusRank: Record<string, number> = { available: 0, dirty: 1, mainten
                   </button>}
                   {canRequestApproval && item.status !== "completed" && item.escalation_status !== "escalated" ? <button className="table-action" onClick={() => escalateGuestRequest(item)}>
                     Escalate
-                  </button> : <span className={`badge ${item.escalation_status ?? "none"}`}>
-                    {label(item.escalation_status ?? "normal")}
-                  </span>}
+                  </button> : <StatusBadge status={String(item.escalation_status ?? "normal")} label={label(item.escalation_status ?? "normal")} />}
                 </div>
               </td>}
               {resource === "housekeeping_tasks" && <td>
@@ -1053,9 +1032,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
   </div>}>
     <div className="rd-meta">
       <span className="rd-eyebrow">Reservation</span>
-      <span className={`badge ${reservation.status}`}>
-        {label(reservation.status)}
-      </span>
+      <StatusBadge status={String(reservation.status)} label={label(reservation.status)} />
       {arrivalToday && <span className="arrival-chip warn">Arrival today</span>}
       {departureToday && <span className="arrival-chip warn">Departure today</span>}
     </div>
@@ -1100,9 +1077,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           <div>
             <dt>Identity</dt>
             <dd>
-              <span className={`badge ${reservation.identity_status}`}>
-                {label(reservation.identity_status || "unverified")}
-              </span>
+              <StatusBadge status={String(reservation.identity_status || "unverified")} label={label(reservation.identity_status || "unverified")} />
             </dd>
           </div>
         </dl>
@@ -1166,9 +1141,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           <div>
             <dt>Status</dt>
             <dd>
-              <span className={`badge ${detail.invoice?.status ?? reservation.payment_status}`}>
-                {label(detail.invoice?.status ?? reservation.payment_status)}
-              </span>
+              <StatusBadge status={String(detail.invoice?.status ?? reservation.payment_status)} label={label(detail.invoice?.status ?? reservation.payment_status)} />
             </dd>
           </div>
         </dl>
@@ -1200,9 +1173,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           <strong className="rd-amount">{peso(charge.amount)}</strong>
         </div>
         <div className="rd-row-foot">
-          <span className={`badge ${charge.status ?? "posted"}`}>
-            {label(charge.status ?? "posted")}
-          </span>
+          <StatusBadge status={String(charge.status ?? "posted")} label={label(charge.status ?? "posted")} />
           {canAdjust && charge.status !== "reversed" && <button className="btn btn-soft rd-mini" onClick={() => reverseCharge(charge)}>
             Reverse
           </button>}
@@ -1238,9 +1209,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           </strong>
         </div>
         <div className="rd-row-foot">
-          <span className={`badge ${payment.status}`}>
-            {label(payment.status)}
-          </span>
+          <StatusBadge status={String(payment.status)} label={label(payment.status)} />
           {canIssueDocument && payment.status === "paid" && <button className="btn btn-soft rd-mini" onClick={() => generateDocument({ documentType: "receipt", paymentId: String(payment.id) })}>
             View receipt
           </button>}
@@ -1257,9 +1226,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           <strong className="rd-amount">{peso(refund.eligible_amount)}</strong>
         </div>
         <div className="rd-row-foot">
-          <span className={`badge ${refund.status}`}>
-            {label(refund.status)}
-          </span>
+          <StatusBadge status={String(refund.status)} label={label(refund.status)} />
         </div>
       </div>)}
       {detail.refundAttempts.map(attempt => <div className="rd-row" key={attempt.id}>
@@ -1270,9 +1237,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           <span className="rd-row-sub">{label(attempt.attempted_at)}</span>
         </div>
         <div className="rd-row-foot">
-          <span className={`badge ${attempt.status}`}>
-            {label(attempt.status)}
-          </span>
+          <StatusBadge status={String(attempt.status)} label={label(attempt.status)} />
         </div>
       </div>)}
     </section>}
@@ -1298,9 +1263,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           </span>
         </div>
         <div className="rd-row-foot">
-          <span className={`badge ${request.status}`}>
-            {label(request.status)}
-          </span>
+          <StatusBadge status={String(request.status)} label={label(request.status)} />
         </div>
       </div>)}
     </section>}
@@ -1314,9 +1277,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           </span>
         </div>
         <div className="rd-row-foot">
-          <span className={`badge ${assignment.status}`}>
-            {label(assignment.status)}
-          </span>
+          <StatusBadge status={String(assignment.status)} label={label(assignment.status)} />
         </div>
       </div>)}
     </section>}
@@ -1329,9 +1290,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           </span>
         </div>
         <div className="rd-row-foot">
-          <span className={`badge ${request.status}`}>
-            {label(request.status)}
-          </span>
+          <StatusBadge status={String(request.status)} label={label(request.status)} />
         </div>
       </div>)}
     </section>}
@@ -1349,9 +1308,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           </span>
         </div>
         {reservation.room_number && detail.room && <div className="rd-row-foot">
-          <span className={`badge ${detail.room.status}`}>
-            {label(detail.room.status)}
-          </span>
+          <StatusBadge status={String(detail.room.status)} label={label(detail.room.status)} />
         </div>}
       </div>
       {detail.maintenance.map(order => <div className="rd-row" key={order.id}>
@@ -1359,9 +1316,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           <span className="rd-row-title">Maintenance block <span className="rd-row-sub">· {label(order.issue)}</span></span>
         </div>
         <div className="rd-row-foot">
-          <span className={`badge ${order.status}`}>
-            {label(order.status)}
-          </span>
+          <StatusBadge status={String(order.status)} label={label(order.status)} />
         </div>
       </div>)}
     </section>}
@@ -1377,9 +1332,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           </span>
         </div>
         <div className="rd-row-foot">
-          <span className={`badge ${String(trip.status).toLowerCase()}`}>
-            {label(trip.status)}
-          </span>
+          <StatusBadge status={String(trip.status).toLowerCase()} label={label(trip.status)} />
         </div>
       </div>)}
     </section>}
@@ -1392,9 +1345,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           </span>
         </div>
         <div className="rd-row-foot">
-          <span className={`badge ${request.status}`}>
-            {label(request.status)}
-          </span>
+          <StatusBadge status={String(request.status)} label={label(request.status)} />
           {request.status === "pending" && onReviewException && <button className="btn btn-soft rd-mini" onClick={() => onReviewException(reservation)}>
             <Eye size={13} /> Review Exception
           </button>}
@@ -1410,9 +1361,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           </span>
         </div>
         <div className="rd-row-foot">
-          <span className={`badge ${detail.room.status}`}>
-            {label(detail.room.status)}
-          </span>
+          <StatusBadge status={String(detail.room.status)} label={label(detail.room.status)} />
         </div>
       </div>
       {detail.maintenance.map(order => <div className="rd-row" key={order.id}>
@@ -1420,9 +1369,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           <span className="rd-row-title">Maintenance block <span className="rd-row-sub">· {label(order.issue)}</span></span>
         </div>
         <div className="rd-row-foot">
-          <span className={`badge ${order.status}`}>
-            {label(order.status)}
-          </span>
+          <StatusBadge status={String(order.status)} label={label(order.status)} />
         </div>
       </div>)}
     </section>}
@@ -1490,9 +1437,7 @@ export function ManagerApprovalView({ items, search, setSearch, review, execute,
                     {approvalKind(item.request_type) === "escalation" ? "Escalation" : "Approval"}
                   </span>
                   <b>{label(item.request_type)}</b>
-                  <span className={`badge ${item.severity}`}>
-                    {label(item.severity)}
-                  </span>
+                  <StatusBadge status={String(item.severity)} label={label(item.severity)} />
                 </div>
               </td>
               <td>
@@ -1515,9 +1460,7 @@ export function ManagerApprovalView({ items, search, setSearch, review, execute,
               </td>
               <td>
                 <div className="cell-stack">
-                  <span className={`badge ${item.status}`}>
-                    {label(item.status)}
-                  </span>
+                  <StatusBadge status={String(item.status)} label={label(item.status)} />
                   {item.status === "approved" && item.execution_status && <small>{label(item.execution_status)}</small>}
                 </div>
               </td>
@@ -1536,9 +1479,7 @@ export function ManagerApprovalView({ items, search, setSearch, review, execute,
             <span className={`approval-kind ${approvalKind(item.request_type)}`}>
               {approvalKind(item.request_type) === "escalation" ? "Escalation" : "Approval"}
             </span>
-            <span className={`badge ${item.severity}`}>
-              {label(item.severity)}
-            </span>
+            <StatusBadge status={String(item.severity)} label={label(item.severity)} />
           </header>
           <div className="approval-card-lead">
             <b>
@@ -1554,9 +1495,7 @@ export function ManagerApprovalView({ items, search, setSearch, review, execute,
             <small>
               {item.status === "pending" ? `Waiting ${waitingSince(item.requested_at)}` : fmtStamp(item.requested_at)}
             </small>
-            <span className={`badge ${item.status}`}>
-              {label(item.status)}
-            </span>
+            <StatusBadge status={String(item.status)} label={label(item.status)} />
             <button className="table-action action-primary" onClick={() => setReviewing(item)}>
               Review
             </button>
@@ -1642,9 +1581,7 @@ function ApprovalReviewModal({ item, close, review, execute, executeException, f
           <div>
             <dt>Severity</dt>
             <dd>
-              <span className={`badge ${item.severity}`}>
-                {label(item.severity)}
-              </span>
+              <StatusBadge status={String(item.severity)} label={label(item.severity)} />
             </dd>
           </div>
         </dl>
@@ -1669,9 +1606,7 @@ function ApprovalReviewModal({ item, close, review, execute, executeException, f
           {item.reservation_status && <div>
             <dt>Current status</dt>
             <dd>
-              <span className={`badge ${item.reservation_status}`}>
-                {label(item.reservation_status)}
-              </span>
+              <StatusBadge status={String(item.reservation_status)} label={label(item.reservation_status)} />
             </dd>
           </div>}
         </dl>
@@ -1748,9 +1683,7 @@ function ApprovalReviewModal({ item, close, review, execute, executeException, f
         <div>
           <dt>Room availability</dt>
           <dd>
-            <span className={`badge ${stayExt.roomConflict ? "cancelled" : "paid"}`}>
-              {stayExt.roomConflict ? "Conflict during added nights" : "Available through new checkout"}
-            </span>
+            <StatusBadge status={stayExt.roomConflict ? "cancelled" : "paid"} label={stayExt.roomConflict ? "Conflict during added nights" : "Available through new checkout"} />
           </dd>
         </div>
         <div>
@@ -1798,9 +1731,7 @@ function ApprovalReviewModal({ item, close, review, execute, executeException, f
         <div>
           <dt>Decision</dt>
           <dd>
-            <span className={`badge ${item.status}`}>
-              {label(item.status)}
-            </span>
+            <StatusBadge status={String(item.status)} label={label(item.status)} />
           </dd>
         </div>
         {item.reviewer_name && <div>
@@ -1915,9 +1846,7 @@ function ApprovalReviewModal({ item, close, review, execute, executeException, f
           <tbody>
             {rows.map(row => <tr key={String(row.id)}>
               {view.columns.map(column => <td key={column.key}>
-                {column.key === "status" ? <span className={`badge ${row.status}`}>
-                  {label(row.status)}
-                </span> : column.money ? <strong>{pesoExact(row[column.key])}</strong> : label(row[column.key] as string)}
+                {column.key === "status" ? <StatusBadge status={String(row.status)} label={label(row.status)} /> : column.money ? <strong>{pesoExact(row[column.key])}</strong> : label(row[column.key] as string)}
               </td>)}
               <td>{actions(row)}</td>
             </tr>)}
@@ -1939,9 +1868,7 @@ function ApprovalReviewModal({ item, close, review, execute, executeException, f
         <strong>{pesoExact(charge.amount)}</strong>
       </td>
       <td>
-        <span className={`badge ${charge.status}`}>
-          {label(charge.status)}
-        </span>
+        <StatusBadge status={String(charge.status)} label={label(charge.status)} />
       </td>
       <td>
         {canAdjust && charge.status !== "reversed" && <button className="table-action" onClick={() => reverseCharge(charge as RecordItem)}>
@@ -1955,9 +1882,7 @@ function ApprovalReviewModal({ item, close, review, execute, executeException, f
       <td>{label(attempt.reference as string)}</td>
       <td>{label(attempt.reason as string)}</td>
       <td>
-        <span className={`badge ${attempt.status}`}>
-          {label(attempt.status)}
-        </span>
+        <StatusBadge status={String(attempt.status)} label={label(attempt.status)} />
       </td>
     </tr>} />}
     {section === "folios" && ledger.adjustments.length > 0 && <AccountingDetailTable title="Adjustments, credits and write-offs" subtitle="Financial corrections recorded as new entries - nothing is overwritten" ariaLabel="Recent folio adjustments" headers={["Reservation", "Type", "Direction", "Amount", "Reason", "Recorded"]} rows={ledger.adjustments} renderRow={adjustment => <tr key={String(adjustment.id)}>
@@ -2032,9 +1957,7 @@ function DocumentViewerModal({ item, close }: { item: RecordItem; close: () => v
           <div>
             <dt>Status</dt>
             <dd>
-              <span className={`badge ${String(snap.folioStatus ?? "")}`}>
-                {label(snap.folioStatus)}
-              </span>
+              <StatusBadge status={String(snap.folioStatus ?? "")} label={label(snap.folioStatus)} />
             </dd>
           </div>
         </dl>
@@ -2143,9 +2066,7 @@ function GuestProfileModal({ profile, close, onViewReservation }: { profile: Gue
           <div>
             <dt>ID verification</dt>
             <dd>
-              <span className={`badge ${String(identity ?? "unverified")}`}>
-                {label(identity ?? "unverified")}
-              </span>
+              <StatusBadge status={String(identity ?? "unverified")} label={label(identity ?? "unverified")} />
             </dd>
           </div>
           <div>
@@ -2202,9 +2123,7 @@ function GuestProfileModal({ profile, close, onViewReservation }: { profile: Gue
           {Number(stay.guests) !== 1 ? "s" : ""}
           {stay.room_number ? ` · Room ${label(stay.room_number)}` : ""}
         </span>
-        <span className={`badge ${String(stay.status)}`}>
-          {label(stay.status)}
-        </span>
+        <StatusBadge status={String(stay.status)} label={label(stay.status)} />
         <button className="table-action action-neutral" onClick={() => onViewReservation(String(stay.id))}>
           <Eye size={13} /> Open
         </button>
@@ -2218,9 +2137,7 @@ function GuestProfileModal({ profile, close, onViewReservation }: { profile: Gue
           {label(stay.room_type)} · {label(stay.check_in)} →{" "}
           {label(stay.check_out)}
         </span>
-        <span className={`badge ${String(stay.status)}`}>
-          {label(stay.status)}
-        </span>
+        <StatusBadge status={String(stay.status)} label={label(stay.status)} />
       </p>)}
     </section>}
     <section className="approval-review-section">
@@ -2253,9 +2170,7 @@ function GuestProfileModal({ profile, close, onViewReservation }: { profile: Gue
         <span>
           Request · {label(request.department)} · {label(request.request)}
         </span>
-        <span className={`badge ${String(request.status)}`}>
-          {label(request.status)}
-        </span>
+        <StatusBadge status={String(request.status)} label={label(request.status)} />
       </p>)}
       {profile.transportation.map(trip => <p key={String(trip.id)}>
         <span>
@@ -2263,9 +2178,7 @@ function GuestProfileModal({ profile, close, onViewReservation }: { profile: Gue
           {label(trip.pickup_date)}
           {trip.pickup_time ? ` ${label(trip.pickup_time)}` : ""}
         </span>
-        <span className={`badge ${String(trip.status).toLowerCase()}`}>
-          {label(trip.status)}
-        </span>
+        <StatusBadge status={String(trip.status).toLowerCase()} label={label(trip.status)} />
       </p>)}
       {profile.assignments.filter(entry => entry.released_at || String(entry.status) !== "active").slice(0, 8).map(entry => <p key={String(entry.id)}>
         <span>
@@ -2273,18 +2186,14 @@ function GuestProfileModal({ profile, close, onViewReservation }: { profile: Gue
           {label(entry.check_in)} → {label(entry.check_out)}
           {entry.is_upgrade ? " · upgrade" : ""}
         </span>
-        <span className={`badge ${String(entry.status)}`}>
-          {label(entry.status)}
-        </span>
+        <StatusBadge status={String(entry.status)} label={label(entry.status)} />
       </p>)}
       {profile.approvals.slice(0, 8).map(request => <p key={String(request.id)}>
         <span>
           Approval · {label(request.request_type)} ·{" "}
           {label(request.reason)}
         </span>
-        <span className={`badge ${String(request.status)}`}>
-          {label(request.status)}
-        </span>
+        <StatusBadge status={String(request.status)} label={label(request.status)} />
       </p>)}
     </section>}
     {profile.financialVisible && profile.financial && <section className="approval-review-section">
@@ -2365,9 +2274,7 @@ function ProofPreview({ paymentId, name }: { paymentId: string; name: string | n
     </div>}
   </div>;
 } function DepositVerifyDialog({ item, busy, onClose, onConfirm, onReject }: { item: RecordItem; busy: boolean; onClose: () => void; onConfirm: () => void; onReject: () => void; }) {
-  const stayPayment = item.purpose === "stay_payment"; const pending = item.status === "pending_verification"; const gateway = String(item.method ?? "") === "gateway_paymongo"; const reservation = item.reservation as RecordItem | null | undefined; const expected = Number(reservation?.deposit_required ?? 0); const difference = expected ? Number(item.amount ?? 0) - expected : 0; const when = formatPaymentSubmittedAt; const hasProof = Boolean(item.proof_original_name || item.proof_size_bytes); const proofMeta = hasProof ? `${label(item.proof_original_name)} · ${Number(item.proof_size_bytes ?? 0) / (1024 * 1024) >= 1 ? `${(Number(item.proof_size_bytes) / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(Number(item.proof_size_bytes) / 1024))} KB`}${item.proof_uploaded_at ? ` · ${when(item.proof_uploaded_at)}` : ""}` : ""; const rows: [string, React.ReactNode][] = [["Guest", label(reservation?.guest_name)], ["Reservation", `${label(reservation?.confirmation_number ?? item.reservation_id)}${reservation?.room_type ? ` · ${label(reservation.room_type)}` : ""}`], ["Stay", `${label(reservation?.check_in)} → ${label(reservation?.check_out)} · ${label(reservation?.status)}`], ["Purpose", label(item.purpose)], ["Method", label(item.method)], ["Reference", label(item.reference)], ["Status", <span key="status" className={`badge ${item.status}`}>
-    {label(item.status)}
-  </span>], ["Proof of payment", hasProof ? proofMeta : <span key="no-proof" className="deposit-proof-none">
+  const stayPayment = item.purpose === "stay_payment"; const pending = item.status === "pending_verification"; const gateway = String(item.method ?? "") === "gateway_paymongo"; const reservation = item.reservation as RecordItem | null | undefined; const expected = Number(reservation?.deposit_required ?? 0); const difference = expected ? Number(item.amount ?? 0) - expected : 0; const when = formatPaymentSubmittedAt; const hasProof = Boolean(item.proof_original_name || item.proof_size_bytes); const proofMeta = hasProof ? `${label(item.proof_original_name)} · ${Number(item.proof_size_bytes ?? 0) / (1024 * 1024) >= 1 ? `${(Number(item.proof_size_bytes) / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(Number(item.proof_size_bytes) / 1024))} KB`}${item.proof_uploaded_at ? ` · ${when(item.proof_uploaded_at)}` : ""}` : ""; const rows: [string, React.ReactNode][] = [["Guest", label(reservation?.guest_name)], ["Reservation", `${label(reservation?.confirmation_number ?? item.reservation_id)}${reservation?.room_type ? ` · ${label(reservation.room_type)}` : ""}`], ["Stay", `${label(reservation?.check_in)} → ${label(reservation?.check_out)} · ${label(reservation?.status)}`], ["Purpose", label(item.purpose)], ["Method", label(item.method)], ["Reference", label(item.reference)], ["Status", <StatusBadge key="status" status={String(item.status)} label={label(item.status)} />], ["Proof of payment", hasProof ? proofMeta : <span key="no-proof" className="deposit-proof-none">
     No proof image submitted
   </span>], ["Submitted", when(item.submitted_at)], ["Amount submitted", <strong key="amount">{pesoExact(item.amount)}</strong>]]; if (!stayPayment) rows.push(["Expected deposit", <span key="expected">
     {pesoExact(expected)}

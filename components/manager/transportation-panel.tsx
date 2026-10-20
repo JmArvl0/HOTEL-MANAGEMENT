@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { CalendarDays, CarFront, CarTaxiFront, CheckCircle2, ClipboardCheck, X } from "lucide-react";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
@@ -210,12 +211,12 @@ export default function TransportationPanel({ role }: { role: Role }) {
           <td><div className="cell-stack tp-route"><b>{trip.pickup_location} → {trip.dropoff_location}</b>{trip.service_type === "ROUND_TRIP" && trip.return_location && <small>Return: {trip.dropoff_location} → {trip.return_location}</small>}</div></td>
           <td>{when(trip)}</td>
           <td><div className="cell-stack"><b>{trip.passenger_count}</b><small>{trip.passenger_count === 1 ? "passenger" : "passengers"}</small></div></td>
-          <td><div className="cell-stack"><span className={`badge ${trip.status.toLowerCase()}`}>{TRANSPORTATION_STATUS_LABELS[trip.status]}</span>{trip.special_instructions && <small title="Special instructions">{label(trip.special_instructions)}</small>}</div></td>
+          <td><div className="cell-stack"><StatusBadge status={trip.status.toLowerCase()} label={TRANSPORTATION_STATUS_LABELS[trip.status]} />{trip.special_instructions && <small title="Special instructions">{label(trip.special_instructions)}</small>}</div></td>
           <td>{trip.driver_name ? <div className="cell-stack"><b>{label(trip.driver_name)}</b><small>{label(trip.transport_vehicle_types?.name)}</small>{trip.fare_amount != null && <small>{formatPeso(trip.fare_amount)} on folio</small>}</div> : <span className="tp-unassigned">Not assigned</span>}</td>
           <td className="tp-actions">{actions(trip)}</td>
         </tr>)}</tbody></table></div>
       <div className="tp-cards">{page.rows.map((trip) => <article className="tp-card" key={trip.id}>
-        <header><b>{SERVICE_TYPE_LABELS[trip.service_type]}</b><span className={`badge ${trip.status.toLowerCase()}`}>{TRANSPORTATION_STATUS_LABELS[trip.status]}</span></header>
+        <header><b>{SERVICE_TYPE_LABELS[trip.service_type]}</b><StatusBadge status={trip.status.toLowerCase()} label={TRANSPORTATION_STATUS_LABELS[trip.status]} /></header>
         <div className="tp-card-guest"><strong>{label(trip.reservations?.guest_name)}</strong><small>{label(trip.reservations?.confirmation_number ?? trip.reservation_id)}</small></div>
         <p className="tp-card-route">{trip.pickup_location}<i aria-hidden="true">→</i>{trip.dropoff_location}</p>
         <div className="tp-card-meta"><span>{formatDate(trip.pickup_date)} · {formatTime(trip.pickup_time)}</span><span>{trip.passenger_count} {trip.passenger_count === 1 ? "passenger" : "passengers"}</span></div>

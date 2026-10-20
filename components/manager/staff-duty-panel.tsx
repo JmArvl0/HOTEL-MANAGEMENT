@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Activity, BedDouble, Building2, Calculator, ChevronRight, CircleDollarSign, ClipboardCheck, ClipboardList, ConciergeBell, Eye, Info, Lightbulb, RefreshCw, Search, Settings, Users, Wrench, X, type LucideIcon } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { ModuleSummaryCards, type ModuleSummaryCard } from "@/components/manager/module-summary-cards";
@@ -240,7 +241,7 @@ export default function StaffDutyPanel() {
                     <li key={work.id}>
                       <WorkIcon source={work.source} />
                       <span>{work.label}</span>
-                      <span className={`badge ${work.status === "in_progress" || work.status === "open" ? "pending" : "confirmed"}`}>{label(work.status)}</span>
+                      <StatusBadge status={work.status === "in_progress" || work.status === "open" ? "pending" : "confirmed"} label={label(work.status)} />
                     </li>
                   ))}
                 </ul>

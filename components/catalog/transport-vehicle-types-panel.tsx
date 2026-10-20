@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { CarTaxiFront, Loader2, Pencil, Plus, Search } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui";
@@ -117,7 +118,7 @@ export default function TransportVehicleTypesPanel() {
                     <td>{money(item.per_km)}</td>
                     <td>{money(item.per_minute)}</td>
                     <td>{money(item.booking_fee)}</td>
-                    <td><span className={`badge ${item.active ? "active" : "inactive"}`}>{item.active ? "Active" : "Inactive"}</span></td>
+                    <td><StatusBadge status={item.active ? "active" : "inactive"} label={item.active ? "Active" : "Inactive"} /></td>
                     <td>{item.version}</td>
                     <td><button className="table-action view-action" onClick={() => openEdit(item)}><Pencil size={14}/> Edit</button></td>
                   </tr>

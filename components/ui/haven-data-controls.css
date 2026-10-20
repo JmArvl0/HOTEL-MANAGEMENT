@@ -128,6 +128,10 @@
 .haven-status svg{width:1em;height:1em;flex:none}
 .haven-status-group{display:flex;flex-wrap:wrap;gap:6px}
 
+/* Interactive room advance button (kept raw per Stage 3a) */
+.room-advance{display:inline-flex;align-items:center;justify-content:center;gap:4px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;line-height:1.35;white-space:nowrap;cursor:pointer;border:1px solid transparent;transition:background .15s ease,color .15s ease,border-color .15s ease}
+.room-advance:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
+
 @media(max-width:720px){
   /* The wrapper stays transparent at every width — no padding is reintroduced here. */
   .haven-search-input{width:100%}
