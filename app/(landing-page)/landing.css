@@ -13,9 +13,6 @@
 .coastal-landing :is(a,button,input,select,summary):focus-visible{outline:3px solid #3b82f6;outline-offset:4px}
 .coastal-landing [id]{scroll-margin-top:100px}
 .coastal-landing .coast-eyebrow{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2.4px;margin:0 0 20px}
-.coastal-landing .coast-text-link{display:inline-flex;align-items:center;gap:10px;font-size:12px;font-weight:600;color:var(--ink);min-height:40px}
-.coastal-landing .coast-text-link svg{transition:transform .2s}
-.coastal-landing .coast-text-link:hover svg{transform:translateX(4px)}
 .coastal-landing .coast-button,.coastal-landing .btn{display:inline-flex;align-items:center;justify-content:center;gap:12px;border:1px solid transparent;border-radius:99px;min-height:46px;padding:12px 23px;background:var(--forest);color:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:background .2s,box-shadow .2s;white-space:normal}
 .coastal-landing .coast-button:hover,.coastal-landing .btn:hover{background:#0b132b;box-shadow:0 6px 18px #11182726;transform:none}
 .coastal-landing .coast-button-light{background:#f3f3f3;color:var(--ink)}

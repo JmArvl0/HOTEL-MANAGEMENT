@@ -17,8 +17,10 @@
 .haven-vault__qualities svg{width:22px;color:#3b82f6;flex:0 0 auto}
 .haven-vault__panel{min-width:0;max-height:100dvh;overflow-y:auto;background:radial-gradient(circle at 100% 100%,#d1d5db4d,transparent 34%),#f3f3f3}
 .haven-vault__header{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:30px clamp(30px,4vw,64px)}
-.haven-vault__back,.haven-vault__help{display:inline-flex;align-items:center;gap:9px;color:#111827;font-size:11px;font-weight:650;text-decoration:none}
-.haven-vault__back:hover,.haven-vault__help:hover strong{text-decoration:underline;text-underline-offset:4px}
+.haven-vault__help{display:inline-flex;align-items:center;gap:9px;color:#111827;font-size:11px;font-weight:650;text-decoration:none}
+.haven-vault__back{display:inline-flex;align-items:center;gap:9px;min-height:44px;padding:10px 18px;border:1px solid #11182730;border-radius:999px;background:#ffffffb8;color:#111827;font-size:12px;font-weight:700;text-decoration:none;transition:background .2s,box-shadow .2s}
+.haven-vault__back:hover{background:#fff;box-shadow:0 6px 18px #11182714}
+.haven-vault__help:hover strong{text-decoration:underline;text-underline-offset:4px}
 .haven-vault__help span,.haven-vault__help strong{display:block}.haven-vault__help strong{margin-top:2px;color:#111827}
 .haven-vault__stage{min-height:calc(100dvh - 92px);display:grid;place-items:center;padding:24px clamp(30px,5vw,82px) 48px}
 .haven-vault__card{width:min(560px,100%);color:#111827}
@@ -39,7 +41,7 @@
 .haven-vault__row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .haven-vault__eye{position:absolute;right:9px;top:30px;width:36px;height:36px;display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:#5b6472}.haven-vault__eye:hover{background:#f3f3f3;color:#111827}
 .haven-vault__submit{width:100%;min-height:52px;margin-top:20px;padding:13px 20px;border:0;border-radius:999px;background:#111827;color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 12px 26px #11182724;transition:transform .18s,box-shadow .18s}.haven-vault__submit:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 16px 30px #11182733}.haven-vault__submit:disabled{opacity:.65;cursor:wait}
-.haven-vault__foot{margin:18px 0 0;text-align:center;color:#5b6472;font-size:12px}.haven-vault__foot a{color:#111827;font-weight:800;text-decoration:underline;text-underline-offset:4px}
+.haven-vault__foot{margin:18px 0 0;text-align:center;color:#5b6472;font-size:12px}.haven-vault__foot a{color:#111827;font-weight:800;text-decoration:underline;text-underline-offset:4px}.haven-vault__foot--end{margin:0;text-align:right}
 .haven-vault__trust{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:18px;color:#5b6472;font-size:10px;text-transform:uppercase;letter-spacing:.7px}
 .haven-vault__security{display:flex;align-items:center;justify-content:center;gap:8px;margin:24px 0 0;padding-top:18px;border-top:1px solid #d1d5db;color:#5b6472;font-size:11px}.haven-vault__security svg{color:#111827}
 @media(max-width:1100px){.haven-vault{grid-template-columns:minmax(0,1fr) minmax(440px,.95fr)}.haven-vault__story{width:82%}.haven-vault__qualities li{padding:0 14px}}
@@ -47,3 +49,4 @@
 @media(max-width:600px){.haven-vault__visual{min-height:310px}.haven-vault__brand{top:22px;left:22px}.haven-vault__story{left:22px;top:55%;width:86%}.haven-vault__story>p:first-child,.haven-vault__keyline,.haven-vault__story>p:last-child{display:none}.haven-vault__statement{font-size:43px}.haven-vault__qualities{display:none}.haven-vault__header{padding:18px 20px}.haven-vault__help>span{display:none}.haven-vault__stage{padding:20px 20px 40px}.haven-vault__tabs{margin-top:16px}.haven-vault__head h1{font-size:42px}.haven-vault__row{grid-template-columns:1fr}.haven-vault__field input{font-size:16px}.haven-vault__submit{min-height:50px}}
 @media(prefers-reduced-motion:reduce){.haven-vault *{animation:none!important;transition:none!important}}
 .haven-vault__notice{margin:0 0 16px;padding:12px 14px;border:1px solid #d1d5db;border-radius:12px;background:#f3f3f3;color:#111827;font-size:12px}.haven-vault__remember{display:flex;align-items:center;gap:10px;margin:14px 0 0;color:#111827;font-size:12px;font-weight:600;cursor:pointer}.haven-vault__remember input{width:18px;height:18px;accent-color:#111827}.haven-vault__otp{letter-spacing:.35em!important;text-align:center;font-size:22px!important;font-weight:800}.haven-vault__otp-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:16px;color:#5b6472;font-size:12px}.haven-vault__link{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;padding:6px 2px;color:#111827;font-size:12px;font-weight:800;cursor:pointer;text-decoration:underline;text-underline-offset:3px}.haven-vault__link:disabled{opacity:.55;cursor:wait;text-decoration:none}
+.haven-vault__options{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;margin-top:14px}.haven-vault__options .haven-vault__remember{margin:0;min-width:0}.haven-vault__options .haven-vault__foot{flex:0 0 auto;margin:0 0 0 auto}
