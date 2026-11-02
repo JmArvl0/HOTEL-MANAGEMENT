@@ -16,7 +16,7 @@ const {
   preArrivalServices,
   resolvePreArrivalAmenities,
 } = await import("@/lib/inventory-request-options");
-const { logGuestRequestConsumption } = await import("@/lib/inventory-movements");
+
 
 const resetDb = () => {
   for (const key of Object.keys(fake.db)) delete fake.db[key];
@@ -128,34 +128,4 @@ describe("getPreArrivalOptions", () => {
   });
 });
 
-describe("logGuestRequestConsumption", () => {
-  beforeEach(resetDb);
-
-  it("consumes the exact linked item for new requests", async () => {
-    fake.db.guest_requests = [{ id: "gr-1", request_type: "extra_towels", inventory_item_id: "ITM-1" }];
-    fake.db.inventory = [{ id: "ITM-1", name: "Bath towels", quantity: 24 }];
-    await logGuestRequestConsumption("gr-1", "staff-1");
-    expect(Number(fake.db.inventory[0].quantity)).toBe(23);
-    expect(fake.db.inventory_movements).toHaveLength(1);
-    expect(fake.db.inventory_movements[0]).toMatchObject({
-      item_id: "ITM-1",
-      direction: "consumption",
-      source_id: "gr-1",
-    });
-  });
-
-  it("skips consumption when stock changed since booking — never negative", async () => {
-    fake.db.guest_requests = [{ id: "gr-2", request_type: "extra_towels", inventory_item_id: "ITM-1" }];
-    fake.db.inventory = [{ id: "ITM-1", name: "Bath towels", quantity: 0 }];
-    await logGuestRequestConsumption("gr-2", "staff-1");
-    expect(Number(fake.db.inventory[0].quantity)).toBe(0);
-    expect(fake.db.inventory_movements ?? []).toHaveLength(0);
-  });
-
-  it("keeps the name-matching fallback for legacy rows without the FK", async () => {
-    fake.db.guest_requests = [{ id: "gr-3", request_type: "extra_towels", inventory_item_id: null }];
-    fake.db.inventory = [{ id: "ITM-1", name: "Bath towels", quantity: 10 }];
-    await logGuestRequestConsumption("gr-3", "staff-1");
-    expect(Number(fake.db.inventory[0].quantity)).toBe(8);
-  });
-});
+// Transactional fulfillment/legacy/concurrency coverage lives in scripts/backend-remediation-db-test.mjs.

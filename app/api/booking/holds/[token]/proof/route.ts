@@ -49,11 +49,18 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ t
   const { token } = await params;
   if (!z.string().uuid().safeParse(token).success) return NextResponse.json({ error: "Invalid booking reference." }, { status: 400 });
   try {
-    const { data: hold } = await supabase.from("booking_holds").select("user_id").eq("token", token).maybeSingle();
+    const { data: hold, error: holdError } = await supabase.from("booking_holds").select("user_id,status").eq("token", token).maybeSingle();
+    if (holdError) throw holdError;
     if (!hold || hold.user_id !== session.user.id) return NextResponse.json({ error: "Booking hold not found." }, { status: 404 });
+    if (hold.status !== "active") return NextResponse.json({ error: "Submitted payment evidence cannot be removed." }, { status: 409 });
     const { path } = await request.json();
     if (typeof path !== "string" || !stagedProofPathPattern(token).test(path)) return NextResponse.json({ error: "Not a staged proof for this booking." }, { status: 400 });
-    await supabase.storage.from(PROOF_BUCKET).remove([path]);
+    const { data: attached, error: paymentError } = await supabase.from("payments")
+      .select("id").eq("proof_storage_path", path).limit(1).maybeSingle();
+    if (paymentError) throw paymentError;
+    if (attached) return NextResponse.json({ error: "Submitted payment evidence cannot be removed." }, { status: 409 });
+    const { error: removeError } = await supabase.storage.from(PROOF_BUCKET).remove([path]);
+    if (removeError) throw removeError;
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ error: "Unable to remove the payment proof." }, { status: 500 });

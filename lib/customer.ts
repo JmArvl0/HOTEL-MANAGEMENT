@@ -70,6 +70,7 @@ export async function getCustomerFinancials(userId:string){
     supabase.from("financial_adjustments").select("id,invoice_id,reservation_id,transaction_type,direction,amount,reason,created_at").in("reservation_id",ids).order("created_at",{ascending:false}),
     supabase.from("financial_documents").select("id,document_number,document_type,reservation_id,payment_id,created_at").in("reservation_id",ids).order("created_at",{ascending:false})
   ]);
+  for(const result of [paymentResult,chargeResult,refundResult,changeResult,adjustmentResult,documentResult]){if("error" in result && result.error)throw result.error;}
   return(reservations??[]).map((reservation)=>{const invoice=(invoices??[]).find((item)=>item.reservation_id===reservation.id);return{...reservation,invoice:invoice??null,payments:invoice?(paymentResult.data??[]).filter((payment)=>payment.invoice_id===invoice.id):[],charges:invoice?(chargeResult.data??[]).filter((charge)=>charge.invoice_id===invoice.id):[],refunds:(refundResult.data??[]).filter((refund)=>refund.reservation_id===reservation.id),changeRequests:(changeResult.data??[]).filter((request)=>request.reservation_id===reservation.id),adjustments:(adjustmentResult.data??[]).filter((adjustment)=>adjustment.reservation_id===reservation.id),documents:(documentResult.data??[]).filter((document)=>document.reservation_id===reservation.id)}});
 }
 /* The ONLY data door for a customer receipt. Ownership and eligibility are

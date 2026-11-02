@@ -82,7 +82,7 @@ export async function setFullSessionCookie(
 ) {
   const options = mintOptions(input.policy, input.persistent);
   const encoded = await encode({
-    token: { sub: input.id, email: input.email, name: input.name, role: input.role, authVersion: input.authVersion, persistent: input.persistent, otpPending: false, disabled: false },
+    token: { sub: input.id, email: input.email, name: input.name, role: input.role, authVersion: input.authVersion, persistent: input.persistent, otpPending: false, disabled: false, loginIssuedAt: Math.floor(Date.now() / 1000) },
     secret: env.authSecret,
     maxAge: (options as { maxAge?: number }).maxAge ?? SESSION_MAX_AGE,
   });

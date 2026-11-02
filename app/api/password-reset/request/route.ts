@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   if ((recent ?? 0) >= RESET_REQUEST_LIMIT) return NextResponse.json({ ok: true, masked: maskEmail(email) });
 
   const { data: account } = await supabase.from("user_accounts").select("id,email,active").eq("email", email).maybeSingle();
-  if (!account) {
+  if (!account || !account.active) {
     await supabase.from("password_reset_logs").insert({ user_id: null, email, ip_address: ip, user_agent: userAgent, status: "requested" });
     return NextResponse.json({ ok: true, masked: maskEmail(email) });
   }

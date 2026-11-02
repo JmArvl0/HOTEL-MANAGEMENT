@@ -1,3 +1,4 @@
+import { readAllRows } from "@/lib/read-all-rows";
 import { demoStore } from "@/lib/demo-store";
 import { hotelToday } from "@/lib/booking";
 import { supabase } from "@/lib/supabase";
@@ -47,12 +48,12 @@ export async function getAnalyticsInputs(): Promise<AnalyticsInputs> {
   const [
     reservationResult, roomResult, taskResult, orderResult, inventoryResult, movementResult, policyResult
   ] = await Promise.all([
-    supabase.from("reservations").select("id,status,check_in,check_out,created_at,room_type,guests").gte("check_out", shiftDate(today, -RESERVATION_HISTORY_DAYS)),
-    supabase.from("rooms").select("id,number,status,administratively_active"),
-    supabase.from("housekeeping_tasks").select("id,room_id,task_type,status,created_at,started_at,completed_at").gte("created_at", shiftDate(today, -TASK_HISTORY_DAYS)),
-    supabase.from("maintenance_orders").select("id,room_id,room_number,category,target_type,target_label,status,priority,created_at").gte("created_at", shiftDate(today, -MAINTENANCE_HISTORY_DAYS)),
-    supabase.from("inventory").select("id,name,category,quantity,reorder_point,unit"),
-    supabase.from("inventory_movements").select("id,item_id,quantity,direction,created_at").gte("created_at", shiftDate(today, -MOVEMENT_HISTORY_DAYS)),
+    readAllRows(() => supabase!.from("reservations").select("id,status,check_in,check_out,created_at,room_type,guests").gte("check_out", shiftDate(today, -RESERVATION_HISTORY_DAYS))).then(data => ({ data, error: null })),
+    readAllRows(() => supabase!.from("rooms").select("id,number,status,administratively_active")).then(data => ({ data, error: null })),
+    readAllRows(() => supabase!.from("housekeeping_tasks").select("id,room_id,task_type,status,created_at,started_at,completed_at").gte("created_at", shiftDate(today, -TASK_HISTORY_DAYS))).then(data => ({ data, error: null })),
+    readAllRows(() => supabase!.from("maintenance_orders").select("id,room_id,room_number,category,target_type,target_label,status,priority,created_at").gte("created_at", shiftDate(today, -MAINTENANCE_HISTORY_DAYS))).then(data => ({ data, error: null })),
+    readAllRows(() => supabase!.from("inventory").select("id,name,category,quantity,reorder_point,unit")).then(data => ({ data, error: null })),
+    readAllRows(() => supabase!.from("inventory_movements").select("id,item_id,quantity,direction,created_at").gte("created_at", shiftDate(today, -MOVEMENT_HISTORY_DAYS))).then(data => ({ data, error: null })),
     supabase.from("hotel_operational_policies").select("housekeeping_inspection_required").eq("key", "default").maybeSingle()
   ]);
 

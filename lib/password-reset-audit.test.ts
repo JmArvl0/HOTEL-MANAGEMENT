@@ -59,8 +59,8 @@ describe("selfie-gated recovery routes", () => {
     expect(selfieRoute).toContain('const BUCKET = "recovery-selfies"');
     expect(selfieRoute).toContain(".from(BUCKET)");
   });
-  it("audits admin-initiated links with the same log shape", () =>
-    expect(selfieRoute).toContain('from("password_reset_logs").insert'));
+  it("stages evidence through the token-locked audit RPC", () =>
+    expect(selfieRoute).toContain('rpc("stage_recovery_selfie"'));
 });
 
 describe("self-service reset request and verification", () => {

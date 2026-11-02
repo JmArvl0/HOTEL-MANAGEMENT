@@ -7,7 +7,7 @@ const nextConfig = {
       { protocol: "https", hostname: "vztkkugkvqjghftnlxxr.supabase.co", pathname: "/storage/v1/object/public/**" },
     ],
   },
-  typescript: { ignoreBuildErrors: true },
+  typescript: { ignoreBuildErrors: false },
   // Admin System Health counts local migration files at runtime to compare
   // against the remote ledger — bundle them with the route on serverless.
   outputFileTracingIncludes: { "/api/admin/data": ["./supabase/migrations/**"] },

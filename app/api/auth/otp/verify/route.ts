@@ -40,8 +40,9 @@ export async function POST(request: NextRequest) {
   const { data, error } = await supabase.rpc("auth_otp_verify", {
     p_challenge_id: pending.challengeId, p_code_verifier: verifier, p_max_attempts: policy.otpMaxAttempts,
   });
-  if (error || !data) {
-    const mapped = rpcMessage(error?.message ?? "");
+  const failure = (data as { error?: string } | null)?.error;
+  if (error || !data || failure) {
+    const mapped = rpcMessage(failure ?? error?.message ?? "");
     return NextResponse.json({ error: mapped.error, expired: "expired" in mapped ? true : undefined }, { status: mapped.status });
   }
 

@@ -58,7 +58,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const confirmation = String(owned.confirmation_number ?? id);
   const executed = (data as { status?: string } | null)?.status === "executed";
   const changeId = String((data as { id?: string } | null)?.id ?? parsed.data.idempotencyKey);
-  void notifyWithOptionalEmail(
+  await notifyWithOptionalEmail(
     {
       userId: session.user.id,
       type: "reservation_change_submitted",

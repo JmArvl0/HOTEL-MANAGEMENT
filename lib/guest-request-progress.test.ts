@@ -87,8 +87,8 @@ describe("guest request fulfillment presentation", () => {
     expect(badge).toContain('"open", "in_progress"');
     expect(badge).not.toContain('"completed"');
   });
-  it("keeps inventory consumption on task completion only", () => {
-    expect(completeRoute).toContain("logGuestRequestConsumption");
-    expect(migration).not.toContain("inventory_movements");
+  it("leaves inventory consumption inside the fulfillment transaction", () => {
+    expect(completeRoute).not.toContain("logGuestRequestConsumption");
+    expect(completeRoute).not.toContain('.from("inventory")');
   });
 });

@@ -89,7 +89,7 @@ describe("deposit-method migration contracts (20261024050000)", () => {
   });
   it("enforces one active path on both booking routes", () => {
     expect(read("app/api/booking/payments/gateway/route.ts")).toContain('deposit_method');
-    expect(read("app/api/booking/holds/[token]/confirm/route.ts")).toContain("active method");
+    expect(read("app/api/booking/holds/[token]/confirm/route.ts")).toContain('?.deposit_method !== "manual"');
   });
 });
 

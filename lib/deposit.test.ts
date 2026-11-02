@@ -95,7 +95,7 @@ describe("deposit submission re-validates the proof server-side",()=>{
  it("accepts a submission with reference and staged proof path",()=>expect(depositSubmissionSchema.safeParse({paymentMethod:"manual_gcash",paymentReference:"GC-1234",proofPath:"pending/0f0f0f0f-0f0f-0f0f-0f0f-0f0f0f0f0f0f/1f1f1f1f-1f1f-1f1f-1f1f-1f1f1f1f1f1f.jpg"}).success).toBe(true));
  it("rejects a proof path outside the pending namespace",()=>expect(depositSubmissionSchema.safeParse({paymentMethod:"manual_gcash",paymentReference:"GC-1234",proofPath:"../../etc/passwd"}).success).toBe(false));
  it("re-downloads and re-sniffs the proof object before the RPC",()=>{expect(submitRoute).toContain("storage.from(PROOF_BUCKET).download(proofPath)");expect(submitRoute).toContain("sniffProofKind(bytes)")});
- it("cleans up the staged upload when submission fails",()=>{expect(submitRoute).toContain("remove([proofPath])");expect(submitRoute).toContain("idempotentReplay")});
+ it("finalizes evidence outside the staging deletion namespace",()=>{expect(submitRoute).toContain("submitted/${token}/");expect(submitRoute).toContain("p_proof_storage_path: finalizedPath");expect(submitRoute).not.toContain("remove([finalizedPath])")});
  it("maps the PROOF_REQUIRED RPC error to a guest-readable message",()=>expect(submitRoute).toContain("PROOF_REQUIRED:"));
  it("requires the proof path to belong to this hold",()=>expect(submitRoute).toContain("stagedProofPathPattern(token).test(proofPath)"));
 });

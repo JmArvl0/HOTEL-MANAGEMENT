@@ -10,6 +10,7 @@ export type FakeDb = Record<string, Row[]>;
 
 interface Builder extends PromiseLike<{ data: Row[]; error: null; count: number }> {
   select(...columns: unknown[]): Builder;
+  returns(): Builder;
   order(...args: unknown[]): Builder;
   limit(count: number): Builder;
   /** PostgREST range: inclusive [from, to] window over the filtered+sorted rows. */
@@ -35,6 +36,7 @@ function build(rows: Row[]): Builder {
   const keep = (predicate: (row: Row) => boolean) => { result = result.filter(predicate); return builder; };
   const builder: Builder = {
     select: () => builder,
+    returns: () => builder,
     order: (column: unknown, options?: unknown) => {
       const key = String(column);
       const ascending = (options as { ascending?: boolean } | undefined)?.ascending !== false;

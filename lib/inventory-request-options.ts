@@ -14,7 +14,7 @@ import { requestLabel, type RequestOption } from "@/lib/request-options";
  * - services: structured service/preference constants, never inventory.
  *
  * Nothing here reserves or decrements stock: offering is eligibility only,
- * consumption stays at fulfillment (logGuestRequestConsumption).
+ * consumption commits with fulfillment (fulfilled_request_stock DB trigger).
  */
 
 export const PRE_ARRIVAL_SERVICE_VALUES = ["high_floor_quiet", "early_check_in", "celebration"] as const;

@@ -7,14 +7,13 @@ import type { ReservationLike } from "@/lib/analytics/types";
 import { depositSlaSummary, DEFAULT_DEPOSIT_SLA_HOURS } from "@/lib/deposit-sla";
 import { maintenanceBlockedRoomIds, roomBoardState, type RackReservation, type RackRoom } from "@/lib/room-rack";
 import type { DashboardData, RecordItem, Resource, Role } from "@/lib/types";
+import { readAllRows } from "@/lib/read-all-rows";
 
 export const databaseMode = env.databaseMode;
 
 export async function list(resource: Resource): Promise<RecordItem[]> {
   if (!supabase) return demoStore[resource];
-  const { data, error } = await supabase.from(resource).select("*").order("created_at", { ascending: false });
-  if (error) throw error;
-  return data as RecordItem[];
+  return readAllRows<RecordItem>(() => supabase!.from(resource).select("*").order("created_at", { ascending: false }));
 }
 
 export async function create(resource: Resource, payload: Omit<RecordItem, "id">): Promise<RecordItem> {
@@ -173,9 +172,20 @@ export async function getDashboard(role: Role, userId?: string): Promise<Dashboa
   const pendingRefundCount = refundRole ? refunds.length : 0;
   if (refundRole) {
     for (const refund of refunds.slice(0, 5)) notifications.push({ id:`refund-${refund.id}`, title:refund.status==="failed"?"Refund attempt failed - retry required":"Refund awaiting Accounting", detail:`${refund.reservation_id} - ${new Intl.NumberFormat("en-PH",{style:"currency",currency:"PHP"}).format(Number(refund.eligible_amount||0))}`, section:"refunds", createdAt:typeof refund.created_at==="string"?refund.created_at:undefined });
-  }  return {
-    metrics: {
-      occupancy: Math.round((occupied / Math.max(serviceableRooms, 1)) * 100),
+  }  // Role-aware metric filtering: zero out metrics the role cannot see
+  const forbiddenByRole: Record<Role, string[]> = {
+    owner: [],
+    admin: ['refunds', 'reconciliation', 'pendingRefundCount', 'pendingPastSla', 'depositSlaHours', 'oldestPendingVerificationMinutes'],
+    manager: ['invoices', 'transactions', 'folios', 'payments', 'refunds', 'cash_shifts', 'reconciliation', 'documents', 'balancesAttention', 'pendingVerifications', 'pendingRefundCount', 'depositSlaHours', 'oldestPendingVerificationMinutes', 'pendingPastSla', 'cashThisShift', 'shiftFloat', 'shiftOpen', 'collectionsToday', 'depositsReceived', 'refundSummary', 'outstandingBalances'],
+    front_desk: ['refunds', 'reconciliation', 'staff_duty', 'room_types', 'transport_services', 'request_types', 'insights', 'ai', 'housekeeping_tasks', 'maintenance_orders', 'inventory', 'refunds', 'reconciliation', 'pendingRefundCount', 'pendingPastSla', 'depositSlaHours', 'oldestPendingVerificationMinutes', 'pendingPastSla', 'cashThisShift', 'shiftFloat', 'shiftOpen', 'collectionsToday', 'depositsReceived', 'refundSummary', 'outstandingBalances', 'pendingVerifications'],
+    housekeeping: ['room_rack', 'guests', 'guest_requests', 'transportation', 'maintenance_orders', 'inventory', 'reports', 'invoices', 'transactions', 'folios', 'payments', 'refunds', 'cash_shifts', 'reconciliation', 'documents', 'staff_duty', 'room_types', 'transport_services', 'request_types', 'insights', 'ai', 'occupancy', 'arrivals', 'departures', 'revenue', 'onlineBookings', 'inHouse', 'unassignedArrivals', 'dirtyRooms', 'outOfServiceRooms', 'openRequests', 'balancesAttention', 'roomsCleaning', 'roomsAwaitingInspection', 'overdueHousekeeping', 'openMaintenance', 'criticalMaintenance', 'overdueRequests', 'escalatedIssues', 'pendingApprovals', 'collectionsToday', 'depositsReceived', 'refundSummary', 'outstandingBalances', 'cashThisShift', 'shiftFloat', 'shiftOpen', 'pendingRequestBatches', 'departmentRequests', 'transportationRequested', 'pendingVerifications', 'pendingRefundCount', 'depositSlaHours', 'oldestPendingVerificationMinutes', 'pendingPastSla'],
+    maintenance: ['room_rack', 'guests', 'guest_requests', 'transportation', 'housekeeping_tasks', 'inventory', 'reports', 'invoices', 'transactions', 'folios', 'payments', 'refunds', 'cash_shifts', 'reconciliation', 'documents', 'staff_duty', 'room_types', 'transport_services', 'request_types', 'insights', 'ai', 'occupancy', 'arrivals', 'departures', 'revenue', 'onlineBookings', 'inHouse', 'unassignedArrivals', 'dirtyRooms', 'outOfServiceRooms', 'openRequests', 'balancesAttention', 'roomsCleaning', 'roomsAwaitingInspection', 'overdueHousekeeping', 'openMaintenance', 'criticalMaintenance', 'overdueRequests', 'escalatedIssues', 'pendingApprovals', 'collectionsToday', 'depositsReceived', 'refundSummary', 'outstandingBalances', 'cashThisShift', 'shiftFloat', 'shiftOpen', 'pendingRequestBatches', 'departmentRequests', 'transportationRequested', 'pendingVerifications', 'pendingRefundCount', 'depositSlaHours', 'oldestPendingVerificationMinutes', 'pendingPastSla'],
+    accounting: ['room_rack', 'guests', 'guest_requests', 'transportation', 'housekeeping_tasks', 'maintenance_orders', 'inventory', 'staff_duty', 'room_types', 'transport_services', 'request_types', 'insights', 'ai', 'occupancy', 'arrivals', 'departures', 'revenue', 'onlineBookings', 'inHouse', 'unassignedArrivals', 'dirtyRooms', 'outOfServiceRooms', 'openRequests', 'roomsCleaning', 'roomsAwaitingInspection', 'overdueHousekeeping', 'openMaintenance', 'criticalMaintenance', 'overdueRequests', 'escalatedIssues', 'pendingApprovals', 'collectionsToday', 'depositsReceived', 'cashThisShift', 'shiftFloat', 'shiftOpen', 'pendingRequestBatches', 'departmentRequests', 'transportationRequested'],
+    guest: ['occupancy', 'arrivals', 'departures', 'revenue', 'openTasks', 'availableRooms', 'onlineBookings', 'inHouse', 'unassignedArrivals', 'dirtyRooms', 'outOfServiceRooms', 'openRequests', 'balancesAttention', 'roomsCleaning', 'roomsAwaitingInspection', 'overdueHousekeeping', 'openMaintenance', 'criticalMaintenance', 'overdueRequests', 'escalatedIssues', 'pendingApprovals', 'collectionsToday', 'depositsReceived', 'refundSummary', 'outstandingBalances', 'cashThisShift', 'shiftFloat', 'shiftOpen', 'pendingRequestBatches', 'departmentRequests', 'transportationRequested', 'pendingVerifications', 'pendingRefundCount', 'depositSlaHours', 'oldestPendingVerificationMinutes', 'pendingPastSla'],
+  };
+
+  const metrics: DashboardData["metrics"] = {
+    occupancy: Math.round((occupied / Math.max(serviceableRooms, 1)) * 100),
       arrivals: activeArrivals.length,
       departures: activeDepartures.length,
       revenue,
@@ -189,7 +199,15 @@ export async function getDashboard(role: Role, userId?: string): Promise<Dashboa
       openRequests: requests.filter(item=>item.status!=="completed").length,
       balancesAttention: [...activeArrivals,...activeDepartures].filter(item=>Number(invoices.find(invoice=>invoice.reservation_id===item.id)?.balance||0)>0).length,
       roomsCleaning:rooms.filter(item=>item.housekeeping==="cleaning").length,roomsAwaitingInspection:rooms.filter(item=>item.housekeeping==="inspection").length,overdueHousekeeping:overdueHousekeeping.length,openMaintenance:maintenance.filter(item=>activeMaintenanceStatuses.has(String(item.status))).length,criticalMaintenance:maintenance.filter(item=>activeMaintenanceStatuses.has(String(item.status))&&["urgent","critical"].includes(String(item.priority))).length,overdueRequests:overdueGuestRequests.length,escalatedIssues:requests.filter(item=>item.escalation_status==="escalated").length,pendingApprovals:approvals.filter(item=>item.status==="pending").length,collectionsToday,depositsReceived,refundSummary,outstandingBalances:financialRole?invoices.reduce((sum,item)=>sum+Number(item.balance||0),0):0,cashThisShift,shiftFloat,shiftOpen,pendingRequestBatches,departmentRequests,transportationRequested,pendingVerifications,pendingRefundCount,depositSlaHours,oldestPendingVerificationMinutes,pendingPastSla
-    },
+  };
+
+  // Zero out metrics the role cannot see (role-aware metric filtering).
+  for (const key of forbiddenByRole[role] || []) {
+    if (key in metrics) (metrics as unknown as Record<string, unknown>)[key] = 0;
+  }
+
+  return {
+    metrics,
     occupancyTrend,
     roomMix: [{ name: "Occupied", value: countBoardState("occupied"), color: "#084b55" }, { name: "Available", value: countBoardState("available"), color: "#85cbd0" }, { name: "Reserved", value: countBoardState("reserved"), color: "#dfa062" }, { name: "Service", value: countBoardState("dirty") + countBoardState("out_of_service"), color: "#d7d4cb" }],
     recentReservations,

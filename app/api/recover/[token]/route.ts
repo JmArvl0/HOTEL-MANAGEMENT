@@ -20,7 +20,7 @@ const schema = z.object({
  */
 export async function POST(request: Request, { params }: { params: Promise<{ token: string }> }) {
   if (!supabase) return NextResponse.json({ error: "Recovery is unavailable." }, { status: 503 });
-  const p = schema.safeParse(await request.json());
+  const p = schema.safeParse(await request.json().catch(() => null));
   if (!p.success) return NextResponse.json({ error: p.error.issues[0]?.message ?? "Invalid password." }, { status: 400 });
   const token = (await params).token;
   const hash = createHash("sha256").update(token).digest("hex");
@@ -37,6 +37,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   if (error) {
     if (error.message.includes("SELFIE_REQUIRED"))
       return NextResponse.json({ error: "An identity selfie is required before the new password is accepted." }, { status: 409 });
+    if (error.message.includes("RECOVERY_ACCOUNT_INACTIVE"))
+      return NextResponse.json({ error: "This account needs administrator assistance before it can be activated." }, { status: 403 });
     const { data: tok } = await supabase.from("account_recovery_tokens").select("id").eq("token_hash", hash).maybeSingle();
     const tokenId = (tok as { id: string } | null)?.id;
     if (tokenId) await supabase.from("password_reset_logs").update({ status: "failed" }).eq("token_id", tokenId).neq("status", "completed");

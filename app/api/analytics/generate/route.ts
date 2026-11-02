@@ -41,7 +41,9 @@ async function run(request: NextRequest) {
     const demo = await generateInsights();
     markDemoGeneration();
     return NextResponse.json({ data: { generatedAt: demo.generatedAt, persisted: false, occupancyDays: demo.occupancy.days.length, inventoryShortages: demo.inventory.shortageCount, maintenanceElevated: demo.maintenance.elevatedCount, note: "Demo mode: forecasts computed in-memory; snapshots require a database." } });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === "ANALYTICS_COOLDOWN")
+      return NextResponse.json({ error: "Predictions were generated recently. Try again within the hour." }, { status: 429 });
     return NextResponse.json({ error: "Unable to generate predictions." }, { status: 500 });
   }
 }
