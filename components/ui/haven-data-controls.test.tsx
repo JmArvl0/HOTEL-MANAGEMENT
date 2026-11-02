@@ -35,6 +35,55 @@ describe("HavenSearchInput", () => {
     expect(onValueChange).toHaveBeenCalledWith("");
   });
 
+  it("keeps the shared icon and clear-button gutters when the staff search baseline loads", () => {
+    const baseline = readFileSync(join(process.cwd(), "components/ui/haven-data-controls.css"), "utf8")
+      + "\n" + readFileSync(join(process.cwd(), "app/staff-theme.css"), "utf8");
+    const style = document.createElement("style");
+    style.textContent = baseline;
+    document.head.appendChild(style);
+    try {
+      render(
+        <div className="app-shell">
+          <HavenSearchInput value="Garden" onValueChange={() => {}} label="Search reservations" placeholder="Search…" />
+        </div>,
+      );
+      const input = screen.getByRole("searchbox");
+      const computed = window.getComputedStyle(input);
+      expect(computed.paddingLeft).toBe("40px");
+      expect(computed.paddingRight).toBe("42px");
+      expect(computed.minHeight).toBe("40px");
+      expect(computed.borderRadius).toBe("12px");
+      expect(screen.getByRole("button", { name: "Clear search reservations" })).toBeTruthy();
+    } finally {
+      style.remove();
+    }
+  });
+
+  it("leaves the raw walk-in search input on the staff baseline", () => {
+    const baseline = readFileSync(join(process.cwd(), "components/ui/haven-data-controls.css"), "utf8")
+      + "\n" + readFileSync(join(process.cwd(), "app/staff-theme.css"), "utf8");
+    const style = document.createElement("style");
+    style.textContent = baseline;
+    document.head.appendChild(style);
+    try {
+      render(
+        <div className="app-shell">
+          <div className="modal-content">
+            <div className="walk-in-search-row">
+              <input type="search" aria-label="Search walk-in guests" />
+            </div>
+          </div>
+        </div>,
+      );
+      const input = screen.getByRole("searchbox", { name: "Search walk-in guests" });
+      const computed = window.getComputedStyle(input);
+      expect(computed.padding).toBe("9px 11px");
+      expect(computed.minHeight).toBe("42px");
+    } finally {
+      style.remove();
+    }
+  });
+
   it("commits an in-flight draft on unmount instead of dropping keystrokes", () => {
     vi.useFakeTimers();
     const onValueChange = vi.fn();
@@ -133,6 +182,13 @@ describe("HavenDataToolbar", () => {
     expect(input).toMatch(/border-radius:\s*12px/);
     expect(css).toMatch(/\.haven-search-input input:hover\s*\{[^}]*border-color/);
     expect(css).toMatch(/\.haven-search-input input:focus-visible\s*\{[^}]*box-shadow/);
+  });
+
+  it("maps the shared search tokens on the dark staff shell", () => {
+    const css = readFileSync(join(process.cwd(), "components/ui/haven-data-controls.css"), "utf8");
+    const dark = css.match(/(?:^|\n)\.app-shell\s*\{[^}]*--hc-surface[^}]*\}/)![0];
+    expect(dark).toMatch(/--hc-surface:\s*var\(--ds/);
+    expect(dark).toMatch(/--hc-line:\s*var\(--dl/);
   });
 
   // The standard only holds if no other stylesheet re-draws the card around the

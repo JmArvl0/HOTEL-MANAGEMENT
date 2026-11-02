@@ -20,8 +20,17 @@
 .haven-data-toolbar.is-customer{gap:16px;padding:0;border:0;border-radius:0;background:transparent}
 .app-shell .haven-data-toolbar{margin-bottom:12px}
 /* Staff ops mapping (canonical — the only place staff search tokens are set):
-   light floor is Cool Paper (#f3f3f3), so the input keeps a solid white
-   surface + slate border; dark keeps its own dark surface/line. */
+   dark keeps its own dark surface/line; light floor is Cool Paper (#f3f3f3),
+   so the light input keeps a solid white surface + slate border. Both live on
+   the shell so search inputs outside a data toolbar still get the tokens. */
+.app-shell{
+  --hc-surface:var(--ds,#fff);
+  --hc-surface-soft:var(--ds2,#f3f3f3);
+  --hc-line:var(--dl,#d1d5db);
+  --hc-text:var(--dt,#111827);
+  --hc-muted:var(--dm,#5b6472);
+  --hc-accent:var(--dg,#111827);
+}
 .theme-light .app-shell{
   --hc-surface:var(--ops-surface,#ffffff);
   --hc-surface-soft:var(--ops-surface,#ffffff);
