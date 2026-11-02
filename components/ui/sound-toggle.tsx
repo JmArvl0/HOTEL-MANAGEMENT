@@ -5,8 +5,13 @@ import { useState } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 import { isSoundEnabled, setSoundEnabled } from "@/lib/notification-sound";
 
-export function SoundToggleMenuItem({ onToggle }: { onToggle?: () => void }) {
+export function useNotificationSound() {
   const [enabled, setEnabled] = useState<boolean>(() => isSoundEnabled());
+  return [enabled, (next: boolean) => { setEnabled(next); setSoundEnabled(next); }] as const;
+}
+
+export function SoundToggleMenuItem({ onToggle }: { onToggle?: () => void }) {
+  const [enabled, setEnabled] = useNotificationSound();
   return (
     <button
       type="button"
@@ -14,9 +19,7 @@ export function SoundToggleMenuItem({ onToggle }: { onToggle?: () => void }) {
       aria-checked={enabled}
       aria-label={`Notification sound ${enabled ? "on" : "off"}`}
       onClick={() => {
-        const next = !enabled;
-        setEnabled(next);
-        setSoundEnabled(next);
+        setEnabled(!enabled);
         onToggle?.();
       }}
     >
@@ -27,7 +30,7 @@ export function SoundToggleMenuItem({ onToggle }: { onToggle?: () => void }) {
 }
 
 export function SoundToggleRow() {
-  const [enabled, setEnabled] = useState<boolean>(() => isSoundEnabled());
+  const [enabled, setEnabled] = useNotificationSound();
   return (
     <div className="settings-theme-row">
       <div><b>Notification sound</b><small>Play a tone when a notification arrives.</small></div>
@@ -36,11 +39,7 @@ export function SoundToggleRow() {
         role="switch"
         aria-checked={enabled}
         aria-label={`Notification sound ${enabled ? "on" : "off"}`}
-        onClick={() => {
-          const next = !enabled;
-          setEnabled(next);
-          setSoundEnabled(next);
-        }}
+        onClick={() => setEnabled(!enabled)}
       >
         {enabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
         {enabled ? "On" : "Off"}

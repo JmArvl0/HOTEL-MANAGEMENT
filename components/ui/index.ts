@@ -32,4 +32,6 @@ export type { AccessibleChartProps, LineChartProps, AreaChartProps, BarChartProp
 export type { SSEOptions, SSEResult, UseRealTimeDataOptions, VirtualizedListOptions, VirtualizedListResult, IntersectionObserverOptions } from "./Performance";
 export { HavenAccountModal } from "./haven-account-modal";
 export type { HavenAccountModalProps } from "./haven-account-modal";
+export { ProfilePopover } from "./ProfilePopover";
+export type { ProfilePopoverProps, ProfilePopoverAction } from "./ProfilePopover";
 

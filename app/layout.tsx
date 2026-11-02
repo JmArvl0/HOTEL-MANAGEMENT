@@ -15,6 +15,7 @@ import "./customer-portal.css";
 import "@/components/auth/session-expiry.css";
 import "@/components/ui/command-palette.css";
 import "@/components/ui/haven-account-modal.css";
+import "@/components/ui/profile-popover.css";
 import "./staff-theme.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
