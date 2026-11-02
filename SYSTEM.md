@@ -228,7 +228,11 @@ Key properties:
 (`admin_create_staff`) starting **inactive + `recovery_required`**; `admin_initiate_account_recovery`
 mints a one-time hashed token (public `/recover/[token]` → `complete_account_recovery`, which is
 unauthenticated by design — the token is the credential). An account must be `active` **and**
-`recovery_required = false` to sign in.
+`recovery_required = false` to sign in. Self-service password recovery preserves account
+governance: suspended/inactive accounts need administrator assistance. An administrator-created
+onboarding token may activate an inactive recovery-required account. `stage_recovery_selfie`
+binds uploaded evidence to the recovery token under its row lock; completion accepts only
+that bound path and a consumed token cannot have its accepted proof replaced.
 
 **Guest-to-staff conversion.** A guest role is never changed to staff through the generic
 `admin_change_user_role` RPC. `admin_convert_guest_to_staff` is the only supported boundary:
@@ -270,9 +274,10 @@ browser-session cookies only (no `maxAge`, die on browser close), Remember Me
 hidden on `/login`, the header countdown hidden, and live Remember-Me sessions
 collapse to the idle window at the next validation — login itself keeps working.
 Cookie policy ON restores the full policy and the countdown resumes. Enforcement is live in the NextAuth `session` callback (which runs on every
-`getServerSession`; `callbacks.jwt` does not run per request): idle timeout against
+`getServerSession`; JWT revalidation also runs there): idle timeout against
 server-side `user_accounts.last_seen_at` (stamped at sign-in, throttled to one write per
-minute), absolute lifetime against the token `iat`. Standard sign-in is bound by the
+minute), absolute lifetime against immutable `loginIssuedAt` (legacy tokens pin their
+original `iat` once), so cookie renewal cannot reset the login clock. Standard sign-in is bound by the
 inactivity window; Remember-Me opt-in extends
 to the configured maximum. Freshly minted cookies carry a policy-derived `maxAge`
 (absolute window when persistent, idle window otherwise; none when the cookie policy
@@ -582,8 +587,13 @@ manual submission without proof (`PROOF_REQUIRED`). No card/gateway. The proof w
 first stages the image (`POST …/[token]/proof` → private `payment-proofs` Supabase Storage bucket,
 path `pending/<token>/<uuid>.<ext>`; magic-byte-sniffed, never trusting the filename extension or
 browser MIME), then confirms with the staged path. The confirm route re-downloads the object,
-re-sniffs and re-measures it server-side before the RPC, and removes the staged upload if the
-submission fails (no orphaned objects; an idempotent replay keeps the original). The payment row
+re-sniffs and re-measures it server-side, then copies verified bytes into the protected
+`submitted/<token>/<uuid>.<ext>` namespace before the RPC. DELETE only removes unreferenced
+staging objects for an active hold; legacy submitted proofs in `pending` are protected too.
+Finalized evidence is retained on ambiguous RPC failures because a timeout may hide a committed
+payment; cleanup must reconcile references first. An idempotent retry returns the existing
+reservation. Manual submissions require live `deposit_method = manual` at the route and
+transactional RPC boundary; `off` blocks new submissions. The payment row
 stores the storage **path** (plus original name, MIME, size, uploaded-at) — never a URL; proof
 images are served only through 60-second signed URLs minted server-side by
 `GET /api/booking/payments/[id]/proof`, viewable by **the paying guest and Accounting only**
@@ -875,7 +885,10 @@ housekeeping, maintenance, … — and auto-creates the matching housekeeping ta
 Requests carry priority/severity and can be escalated to a Manager. Filed rows stamp
 `inventory_item_id` when their catalog type links an inventory item, and fulfillment
 consumes that exact item (legacy rows without the FK keep name-matching); nothing is
-reserved or decremented at request time.
+reserved or decremented at request time. The `fulfilled_request_stock` trigger performs the
+conditional decrement and one movement in the same transaction as task or direct request
+completion. Insufficient stock rolls back fulfillment; concurrent requests cannot overwrite
+each other's decrements. Staff quantity changes use the locked `adjust_inventory_stock` RPC.
 
 **Batch approval.** `guest_requests` carry `batch_id` + `approval_status ∈ {pending, approved,
 rejected}` (+ `approved_by/at/note`). A customer submission (or a booking's auto-filed batch) starts
@@ -1352,7 +1365,9 @@ consumption from `inventory_movements` daily means → projected shortage + reco
 genuinely predictive, not a low-stock alert; items without history are flagged, never guessed),
 **maintenance recurring-issue risk** (repeat-incidence grouping per room+category over 90 days —
 "recurring issue risk", never a failure-probability claim). `runner.ts` orchestrates the four,
-persists snapshots to `analytics_model_runs` + `analytics_predictions`, and computes evaluation
+persists snapshots to `analytics_model_runs` + `analytics_predictions` through the atomic
+`persist_analytics_generation` RPC (serialized cooldown claim; failed prediction writes roll
+back the generation and retain a failed-attempt record), and computes evaluation
 metrics (predicted vs actual for elapsed target dates: occupancy MAE/MAPE, housekeeping MAE,
 inventory MAE — shown in the UI as "Prediction performance"). Snapshots generate daily via a
 Vercel cron (`vercel.json` → `/api/analytics/generate`, 02:35 Manila) or on-demand by an
@@ -1596,8 +1611,8 @@ real state change happens in the named endpoints below.
 preference validation → hold token); `POST /booking/holds/[token]/proof` (stage the payment-proof
 image in the private `payment-proofs` bucket — multipart upload, magic-byte sniffed, hold-owner
 guarded; DELETE removes a staged path for that hold); `POST /booking/holds/[token]/confirm`
-(deposit submission — reference + staged proof path, re-validated server-side, staged upload
-removed on failure); `GET /booking/payments/[id]/proof` (60-second signed URL — paying guest or
+(deposit submission — reference + staged proof path, re-validated and finalized server-side);
+`GET /booking/payments/[id]/proof` (60-second signed URL — paying guest or
 Accounting only); `POST /register`; `POST /recover/[token]`; `/api/auth/[...nextauth]` (NextAuth
 handler).
 
@@ -1881,12 +1896,10 @@ Honest inventory of what is **not** wired up yet (not prescriptions). Full split
   application RPCs; `lib/accounting.test.ts` asserts no application function is granted to
   them). Regenerate it after each feature block; `supabase/migrations/` stays the source of
   truth.
-- **One deployed helper is remote-only**: `room_is_sellable(...)` is defined in neither
-  `supabase/migrations` nor the repo's older snapshots — it is captured in the current dump but has
-  no migration file, even though `20260916010000` now routes all seven SQL inventory counts through
-  it. Some live function bodies therefore exist only in the deployed database (memory:
-  `db-function-drift-live-definitions`). Read the live body via `DIRECT_URL` before recreating any
-  existing RPC.
+- **The formerly remote-only `room_is_sellable` helper is now captured in migration
+  `20261102010000`**, after comparing the live body through the linked CLI. This closes the
+  migration-only install gap once that migration is applied. Live RPC bodies can still drift
+  (KI-003); read and compare the live definition before replacing an existing function.
 - **Email login OTP is implemented but ships disabled (D-022, 2026-10-10).** The flow,
   policy columns, challenge table, RPCs, SMTP transport, and admin controls are live and
   migration-verified, but `login_otp_enabled` defaults off and delivery reports `Unknown`
