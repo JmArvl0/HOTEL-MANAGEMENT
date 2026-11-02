@@ -2,6 +2,154 @@
 
 Current execution state. Concise — detail lives in linked session notes.
 
+## Latest: Backend remediation (2026-11-02)
+
+**All 23 authorized source fixes implemented and verified locally.** User explicitly
+excluded B-005 (PayMongo envelope parsing); parser/signature/webhook code unchanged.
+- Results: `docs/qa/backend-remediation-2026-11-02.md`; original audit remains linked.
+- Gates: **194 files / 2106 Vitest tests**, **23 real PostgreSQL regression cases**,
+  typecheck, touched-backend eslint and production build pass. Corrupt generated
+  Next types regenerated; build TypeScript checking restored.
+- Fixed identity/ownership, committed OTP counters, immutable session clock, recovery
+  lifecycle/proof binding, booking rate/room gates, finalized deposit proof, loyalty,
+  transactional stock, complete/error-aware financial reads, notification awaiting,
+  atomic analytics. Cash open/collect/close/reopen verified; route bypass disabled.
+- Linked CLI reached remote after `.env.local`'s stopped local stack failed: all 100
+  old ledger versions match; 15 live functions inspected; replaced RPC bodies match;
+  the live-only Housekeeping role restriction is preserved.
+- New migration `20261102010000_backend_audit_remediation.sql` passes clean local
+  replay; remote dry-run lists only it. **Not applied; app not deployed; no commit.**
+  Coordinated app/DB rollout is required: old JS consumption + new DB trigger would
+  double-decrement stock; OTP/proof/analytics contracts also change together.
+- Existing unfinished frontend edits preserved. Do not deploy the whole checkout
+  without accounting for them. Local PostgreSQL test server stopped at close-out.
+- `node docs/qa/backend-audit-probes.mjs --session-only` passes; full probe still
+  reports the two deliberately excluded webhook-envelope failures.
+
+See [[2026-11-02 - Backend Remediation]], [[2026-11-02 - Backend Audit]], [[KI-016]].
+
+## Current task (Unified profile popover, 2026-10-21)
+
+COMPLETE locally; browser QA pending, no commit.
+- Admin/Owner/Manager headers now use `components/ui/ProfilePopover.tsx` +
+  `profile-popover.css`: anchored under the trigger, outside-click/Escape
+  close with focus return, keyboard nav + focus trap, sound toggle in place,
+  Settings modal, single Sign Out. ≤480px becomes a bottom sheet.
+- Guest shell intentionally untouched (its `.customer-account-popover`
+  contract tests stay green).
+- Legacy `.app-shell .profile-popover` overrides deleted from
+  `app/staff-theme.css`; new tests: 7 behaviour + a wiring contract.
+- Gates: typecheck 0 · **189 files / 2093 tests** · build 88 routes · eslint
+  0 errors. Browser QA checklist in [[KI-015]].
+
+See [[2026-10-21 - Unified Profile Popover]].
+
+## Previous: Frontend audit Phase 2: P3 hygiene (2026-10-18)
+
+COMPLETE and committed (`c289745` Phase 1, `d27ae8b`/`f4d236f`/`678cad8`
+hygiene batches, `548b80c` encoding fix). Gates: **2070/2070** tests, build
+88 routes, typecheck 0, lint 0 errors/91 warnings.
+- B-H1: forest→ink + real `--color-primary-hover`; `--tail-*`→`--st-*` (138
+  refs); 5 losing `font:` shorthands stripped; globals dense base folded +
+  cascade-dead mobile page-title rules removed; staff-theme family decoder.
+- B-H2: payments status pills → `StatusBadge` (label passthrough preserves
+  guest copy; `rejected`/`verified` tone coverage added).
+- B-H3: DESIGN.md §4a = 6-step breakpoint scale, opportunistic migration.
+- B-H4: `TailAdminPageHeader` GONE — canonical `PageHeader` only (pin test).
+- **HUI-005 wall removal is GATED on manual browser QA** — checklist at
+  `docs/qa/browser-qa-checklist.md` (A–F), including Phase-1 items (cash
+  close cycle per role, mobile drawer, 9px layout shift) and the Phase-2
+  spot checks (D1 hover, D2 rename parity, D4 payment pills).
+- **Incident fixed**: PowerShell text round-trip in B-H1 double-encoded UTF-8
+  in 3 auth forms — caught by `lib/encoding-guard.test.ts`; all 7 files
+  restored + changes re-applied via Node (`548b80c`). Rule of thumb now:
+  never bulk-edit UTF-8 source with `Get-Content -Raw`/`Set-Content`.
+
+See [[2026-10-18 - Frontend Audit Phase 2 P3 Hygiene]] and
+[[2026-10-18 - Frontend Audit Remediation Phase 1]].
+
+## Previous: Frontend remediation Phase 1 (2026-10-18)
+
+COMPLETE — audit → approved plan → executed, all gates green:
+- Source: `docs/qa/frontend-ui-audit.md` (20 findings); plan at
+  `.opencode/plans/frontend-remediation-phase2-plan.md`; outcomes recorded in
+  the audit report §11 + `docs/qa/important-review.md` (HUI-005 !important walls).
+- **HUI-011 (P1)**: cash-shift Close RE-ENABLED ([[D-032]]); flag + 409 backstop
+  + banner deleted; contract suites now pin close, owner-only sign-out block, RPC map.
+- **HUI-001/006**: dead `Sidebar`/`NavGroup` (zero consumers) deleted along with the
+  Modal.css Navigation section and unused `AppShell`/`saas-shell` (tsx+css+test+import).
+  globals.css `.sidebar` block kept — it is the LIVE mobile-drawer base.
+- **HUI-003**: sub-9px font sizes → 9px floor by token substitution (staff-theme 52,
+  guest-booking 14, no pinned-test collisions).
+- **HUI-007**: DESIGN.md §1/§2 + ui-primitives comments de-staled to loaded truth.
+- **HUI-010**: PageHeader contract +1 (shared-Breadcrumb); inline page-title ×30
+  migration deferred — no zero-risk target; `TailAdminPageHeader` must be
+  consolidated in a browser-verified pass.
+- Gates after: 185 files / **2 069 tests** passing, build exit 0, lint 0 errors /
+  91 warnings, typecheck exit 0. Trees: no commits, user files untouched.
+- Open (KI-014): browser QA (close cycle per role, mobile drawer, 9px layout shift,
+  account dialog parity).
+
+See [[2026-10-18 - Frontend Audit Remediation Phase 1]].
+
+## Previous: haven-qa-testing full QA run (2026-10-18)
+
+COMPLETE — structured QA per `.opencode/skills/haven-qa-testing/SKILL.md`:
+- Gates: typecheck 0 · lint 0 errors/97 warnings · **vitest 186 files/2069** ·
+  build clean.
+- Role matrix **8/8 PASS** (live HTTP per role; cross-role 403/401; empty-body
+  writes 400/409). Owner verified live as `arevalojohnmichael24@gmail.com` →
+  **HQA-002 closed: test-credential correction** (not a defect);
+  `owner@haven.test` = inactive governance row (review in admin, P3).
+- **HQA-001 FIXED**: `vitest.config.mts` exclude += `".opencode/**"`
+  (vendored `.opencode/node_modules/zod` suites no longer swept in).
+- Deep lifecycle verified end-to-end on real data (disposable guest test):
+  hold → proof upload → confirm → deposit verify (30% = 1740 exact) →
+  assign RM-102 → identity → balance payment → folio paid 5800/balance 0;
+  check-in/charge/checkout gates correctly policy-blocked; test reservation
+  RSV-27898D85 **cancelled terminal**, inventory released, residue marked
+  (`QA-TEST-DELETE`).
+- Open: browser/responsive QA incl. 390px; Gemini/QR visual round-trips.
+- Vault close-out user-authorized. See [[2026-10-18 - Full Role QA and
+  Lifecycle Trace]].
+
+## Previous: Worktree review + push (2026-10-16)
+
+COMPLETE — pushed `02de4de..71d41c3` to `origin/main`, branch in sync:
+- Reviewed 13 leftover worktree files: all CSS-consolidation follow-ups,
+  committed pathspec-scoped as `71d41c3` (+25/−18). Gates fresh (2069/2069).
+- Vault notes left uncommitted per convention. No rebase/amend/force.
+- Open: browser QA incl. 390px; ledger/live DB unverified.
+
+See [[2026-10-16 - Worktree Review Third Commit and Push]].
+
+## Previous: Staff CSS consolidation (2026-10-16)
+
+COMPLETE and committed as `b39e984` (9 files, +2922/−4873, not pushed):
+- Pre-commit gates fresh: typecheck 0, lint clean, 2069/2069 tests, 88-route
+  build. Scoped via pathspec + `git rm`; cached-stat verified (no repeat of
+  the `6904f46` incident).
+- Review: classes/keyframes/vars fully carried, scoping parity, one flag —
+  `@media` 87 → 322 blocks needs browser QA.
+- Open: push (2 commits), browser QA incl. 390px, OTP dash confirm,
+  ledger/live unverified.
+
+See [[2026-10-16 - Staff CSS Consolidation Commit]].
+
+## Previous: Modal lint fix + 7 contract tests (2026-10-16)
+
+COMPLETE and committed as `5f105c2` (7 files, +27/−38, not pushed):
+- `components/ui/Modal.tsx`: render-phase `hostRef` IIFE removed, portal uses
+  effect-computed `shellClass`. Lint 0 errors (was 1), typecheck clean.
+- 6 contract test files relaxed to whitespace-tolerant matches (behaviors
+  verified present first). Full suite **2069/2069 green** (was 2062+7 failed).
+- One incident recovered: first commit swept pre-staged CSS deletions;
+  reset and re-committed pathspec-scoped, no data loss.
+- Open: staff CSS rewrite still half-applied in worktree; OTP label `-` vs
+  `—` needs product confirm; no browser QA; ledger/live unverified.
+
+See [[2026-10-16 - Modal Lint and Contract Test Fixes]].
+
 ## Parallel task (Landing Featured Stays Scroll Pane, 2026-10-06)
 
 The full landing SaaS redesign was rolled back by the user ("instead add a scroll pane"); `landing.css` is back at HEAD plus this change only.

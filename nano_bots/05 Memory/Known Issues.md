@@ -317,3 +317,68 @@ touching generation.
 Related:
 `lib/customer.ts` (`getCustomerReceipt`) · `lib/receipt-pdf.ts` · `lib/receipt-image.ts` ·
 [[D-019]] · [[2026-10-03 - Occupancy Basis Fix]]
+
+## KI-014 — Frontend remediation Phase 1 outcomes need browser verification
+
+Status: Open
+Area: [[Frontend / Haven UI]]
+
+Description:
+The audit remediation delivered 2026-10-18 (HUI-011 close re-enable, 9px type
+floor across staff/guest sheets, Navigation/Modal dead-code deletions,
+AppShell/saas-shell deletion — see docs/qa/frontend-ui-audit.md §11 and
+[[D-032]]) is verified by automated gates only. No browser automation exists.
+NEEDS BROWSER VERIFICATION:
+
+1. Cash-shift close → count → reconcile happy path as front_desk and accounting.
+2. Owner-only sign-out block while a shift is open (dialog → Cash & Shifts).
+3. Sidebar mobile drawer at ≤1000px and ≤360px after globals.keep + Navigation
+   Sidebar deletion (drawer base lives in globals.css; staff-theme owns desktop).
+4. 9px type floor layout shifts in AI/insights/pricing/report microcopy at
+   390/768/1366 px.
+5. .haven-account-dialog visual parity after Modal.css section deletion (its
+   own sheet untouched).
+
+Related: [[D-032]], docs/qa/important-review.md (HUI-005 !important report),
+docs/qa/browser-qa-checklist.md (2026-10-18 Phase-1 + Phase-2 manual gate;
+its §F gates the HUI-005 wall removal itself).
+
+## KI-015 — Shared profile popover needs browser verification
+
+Status: Open
+Area: [[Frontend / Haven UI]]
+
+Description:
+The Admin/Owner/Manager account popover (`ProfilePopover`) is covered by jsdom
+behaviour + wiring tests (31 targeted, full suite green) but not by a real
+browser. VERIFY:
+
+1. Click, Escape, outside press, Tab/arrow keys and focus return to the trigger
+   for each staff role; submenu Escape closes only the submenu.
+2. Anchor placement at ≤1000px and the ≤480px bottom sheet (not clipped by the
+   sticky header, scrolls at 85vh).
+3. Dark and light themes: panel/border/text/hover/danger contrast.
+4. Settings opens its modal; Sound toggles without closing the panel and
+   persists; Sign Out fires once.
+5. Guest header unchanged (`.customer-account-popover`).
+
+Related: [[D-033]], [[2026-10-21 - Unified Profile Popover]],
+components/ui/ProfilePopover.tsx, components/ui/profile-popover.css.
+
+## KI-016 — Backend fixes await coordinated rollout; PayMongo envelope fix excluded
+
+Status: Implemented locally; rollout pending (2026-11-02)
+Area: Backend / security / booking / financial integrity
+
+23 findings are fixed in local app/source and the new migration; B-005 is explicitly
+excluded by the user. Results: `docs/qa/backend-remediation-2026-11-02.md`.
+Verification: 2106 Vitest tests, 23 PostgreSQL cases, typecheck, touched-backend lint,
+and production build pass. The session probe passes; two excluded webhook probes fail.
+
+Linked CLI verified the live ledger (100 matching versions) and current function bodies.
+Dry-run lists only `20261102010000_backend_audit_remediation.sql`; it is **not applied**,
+and the application is **not deployed**. Roll out together: old JavaScript stock
+consumption must not run alongside the new transactional DB trigger. Existing unrelated
+frontend work also needs to be accounted for before deploying the checkout.
+
+Related: [[2026-11-02 - Backend Remediation]], [[2026-11-02 - Backend Audit]], [[KI-002]], [[KI-003]].

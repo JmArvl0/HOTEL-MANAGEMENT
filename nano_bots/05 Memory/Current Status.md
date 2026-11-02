@@ -1,5 +1,17 @@
 # Current Status
 
+## Backend audit remediation (2026-11-02)
+
+- All 23 authorized audit fixes implemented locally; user excluded B-005
+  (PayMongo webhook envelopes). See `docs/qa/backend-remediation-2026-11-02.md`.
+- Verified: 194 test files / 2106 Vitest tests, 23 real PostgreSQL regression
+  cases, typecheck, touched-backend eslint, production build. Type checking
+  restored in production builds; cash bypass disabled after cash-cycle regression.
+- Linked live ledger and relevant function bodies verified. Migration
+  `20261102010000_backend_audit_remediation.sql` is the sole dry-run pending item.
+  Coordinated app/database rollout remains pending; no commit/deployment/DB push.
+  Existing unfinished frontend work is preserved. [[KI-016]] tracks rollout.
+
 ## Guest Rewards & Loyalty Module Redesign (2026-10-06)
 
 - Completely redesigned the guest account Rewards module ([`app/(booking)/(customer)/account/loyalty/page.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/app/%28booking%29/%28customer%29/account/loyalty/page.tsx) and [`components/customer/loyalty-card-panel.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/components/customer/loyalty-card-panel.tsx)) using modern SaaS (TailAdmin / Finwise) paradigms, elevated UI/UX Pro Max aesthetics, and full responsive design:
