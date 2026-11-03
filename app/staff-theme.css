@@ -2543,3 +2543,24 @@ tbody tr:hover{background: var(--surface-hover)}
 @media print{.app-shell .data-panel{background: #fff !important;color: #111 !important}}
 @media print{.app-shell .metric-card{background: #fff !important;color: #111 !important}}
 @media print{.app-shell .mod-kpi{background: #fff !important;color: #111 !important}}
+
+/* Keep narrow-screen navigation out of the workspace's flex sizing. */
+@media (max-width: 1000px) {
+  .app-shell .app-header { gap: 8px; }
+  .app-shell .app-header > .menu-btn { flex: 0 0 44px; width: 44px; min-height: 44px; }
+  .app-shell .app-header > .menu-btn + div { flex: 1; min-width: 0; overflow: hidden; }
+  .app-shell .app-header > .menu-btn + div p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .app-shell .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    height: 100vh;
+    height: 100dvh;
+    transform: translateX(-100%);
+  }
+
+  .app-shell .sidebar.open {
+    transform: translateX(0);
+  }
+}
