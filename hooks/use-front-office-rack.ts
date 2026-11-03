@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { RackReservation, RackRoom } from "@/lib/room-rack";
+import type { RackAssignment, RackReservation, RackRoom } from "@/lib/room-rack";
 
 export interface RackSnapshot {
   from: string;
   days: number;
   rooms: RackRoom[];
   reservations: RackReservation[];
+  assignments?: RackAssignment[];
   /** Rooms Maintenance has blocked (active blocking diagnosis) — shown as out of service. */
   blockedRoomIds?: string[];
 }

@@ -4,11 +4,11 @@ type Query<T> = { order(column: string): Query<T>; range(from: number, to: numbe
 /** Complete reads for totals/open work; an API response cap is not a total.
  * ponytail: loads the single property's matching history; use SQL aggregates
  * if its history becomes too large to aggregate comfortably in memory. */
-export async function readAllRows<T>(build: () => Query<T>): Promise<T[]> {
+export async function readAllRows<T>(build: () => Query<T>, stableKey = "id"): Promise<T[]> {
   const rows: T[] = [];
   for (;;) {
-    // Rebuild each query and append a stable ID tiebreaker to existing ordering.
-    const { data, error } = await build().order("id").range(rows.length, rows.length + 499);
+    // Rebuild each query and append its unique key to existing ordering.
+    const { data, error } = await build().order(stableKey).range(rows.length, rows.length + 499);
     if (error) throw error;
     if (!data?.length) return rows;
     rows.push(...data);

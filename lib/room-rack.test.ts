@@ -54,6 +54,15 @@ describe("unassignedArrivals", () => {
 });
 
 describe("barsForRoom", () => {
+  it("uses effective assignment segments after a room move", () => {
+    const rows = [stay({ room_id: "RM-2", status: "checked_in" })];
+    const segments = [
+      { id: "a", reservation_id: "RSV-1", room_id: "RM-1", check_in: "2026-09-22", check_out: "2026-09-24", effective_from: "2026-09-22", effective_to: "2026-09-23", status: "reassigned" },
+      { id: "b", reservation_id: "RSV-1", room_id: "RM-2", check_in: "2026-09-22", check_out: "2026-09-24", effective_from: "2026-09-23", effective_to: null, status: "active" },
+    ];
+    expect(barsForRoom(rows, "RM-1", "2026-09-22", 3, segments).map(b => [b.start, b.span])).toEqual([[0, 1]]);
+    expect(barsForRoom(rows, "RM-2", "2026-09-22", 3, segments).map(b => [b.start, b.span])).toEqual([[1, 1]]);
+  });
   it("clamps bars to the window and drops other rooms", () => {
     const rows = [
       stay({ id: "in", room_id: "RM-1", check_in: "2026-09-21", check_out: "2026-09-23" }),

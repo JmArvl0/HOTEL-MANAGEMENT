@@ -3,6 +3,13 @@ import { fakeSupabase } from "./fake-supabase";
 import { readAllRows } from "./read-all-rows";
 
 describe("complete operational reads", () => {
+  it.each(["code", "pair_key"])("reads tables keyed by %s without assuming an id column", async (key) => {
+    const rows = Array.from({ length: 503 }, (_, i) => ({ [key]: String(502 - i).padStart(5, "0"), name: "Same label" }));
+    const db = fakeSupabase({ keyed_records: rows });
+    const result = await readAllRows(() => db.from("keyed_records").select("*").order("name"), key);
+    expect(result.map(row => row[key])).toEqual(rows.map(row => row[key]).sort());
+    expect(result).toHaveLength(503);
+  });
   it("includes old rows beyond the first response without losing ordering", async () => {
     const rows = Array.from({ length: 1037 }, (_, i) => ({ id: String(i).padStart(5, "0"), balance: i === 0 ? 100 : 0 }));
     const db = fakeSupabase({ invoices: rows });

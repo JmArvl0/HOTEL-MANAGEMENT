@@ -39,6 +39,13 @@ export interface RackBar {
   start: number;
   /** Day span, clamped to the window (min 1). */
   span: number;
+  segmentId?: string;
+  historyKnown?: boolean;
+}
+
+export interface RackAssignment {
+  id: string; reservation_id: string; room_id: string; check_in: string; check_out: string;
+  effective_from: string | null; effective_to: string | null; status: string;
 }
 
 const day = (iso: string) => Date.parse(String(iso).slice(0, 10));
@@ -59,19 +66,29 @@ export function barsForRoom(
   reservations: RackReservation[],
   roomId: string,
   from: string,
-  days: number
+  days: number,
+  assignments?: RackAssignment[],
 ): RackBar[] {
   const start = day(from);
-  return reservations
+  const segmentRows = assignments?.flatMap(assignment => {
+    const reservation = reservations.find(row => row.id === assignment.reservation_id);
+    if (!reservation || assignment.status === "cancelled" || (!assignment.effective_from && assignment.status !== "active")) return [];
+    return [{ ...reservation, room_id: assignment.room_id, check_in: assignment.effective_from ?? assignment.check_in,
+      check_out: assignment.effective_to ?? assignment.check_out, segmentId: assignment.id, historyKnown: Boolean(assignment.effective_from) }];
+  });
+  const represented = new Set(segmentRows?.map(row => row.id));
+  const rows = segmentRows ? [...segmentRows, ...reservations.filter(row => !represented.has(row.id))] : reservations;
+  return rows
     .filter(
       (r) =>
-        r.room_id === roomId && (r.status === "confirmed" || r.status === "checked_in") &&
+        r.room_id === roomId && (r.status === "confirmed" || r.status === "checked_in" || ("segmentId" in r && r.status === "checked_out")) &&
+        day(r.check_out) > day(r.check_in) &&
         day(r.check_out) > start && day(r.check_in) < start + days * DAY_MS
     )
     .map((reservation) => {
       const s = Math.max(0, Math.round((day(reservation.check_in) - start) / DAY_MS));
       const e = Math.min(days, Math.round((day(reservation.check_out) - start) / DAY_MS));
-      return { reservation, start: s, span: Math.max(1, e - s) };
+      return { reservation, start: s, span: Math.max(1, e - s), ...("segmentId" in reservation ? { segmentId: String(reservation.segmentId), historyKnown: "historyKnown" in reservation && Boolean(reservation.historyKnown) } : {}) };
     })
     .sort((a, b) => a.start - b.start);
 }

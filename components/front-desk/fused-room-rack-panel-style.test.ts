@@ -17,7 +17,7 @@ describe("fused room rack style contract", () => {
   it("defines every board/ops class the panel renders", () => {
     const used = new Set<string>();
     for (const attr of tsx.matchAll(/className="([^"]*)"/g))
-      for (const match of attr[1].matchAll(/(?:board|ops|rack)-[a-z-]+/g)) used.add(match[0]);
+      for (const match of attr[1].matchAll(/(?:^|\s)((?:board|ops|rack)-[a-z-]+)/g)) used.add(match[1]);
     expect(used.size).toBeGreaterThan(5);
     for (const cls of used) expect(css).toContain(`.${cls}`);
   });

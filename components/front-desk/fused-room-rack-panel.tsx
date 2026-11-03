@@ -227,7 +227,7 @@ export default function FrontOfficeRack({
       setConfirm(null);
       return;
     }
-    const bars = barsForRoom(reservations, room.id, from, days);
+    const bars = barsForRoom(reservations, room.id, from, days, snapshot?.assignments);
     const check = assignableCell(room, reservation, bars);
     if (!check.ok) {
       say((check as { reason: string }).reason, "warning");
@@ -418,6 +418,7 @@ export default function FrontOfficeRack({
         />
       </div>
 
+      {snapshot?.assignments && <section className="hotel-ops" aria-label="Room assignment diary"><h2>Room assignment diary</h2><p>Dated room allocations share the original reservation reference. Earlier room-move boundaries may be unavailable.</p><ul className="hotel-ops-list">{rooms.flatMap(room=>barsForRoom(reservations,room.id,from,days,snapshot.assignments).map((bar,index)=><li key={bar.segmentId??`${room.id}-${bar.reservation.id}-${index}`}><strong>Room {room.number}</strong><span>{bar.reservation.check_in} → {bar.reservation.check_out}</span><small>{bar.historyKnown?"Recorded segment":"Planned allocation; historical boundary unavailable"}</small><button type="button" className="btn btn-soft" onClick={()=>onOpenFolio(bar.reservation.id)}>{bar.reservation.confirmation_number??bar.reservation.id}</button></li>))}</ul>{snapshot.assignments.length===0&&<p>No dated room allocations in this window.</p>}</section>}
       {activeRoom && activeBoard && (
         <RoomActionSheet
           room={activeRoom}
