@@ -1,0 +1,117 @@
+import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
+import {hotelFixture,hotelTestDatabase,rpc} from './hotel-db-test-helpers.mjs';
+const testDb = await hotelTestDatabase();
+const {db} = testDb;
+let checks=0;
+const check=(name,condition)=>{assert.ok(condition,name);checks++;console.log('PASS '+name);};
+const q=async(sql,args=[]) => (await db.query(sql,args)).rows;
+const call=async(name,args)=>q(`select public.${name}(${args.map((_,i)=>'$'+(i+1)).join(',')}) as result`,args);
+const rejected=async(name,args,code)=>{await q('savepoint rejected_action');let message='';try{await call(name,args);}catch(e){message=e.message;}finally{await q('rollback to savepoint rejected_action');}check(name+' rejects '+code,message.includes(code));};
+(async()=>{
+ await q('begin');
+ try{
+  const roleIds={};const tag=randomUUID().slice(0,8);
+  for(const role of ['owner','front_desk','housekeeping','manager','guest']){const id=randomUUID();roleIds[role]=id;await q("insert into user_accounts(id,email,name,role,password_hash,active,account_status) values($1,$2,$3,$4,'offline-test-placeholder',true,'active')",[id,tag+role+'@example.invalid','Housekeeping test '+role,role]);}
+  const other=randomUUID();await q("insert into user_accounts(id,email,name,role,password_hash,active,account_status) values($1,$2,'Other cleaner','housekeeping','offline-test-placeholder',true,'active')",[other,tag+'other@example.invalid']);
+  const guest=(await q("insert into guests(name,email,user_account_id) values('Test guest',$1,$2) returning id",[tag+'@example.invalid',roleIds.guest]))[0].id;
+  const type='HK-test-'+tag;await q("insert into room_types(name,description,max_guests,beds,base_rate) values($1,'Isolated test',2,'Twin',100)",[type]);
+  const room=(await q("insert into rooms(number,floor,type,rate,status,housekeeping) values($1,1,$2,100,'occupied','clean') returning id",['HK-'+tag,type]))[0].id;
+  const res=(await q("insert into reservations(guest_id,user_id,guest_name,room_id,room_number,room_type,check_in,check_out,status,total) values($1,$2,'Test guest',$3,$4,$5,current_date-1,current_date+1,'checked_in',0) returning id",[guest,roleIds.guest,room,'HK-'+tag,type]))[0].id;
+  await q("insert into invoices(reservation_id,guest_name,amount,paid,balance,status) values($1,'Test guest',0,0,0,'paid')",[res]);
+  await q("insert into reservation_room_assignments(reservation_id,room_id,check_in,check_out,status) values($1,$2,current_date-1,current_date+1,'active')",[res,room]);
+  await q("update hotel_operational_policies set housekeeping_inspection_required=true where key='default'");
+  await call('front_desk_checkout',[res,roleIds.front_desk]);
+  let state=(await q('select status,housekeeping from rooms where id=$1',[room]))[0];
+  check('checkout marks physical room dirty',state.status==='dirty'&&state.housekeeping==='dirty');
+  const task=(await q("select * from housekeeping_tasks where source_type='checkout' and source_id=$1",[res]))[0];
+  check('checkout creates one linked pending turnover',task?.status==='pending'&&task.reservation_id===res);
+  await call('housekeeping_assign_task',[task.id,roleIds.housekeeping,'Isolated owner assignment',roleIds.owner]);
+  check('Owner can assign through the SQL contract',true);
+  await q('update user_accounts set active=false where id=$1',[other]);
+  await rejected('housekeeping_assign_task',[task.id,other,'Inactive target',roleIds.owner],'INVALID_HOUSEKEEPING_ASSIGNEE');
+  await q('update user_accounts set active=true where id=$1',[other]);
+  await rejected('housekeeping_start_task',[task.id,other],'TASK_ASSIGNED_TO_ANOTHER_WORKER');
+  await call('housekeeping_start_task',[task.id,roleIds.housekeeping]);
+  state=(await q('select housekeeping from rooms where id=$1',[room]))[0];check('start updates room to cleaning',state.housekeeping==='cleaning');
+  await rejected('housekeeping_inspect_task',[task.id,'passed',null,randomUUID(),roleIds.housekeeping],'INSPECTION_ALREADY_RECORDED');
+  await call('housekeeping_complete_task',[task.id,JSON.stringify({bed_and_linen:true,bathroom:true,amenities:true,safety_check:true}),'Isolated completion',roleIds.housekeeping]);
+  state=(await q('select housekeeping,public.room_is_sellable(id,current_date,null) as sellable from rooms where id=$1',[room]))[0];
+  check('completed cleaning still blocks sale until inspection',state.housekeeping==='inspection'&&state.sellable===false);
+  await rejected('housekeeping_inspect_task',[task.id,'passed',null,randomUUID(),roleIds.front_desk],'HOUSEKEEPING_INSPECTION_FORBIDDEN');
+  await call('housekeeping_inspect_task',[task.id,'failed','Bathroom needs another clean',randomUUID(),roleIds.housekeeping]);
+  const reclean=(await q('select * from housekeeping_tasks where parent_task_id=$1',[task.id]))[0];
+  check('failed inspection creates a pending child reclean',reclean?.status==='pending'&&reclean.task_type==='reclean');
+  await call('housekeeping_start_task',[reclean.id,roleIds.housekeeping]);
+  await call('housekeeping_complete_task',[reclean.id,'{}','Reclean complete',roleIds.housekeeping]);
+  await call('housekeeping_inspect_task',[reclean.id,'passed',null,randomUUID(),roleIds.housekeeping]);
+  state=(await q('select status,housekeeping,public.room_is_sellable(id,current_date,null) as sellable from rooms where id=$1',[room]))[0];
+  check('passed inspection makes room available clean and sellable',state.status==='available'&&state.housekeeping==='clean'&&state.sellable===true);
+  const original=(await q('select inspection_status from housekeeping_tasks where id=$1',[task.id]))[0];check('reclean preserves original failed inspection history',original.inspection_status==='failed');
+  await q("update rooms set status='occupied' where id=$1",[room]);
+  const stayover=(await q("insert into housekeeping_tasks(room_id,room_number,task,task_type,status) values($1,$2,'Stayover test','stayover_cleaning','pending') returning id",[room,'HK-'+tag]))[0].id;
+  await call('housekeeping_start_task',[stayover,roleIds.housekeeping]);
+  await call('housekeeping_defer_task',[stayover,'Guest requested DND',roleIds.housekeeping]);
+  const deferred=(await q('select status,deferred_reason from housekeeping_tasks where id=$1',[stayover]))[0];
+  check('stayover DND deferral records reason',deferred.status==='deferred'&&deferred.deferred_reason==='Guest requested DND');
+  // The clone is disposable, so commit these fixtures to make them visible to
+  // a second real connection. Neither connection can reach the hosted database.
+  await q('commit');
+  const peer = await testDb.connect();
+  try {
+   const f = await hotelFixture(db,1);
+   const target=f.rooms[0];
+   await q("update rooms set status='dirty',housekeeping='dirty' where id=$1",[target.id]);
+   const pending=[];
+   for(let i=0;i<2;i++)pending.push((await q("insert into housekeeping_tasks(room_id,room_number,task,task_type,status) values($1,$2,'Race turnover','checkout_cleaning','pending') returning id",[target.id,target.number]))[0].id);
+   const starts=await Promise.allSettled(pending.map((id,i)=>rpc(i?peer:db,'housekeeping_start_task',{p_task_id:id,p_staff_user_id:i?other:f.users.housekeeping})));
+   check('competing room starts have exactly one winner',starts.filter(r=>r.status==='fulfilled').length===1);
+   check('competing start fails explicitly',starts.some(r=>r.status==='rejected'&&r.reason.message.includes('TASK_ALREADY_STARTED')));
+   const winner=(await q("select id,started_by from housekeeping_tasks where room_id=$1 and status='in_progress'",[target.id]))[0];
+   const completeArgs={p_task_id:winner.id,p_checklist:{},p_notes:'Retry test',p_staff_user_id:winner.started_by};
+   const finishes=await Promise.allSettled([rpc(db,'housekeeping_complete_task',completeArgs),rpc(peer,'housekeeping_complete_task',completeArgs)]);
+   check('concurrent completion has one business effect',finishes.filter(r=>r.status==='fulfilled').length===1);
+   await assert.rejects(rpc(db,'housekeeping_complete_task',completeArgs),/TASK_NOT_COMPLETABLE/);
+   check('completion retry is an explicit completed-state refusal',true);
+   const inspectArgs={p_task_id:winner.id,p_result:'failed',p_reason:'Retry inspection',p_idempotency_key:randomUUID(),p_staff_user_id:winner.started_by};
+   const inspections=await Promise.allSettled([rpc(db,'housekeeping_inspect_task',inspectArgs),rpc(peer,'housekeeping_inspect_task',inspectArgs)]);
+   check('concurrent inspection creates one reclean child',inspections.filter(r=>r.status==='fulfilled').length===1&&Number((await q('select count(*) n from housekeeping_tasks where parent_task_id=$1',[winner.id]))[0].n)===1);
+   await assert.rejects(rpc(db,'housekeeping_inspect_task',inspectArgs),/INSPECTION_ALREADY_RECORDED/);
+   check('inspection retry preserves the existing result',true);
+
+   const party=await hotelFixture(db,1);
+   const booking=(await q("insert into reservations(guest_id,user_id,guest_name,room_type,check_in,check_out,status,total) values($1,$2,'Request test',$3,hotel_today()+60,hotel_today()+62,'confirmed',0) returning id",[party.guest,party.users.guest,party.type]))[0].id;
+   const item=(await q("insert into inventory(name,category,unit,quantity) values('Isolated towel','Linen','piece',2) returning id"))[0].id;
+   const request=(await q("insert into guest_requests(reservation_id,guest_id,request,department,request_type,approval_status,inventory_item_id) values($1,$2,'Extra towel','housekeeping','extra_towels','approved',$3) returning id",[booking,party.guest,item]))[0].id;
+   check('unassigned guest request creates no invalid room task',(await q('select id from housekeeping_tasks where guest_request_id=$1',[request])).length===0);
+   await rpc(db,'front_desk_assign_room',{p_reservation_id:booking,p_room_id:party.rooms[0].id,p_reason:'Isolated assignment',p_staff_user_id:party.users.front_desk});
+   await q('select ensure_housekeeping_task_for_guest_request($1)',[request]);
+   const tasks=await q('select id,room_id from housekeeping_tasks where guest_request_id=$1',[request]);
+   check('later assignment and ensure retry create exactly one linked task',tasks.length===1&&tasks[0].room_id===party.rooms[0].id);
+   await rpc(db,'housekeeping_start_task',{p_task_id:tasks[0].id,p_staff_user_id:party.users.housekeeping});
+   const fulfill={p_task_id:tasks[0].id,p_checklist:{},p_notes:'Stock race',p_staff_user_id:party.users.housekeeping};
+   const fulfillment=await Promise.allSettled([rpc(db,'housekeeping_complete_task',fulfill),rpc(peer,'housekeeping_complete_task',fulfill)]);
+   check('concurrent request completion succeeds once',fulfillment.filter(r=>r.status==='fulfilled').length===1);
+   check('completion fulfills request and deducts once',(await q('select status from guest_requests where id=$1',[request]))[0].status==='completed'&&Number((await q('select quantity from inventory where id=$1',[item]))[0].quantity)===1);
+   check('completion writes one attributed stock movement',(await q("select recorded_by from inventory_movements where source_type='guest_request' and source_id=$1",[request]))[0]?.recorded_by===party.users.housekeeping&&Number((await q("select count(*) n from inventory_movements where source_type='guest_request' and source_id=$1",[request]))[0].n)===1);
+   await q('update inventory set quantity=0 where id=$1',[item]);
+   const shortage=(await q("insert into guest_requests(reservation_id,guest_id,request,department,request_type,approval_status,inventory_item_id) values($1,$2,'Out of stock towel','housekeeping','extra_towels','approved',$3) returning id",[booking,party.guest,item]))[0].id;
+   const shortageTasks=await q('select id,room_id from housekeeping_tasks where guest_request_id=$1',[shortage]);
+   check('assigned-room requests create one linked task immediately',shortageTasks.length===1&&shortageTasks[0].room_id===party.rooms[0].id);
+   await rpc(db,'housekeeping_start_task',{p_task_id:shortageTasks[0].id,p_staff_user_id:party.users.housekeeping});
+   await assert.rejects(rpc(db,'housekeeping_complete_task',{...fulfill,p_task_id:shortageTasks[0].id}),/STOCK_INSUFFICIENT/);
+   check('stock failure rolls back task, request and movement together',(await q('select status from housekeeping_tasks where id=$1',[shortageTasks[0].id]))[0].status==='in_progress'&&(await q('select status from guest_requests where id=$1',[shortage]))[0].status==='open'&&(await q('select id from inventory_movements where source_id=$1',[shortage])).length===0);
+
+   const blocked=await hotelFixture(db,1);
+   const blockedRoom=blocked.rooms[0];
+   await q("update rooms set status='maintenance',housekeeping='dirty' where id=$1",[blockedRoom.id]);
+   await q("insert into maintenance_orders(room_id,room_number,issue,priority,status,serviceability_impact) values($1,$2,'Blocked plumbing','normal','open','blocked')",[blockedRoom.id,blockedRoom.number]);
+   const blockedTask=(await q("insert into housekeeping_tasks(room_id,room_number,task,task_type,status) values($1,$2,'Cleanup test','maintenance_cleanup','pending') returning id",[blockedRoom.id,blockedRoom.number]))[0].id;
+   await rpc(db,'housekeeping_start_task',{p_task_id:blockedTask,p_staff_user_id:blocked.users.housekeeping});
+   await rpc(db,'housekeeping_complete_task',{p_task_id:blockedTask,p_checklist:{},p_notes:'Blocked test',p_staff_user_id:blocked.users.housekeeping});
+   await rpc(db,'housekeeping_inspect_task',{p_task_id:blockedTask,p_result:'passed',p_reason:null,p_idempotency_key:randomUUID(),p_staff_user_id:blocked.users.housekeeping});
+   check('inspection cannot release a Maintenance-blocked room',!(await q('select room_is_sellable($1,hotel_today(),null) sellable',[blockedRoom.id]))[0].sellable);
+  } finally { await peer.end(); }
+  console.log(JSON.stringify({checksPassed:checks,scope:'Real isolated PostgreSQL functions; owned database clone discarded; hosted database untouched'}));
+ }finally{await q('rollback');await testDb.close();}
+})().catch(err=>{console.error(err.message);process.exitCode=1;});

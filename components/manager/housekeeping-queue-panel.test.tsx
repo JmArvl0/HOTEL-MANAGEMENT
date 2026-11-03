@@ -66,6 +66,53 @@ describe("HousekeepingQueuePanel summary cards", () => {
 });
 
 describe("HousekeepingQueuePanel workspace", () => {
+  it("keeps inspection available to Housekeeping even when another worker cleaned", () => {
+    renderPanel([task({ status: "completed", assigned_user_id: "other", inspection_status: "pending", completed_at: nowIso })]);
+    expect(screen.getByRole("button", { name: "Inspect" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Complete Task" })).toBeNull();
+  });
+
+  it("lets the Manager prioritize without offering cleaning execution", () => {
+    const coordinate = vi.fn();
+    const item = task();
+    render(<HousekeepingQueuePanel role="manager" userId="u1" items={[item]} search="" setSearch={noop}
+      housekeepingAction={noop} coordinate={coordinate} onViewMaintenance={noop} onViewRoom={noop} />);
+    fireEvent.click(screen.getByRole("button", { name: "Prioritize" }));
+    expect(coordinate).toHaveBeenCalledWith(item);
+    expect(screen.queryByRole("button", { name: "Claim" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Start cleaning" })).toBeNull();
+  });
+
+  it("keeps Front Desk read-only", () => {
+    render(<HousekeepingQueuePanel role="front_desk" userId="u1" items={[task()]} search="" setSearch={noop}
+      housekeepingAction={noop} coordinate={noop} onViewMaintenance={noop} onViewRoom={noop} />);
+    expect(screen.getByText("View only")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Claim" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Prioritize" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Room Details" })).toBeTruthy();
+  });
+
+  it("does not offer claim or start for another worker's assigned task", () => {
+    renderPanel([task({ status: "assigned", assigned_user_id: "someone-else", assigned_to: "Another worker" })]);
+    expect(screen.queryByRole("button", { name: "Reassign" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Start cleaning" })).toBeNull();
+    expect(screen.getByText("Assigned to another Housekeeping worker")).toBeTruthy();
+  });
+
+  it("does not offer completion for another worker's running task", () => {
+    renderPanel([task({ status: "in_progress", assigned_user_id: "someone-else", assigned_to: "Another worker" })]);
+    expect(screen.queryByRole("button", { name: "Complete Task" })).toBeNull();
+  });
+
+  it("keeps the current worker's cleaning controls connected to the selected task", () => {
+    const action = vi.fn();
+    const item = task({ status: "assigned", assigned_user_id: "u1" });
+    render(<HousekeepingQueuePanel role="housekeeping" userId="u1" items={[item]} search="" setSearch={noop}
+      housekeepingAction={action} coordinate={noop} onViewMaintenance={noop} onViewRoom={noop} />);
+    fireEvent.click(screen.getByRole("button", { name: "Start cleaning" }));
+    expect(action).toHaveBeenCalledWith(item, "start");
+  });
+
   it("renders the hero, the typical-path legend, and prominent active work", () => {
     renderPanel([task({ status: "in_progress", assigned_user_id: "u1" })]);
     expect(screen.getByRole("heading", { name: "Housekeeping" })).toBeTruthy();
