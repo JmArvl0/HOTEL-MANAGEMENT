@@ -91,7 +91,7 @@ inside `.theme-light`-aware rules, not `@media (prefers-color-scheme: dark)`.
 
 ## 3. Typography
 
-- **Inter** (sans) + **Playfair Display** (serif display). Loaded once via `next/font` on `<body>`,
+- **Inter** (sans) + **Playfair Display** (serif display). Bundled with SIL licenses in `app/fonts` and loaded once via `next/font/local` on `<body>`,
   which writes `--font-sans` / `--font-display` directly. `design-tokens.css` `:root` fallbacks are
   plain stacks (inert vs. the body variables — harmless, no self-reference).
 - **No per-role fonts** — surfaces differentiate by palette only.

@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Allow isolated QA builds without replacing a running app's output.
+  distDir: process.env.HAVEN_BUILD_DIR || ".next",
   reactStrictMode: true,
   images: {
     remotePatterns: [
