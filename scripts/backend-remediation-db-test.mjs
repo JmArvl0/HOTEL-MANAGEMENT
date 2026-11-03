@@ -27,7 +27,12 @@ try {
     create table supabase_migrations.schema_migrations(version text primary key,name text,statements text[]);
   `);
   const remediation = "20261102010000_backend_audit_remediation.sql";
-  for (const file of fs.readdirSync("supabase/migrations").filter((f) => f.endsWith(".sql") && !(process.argv.includes("--baseline") && f === remediation)).sort()) {
+  const files = fs.readdirSync("supabase/migrations").filter((f) => f.endsWith(".sql") && !(process.argv.includes("--baseline") && f === remediation)).sort();
+  // The hosted project already applied the recovered remote history. Test that
+  // real upgrade order as well as a clean chronological installation.
+  const pending = new Set([remediation, "20261103130000_hotel_nightly_availability.sql", "20261103140000_hotel_operations.sql", "20261103150000_hotel_operating_day.sql"]);
+  const replay = process.argv.includes("--upgrade-order") ? [...files.filter(f => !pending.has(f)), ...files.filter(f => pending.has(f))] : files;
+  for (const file of replay) {
     try {
       await db.query(fs.readFileSync(`supabase/migrations/${file}`, "utf8"));
       await db.query("insert into supabase_migrations.schema_migrations(version,name) values($1,$2)", [file.split("_")[0], file]);
@@ -177,7 +182,7 @@ try {
   });
   await test("B-023 express check-in rejects expired early approval", async () => {
     const f = await fixture(); const hash = randomUUID().replaceAll("-", "").repeat(2);
-    await db.query("update reservations set room_id=$2,check_in=current_date,check_out=current_date+1,early_check_in_approved_until=now()-interval '1 hour',operational_policy_snapshot=jsonb_build_object('hotelTimezone','UTC','checkInTime','24:00','earlyCheckInAllowed',false) where id=$1", [f.reservation, f.room]);
+    await db.query("update reservations set room_id=$2,check_in=(now() at time zone 'UTC')::date,check_out=(now() at time zone 'UTC')::date+1,early_check_in_approved_until=now()-interval '1 hour',operational_policy_snapshot=jsonb_build_object('hotelTimezone','UTC','checkInTime','24:00','earlyCheckInAllowed',false) where id=$1", [f.reservation, f.room]);
     await db.query("update invoices set amount=0,balance=0 where id=$1", [f.invoice]);
     await db.query("insert into qr_tokens(token_hash,resource_type,resource_id,purpose) values($1,'reservation',$2,'check_in')", [hash, f.reservation]);
     await assert.rejects(call("express_qr_self_check_in", { p_qr_token_hash: hash, p_user_id: f.users.guest }), /SELF_CHECKIN_TOO_EARLY/);
@@ -217,7 +222,8 @@ try {
   });
   await test("B-016 insufficient stock rolls back fulfillment", async () => {
     const f = await inventoryFixture(); await db.query("update inventory set quantity=0 where id=$1", [f.item]);
-    await assert.rejects(call("staff_progress_guest_request", { p_request_id: f.requests[0], p_action: "complete", p_staff_user_id: f.users.housekeeping }), /INVENTORY_INSUFFICIENT_STOCK/);
+    // The recovered remote completion guard runs before the legacy after-trigger.
+    await assert.rejects(call("staff_progress_guest_request", { p_request_id: f.requests[0], p_action: "complete", p_staff_user_id: f.users.housekeeping }), /STOCK_INSUFFICIENT/);
     assert.equal((await db.query("select status from guest_requests where id=$1", [f.requests[0]])).rows[0].status, "open");
   });
   await test("B-004/B-022 administrator onboarding still accepts its bound selfie", async () => {
