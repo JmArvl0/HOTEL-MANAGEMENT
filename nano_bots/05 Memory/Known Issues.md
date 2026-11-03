@@ -4,6 +4,16 @@ Unresolved bugs, risks, limitations, and technical debt. Resolved issues stay he
 `Status: Resolved` until the next archive pass (move to `04 Archive/Memory/` when navigation
 gets cluttered — do not archive aggressively).
 
+## Hotel operations release blocker — remote history changed (2026-11-03)
+
+Status: Resolved (2026-11-03). The recovered/reconciled combined history was
+pushed (remote ledger 112 migrations, 0 missing vs local) together with the
+matching production deployment; promote and production verification passed and
+the maintenance gate is closed. Backup + restore rehearsal preceded the push;
+pre-cutover dump retained in `.tmp/qa-rollout`. Open follow-ups (not this
+blocker): delete the disabled firewall rule, credential rotation, external
+sandbox tests. Details: [[2026-11-03 - Coordinated Production Cutover]].
+
 ## KI-001 — Room-type exception repricing policy not business-confirmed
 
 Status: Resolved (2026-09-22) — the business rule arrived and is implemented
@@ -323,6 +333,12 @@ Related:
 Status: Open
 Area: [[Frontend / Haven UI]]
 
+2026-11-03 QA added fixed off-canvas positioning plus accessible close/backdrop/
+Escape behavior to the staff mobile drawer. Follow-up production-build browser
+checks passed at390px/1366px, including44px menu sizing, Escape and backdrop close.
+Other checklist items below retain their separate verification requirements. See
+`docs/qa/qa-fixes-2026-11-03.md`.
+
 Description:
 The audit remediation delivered 2026-10-18 (HUI-011 close re-enable, 9px type
 floor across staff/guest sheets, Navigation/Modal dead-code deletions,
@@ -382,3 +398,36 @@ consumption must not run alongside the new transactional DB trigger. Existing un
 frontend work also needs to be accounted for before deploying the checkout.
 
 Related: [[2026-11-02 - Backend Remediation]], [[2026-11-02 - Backend Audit]], [[KI-002]], [[KI-003]].
+
+## KI-017 — Hotel operations candidate conflicts with remote ledger; operating-day API returns 503
+
+Status: Local reconciliation complete; hosted rollout pending (2026-11-03)
+Area: Hotel operations / database rollout
+
+Update: read-only hosted diagnosis confirmed missing `hotel_operating_day(p_actor)`
+(`PGRST202`). Recovered/restored all eight remote migrations; unpublished hotel
+files moved to versions 20261103130000/140000/150000. Linked dry-run now passes.
+Clean and actual upgrade-order replays and all 87 SQL checks pass; disposable
+browser assessment/activation passes. Vercel CLI is logged out, so hosted app/DB
+rollout is still pending. Details: `docs/qa/qa-fixes-2026-11-03.md`.
+
+The local 2026-11-03 candidate conflicts with remote migration names at versions
+`20261103010000` and `20261103030000`; the remote ledger also contained versions
+`20261103070000` through `20261103120000` that were absent from the local migration
+source at the last read-only dry-run. In the hosted-backed Manager preview,
+`GET /api/staff/operational-date` returned 503 while the dashboard returned 200.
+The route maps unrecognized RPC errors to 503, and its raw database error was not
+captured, so the ledger conflict is a risk and correlation rather than a proven
+direct cause.
+
+Impact:
+Staff cannot rely on operating-day assessment/activation in the linked environment.
+The local candidate cannot be safely released until remote source and live object
+definitions are recovered and reconciled.
+
+Next action:
+Recover/review remote migrations and live function/table definitions, replay the
+combined history locally, then rerun a read-only dry-run and operating-day smoke
+test in a verified non-production project. Do not repair history or push the
+candidate blindly. Details: `docs/qa/comprehensive-qa-2026-11-03.md` and
+`docs/qa/staff-walkthrough-2026-11-03.md`.

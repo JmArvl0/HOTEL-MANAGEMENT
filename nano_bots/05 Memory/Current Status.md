@@ -1,5 +1,90 @@
 # Current Status
 
+## Production cutover (2026-11-03)
+
+- Authorized sequence executed and verified: maintenance gate → backup
+  (restored into disposable PostgreSQL OK) → staged production deploy → four
+  pending migrations applied remotely → promote → production verification →
+  traffic reopened.
+- Production runs dpl_Cou57UhzDNeecuDVcFfXii7TpCPQ on
+  haven-hotel-management-ten.vercel.app; `/` and public API return 200,
+  auth-guarded endpoints 401 cleanly. Remote ledger: 112 migrations, 0 missing
+  vs local.
+- Firewall gate rule disabled (not deleted); pre-cutover dump + private logs
+  retained in `.tmp/qa-rollout` (git-ignored). Remaining open work: optional
+  gate-rule deletion, credential rotation, external sandbox tests.
+- Details: [[2026-11-03 - Coordinated Production Cutover]].
+
+## QA remediation (2026-11-03)
+
+- Local migration conflicts resolved using eight recovered remote source files;
+  unpublished hotel migrations moved after the verified ledger. Linked dry-run
+  passes. Hosted operating-day RPC absence confirmed; live rollout remains pending.
+- Clean112-migration and hosted-upgrade replay plus87 SQL checks pass. Vitest2205,
+  typecheck/build pass; touched-file lint0errors/0warnings. Bundled fonts build offline.
+- Browser390/1366 navigation/header and persisted dummy Admin create/edit/suspend
+  pass. Synthetic Accounting login and operating-day activation/assessment pass.
+- Vercel CLI logged out; awaiting user sign-in for coordinated rollout. Credentials
+  need secure rotation and external sandbox tests remain open. No hosted business
+  writes or migration applied. `docs/qa/qa-fixes-2026-11-03.md`.
+
+## Comprehensive QA follow-up (2026-11-03)
+
+- Current checkout: 203 Vitest files / 2,203 tests pass; typecheck passes. Focused
+  Admin/mobile checks pass (6 tests); lint has 0 errors / 7 existing warnings.
+- New local-source mobile navigation fix added; browser visual retest remains pending.
+- Hosted-backed Manager preview returned 503 from `/api/staff/operational-date`.
+  Remote migration drift is documented, but the exact RPC error was not captured.
+- Fresh isolated build could not fetch Google Fonts. Previous staff walkthrough's
+  successful build is evidence for that earlier checkout, not this exact one.
+- Hosted CRUD was not run; current local config targets hosted Supabase with existing
+  records. No hosted business write, migration, deployment or password change in
+  this QA pass. Details: `docs/qa/comprehensive-qa-2026-11-03.md`.
+
+## Hotel operations roadmap (2026-11-03)
+
+- Applicable local implementation and changed-core staff walkthrough complete.
+  Final QA: docs/qa/staff-walkthrough-2026-11-03.md; [[2026-11-03 - Staff Walkthrough]].
+- Node22:202 files/2201 tests, typecheck/build pass; lint0errors/11warnings.
+  Real SQL87 checks/groups; full104 local migration replay passed.
+- Production release blocked: Vercel logged out; final remote preflight has six
+  missing versions and two differently named version collisions. Earlier pending-four
+  report is stale. Recover/reconcile remote source/contracts before renumbering/push.
+- Maintenance window authorized; no production migration or deployment. Hosted
+  Accounting-only password reset explicitly requested/audited and login verified.
+  Normal hosted configuration unchanged. Earlier sections are historical.
+
+## Housekeeping integration (2026-11-03)
+
+- Verified existing checkout → cleaning → inspection/reclean → ready flow using
+  real isolated SQL. Hosted RPCs and task links exist; two tasks await inspection.
+- Fixed Owner assignment API mismatch, disabled-session guard and misleading
+  controls for other workers' tasks. No migration or hosted data changes.
+- 195 files / 2120 tests, 12 isolated SQL checks, typecheck/lint/build pass.
+- Browser E2E not performed. [[2026-11-03 - Housekeeping Integration Audit]].
+
+## Hotel PMS reference analysis (2026-11-03)
+
+- Completed `docs/rea-open-hotel-pms-analysis.md`: hotel operations only, pinned
+  source evidence, comparison, rules, diagrams and prioritized proposals.
+- REA installed/configured and directly callable in Codex; existing MCP preserved.
+- Reproduced a current false sold-out availability calculation for staggered stays;
+  documented without fixing. Recommendations are not approved implementation.
+- No application/migration/data changes or deployment in this investigation.
+- Details: [[2026-11-03 - REA Hotel PMS Analysis]].
+
+## Local app connection and QA (2026-11-03)
+
+- At the user's request, ignored local configuration now uses linked **hosted
+  Supabase**, without a Docker database dependency. Stale local DB URLs removed.
+- Browser login/views passed for five supplied roles; Accounting password
+  mismatches its active account. No password/account changes performed.
+- 43/43 HTTP smoke checks passed. Browser access was subsequently disabled in
+  Work settings; remaining visual and operational-write checks are incomplete.
+- Remediation source is committed (`5d43490`); its hosted migration is still
+  pending and needs coordinated rollout. No migration/deployment performed.
+- Details: `docs/qa/backend-browser-qa-2026-11-03.md`.
+
 ## Backend audit remediation (2026-11-02)
 
 - All 23 authorized audit fixes implemented locally; user excluded B-005

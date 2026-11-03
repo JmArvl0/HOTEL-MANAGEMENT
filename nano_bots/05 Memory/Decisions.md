@@ -4,6 +4,42 @@ Lightweight decision log. Each entry records a choice that constrains future dev
 Trivial implementation details do not belong here. Historical sessions never override the
 current system or `SYSTEM.md` — see [[AI Session Handoff]] for the authority order.
 
+## D-034 — Operational-date direction follows existing Accounting authority
+
+Date: 2026-11-03
+Status: Implemented locally; hosted deployment and explicit clock activation pending
+
+The user delegated the plan's operating-day policy choices ("ikaw nabahalaa use best
+practices"). Keep Haven's established financial authority: Front Desk resolves hotel
+operations, Accounting performs financial close, Manager reviews exceptions, and Owner
+has oversight. Do not grant routine financial execution to other roles.
+
+- Start the first operating date explicitly from the property's current hotel-local day
+  when the new workflow is activated, never during migration replay. Preserve timestamps;
+  mark pre-cutover history rather than relabeling it.
+- Stamp applicable new financial postings with the server-selected open day. Late postings
+  and corrections belong to the current open day with a link/reason to the original event;
+  prohibit backdating into a closed day or editing its immutable snapshot.
+- Close only after unresolved arrivals/no-shows and due departures have an explicit
+  disposition and financial reconciliation passes. Pending cleaning/inspection and linked
+  follow-up remain visible warnings; closing never inspects or releases rooms.
+- No generic force bypass. Recheck blockers atomically, make retries idempotent, and
+  serialize postings with close. Lock the operational-date row before existing financial
+  entity locks. Close additionally freezes operational assessment tables using
+  nonwaiting SHARE locks: an in-progress write produces a retryable conflict,
+  without holding a date lock while waiting on an entity writer.
+- Preserve D-033 and present booked nights, live rooms, frozen-rate room accrual, actual
+  receipts, refunds and outstanding obligations separately. P8 must establish the complete
+  reconciliation and capacity contracts before P7 freezes any snapshot. The local
+  implementation uses closing active/serviceable capacity and labels physical rack
+  occupancy at assessment; no historical capacity reconstruction is claimed.
+
+P6–P8 are now implemented and tested against isolated PostgreSQL. Migration alone
+does not activate tracking; Accounting explicitly activates the current hotel day.
+This decision does not authorize a production cutover. See
+`docs/qa/hotel-operations-completion-2026-11-03.md` and
+[[2026-11-03 - Hotel Operations Completion]].
+
 ## D-033 — Occupancy has two named bases: booked (reservation stay dates) and live (room rack)
 
 Date: 2026-10-03

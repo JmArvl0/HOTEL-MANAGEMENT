@@ -2,6 +2,150 @@
 
 Current execution state. Concise — detail lives in linked session notes.
 
+## Latest: Production cutover complete (2026-11-03)
+
+- Authorized sequence executed: gate → verified backup (`pg_dump
+  --role=postgres`) → local restore rehearsal passed (108 migrations/38
+  accounts/constraint intact) → ledger recheck → staged prod deploy
+  (--skip-domain) → 4 pending migrations applied remotely (ledger now 112, 0
+  missing) → vercel promote → gate verified on prod → gate disabled+published.
+- Production now serves the new build: `/` and public API 200; auth-guarded
+  endpoints return clean 401. Deployment
+  dpl_Cou57UhzDNeecuDVcFfXii7TpCPQ on haven-hotel-management-ten.vercel.app.
+- Firewall rule "Haven coordinated maintenance 2026-11-03" is disabled (not
+  deleted). `.tmp/qa-rollout/pre-cutover.dump` + private logs retained
+  (git-ignored); restore DB copies removed. Session:
+  [[2026-11-03 - Coordinated Production Cutover]].
+- Open follow-ups: optional deletion of gate rule; credential rotation and
+  external sandbox tests from prior QA sessions remain open.
+
+## Earlier: QA remediation verified locally (2026-11-03)
+
+- `docs/qa/qa-fixes-2026-11-03.md`; [[2026-11-03 - QA Remediation]]. Recovered8
+  remote migrations; hotel files now03130000/140000/150000. Linked dry-run passes
+  with four pending files. Missing operating-day RPC confirmed via PGRST202.
+- Clean112-file and actual hosted upgrade-order replay pass; SQL23+27+24+13.
+  Full203files/2205tests; focused44; typecheck/build pass; touched lint0/0.
+- Bundled fonts eliminate build downloads. Retryable operating-day errors, mobile
+  drawer/header and Admin lint fixed. Browser390/1366 passes; dummy account
+  create/edit/suspend persisted. Accounting activation/assessment works locally.
+- Hosted rollout pending: Vercel CLI logged out; user asked to run vercel login.
+  No hosted migration/deploy/password change. Secure credential rotation and external
+  sandbox tests remain open. Owned QA helpers/data cleaned; hosted config preserved.
+
+## Earlier: Comprehensive QA follow-up (2026-11-03)
+
+- Report: `docs/qa/comprehensive-qa-2026-11-03.md`; session:
+  [[2026-11-03 - Comprehensive QA]]. Full tests **203 files / 2203 passed**;
+  typecheck passed; focused Admin/mobile 6 tests passed; touched lint 0 errors /
+  7 warnings; detector clean for Admin client.
+- New local-source mobile drawer fix: fixed off-canvas positioning, state-aware
+  accessible menu button, backdrop and Escape. Visual retest pending; browser bridge
+  cannot reach the safe loopback-only preview.
+- Current Manager preview returned 503 for `/api/staff/operational-date`. Exact RPC
+  error not captured; remote migration conflicts are related risk, not proven cause.
+- Fresh isolated build stopped at Google Fonts network fetch. No hosted CRUD,
+  migration, deployment or password change this pass. QA temporary files/server
+  removed; credentials omitted.
+
+## Earlier: Staff walkthrough complete locally; release drift (2026-11-03)
+
+- Real app/NextAuth/API/PostgREST/isolated PG browser walkthrough passed core changed
+  staff flows, Manager/Owner oversight and successful prior-day Accounting close.
+  Report: docs/qa/staff-walkthrough-2026-11-03.md; [[2026-11-03 - Staff Walkthrough]].
+- Fixed rack navigation, non-id pagination, fee-post/readiness refresh, in-house
+  remaining-night picker and stale resource response race; final browser retests passed.
+- Node22:202 files/2201 tests; typecheck/build pass; lint0errors/11warnings.
+  Real SQL backend23+HK27+availability24+operations13; full104-migration replay passed.
+  Final build Cl_DYGMoO2ijiYDMSMd6C; candidate manifest regenerated, not deployed.
+- Production maintenance was authorized. Vercel is logged out. Final remote dry-run
+  FAILED: missing versions20261103070000–20261103120000, plus collisions:
+  remote20261103010000=restore_cash_controls; remote20261103030000=guest_request_withdrawal.
+  Recover/review actual remote additions and live contracts; preserve concurrent work.
+  Never repair ledger or blindly renumber/push. Earlier four-pending dry-run is stale.
+- Only hosted changes: normal login activity and explicitly user-authorized Accounting
+  password reset with auth_version bump/audit; login verified. No credential in notes.
+  No production migration, operational/financial test write, clock activation or deploy.
+- Hosted .env.local unchanged. Local test clock used a clearly dated Nov2 fixture;
+  close advanced to Nov3 exactly once and preserved Maintenance hold/handover.
+- P10 merge/P11 optional non-adoptions unchanged. DND/stock/provider/storage browser
+  claims not invented; DND/stock/concurrency have actual SQL coverage.
+- Older notes below are historical. Known Issues records the current release blocker.
+- Cleanup: QA browser signed out; helpers/test DB/isolated PG stopped/discarded.
+  Final app on port3000, PID18484, original hosted config unchanged.
+
+## Latest: Hotel operations implementation plan (2026-11-03)
+
+User requested a plan for all REA findings plus Housekeeping. Created:
+`docs/plans/2026-11-03-hotel-operations-and-housekeeping.md`.
+- 13 phases / 24 tasks cover I-01–I-10, HK-01–HK-03, the failed-availability
+  display observation, conditional features and prior remediation rollout.
+- First batch: compatibility/baseline → HK close-out → nightly availability.
+  Business-date/close authority and posting policy require an agreed decision
+  before schema work; recommendations have not become approved policy.
+- Existing HK fixes marked locally done, not duplicated. B-005 remains excluded.
+  No implementation, new SQL, deployment or production mutation in planning turn.
+- Local links, coverage, whitespace and diff checks pass. Existing source changes
+  preserved. See [[2026-11-03 - Hotel Operations Implementation Plan]].
+
+## Latest: Housekeeping integration audit and fixes (2026-11-03)
+
+User suspected missing Housekeeping functions and asked to check all connections.
+Existing workflow was present, including all seven relevant hosted RPCs. Six live
+tasks were completed; two still awaited inspection; two active HK accounts exist.
+- Fixed local Owner suggested-assignment 403 to match SYSTEM.md; explicit worker
+  required. Cleaning/inspection stay HK-only; Manager coordination unchanged.
+- Shared HK guard rejects disabled sessions. Queue hides another worker's claim,
+  start/complete/defer actions and explains ownership; SQL checks retained.
+- Verified **195 files / 2120 tests**, **62 targeted tests**, **12 real isolated
+  PostgreSQL checks**, typecheck, touched-file lint and production build. First
+  build hit sandbox EPERM; retry with filesystem access passed.
+- SQL fixtures rolled back and test server stopped. Hosted data untouched; no
+  migration/deploy/commit. Browser remains unavailable; no browser E2E claim.
+- Report: `docs/qa/housekeeping-integration-2026-11-03.md`; session:
+  [[2026-11-03 - Housekeeping Integration Audit]]. Pending remediation rollout
+  and hosted configuration below remain unchanged.
+
+## Latest: REA hotel-operations comparison (2026-11-03)
+
+**Analysis complete; recommendations only.** Deliverable:
+`docs/rea-open-hotel-pms-analysis.md`; see [[2026-11-03 - REA Hotel PMS Analysis]].
+- User's pasted request superseded the earlier investigation; only hotel operations
+  were examined. Reference commit `3f6956a54aa9faef44311f9e943ce7d44b6934e3`.
+- REA 6.8.0 configured for Codex, existing MCP preserved with verified backup;
+  skill v49 installed. Chat tools now callable; no further restart needed.
+- Confirmed availability defect: two staggered stays in room 1 make a two-room,
+  two-night search return 0 although room 2 is continuously free (expected 1).
+  Matching whole-window counting exists in SQL; **documented, not fixed**.
+- Seven actual reference-helper assertions pass. Report includes 24 sections,
+  38 rules, ERD + 3 state + 6 sequence diagrams and source references. No reference
+  UI/API/SQL integration or concurrency verification claimed.
+- No app/migration/package/data changes, DB push or deployment. Preserve hosted
+  Supabase configuration and pending coordinated remediation rollout below.
+- Proposed priorities: nightly inventory, scoped business date/atomic night audit,
+  companion identities, handover queue. Retain Haven's stronger atomic operations,
+  inspection gates and financial separation. Proposals are not approved decisions.
+
+## Latest: Local backend browser QA (2026-11-03)
+
+**Hosted Supabase restored at user's request; partial browser QA complete.**
+Local Next.js now uses the linked hosted project via ignored `.env.local`;
+stale Docker database URLs removed. Do not switch it back to local Supabase.
+- Brave login/view checks passed for Admin, Manager, Owner, Front Desk, Guest.
+  Verified overview, predictive insights, financial/cash views, guest rewards/folios.
+- Accounting account is active; supplied password mismatches. No password change.
+- Browser tool then reported disabled in Work settings; remaining clicks stopped.
+  **43/43 HTTP smoke checks passed**, including role guards, protected reservation
+  PATCH, guest ownership, non-extending session reads, catalogue/availability.
+- No operational writes/payments executed. Login activity/audit writes are normal.
+  New RPC/trigger workflows remain unverified through the browser.
+- Docker startup failed earlier; no uninstall/reset/data deletion performed.
+- Remote dry-run still lists only the remediation migration; no apply/deploy.
+- Remediation source now exists in commit `5d43490`; older no-commit text below
+  records the earlier session state.
+- Details: `docs/qa/backend-browser-qa-2026-11-03.md` and
+  [[2026-11-03 - Backend Browser QA]].
+
 ## Latest: Backend remediation (2026-11-02)
 
 **All 23 authorized source fixes implemented and verified locally.** User explicitly
