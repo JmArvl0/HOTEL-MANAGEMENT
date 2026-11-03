@@ -280,7 +280,7 @@ export async function getStaffGuestProfile(id: string, role: Role) {
       requests: demoStore.guest_requests.filter((request) => ids.includes(String(request.reservation_id))),
       transportation: [], assignments: [], approvals: [], invoices: invoiceRows,
       financial: financialVisible ? { billed: sum("amount"), paid: sum("paid"), outstanding: sum("balance") } : null,
-      requestOptions: [], financialVisible,
+      requestOptions: [], financialVisible, partyHistory: [] as RecordItem[],
     };
   }
   const guestResult = await supabase.from("guests").select("id,name,email,phone,loyalty_tier,loyalty_points,lifetime_spend,stays,preferences,special_requests,nationality,address,created_at").eq("id", id).maybeSingle();
@@ -290,6 +290,17 @@ export async function getStaffGuestProfile(id: string, role: Role) {
   const stayResult = await supabase.from("reservations").select("id,confirmation_number,room_id,room_number,room_type,check_in,check_out,guests,status,source,total,deposit,deposit_required,payment_status,special_requests,request_options,expected_arrival,identity_status,identity_verified_at,checked_in_at,checked_out_at,cancellation_reason,created_at").eq("guest_id", id).order("created_at", { ascending: false });
   if (stayResult.error) throw stayResult.error;
   const stays = (stayResult.data ?? []) as RecordItem[];
+  let partyHistory: RecordItem[] = [];
+  if (["front_desk", "manager", "owner"].includes(role)) {
+    const memberships = await supabase.from("reservation_guests").select("reservation_id,role").eq("guest_id", id);
+    if (memberships.error) throw memberships.error;
+    const partyIds = (memberships.data ?? []).map(row => row.reservation_id).filter(value => !stays.some(stay => stay.id === value));
+    if (partyIds.length) {
+      const history = await supabase.from("reservations").select("id,confirmation_number,room_type,check_in,check_out,status").in("id", partyIds).order("check_in", { ascending: false });
+      if (history.error) throw history.error;
+      partyHistory = (history.data ?? []).map(row => ({ ...row, party_role: memberships.data!.find(member => member.reservation_id === row.id)?.role })) as RecordItem[];
+    }
+  }
   const ids = stays.map((stay) => String(stay.id));
   const [{ data: requests }, { data: transportation }, { data: assignments }, { data: approvals }, { data: invoices }] = await Promise.all([
     ids.length ? supabase.from("guest_requests").select("id,reservation_id,request,department,priority,severity,status,created_at").in("reservation_id", ids).order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
@@ -301,7 +312,7 @@ export async function getStaffGuestProfile(id: string, role: Role) {
   const invoiceRows = (invoices ?? []) as RecordItem[];
   const sum = (key: string) => fromCentavos(invoiceRows.reduce((total, row) => total + toCentavos(Number(row[key] || 0)), 0));
   return {
-    guest, stays, stayCounts: guestStayCounts(stays),
+    guest, stays, stayCounts: guestStayCounts(stays), partyHistory,
     requests: (requests ?? []) as RecordItem[],
     transportation: (transportation ?? []) as RecordItem[],
     assignments: (assignments ?? []) as RecordItem[],

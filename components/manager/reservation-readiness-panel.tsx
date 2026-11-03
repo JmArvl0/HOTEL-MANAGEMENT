@@ -1,0 +1,8 @@
+"use client";
+import {readinessLabels,type Readiness} from "@/lib/hotel-operations";
+import {useHotelResource} from "./hotel-operations-client";
+export default function ReservationReadinessPanel({reservationId,mode="checkIn",onResolve,candidateRoom}:{reservationId:string;mode?:"checkIn"|"checkOut";onResolve?:(step:number)=>void;candidateRoom?:string}){
+ const{data,error,loading,refresh}=useHotelResource<Readiness>(`/api/staff/reservations/${encodeURIComponent(reservationId)}/readiness${candidateRoom?`?roomId=${encodeURIComponent(candidateRoom)}`:""}`);
+ const blockers=Array.isArray(data?.[mode])?data[mode]:null;
+ return <section className="hotel-ops" aria-label="Reservation readiness"><h3>{mode==="checkIn"?"Arrival":"Departure"} readiness</h3>{loading?<p>Checking readiness…</p>:error?<p role="alert">{error}</p>:blockers?<>{blockers.length?<ul>{blockers.map(code=><li key={code}>{readinessLabels[code]??code.replaceAll("_"," ")}{onResolve&&["IDENTITY_REQUIRED","BALANCE_DUE","ROOM_REQUIRED","ROOM_NOT_READY","ROOM_CONFLICT","DEPOSIT_VERIFICATION_REQUIRED"].includes(code)&&<button type="button" className="btn btn-soft" onClick={()=>onResolve(code==="IDENTITY_REQUIRED"?0:code.includes("ROOM")?2:1)}>Review {code==="IDENTITY_REQUIRED"?"identity":code.includes("ROOM")?"room":"folio"}</button>}</li>)}</ul>:<p>Assessment clear. The final action checks again before committing.</p>}<small>Assessed {new Date(data!.assessedAt).toLocaleString()} · {data!.checkInDate} → {data!.checkOutDate}</small></>:<p>Readiness assessment is unavailable.</p>}<button className="btn btn-soft" type="button" disabled={loading} onClick={()=>void refresh()}>Refresh readiness</button></section>;
+}

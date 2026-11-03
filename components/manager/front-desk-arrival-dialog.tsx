@@ -8,6 +8,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BedDouble, Check, CheckCircle2, ChevronLeft, ChevronRight, ClipboardCheck, KeyRound, RefreshCw, ShieldCheck, Wallet } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import ReservationReadinessPanel from "./reservation-readiness-panel";
+import ReservationPartyPanel from "./reservation-party-panel";
 import { HavenSelect } from "@/components/ui/haven-select";
 import type { RecordItem } from "@/lib/types";
 import type { AskFormOptions, AskFormData } from "@/components/ui/action-dialogs";
@@ -561,6 +563,8 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
 
           {step === 3 && (
             <section className="arrival-section">
+              <ReservationReadinessPanel reservationId={reservationId} onResolve={setStep} candidateRoom={selected} />
+              <ReservationPartyPanel reservationId={reservationId} editable />
               <h3>Review and check in</h3>
               <div className="arrival-facts">
                 <div><dt>Guest</dt><dd>{human(reservation.guest_name)}</dd></div>

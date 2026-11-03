@@ -30,6 +30,7 @@ export type NavItem = { label: string; section: Section; roles?: Role[]; group: 
 
 export const NAV_ITEMS: NavItem[] = [
   { label: "Overview", section: "overview", group: "workspace" },
+  { label: "Hotel Operations", section: "hotel_operations", roles: ["front_desk","manager","housekeeping","maintenance","accounting"], group: "operations" },
   { label: "Room Reservations", section: "room_rack", roles: ["front_desk", "manager", "owner"], group: "front_office" },
   // Deprecated fused surfaces: hidden from the sidebar but still renderable,
   // so deep links and in-flight workflows keep working.
@@ -63,3 +64,8 @@ export const groupedNav = <T extends { section: Section; group: NavGroupId }>(it
   NAV_GROUPS.map((group) => ({ ...group, items: items.filter((item) => item.group === group.id) })).filter(
     (group) => group.items.length > 0
   );
+
+export const canOpenSection = (allowed: readonly Section[], section: Section) =>
+  section === "room_rack"
+    ? allowed.includes("reservations") && allowed.includes("rooms")
+    : allowed.includes(section);
