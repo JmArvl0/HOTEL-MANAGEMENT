@@ -11,6 +11,11 @@ const FIND_ROOM_PATH = "/account/find-room";
 export default async function FindRoomPage({ searchParams }: { searchParams: Promise<Record<string,string|string[]|undefined>> }) {
   await requireCustomerSession();
   const raw = await searchParams;
+  const retryQuery = new URLSearchParams();
+  for (const key of ["checkIn", "checkOut", "guests", "roomType"]) {
+    const value = raw[key];
+    if (typeof value === "string") retryQuery.set(key, value);
+  }
   // Intent mirrors /booking/search: valid dates → availability, otherwise the browse catalog,
   // with an optional ?roomType focus from a landing Featured Stay card.
   const intent = parseSearchIntent(raw);
@@ -56,5 +61,5 @@ export default async function FindRoomPage({ searchParams }: { searchParams: Pro
   {focusNotice && <BookingNoticeToast text={focusNotice} />}
   <AvailabilityGuide id="book-form"><BookingSearchForm compact action={FIND_ROOM_PATH} initial={formInitial} searched={availability ? { checkIn: availability.checkIn, checkOut: availability.checkOut, guests: availability.guests } : undefined}/></AvailabilityGuide>
   {focusRoomType && <RoomFocus roomType={focusRoomType} searchKey={JSON.stringify(raw)}/>}
-  <RoomResults rooms={rooms} error={lookupError} hrefFor={details} focusRoomType={focusRoomType}/></>;
+  <RoomResults rooms={rooms} error={lookupError} retryHref={`${FIND_ROOM_PATH}${retryQuery.size ? `?${retryQuery}` : ""}`} hrefFor={details} focusRoomType={focusRoomType}/></>;
 }

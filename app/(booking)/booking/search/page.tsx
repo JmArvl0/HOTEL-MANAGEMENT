@@ -113,7 +113,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           {availability && <div className="booking-active-filters" aria-label="Current search filters">
             <span className="booking-filter-chip"><CalendarDays size={14} aria-hidden="true" /> {availability.checkIn} → {availability.checkOut} · {nights} night{nights !== 1 ? "s" : ""}</span>
             <span className="booking-filter-chip"><Users size={14} aria-hidden="true" /> {availability.guests} guest{availability.guests !== 1 ? "s" : ""}</span>
-            <span className="booking-filter-chip"><Waves size={14} aria-hidden="true" />{rooms.length ? `${rooms.length} room type${rooms.length !== 1 ? "s" : ""} · ${totalUnits} room${totalUnits !== 1 ? "s" : ""} available` : "No rooms available for these dates"}</span>
+            <span className="booking-filter-chip"><Waves size={14} aria-hidden="true" />{lookupError ? "Availability unavailable" : rooms.length ? `${rooms.length} room type${rooms.length !== 1 ? "s" : ""} · ${totalUnits} room${totalUnits !== 1 ? "s" : ""} available` : "No rooms available for these dates"}</span>
           </div>}
         </AvailabilityGuide>
       </section>
@@ -128,7 +128,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           <div className="booking-results">
             <div className="booking-results__head">
               <h2>
-                {availability
+                {lookupError ? "Unable to load rooms" : availability
                   ? rooms.length ? "Rooms for your dates" : "Choose different dates"
                   : focusRoomType ? `${focusRoomType} and every room type` : "All rooms & suites"}
               </h2>
@@ -137,7 +137,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
               </span>
             </div>
             {focusRoomType && <RoomFocus roomType={focusRoomType} searchKey={JSON.stringify(raw)} />}
-            <RoomResults rooms={rooms} error={lookupError} hrefFor={details} focusRoomType={focusRoomType} />
+            <RoomResults rooms={rooms} error={lookupError} retryHref={`/booking/search${forwarded.size ? `?${forwarded}` : ""}`} hrefFor={details} focusRoomType={focusRoomType} />
           </div>
 
           <aside className="booking-sidebar" aria-label="Booking help">

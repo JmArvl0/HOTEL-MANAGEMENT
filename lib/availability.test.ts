@@ -26,6 +26,38 @@ const count = (
 ) => countAvailableUnits(TYPE, window, { rooms: rows.rooms ?? [], reservations: rows.reservations ?? [], holds: rows.holds ?? [] });
 
 describe("room-type availability arithmetic", () => {
+  it("does not treat consecutive bookings as simultaneous demand", () => {
+    expect(count(future, { rooms: rooms(2), reservations: [
+      reservation({ check_out: "2026-09-16" }),
+      reservation({ check_in: "2026-09-16" }),
+    ] })).toBe(1);
+  });
+
+  it("combines reservations and staggered holds on each night", () => {
+    expect(count(future, { rooms: rooms(3), reservations: [
+      reservation({ check_out: "2026-09-16" }),
+    ], holds: [
+      hold({ check_in: "2026-09-16", check_out: "2026-09-17" }),
+      hold({ check_in: "2026-09-17" }),
+    ] })).toBe(2);
+  });
+
+  it("uses the busiest night including demand starting before the window", () => {
+    expect(count(future, { rooms: rooms(4), reservations: [
+      reservation({ check_in: "2026-09-14", check_out: "2026-09-16" }),
+      reservation({ check_in: "2026-09-16" }),
+      reservation({ check_in: "2026-09-17" }),
+    ], holds: [hold({ check_in: "2026-09-17" })] })).toBe(1);
+  });
+
+  it("excludes expired demand, converted holds and other types from nightly peaks", () => {
+    expect(count(future, { rooms: rooms(2), reservations: [
+      reservation({ check_out: "2026-09-16" }),
+      reservation({ check_in: "2026-09-16", status: "pending", source: "website", payment_due_at: NOW }),
+      reservation({ room_type: "Other" }),
+    ], holds: [hold({ reservation_id: "converted" }), hold({ expires_at: NOW })] })).toBe(1);
+  });
+
   it("sells every serviceable room when nothing is booked", () =>
     expect(count(future, { rooms: rooms(4) })).toBe(4));
 

@@ -269,11 +269,27 @@ export function countAvailableUnits(
     // An unpaid website reservation past its payment deadline has released its inventory.
     return String(reservation.source ?? "").toLowerCase() !== "website"
       || !reservation.payment_due_at || reservation.payment_due_at > now;
-  }).length;
+  });
   const held = rows.holds.filter((hold) =>
     hold.room_type === roomType && !hold.reservation_id && overlaps(hold)
-    && ["active", "payment_submitted"].includes(hold.status) && hold.expires_at > now).length;
-  return Math.max(0, inventory - blocked - held);
+    && ["active", "payment_submitted"].includes(hold.status) && hold.expires_at > now);
+  if (checkOut <= checkIn) return 0;
+  // Net arrivals/departures on the same date before measuring demand. Checkout
+  // is exclusive, so consecutive stays consume the same unit on different nights.
+  const changes = new Map<string, number>();
+  for (const row of [...blocked, ...held]) {
+    const start = row.check_in < checkIn ? checkIn : row.check_in;
+    const end = row.check_out > checkOut ? checkOut : row.check_out;
+    changes.set(start, (changes.get(start) ?? 0) + 1);
+    changes.set(end, (changes.get(end) ?? 0) - 1);
+  }
+  let demand = 0;
+  let peak = 0;
+  for (const date of [...changes.keys()].sort()) {
+    demand += changes.get(date)!;
+    peak = Math.max(peak, demand);
+  }
+  return Math.max(0, inventory - peak);
 }
 
 export async function getAvailability(input: SearchInput, retryTransientAuth = true): Promise<AvailableRoomType[]> {
