@@ -4,7 +4,6 @@ alter table public.guest_requests add constraint guest_requests_approval_status_
 create function public.increment_guest_request_version() returns trigger language plpgsql as $$
 begin new.version:=old.version+1; return new; end$$;
 create trigger guest_request_version before update on public.guest_requests for each row execute function public.increment_guest_request_version();
-
 create function public.customer_withdraw_guest_request(p_user_id uuid,p_request_id uuid,p_expected_version integer)
 returns jsonb language plpgsql security definer set search_path=public as $$
 declare req guest_requests%rowtype;
@@ -24,7 +23,6 @@ begin
 end$$;
 revoke all on function public.customer_withdraw_guest_request(uuid,uuid,integer) from public,anon,authenticated;
 grant execute on function public.customer_withdraw_guest_request(uuid,uuid,integer) to service_role;
-
 -- Serialize new department work against withdrawal. Existing pending-work
 -- creation stays supported, but withdrawn requests cannot acquire new work.
 create function public.guard_withdrawn_request_work() returns trigger language plpgsql set search_path=public as $$

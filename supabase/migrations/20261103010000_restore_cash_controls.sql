@@ -14,8 +14,7 @@ declare actor text;v_id uuid;begin
  if exists(select 1 from cash_shifts where status='open')then raise exception'CASH_SHIFT_ALREADY_OPEN';end if;
  insert into cash_shifts(staff_user_id,location,opening_amount)values(p_staff_user_id,coalesce(nullif(trim(p_location),''),'Front Desk'),round(p_opening_amount,2))returning id into v_id;
  insert into audit_logs(user_id,action,entity_type,entity_id,after_data)values(p_staff_user_id,'open_cash_shift','cash_shift',v_id::text,jsonb_build_object('openingAmount',round(p_opening_amount,2),'location',coalesce(nullif(trim(p_location),''),'Front Desk')));
- return jsonb_build_object('shiftId',v_id,'status','open','openingAmount',round(p_opening_amount,2));end$function$
-;
+ return jsonb_build_object('shiftId',v_id,'status','open','openingAmount',round(p_opening_amount,2));end$function$;
 CREATE OR REPLACE FUNCTION public.accounting_close_cash_shift(p_shift_id uuid, p_actual_cash numeric, p_notes text, p_idempotency_key uuid, p_staff_user_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -36,8 +35,7 @@ declare actor text;s cash_shifts%rowtype;existing cash_shifts%rowtype;v_in numer
  v_expected:=round(s.opening_amount+v_in-v_out,2);v_variance:=round(round(p_actual_cash,2)-v_expected,2);
  update cash_shifts set status='closed',closed_at=now(),expected_cash=v_expected,actual_cash=round(p_actual_cash,2),variance=v_variance,close_notes=nullif(trim(p_notes),''),close_idempotency_key=p_idempotency_key where id=s.id;
  insert into audit_logs(user_id,action,entity_type,entity_id,after_data)values(p_staff_user_id,'close_cash_shift','cash_shift',s.id::text,jsonb_build_object('expectedCash',v_expected,'actualCash',round(p_actual_cash,2),'variance',v_variance,'cashCollected',v_in,'cashPaidOut',v_out));
- return jsonb_build_object('shiftId',s.id,'status','closed','expectedCash',v_expected,'actualCash',round(p_actual_cash,2),'variance',v_variance,'cashCollected',v_in,'cashPaidOut',v_out);end$function$
-;
+ return jsonb_build_object('shiftId',s.id,'status','closed','expectedCash',v_expected,'actualCash',round(p_actual_cash,2),'variance',v_variance,'cashCollected',v_in,'cashPaidOut',v_out);end$function$;
 CREATE OR REPLACE FUNCTION public.record_staff_payment(p_reservation_id text, p_amount numeric, p_method text, p_reference text, p_idempotency_key uuid, p_staff_user_id uuid, p_allow_overpayment boolean DEFAULT false, p_allow_unattributed_cash boolean DEFAULT false)
  RETURNS TABLE(payment_id uuid, paid numeric, balance numeric, payment_status text, folio_credit numeric, reference text)
  LANGUAGE plpgsql
@@ -65,9 +63,7 @@ declare actor text;r reservations%rowtype;i invoices%rowtype;existing payments%r
  values(i.id,r.id,round(p_amount,2),'PHP',trim(p_method),coalesce(v_ref,trim(p_reference)),'stay_payment','paid',p_idempotency_key,p_staff_user_id,now(),v_shift)returning id into v_pid;
  select * into i from sync_invoice_financials(i.id);
  insert into audit_logs(user_id,action,entity_type,entity_id,after_data)values(p_staff_user_id,'collect_payment','payment',v_pid::text,jsonb_build_object('reservationId',r.id,'amount',round(p_amount,2),'method',trim(p_method),'reference',coalesce(v_ref,trim(p_reference)),'cashShiftId',v_shift,'unattributedCash',v_shift is null,'creditBalance',i.credit_balance));
- return query select v_pid,i.paid,i.balance,i.status,i.credit_balance,coalesce(v_ref,trim(p_reference));end$function$
-;
-
+ return query select v_pid,i.paid,i.balance,i.status,i.credit_balance,coalesce(v_ref,trim(p_reference));end$function$;
 -- Backstop other cash writers and serialize against drawer closure.
 create function public.require_open_cash_drawer() returns trigger language plpgsql set search_path=public as $$
 begin

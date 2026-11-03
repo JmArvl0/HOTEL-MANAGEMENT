@@ -1,6 +1,6 @@
 # Known Issues
 
-## KI-014 — Physical stock count draft silently rebases on refresh
+## KI-018 — Physical stock count draft silently rebases on refresh
 
 Status: Resolved (2026-11-03). Count draft now retains its original version through
 refresh; explicit clear/recount resets baseline. Normal regression test passes.
@@ -10,7 +10,7 @@ the server's version guard. Isolated actual-component reproduction in
 `hms-qa-regressions.test.tsx` originally used `it.fails`; now asserts the fix.
 See `docs/HMS-WORKFLOW-QA-2026-11-03.md`, QA-01 and follow-up.
 
-## KI-015 — Cash count draft survives active drawer replacement
+## KI-019 — Cash count draft survives active drawer replacement
 
 Status: Resolved (2026-11-03). Form is keyed by drawer/actor/role and rejects blank
 counts. Same-drawer preservation/new-drawer reset regression passes.
@@ -19,7 +19,7 @@ count/note when refreshed props select a new drawer; submission uses the new ID.
 Existing authorization still applies. Isolated component reproduction is marked
 `it.fails` originally; now a normal passing test. See QA report QA-02 and follow-up.
 
-## KI-016 — Cash split layout fragments the ledger
+## KI-020 — Cash split layout fragments the ledger
 
 Status: Resolved (2026-11-03). Ledger wrapped as one grid child; signed-in browser
 confirms adjacent desktop columns and mobile stacking without page overflow.
@@ -31,6 +31,16 @@ one grid child; see QA report QA-03 and ignored browser screenshot evidence.
 Unresolved bugs, risks, limitations, and technical debt. Resolved issues stay here with
 `Status: Resolved` until the next archive pass (move to `04 Archive/Memory/` when navigation
 gets cluttered — do not archive aggressively).
+
+## Hotel operations release blocker — remote history changed (2026-11-03)
+
+Status: Resolved (2026-11-03). The recovered/reconciled combined history was
+pushed (remote ledger 112 migrations, 0 missing vs local) together with the
+matching production deployment; promote and production verification passed and
+the maintenance gate is closed. Backup + restore rehearsal preceded the push;
+pre-cutover dump retained in `.tmp/qa-rollout`. Open follow-ups (not this
+blocker): delete the disabled firewall rule, credential rotation, external
+sandbox tests. Details: [[2026-11-03 - Coordinated Production Cutover]].
 
 ## KI-001 — Room-type exception repricing policy not business-confirmed
 
@@ -345,3 +355,107 @@ touching generation.
 Related:
 `lib/customer.ts` (`getCustomerReceipt`) · `lib/receipt-pdf.ts` · `lib/receipt-image.ts` ·
 [[D-019]] · [[2026-10-03 - Occupancy Basis Fix]]
+
+## KI-014 — Frontend remediation Phase 1 outcomes need browser verification
+
+Status: Open
+Area: [[Frontend / Haven UI]]
+
+2026-11-03 QA added fixed off-canvas positioning plus accessible close/backdrop/
+Escape behavior to the staff mobile drawer. Follow-up production-build browser
+checks passed at390px/1366px, including44px menu sizing, Escape and backdrop close.
+Other checklist items below retain their separate verification requirements. See
+`docs/qa/qa-fixes-2026-11-03.md`.
+
+Description:
+The audit remediation delivered 2026-10-18 (HUI-011 close re-enable, 9px type
+floor across staff/guest sheets, Navigation/Modal dead-code deletions,
+AppShell/saas-shell deletion — see docs/qa/frontend-ui-audit.md §11 and
+[[D-032]]) is verified by automated gates only. No browser automation exists.
+NEEDS BROWSER VERIFICATION:
+
+1. Cash-shift close → count → reconcile happy path as front_desk and accounting.
+2. Owner-only sign-out block while a shift is open (dialog → Cash & Shifts).
+3. Sidebar mobile drawer at ≤1000px and ≤360px after globals.keep + Navigation
+   Sidebar deletion (drawer base lives in globals.css; staff-theme owns desktop).
+4. 9px type floor layout shifts in AI/insights/pricing/report microcopy at
+   390/768/1366 px.
+5. .haven-account-dialog visual parity after Modal.css section deletion (its
+   own sheet untouched).
+
+Related: [[D-032]], docs/qa/important-review.md (HUI-005 !important report),
+docs/qa/browser-qa-checklist.md (2026-10-18 Phase-1 + Phase-2 manual gate;
+its §F gates the HUI-005 wall removal itself).
+
+## KI-015 — Shared profile popover needs browser verification
+
+Status: Open
+Area: [[Frontend / Haven UI]]
+
+Description:
+The Admin/Owner/Manager account popover (`ProfilePopover`) is covered by jsdom
+behaviour + wiring tests (31 targeted, full suite green) but not by a real
+browser. VERIFY:
+
+1. Click, Escape, outside press, Tab/arrow keys and focus return to the trigger
+   for each staff role; submenu Escape closes only the submenu.
+2. Anchor placement at ≤1000px and the ≤480px bottom sheet (not clipped by the
+   sticky header, scrolls at 85vh).
+3. Dark and light themes: panel/border/text/hover/danger contrast.
+4. Settings opens its modal; Sound toggles without closing the panel and
+   persists; Sign Out fires once.
+5. Guest header unchanged (`.customer-account-popover`).
+
+Related: [[D-033]], [[2026-10-21 - Unified Profile Popover]],
+components/ui/ProfilePopover.tsx, components/ui/profile-popover.css.
+
+## KI-016 — Backend fixes await coordinated rollout; PayMongo envelope fix excluded
+
+Status: Implemented locally; rollout pending (2026-11-02)
+Area: Backend / security / booking / financial integrity
+
+23 findings are fixed in local app/source and the new migration; B-005 is explicitly
+excluded by the user. Results: `docs/qa/backend-remediation-2026-11-02.md`.
+Verification: 2106 Vitest tests, 23 PostgreSQL cases, typecheck, touched-backend lint,
+and production build pass. The session probe passes; two excluded webhook probes fail.
+
+Linked CLI verified the live ledger (100 matching versions) and current function bodies.
+Dry-run lists only `20261102010000_backend_audit_remediation.sql`; it is **not applied**,
+and the application is **not deployed**. Roll out together: old JavaScript stock
+consumption must not run alongside the new transactional DB trigger. Existing unrelated
+frontend work also needs to be accounted for before deploying the checkout.
+
+Related: [[2026-11-02 - Backend Remediation]], [[2026-11-02 - Backend Audit]], [[KI-002]], [[KI-003]].
+
+## KI-017 — Hotel operations candidate conflicts with remote ledger; operating-day API returns 503
+
+Status: Local reconciliation complete; hosted rollout pending (2026-11-03)
+Area: Hotel operations / database rollout
+
+Update: read-only hosted diagnosis confirmed missing `hotel_operating_day(p_actor)`
+(`PGRST202`). Recovered/restored all eight remote migrations; unpublished hotel
+files moved to versions 20261103130000/140000/150000. Linked dry-run now passes.
+Clean and actual upgrade-order replays and all 87 SQL checks pass; disposable
+browser assessment/activation passes. Vercel CLI is logged out, so hosted app/DB
+rollout is still pending. Details: `docs/qa/qa-fixes-2026-11-03.md`.
+
+The local 2026-11-03 candidate conflicts with remote migration names at versions
+`20261103010000` and `20261103030000`; the remote ledger also contained versions
+`20261103070000` through `20261103120000` that were absent from the local migration
+source at the last read-only dry-run. In the hosted-backed Manager preview,
+`GET /api/staff/operational-date` returned 503 while the dashboard returned 200.
+The route maps unrecognized RPC errors to 503, and its raw database error was not
+captured, so the ledger conflict is a risk and correlation rather than a proven
+direct cause.
+
+Impact:
+Staff cannot rely on operating-day assessment/activation in the linked environment.
+The local candidate cannot be safely released until remote source and live object
+definitions are recovered and reconciled.
+
+Next action:
+Recover/review remote migrations and live function/table definitions, replay the
+combined history locally, then rerun a read-only dry-run and operating-day smoke
+test in a verified non-production project. Do not repair history or push the
+candidate blindly. Details: `docs/qa/comprehensive-qa-2026-11-03.md` and
+`docs/qa/staff-walkthrough-2026-11-03.md`.

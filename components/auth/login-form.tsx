@@ -62,7 +62,7 @@ export default function LoginForm({
   return (
     <>
       <div className="haven-vault__head">
-        <p className="eyebrow" style={{ color: "var(--color-forest-light)", margin: 0 }}>
+        <p className="eyebrow" style={{ color: "var(--color-ink)", margin: 0 }}>
           Haven portal
         </p>
         <h1>{booking ? "Sign in to continue your reservation" : "Sign in to your Haven account"}</h1>
@@ -126,17 +126,22 @@ export default function LoginForm({
           </button>
         </div>
 
-        {rememberOffered && (
-          <label className="haven-vault__remember" htmlFor="haven-remember">
-            <input
-              id="haven-remember"
-              type="checkbox"
-              checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
-            />
-            <span>Keep me signed in on this device</span>
-          </label>
-        )}
+        <div className="haven-vault__options">
+          {rememberOffered && (
+            <label className="haven-vault__remember" htmlFor="haven-remember">
+              <input
+                id="haven-remember"
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+              />
+              <span>Keep me signed in on this device</span>
+            </label>
+          )}
+          <p className="haven-vault__foot haven-vault__foot--end">
+            <Link href="/forgot-password">Forgot password?</Link>
+          </p>
+        </div>
 
         <button className="haven-vault__submit" disabled={loading} aria-busy={loading}>
           {loading ? "Signing in…" : "Sign in"} <ArrowRight size={15} aria-hidden="true" />
@@ -146,10 +151,6 @@ export default function LoginForm({
       <p className="haven-vault__foot">
         New guest? <Link href={`/register?callbackUrl=${encodeURIComponent(callbackUrl)}${booking ? "&booking=1" : ""}`}>Create an account</Link>
       </p>
-      <p className="haven-vault__foot">
-        Forgot your password? <Link href="/forgot-password">Reset it with email verification</Link>
-      </p>
-
       <div className="haven-vault__trust"><span>Secure credentials</span><span>•</span><span>Role-based access</span></div>
     </>
   );

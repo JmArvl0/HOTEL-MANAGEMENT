@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { HavenErrorAlert } from "@/components/ui/haven-data-controls";
 import { useRouter } from "next/navigation";
 import { CarTaxiFront, Hotel, MapPin, Users, X } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/Modal";
@@ -88,7 +89,7 @@ export function TransportationRequestList({ requests }: { requests: CustomerTran
           </button>
         ))}
       </div>
-      {error && <p className="booking-error" role="alert">{error}</p>}
+      {error && <HavenErrorAlert title="Cancellation failed" body={error} variant="customer" />}
       <div className="customer-request-list ctr-cards">
         {visible.map((request) => {
           const terminal = isTerminalStatus(request.status);

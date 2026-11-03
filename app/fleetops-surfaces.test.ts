@@ -117,11 +117,17 @@ describe("fleetops surfaces: owner + admin", () => {
   });
 
   it("admin stylesheets anchor on FleetOps semantics (neutrals arrive via vars)", () => {
-    for (const file of FILES) {
-      const css = readFileSync(join(process.cwd(), file), "utf8");
-      expect(css, file).toContain("#10b981");
-      expect(css, file).toContain("#ef4444");
-    }
+    // Stage 3a: chip tonality (success/danger/info hexes) is single-homed in
+    // haven-data-controls.css; security-config keeps its scoped toggle palette.
+    const sec = readFileSync(join(process.cwd(), "components/admin/security-config.css"), "utf8");
+    expect(sec).toContain("#10b981");
+    expect(sec).toContain("#ef4444");
+    const sys = readFileSync(join(process.cwd(), "components/admin/system-health.css"), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(sys).not.toMatch(/#10b981|#ef4444|#3b82f6|#f59e0b/);
+    const shared = readFileSync(join(process.cwd(), "components/ui/haven-data-controls.css"), "utf8");
+    expect(shared).toContain("#10b981");
+    expect(shared).toContain("#ef4444");
   });
 });
 

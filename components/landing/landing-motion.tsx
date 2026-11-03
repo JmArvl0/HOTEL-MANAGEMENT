@@ -52,7 +52,7 @@ export function LandingMotion() {
           ".coast-hero h1",
           ".coast-hero .coast-hero-lead",
           ".coast-hero .coast-hero-copy > p:not(.coast-hero-lead, .coast-eyebrow)",
-          ".coast-hero .coast-text-link",
+          ".coast-hero .coast-button",
         ];
 
         gsap.set(heroMedia, { scale: 1.05 });
@@ -73,7 +73,7 @@ export function LandingMotion() {
             { autoAlpha: 1, y: 0, duration: 0.7 },
             0.58,
           )
-          .to(".coast-hero .coast-text-link", { autoAlpha: 1, y: 0, duration: 0.6 }, 0.72)
+          .to(".coast-hero .coast-button", { autoAlpha: 1, y: 0, duration: 0.6 }, 0.72)
           .to(".coast-book", { autoAlpha: 1, y: 0, duration: 0.8 }, 0.85)
           .to(".coast-hero-note", { autoAlpha: 1, duration: 0.9 }, 1.0)
           .to(".coast-scroll-cue", { autoAlpha: 1, duration: 0.5 }, 1.15);

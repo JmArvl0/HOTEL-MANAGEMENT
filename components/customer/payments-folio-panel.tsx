@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { BadgeCheck, Files, WalletCards, X } from "lucide-react";
 import { HavenDataToolbar, HavenSearchInput, HavenSelect } from "@/components/ui";
+import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { TablePagination, useTablePagination } from "@/components/ui/table-pagination";
 import { formatPeso } from "@/lib/format";
 import type { FolioPaymentState, ReservationCategory } from "@/lib/customer";
@@ -116,20 +117,18 @@ export function PaymentsFolioPanel({
 
   return (
     <>
-      <section className="folio-kpi-grid" aria-label="Filtered financial summary" aria-live="polite" aria-atomic="true">
-        <article className="folio-kpi-card">
-          <span className="folio-kpi-icon"><Files size={19} aria-hidden="true" /></span>
-          <div><small>Total folios</small><strong>{filtered.length}</strong><p>{countLabel(filtered.length)}</p></div>
-        </article>
-        <article className={`folio-kpi-card ${outstanding > 0 ? "has-balance" : "is-clear"}`}>
-          <span className="folio-kpi-icon"><WalletCards size={19} aria-hidden="true" /></span>
-          <div><small>Outstanding balance</small><strong>{formatPeso(outstanding)}</strong><p>{outstanding > 0 ? "Payment remains due" : "All balances settled"}</p></div>
-        </article>
-        <article className="folio-kpi-card is-paid">
-          <span className="folio-kpi-icon"><BadgeCheck size={19} aria-hidden="true" /></span>
-          <div><small>Total paid to date</small><strong>{formatPeso(paidToDate)}</strong><p>Verified payments received</p></div>
-        </article>
-      </section>
+      <div aria-label="Filtered financial summary" aria-live="polite" aria-atomic="true">
+        {/* Guest surface: customer tokens (--cp-*) paint the shared card via
+            ui-primitives fallback chains; tones land as semantic chips. */}
+        <ModuleSummaryCards
+          cards={[
+            { label: "Total folios", value: filtered.length, hint: countLabel(filtered.length), icon: Files, tone: "today" },
+            { label: "Outstanding balance", value: formatPeso(outstanding), hint: outstanding > 0 ? "Payment remains due" : "All balances settled", icon: WalletCards, tone: outstanding > 0 ? "attention" : "done" },
+            { label: "Total paid to date", value: formatPeso(paidToDate), hint: "Verified payments received", icon: BadgeCheck, tone: "done" },
+          ]}
+          ariaLabel="Financial summary"
+        />
+      </div>
 
       <HavenDataToolbar
         variant="customer"

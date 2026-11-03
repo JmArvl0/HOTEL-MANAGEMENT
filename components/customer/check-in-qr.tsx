@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { QrCode, Download } from "lucide-react";
+import { HavenSkeleton } from "@/components/ui/haven-skeleton";
 
 /**
  * Guest-facing Digital Express Pass: the stay QR presented as a full-width
@@ -33,10 +34,10 @@ export function CheckInQr({ reservationId, confirmationNumber }: { reservationId
     return (
       <div className="customer-checkin-qr customer-checkin-qr-strip" aria-busy="true">
         <div className="customer-checkin-qr-figure customer-checkin-qr-skeleton">
-          <i className="customer-checkin-qr-tile" aria-hidden="true" />
+          <HavenSkeleton width={176} height={176} radius={12} />
         </div>
         <div className="customer-checkin-qr-copy customer-checkin-qr-skeleton">
-          <i /> <i /> <small>Preparing your check-in QR…</small>
+          <HavenSkeleton width={120} height={9} radius={999} /> <HavenSkeleton width={80} height={9} radius={999} /> <small>Preparing your check-in QR…</small>
         </div>
       </div>
     );

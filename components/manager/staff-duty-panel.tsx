@@ -1,10 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Activity, BedDouble, Building2, Calculator, ChevronRight, CircleDollarSign, ClipboardCheck, ClipboardList, ConciergeBell, Eye, Info, Lightbulb, RefreshCw, Search, Settings, Users, Wrench, X, type LucideIcon } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { ModuleSummaryCards, type ModuleSummaryCard } from "@/components/manager/module-summary-cards";
 import { HavenSelect } from "@/components/ui/haven-select";
-import { HavenDataToolbar, HavenSearchInput } from "@/components/ui/haven-data-controls";
+import { HavenDataToolbar, HavenEmptyState, HavenSearchInput } from "@/components/ui/haven-data-controls";
+import { HavenSkeleton } from "@/components/ui/haven-skeleton";
 import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination";
 import { STAFF_DUTY_BASIS_NOTE, type StaffDutyMember, type StaffDutySnapshot, type StaffDutyStatus } from "@/lib/staff-duty";
 
@@ -91,10 +94,11 @@ export default function StaffDutyPanel() {
   const hasActiveFilters = Boolean(search.trim()) || department !== "all" || duty !== "all";
   const clearFilters = () => { setSearch(""); setDepartment("all"); setDuty("all"); };
 
-  const kpis: { key: StaffDutyStatus | "all"; name: string; value: number; hint: string; icon: typeof Activity; tone: string }[] = [
-    { key: "working", name: "Working now", value: data?.summary.working ?? 0, hint: "In-progress work or an open cash shift", icon: Activity, tone: "done" },
-    { key: "assigned", name: "Assigned work", value: data?.summary.assigned ?? 0, hint: "Open work, not yet started", icon: ClipboardList, tone: "attention" },
-    { key: "no_active_work", name: "No active work", value: data?.summary.noActiveWork ?? 0, hint: "No live operational records right now", icon: Users, tone: "" }
+  const kpis: ModuleSummaryCard[] = [
+    { label: "Working now", value: data?.summary.working ?? 0, hint: "In-progress work or an open cash shift", icon: Activity, tone: "done", queue: "working", disabled: (data?.summary.working ?? 0) === 0 },
+    { label: "Assigned work", value: data?.summary.assigned ?? 0, hint: "Open work, not yet started", icon: ClipboardList, tone: "attention", queue: "assigned", disabled: (data?.summary.assigned ?? 0) === 0 },
+    { label: "No active work", value: data?.summary.noActiveWork ?? 0, hint: "No live operational records right now", icon: Users, queue: "no_active_work", disabled: (data?.summary.noActiveWork ?? 0) === 0 },
+    { label: "Departments", value: data?.summary.departments ?? 0, hint: "Operational departments in this view", icon: Building2, tone: "today" }
   ];
 
   const renderRow = (member: StaffDutyMember) => (
@@ -133,19 +137,17 @@ export default function StaffDutyPanel() {
 
       {error ? (
         // A failed request must never read as "no staff" — the error state says so explicitly.
-        <div className="data-panel"><div className="sd-empty"><span className="sd-empty-icon"><Users size={22} /></span><h3>Staff duty unavailable</h3><p>{error}</p><button type="button" className="sd-clear" onClick={() => { setError(""); setLoading(true); void load(); }}><RefreshCw size={13} />Try again</button></div></div>
+        <div className="data-panel"><HavenEmptyState icon={<Users size={22} aria-hidden="true" />} title="Staff duty unavailable" body={error} action={<button type="button" className="btn btn-soft btn-sm" onClick={() => { setError(""); setLoading(true); void load(); }}><RefreshCw size={13} />Try again</button>} /></div>
       ) : loading || !data ? (
-        <div className="data-panel"><div className="sd-skeleton" role="status" aria-label="Loading staff duty"><i /><i /><i /><i /><i /></div></div>
+        <div className="data-panel"><div className="haven-skeleton-list" role="status" aria-label="Loading staff duty"><HavenSkeleton /><HavenSkeleton /><HavenSkeleton /><HavenSkeleton /><HavenSkeleton /></div></div>
       ) : (
         <>
-          <div className="sd-kpis" role="status" aria-label="Duty summary">
-            {kpis.map(({ key, name, value, hint, icon: Icon, tone }) => (
-              <button type="button" className={`sd-kpi${tone ? ` ${tone}` : ""}${duty === key ? " active" : ""}`} key={key} aria-pressed={duty === key} disabled={value === 0} onClick={() => setDuty(duty === key ? "all" : key)}>
-                <span>{name}</span><b>{value}</b><small>{hint}</small><i aria-hidden="true"><Icon size={16} /></i>
-              </button>
-            ))}
-            <div className="sd-kpi info" aria-label="Operational departments"><span>Departments</span><b>{data.summary.departments}</b><small>Operational departments in this view</small><i aria-hidden="true"><Building2 size={16} /></i></div>
-          </div>
+          <ModuleSummaryCards
+            cards={kpis}
+            ariaLabel="Duty summary"
+            activeQueue={duty === "all" ? undefined : duty}
+            onSelect={(queue) => setDuty(duty === queue ? "all" : (queue as StaffDutyStatus))}
+          />
 
           <div className="sd-workspace">
             <div className="sd-main">
@@ -167,9 +169,9 @@ export default function StaffDutyPanel() {
 
               <div className="data-panel">
                 {data.staff.length === 0 ? (
-                  <div className="sd-empty"><span className="sd-empty-icon"><Users size={22} /></span><h3>No staff on record</h3><p>No active operational staff accounts exist yet. Owner/Admin create staff accounts in governance.</p></div>
+                  <HavenEmptyState icon={<Users size={22} aria-hidden="true" />} title="No staff on record" body="No active operational staff accounts exist yet. Owner/Admin create staff accounts in governance." />
                 ) : filtered.length === 0 ? (
-                  <div className="sd-empty"><span className="sd-empty-icon"><Search size={22} /></span><h3>No matching staff</h3><p>No staff match the current search and filters.</p><button type="button" className="sd-clear" onClick={clearFilters}><X size={13} />Clear filters</button></div>
+                  <HavenEmptyState icon={<Search size={22} aria-hidden="true" />} title="No matching staff" body="No staff match the current search and filters." action={<button type="button" className="btn btn-soft btn-sm" onClick={clearFilters}><X size={13} />Clear filters</button>} />
                 ) : (
                   <>
                     <div className="table-scroll sd-table-wrap">
@@ -239,7 +241,7 @@ export default function StaffDutyPanel() {
                     <li key={work.id}>
                       <WorkIcon source={work.source} />
                       <span>{work.label}</span>
-                      <span className={`badge ${work.status === "in_progress" || work.status === "open" ? "pending" : "confirmed"}`}>{label(work.status)}</span>
+                      <StatusBadge status={work.status === "in_progress" || work.status === "open" ? "pending" : "confirmed"} label={label(work.status)} />
                     </li>
                   ))}
                 </ul>

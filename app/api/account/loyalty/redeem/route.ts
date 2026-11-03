@@ -31,6 +31,7 @@ export async function POST(request: Request) {
   if (error) {
     const msg = error.message ?? "";
     if (msg.includes("LOYALTY_INSUFFICIENT_POINTS")) return NextResponse.json({ error: "Not enough points for that redemption." }, { status: 409 });
+    if (msg.includes("LOYALTY_EXCEEDS_BALANCE")) return NextResponse.json({ error: "Redeem only as many points as the outstanding balance on this stay." }, { status: 409 });
     if (msg.includes("LOYALTY_ALREADY_REDEEMED")) return NextResponse.json({ error: "Already redeemed — check your folio." }, { status: 409 });
     if (msg.includes("LOYALTY_NOT_YOUR_POINTS") || msg.includes("LOYALTY_RESERVATION_MISMATCH")) return NextResponse.json({ error: "Those points or that stay are not yours." }, { status: 403 });
     if (msg.includes("LOYALTY_FOLIO_CLOSED")) return NextResponse.json({ error: "That stay's folio is closed." }, { status: 409 });

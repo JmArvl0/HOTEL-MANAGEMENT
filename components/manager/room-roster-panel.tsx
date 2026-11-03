@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { DoorClosed, Loader2, Pencil, Plus } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { RoomTypeBadge } from "@/components/ui/RoomTypeBadge";
+import { HavenSkeletonCard, HavenErrorAlert } from "@/components/ui/haven-data-controls";
 
 // Configuration-only roster for physical rooms. Occupancy, housekeeping, and
 // maintenance state belong to their own workflows and are shown read-only —
@@ -112,9 +113,9 @@ export default function RoomRosterPanel({ onClose }: { onClose: () => void }) {
           <small className="muted">{rooms.length} room{rooms.length !== 1 ? "s" : ""} · changes are audited</small>
         </div>}>
         {loading ? (
-          <div className="empty"><Loader2 className="spin"/><h3>Loading room roster…</h3></div>
+          <div role="status" aria-label="Loading room roster"><HavenSkeletonCard hasHeader /></div>
         ) : error ? (
-          <div className="empty"><DoorClosed/><h3>Roster unavailable</h3><p>{error}</p></div>
+          <HavenErrorAlert title="Roster unavailable" body={error} variant="internal" />
         ) : rooms.length === 0 ? (
           <div className="empty"><DoorClosed/><h3>No physical rooms yet</h3><p>Add the building&rsquo;s rooms to make its room types bookable.</p></div>
         ) : (

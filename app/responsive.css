@@ -20,8 +20,8 @@ a, button, [role="button"]{ overflow-wrap: anywhere; }
 
 /* Adaptive gutters: 16px at 320 → 24px at 768 → 40–56px at 1024+ */
 :root{ --haven-gutter: 16px; }
-@media (min-width: 768px){ :root{ --haven-gutter: 24px; } }
-@media (min-width: 1024px){ :root{ --haven-gutter: 40px; } }
+@media (min-width: 720px){ :root{ --haven-gutter: 24px; } }
+@media (min-width: 1100px){ :root{ --haven-gutter: 40px; } }
 @media (min-width: 1440px){ :root{ --haven-gutter: 56px; } }
 
 /* Tables: card layout fallback on very small screens + horizontal scroll where needed */
@@ -36,7 +36,7 @@ a, button, [role="button"]{ overflow-wrap: anywhere; }
 }
 
 /* Touch-friendly: ensure primary CTAs are >=44px on mobile */
-@media (max-width: 680px){
+@media (max-width: 720px){
   .btn, .btn-accent, .btn-soft, .btn-cream{
     min-height: 44px;
     padding-top: 12px; padding-bottom: 12px;
@@ -57,7 +57,7 @@ a, button, [role="button"]{ overflow-wrap: anywhere; }
 }
 
 /* Booking flows: compact search + stage stacks */
-@media (max-width: 768px){
+@media (max-width: 720px){
   .booking-header{ padding:0 var(--haven-gutter, 16px); gap:16px }
   .booking-hero{ padding:32px var(--haven-gutter, 16px) }
   .booking-content{ padding:24px var(--haven-gutter, 16px) 40px }
@@ -65,7 +65,7 @@ a, button, [role="button"]{ overflow-wrap: anywhere; }
 }
 
 /* Customer shell: already handled at 900, add 375 fine tune */
-@media (max-width: 375px){
+@media (max-width: 480px){
   .customer-content{ padding:18px 14px 40px }
   .customer-content-header{ padding-left:56px; padding-right:14px }
   .customer-header-actions{ gap:6px }
@@ -73,10 +73,10 @@ a, button, [role="button"]{ overflow-wrap: anywhere; }
 }
 
 /* App shell: prevent sidebar overlap at 320 */
-@media (max-width: 360px){
+@media (max-width: 480px){
   .app-shell .sidebar, .app-shell .sidebar.collapsed{ width: 88vw }
   .workspace-body{ padding:16px 12px }
-  .page-title h1{ font-size:20px }
+  .page-header .page-header-title{ font-size:20px }
 }
 
 /* Small-phone landing fine-tuning lives in app/(landing-page)/landing.css (375px block). */
@@ -103,7 +103,7 @@ a, button, [role="button"]{ overflow-wrap: anywhere; }
    desktop density (this block is width-gated). */
 @media (max-width: 720px){
   .app-shell .table-action{
-    min-height: 40px;
+    min-height: 44px;
     padding: 8px 13px;
     font-size: 12px;
     line-height: 1.2;
@@ -116,17 +116,17 @@ a, button, [role="button"]{ overflow-wrap: anywhere; }
   /* Photo-tile reorder arrows live on top of thumbnails — keep them compact
      pills so a taller row of chips never covers the whole preview. */
   .app-shell .photo-tile-actions .table-action{
-    min-height: 34px;
+    min-height: 44px;
     padding: 5px 10px;
   }
   .app-shell .reservation-filters button{
-    min-height: 40px;
+    min-height: 44px;
     padding: 8px 14px;
     font-size: 11px;
   }
   .app-shell .reservation-filters select,
   .app-shell .table-tools input{
-    min-height: 40px;
+    min-height: 44px;
     font-size: 16px; /* 16px text prevents iOS auto-zoom on focus */
   }
   .app-shell .table-tools label{
@@ -179,18 +179,18 @@ a, button, [role="button"]{ overflow-wrap: anywhere; }
 @media (pointer: coarse) {
   .btn, .btn-sm { min-height: 44px; }
   .table-action {
-    min-height: 40px;
+    min-height: 44px;
     padding: 8px 13px;
     font-size: 12px;
   }
   /* Photo-tile reorder arrows stay compact pills (same exception as ≤720px). */
   .photo-tile-actions .table-action {
-    min-height: 34px;
+    min-height: 44px;
     padding: 5px 10px;
   }
   .table-tools input, .table-tools select,
   .reservation-filters select {
-    min-height: 40px;
+    min-height: 44px;
     font-size: 16px; /* 16px text prevents iOS auto-zoom on focus */
   }
   /* No hover on touch — give every tap real feedback instead. */

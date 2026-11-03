@@ -101,7 +101,7 @@ describe("SystemHealthView", () => {
   it("summarizes posture in the header from probe counts without inventing an algorithm", () => {
     render(<SystemHealthView data={health()} onRefresh={() => {}} />);
     expect(screen.getByText(/Attention required · 7 monitored/)).toBeTruthy();
-    const headerLine = document.querySelector(".page-title p:not(.admin-section-context)")!;
+    const headerLine = document.querySelector(".page-header-subtitle")!;
     expect(headerLine.textContent).toMatch(/Last checked/);
     // Tier 1 deployment: the serving environment is named, and the part the
     // system cannot read (the newest build) is named as the gap — never as
@@ -121,7 +121,7 @@ describe("SystemHealthView", () => {
 
   it("orders the page verdict → cards → split with ledger and rail panels", () => {
     render(<SystemHealthView data={health()} onRefresh={() => {}} />);
-    const order = ["page-title", "sys-health-grid-4", "sys-lower-split", "sys-panel-migrations"]
+    const order = ["page-header", "sys-health-grid-4", "sys-lower-split", "sys-panel-migrations"]
       .map((cls) => document.body.innerHTML.indexOf(cls));
     expect(order.every((pos, i) => i === 0 || pos > order[i - 1])).toBe(true);
     // Right rail carries both panels: needs-attention on top, automations
@@ -290,7 +290,7 @@ describe("SystemHealthView", () => {
     expect(screen.getByText("security policy updated")).toBeTruthy();
     expect(screen.getByText(/37 in the last 24 hours/)).toBeTruthy();
     fireEvent.click(screen.getByRole("tab", { name: /Payment Configuration/ }));
-    expect(screen.getByText("Payment health is still loading.")).toBeTruthy();
+    expect(screen.getByRole("status", { name: "Loading panel" })).toBeTruthy();
     expect(onRefresh).not.toHaveBeenCalled();
   });
 
@@ -428,11 +428,14 @@ describe("SystemHealthView", () => {
   it("never leaks unscoped shell selectors onto the admin app", () => {
     // Both module stylesheets are imported by admin-dashboard-client.tsx, which
     // renders every admin section, so Next.js applies them app-wide. Unscoped
-    // .page-title/.panel-heading rules beat the themes' own rules for every other
-    // section — keep selectors namespaced to .sys-* / .sec-*.
+    // header/panel-heading rules beat the themes' own rules for every other
+    // section — keep selectors namespaced to .sys-* / .sec-*. Since Stage 3b
+    // the shared PageHeader owns the header; module rules may only add gaps.
     const leaks = [
       /^\.page-title h1\{/m,
       /^\.page-title \.title-actions\{/m,
+      /^\.page-header h1\{/m,
+      /^\.sys-health-title h1\{/m,
       /^\.panel-heading h3\{/m,
     ];
     for (const file of ["system-health.css", "security-config.css"]) {
@@ -468,23 +471,20 @@ describe("SystemHealthView", () => {
     })} onRefresh={() => {}} />);
     // Migrations and jobs never borrow the payment-success family.
     for (const cell of screen.getAllByText("Applied", { exact: true })) {
-      expect(cell.classList.contains("applied")).toBe(true);
-      expect(cell.classList.contains("paid")).toBe(false);
+      expect(cell.closest(".haven-status")?.className).toContain("haven-status--success");
     }
-    expect(screen.getByText("Succeeded").className).toMatch(/succeeded/);
-    expect(screen.getByText("Failed").className).toMatch(/failed/);
+    expect(screen.getByText("Succeeded").closest(".haven-status")?.className).toContain("haven-status--success");
+    expect(screen.getByText("Failed").closest(".haven-status")?.className).toContain("haven-status--danger");
     // Info queue rows ride the info-blue family, not healthy green.
     const infoRow = screen.getByText("Public domain").closest("li")!;
-    expect(infoRow.querySelector(".badge.info")).toBeTruthy();
-    // New families exist in both themes in the module scope (leak-safe).
+    expect(infoRow.querySelector(".haven-status")?.className).toContain("haven-status--info");
+    // The shared StatusBadge home carries the tones — the raw .badge family is
+    // retired from the module scope (Stage 3a single-home).
     const css = readFileSync(resolve(process.cwd(), "components/admin/system-health.css"), "utf8");
-    for (const selector of [
-      ".theme-light .system-health-ledger-content .badge.applied",
-      ".theme-light .sys-automations .badge.succeeded",
-      ".theme-light .sys-automations .badge.failed",
-      ".theme-light .sys-queue .badge.info",
-    ]) {
-      expect(css).toContain(selector);
+    expect(css).not.toMatch(/^\.badge\./m);
+    const shared = readFileSync(resolve(process.cwd(), "components/ui/haven-data-controls.css"), "utf8");
+    for (const selector of [".haven-status--success", ".haven-status--danger", ".haven-status--info"]) {
+      expect(shared).toContain(selector);
     }
   });
 
@@ -497,7 +497,7 @@ describe("SystemHealthView", () => {
       },
     })} onRefresh={() => {}} />);
     fireEvent.click(screen.getByRole("tab", { name: /Payment Configuration/ }));
-    const paidBadges = Array.from(document.querySelectorAll(".badge.paid"));
+    const paidBadges = Array.from(document.querySelectorAll("#sys-panel-payment .panel-heading .haven-status"));
     expect(paidBadges).toHaveLength(1);
     expect(paidBadges[0].textContent).toBe("Active");
   });
@@ -538,7 +538,7 @@ describe("SystemHealthView", () => {
   it("owns honest loading and empty states for payment and audit", () => {
     render(<SystemHealthView data={health({ payments: null as unknown as SystemHealth["payments"] })} onRefresh={() => {}} />);
     fireEvent.click(screen.getByRole("tab", { name: /Payment Configuration/ }));
-    expect(screen.getByRole("status", { name: "Loading payment configuration" })).toBeTruthy();
+    expect(screen.getByRole("status", { name: "Loading panel" })).toBeTruthy();
     cleanup();
     const onRefresh = vi.fn();
     render(<SystemHealthView data={health({ recentProbes: [] })} onRefresh={onRefresh} />);

@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { BedDouble, CalendarDays, ClipboardCheck, DoorOpen, Wrench } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { HavenSkeleton } from "@/components/ui/haven-skeleton";
 import { formatPeso } from "@/lib/format";
 import { roomPrimary } from "@/lib/room-images";
 import type { RecordItem } from "@/lib/types";
@@ -90,16 +92,16 @@ export default function RoomDetailModal({ room, onClose, onViewReservation, acti
     }>
       <div className="room-detail">
         <div className="room-detail-status">
-          <span className={`badge ${room.status}`}>{label(room.status)}</span>
-          <span className={`badge ${room.housekeeping}`}>{label(room.housekeeping)}</span>
+          <StatusBadge status={String(room.status)} label={label(room.status)} />
+          <StatusBadge status={String(room.housekeeping)} label={label(room.housekeeping)} />
           {detail?.blocked && <strong className="room-blocked-banner">ROOM BLOCKED — Active maintenance work order prevents this room from being assigned until resolved.</strong>}
         </div>
 
         {error && <div className="empty"><h3>Room details unavailable</h3><p>{error}</p></div>}
         {!error && !detail && (
-          <div className="room-skeleton" aria-label="Loading room details">
-            <span className="room-skeleton-tabs"><i /><i /><i /><i /></span>
-            <span className="room-skeleton-grid">{Array.from({ length: 8 }, (_, index) => <i key={index} />)}</span>
+          <div className="room-skeleton" aria-label="Loading room details" role="status">
+            <span className="room-skeleton-tabs"><HavenSkeleton width={110} height={31} radius={999} /><HavenSkeleton width={110} height={31} radius={999} /><HavenSkeleton width={110} height={31} radius={999} /><HavenSkeleton width={110} height={31} radius={999} /></span>
+            <span className="room-skeleton-grid">{Array.from({ length: 8 }, (_, index) => <HavenSkeleton key={index} height={118} />)}</span>
           </div>
         )}
 
@@ -133,8 +135,8 @@ function OverviewPanel({ detail, onViewReservation }: { detail: RoomDetail; onVi
         <section>
           <h3>Room facts</h3>
           <dl>
-            <div><dt>Status</dt><dd><span className={`badge ${room.status}`}>{label(room.status)}</span></dd></div>
-            <div><dt>Housekeeping</dt><dd><span className={`badge ${room.housekeeping}`}>{label(room.housekeeping)}</span></dd></div>
+            <div><dt>Status</dt><dd><StatusBadge status={String(room.status)} label={label(room.status)} /></dd></div>
+            <div><dt>Housekeeping</dt><dd><StatusBadge status={String(room.housekeeping)} label={label(room.housekeeping)} /></dd></div>
             <div><dt>Floor</dt><dd>{label(room.floor)}</dd></div>
             <div><dt>Nightly rate</dt><dd>{formatPeso(Number(room.rate || 0))}</dd></div>
             {room.wing ? <div><dt>Wing</dt><dd>{label(room.wing)}</dd></div> : null}
@@ -172,7 +174,7 @@ function OverviewPanel({ detail, onViewReservation }: { detail: RoomDetail; onVi
               <div><dt>Reference</dt><dd>{label(nextReservation.confirmation_number || nextReservation.id)}</dd></div>
               <div><dt>Arrival</dt><dd>{label(nextReservation.check_in)}</dd></div>
               <div><dt>Departure</dt><dd>{label(nextReservation.check_out)}</dd></div>
-              <div><dt>Status</dt><dd><span className={`badge ${String(nextReservation.status)}`}>{label(nextReservation.status)}</span></dd></div>
+              <div><dt>Status</dt><dd><StatusBadge status={String(nextReservation.status)} label={label(nextReservation.status)} /></dd></div>
             </dl>
             <button className="btn btn-soft" onClick={() => onViewReservation(String(nextReservation.id))}><DoorOpen size={14} /> View reservation</button>
           </> : <p className="room-detail-note">No active reservation. This room is not held for an arriving guest.</p>}
@@ -209,8 +211,8 @@ function BookingPanel({ detail, onViewReservation, shown, onShowMore }: { detail
               {item.reason ? <small>{label(item.reason)}{item.is_upgrade ? " · upgrade" : ""}</small> : null}
             </div>
             <div className="room-detail-row-side">
-              <span className={`badge ${String(reservation.status)}`}>{label(reservation.status)}</span>
-              {String(item.status) !== String(reservation.status) && <span className="badge">{label(item.status)}</span>}
+              <StatusBadge status={String(reservation.status)} label={label(reservation.status)} />
+              {String(item.status) !== String(reservation.status) && <StatusBadge status="" label={label(item.status)} />}
               <button className="table-action action-neutral" onClick={() => onViewReservation(String(reservation.id))}>View</button>
             </div>
           </div>;
@@ -234,7 +236,7 @@ function HousekeepingPanel({ detail, shown, onShowMore }: { detail: RoomDetail; 
               {task.deferred_reason ? <small>Deferred: {label(task.deferred_reason)}</small> : null}
               {task.inspection_status && task.inspection_status !== "not_required" ? <small>Inspection {label(task.inspection_status)}{task.inspected_by_name ? ` by ${label(task.inspected_by_name)}` : ""}</small> : null}
             </div>
-            <div className="room-detail-row-side"><span className={`badge ${String(task.priority)}`}>{label(task.priority)}</span><span className={`badge ${String(task.status)}`}>{label(task.status)}</span></div>
+            <div className="room-detail-row-side"><StatusBadge status={String(task.priority)} label={label(task.priority)} /><StatusBadge status={String(task.status)} label={label(task.status)} /></div>
           </div>)}
           {detail.tasks.length > shown && <button className="room-detail-more" onClick={onShowMore}>Show more ({detail.tasks.length - shown} remaining)</button>}
         </section>}
@@ -258,9 +260,9 @@ function MaintenancePanel({ detail, shown, onShowMore }: { detail: RoomDetail; s
       </div>}
     </div>
     <div className="room-detail-row-side">
-      <span className={`badge ${String(order.priority)}`}>{label(order.priority)}</span>
-      <span className={`badge ${String(order.serviceability_impact)}`}>{label(order.serviceability_impact)}</span>
-      <span className={`badge ${String(order.status)}`}>{label(order.status)}</span>
+      <StatusBadge status={String(order.priority)} label={label(order.priority)} />
+      <StatusBadge status={String(order.serviceability_impact)} label={label(order.serviceability_impact)} />
+      <StatusBadge status={String(order.status)} label={label(order.status)} />
     </div>
   </div>;
   return (

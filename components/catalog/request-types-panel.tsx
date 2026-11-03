@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff, ListChecks, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { PageHeader } from "@/components/ui";
 import { HavenDataToolbar, HavenSearchInput } from "@/components/ui/haven-data-controls";
 import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination";
 
@@ -97,14 +98,7 @@ export default function RequestTypesPanel() {
 
   return (
     <div className="workspace-body-inner">
-      <div className="page-title module-title">
-        <div>
-          <p className="eyebrow">Guest services</p>
-          <h1>Request types</h1>
-          <p>The request types guests can choose in the Requests module. Active types appear in the guest form exactly as listed here — guests cannot submit anything outside this list, and each type routes to its department for handling.</p>
-        </div>
-        <button className="btn btn-accent" onClick={() => { setCreating(true); setEditing(null); setDraft(emptyDraft()); }}><Plus size={16}/> Add request type</button>
-      </div>
+      <PageHeader variant="band" eyebrow="Guest services" title="Request types" subtitle="The request types guests can choose in the Requests module. Active types appear in the guest form exactly as listed here — guests cannot submit anything outside this list, and each type routes to its department for handling." actions={<button className="btn btn-accent" onClick={() => { setCreating(true); setEditing(null); setDraft(emptyDraft()); }}><Plus size={16}/> Add request type</button>} />
       <HavenDataToolbar
         search={<HavenSearchInput value={search} onValueChange={setSearch} label="Search request types" placeholder="Search request types..." />}
         resultCount={visible.length}

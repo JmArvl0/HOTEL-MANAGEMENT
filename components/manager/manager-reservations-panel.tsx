@@ -4,6 +4,7 @@ import { BedDouble, CalendarDays, Eye, LogIn, LogOut, QrCode, Search, ShieldAler
 import { byAttentionThenStay, deriveReservationAttention, needsAttention, type AttentionRow } from "@/lib/manager-attention";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { TablePagination, useTablePagination } from "@/components/ui/table-pagination";
+import { PageHeader } from "@/components/ui";
 import { HavenDataToolbar, HavenEmptyState, HavenFilterBadges, HavenSearchInput } from "@/components/ui";
 import type { RecordItem } from "@/lib/types";
 
@@ -83,14 +84,7 @@ export function ManagerReservationsPanel({ items, search, setSearch, viewReserva
   ];
 
   return <>
-    <div className="page-title module-title">
-      <div>
-        <p className="eyebrow">Hotel operations</p>
-        <h1>Reservations</h1>
-        <p>Monitor reservation activity, operational risks, room readiness, and exceptions requiring management attention.</p>
-      </div>
-      {onScan && <div className="title-actions"><button className="btn btn-soft" onClick={onScan}><QrCode size={17} /> Scan QR</button></div>}
-    </div>
+    <PageHeader variant="band" eyebrow="Hotel operations" title="Reservations" subtitle="Monitor reservation activity, operational risks, room readiness, and exceptions requiring management attention." actions={onScan && <button className="btn btn-soft" onClick={onScan}><QrCode size={17} /> Scan QR</button>} />
     <ModuleSummaryCards cards={summaryCards} activeQueue={queue} onSelect={setQueue} ariaLabel="Reservations summary"/>
     <HavenDataToolbar
       variant="internal"

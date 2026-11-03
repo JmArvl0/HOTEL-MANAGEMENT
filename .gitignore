@@ -15,5 +15,14 @@ node_modules
 # local visual verification captures
 tmp-shots/
 
+# Playwright
+playwright-report/
+test-results/
+test-results.json
+tests/auth/states/
+
+# local opencode tool state (skills are committed via git add -f)
+.opencode/
+
 # QA reset legacy archive (guest PII — never commit)
 /legacy-archive/

@@ -1,0 +1,375 @@
+{
+  "candidate": "hotel-operations-2026-11-03",
+  "baseHead": "d2ea413225101b1764fc81dd63ca4803a8727506",
+  "state": "locally verified uncommitted candidate; NOT READY for changed production DB",
+  "runtime": "Node.js 22.22.2",
+  "buildId": "Cl_DYGMoO2ijiYDMSMd6C",
+  "migrations": [
+    "20261102010000_backend_audit_remediation.sql",
+    "20261103010000_hotel_nightly_availability.sql",
+    "20261103020000_hotel_operations.sql",
+    "20261103030000_hotel_operating_day.sql"
+  ],
+  "liveLedger": {
+    "inspection": "read-only final dry-run FAILED; historical count100/latest20261024130000 is superseded",
+    "remoteAdditionsSinceInitialInspection": [
+      {
+        "name": "restore_cash_controls",
+        "version": "20261103010000"
+      },
+      {
+        "name": "guest_request_withdrawal",
+        "version": "20261103030000"
+      },
+      {
+        "name": "cash_exception_review",
+        "version": "20261103070000"
+      },
+      {
+        "name": "hms_integrity",
+        "version": "20261103080000"
+      },
+      {
+        "name": "operational_handovers",
+        "version": "20261103090000"
+      },
+      {
+        "name": "hms_cash_receipts",
+        "version": "20261103100000"
+      },
+      {
+        "name": "request_supply_completion",
+        "version": "20261103110000"
+      },
+      {
+        "name": "approved_request_routing",
+        "version": "20261103120000"
+      }
+    ],
+    "versionCollisions": [
+      "20261103010000",
+      "20261103030000"
+    ],
+    "missingLocalVersions": [
+      "20261103070000",
+      "20261103080000",
+      "20261103090000",
+      "20261103100000",
+      "20261103110000",
+      "20261103120000"
+    ],
+    "action": "Recover/review remote migration source and contracts; do not repair ledger or push"
+  },
+  "verification": {
+    "vitest": {
+      "files": 202,
+      "tests": 2201
+    },
+    "typecheck": "passed",
+    "eslint": {
+      "errors": 0,
+      "warnings": 11
+    },
+    "productionBuild": "passed",
+    "migrationReplay": 104,
+    "postgres": {
+      "backend": 23,
+      "housekeeping": 27,
+      "availability": 24,
+      "operations": 13
+    },
+    "http": {
+      "public200": 2,
+      "anonymousGet401": 9,
+      "anonymousPost401": 6
+    },
+    "authenticatedStaffBrowser": "changed core flows passed on real isolated app/API/PostgREST/PG; production smoke pending",
+    "finalWalkthroughReport": "docs/qa/staff-walkthrough-2026-11-03.md"
+  },
+  "files": [
+    {
+      "path": "app/(booking)/(customer)/account/find-room/page.tsx",
+      "sha256": "58b90f8e4646183a2631a3b74130b17c23cdd4c8b3905e83d5e8970dc7277a2b"
+    },
+    {
+      "path": "app/(booking)/booking/search/page.tsx",
+      "sha256": "d2d24d28cd3d4d0a622b7407fd9051cb389086b78aab76510b6e404a662bfe7f"
+    },
+    {
+      "path": "app/api/accounting/hotel-fees/route.ts",
+      "sha256": "cf3336285518379e3d9b10d09b2dac3a44d5e3107deffcd79859370003e39b11"
+    },
+    {
+      "path": "app/api/accounting/night-audit/close/route.ts",
+      "sha256": "84b6a97c1d8c1888de1f2b66cf36b99c6e42797cdcb1c39268827278579367a1"
+    },
+    {
+      "path": "app/api/front-desk/fees/quote/route.ts",
+      "sha256": "18f296ba3454309cb4a269fc293a837ed2da6d93b86dc7ca059f08c8d7aece6b"
+    },
+    {
+      "path": "app/api/front-desk/reservations/[id]/charge/route.ts",
+      "sha256": "d493ff408316640147899d2a8cdeb2eb0e321d8db330694ff9a5333ff0d7e0c3"
+    },
+    {
+      "path": "app/api/front-desk/reservations/[id]/guests/route.ts",
+      "sha256": "1eb944cdf209503652d393a534b203db411ee61f5c700a4c2775d612bc9221e0"
+    },
+    {
+      "path": "app/api/housekeeping/tasks/[id]/assign/route.ts",
+      "sha256": "e270d73a9464a62863ee4b5722c67bc01064ca14a001a338226276ba6968aedf"
+    },
+    {
+      "path": "app/api/rack/route.ts",
+      "sha256": "a61c66966682e0279fe9e79d9d51d9c2339eee2e287560042a6ebb55d0854fe1"
+    },
+    {
+      "path": "app/api/staff/guests/duplicates/route.ts",
+      "sha256": "02c401f9bb8a42d8056f735b15c14913191d7ce476e920002502c08c3d467bcc"
+    },
+    {
+      "path": "app/api/staff/handover/[id]/route.ts",
+      "sha256": "9981c3bf7e04bb042e8c97405940c441be1f801c99788fb4f098a1c94e3d1c8d"
+    },
+    {
+      "path": "app/api/staff/handover/assignees/route.ts",
+      "sha256": "a49e6eef23e1f28bc847cf8ae1b02b13ffa0cd19a935240d404999c09332e030"
+    },
+    {
+      "path": "app/api/staff/handover/references/route.ts",
+      "sha256": "046c5919646b2dd31436b926acf4ea3b0ca449cff83a199c485173b912f73ab9"
+    },
+    {
+      "path": "app/api/staff/handover/route.ts",
+      "sha256": "f46a1cae8d4f00c35a51dee0b697ecf6908352fb57047a4f14468876e6160a49"
+    },
+    {
+      "path": "app/api/staff/hotel-fees/route.ts",
+      "sha256": "104f662b3df3fb1a120d10481b98e2e1e358897deb8e131feabe7ab0c25362e0"
+    },
+    {
+      "path": "app/api/staff/night-audit/route.ts",
+      "sha256": "115d5592b508ba506a3d7187960e9324745301bdb968bca9077ddb833b427802"
+    },
+    {
+      "path": "app/api/staff/operational-date/route.ts",
+      "sha256": "726cd6ba4da04bbec8364316071791edb1d42a1c311374edef56a24e53fdd297"
+    },
+    {
+      "path": "app/api/staff/reservations/[id]/guests/route.ts",
+      "sha256": "84eb05d67e65c172d99e65733e8c5573038b05c7cd9af670f803f334626aac03"
+    },
+    {
+      "path": "app/api/staff/reservations/[id]/readiness/route.ts",
+      "sha256": "ec711cebe34856a7dcb8db61976be030978bc42278a1d600a2334564804f0dd5"
+    },
+    {
+      "path": "components/booking/availability-state.test.tsx",
+      "sha256": "18e331c29670fbccaedc08bc8655f3b84aac52356565bf4e30dcd7f1971602a5"
+    },
+    {
+      "path": "components/booking/room-results.tsx",
+      "sha256": "32693f0b6c59efcc93af3266febe1395538f9fe9a11568ce39aa9dfe2ac75695"
+    },
+    {
+      "path": "components/front-desk/fused-room-rack-panel-style.test.ts",
+      "sha256": "51f9e784df4ab36883f985e1694ff476ea262f359b95239c450a9df1c98aa937"
+    },
+    {
+      "path": "components/front-desk/fused-room-rack-panel.tsx",
+      "sha256": "6392fbd658811b8fc7b4c989c30e05909507630a83ea91b98bf50167e3d5d2b0"
+    },
+    {
+      "path": "components/manager/front-desk-arrival-dialog.tsx",
+      "sha256": "c5ce600dc8febf9365ded5f3e70c855b8e9ab2bebc07ea2c7c882cd47d76c421"
+    },
+    {
+      "path": "components/manager/guest-duplicates-panel.tsx",
+      "sha256": "e6e2f55239c0417dd1f3cbe95896ea467e3f5a2d75b29856d4e0b7871844b995"
+    },
+    {
+      "path": "components/manager/handover-panel.tsx",
+      "sha256": "f834b4d59aa1e8a3b4d765ba061f5d768ca9e3c5fac076cfeea9e874551b6bda"
+    },
+    {
+      "path": "components/manager/hotel-fee-picker.tsx",
+      "sha256": "4728067264889a3fdc0b71486b2b0a7bc55f7d962d4b42af098857242f93e10b"
+    },
+    {
+      "path": "components/manager/hotel-operations-client.ts",
+      "sha256": "b4180f935b73b68a0e64f10ec449385ab94ab0386d5748486979327cab102347"
+    },
+    {
+      "path": "components/manager/hotel-operations-panel.tsx",
+      "sha256": "e14659e9630ae63b7a56584e6cf2aca0000645e662cf107eaf1a30d58409ffcb"
+    },
+    {
+      "path": "components/manager/hotel-operations.css",
+      "sha256": "07c1f95f5c016f40280319912393e4dacbc99d591dc51128abe0b7199450c8b3"
+    },
+    {
+      "path": "components/manager/hotel-operations.test.tsx",
+      "sha256": "2014da901e762725ec32a39a89c08b296ceed6ea47193aa59d56b6a6f6ac94e1"
+    },
+    {
+      "path": "components/manager/housekeeping-queue-panel.test.tsx",
+      "sha256": "5932f9db74e330614ebfff9e702fd6ea055de3f617e8a351e5f32767dc4f41a8"
+    },
+    {
+      "path": "components/manager/housekeeping-queue-panel.tsx",
+      "sha256": "abc690d649d5ab29b665418213e15765a029225bb3ead9b841b9ab1926343a93"
+    },
+    {
+      "path": "components/manager/manager-dashboard-client.tsx",
+      "sha256": "c37021047d6ddd147fb5743698befce08533d42a16b2e953e05268a72643be16"
+    },
+    {
+      "path": "components/manager/night-audit-panel.tsx",
+      "sha256": "398973dc8c102d3c50f2a224fa643e3c34aeaac5f5e487c03cf9d7608fdfe767"
+    },
+    {
+      "path": "components/manager/performance-reports.tsx",
+      "sha256": "2a128a5715628049366fb9a95cc6ba61f2238567382ad04265ae2344f2cd1066"
+    },
+    {
+      "path": "components/manager/reservation-party-panel.tsx",
+      "sha256": "4f73012dc0c5375b95884d5b484ab4f934629b75554bdec5b90cd506de13aee0"
+    },
+    {
+      "path": "components/manager/reservation-readiness-panel.tsx",
+      "sha256": "41aefa049f5710ef2023c3f654d215db2767ba64dca3d4d7dee7868da4c17a7d"
+    },
+    {
+      "path": "components/owner/owner-dashboard-client.tsx",
+      "sha256": "b593a55ae33b33c488b0a71fa3d73a744e14afdf3964cb32f7c014e5ad316d9f"
+    },
+    {
+      "path": "config/role-navigation.test.ts",
+      "sha256": "7bf639ace6f9bbaedadb8659143166b8132ae8e17cb484a4e5a84bcb3070548f"
+    },
+    {
+      "path": "config/role-navigation.ts",
+      "sha256": "43cf416d85d555a646b252316951819a6c17b831938e5544c891364b3ffb9540"
+    },
+    {
+      "path": "hooks/use-front-office-rack.ts",
+      "sha256": "4265e6c01d0b08c90b295c099bdf55c9b5d2c1945d040b7c3857ee9fa2de7be3"
+    },
+    {
+      "path": "lib/accounting.test.ts",
+      "sha256": "5439a7dc5c9fd28819df2246c1ebe4cc783480c52ad9dfac687e1c29a5c1cbbd"
+    },
+    {
+      "path": "lib/availability.test.ts",
+      "sha256": "7a91bf2c34903b108e71b28ba0608b166913a7e5e254d1f30eb991c1b883c9a7"
+    },
+    {
+      "path": "lib/booking.ts",
+      "sha256": "fac8302e8da1fa3bc0755fa979eb89832cf757596efcfdee9caf88337aab6154"
+    },
+    {
+      "path": "lib/financial-route.test.ts",
+      "sha256": "fd8b9a57bf3e627b04aebfcd90400da3eee5399cde963e1ad4025f7a92a13485"
+    },
+    {
+      "path": "lib/financial-route.ts",
+      "sha256": "aedd8a07dd37b0defd2a2f25dae1ad4baf93706c21b7fd12645f6c9fb3c2e474"
+    },
+    {
+      "path": "lib/guest-duplicates.test.ts",
+      "sha256": "2cd1214fa90a8b781357c9afda0f677a9651204d0673f00a8927613ade1cde39"
+    },
+    {
+      "path": "lib/guest-duplicates.ts",
+      "sha256": "567c972628d88a51900b2bbc8ec26beb51afe70a65004946d2623c90e4851b6f"
+    },
+    {
+      "path": "lib/guest-profile.test.ts",
+      "sha256": "160181cce93c0d9724e45e308f78c077c0e85d3c33a43a0dc4b4cb15377dc302"
+    },
+    {
+      "path": "lib/hotel-operations-route.test.ts",
+      "sha256": "92376abc14a0ed7c0668a72dc06ef8a7bb344d37fe9a33aa53cec27183099fe7"
+    },
+    {
+      "path": "lib/hotel-operations-route.ts",
+      "sha256": "828b95b028a2c45bffff47a385ddafa6735d68b3746ed556de02440215d280ae"
+    },
+    {
+      "path": "lib/hotel-operations.test.ts",
+      "sha256": "4f17e0d7451bc11223b2aa2d11938f668dcbd95d40fc1f373012389ba97cffe8"
+    },
+    {
+      "path": "lib/hotel-operations.ts",
+      "sha256": "76b8533c1a4ff9fe2612308a15faae7ddfa790ae95421b1aa91f73047500c80a"
+    },
+    {
+      "path": "lib/housekeeping-action-routes.test.ts",
+      "sha256": "a772da284bcf764d54cec0e7e693fc6a49311eaa22a56c38600328a5348060e0"
+    },
+    {
+      "path": "lib/housekeeping-assignment-route.test.ts",
+      "sha256": "29c643c41a9968a50b67c914d49c657897796082e81df790510343cbccde5a93"
+    },
+    {
+      "path": "lib/housekeeping-route.ts",
+      "sha256": "494c7fdd03ef40ea1edc67ec12b9ae8c100466d3e58eff76c1aba0678ee2077f"
+    },
+    {
+      "path": "lib/read-all-rows.test.ts",
+      "sha256": "5913bfca3f744013e0fdba7c23c39a62467cf620935e76d86e5dcb5702876791"
+    },
+    {
+      "path": "lib/read-all-rows.ts",
+      "sha256": "986e129825f75986d6e97326e4ba5920b452940d6ea0319c44471c660a15059f"
+    },
+    {
+      "path": "lib/room-rack.test.ts",
+      "sha256": "a344812a9b0d489778b230b8c2903cde9e4bbf2108e46e857ce3c52f8f740db9"
+    },
+    {
+      "path": "lib/room-rack.ts",
+      "sha256": "4e7933db75013992855788a8a4c52b6730b9cb748b5cdeddec17a867f313c533"
+    },
+    {
+      "path": "lib/staff-data.ts",
+      "sha256": "707a8100245fd31f95939ba3343355b5efbfb8e30f65efc9b3ce434bdd10a209"
+    },
+    {
+      "path": "lib/types.ts",
+      "sha256": "086e1f9e2dee6408c56205518e8c49d735aad914a5dbe0407498f83a10abc9f0"
+    },
+    {
+      "path": "scripts/backend-remediation-db-test.mjs",
+      "sha256": "625453d595ec60ef84e64c914f604794bd0c5c1999a4014f861d8287fcf9380c"
+    },
+    {
+      "path": "scripts/hotel-availability-db-test.mjs",
+      "sha256": "eedd204fe431f8d1f2925ecd57bb7a0570a36c6284d9f69ea3b073921b80293f"
+    },
+    {
+      "path": "scripts/hotel-db-test-helpers.mjs",
+      "sha256": "37f3e787fe35f4a4bbbe6d374af076f936e2b5826dd08144df6818c3a0c29cc6"
+    },
+    {
+      "path": "scripts/hotel-operations-db-test.mjs",
+      "sha256": "876d56813981459563e04a19e40f63a3b290df74da3673e1aabe11e8aae3a3dc"
+    },
+    {
+      "path": "scripts/housekeeping-workflow-db-test.mjs",
+      "sha256": "ada83f8069690b14d3b09d0108693c6462b4abce12d42e1d2b7230e224c51c04"
+    },
+    {
+      "path": "supabase/migrations/20261103010000_hotel_nightly_availability.sql",
+      "sha256": "947d6174d74cf02e9482fdbf2a8a16ed0c3ef6d07315395f9c39cfd2331a5216"
+    },
+    {
+      "path": "supabase/migrations/20261103020000_hotel_operations.sql",
+      "sha256": "2811a8212a3c6005f3845b7af84970db73329b48529e3ddb6a72a60a4b69c9a5"
+    },
+    {
+      "path": "supabase/migrations/20261103030000_hotel_operating_day.sql",
+      "sha256": "1a66672443bc15e27b908d1a63d6a7ff3852216fc4d35856d03eaa044a7d2bd5"
+    }
+  ]
+}

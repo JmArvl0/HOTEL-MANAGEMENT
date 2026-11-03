@@ -4,6 +4,42 @@ Lightweight decision log. Each entry records a choice that constrains future dev
 Trivial implementation details do not belong here. Historical sessions never override the
 current system or `SYSTEM.md` — see [[AI Session Handoff]] for the authority order.
 
+## D-034 — Operational-date direction follows existing Accounting authority
+
+Date: 2026-11-03
+Status: Implemented locally; hosted deployment and explicit clock activation pending
+
+The user delegated the plan's operating-day policy choices ("ikaw nabahalaa use best
+practices"). Keep Haven's established financial authority: Front Desk resolves hotel
+operations, Accounting performs financial close, Manager reviews exceptions, and Owner
+has oversight. Do not grant routine financial execution to other roles.
+
+- Start the first operating date explicitly from the property's current hotel-local day
+  when the new workflow is activated, never during migration replay. Preserve timestamps;
+  mark pre-cutover history rather than relabeling it.
+- Stamp applicable new financial postings with the server-selected open day. Late postings
+  and corrections belong to the current open day with a link/reason to the original event;
+  prohibit backdating into a closed day or editing its immutable snapshot.
+- Close only after unresolved arrivals/no-shows and due departures have an explicit
+  disposition and financial reconciliation passes. Pending cleaning/inspection and linked
+  follow-up remain visible warnings; closing never inspects or releases rooms.
+- No generic force bypass. Recheck blockers atomically, make retries idempotent, and
+  serialize postings with close. Lock the operational-date row before existing financial
+  entity locks. Close additionally freezes operational assessment tables using
+  nonwaiting SHARE locks: an in-progress write produces a retryable conflict,
+  without holding a date lock while waiting on an entity writer.
+- Preserve D-033 and present booked nights, live rooms, frozen-rate room accrual, actual
+  receipts, refunds and outstanding obligations separately. P8 must establish the complete
+  reconciliation and capacity contracts before P7 freezes any snapshot. The local
+  implementation uses closing active/serviceable capacity and labels physical rack
+  occupancy at assessment; no historical capacity reconstruction is claimed.
+
+P6–P8 are now implemented and tested against isolated PostgreSQL. Migration alone
+does not activate tracking; Accounting explicitly activates the current hotel day.
+This decision does not authorize a production cutover. See
+`docs/qa/hotel-operations-completion-2026-11-03.md` and
+[[2026-11-03 - Hotel Operations Completion]].
+
 ## D-033 — Occupancy has two named bases: booked (reservation stay dates) and live (room rack)
 
 Date: 2026-10-03
@@ -1326,3 +1362,68 @@ Inter and makes the numbers look ~10% generous.
 [[D-030]] · `components/admin/system-health.css` ·
 [[2026-09-26 - Ledger Table Column Geometry]] ·
 [[2026-09-26 - System Health Ledger Conflict Fix]]
+
+## D-032 — Cash-shift Close is re-enabled; the 2026-10-03 suspension defense is reverted
+
+Date: 2026-10-18
+Status: Active
+
+### Decision
+
+The cash_shifts Close & count action is offered again (front_desk/accounting can
+operate; the Close RPC also accepts owner/admin/manager per its 20260829 role body).
+The two 2026-10-03 suspension defenses are deleted: the UI flag + hidden button +
+banner in components/manager/manager-dashboard-client.tsx and the 409 backstop in
+pp/api/accounting/cash-shifts/[id]/route.ts. lib/accounting.test.ts pins the
+re-enabled behavior ("cash-shift close re-enabled (2026-10-18)").
+
+### Reason
+
+The suspension existed because closing the property-wide single shared drawer made
+every later cash collection raise CASH_SHIFT_REQUIRED, and blocked arrivals from
+checking in (zero-balance gate). Since then: 20261024090000 (single open +
+pg_advisory_xact_lock + honest open-error mapping), 20261024110000 (shared drawer,
+partial unique index), and 20261024120000 (unattributed-cash bypass with
+CASH_BYPASS_ACTIVE = true live in the front-desk payment route) — the stranding
+risk no longer exists. The 2026-10-03 migration headers themselves say REVERT when
+the recount path is safe.
+
+### Constraints kept
+
+- Unattributed cash (cash_shift_id IS NULL, payments rows audited with
+  unattributedCash) never enters a drawer's expected total — reconcile it from the
+  ledger; that bypass stays in place and is governed by its own migration header.
+- Sign-out still blocks only the current open-shift owner (pre-existing boundary).
+- CASH_BYPASS_ACTIVE stays TRUE until the bypass migration is deliberately retired.
+
+Related: SYSTEM.md "Cash & shifts", lib/accounting.ts, docs/qa/frontend-ui-audit.md (HUI-011).
+
+## D-033 — Staff headers share one anchored profile popover, not per-header menus
+
+Date: 2026-10-21
+Status: Active
+
+### Decision
+
+Admin, Owner and Manager/staff headers render the shared
+`components/ui/ProfilePopover.tsx` (with `profile-popover.css`). It is anchored
+under the trigger, closes on outside press, Escape and item activation, returns
+focus to the trigger, keeps sound toggling in place, and becomes a bottom sheet
+at ≤480px. The guest header keeps its existing `.customer-account-popover`
+because `customer-shell-notifications.test.tsx` pins that markup and copy.
+
+### Reason
+
+The inline menus had diverged: a stale 240px rule and missing CSS variables made
+the panel transparent/narrow, duplicated `role="menu"` and double `onClose` calls
+existed, and only the guest shell had a reliable trigger. One component gives one
+a11y model (role=menu, menuitemcheckbox, focus trap) and one stylesheet.
+
+### Constraints
+
+- Guest shell untouched; only staff headers migrated.
+- No positioning library, portal or new dependency.
+- Browser verification is still required; tracked as [[KI-015]].
+
+Related: [[2026-10-21 - Unified Profile Popover]], components/ui/ProfilePopover.tsx,
+components/ui/profile-popover.css, app/staff-theme.css.

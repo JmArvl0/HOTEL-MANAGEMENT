@@ -10,7 +10,7 @@ export type AccountingSection = "transactions" | "folios" | "cash_shifts" | "rec
 // "transportation" is the standalone Transportation Service workspace (dedicated /api/transportation route).
 // "insights" = Predictive Analytics workspace; "ai" = Gemini AI assistance
 // (HAVEN AI). Both are self-fetching panels backed by /api/analytics and /api/ai.
-export type ManagerSection = "approvals" | "room_types" | "transport_services" | "transportation" | "insights" | "ai" | "staff_duty" | "team_operations" | "lost_found" | "request_types";
+export type ManagerSection = "approvals" | "room_types" | "transport_services" | "transportation" | "insights" | "ai" | "staff_duty" | "team_operations" | "lost_found" | "request_types" | "hotel_operations";
 export interface RecordItem { id: string; [key: string]: string | number | boolean | null | undefined; }
 export interface AccountingMetrics { grossCollected: number; refundsIssued: number; netRevenue: number; outstandingBalance: number; folioCredit: number; pendingVerification: number; pendingRefunds: number; failedRefunds: number; openCashShifts: number; unreconciledShifts: number; cashVariance: number; openReconciliationVariance: number }
 export interface DashboardData {

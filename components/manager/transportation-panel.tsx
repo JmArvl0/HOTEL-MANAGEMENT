@@ -1,9 +1,13 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { CalendarDays, CarFront, CarTaxiFront, CheckCircle2, ClipboardCheck, X } from "lucide-react";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
 import { HavenDataToolbar, HavenFilterBadges, HavenSearchInput } from "@/components/ui/haven-data-controls";
+import { HavenEmptyState } from "@/components/ui/haven-data-controls";
+import { HavenSkeleton } from "@/components/ui/haven-skeleton";
+import { PageHeader } from "@/components/ui";
 import { HavenSelect } from "@/components/ui/haven-select";
 import { TablePagination, useTablePagination } from "@/components/ui/table-pagination";
 import type { FormField } from "@/components/ui/FormDialog";
@@ -175,8 +179,8 @@ export default function TransportationPanel({ role }: { role: Role }) {
   const when = (trip: StaffTrip) => <div className={`tp-when${trip.pickup_date === today ? " today" : ""}`}><b>{formatDate(trip.pickup_date)} · {formatTime(trip.pickup_time)}</b>{trip.service_type === "ROUND_TRIP" && trip.return_date && <small>Return {formatDate(trip.return_date)} · {formatTime(trip.return_time!)}</small>}</div>;
 
   return <>
-    <div className="page-title module-title"><div><p className="eyebrow">Hotel operations</p><h1>Transportation</h1><p>Review, schedule, assign and complete guest pickup, drop-off and round-trip trips.</p></div></div>
-    {error && <div className="tp-empty"><span className="tp-empty-icon"><CarTaxiFront size={22}/></span><h3>Transportation unavailable</h3><p>{error}</p></div>}
+    <PageHeader variant="band" eyebrow="Hotel operations" title="Transportation" subtitle="Review, schedule, assign and complete guest pickup, drop-off and round-trip trips." />
+    {error && <HavenEmptyState icon={<CarTaxiFront size={22} aria-hidden="true" />} title="Transportation unavailable" body={error} />}
     {!error && (<>
     <ModuleSummaryCards cards={[
       { label: "Needs review", value: trips.filter((trip) => ["REQUESTED", "REVIEWED"].includes(trip.status)).length, hint: "Requested or reviewed", queue: "pending", icon: ClipboardCheck, tone: "attention" },
@@ -197,8 +201,8 @@ export default function TransportationPanel({ role }: { role: Role }) {
     />
     <p className="tp-note">Locations are recorded as text — coordinate trips by phone; there is no external mapping or fleet service.</p>
     <div className="data-panel">
-      {loading ? <div className="tp-skeleton" role="status" aria-label="Loading transportation requests"><i/><i/><i/><i/></div>
-      : visible.length === 0 ? <div className="tp-empty"><span className="tp-empty-icon"><CarTaxiFront size={22}/></span><h3>No transportation requests</h3><p>{trips.length === 0 ? "Guest transfer requests appear here as soon as they are submitted at booking or from the guest account." : "No requests match the current filters or search."}</p>{trips.length > 0 && hasActiveFilters && <button className="tp-clear" onClick={clearFilters}><X size={13}/>Clear filters</button>}</div>
+      {loading ? <div className="haven-skeleton-list" role="status" aria-label="Loading transportation requests"><HavenSkeleton /><HavenSkeleton /><HavenSkeleton /><HavenSkeleton /></div>
+      : visible.length === 0 ? <HavenEmptyState icon={<CarTaxiFront size={22} aria-hidden="true" />} title="No transportation requests" body={trips.length === 0 ? "Guest transfer requests appear here as soon as they are submitted at booking or from the guest account." : "No requests match the current filters or search."} action={trips.length > 0 && hasActiveFilters && <button type="button" className="btn btn-soft btn-sm" onClick={clearFilters}><X size={13} />Clear filters</button>} />
       : <>
       <div className="table-scroll tp-table-wrap"><table className="tp-table" aria-label="Transportation requests"><thead><tr><th>Guest / reservation</th><th>Service</th><th>Route</th><th>When</th><th>Passengers</th><th>Status</th><th>Driver / vehicle</th><th>Actions</th></tr></thead>
         <tbody>{page.rows.map((trip) => <tr key={trip.id}>
@@ -207,12 +211,12 @@ export default function TransportationPanel({ role }: { role: Role }) {
           <td><div className="cell-stack tp-route"><b>{trip.pickup_location} → {trip.dropoff_location}</b>{trip.service_type === "ROUND_TRIP" && trip.return_location && <small>Return: {trip.dropoff_location} → {trip.return_location}</small>}</div></td>
           <td>{when(trip)}</td>
           <td><div className="cell-stack"><b>{trip.passenger_count}</b><small>{trip.passenger_count === 1 ? "passenger" : "passengers"}</small></div></td>
-          <td><div className="cell-stack"><span className={`badge ${trip.status.toLowerCase()}`}>{TRANSPORTATION_STATUS_LABELS[trip.status]}</span>{trip.special_instructions && <small title="Special instructions">{label(trip.special_instructions)}</small>}</div></td>
+          <td><div className="cell-stack"><StatusBadge status={trip.status.toLowerCase()} label={TRANSPORTATION_STATUS_LABELS[trip.status]} />{trip.special_instructions && <small title="Special instructions">{label(trip.special_instructions)}</small>}</div></td>
           <td>{trip.driver_name ? <div className="cell-stack"><b>{label(trip.driver_name)}</b><small>{label(trip.transport_vehicle_types?.name)}</small>{trip.fare_amount != null && <small>{formatPeso(trip.fare_amount)} on folio</small>}</div> : <span className="tp-unassigned">Not assigned</span>}</td>
           <td className="tp-actions">{actions(trip)}</td>
         </tr>)}</tbody></table></div>
       <div className="tp-cards">{page.rows.map((trip) => <article className="tp-card" key={trip.id}>
-        <header><b>{SERVICE_TYPE_LABELS[trip.service_type]}</b><span className={`badge ${trip.status.toLowerCase()}`}>{TRANSPORTATION_STATUS_LABELS[trip.status]}</span></header>
+        <header><b>{SERVICE_TYPE_LABELS[trip.service_type]}</b><StatusBadge status={trip.status.toLowerCase()} label={TRANSPORTATION_STATUS_LABELS[trip.status]} /></header>
         <div className="tp-card-guest"><strong>{label(trip.reservations?.guest_name)}</strong><small>{label(trip.reservations?.confirmation_number ?? trip.reservation_id)}</small></div>
         <p className="tp-card-route">{trip.pickup_location}<i aria-hidden="true">→</i>{trip.dropoff_location}</p>
         <div className="tp-card-meta"><span>{formatDate(trip.pickup_date)} · {formatTime(trip.pickup_time)}</span><span>{trip.passenger_count} {trip.passenger_count === 1 ? "passenger" : "passengers"}</span></div>

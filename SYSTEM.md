@@ -247,7 +247,11 @@ Key properties:
 (`admin_create_staff`) starting **inactive + `recovery_required`**; `admin_initiate_account_recovery`
 mints a one-time hashed token (public `/recover/[token]` → `complete_account_recovery`, which is
 unauthenticated by design — the token is the credential). An account must be `active` **and**
-`recovery_required = false` to sign in.
+`recovery_required = false` to sign in. Self-service password recovery preserves account
+governance: suspended/inactive accounts need administrator assistance. An administrator-created
+onboarding token may activate an inactive recovery-required account. `stage_recovery_selfie`
+binds uploaded evidence to the recovery token under its row lock; completion accepts only
+that bound path and a consumed token cannot have its accepted proof replaced.
 
 **Guest-to-staff conversion.** A guest role is never changed to staff through the generic
 `admin_change_user_role` RPC. `admin_convert_guest_to_staff` is the only supported boundary:
@@ -289,9 +293,10 @@ browser-session cookies only (no `maxAge`, die on browser close), Remember Me
 hidden on `/login`, the header countdown hidden, and live Remember-Me sessions
 collapse to the idle window at the next validation — login itself keeps working.
 Cookie policy ON restores the full policy and the countdown resumes. Enforcement is live in the NextAuth `session` callback (which runs on every
-`getServerSession`; `callbacks.jwt` does not run per request): idle timeout against
+`getServerSession`; JWT revalidation also runs there): idle timeout against
 server-side `user_accounts.last_seen_at` (stamped at sign-in, throttled to one write per
-minute), absolute lifetime against the token `iat`. Standard sign-in is bound by the
+minute), absolute lifetime against immutable `loginIssuedAt` (legacy tokens pin their
+original `iat` once), so cookie renewal cannot reset the login clock. Standard sign-in is bound by the
 inactivity window; Remember-Me opt-in extends
 to the configured maximum. Freshly minted cookies carry a policy-derived `maxAge`
 (absolute window when persistent, idle window otherwise; none when the cookie policy
@@ -528,8 +533,10 @@ Confirmation**, wired through search-params → a server-issued **hold token** �
 
 1. **Search** (`/booking/search`) — dates + guest count, zod-validated (`searchSchema`): check-in not
    in the past, check-out after check-in, 1–8 guests. Availability is computed server-side
-   (`lib/booking.getAvailability` → `countAvailableUnits`): per room type, `inventory − blocking
-   reservations − active holds`, counting only administratively active rooms and excluding
+   (`lib/booking.getAvailability` → `countAvailableUnits`): per room type, the **minimum free
+   capacity on any night** in `[check_in, check_out)` (inventory minus that night's blocking
+   reservations and unconverted active holds). Consecutive stays do not consume simultaneous
+   capacity. Count only administratively active rooms and exclude
    maintenance-blocked/out-of-service rooms and (for tonight) not-yet-clean ones. Types with
    `availableUnits > 0` are offered first, cheapest first; sold-out types stay visible as
    Unavailable with booking disabled (details page redirects them back to search). The
@@ -544,6 +551,15 @@ Confirmation**, wired through search-params → a server-issued **hold token** �
    with the TypeScript count. Sites with no policy in scope pass `null`, which the helper resolves
    via `hotel_today` from `hotel_operational_policies`, so the same-day boundary is hotel-local
    rather than UTC `current_date`.
+
+   **Nightly inventory correction (2026-11-03, migration `20261103130000_hotel_nightly_availability`, deployed 2026-11-03):**
+   `hotel_available_units` shares that arithmetic across all nine SQL gates: the seven above
+   plus `submit_gateway_deposit` and `confirm_gateway_payment`. All use the same normalized
+   room-type advisory-lock key, include outstanding holds (including Front Desk creation),
+   exclude the converting hold or current reservation, and preserve pending-website expiry.
+   This is type capacity; physical room assignment still independently requires a continuous,
+   conflict-free assignment. Pricing and frozen nightly rates are unchanged. Public/portal
+   search errors retain search details and offer retry; a failed lookup never claims sold out.
 
    **Intent-aware room discovery (2026-09-10):** the landing page's three room-discovery CTAs all
    land on `/booking/search`, whose mode is *derived from the URL* by `lib/booking.parseSearchIntent`
@@ -601,8 +617,13 @@ manual submission without proof (`PROOF_REQUIRED`). No card/gateway. The proof w
 first stages the image (`POST …/[token]/proof` → private `payment-proofs` Supabase Storage bucket,
 path `pending/<token>/<uuid>.<ext>`; magic-byte-sniffed, never trusting the filename extension or
 browser MIME), then confirms with the staged path. The confirm route re-downloads the object,
-re-sniffs and re-measures it server-side before the RPC, and removes the staged upload if the
-submission fails (no orphaned objects; an idempotent replay keeps the original). The payment row
+re-sniffs and re-measures it server-side, then copies verified bytes into the protected
+`submitted/<token>/<uuid>.<ext>` namespace before the RPC. DELETE only removes unreferenced
+staging objects for an active hold; legacy submitted proofs in `pending` are protected too.
+Finalized evidence is retained on ambiguous RPC failures because a timeout may hide a committed
+payment; cleanup must reconcile references first. An idempotent retry returns the existing
+reservation. Manual submissions require live `deposit_method = manual` at the route and
+transactional RPC boundary; `off` blocks new submissions. The payment row
 stores the storage **path** (plus original name, MIME, size, uploaded-at) — never a URL; proof
 images are served only through 60-second signed URLs minted server-side by
 `GET /api/booking/payments/[id]/proof`, viewable by **the paying guest and Accounting only**
@@ -894,7 +915,10 @@ housekeeping, maintenance, … — and auto-creates the matching housekeeping ta
 Requests carry priority/severity and can be escalated to a Manager. Filed rows stamp
 `inventory_item_id` when their catalog type links an inventory item, and fulfillment
 consumes that exact item (legacy rows without the FK keep name-matching); nothing is
-reserved or decremented at request time.
+reserved or decremented at request time. The `fulfilled_request_stock` trigger performs the
+conditional decrement and one movement in the same transaction as task or direct request
+completion. Insufficient stock rolls back fulfillment; concurrent requests cannot overwrite
+each other's decrements. Staff quantity changes use the locked `adjust_inventory_stock` RPC.
 
 **Batch approval.** `guest_requests` carry `batch_id` + `approval_status ∈ {pending, approved,
 rejected}` (+ `approved_by/at/note`). A customer submission (or a booking's auto-filed batch) starts
@@ -1382,7 +1406,9 @@ consumption from `inventory_movements` daily means → projected shortage + reco
 genuinely predictive, not a low-stock alert; items without history are flagged, never guessed),
 **maintenance recurring-issue risk** (repeat-incidence grouping per room+category over 90 days —
 "recurring issue risk", never a failure-probability claim). `runner.ts` orchestrates the four,
-persists snapshots to `analytics_model_runs` + `analytics_predictions`, and computes evaluation
+persists snapshots to `analytics_model_runs` + `analytics_predictions` through the atomic
+`persist_analytics_generation` RPC (serialized cooldown claim; failed prediction writes roll
+back the generation and retain a failed-attempt record), and computes evaluation
 metrics (predicted vs actual for elapsed target dates: occupancy MAE/MAPE, housekeeping MAE,
 inventory MAE — shown in the UI as "Prediction performance"). Snapshots generate daily via a
 Vercel cron (`vercel.json` → `/api/analytics/generate`, 02:35 Manila) or on-demand by an
@@ -1529,6 +1555,88 @@ applied remotely. See `docs/ROLE-IMPROVEMENT-IMPLEMENTATION.md` for deployment a
 OTA, group/corporate, linen/laundry, formal night audit and full accounting remain separately
 scoped evaluations under Phase 5; no integrations are claimed.
 
+### 7.16 Hotel operations implementation candidate (2026-11-03)
+
+QA follow-up: the recovered remote history is present in migrations; hotel files
+are `20261103130000_hotel_nightly_availability.sql`,
+`20261103140000_hotel_operations.sql`, and `20261103150000_hotel_operating_day.sql`.
+Both clean and hosted-upgrade-order replays pass locally. The hosted project now
+has all of these applied and the matching build is deployed to production; the
+maintenance cutover and verification are recorded in
+`nano_bots/05 Memory/Sessions/OpenCode/2026-11-03 - Coordinated Production Cutover.md`.
+Operating-day lookup failures are visible with retry and pause automatic polling.
+App fonts are bundled with SIL licenses via `next/font/local`; builds require
+no font download. See `docs/qa/qa-fixes-2026-11-03.md` for verified local outcomes.
+
+The migration drift recorded below was reconciled before the cutover: the
+remote sources at `20261103010000` and `20261103030000` were recovered into the
+local migration files, combined with the hotel files above, and pushed with
+`supabase db push --linked` after a verified backup/restore rehearsal.
+`docs/qa/staff-walkthrough-2026-11-03.md` remains the evidence for the local
+staff walkthrough that preceded it.
+
+- **Hotel Operations** is available to Front Desk, Housekeeping, Maintenance,
+  Accounting, Manager and Owner through existing role shells. Handover records have
+  department/person ownership, due time, scoped room/reservation/guest/task links,
+  versioned edits and audit history. Resolving and archiving are separate actions;
+  reopen/restore preserves history. Guest links stay with Front Desk/Management.
+  Refresh is polling, with no new reminder-delivery promise.
+- **Reservation readiness** names current identity, money, arrival-time, room and
+  inspection blockers near the existing arrival flow. It is an assessment, with a
+  timestamp/version; the existing final check-in RPC remains authoritative. Staff
+  reads use `/api/staff/reservations/[id]/readiness` and accept a candidate room.
+- **Staying guests** use `reservation_guests`, separate from booking/login ownership.
+  Front Desk can maintain companions within the reservation/type capacity using
+  versioned idempotent updates; Manager/Owner have read access. The primary remains
+  anchored to the reservation's registered guest. Existing rows are backfilled only
+  where guest ID/name agrees, and unmatched legacy identities require resolution.
+  Companion profile history is separate from booked stays and financial responsibility.
+- **Room diary** uses newly recorded effective assignment segments, half-open date
+  boundaries and the same reservation reference through moves. In-house moves check
+  remaining nights. Existing unknown assignment boundaries remain visibly unknown;
+  they are never invented from the reservation's full stay. Ordinary early checkout
+  ends the physical segment without silently changing contracted prices/stay dates.
+- **Operating date** is explicitly activated by Accounting on the current hotel-local
+  day, never by migration. Booking expiry, security and calendar clocks stay real-time.
+  New payments, charges, adjustments, refunds and invoices receive server-owned
+  posting dates; previously posted history remains NULL/pre-cutover. Corrections use
+  existing authorized ledger workflows on the current open day, with no backdating
+  or editing an immutable closed snapshot.
+- **Night audit**: Front Desk resolves operational blockers; Accounting activates and
+  closes; Manager/Owner review financial summaries. Preview is
+  `/api/staff/night-audit`; close is Accounting-only
+  `/api/accounting/night-audit/close`. Closing today before its calendar day ends,
+  unresolved arrivals/departures, unreconciled cash/ledger or missing frozen rates
+  blocks close. Pending inspections and handover work carry forward as warnings;
+  close never releases rooms or makes automatic no-show decisions. No force bypass.
+  The transaction serializes financial postings through the policy-row lock, freezes
+  operational assessment inputs with nonwaiting table locks, rechecks, records an
+  immutable snapshot and advances one day exactly once. Busy operational writes
+  return a refreshable conflict rather than a mixed snapshot or deadlock wait.
+- **Reconciliation** keeps D-033 booked room nights separate from physical rack
+  occupancy measured at assessment/close. Room accrual uses contracted frozen nightly
+  rates; receipts/refunds use actual stamped paid events, charges and signed
+  adjustments stay separate, outstanding is the closing invoice balance. Capacity is
+  closing active inventory (serviceable capacity also shown), not reconstructed
+  historical inventory. Pre-cutover payments are explicitly counted/excluded from
+  stamped period receipts. Missing rates produce a blocker rather than an estimate.
+  Reports can show live assessment and immutable recent closes; formal Front Desk
+  daily report submissions remain independent.
+- **Optional fee templates** are Accounting-maintained with no seeded property fees.
+  Front Desk obtains a server quote and posts its version/quantity through the
+  existing reservation charge route. The existing `folio_charges` ledger freezes
+  catalog code/name/price/quantity/tax evidence. Catalog changes cannot reprice old
+  charges. Generic authorized charges remain; retries bind actor/reservation/payload.
+- **Identity review** is Manager/Owner-only: conservative exact normalized email or
+  shared-account evidence, masked identifiers and retained review decisions. Shared
+  names/phones alone do not create candidates. No guest/login merge is provided:
+  the read-only live aggregate found zero candidate groups for either criterion.
+
+Future scheduled room moves, special shortened-stay repricing, borrowed-item tracking,
+active-cleaning timers, security collateral, day-use and extra tax rules remain conditional
+non-adoptions until a property need/policy exists. Existing extensions, DND, checkout,
+requests and financial controls remain the applicable workflows.
+
 ## 8. Business policies & configuration
 
 **Central policy table** `hotel_operational_policies` — a single `default` row, versioned, editable
@@ -1648,8 +1756,8 @@ real state change happens in the named endpoints below.
 preference validation → hold token); `POST /booking/holds/[token]/proof` (stage the payment-proof
 image in the private `payment-proofs` bucket — multipart upload, magic-byte sniffed, hold-owner
 guarded; DELETE removes a staged path for that hold); `POST /booking/holds/[token]/confirm`
-(deposit submission — reference + staged proof path, re-validated server-side, staged upload
-removed on failure); `GET /booking/payments/[id]/proof` (60-second signed URL — paying guest or
+(deposit submission — reference + staged proof path, re-validated and finalized server-side);
+`GET /booking/payments/[id]/proof` (60-second signed URL — paying guest or
 Accounting only); `POST /register`; `POST /recover/[token]`; `/api/auth/[...nextauth]` (NextAuth
 handler).
 
@@ -1933,12 +2041,10 @@ Honest inventory of what is **not** wired up yet (not prescriptions). Full split
   application RPCs; `lib/accounting.test.ts` asserts no application function is granted to
   them). Regenerate it after each feature block; `supabase/migrations/` stays the source of
   truth.
-- **One deployed helper is remote-only**: `room_is_sellable(...)` is defined in neither
-  `supabase/migrations` nor the repo's older snapshots — it is captured in the current dump but has
-  no migration file, even though `20260916010000` now routes all seven SQL inventory counts through
-  it. Some live function bodies therefore exist only in the deployed database (memory:
-  `db-function-drift-live-definitions`). Read the live body via `DIRECT_URL` before recreating any
-  existing RPC.
+- **The formerly remote-only `room_is_sellable` helper is now captured in migration
+  `20261102010000`**, after comparing the live body through the linked CLI. This closes the
+  migration-only install gap once that migration is applied. Live RPC bodies can still drift
+  (KI-003); read and compare the live definition before replacing an existing function.
 - **Email login OTP is implemented but ships disabled (D-022, 2026-10-10).** The flow,
   policy columns, challenge table, RPCs, SMTP transport, and admin controls are live and
   migration-verified, but `login_otp_enabled` defaults off and delivery reports `Unknown`

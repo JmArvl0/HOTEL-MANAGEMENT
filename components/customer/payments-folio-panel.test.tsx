@@ -22,7 +22,7 @@ describe("PaymentsFolioPanel", () => {
 
   it("renders summary cards before the transparent filter toolbar and folio list", () => {
     const { container } = render(<PaymentsFolioPanel items={items} />);
-    const summary = container.querySelector(".folio-kpi-grid")!;
+    const summary = container.querySelector('[aria-label="Financial summary"]')!;
     const toolbar = container.querySelector(".haven-data-toolbar")!;
     const list = container.querySelector(".customer-financial-list")!;
     expect(summary.compareDocumentPosition(toolbar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

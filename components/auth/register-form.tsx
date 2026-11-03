@@ -48,7 +48,7 @@ export function RegisterForm({ callbackUrl }: { callbackUrl: string }) {
   return (
     <>
       <div className="haven-vault__head">
-        <p className="eyebrow" style={{ color: "var(--color-forest-light)", margin: 0 }}>
+        <p className="eyebrow" style={{ color: "var(--color-ink)", margin: 0 }}>
           Guest registration
         </p>
         <h1>Create your Haven account</h1>

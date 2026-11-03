@@ -12,18 +12,14 @@ declare gr guest_requests%rowtype;r reservations%rowtype;task_id text;begin
  values(r.room_id,r.room_number,r.id,gr.id,gr.request,'guest_request',case when gr.priority in('high','urgent')then gr.priority else'normal'end,'pending','Guest requested service','Created from authoritative Guest Request','guest_request',gr.id::text)
  on conflict do nothing returning id into task_id;
  if task_id is not null then insert into audit_logs(user_id,action,entity_type,entity_id,after_data)values(null,'create_housekeeping_task_from_guest_request','housekeeping_task',task_id,jsonb_build_object('guestRequestId',gr.id,'reservationId',r.id,'roomId',r.room_id));end if;
- return task_id;end$function$
-
-;
+ return task_id;end$function$;
 CREATE OR REPLACE FUNCTION public.create_maintenance_for_guest_request()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
 AS $function$
-declare r reservations%rowtype;begin if new.department<>'maintenance' or new.approval_status<>'approved' or new.status in('cancelled','completed')then return new;end if;if new.reservation_id is not null then select * into r from reservations where id=new.reservation_id;end if;insert into maintenance_orders(room_id,room_number,reservation_id,guest_request_id,target_type,target_label,issue,category,priority,status,serviceability_impact,source_type,source_id)values(r.room_id,r.room_number,new.reservation_id,new.id,'room',r.room_number,new.request,'Guest request',case when new.priority in('low','normal','high','urgent','critical')then new.priority else'normal'end,'open','serviceable','guest_request',new.id::text)on conflict(guest_request_id)where guest_request_id is not null do nothing;return new;end$function$
-
-;
+declare r reservations%rowtype;begin if new.department<>'maintenance' or new.approval_status<>'approved' or new.status in('cancelled','completed')then return new;end if;if new.reservation_id is not null then select * into r from reservations where id=new.reservation_id;end if;insert into maintenance_orders(room_id,room_number,reservation_id,guest_request_id,target_type,target_label,issue,category,priority,status,serviceability_impact,source_type,source_id)values(r.room_id,r.room_number,new.reservation_id,new.id,'room',r.room_number,new.request,'Guest request',case when new.priority in('low','normal','high','urgent','critical')then new.priority else'normal'end,'open','serviceable','guest_request',new.id::text)on conflict(guest_request_id)where guest_request_id is not null do nothing;return new;end$function$;
 create trigger hms_approved_housekeeping_request after update of approval_status on public.guest_requests for each row when(new.department='housekeeping' and new.approval_status='approved' and old.approval_status is distinct from new.approval_status) execute function public.create_housekeeping_task_for_guest_request();
 create trigger hms_approved_maintenance_request after update of approval_status on public.guest_requests for each row when(new.department='maintenance' and new.approval_status='approved' and old.approval_status is distinct from new.approval_status) execute function public.create_maintenance_for_guest_request();
 create or replace function public.customer_withdraw_guest_request(p_user_id uuid,p_request_id uuid,p_expected_version integer)

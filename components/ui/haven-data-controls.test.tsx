@@ -35,6 +35,55 @@ describe("HavenSearchInput", () => {
     expect(onValueChange).toHaveBeenCalledWith("");
   });
 
+  it("keeps the shared icon and clear-button gutters when the staff search baseline loads", () => {
+    const baseline = readFileSync(join(process.cwd(), "components/ui/haven-data-controls.css"), "utf8")
+      + "\n" + readFileSync(join(process.cwd(), "app/staff-theme.css"), "utf8");
+    const style = document.createElement("style");
+    style.textContent = baseline;
+    document.head.appendChild(style);
+    try {
+      render(
+        <div className="app-shell">
+          <HavenSearchInput value="Garden" onValueChange={() => {}} label="Search reservations" placeholder="Search…" />
+        </div>,
+      );
+      const input = screen.getByRole("searchbox");
+      const computed = window.getComputedStyle(input);
+      expect(computed.paddingLeft).toBe("40px");
+      expect(computed.paddingRight).toBe("42px");
+      expect(computed.minHeight).toBe("40px");
+      expect(computed.borderRadius).toBe("12px");
+      expect(screen.getByRole("button", { name: "Clear search reservations" })).toBeTruthy();
+    } finally {
+      style.remove();
+    }
+  });
+
+  it("leaves the raw walk-in search input on the staff baseline", () => {
+    const baseline = readFileSync(join(process.cwd(), "components/ui/haven-data-controls.css"), "utf8")
+      + "\n" + readFileSync(join(process.cwd(), "app/staff-theme.css"), "utf8");
+    const style = document.createElement("style");
+    style.textContent = baseline;
+    document.head.appendChild(style);
+    try {
+      render(
+        <div className="app-shell">
+          <div className="modal-content">
+            <div className="walk-in-search-row">
+              <input type="search" aria-label="Search walk-in guests" />
+            </div>
+          </div>
+        </div>,
+      );
+      const input = screen.getByRole("searchbox", { name: "Search walk-in guests" });
+      const computed = window.getComputedStyle(input);
+      expect(computed.padding).toBe("9px 11px");
+      expect(computed.minHeight).toBe("42px");
+    } finally {
+      style.remove();
+    }
+  });
+
   it("commits an in-flight draft on unmount instead of dropping keystrokes", () => {
     vi.useFakeTimers();
     const onValueChange = vi.fn();
@@ -135,6 +184,13 @@ describe("HavenDataToolbar", () => {
     expect(css).toMatch(/\.haven-search-input input:focus-visible\s*\{[^}]*box-shadow/);
   });
 
+  it("maps the shared search tokens on the dark staff shell", () => {
+    const css = readFileSync(join(process.cwd(), "components/ui/haven-data-controls.css"), "utf8");
+    const dark = css.match(/(?:^|\n)\.app-shell\s*\{[^}]*--hc-surface[^}]*\}/)![0];
+    expect(dark).toMatch(/--hc-surface:\s*var\(--ds/);
+    expect(dark).toMatch(/--hc-line:\s*var\(--dl/);
+  });
+
   // The standard only holds if no other stylesheet re-draws the card around the
   // toolbar. These selectors all select a wrapper element itself (the wrapper class
   // is the last part of the selector, so child rules like `.reservation-filters button`
@@ -196,6 +252,27 @@ describe("shared state primitives", () => {
     cleanup();
     render(<StatusBadge status="closed" />);
     expect(screen.getByText("Closed").closest(".haven-status")?.className).toContain("haven-status--success");
+  });
+
+  it("owns the chip vocabulary retired from the raw .badge classes (Stage 3a)", () => {
+    cleanup();
+    render(<><StatusBadge status="maintenance" /><StatusBadge status="occupied" /><StatusBadge status="within_policy" /><StatusBadge status="sla_breach" /><StatusBadge status="sla_attention" /><StatusBadge status="approved_exception" /><StatusBadge status="escalated" /><StatusBadge status="applied" /><StatusBadge status="inactive" /></>);
+    const tone = (text: string) => screen.getByText(text).closest(".haven-status")?.className ?? "";
+    expect(tone("Maintenance")).toContain("haven-status--danger");
+    expect(tone("Occupied")).toContain("haven-status--info");
+    expect(tone("Within policy")).toContain("haven-status--success");
+    expect(tone("SLA breach")).toContain("haven-status--danger");
+    expect(tone("SLA attention")).toContain("haven-status--warning");
+    expect(tone("Approved exception")).toContain("haven-status--info");
+    expect(tone("Escalated")).toContain("haven-status--danger");
+    expect(tone("Applied")).toContain("haven-status--success");
+    expect(tone("Inactive")).toContain("haven-status--warning");
+  });
+
+  it("passes through a tooltip title for derived operator chips", () => {
+    cleanup();
+    render(<StatusBadge status="within_policy" label="Within policy" title="Computed from policy" />);
+    expect(screen.getByText("Within policy").closest(".haven-status")?.getAttribute("title")).toBe("Computed from policy");
   });
 
   it("renders explicit semantic button variants", () => {

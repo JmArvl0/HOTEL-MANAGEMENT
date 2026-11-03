@@ -20,8 +20,17 @@
 .haven-data-toolbar.is-customer{gap:16px;padding:0;border:0;border-radius:0;background:transparent}
 .app-shell .haven-data-toolbar{margin-bottom:12px}
 /* Staff ops mapping (canonical — the only place staff search tokens are set):
-   light floor is Cool Paper (#f3f3f3), so the input keeps a solid white
-   surface + slate border; dark keeps its own dark surface/line. */
+   dark keeps its own dark surface/line; light floor is Cool Paper (#f3f3f3),
+   so the light input keeps a solid white surface + slate border. Both live on
+   the shell so search inputs outside a data toolbar still get the tokens. */
+.app-shell{
+  --hc-surface:var(--ds,#fff);
+  --hc-surface-soft:var(--ds2,#f3f3f3);
+  --hc-line:var(--dl,#d1d5db);
+  --hc-text:var(--dt,#111827);
+  --hc-muted:var(--dm,#5b6472);
+  --hc-accent:var(--dg,#111827);
+}
 .theme-light .app-shell{
   --hc-surface:var(--ops-surface,#ffffff);
   --hc-surface-soft:var(--ops-surface,#ffffff);
@@ -128,6 +137,10 @@
 .haven-status svg{width:1em;height:1em;flex:none}
 .haven-status-group{display:flex;flex-wrap:wrap;gap:6px}
 
+/* Interactive room advance button (kept raw per Stage 3a) */
+.room-advance{display:inline-flex;align-items:center;justify-content:center;gap:4px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;line-height:1.35;white-space:nowrap;cursor:pointer;border:1px solid transparent;transition:background .15s ease,color .15s ease,border-color .15s ease}
+.room-advance:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
+
 @media(max-width:720px){
   /* The wrapper stays transparent at every width — no padding is reintroduced here. */
   .haven-search-input{width:100%}
@@ -150,3 +163,63 @@
 }
 @media(max-width:420px){.haven-filter-badges{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.haven-search-input input,.haven-filter-badge{transition:none}}
+
+/* Skeleton compositions (Stage 3d) */
+.haven-skeleton-card{
+  display:grid;gap:10px;padding:14px;border:1px solid var(--hc-line,var(--dl,#d1d5db));
+  border-radius:12px;background:var(--hc-surface,var(--ds,#fff))
+}
+.haven-skeleton-table-row{display:flex;gap:12px;padding:10px 0}
+.haven-skeleton-list{display:grid;gap:10px}
+.haven-skeleton-kpi{display:grid;gap:8px;align-items:center}
+
+/* Error alert (Stage 3d — Honest Feed Rule) */
+.haven-error-alert{
+  --error-bg:#ef444414;--error-fg:#b91c1c;--error-border:#ef444440;
+  display:flex;align-items:flex-start;gap:12px;padding:12px 14px;
+  border:1px solid var(--error-border);border-radius:10px;
+  background:var(--error-bg);color:var(--error-fg)
+}
+.haven-error-alert.is-customer{
+  --error-bg:#ef444414;--error-fg:#b91c1c;--error-border:#ef444440
+}
+.haven-error-alert.is-internal{
+  --error-bg:#ef444414;--error-fg:#b91c1c;--error-border:#ef444440
+}
+.theme-light .haven-error-alert{
+  --error-bg:#ef444414;--error-fg:#b91c1c;--error-border:#ef444440
+}
+.customer-shell .haven-error-alert{
+  --error-bg:#ef444414;--error-fg:#b91c1c;--error-border:#ef444440
+}
+.app-shell .haven-error-alert{
+  --error-bg:#ef44441f;--error-fg:#ef4444;--error-border:#b91c1c
+}
+.theme-light .app-shell .haven-error-alert{
+  --error-bg:#ef444414;--error-fg:#b91c1c;--error-border:#ef444440
+}
+.haven-error-content{flex:1;min-width:0}
+.haven-error-content :is(h2,h3){margin:0 0 4px;font-size:14px;font-weight:700}
+.haven-error-content p{margin:0;line-height:1.5;font-size:13px;opacity:.9}
+.haven-error-action{margin-top:10px}
+.haven-error-dismiss{
+  flex:0 0 auto;display:grid;place-items:center;width:24px;height:24px;padding:0;
+  border:0;border-radius:6px;background:transparent;color:inherit;cursor:pointer;opacity:.6
+}
+.haven-error-dismiss:hover{opacity:1;background:color-mix(in srgb,currentColor 12%,transparent)}
+.haven-error-dismiss:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
+
+/* Skeleton atom rules (shared with haven-skeleton.tsx) */
+.haven-skeleton{
+  display:block;border-radius:6px;background:var(--hc-surface-soft,var(--ds2,#f3f3f3));
+  animation:haven-skeleton-pulse 1.2s ease-in-out infinite
+}
+.haven-skeleton[data-size="sm"]{height:16px;border-radius:5px}
+.haven-skeleton[data-size="md"]{height:44px;border-radius:6px}
+.haven-skeleton[data-size="lg"]{height:62px;border-radius:10px}
+.haven-skeleton[data-size="tile"]{
+  min-height:100px;border:1px solid var(--hc-line,var(--dl,#d1d5db));
+  border-radius:12px;background:var(--hc-surface,var(--ds,#fff))
+}
+@keyframes haven-skeleton-pulse{0%,100%{opacity:.5}50%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.haven-skeleton{animation:none}}

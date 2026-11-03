@@ -47,28 +47,15 @@ type PredictionInsert = {
   metadata: Record<string, unknown>;
 };
 
-async function insertModelRun(modelType: string, modelVersion: string, parameters: Record<string, unknown>): Promise<string | null> {
-  if (!supabase) return null;
-  const { data, error } = await supabase.from("analytics_model_runs").insert({
-    model_type: modelType,
-    model_version: modelVersion,
-    status: "completed",
-    parameters
-  }).select("id").single();
-  if (error) throw error;
-  return data.id as string;
-}
-
 export async function generateAndPersistInsights(inputs?: AnalyticsInputs): Promise<InsightsResult> {
   const input = inputs ?? await getAnalyticsInputs();
   const result = await generateInsights(input);
   if (!supabase) return result; // demo mode: compute-only
+  const models: { modelType: string; modelVersion: string; parameters: Record<string, unknown>; predictions: Omit<PredictionInsert, "model_run_id">[] }[] = [];
 
   // Occupancy snapshot — one prediction row per horizon day.
-  const occupancyRunId = await insertModelRun("occupancy", OCCUPANCY_MODEL_VERSION, { horizon: 7 });
-  if (occupancyRunId) {
-    const rows: PredictionInsert[] = result.occupancy.days.map((day) => ({
-      model_run_id: occupancyRunId,
+  {
+    const rows: Omit<PredictionInsert, "model_run_id">[] = result.occupancy.days.map((day) => ({
       prediction_type: "occupancy",
       target_date: day.date,
       target_resource_type: "hotel",
@@ -78,15 +65,12 @@ export async function generateAndPersistInsights(inputs?: AnalyticsInputs): Prom
       data_quality: day.dataQuality,
       metadata: { knownOnly: day.predictedOccupancyPct === undefined, knownOccupied: day.knownOccupied, totalRooms: day.totalRooms, pickupRooms: day.pickupRooms ?? null, basisObservations: day.basisObservations }
     }));
-    const { error } = await supabase.from("analytics_predictions").insert(rows);
-    if (error) throw error;
+    models.push({ modelType: "occupancy", modelVersion: OCCUPANCY_MODEL_VERSION, parameters: { horizon: 7 }, predictions: rows });
   }
 
   // Housekeeping snapshot — one row per horizon day.
-  const housekeepingRunId = await insertModelRun("housekeeping", HOUSEKEEPING_MODEL_VERSION, { horizon: 7, inspectionRequired: input.inspectionRequired });
-  if (housekeepingRunId) {
-    const rows: PredictionInsert[] = result.housekeeping.days.map((day) => ({
-      model_run_id: housekeepingRunId,
+  {
+    const rows: Omit<PredictionInsert, "model_run_id">[] = result.housekeeping.days.map((day) => ({
       prediction_type: "housekeeping",
       target_date: day.date,
       target_resource_type: "hotel",
@@ -96,15 +80,12 @@ export async function generateAndPersistInsights(inputs?: AnalyticsInputs): Prom
       data_quality: day.dataQuality,
       metadata: { checkoutCleans: day.checkoutCleans, stayoverServices: day.stayoverServices, guestRequestTasks: day.guestRequestTasks, inspections: day.inspections, estimatedLaborHours: day.estimatedLaborHours ?? null, meanTaskMinutes: day.meanTaskMinutes ?? null }
     }));
-    const { error } = await supabase.from("analytics_predictions").insert(rows);
-    if (error) throw error;
+    models.push({ modelType: "housekeeping", modelVersion: HOUSEKEEPING_MODEL_VERSION, parameters: { horizon: 7, inspectionRequired: input.inspectionRequired }, predictions: rows });
   }
 
   // Inventory snapshot — one row per item, target = today + 3 days.
-  const inventoryRunId = await insertModelRun("inventory", INVENTORY_MODEL_VERSION, { horizonDays: 3 });
-  if (inventoryRunId) {
-    const rows: PredictionInsert[] = result.inventory.items.map((item) => ({
-      model_run_id: inventoryRunId,
+  {
+    const rows: Omit<PredictionInsert, "model_run_id">[] = result.inventory.items.map((item) => ({
       prediction_type: "inventory_shortage",
       target_date: shiftDate(input.today, 3),
       target_resource_type: "inventory_item",
@@ -114,15 +95,12 @@ export async function generateAndPersistInsights(inputs?: AnalyticsInputs): Prom
       data_quality: item.dataQuality,
       metadata: { name: item.name, unit: item.unit, available: item.predictedConsumption !== null, currentStock: item.currentStock, reorderPoint: item.reorderPoint, projectedShortage: item.projectedShortage, recommendedReorder: item.recommendedReorder, riskBasis: item.riskBasis, movementDays: item.movementDays }
     }));
-    const { error } = await supabase.from("analytics_predictions").insert(rows);
-    if (error) throw error;
+    models.push({ modelType: "inventory", modelVersion: INVENTORY_MODEL_VERSION, parameters: { horizonDays: 3 }, predictions: rows });
   }
 
   // Maintenance snapshot — one row per recurring-issue group.
-  const maintenanceRunId = await insertModelRun("maintenance_risk", MAINTENANCE_MODEL_VERSION, {});
-  if (maintenanceRunId) {
-    const rows: PredictionInsert[] = result.maintenance.risks.map((risk) => ({
-      model_run_id: maintenanceRunId,
+  {
+    const rows: Omit<PredictionInsert, "model_run_id">[] = result.maintenance.risks.map((risk) => ({
       prediction_type: "maintenance_risk",
       target_date: input.today,
       target_resource_type: "room",
@@ -132,10 +110,12 @@ export async function generateAndPersistInsights(inputs?: AnalyticsInputs): Prom
       data_quality: risk.dataQuality,
       metadata: { roomNumber: risk.roomNumber, category: risk.category, trend: risk.trend, openIncidents: risk.openIncidents, daysSinceLast: risk.daysSinceLast, reason: risk.reason, suggestedAction: risk.suggestedAction }
     }));
-    const { error } = await supabase.from("analytics_predictions").insert(rows);
-    if (error) throw error;
+    models.push({ modelType: "maintenance_risk", modelVersion: MAINTENANCE_MODEL_VERSION, parameters: {}, predictions: rows });
   }
 
+  const { data, error } = await supabase.rpc("persist_analytics_generation", { p_models: models });
+  if (error) throw new Error(error.message.includes("ANALYTICS_COOLDOWN") ? "ANALYTICS_COOLDOWN" : "ANALYTICS_PERSIST_FAILED");
+  if (!data || (data as { error?: string }).error) throw new Error("ANALYTICS_PERSIST_FAILED");
   return { ...result, persisted: true };
 }
 
@@ -144,7 +124,8 @@ export async function generationCoolingDown(): Promise<boolean> {
   if (!supabase) {
     return demoGenerationCooldown !== null && Date.now() - demoGenerationCooldown < GENERATION_COOLDOWN_MS;
   }
-  const { data } = await supabase.from("analytics_model_runs").select("generated_at").order("generated_at", { ascending: false }).limit(1);
+  const { data, error } = await supabase.from("analytics_model_runs").select("generated_at").eq("status", "completed").order("generated_at", { ascending: false }).limit(1);
+  if (error) throw error;
   const last = data?.[0]?.generated_at;
   return Boolean(last) && Date.now() - new Date(last).getTime() < GENERATION_COOLDOWN_MS;
 }

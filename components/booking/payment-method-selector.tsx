@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { HavenErrorAlert } from "@/components/ui/haven-data-controls";
 
 /**
  * Deposit method selector: "GCash Instant Auto-Pay" (provider-hosted checkout,
@@ -103,9 +104,7 @@ export function PaymentMethodSelector({
         </p>
       )}
       {error && (
-        <p role="alert" className="booking-error">
-          {error}
-        </p>
+        <HavenErrorAlert title="Payment failed" body={error} variant="customer" />
       )}
     </div>
   );

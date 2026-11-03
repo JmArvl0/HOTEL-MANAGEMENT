@@ -27,6 +27,8 @@ import {
 } from "@/lib/loyalty";
 import { formatHotelDateTime } from "@/lib/format";
 import { TablePagination, useTablePagination } from "@/components/ui/table-pagination";
+import { ModuleSummaryCards, type ModuleSummaryCard } from "@/components/manager/module-summary-cards";
+import { HavenSkeleton } from "@/components/ui/haven-skeleton";
 
 type LedgerType = "earned" | "redeemed" | "adjusted" | "expired";
 type LedgerRow = {
@@ -139,14 +141,14 @@ function transactionLabel(type: LedgerType) {
 function LoyaltyLoading() {
   return (
     <div className="loyalty-loading" aria-label="Loading loyalty rewards" aria-busy="true">
-      <div className="loyalty-kpi-grid" aria-hidden="true">
-        {[0, 1, 2, 3].map((item) => <span className="loyalty-skeleton loyalty-skeleton-kpi" key={item} />)}
+      <div className="mod-kpis" aria-hidden="true">
+        {[0, 1, 2, 3].map((item) => <HavenSkeleton key={item} size="tile" height={132} />)}
       </div>
-      <div className="loyalty-skeleton loyalty-skeleton-heading" aria-hidden="true" />
+      <HavenSkeleton size="sm" width={240} height={28} />
       <div className="loyalty-tier-grid" aria-hidden="true">
-        {[0, 1, 2].map((item) => <span className="loyalty-skeleton loyalty-skeleton-tier" key={item} />)}
+        {[0, 1, 2].map((item) => <HavenSkeleton key={item} size="tile" height={190} />)}
       </div>
-      <div className="loyalty-skeleton loyalty-skeleton-ledger" aria-hidden="true" />
+      <HavenSkeleton height={245} />
       <span className="sr-only">Loading your rewards.</span>
     </div>
   );
@@ -158,80 +160,55 @@ function LoyaltyContent({ data }: { data: LoyaltyData }) {
   const progressPercent = Math.round(data.progress * 100);
   const pagination = useTablePagination(data.ledger, 8);
 
+  const kpis: ModuleSummaryCard[] = [
+    {
+      label: "Active tier & balance",
+      value: `${data.points.toLocaleString("en-PH")} points`,
+      hint: `${data.tierLabel} · ${TIER_MULTIPLIERS[data.tier]}× points for every ₱100 in settled stay spend`,
+      icon: data.tier === "platinum" ? Crown : Award,
+      tone: "gold",
+    },
+    {
+      label: "Lifetime settled spend",
+      value: peso(data.lifetimeSpend),
+      hint: "Total verified folio spend establishing your tier milestone",
+      icon: Coins,
+      tone: "gold",
+    },
+    {
+      label: "Tier progress",
+      value: data.nextTier ? peso(data.spendToNext) : "Top tier unlocked",
+      hint: data.nextTier ? "more to reach " + data.nextTierLabel : "Platinum privileges are active",
+      icon: TrendingUp,
+      tone: "attention",
+      extra: (
+        <div
+          className="loyalty-progress"
+          role="progressbar"
+          aria-valuenow={progressPercent}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={data.nextTier ? "Progress to " + data.nextTierLabel : "Top loyalty tier reached"}
+        >
+          <span style={{ transform: "scaleX(" + data.progress + ")" }} />
+        </div>
+      ),
+    },
+    {
+      label: "Reward purchasing power",
+      value: peso(data.points * POINTS_TO_PESO),
+      hint: "Available stay discount · 1 point equals ₱1.00 off",
+      icon: WalletCards,
+      tone: "today",
+    },
+  ];
+
   return (
     <>
-      <section className="loyalty-kpi-grid" aria-label="Rewards summary">
-        <article className="loyalty-kpi-card loyalty-kpi-balance">
-          <div className="loyalty-kpi-top">
-            <span className={"loyalty-kpi-icon tier-" + data.tier}>
-              {data.tier === "platinum" ? <Crown aria-hidden="true" size={22} /> : <Award aria-hidden="true" size={22} />}
-            </span>
-            <span className={"loyalty-tier-badge tier-" + data.tier}>{data.tierLabel}</span>
-          </div>
-          <div className="loyalty-kpi-content">
-            <small>Active tier &amp; balance</small>
-            <div className="loyalty-balance-display">
-              <strong>{data.points.toLocaleString("en-PH")} <em>points</em></strong>
-              <span className="loyalty-multiplier-chip">{TIER_MULTIPLIERS[data.tier]}× earning</span>
-            </div>
-            <p>{TIER_MULTIPLIERS[data.tier]}× points for every ₱100 in settled stay spend</p>
-          </div>
-        </article>
-
-        <article className="loyalty-kpi-card loyalty-kpi-lifetime">
-          <div className="loyalty-kpi-top">
-            <span className="loyalty-kpi-icon loyalty-kpi-icon-gold">
-              <Coins aria-hidden="true" size={22} />
-            </span>
-            <span className="loyalty-spend-qualifying-badge">Tier Qualifying</span>
-          </div>
-          <div className="loyalty-kpi-content">
-            <small>Lifetime settled spend</small>
-            <strong>{peso(data.lifetimeSpend)}</strong>
-            <p>Total verified folio spend establishing your tier milestone</p>
-          </div>
-        </article>
-
-        <article className="loyalty-kpi-card loyalty-kpi-progress">
-          <div className="loyalty-kpi-top">
-            <span className="loyalty-kpi-icon">
-              <TrendingUp aria-hidden="true" size={22} />
-            </span>
-            <span className="loyalty-progress-badge">
-              {data.nextTier ? `${progressPercent}% to ${data.nextTierLabel}` : "Max tier"}
-            </span>
-          </div>
-          <div className="loyalty-kpi-content">
-            <small>Tier progress</small>
-            <strong>{data.nextTier ? peso(data.spendToNext) : "Top tier unlocked"}</strong>
-            <p>{data.nextTier ? "more to reach " + data.nextTierLabel : "Platinum privileges are active"}</p>
-            <div
-              className="loyalty-progress"
-              role="progressbar"
-              aria-valuenow={progressPercent}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label={data.nextTier ? "Progress to " + data.nextTierLabel : "Top loyalty tier reached"}
-            >
-              <span style={{ transform: "scaleX(" + data.progress + ")" }} />
-            </div>
-          </div>
-        </article>
-
-        <article className="loyalty-kpi-card loyalty-kpi-power">
-          <div className="loyalty-kpi-top">
-            <span className="loyalty-kpi-icon">
-              <WalletCards aria-hidden="true" size={22} />
-            </span>
-            <span className="loyalty-conversion-badge">1 pt = ₱1.00</span>
-          </div>
-          <div className="loyalty-kpi-content">
-            <small>Reward purchasing power</small>
-            <strong>{peso(data.points * POINTS_TO_PESO)}</strong>
-            <p>Available stay discount · 1 point equals ₱1.00 off</p>
-          </div>
-        </article>
-      </section>
+      {/* Guest surface: customer tokens (--cp-*) paint the shared card via
+          ui-primitives fallback chains. Executive gradients + badges retired
+          (fully unified per reference-design Stage 2). */}
+      <ModuleSummaryCards cards={kpis} ariaLabel="Rewards summary" />
 
       <section className="loyalty-comparison" aria-labelledby="loyalty-tiers-heading">
         <header>

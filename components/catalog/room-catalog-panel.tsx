@@ -1,7 +1,9 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { BedDouble, Building2, CalendarRange, Check, Eye, ImagePlus, Images, Loader2, Pencil, Plus, RefreshCw, Search, Trash2, Upload, Users, X } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { PageHeader } from "@/components/ui";
 import { HavenDataToolbar, HavenSearchInput } from "@/components/ui/haven-data-controls";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
 import { RoomTypeDetailsBody } from "@/components/booking/room-details";
@@ -414,23 +416,16 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
 
   return (
     <div className="workspace-body-inner">
-      <div className="page-title module-title">
-        <div>
-          <p className="eyebrow">Customer-facing catalog</p>
-          <h1>Room types &amp; photos</h1>
-          <p>{canPropose
-            ? "Create and maintain the rooms shown to guests on Find a Room — details, photos, availability. Rate changes go to Owner/Admin for approval."
-            : "Create and maintain the rooms shown to guests on Find a Room — details, rate, availability, and photo gallery (URL or upload)."}</p>
-        </div>
-        <div className="btn-row">
+      <PageHeader variant="band" eyebrow="Customer-facing catalog" title="Room types & photos" subtitle={canPropose
+        ? "Create and maintain the rooms shown to guests on Find a Room — details, photos, availability. Rate changes go to Owner/Admin for approval."
+        : "Create and maintain the rooms shown to guests on Find a Room — details, rate, availability, and photo gallery (URL or upload)."} actions={<div className="btn-row">
           <button className="btn btn-soft" onClick={() => { if (error) void load(); else notify("Choose a room type below to edit its details and photos."); }} title="Refresh catalog">
             <RefreshCw size={16}/> Refresh
           </button>
           <button className="btn btn-accent" onClick={openCreate}>
             <Plus size={16}/> Add room type
           </button>
-        </div>
-      </div>
+        </div>} />
       <HavenDataToolbar
         search={<HavenSearchInput value={search} onValueChange={setSearch} label="Search room types" placeholder="Search room types..." />}
         resultCount={visible.length}
@@ -453,7 +448,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
                 <article className="catalog-card" key={item.id}>
                   <div className="catalog-card-media">
                     {primary ? <img src={primary} alt="" loading="lazy"/> : <span className="catalog-card-empty"><ImagePlus size={22}/></span>}
-                    <span className={`badge ${item.active ? "active" : "inactive"}`}>{item.active ? "Published" : "Unpublished"}</span>
+                    <StatusBadge status={item.active ? "active" : "inactive"} label={item.active ? "Published" : "Unpublished"} />
                   </div>
                   <div className="catalog-card-body">
                     <h3>{item.name} <RoomTypeBadge name={colorName(item.badge_color_key)} colorKey={item.badge_color_key}/></h3>
@@ -524,7 +519,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
                   <div className="rate-plan-main">
                     <strong>{plan.name}</strong>
                     {plan.created_from_analytics && <span className="badge pending">Predictive recommendation</span>}
-                    <span className={`badge ${plan.status === "active" ? "active" : plan.status === "pending" ? "pending" : "inactive"}`}>{label(plan.status)}</span>
+                    <StatusBadge status={plan.status === "active" ? "active" : plan.status === "pending" ? "pending" : "inactive"} label={label(plan.status)} />
                     <p className="muted">{plan.start_date} → {plan.end_date} · {daysLabel(plan.days_of_week)} · <strong>{peso(plan.nightly_rate)}</strong>/night{plan.reason ? ` · “${plan.reason}”` : ""}{plan.decision_reason ? ` · ${label(plan.status)}: “${plan.decision_reason}”` : ""}</p>
                   </div>
                   <div className="btn-row">

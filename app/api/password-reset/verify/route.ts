@@ -37,8 +37,9 @@ export async function POST(request: Request) {
   const { data, error } = await supabase.rpc("auth_otp_verify", {
     p_challenge_id: parsed.data.challengeId, p_code_verifier: verifier, p_max_attempts: policy.otpMaxAttempts,
   });
-  if (error || !data) {
-    const mapped = rpcMessage(error?.message ?? "");
+  const failure = (data as { error?: string } | null)?.error;
+  if (error || !data || failure) {
+    const mapped = rpcMessage(failure ?? error?.message ?? "");
     return NextResponse.json({ error: mapped.error }, { status: mapped.status });
   }
 

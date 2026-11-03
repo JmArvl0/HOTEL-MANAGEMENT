@@ -94,7 +94,7 @@ export default function VerifyForm({ callbackUrl = "/manager_dashboard" }: { cal
     return (
       <>
         <div className="haven-vault__head">
-          <p className="eyebrow" style={{ color: "var(--color-forest-light)", margin: 0 }}>
+          <p className="eyebrow" style={{ color: "var(--color-ink)", margin: 0 }}>
             Haven portal
           </p>
           <h1>Verify your identity</h1>
@@ -115,7 +115,7 @@ export default function VerifyForm({ callbackUrl = "/manager_dashboard" }: { cal
   return (
     <>
       <div className="haven-vault__head">
-        <p className="eyebrow" style={{ color: "var(--color-forest-light)", margin: 0 }}>
+        <p className="eyebrow" style={{ color: "var(--color-ink)", margin: 0 }}>
           Haven portal
         </p>
         <h1>Verify your identity</h1>

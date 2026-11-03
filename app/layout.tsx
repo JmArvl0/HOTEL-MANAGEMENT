@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Playfair_Display } from "next/font/google";
+import localFont from "next/font/local";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 import "./guest-booking.css";
@@ -13,16 +13,16 @@ import "./ui-primitives.css";
 import "@/components/customer/notification-history.css";
 import "./customer-portal.css";
 import "@/components/auth/session-expiry.css";
-import "@/components/ui/app-shell.css";
 import "@/components/ui/command-palette.css";
 import "@/components/ui/haven-account-modal.css";
 import "./operations-workspace.css";
+import "@/components/ui/profile-popover.css";
 import "./staff-theme.css";
 import "./hms-workflows.css";
 import "./sidebar-navigation.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
-const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-display" });
+const inter = localFont({ src: "./fonts/Inter-Variable.ttf", weight: "100 900", display: "swap", variable: "--font-sans", adjustFontFallback: "Arial" });
+const playfair = localFont({ src: "./fonts/PlayfairDisplay-Variable.ttf", weight: "400 900", display: "swap", variable: "--font-display", adjustFontFallback: "Times New Roman" });
 
 export const metadata: Metadata = { title: "Haven Hotel Management", description: "Thoughtful stays, seamlessly managed.", icons: { icon: "/favicon.png", apple: "/favicon.png" } };
 export const viewport = {

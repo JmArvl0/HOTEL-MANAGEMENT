@@ -80,10 +80,10 @@ function FolioCard({ record, emailAvailable }: { record: FinancialRecord; emailA
                 <small>{new Date(payment.verified_at ?? payment.submitted_at ?? payment.created_at).toLocaleDateString("en-PH")} - {friendlyStatus(payment.method)}{payment.reference ? ` - Ref ${payment.reference}` : ""}</small>
                 {payment.status === "pending_verification" && <small className="payment-transaction-note">Payment proof submitted — awaiting verification.</small>}
               </span>
-              <span className="payment-transaction-summary">
+                <span className="payment-transaction-summary">
                 <b>{payment.purpose === "refund" ? "-" : ""}{formatPeso(payment.amount)}</b>
                 <span className="payment-transaction-controls">
-                  <em className={`customer-status ${payment.status}`}>{friendlyStatus(payment.status)}</em>
+                  <StatusBadge status={payment.status} label={friendlyStatus(payment.status)} size="sm" />
                   {receiptEligible(payment) && <ReceiptAction paymentId={payment.id} emailAvailable={emailAvailable} />}
                 </span>
               </span>
@@ -98,7 +98,7 @@ function FolioCard({ record, emailAvailable }: { record: FinancialRecord; emailA
           {record.refunds.map((refund) => (
             <div className="payment-transaction" key={refund.id}>
               <span><strong>{refund.reason}</strong><small>{refund.reference ? `Reference ${refund.reference}` : "Accounting processing reference pending"}</small></span>
-              <span><b>{formatPeso(refund.eligible_amount)}</b><em className={`customer-status ${refund.status}`}>{friendlyStatus(refund.status)}</em></span>
+              <span><b>{formatPeso(refund.eligible_amount)}</b><StatusBadge status={refund.status} label={friendlyStatus(refund.status)} size="sm" /></span>
             </div>
           ))}
         </div>

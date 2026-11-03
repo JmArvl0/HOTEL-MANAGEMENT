@@ -1,9 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { NAV_ITEMS } from "@/config/role-navigation";
+import { NAV_ITEMS, canOpenSection } from "@/config/role-navigation";
 
 // Rack consolidation contract: exactly one visible Front Office entry for
 // rooms + reservations; the deprecated sections stay defined but hidden.
 describe("room rack navigation", () => {
+  it("opens the fused rack when both underlying resources are permitted", () => {
+    expect(canOpenSection(["overview", "reservations", "rooms"], "room_rack")).toBe(true);
+  });
+
+  it("keeps the fused rack closed when either resource is unavailable", () => {
+    expect(canOpenSection(["overview", "reservations"], "room_rack")).toBe(false);
+    expect(canOpenSection(["overview", "rooms"], "room_rack")).toBe(false);
+    expect(canOpenSection(["overview"], "room_rack")).toBe(false);
+    expect(canOpenSection(["overview"], "hotel_operations")).toBe(false);
+  });
   it("exposes Room Reservations to front office roles only", () => {
     const rack = NAV_ITEMS.find((item) => item.section === "room_rack");
     expect(rack?.label).toBe("Room Reservations");

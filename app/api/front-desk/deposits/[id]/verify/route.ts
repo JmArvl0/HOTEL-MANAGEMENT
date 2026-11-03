@@ -37,7 +37,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
       .maybeSingle();
     if (reservation?.user_id) {
       const remaining = Number(reservation.total) - Number(reservation.deposit);
-      void notifyWithOptionalEmail(
+      await notifyWithOptionalEmail(
         { userId: reservation.user_id, type: "reservation_confirmed", title: "Reservation confirmed", detail: `${reservation.room_type} — ${reservation.confirmation_number}`, href: `/my-reservations/${reservation.id}` },
         reservation.guest_email,
         {

@@ -40,22 +40,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
       .from(BUCKET).upload(path, bytes, { contentType: proofMime(kind), upsert: false });
     if (uploadError) return NextResponse.json({ error: "Upload failed. Please try again." }, { status: 500 });
 
-    const { data: existing } = await supabase.from("password_reset_logs")
-      .select("id").eq("token_id", live.id).neq("status", "completed")
-      .order("created_at", { ascending: false }).limit(1).maybeSingle();
-    if (existing) {
-      await supabase.from("password_reset_logs").update({ selfie_url: path }).eq("id", (existing as { id: string }).id);
-    } else {
-      // Admin-initiated links carry no log row yet — open one so the attempt
-      // is audited with the same shape as self-service requests.
-      const { data: account } = await supabase.from("user_accounts").select("email").eq("id", live.user_id).maybeSingle();
-      await supabase.from("password_reset_logs").insert({
-        user_id: live.user_id, token_id: live.id,
-        email: (account as { email?: string } | null)?.email ?? "",
-        ip_address: clientIp(request),
-        user_agent: request.headers.get("user-agent")?.slice(0, 300) ?? null,
-        selfie_url: path, status: "requested",
-      });
+    const { error: stageError } = await supabase.rpc("stage_recovery_selfie", {
+      p_token_hash: hash, p_path: path, p_ip_address: clientIp(request),
+      p_user_agent: request.headers.get("user-agent")?.slice(0, 300) ?? null,
+    });
+    if (stageError) {
+      await supabase.storage.from(BUCKET).remove([path]);
+      return NextResponse.json({ error: "This recovery link changed or expired. Request a new link." }, { status: 409 });
     }
     return NextResponse.json({ path, originalName: sanitizeProofName(file.name) }, { status: 201 });
   } catch {

@@ -1,5 +1,6 @@
 "use client";
 import { Search } from "lucide-react";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { RoomTypeBadge } from "@/components/ui/RoomTypeBadge";
 import type { RecordItem } from "@/lib/types";
 
@@ -35,7 +36,7 @@ export default function UnifiedRoomMatrix({ items, canAdvanceStatus, onView, onA
                   {text(item.status)}
                 </button>
               ) : (
-                <span className={`badge ${item.status}`}>{text(item.status)}</span>
+                <StatusBadge status={String(item.status)} label={text(item.status)} />
               )}
             </header>
             <RoomTypeBadge name={text(item.type)} colorKey={item.room_type_color == null ? null : String(item.room_type_color)} />
@@ -44,7 +45,7 @@ export default function UnifiedRoomMatrix({ items, canAdvanceStatus, onView, onA
               <div><dt>Rate</dt><dd>{money(item.rate)}</dd></div>
               <div>
                 <dt>Housekeeping</dt>
-                <dd><span className={`badge ${String(item.housekeeping)}`}>{text(item.housekeeping)}</span></dd>
+                <dd><StatusBadge status={String(item.housekeeping)} label={text(item.housekeeping)} /></dd>
               </div>
             </dl>
           </article>

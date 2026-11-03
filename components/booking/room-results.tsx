@@ -17,15 +17,17 @@ const CARD_AMENITY_LIMIT = 4;
 export function RoomResults({
   rooms,
   error,
+  retryHref,
   hrefFor,
   focusRoomType,
 }: {
   rooms: (AvailableRoomType | RoomTypeSummary)[];
   error?: string;
+  retryHref?: string;
   hrefFor: (roomType: string) => string;
   focusRoomType?: string;
 }) {
-  if (error) return <div className="booking-empty"><h2>Check your stay details</h2><p>{error}</p></div>;
+  if (error) return <div className="booking-empty" role="alert"><h2>Room lookup unavailable</h2><p>{error}</p>{retryHref && <a className="btn btn-accent" href={retryHref}>Retry availability</a>}</div>;
   if (rooms.length === 0) return <div className="booking-empty"><BedDouble/><h2>No rooms available</h2><p>Try different dates or fewer guests. Your search details have been preserved.</p></div>;
   return <div className="availability-grid">{rooms.map((room, index) => {
     const priced = "availableUnits" in room;

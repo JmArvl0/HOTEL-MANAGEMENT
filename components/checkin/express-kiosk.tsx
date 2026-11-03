@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
+import { HavenSkeleton } from "@/components/ui/haven-skeleton";
 
 interface Success {
   reservationId: string;
@@ -126,8 +127,8 @@ export function ExpressKiosk() {
       <p className="eyebrow">Express check-in</p>
       <h1>Scan your stay QR.</h1>
       {working && (
-        <div className="kiosk-skeleton" aria-label="Verifying your stay">
-          <span className="pulse-bar" /><span className="pulse-bar short" />
+        <div className="kiosk-skeleton" role="status" aria-label="Verifying your stay">
+          <HavenSkeleton /><HavenSkeleton width="60%" />
         </div>
       )}
       {!cameraError ? (

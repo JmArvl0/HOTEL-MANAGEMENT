@@ -47,7 +47,7 @@ describe("PerformanceReports", () => {
 
     expect(screen.getByRole("heading", { name: "Property performance" })).toBeTruthy();
     expect(screen.getByText("₱18,000")).toBeTruthy();
-    const summary = document.querySelector(".report-kpi-grid");
+    const summary = document.querySelector(".mod-kpis");
     expect(summary).toBeTruthy();
     expect(within(summary as HTMLElement).getByText("65%")).toBeTruthy();
     expect(within(summary as HTMLElement).getByText("95%")).toBeTruthy();

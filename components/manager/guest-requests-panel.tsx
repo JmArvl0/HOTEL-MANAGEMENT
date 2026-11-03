@@ -1,8 +1,10 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { BedDouble, Bell, Boxes, ClipboardCheck, Search } from "lucide-react";
 import { HavenDataToolbar, HavenFilterBadges, HavenSearchInput } from "@/components/ui/haven-data-controls";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
+import { PageHeader } from "@/components/ui";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
 import { canAccess } from "@/lib/permissions";
 import { requestLabel } from "@/lib/request-options";
@@ -154,9 +156,7 @@ export default function GuestRequestsPanel({ role, onEscalate }: { role: Role; o
   // region starts below it so the inventory rail aligns with the request
   // content, not the page heading.
   return <div>
-    <div className="page-title module-title">
-      <div><p className="eyebrow">Hotel operations</p><h1>Guest requests</h1><p>{role === "housekeeping" ? "Approved guest requests routed to Housekeeping. Start and complete each item as the work is done; escalate unresolved work when coordination is needed." : "Customer submissions grouped as they were filed. Front Desk approves or declines each submission as one decision; approved items route to their department queue."}</p></div>
-    </div>
+    <PageHeader variant="band" eyebrow="Hotel operations" title="Guest requests" subtitle={role === "housekeeping" ? "Approved guest requests routed to Housekeeping. Start and complete each item as the work is done; escalate unresolved work when coordination is needed." : "Customer submissions grouped as they were filed. Front Desk approves or declines each submission as one decision; approved items route to their department queue."} />
     {error && <div className="empty"><Bell /><h3>Guest requests unavailable</h3><p>{error}</p></div>}
     {!error && (<>
       <ModuleSummaryCards cards={[
@@ -207,7 +207,7 @@ export default function GuestRequestsPanel({ role, onEscalate }: { role: Role; o
                 <li key={item.id} className={`grp-status-${item.status === "in_progress" ? "in-progress" : item.status === "completed" ? "completed" : item.status === "cancelled" || item.approval_status === "rejected" ? "cancelled" : "open"}`}>
                   <div className="grp-item-main"><b>{item.request_type ? requestLabel(item.request_type) : item.request}</b><small><span className="grp-chip">{label(item.department)}</span> · {label(item.status)}</small>{item.approval_status === "rejected" && item.approval_note && <small className="grp-note">{item.approval_note}</small>}</div>
                   <div className="grp-item-actions">
-                    <span className={`badge ${item.status}`}>{label(item.status)}</span>
+                    <StatusBadge status={item.status} label={label(item.status)} />
                     {canProgress(item) && item.status === "open" && <button className="table-action action-primary" onClick={() => void progress(item, "start")}>Start</button>}
                     {canProgress(item) && ["open", "in_progress"].includes(item.status) && <button className="table-action action-primary" onClick={() => void progress(item, "complete")}>Complete</button>}
                     {canEscalate && item.status !== "completed" && item.escalation_status !== "escalated" && <button className="table-action" onClick={() => void escalate(item)}>Escalate</button>}
@@ -228,7 +228,7 @@ export default function GuestRequestsPanel({ role, onEscalate }: { role: Role; o
           </header>
           {inventory.length ? <ul>{inventory.slice(0, 6).map((item) => (
             <li key={item.id} className={item.status === "healthy" ? undefined : "grp-low"}>
-              <div className="grp-inv-top"><span className="grp-inv-name">{item.name}</span><span className={`badge ${item.status}`}>{label(item.status)}</span></div>
+              <div className="grp-inv-top"><span className="grp-inv-name">{item.name}</span><StatusBadge status={item.status} label={label(item.status)} /></div>
               <p className="grp-inv-qty"><b>{item.quantity}</b><span className="grp-inv-target">/ {item.reorder_point}</span><span className="grp-inv-unit">{item.unit}</span></p>
             </li>
           ))}</ul> : <small className="grp-inventory-empty">Loading stock levels…</small>}

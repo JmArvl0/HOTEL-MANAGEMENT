@@ -1,7 +1,9 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { CarTaxiFront, Loader2, Pencil, Plus, Search } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { PageHeader } from "@/components/ui";
 import { HavenDataToolbar, HavenSearchInput } from "@/components/ui/haven-data-controls";
 import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination";
 
@@ -89,14 +91,7 @@ export default function TransportVehicleTypesPanel() {
 
   return (
     <div className="workspace-body-inner">
-      <div className="page-title module-title">
-        <div>
-          <p className="eyebrow">Fleet &amp; guest transfer</p>
-          <h1>Transfer vehicles &amp; fares</h1>
-          <p>Vehicle types offered at booking checkout. Each ride to the hotel is priced as base fare + per-km + per-minute + booking fee from the live route; inactive vehicles are hidden from guests.</p>
-        </div>
-        <button className="btn btn-accent" onClick={openCreate}><Plus size={16}/> Add vehicle</button>
-      </div>
+      <PageHeader variant="band" eyebrow="Fleet & guest transfer" title="Transfer vehicles & fares" subtitle="Vehicle types offered at booking checkout. Each ride to the hotel is priced as base fare + per-km + per-minute + booking fee from the live route; inactive vehicles are hidden from guests." actions={<button className="btn btn-accent" onClick={openCreate}><Plus size={16}/> Add vehicle</button>} />
       <HavenDataToolbar
         search={<HavenSearchInput value={search} onValueChange={setSearch} label="Search transfer vehicles" placeholder="Search transfer vehicles..." />}
         resultCount={visible.length}
@@ -123,7 +118,7 @@ export default function TransportVehicleTypesPanel() {
                     <td>{money(item.per_km)}</td>
                     <td>{money(item.per_minute)}</td>
                     <td>{money(item.booking_fee)}</td>
-                    <td><span className={`badge ${item.active ? "active" : "inactive"}`}>{item.active ? "Active" : "Inactive"}</span></td>
+                    <td><StatusBadge status={item.active ? "active" : "inactive"} label={item.active ? "Active" : "Inactive"} /></td>
                     <td>{item.version}</td>
                     <td><button className="table-action view-action" onClick={() => openEdit(item)}><Pencil size={14}/> Edit</button></td>
                   </tr>

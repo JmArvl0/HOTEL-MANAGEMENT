@@ -56,6 +56,5 @@ begin
  else raise exception 'INVALID_HANDOVER_TRANSITION'; end if;
  insert into audit_logs(user_id,action,entity_type,entity_id,after_data) values(p_actor,'handover_'||p_action,'shift_handover',p_id::text,jsonb_build_object('resolution',p_resolution));
 end$$;
-
 revoke all on function public.submit_shift_handover(uuid,uuid,text,text,text,uuid),public.act_shift_handover(uuid,uuid,integer,text,text) from public,anon,authenticated;
 grant execute on function public.submit_shift_handover(uuid,uuid,text,text,text,uuid),public.act_shift_handover(uuid,uuid,integer,text,text) to service_role;

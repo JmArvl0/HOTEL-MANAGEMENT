@@ -7,7 +7,6 @@ create table public.inventory_operations (
 alter table public.inventory_operations enable row level security;
 revoke all on public.inventory_operations from public,anon,authenticated;
 grant select on public.inventory_operations to service_role;
-
 create function public.hms_stock_movement(p_actor uuid,p_key uuid,p_item text,p_kind text,p_quantity numeric,p_expected_updated timestamptz,p_reason text,p_reference text)
 returns jsonb language plpgsql security definer set search_path=public as $$
 declare i inventory%rowtype; previous inventory_operations%rowtype; payload jsonb; result jsonb; delta numeric; next_quantity numeric;
@@ -37,7 +36,6 @@ begin
  insert into audit_logs(user_id,action,entity_type,entity_id,before_data,after_data) values(p_actor,'stock_'||p_kind,'inventory',i.id,jsonb_build_object('quantity',i.quantity),result||jsonb_build_object('reason',trim(p_reason),'reference',trim(p_reference)));
  return result;
 end$$;
-
 -- Runs inside the existing protected completion transaction, preserving room
 -- readiness rules and rolling back completion if stock/movement/audit fails.
 create function public.hms_consume_completed_request() returns trigger language plpgsql security definer set search_path=public as $$
@@ -61,7 +59,6 @@ begin
  return new;
 end$$;
 create trigger hms_request_stock_completion before update of status on public.housekeeping_tasks for each row execute function public.hms_consume_completed_request();
-
 create function public.hms_save_guest_profile(p_actor uuid,p_name text,p_mobile text,p_address text,p_nationality text)
 returns jsonb language plpgsql security definer set search_path=public as $$
 declare u user_accounts%rowtype; g guests%rowtype; matches integer;
@@ -82,7 +79,6 @@ begin
  insert into audit_logs(user_id,action,entity_type,entity_id,after_data) values(p_actor,'customer_update_profile','user_account',p_actor::text,jsonb_build_object('guestId',g.id,'hasMobile',length(trim(coalesce(p_mobile,'')))>0,'hasAddress',length(trim(coalesce(p_address,'')))>0));
  return jsonb_build_object('guestId',g.id,'name',trim(p_name));
 end$$;
-
 create function public.hms_verify_uploaded_id(p_actor uuid,p_reservation text,p_document uuid)
 returns void language plpgsql security definer set search_path=public as $$
 declare r reservations%rowtype; d guest_id_documents%rowtype;
@@ -96,7 +92,6 @@ begin
  update guest_id_documents set status='verified',reviewed_by=p_actor,reviewed_at=now() where id=d.id;
  insert into audit_logs(user_id,action,entity_type,entity_id,after_data) values(p_actor,'uploaded_id_review','reservation',r.id,jsonb_build_object('documentId',d.id,'path','uploaded'));
 end$$;
-
 -- Serialize a replacement upload with review, and invalidate the prior decision.
 create function public.hms_id_upload_guard() returns trigger language plpgsql security definer set search_path=public as $$
 begin
@@ -107,6 +102,5 @@ begin
  return new;
 end$$;
 create trigger hms_id_upload before insert on public.guest_id_documents for each row execute function public.hms_id_upload_guard();
-
 revoke all on function public.hms_stock_movement(uuid,uuid,text,text,numeric,timestamptz,text,text),public.hms_save_guest_profile(uuid,text,text,text,text),public.hms_verify_uploaded_id(uuid,text,uuid),public.hms_consume_completed_request(),public.hms_id_upload_guard() from public,anon,authenticated;
 grant execute on function public.hms_stock_movement(uuid,uuid,text,text,numeric,timestamptz,text,text),public.hms_save_guest_profile(uuid,text,text,text,text),public.hms_verify_uploaded_id(uuid,text,uuid) to service_role;

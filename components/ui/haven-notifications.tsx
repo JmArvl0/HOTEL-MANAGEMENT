@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { forwardRef, useMemo, useState, type RefObject } from "react";
+import { useMemo, useState, type RefObject } from "react";
 import { Bell, CalendarDays, ChevronRight, List, type LucideIcon } from "lucide-react";
 import { HavenSelect } from "@/components/ui/haven-select";
+import { HavenSkeleton } from "@/components/ui/haven-skeleton";
 import { Modal } from "@/components/ui/Modal";
 import {
   BELL_PREVIEW_LIMIT,
@@ -60,44 +61,6 @@ function createdTime(value: unknown): number {
   const time = new Date(String(value ?? "")).getTime();
   return Number.isNaN(time) ? 0 : time;
 }
-
-interface HavenNotificationBellProps {
-  count: number;
-  expanded: boolean;
-  onToggle: () => void;
-  buttonRef?: RefObject<HTMLButtonElement>;
-  className?: string;
-  badgeClassName?: string;
-}
-
-export const HavenNotificationBell = forwardRef<HTMLButtonElement, HavenNotificationBellProps>(function HavenNotificationBell({
-  count,
-  expanded,
-  onToggle,
-  buttonRef,
-  className = "",
-  badgeClassName = "",
-}, forwardedRef) {
-  const label = count > 0 ? `Notifications, ${count} unread` : "Notifications";
-  return (
-    <button
-      ref={buttonRef ?? forwardedRef}
-      type="button"
-      className={`haven-notification-bell ${className}`.trim()}
-      aria-label={label}
-      aria-expanded={expanded}
-      aria-haspopup="dialog"
-      title="Notifications"
-      onClick={onToggle}
-    >
-      <Bell size={18} className="haven-bell-icon" aria-hidden="true" />{count > 0 && (
-        <i className={`haven-notification-badge ${badgeClassName}`.trim()} aria-hidden="true">
-          {count > 99 ? "99+" : count}
-        </i>
-      )}
-    </button>
-  );
-});
 
 export function HavenNotificationItem({
   item,
@@ -185,7 +148,7 @@ export function HavenNotificationPopover({
       <div className="haven-notification-preview">
         {loading && !items.length ? (
           <div role="status" aria-label="Loading notifications">
-            {Array.from({ length: 3 }, (_, index) => <div className="customer-notif-skeleton" key={index} aria-hidden="true"><i /><div /></div>)}
+            {Array.from({ length: 3 }, (_, index) => <div className="customer-notif-skeleton" key={index} aria-hidden="true"><HavenSkeleton size="sm" radius={8} width={28} height={28} /><HavenSkeleton height={12} radius={6} grow /></div>)}
           </div>
         ) : error && !items.length ? (
           <div className="customer-notifications-empty" role="alert">
@@ -324,7 +287,7 @@ export function HavenNotificationModal({
       </div>
       <div className="nh-body" aria-busy={loading || undefined}>
         {loading && !items.length ? (
-          <><p className="nh-empty" role="status">Loading notifications…</p>{Array.from({ length: 4 }, (_, index) => <div className="nh-skeleton" key={index} aria-hidden="true"><i /><div /></div>)}</>
+          <><p className="nh-empty" role="status">Loading notifications…</p>{Array.from({ length: 4 }, (_, index) => <div className="nh-skeleton" key={index} aria-hidden="true"><HavenSkeleton radius={8} width={30} height={30} /><HavenSkeleton height={12} radius={6} grow /></div>)}</>
         ) : !tabItems.length ? (
           <div className="nh-empty-state"><Bell size={26} aria-hidden="true" /><strong>{emptyCopy}</strong>{tab === "unread" && <span>No action is needed right now.</span>}</div>
         ) : dayKey ? (

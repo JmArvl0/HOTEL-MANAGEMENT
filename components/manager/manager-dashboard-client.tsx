@@ -5,21 +5,27 @@ import PaymentCollectionDialog from "@/components/manager/payment-collection-dia
 import CashCountPanel from "@/components/manager/cash-count-panel";
 import StockIntegrityPanel from "@/components/manager/stock-integrity-panel";
 import LostFoundPanel from "@/components/manager/lost-found-panel";
- import { useCallback, useEffect, useMemo, useRef, useState } from "react"; import { signOut } from "next-auth/react"; import Link from "next/link"; import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis } from "recharts"; import { Activity, AlertTriangle, BedDouble, Bell, Boxes, Building2, CalendarCheck, CalendarDays, CarTaxiFront, CheckCircle2, ChevronDown, ChevronRight, CircleDollarSign, ClipboardCheck, Clock, DoorClosed, Eye, FileText, Gauge, Landmark, LayoutGrid, ListChecks, LogIn, LogOut, PanelLeftClose, Plus, QrCode, ReceiptText, Scale, Search, Settings, Sparkles, TrendingUp, Users, Wallet, Wrench } from "lucide-react"; import { approvalKind, compareApprovalUrgency, formatDetail, waitingSince } from "@/lib/approval-display"; import { ROOM_TYPE_CHANGE_REASONS, roomTypeChangeReasonLabel, financialDifference, type RoomTypeChangeFinancials } from "@/lib/room-type-change-reasons"; import { requestLabel } from "@/lib/request-options"; import { parseFrozenRates } from "@/lib/rate-plans"; import { depositAgeBand, depositAgeMinutes, formatDepositAge, DEFAULT_DEPOSIT_SLA_HOURS } from "@/lib/deposit-sla"; import { formatPaymentSubmittedAt } from "@/lib/payment-display"; import { filterStaffItems } from "@/lib/staff-search"; import { ASSET_DUE_WINDOWS, assetDueWindow, daysUntil, type MaintenanceAsset } from "@/lib/maintenance-assets"; import { ThemeToggle } from "@/components/theme-toggle"; import { NotificationHistoryModal } from "@/components/customer/notification-history-modal"; import { Modal } from "@/components/ui/Modal";  import { HavenActionItem } from "@/components/ui/haven-action-item"; import { QrScannerModal } from "@/components/qr/qr-scanner"; import { SettingsDialog } from "@/components/ui/SettingsDialog"; import { SoundToggleMenuItem } from "@/components/ui/sound-toggle"; import { isRefundActionable, ratePercent } from "@/lib/accounting"; import type { AccountingLedger } from "@/lib/accounting"; import type { AccountingSection, DashboardData, ManagerSection, RecordItem, Resource, Role } from "@/lib/types"; import { useActionDialogs } from "@/components/ui/action-dialogs"; import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination"; import RoomCatalogPanel from "@/components/catalog/room-catalog-panel"; import TransportServicesPanel from "@/components/catalog/transport-vehicle-types-panel"; import RequestTypesPanel from "@/components/catalog/request-types-panel"; import TransportationPanel from "@/components/manager/transportation-panel"; import FrontDeskReportsPanel from "@/components/manager/front-desk-reports-panel"; import Reports from "@/components/manager/performance-reports"; import GuestRequestsPanel from "@/components/manager/guest-requests-panel"; import RoomDetailModal from "@/components/manager/room-detail-modal"; import RoomRosterPanel from "@/components/manager/room-roster-panel"; import HousekeepingQueuePanel from "@/components/manager/housekeeping-queue-panel"; import type { AssignmentSuggestion } from "@/lib/housekeeping-suggestions"; import FrontDeskArrivalDialog, { type ArrivalProgress } from "@/components/manager/front-desk-arrival-dialog"; import FrontOfficeRack from "@/components/front-desk/fused-room-rack-panel"; import WalkInDialog from "@/components/manager/walk-in-dialog"; import ExtendStayDialog from "@/components/manager/extend-stay-dialog"; import PredictiveInsightsPanel from "@/components/manager/predictive-insights-panel"; import HavenAiPanel from "@/components/manager/haven-ai-panel"; import StaffDutyPanel from "@/components/manager/staff-duty-panel"; import { ManagerReservationsPanel } from "@/components/manager/manager-reservations-panel"; import { ModuleSummaryCards, type ModuleSummaryCard } from "@/components/manager/module-summary-cards"; import { ToastStack, useToasts } from "@/components/ui/toast-stack"; import { HavenSelect } from "@/components/ui/haven-select"; import { ALL_LOYALTY_TIERS, loyaltyTierOptions, matchesLoyaltyTier } from "@/lib/guest-loyalty"; import { HavenDataToolbar, HavenFilterBadges, HavenSearchInput } from "@/components/ui/haven-data-controls";
+ import { useCallback, useEffect, useMemo, useRef, useState } from "react"; import { signOut } from "next-auth/react"; import Link from "next/link"; import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis } from "recharts"; import { Activity, AlertTriangle, BedDouble, Bell, Boxes, Building2, CalendarCheck, CalendarDays, CarTaxiFront, CheckCircle2, ChevronDown, ChevronRight, CircleDollarSign, ClipboardCheck, Clock, DoorClosed, Eye, FileText, Gauge, Landmark, LayoutGrid, ListChecks, LogIn, LogOut, PanelLeftClose, Plus, QrCode, ReceiptText, Scale, Search, Settings, Sparkles, TrendingUp, Users, Wallet, Wrench } from "lucide-react"; import { approvalKind, compareApprovalUrgency, formatDetail, waitingSince } from "@/lib/approval-display"; import { ROOM_TYPE_CHANGE_REASONS, roomTypeChangeReasonLabel, financialDifference, type RoomTypeChangeFinancials } from "@/lib/room-type-change-reasons"; import { requestLabel } from "@/lib/request-options"; import { parseFrozenRates } from "@/lib/rate-plans"; import { depositAgeBand, depositAgeMinutes, formatDepositAge, DEFAULT_DEPOSIT_SLA_HOURS } from "@/lib/deposit-sla"; import { formatPaymentSubmittedAt } from "@/lib/payment-display"; import { filterStaffItems } from "@/lib/staff-search"; import { ASSET_DUE_WINDOWS, assetDueWindow, daysUntil, type MaintenanceAsset } from "@/lib/maintenance-assets"; import { ThemeToggle } from "@/components/theme-toggle"; import { NotificationHistoryModal } from "@/components/customer/notification-history-modal"; import { Modal } from "@/components/ui/Modal"; import { HavenActionItem } from "@/components/ui/haven-action-item"; import { QrScannerModal } from "@/components/qr/qr-scanner"; import { SettingsDialog } from "@/components/ui/SettingsDialog"; import { useNotificationSound } from "@/components/ui/sound-toggle"; import { isRefundActionable, ratePercent } from "@/lib/accounting"; import type { AccountingLedger } from "@/lib/accounting"; import { CHART_GRID, CHART_OCCUPANCY } from "@/lib/chart-tokens"; import type { AccountingSection, DashboardData, ManagerSection, RecordItem, Resource, Role } from "@/lib/types"; import { useActionDialogs } from "@/components/ui/action-dialogs"; import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination"; import RoomCatalogPanel from "@/components/catalog/room-catalog-panel"; import TransportServicesPanel from "@/components/catalog/transport-vehicle-types-panel"; import RequestTypesPanel from "@/components/catalog/request-types-panel"; import TransportationPanel from "@/components/manager/transportation-panel"; import FrontDeskReportsPanel from "@/components/manager/front-desk-reports-panel"; import Reports from "@/components/manager/performance-reports"; import GuestRequestsPanel from "@/components/manager/guest-requests-panel"; import RoomDetailModal from "@/components/manager/room-detail-modal"; import RoomRosterPanel from "@/components/manager/room-roster-panel"; import HousekeepingQueuePanel from "@/components/manager/housekeeping-queue-panel"; import type { AssignmentSuggestion } from "@/lib/housekeeping-suggestions"; import FrontDeskArrivalDialog, { type ArrivalProgress } from "@/components/manager/front-desk-arrival-dialog"; import FrontOfficeRack from "@/components/front-desk/fused-room-rack-panel"; import WalkInDialog from "@/components/manager/walk-in-dialog"; import ExtendStayDialog from "@/components/manager/extend-stay-dialog"; import PredictiveInsightsPanel from "@/components/manager/predictive-insights-panel"; import HavenAiPanel from "@/components/manager/haven-ai-panel"; import StaffDutyPanel from "@/components/manager/staff-duty-panel"; import { ManagerReservationsPanel } from "@/components/manager/manager-reservations-panel"; import { ModuleSummaryCards, type ModuleSummaryCard } from "@/components/manager/module-summary-cards"; import { ToastStack, useToasts } from "@/components/ui/toast-stack"; import { HavenSelect } from "@/components/ui/haven-select"; import { ALL_LOYALTY_TIERS, loyaltyTierOptions, matchesLoyaltyTier } from "@/lib/guest-loyalty"; import { HavenDataToolbar, HavenFilterBadges, HavenSearchInput } from "@/components/ui/haven-data-controls";
+import HotelOperationsPanel, { OperatingDateBanner } from "@/components/manager/hotel-operations-panel";
+import ReservationPartyPanel from "@/components/manager/reservation-party-panel";
+import ReservationReadinessPanel from "@/components/manager/reservation-readiness-panel";
+import HotelFeePicker from "@/components/manager/hotel-fee-picker";
 import UnifiedRoomMatrix from "@/components/shared/unified-room-matrix";
-import { NAV_GROUPS, NAV_ITEMS, groupedNav as buildGroupedNav, type NavGroupId } from "@/config/role-navigation"; type ReservationDetail = { reservation: RecordItem; guest: RecordItem | null; invoice: RecordItem | null; payments: RecordItem[]; charges: RecordItem[]; adjustments: RecordItem[]; refunds: RecordItem[]; refundAttempts: RecordItem[]; documents: RecordItem[]; changeRequests: RecordItem[]; assignments: RecordItem[]; requests: RecordItem[]; room: RecordItem | null; maintenance: RecordItem[]; transportation?: RecordItem[]; approvals?: RecordItem[]; turnover?: RecordItem | null; }; // Read-only consolidated guest profile (GET /api/staff/guests/[id]) — identity,
-import { HavenNotificationBell as SharedNotificationBell, HavenNotificationPopover } from "@/components/ui/haven-notifications";
+import { NAV_GROUPS, NAV_ITEMS, canOpenSection, groupedNav as buildGroupedNav, type NavGroupId } from "@/config/role-navigation"; type ReservationDetail = { reservation: RecordItem; guest: RecordItem | null; invoice: RecordItem | null; payments: RecordItem[]; charges: RecordItem[]; adjustments: RecordItem[]; refunds: RecordItem[]; refundAttempts: RecordItem[]; documents: RecordItem[]; changeRequests: RecordItem[]; assignments: RecordItem[]; requests: RecordItem[]; room: RecordItem | null; maintenance: RecordItem[]; transportation?: RecordItem[]; approvals?: RecordItem[]; turnover?: RecordItem | null; }; // Read-only consolidated guest profile (GET /api/staff/guests/[id]) — identity,
+import { HavenNotificationPopover } from "@/components/ui/haven-notifications";
+import { HavenNotificationBell, ProfilePopover } from "@/components/ui";
 import { PageHeader } from "@/components/ui/Navigation";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { HavenLogo } from "@/components/ui/haven-logo";
 import { CommandPalette, type CommandItem } from "@/components/ui/command-palette";
 import { SessionExpiryGuard } from "@/components/auth/session-expiry-guard";
 import PurchaseOrderList, { type PoOrder } from "@/components/manager/inventory-replenishment-panel";
 // stay history, service history, explicit preferences, and a financial summary
 // that only roles allowed to see reservation financials ever receive.
-type GuestProfile = { guest: RecordItem; stays: RecordItem[]; stayCounts: { current: number; upcoming: number; completed: number; cancelled: number; noShow: number; }; requests: RecordItem[]; transportation: RecordItem[]; assignments: RecordItem[]; approvals: RecordItem[]; invoices: RecordItem[]; financial: { billed: number; paid: number; outstanding: number; } | null; requestOptions: string[]; financialVisible: boolean; }; type User = { id: string; name?: string | null; email?: string | null; role: Role; }; // Roadmap Phase 7 — forecast shortage suggestion (GET /api/inventory/purchase-orders).
-type ReplenishmentSuggestion = { itemId: string; name: string; unit: string; currentStock: number; reorderPoint: number; predictedConsumption: number | null; projectedShortage: number | null; suggestedQuantity: number; unitCost: number; riskBasis: string; risk: string; }; type Section = "overview" | "room_rack" | Resource | "reports" | AccountingSection | ManagerSection; const accountingSections: AccountingSection[] = ["transactions", "folios", "cash_shifts", "reconciliation", "documents"]; const isAccountingSection = (value: Section): value is AccountingSection => (accountingSections as string[]).includes(value); const isResourceSection = (value: Section): value is Resource => value !== "overview" && value !== "reports" && value !== "approvals" && value !== "room_rack" && !isAccountingSection(value); // Sidebar categories — presentation only. RBAC (the access map + per-item roles)
+type GuestProfile = { partyHistory?: RecordItem[]; guest: RecordItem; stays: RecordItem[]; stayCounts: { current: number; upcoming: number; completed: number; cancelled: number; noShow: number; }; requests: RecordItem[]; transportation: RecordItem[]; assignments: RecordItem[]; approvals: RecordItem[]; invoices: RecordItem[]; financial: { billed: number; paid: number; outstanding: number; } | null; requestOptions: string[]; financialVisible: boolean; }; type User = { id: string; name?: string | null; email?: string | null; role: Role; }; // Roadmap Phase 7 — forecast shortage suggestion (GET /api/inventory/purchase-orders).
+type ReplenishmentSuggestion = { itemId: string; name: string; unit: string; currentStock: number; reorderPoint: number; predictedConsumption: number | null; projectedShortage: number | null; suggestedQuantity: number; unitCost: number; riskBasis: string; risk: string; }; type Section = "overview" | "room_rack" | Resource | "reports" | AccountingSection | ManagerSection; const accountingSections: AccountingSection[] = ["transactions", "folios", "cash_shifts", "reconciliation", "documents"]; const isAccountingSection = (value: Section): value is AccountingSection => (accountingSections as string[]).includes(value); const isResourceSection = (value: Section): value is Resource => value !== "overview" && value !== "reports" && value !== "approvals" && value !== "room_rack" && value !== "hotel_operations" && !isAccountingSection(value); // Sidebar categories — presentation only. RBAC (the access map + per-item roles)
 // is untouched; groupedNav simply drops a category whose items were all filtered out.
-const NAV_ICONS: Record<Section, React.ElementType> = { overview: Gauge, room_rack: LayoutGrid, reservations: CalendarDays, rooms: BedDouble, guests: Users, guest_requests: Bell, transportation: CarTaxiFront, approvals: ClipboardCheck, housekeeping_tasks: ClipboardCheck, maintenance_orders: Wrench, inventory: Boxes, reports: Activity, invoices: ReceiptText, transactions: Activity, folios: FileText, payments: CircleDollarSign, refunds: CircleDollarSign, cash_shifts: Wallet, reconciliation: Scale, documents: Landmark, staff_duty: Users, team_operations: Users, lost_found: Boxes, room_types: Building2, transport_services: CarTaxiFront, request_types: ListChecks, insights: TrendingUp, ai: Sparkles, staff: Users }; export const nav: { label: string; section: Section; icon: React.ElementType; roles?: Role[]; group: NavGroupId; hidden?: boolean; }[] = NAV_ITEMS.map((item) => ({ ...item, icon: NAV_ICONS[item.section] })); export { NAV_GROUPS }; export const groupedNav = (items: typeof nav) => buildGroupedNav(items); // Exported for the pure grouping tests (manager-sidebar-nav.test.tsx).
+const NAV_ICONS: Record<Section, React.ElementType> = { hotel_operations: ClipboardCheck, overview: Gauge, room_rack: LayoutGrid, reservations: CalendarDays, rooms: BedDouble, guests: Users, guest_requests: Bell, transportation: CarTaxiFront, approvals: ClipboardCheck, housekeeping_tasks: ClipboardCheck, maintenance_orders: Wrench, inventory: Boxes, reports: Activity, invoices: ReceiptText, transactions: Activity, folios: FileText, payments: CircleDollarSign, refunds: CircleDollarSign, cash_shifts: Wallet, reconciliation: Scale, documents: Landmark, staff_duty: Users, team_operations: Users, lost_found: Boxes, room_types: Building2, transport_services: CarTaxiFront, request_types: ListChecks, insights: TrendingUp, ai: Sparkles, staff: Users }; export const nav: { label: string; section: Section; icon: React.ElementType; roles?: Role[]; group: NavGroupId; hidden?: boolean; }[] = NAV_ITEMS.map((item) => ({ ...item, icon: NAV_ICONS[item.section] })); export { NAV_GROUPS }; export const groupedNav = (items: typeof nav) => buildGroupedNav(items); // Exported for the pure grouping tests (manager-sidebar-nav.test.tsx).
 export const isGroupOpen = (state: Record<string, boolean>, group: { id: string; items: { section: Section; }[]; }, section: Section) => (state[group.id] ?? false) || group.items.some(item => item.section === section); // Sidebar category dropdowns own their open/closed state here so a toggle
 // re-renders only the nav — not the whole dashboard workspace (the root-level
 // state made the dropdowns feel unresponsive on click).
@@ -32,7 +38,7 @@ export function badgeLabel(count: number) { return count > 99 ? "99+" : String(c
 export function countUniqueNotifications(notifications: readonly { id: unknown; }[] | null | undefined) { const seen = new Set<string>(); for (const notice of notifications ?? []) seen.add(String(notice?.id)); return seen.size; } // Header notification bell — exactly ONE badge for the aggregate live-alert
 // count, never one pill per notification source. The numeral is aria-hidden;
 // the button label carries the count for screen readers.
-export function HeaderNotificationBell({ count, expanded, onToggle, buttonRef }: { count: number; expanded: boolean; onToggle: () => void; buttonRef?: React.RefObject<HTMLButtonElement>; }) { return <SharedNotificationBell count={count} expanded={expanded} onToggle={onToggle} buttonRef={buttonRef} className="icon-button" badgeClassName="nav-badge" />; } // Alert-id prefixes that carry operational risk or a decision waiting →
+export function HeaderNotificationBell({ count, expanded, onToggle, buttonRef }: { count: number; expanded: boolean; onToggle: () => void; buttonRef?: React.RefObject<HTMLButtonElement>; }) { return <HavenNotificationBell count={count} expanded={expanded} onToggle={onToggle} buttonRef={buttonRef} className="icon-button" badgeClassName="nav-badge" />; } // Alert-id prefixes that carry operational risk or a decision waiting →
 // warning tone (longer auto-dismiss) instead of plain info.
 const ALERT_TOAST_TONES = ["manager-maintenance-", "manager-escalation-", "manager-room-risk-", "manager-approval-", "refund-", "balance-", "room-block-"]; export function ManagerSidebarNav({ items, section, onSelect, badges }: { items: typeof nav; section: Section; onSelect: (section: Section) => void; badges: Partial<Record<Section, number>>; }) {
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({}); useEffect(() => { // Collapsed/expanded categories persist like the sidebar rail toggle does.
@@ -77,13 +83,9 @@ const requestStamp = new Intl.DateTimeFormat("en-PH", { month: "short", day: "nu
 // the amount. Badges mirror the server-side distinction (exception_approval_id).
 // Exported for the jsdom queue-badge test (approvals-view.test.tsx).
 export const refundBasisBadge = (item: RecordItem) => {
-  if (!item.exception_approval_id) return <span className="badge within-policy" title="Computed from the reservation's frozen cancellation policy — no Manager approval required">
-    Within policy
-  </span>; if (item.approval_status === "pending") return <span className="badge approval-required" title="Awaiting Manager review before this refund can exist">
-    Manager approval required
-  </span>; return <span className="badge approved-exception" title={`Manager-approved exception${Number(item.normal_policy_amount || 0) > 0 ? ` — policy amount was ${pesoExact(item.normal_policy_amount)}` : ""}`}>
-    Approved exception
-  </span>;
+  if (!item.exception_approval_id) return <StatusBadge status="within_policy" label="Within policy" title="Computed from the reservation's frozen cancellation policy — no Manager approval required" />;
+  if (item.approval_status === "pending") return <StatusBadge status="approval_required" label="Manager approval required" title="Awaiting Manager review before this refund can exist" />;
+  return <StatusBadge status="approved_exception" label="Approved exception" title={`Manager-approved exception${Number(item.normal_policy_amount || 0) > 0 ? ` — policy amount was ${pesoExact(item.normal_policy_amount)}` : ""}`} />;
 }; // Quick-overview cards for the operational modules: status counts derived purely
 // from the already-loaded rows (the /api/resources list is unpaginated, so these
 // ARE the module totals), computed with the same queue predicates the filters
@@ -98,15 +100,22 @@ export function moduleSummary(resource: Resource, items: RecordItem[], today: st
     { label: "Arrivals needing prep", value: count(item => String(item.check_in) === today && String(item.status) === "confirmed" && (!item.room_number || String(item.identity_status) !== "verified" || Number(item.folio_balance || 0) > 0)), hint: "ID, room or balance pending", icon: LogIn, tone: "attention" }]; case "maintenance_orders": return [{ label: "Unclaimed", value: count(item => ["open", "assigned"].includes(String(item.status))), hint: "Open or assigned", icon: Wrench, tone: "attention" }, { label: "In progress", value: byStatus("in_progress"), hint: "Active repairs", icon: Wrench, tone: "today" }, { label: "Waiting parts / deferred", value: count(item => ["waiting_parts", "deferred"].includes(String(item.status))), hint: "Held work orders", icon: Wrench }, { label: "Blocked rooms", value: count(item => String(item.serviceability_impact) === "blocked"), hint: "Unsellable from diagnosis", icon: BedDouble, tone: "attention" }, { label: "Urgent or critical", value: count(item => ["high", "critical"].includes(String(item.severity))), hint: "High-severity orders", icon: Wrench, tone: "attention" }]; case "rooms": return [{ label: "Available", value: byStatus("available"), hint: "Ready to assign", icon: BedDouble, tone: "done" }, { label: "Dirty", value: byStatus("dirty"), hint: "Awaiting housekeeping", icon: BedDouble, tone: "attention" }, { label: "Maintenance", value: byStatus("maintenance"), hint: "Blocked from sale", icon: Wrench, tone: "attention" }, { label: "Occupied", value: byStatus("occupied"), hint: "Guests in house", icon: Users, tone: "today" }, { label: "Reserved", value: byStatus("reserved"), hint: "Held for arrivals", icon: CalendarDays }]; case "inventory": return [{ label: "Healthy", value: byStatus("healthy"), hint: "Stock above reorder point", icon: Boxes, tone: "done" }, { label: "Low", value: byStatus("low"), hint: "At or near reorder point", icon: Boxes, tone: "attention" }, { label: "Out of stock", value: byStatus("out"), hint: "Needs replenishment", icon: Boxes, tone: "attention" }]; case "payments": return [{ label: "Pending verification", value: byStatus("pending_verification"), hint: "Deposits & stay payments", icon: CircleDollarSign, tone: "attention" }, { label: "Past SLA", value: count(item => item.status === "pending_verification" && depositAgeBand(item.submitted_at, depositSlaHours) === "breach"), hint: depositSlaHours > 0 ? `Waiting over ${depositSlaHours}h` : "SLA tracking off", icon: Clock, tone: "attention" }, { label: "Failed or rejected", value: count(item => ["failed", "rejected"].includes(String(item.status))), hint: "Needs resubmission", icon: CircleDollarSign }]; case "refunds": return [{ label: "Within policy, to settle", value: count(item => item.status !== "processed" && !item.exception_approval_id), hint: "Accounting settles directly", icon: CircleDollarSign, tone: "attention" }, { label: "Awaiting Manager approval", value: count(item => item.status !== "processed" && Boolean(item.exception_approval_id) && item.approval_status === "pending"), hint: "Exception amounts", icon: ClipboardCheck, tone: "attention" }, { label: "Processed", value: byStatus("processed"), hint: "Settled refunds", icon: CheckCircle2, tone: "done" }, { label: "Failed", value: byStatus("failed"), hint: "Retryable", icon: CircleDollarSign, tone: "attention" }]; case "invoices": return [{ label: "Unpaid", value: byStatus("unpaid"), hint: "No payment recorded", icon: ReceiptText, tone: "attention" }, { label: "Partial", value: byStatus("partial"), hint: "Balance remaining", icon: ReceiptText, tone: "attention" }, { label: "Paid", value: byStatus("paid"), hint: "Settled folios", icon: CheckCircle2, tone: "done" }, { label: "Outstanding balance", value: peso(items.reduce((sum, item) => sum + Number(item.balance || 0), 0)), hint: "Across all folios", icon: ReceiptText, tone: "today" }]; case "guest_requests": return [{ label: "Open", value: byStatus("open"), hint: "Awaiting the department", icon: Bell, tone: "attention" }, { label: "In progress", value: byStatus("in_progress"), hint: "Being handled", icon: Bell, tone: "today" }, { label: "Completed", value: byStatus("completed"), hint: "Resolved requests", icon: CheckCircle2, tone: "done" }, { label: "Escalated", value: count(item => String(item.escalation_status) === "escalated"), hint: "Raised to Manager", icon: Bell, tone: "attention" }]; default: return [];
   }
 } // Real request_type categories from the backend — the only groups the type filter offers.
-const approvalTypeGroups: [string, string[]][] = [["Operational", ["room_upgrade", "room_type_exception", "reservation_modification", "early_check_in", "late_checkout", "stay_extension"]], ["Financial", ["guest_compensation", "refund_exception", "checkout_exception"]], ["Escalation", ["guest_escalation"]]]; const access: Record<Role, Section[]> = { owner: [], admin: [], manager: ["team_operations", "lost_found", "overview", "reservations", "rooms", "guests", "guest_requests", "transportation", "room_types", "transport_services", "request_types", "staff_duty", "housekeeping_tasks", "maintenance_orders", "inventory", "approvals", "reports", "insights", "ai"], front_desk: ["team_operations", "lost_found", "overview", "reservations", "rooms", "guests", "guest_requests", "transportation", "housekeeping_tasks", "invoices", "payments", "transactions", "folios", "cash_shifts", "documents", "approvals", "reports"], housekeeping: ["team_operations", "lost_found", "overview", "rooms", "guest_requests", "housekeeping_tasks", "inventory", "approvals"], maintenance: ["team_operations", "overview", "rooms", "guest_requests", "maintenance_orders", "inventory", "approvals"], accounting: ["team_operations", "overview", "reservations", "invoices", "payments", "refunds", "reports", "transactions", "folios", "cash_shifts", "reconciliation", "documents", "approvals"], guest: ["overview", "reservations", "invoices"] }; // Validators + option builders shared by the in-app dialog forms. FormDialog is
+const approvalTypeGroups: [string, string[]][] = [["Operational", ["room_upgrade", "room_type_exception", "reservation_modification", "early_check_in", "late_checkout", "stay_extension"]], ["Financial", ["guest_compensation", "refund_exception", "checkout_exception"]], ["Escalation", ["guest_escalation"]]]; const access: Record<Role, Section[]> = { owner: [], admin: [], manager: ["hotel_operations", "team_operations", "lost_found", "overview", "reservations", "rooms", "guests", "guest_requests", "transportation", "room_types", "transport_services", "request_types", "staff_duty", "housekeeping_tasks", "maintenance_orders", "inventory", "approvals", "reports", "insights", "ai"], front_desk: ["hotel_operations", "team_operations", "lost_found", "overview", "reservations", "rooms", "guests", "guest_requests", "transportation", "housekeeping_tasks", "invoices", "payments", "transactions", "folios", "cash_shifts", "documents", "approvals", "reports"], housekeeping: ["hotel_operations", "team_operations", "lost_found", "overview", "rooms", "guest_requests", "housekeeping_tasks", "inventory", "approvals"], maintenance: ["hotel_operations", "team_operations", "overview", "rooms", "guest_requests", "maintenance_orders", "inventory", "approvals"], accounting: ["hotel_operations", "team_operations", "overview", "reservations", "invoices", "payments", "refunds", "reports", "transactions", "folios", "cash_shifts", "reconciliation", "documents", "approvals"], guest: ["overview", "reservations", "invoices"] }; // Validators + option builders shared by the in-app dialog forms. FormDialog is
 // noValidate and only validates fields that carry an explicit .validation callback,
 // so every "required" field in these forms must supply one (see FormDialog.tsx).
 const required = (message = "This field is required.") => (v: string | number | boolean) => String(v ?? "").trim() ? null : message; const positive = (message = "Amount must be greater than zero.") => (v: string | number | boolean) => { const s = String(v ?? "").trim(); const n = Number(s); return s !== "" && Number.isFinite(n) && n > 0 ? null : message; }; const nonNegative = (message = "Amount cannot be negative.") => (v: string | number | boolean) => { const s = String(v ?? "").trim(); const n = Number(s); return s !== "" && Number.isFinite(n) && n >= 0 ? null : message; }; const dateField = (message = "Enter a valid date (YYYY-MM-DD).") => (v: string | number | boolean) => /^\d{4}-\d{2}-\d{2}$/.test(String(v ?? "").trim()) ? null : message; const options = (...values: string[]) => values.map(value => ({ value, label: label(value) })); export default function ManagerDashboardClient({ user, sessionExpiresAt }: { user: User; sessionExpiresAt?: string | null; }) {
   const [paymentTarget, setPaymentTarget] = useState<RecordItem | null>(null);
   const [section, setSection] = useState<Section>("overview"); const [dashboard, setDashboard] = useState<DashboardData | null>(null); const [ledger, setLedger] = useState<AccountingLedger | null>(null); const [items, setItems] = useState<RecordItem[]>([]); const [mode, setMode] = useState("demo"); const [loading, setLoading] = useState(true); const [loadError, setLoadError] = useState(""); const [searchBySection, setSearchBySection] = useState<Record<string, string>>({}); const search = searchBySection[section] ?? ""; const sectionRef = useRef<Section>(section); useEffect(() => { sectionRef.current = section; }, [section]); const setSearch = useCallback((value: string) => { const target = sectionRef.current; setSearchBySection(previous => ({ ...previous, [target]: value })); }, []); const setSearchForSection = useCallback((target: Section, value: string) => { setSearchBySection(previous => ({ ...previous, [target]: value })); }, []); const [modal, setModal] = useState(false); const [menu, setMenu] = useState(false); // Transient toast stack — one controller for both surfaces: new-alert toasts
   // (from the dashboard poll diff) and local action feedback (notify()).
-  const toastController = useToasts(); const [notificationsHover, setNotificationsHover] = useState(false); const [notificationsPinned, setNotificationsPinned] = useState(false); const [historyOpen, setHistoryOpen] = useState(false); const staffBellBtn = useRef<HTMLButtonElement>(null); const staffReadKey = `haven-staff-read:${user.id}:${user.role}`; const [staffReadIds, setStaffReadIds] = useState<Set<string>>(() => { try { const raw = window.localStorage.getItem(staffReadKey); const parsed: unknown = raw ? JSON.parse(raw) : []; return new Set(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : []); } catch { return new Set<string>(); } }); const [profileOpen, setProfileOpen] = useState(false); const [settingsOpen, setSettingsOpen] = useState(false); const [detail, setDetail] = useState<ReservationDetail | null>(null); const [guestProfile, setGuestProfile] = useState<GuestProfile | null>(null); const [roomDetail, setRoomDetail] = useState<RecordItem | null>(null); const [roomDetailActions, setRoomDetailActions] = useState<{ label: string; hint?: string; onSelect: () => void }[]>([]); const [rackEntry, setRackEntry] = useState<{ view: "board" | "all" | "arrivals" | "in_house" | "departures" | "completed"; tab: "all" | "arrivals" | "in_house" | "departures" | "completed" } | null>(null); useEffect(() => {
+  const toastController = useToasts(); const [notificationsHover, setNotificationsHover] = useState(false); const [notificationsPinned, setNotificationsPinned] = useState(false); const [historyOpen, setHistoryOpen] = useState(false); const staffBellBtn = useRef<HTMLButtonElement>(null); const staffReadKey = `haven-staff-read:${user.id}:${user.role}`; const [staffReadIds, setStaffReadIds] = useState<Set<string>>(() => { try { const raw = window.localStorage.getItem(staffReadKey); const parsed: unknown = raw ? JSON.parse(raw) : []; return new Set(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : []); } catch { return new Set<string>(); } }); const [profileOpen, setProfileOpen] = useState(false); const [settingsOpen, setSettingsOpen] = useState(false); const [soundOn, setSoundOn] = useNotificationSound(); const [detail, setDetail] = useState<ReservationDetail | null>(null); const [guestProfile, setGuestProfile] = useState<GuestProfile | null>(null); const [roomDetail, setRoomDetail] = useState<RecordItem | null>(null); const [roomDetailActions, setRoomDetailActions] = useState<{ label: string; hint?: string; onSelect: () => void }[]>([]); const [rackEntry, setRackEntry] = useState<{ view: "board" | "all" | "arrivals" | "in_house" | "departures" | "completed"; tab: "all" | "arrivals" | "in_house" | "departures" | "completed" } | null>(null); useEffect(() => {
     if (section !== "room_rack") setRackEntry(null); setDetail(null); setGuestProfile(null); setRoomDetail(null); setRoomDetailActions([]); // eslint-disable-line react-hooks/set-state-in-effect -- section-scoped detail modals must not survive navigation (QA BUG-003); setting already-null state bails out with no render.
+
+    // Enforce section access control - redirect to default if section not allowed for role
+    const allowedSections = access[user.role] || ["overview"];
+    if (!canOpenSection(allowedSections, section)) {
+      const defaultSection = allowedSections[0] || "overview";
+      setSection(defaultSection);
+    }
   }, [section]); const [roster, setRoster] = useState(false); const [arrival, setArrival] = useState<{ item: RecordItem; exceptionType?: string | null; } | null>(null); // Wizard progress per reservation so closing and reopening Assign & Check In resumes
   // where the front desk left off (in-memory only; cleared on successful check-in).
   // One slot per reservation — peeking at another guest mid-arrival never clobbers it.
@@ -120,7 +129,7 @@ const required = (message = "This field is required.") => (v: string | number | 
   const assetRoles = ["maintenance", "manager"].includes(user.role); const [maintenanceAssets, setMaintenanceAssets] = useState<MaintenanceAsset[] | null>(null); const refreshAssets = useCallback(async () => { try { const response = await fetch("/api/maintenance/assets", { cache: "no-store" }); const body = await response.json(); if (response.ok && body?.data) setMaintenanceAssets(body.data.assets ?? []); } catch { } }, []); useEffect(() => { if (!assetRoles) return; const initial = window.setTimeout(() => refreshAssets(), 0); return () => { window.clearTimeout(initial); }; }, [assetRoles, refreshAssets]); // Roadmap Phase 6 — advisory housekeeping assignment plan for the queue panel.
   const canSeeSuggestions = ["housekeeping", "manager", "owner"].includes(user.role); const [suggestions, setSuggestions] = useState<AssignmentSuggestion[]>([]); const refreshSuggestions = useCallback(async () => { try { const response = await fetch("/api/housekeeping/assignment-suggestions", { cache: "no-store" }); const body = await response.json(); if (response.ok && body?.data) setSuggestions(body.data.suggestions ?? []); } catch { } }, []); useEffect(() => { if (!canSeeSuggestions) return; const initial = window.setTimeout(() => refreshSuggestions(), 0); const timer = window.setInterval(refreshSuggestions, 30000); return () => { window.clearTimeout(initial); window.clearInterval(timer); }; }, [canSeeSuggestions, refreshSuggestions]); // Promise-based dialog bridge — renders the polished in-app dialogs once, then
   // every action below awaits a decision exactly like the old native prompt/confirm.
-  const dialogs = useActionDialogs(); const rackVisible = access[user.role].includes("reservations") && access[user.role].includes("rooms"); const visibleNav = nav.filter(n => !n.hidden && (n.section === "room_rack" ? rackVisible : access[user.role].includes(n.section)) && (!n.roles || n.roles.includes(user.role)));
+  const dialogs = useActionDialogs(); const rackVisible = canOpenSection(access[user.role], "room_rack"); const visibleNav = nav.filter(n => !n.hidden && (n.section === "room_rack" ? rackVisible : access[user.role].includes(n.section)) && (!n.roles || n.roles.includes(user.role)));
   const [cmdOpen, setCmdOpen] = useState(false);
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -184,14 +193,14 @@ const required = (message = "This field is required.") => (v: string | number | 
   const financialAuthority = ["accounting"].includes(user.role); const cashHandling = ["front_desk", "accounting"].includes(user.role); const operational = ["front_desk"].includes(user.role); // Mirror of canManageCatalog in lib/admin-route (server-only module, so not
   // importable here). guardCatalog re-checks it and admin_create_room /
   // admin_update_room_metadata gate on it again.
-  const catalogAuthority = ["owner", "admin", "manager"].includes(user.role); const load = useCallback(async (quiet = false) => { if (!quiet) { setLoading(true); setLoadError(""); } if (section === "inventory" || section === "team_operations" || section === "lost_found" || section === "room_types" || section === "room_rack" || section === "transport_services" || section === "request_types" || section === "transportation" || section === "insights" || section === "ai" || section === "staff_duty" || section === "guest_requests" && ["front_desk", "manager", "housekeeping"].includes(user.role)) { if (!quiet) setLoading(false); return; } const accounting = isAccountingSection(section), approvals = section === "approvals"; const url = section === "overview" || section === "reports" ? "/api/manager_dashboard" : accounting ? "/api/accounting/ledger" : approvals ? "/api/manager/approvals" : `/api/resources/${section}`; try { const res = await fetch(url, { cache: "no-store" }); const body = await res.json().catch(() => ({})); if (!res.ok) throw new Error(body.error ?? "Unable to load this module."); if (accounting) setLedger(body.data); else if (section === "overview" || section === "reports") { setDashboard(body.data); setMode(body.mode || "demo"); } else setItems(body.data); setLoadError(""); } catch (cause) { if (!quiet) setLoadError(cause instanceof Error && cause.message !== "Failed to fetch" ? cause.message : "Unable to reach the hotel service. Check your connection and try again."); } finally { if (!quiet) setLoading(false); } }, [section, user.role]); // Header pill: the shared drawer state (one open shift property-wide), polled
+  const catalogAuthority = ["owner", "admin", "manager"].includes(user.role); const load = useCallback(async (quiet = false) => { if (!quiet) { setLoading(true); setLoadError(""); } if (section === "hotel_operations" || section === "inventory" || section === "team_operations" || section === "lost_found" || section === "room_types" || section === "room_rack" || section === "transport_services" || section === "request_types" || section === "transportation" || section === "insights" || section === "ai" || section === "staff_duty" || section === "guest_requests" && ["front_desk", "manager", "housekeeping"].includes(user.role)) { if (!quiet) setLoading(false); return; } const accounting = isAccountingSection(section), approvals = section === "approvals"; const url = section === "overview" || section === "reports" ? "/api/manager_dashboard" : accounting ? "/api/accounting/ledger" : approvals ? "/api/manager/approvals" : `/api/resources/${section}`; try { const res = await fetch(url, { cache: "no-store" }); const body = await res.json().catch(() => ({})); if (!res.ok) throw new Error(body.error ?? "Unable to load this module."); if (accounting) setLedger(body.data); else if (section === "overview" || section === "reports") { setDashboard(body.data); setMode(body.mode || "demo"); } else setItems(body.data); setLoadError(""); } catch (cause) { if (!quiet) setLoadError(cause instanceof Error && cause.message !== "Failed to fetch" ? cause.message : "Unable to reach the hotel service. Check your connection and try again."); } finally { if (!quiet) setLoading(false); } }, [section, user.role]); // Header pill: the shared drawer state (one open shift property-wide), polled
   // like the section data and refreshed immediately after open/close below.
   // `mine` tells whether the signed-in cashier opened it; non-openers see who did.
   const refreshShiftStatus = useCallback(async () => { try { const response = await fetch("/api/accounting/cash-shifts", { cache: "no-store" }); const body = await response.json(); if (response.ok && body.data) setMyShift({ open: Boolean(body.data.open), mine: Boolean(body.data.mine), location: body.data.shift?.location ?? null, opened_at: body.data.shift?.opened_at ?? null, staff_name: body.data.shift?.staff_name ?? null, staff_user_id: body.data.shift?.staff_user_id ?? null }); } catch { } }, []); useEffect(() => { if (!cashHandling) return; const initial = window.setTimeout(() => refreshShiftStatus(), 0); const timer = window.setInterval(refreshShiftStatus, 30000); return () => { window.clearTimeout(initial); window.clearInterval(timer); }; }, [cashHandling, refreshShiftStatus]); useEffect(() => { const initial = window.setTimeout(() => load(), 0); const timer = window.setInterval(() => load(true), 30000); return () => { window.clearTimeout(initial); window.clearInterval(timer); }; }, [load]); // Alert/badge refresh: sections other than Overview/Reports don't load the
   // dashboard payload, so without this the bell and the sidebar badges would
   // freeze at whatever the last Overview visit fetched. Same 30s cadence as the
   // section data — never faster.
-  const refreshAlerts = useCallback(async () => { try { const res = await fetch("/api/manager_dashboard", { cache: "no-store" }); if (!res.ok) return; const body = await res.json(); if (body.data) { setDashboard(body.data); setMode(body.mode || "demo"); } } catch { } }, []); useEffect(() => { if (section === "overview" || section === "reports") return; void refreshAlerts(); const timer = window.setInterval(() => { void refreshAlerts(); }, 30000); return () => window.clearInterval(timer); }, [section, refreshAlerts]); useEffect(() => { window.setTimeout(() => setCollapsed(window.localStorage.getItem("haven-sidebar-collapsed") === "true"), 0); }, []); const notificationCenter = useRef<HTMLDivElement>(null); const profileMenu = useRef<HTMLDivElement>(null); const profileBtn = useRef<HTMLButtonElement>(null); const notificationsVisible = notificationsHover || notificationsPinned; const unreadStaffNotifications = useMemo(() => (dashboard?.notifications ?? []).filter((notice) => !staffReadIds.has(String(notice.id))), [dashboard, staffReadIds]); const unreadBellCount = countUniqueNotifications(unreadStaffNotifications); useEffect(() => { if (!notificationsVisible) return; const outside = (event: Event) => { if (notificationCenter.current && !notificationCenter.current.contains(event.target as Node)) { setNotificationsPinned(false); setNotificationsHover(false); } }; const escape = (event: KeyboardEvent) => { if (event.key === "Escape") { setNotificationsPinned(false); setNotificationsHover(false); } }; document.addEventListener("pointerdown", outside); document.addEventListener("keydown", escape); return () => { document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", escape); }; }, [notificationsVisible]); useEffect(() => { if (!profileOpen) return; const outside = (event: Event) => { if (profileMenu.current && !profileMenu.current.contains(event.target as Node)) setProfileOpen(false); }; const escape = (event: KeyboardEvent) => { if (event.key === "Escape") setProfileOpen(false); }; document.addEventListener("pointerdown", outside); document.addEventListener("keydown", escape); return () => { document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", escape); }; }, [profileOpen]); function toggleNotifications() { setNotificationsPinned(value => { if (value) setNotificationsHover(false); return !value; }); } function closeNotifications() { setNotificationsPinned(false); setNotificationsHover(false); } // ponytail: staff read/dismissed ids are per-device UI state in localStorage (capped at 500); the server alert list stays authoritative — upgrade to a server read store only if cross-device sync matters.
+  const refreshAlerts = useCallback(async () => { try { const res = await fetch("/api/manager_dashboard", { cache: "no-store" }); if (!res.ok) return; const body = await res.json(); if (body.data) { setDashboard(body.data); setMode(body.mode || "demo"); } } catch { } }, []); useEffect(() => { if (section === "overview" || section === "reports") return; void refreshAlerts(); const timer = window.setInterval(() => { void refreshAlerts(); }, 30000); return () => window.clearInterval(timer); }, [section, refreshAlerts]); useEffect(() => { window.setTimeout(() => setCollapsed(window.localStorage.getItem("haven-sidebar-collapsed") === "true"), 0); }, []); const notificationCenter = useRef<HTMLDivElement>(null); const profileBtn = useRef<HTMLButtonElement>(null); const notificationsVisible = notificationsHover || notificationsPinned; const unreadStaffNotifications = useMemo(() => (dashboard?.notifications ?? []).filter((notice) => !staffReadIds.has(String(notice.id))), [dashboard, staffReadIds]); const unreadBellCount = countUniqueNotifications(unreadStaffNotifications); useEffect(() => { if (!notificationsVisible) return; const outside = (event: Event) => { if (notificationCenter.current && !notificationCenter.current.contains(event.target as Node)) { setNotificationsPinned(false); setNotificationsHover(false); } }; const escape = (event: KeyboardEvent) => { if (event.key === "Escape") { setNotificationsPinned(false); setNotificationsHover(false); } }; document.addEventListener("pointerdown", outside); document.addEventListener("keydown", escape); return () => { document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", escape); }; }, [notificationsVisible]); function toggleNotifications() { setNotificationsPinned(value => { if (value) setNotificationsHover(false); return !value; }); } function closeNotifications() { setNotificationsPinned(false); setNotificationsHover(false); } // ponytail: staff read/dismissed ids are per-device UI state in localStorage (capped at 500); the server alert list stays authoritative — upgrade to a server read store only if cross-device sync matters.
   function persistStaffRead(next: Set<string>) { try { window.localStorage.setItem(staffReadKey, JSON.stringify([...next].slice(-500))); } catch { } }
   function markStaffRead(ids: readonly string[]) { if (!ids.length) return; setStaffReadIds((prev) => { const next = new Set(prev); for (const id of ids) next.add(String(id)); persistStaffRead(next); return next; }); }
   function openStaffHistory() { closeNotifications(); setHistoryOpen(true); } const filtered = useMemo(() => filterStaffItems(items, search, section), [items, search, section]); const notify = (message: string) => { toastController.push({ title: message, tone: "success" }); }; // Sidebar module badges — pending workload per module, gated to what THIS
@@ -282,7 +291,7 @@ const required = (message = "This field is required.") => (v: string | number | 
         </button>
         <div>
           <p>
-        {section === "team_operations" ? "Operational Handover" : section === "lost_found" ? "Lost & Found" : section === "overview" ? "Good morning" : section === "reports" ? user.role === "front_desk" ? "Daily operations report" : "Performance center" : section === "approvals" ? "Approvals & Escalations" : section === "room_types" ? "Room Types & Photos" : section === "transport_services" ? "Transfer Vehicles" : section === "request_types" ? "Request Types" : section === "transportation" ? "Transportation" : section === "insights" ? "Predictive Insights" : section === "ai" ? "HAVEN AI" : section === "staff_duty" ? "Staff & Duty" : section === "room_rack" ? "Room Reservations" : isResourceSection(section) ? config[section].title : accountingViews[section].title}
+        {section === "hotel_operations" ? "Hotel Operations" : section === "team_operations" ? "Operational Handover" : section === "lost_found" ? "Lost & Found" : section === "overview" ? "Good morning" : section === "reports" ? user.role === "front_desk" ? "Daily operations report" : "Performance center" : section === "approvals" ? "Approvals & Escalations" : section === "room_types" ? "Room Types & Photos" : section === "transport_services" ? "Transfer Vehicles" : section === "request_types" ? "Request Types" : section === "transportation" ? "Transportation" : section === "insights" ? "Predictive Insights" : section === "ai" ? "HAVEN AI" : section === "staff_duty" ? "Staff & Duty" : section === "room_rack" ? "Room Reservations" : isResourceSection(section) ? config[section].title : accountingViews[section].title}
           </p>
           <small suppressHydrationWarning>
             {new Intl.DateTimeFormat("en-PH", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "Asia/Manila" }).format(new Date())}
@@ -319,43 +328,28 @@ const required = (message = "This field is required.") => (v: string | number | 
               />
             </div>}
           </div>
-          <div className="profile-menu-wrap" ref={profileMenu}>
-            <button ref={profileBtn} type="button" className="profile-menu-btn" onClick={() => setProfileOpen(value => !value)} aria-expanded={profileOpen} aria-haspopup="menu" aria-label="Account menu">
-              <b>
-                {(user.name || "H").split(" ").map(x => x[0]).join("").slice(0, 2)}
-              </b>
+          <div className="profile-menu-wrap">
+            <button ref={profileBtn} type="button" className="profile-menu-btn" onClick={() => setProfileOpen((value) => !value)} aria-expanded={profileOpen} aria-haspopup="menu" aria-label="Account menu">
+              <b>{(user.name || "H").split(" ").map(x => x[0]).join("").slice(0, 2)}</b>
               <span>{user.name}</span>
               <ChevronDown size={14} />
             </button>
-            {profileOpen && (
-              <div className="popover-gap">
-                <div className="profile-popover">
-                  <p>
-                    <strong>{user.name}</strong>
-                    <small>{user.email}</small>
-                    <small>{label(user.role)}</small>
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setProfileOpen(false);
-                      setSettingsOpen(true);
-                    }}
-                  >
-                    <Settings size={15} />
-                    Settings
-                  </button>
-                  <SoundToggleMenuItem onToggle={() => setProfileOpen(false)} />
-                  <button type="button" onClick={signOutGuarded}>
-                    <LogOut size={15} />
-                    Sign Out
-                  </button>
-                </div>
-              </div>
-            )}
+            <ProfilePopover
+              variant="staff"
+              user={user}
+              roleLabel={label(user.role)}
+              triggerRef={profileBtn}
+              open={profileOpen}
+              onClose={() => setProfileOpen(false)}
+              onSignOut={signOutGuarded}
+              onSettings={() => setSettingsOpen(true)}
+              soundEnabled={soundOn}
+              onSoundToggle={setSoundOn}
+            />
           </div>
         </div>
       </header>
+      <OperatingDateBanner />
       {historyOpen && <NotificationHistoryModal open onClose={() => setHistoryOpen(false)} density="internal" items={(dashboard?.notifications ?? []).map((notice) => ({ id: String(notice.id), title: notice.title, detail: notice.detail, createdAt: typeof notice.createdAt === "string" ? notice.createdAt : "", readAt: staffReadIds.has(String(notice.id)) ? "read" : null, type: String(notice.section) }))} onOpenItem={(item) => { markStaffRead([item.id]); const target = (dashboard?.notifications ?? []).find((entry) => String(entry.id) === item.id); setHistoryOpen(false); if (target) { setSection(target.section); setMenu(false); } }} onMarkAllRead={(ids) => markStaffRead(ids)} returnFocusRef={staffBellBtn} />}
       {paymentTarget && <PaymentCollectionDialog reservation={paymentTarget} role={user.role} onClose={() => setPaymentTarget(null)} onSaved={() => { void load(true); void refreshShiftStatus(); if(detail) void viewReservation(detail.reservation); }} />}
       <ToastStack controller={toastController} />
@@ -365,7 +359,7 @@ const required = (message = "This field is required.") => (v: string | number | 
         {section === "inventory" ? <StockIntegrityPanel role={user.role} /> : section === "team_operations" ? <TeamOperationsPanel role={user.role} actorId={user.id} onOpenSource={(kind, id) => { const target = ({ reservation: "reservations", guest_request: "guest_requests", housekeeping: "housekeeping_tasks", maintenance: "maintenance_orders", cash_shift: "cash_shifts" } as Record<string, Section>)[kind]; if (target && access[user.role].includes(target)) { setSearchForSection(target, id); setSection(target); } else { notify("Source record retained. Ask the responsible department for details."); } }} /> : section === "lost_found" ? <LostFoundPanel role={user.role} /> : section === "room_types" ? <RoomCatalogPanel role={user.role} /> : section === "transport_services" ? <TransportServicesPanel /> : section === "request_types" ? <RequestTypesPanel /> : section === "transportation" ? <TransportationPanel role={user.role} /> : section === "insights" ? <PredictiveInsightsPanel /> : section === "ai" ? <HavenAiPanel userName={user.name} onOpenQueue={(queue) => setSection(queue)} /> : section === "staff_duty" ? <StaffDutyPanel /> : section === "guest_requests" && ["front_desk", "manager", "housekeeping"].includes(user.role) ? <GuestRequestsPanel role={user.role} onEscalate={user.role === "housekeeping" ? request => escalateGuestRequest(request as unknown as RecordItem) : undefined} /> : loading ? <Loading /> : loadError ? <LoadFailure message={loadError} retry={() => void load()} /> : section === "overview" ? <Overview data={dashboard!} setSection={setSection} allowed={access[user.role]} role={user.role} onScan={() => setScanOpen(true)} onOpenRack={(view, tab) => { setRackEntry({ view, tab }); setSection("room_rack"); }} onNewReservation={() => void createReservation()} /> : section === "reports" ? user.role === "front_desk" ? <FrontDeskReportsPanel role={user.role} /> : user.role === "accounting" ? <Reports data={dashboard!} role={user.role} /> : <>
           <Reports data={dashboard!} role={user.role} />
           <FrontDeskReportsPanel role={user.role} />
-        </> : section === "room_rack" ? <FrontOfficeRack role={user.role} onOpenFolio={id => viewReservation({ id })} onCheckIn={id => openArrival({ id })} onViewRoom={(item, actions) => { setRoomDetail(item); setRoomDetailActions(actions ?? []); }} initialView={rackEntry?.view} initialTab={rackEntry?.tab} onNewReservation={() => void createReservation()} onCheckOut={item => void checkOut(item)} onScan={() => setScanOpen(true)} notify={(message, tone) => toastController.push({ title: message, tone: tone ?? "info", duration: 20000 })} /> : section === "approvals" ? <ManagerApprovalView items={filtered} search={search} setSearch={setSearch} review={reviewManagerApproval} execute={executeManagerApproval} financialExecute={executeManagerFinancialApproval} escalateOwner={escalateOwner} executeException={executeException} canReview={user.role === "manager"} canExecute={operational} canFinancialExecute={financialAuthority} actorId={user.id} /> : isAccountingSection(section) ? <div className={section === "cash_shifts" ? "hms-split hms-accounting-split" : undefined}><div className="hms-accounting-ledger"><AccountingView section={section} ledger={ledger} search={search} setSearch={setSearch} rejectDeposit={rejectDeposit} reverseCharge={reverseCharge} recordAdjustment={recordAdjustment} openCashShift={openCashShift} closeCashShift={closeCashShift} reconcileCashShift={reconcileCashShift} recordReconciliation={recordReconciliation} generateDocument={generateDocument} canVerify={financialAuthority} canAdjust={financialAuthority} canReconcile={financialAuthority} canOperateShift={cashHandling} canIssueDocument={cashHandling} actorId={user.id} /></div>{section === "cash_shifts" && ledger && cashHandling && <CashCountPanel ledger={ledger} role={user.role} actorId={user.id} onSaved={() => { void load(true); void refreshShiftStatus(); }} />}</div> : section === "housekeeping_tasks" ? <HousekeepingQueuePanel role={user.role} userId={user.id} items={filtered} allItems={items} search={search} setSearch={setSearch} housekeepingAction={operateHousekeeping} coordinate={coordinateHousekeeping} applySuggestion={applySuggestion} suggestions={suggestions} onViewMaintenance={() => setSection("maintenance_orders")} onViewRoom={item => setRoomDetail({ id: String(item.room_id), number: item.room_number, type: item.room_type, floor: null, status: item.room_status, housekeeping: item.room_housekeeping })} guestRequestOpen={user.role === "housekeeping" ? dashboard?.metrics?.departmentRequests ?? 0 : 0} onOpenGuestRequests={() => setSection("guest_requests")} /> : section === "reservations" && user.role === "manager" ? <ManagerReservationsPanel items={filtered} search={search} setSearch={setSearch} viewReservation={viewReservation} onReviewException={reviewReservationException} onScan={() => setScanOpen(true)} /> : <ResourceView key={section} resource={section} items={filtered} allItems={items} depositSlaHours={dashboard?.metrics?.depositSlaHours ?? DEFAULT_DEPOSIT_SLA_HOURS} replenishment={replenishmentRoles ? replenishment : null} createDraftPo={createDraftPo} submitPo={submitPo} receivePo={receivePo} cancelPo={cancelPo} assets={assetRoles ? maintenanceAssets : null} registerAsset={registerAsset} assetAction={assetAction} search={search} setSearch={setSearch} open={section === "maintenance_orders" ? createMaintenance : () => setModal(true)} advance={advance} checkIn={openArrival} verifyDeposit={verifyDeposit} rejectDeposit={rejectDeposit} viewReservation={viewReservation} viewRoom={item => setRoomDetail(item)} viewGuest={item => viewGuestProfile(String(item.id))} processRefund={processRefund} failRefund={failRefund} canProcessRefund={financialAuthority} canVerify={financialAuthority} canCheckIn={operational} requestApproval={requestManagerApproval} escalateGuestRequest={escalateGuestRequest} progressGuestRequest={progressGuestRequest} canProgressGuestRequest={canProgressGuestRequest} coordinateHousekeeping={coordinateHousekeeping} coordinateMaintenance={coordinateMaintenance} housekeepingAction={operateHousekeeping} maintenanceAction={operateMaintenance} createReservation={createReservation} openWalkIn={openWalkInDialog} canMaintain={user.role === "maintenance"} canAssignOthers={false} canHousekeep={user.role === "housekeeping"} canCoordinate={user.role === "manager"} canRequestApproval={user.role === "front_desk" || user.role === "housekeeping" || user.role === "maintenance" || user.role === "accounting"} manageRooms={catalogAuthority ? () => setRoster(true) : null} onScan={section === "reservations" ? () => setScanOpen(true) : null} canCreate={section !== "rooms" && section !== "maintenance_orders" && user.role !== "accounting" && user.role !== "manager" && !(user.role === "front_desk" && ["rooms", "guests", "housekeeping_tasks", "invoices", "payments"].includes(section))} canAdvance={section !== "rooms" && section !== "maintenance_orders" && user.role !== "manager" && !(user.role === "front_desk" && ["rooms", "housekeeping_tasks", "invoices"].includes(section))} />}
+        </> : section === "hotel_operations" ? <HotelOperationsPanel role={user.role} onRoom={["front_desk","manager","housekeeping","maintenance"].includes(user.role) ? id => setRoomDetail({id,number:id}) : undefined} onGuest={["front_desk","manager"].includes(user.role) ? id => void viewGuestProfile(id) : undefined} onReservation={["front_desk","manager","accounting"].includes(user.role) ? id => void viewReservation({ id }) : undefined} onTasks={["front_desk","manager","housekeeping"].includes(user.role) ? () => setSection("housekeeping_tasks") : undefined} /> : section === "room_rack" ? <FrontOfficeRack role={user.role} onOpenFolio={id => viewReservation({ id })} onCheckIn={id => openArrival({ id })} onViewRoom={(item, actions) => { setRoomDetail(item); setRoomDetailActions(actions ?? []); }} initialView={rackEntry?.view} initialTab={rackEntry?.tab} onNewReservation={() => void createReservation()} onCheckOut={item => void checkOut(item)} onScan={() => setScanOpen(true)} notify={(message, tone) => toastController.push({ title: message, tone: tone ?? "info", duration: 20000 })} /> : section === "approvals" ? <ManagerApprovalView items={filtered} search={search} setSearch={setSearch} review={reviewManagerApproval} execute={executeManagerApproval} financialExecute={executeManagerFinancialApproval} escalateOwner={escalateOwner} executeException={executeException} canReview={user.role === "manager"} canExecute={operational} canFinancialExecute={financialAuthority} actorId={user.id} /> : isAccountingSection(section) ? <div className={section === "cash_shifts" ? "hms-split hms-accounting-split" : undefined}><div className="hms-accounting-ledger"><AccountingView section={section} ledger={ledger} search={search} setSearch={setSearch} rejectDeposit={rejectDeposit} reverseCharge={reverseCharge} recordAdjustment={recordAdjustment} openCashShift={openCashShift} closeCashShift={closeCashShift} reconcileCashShift={reconcileCashShift} recordReconciliation={recordReconciliation} generateDocument={generateDocument} canVerify={financialAuthority} canAdjust={financialAuthority} canReconcile={financialAuthority} canOperateShift={cashHandling} canIssueDocument={cashHandling} actorId={user.id} /></div>{section === "cash_shifts" && ledger && cashHandling && <CashCountPanel ledger={ledger} role={user.role} actorId={user.id} onSaved={() => { void load(true); void refreshShiftStatus(); }} />}</div> : section === "housekeeping_tasks" ? <HousekeepingQueuePanel role={user.role} userId={user.id} items={filtered} allItems={items} search={search} setSearch={setSearch} housekeepingAction={operateHousekeeping} coordinate={coordinateHousekeeping} applySuggestion={applySuggestion} suggestions={suggestions} onViewMaintenance={() => setSection("maintenance_orders")} onViewRoom={item => setRoomDetail({ id: String(item.room_id), number: item.room_number, type: item.room_type, floor: null, status: item.room_status, housekeeping: item.room_housekeeping })} guestRequestOpen={user.role === "housekeeping" ? dashboard?.metrics?.departmentRequests ?? 0 : 0} onOpenGuestRequests={() => setSection("guest_requests")} /> : section === "reservations" && user.role === "manager" ? <ManagerReservationsPanel items={filtered} search={search} setSearch={setSearch} viewReservation={viewReservation} onReviewException={reviewReservationException} onScan={() => setScanOpen(true)} /> : <ResourceView key={section} resource={section} items={filtered} allItems={items} depositSlaHours={dashboard?.metrics?.depositSlaHours ?? DEFAULT_DEPOSIT_SLA_HOURS} replenishment={replenishmentRoles ? replenishment : null} createDraftPo={createDraftPo} submitPo={submitPo} receivePo={receivePo} cancelPo={cancelPo} assets={assetRoles ? maintenanceAssets : null} registerAsset={registerAsset} assetAction={assetAction} search={search} setSearch={setSearch} open={section === "maintenance_orders" ? createMaintenance : () => setModal(true)} advance={advance} checkIn={openArrival} verifyDeposit={verifyDeposit} rejectDeposit={rejectDeposit} viewReservation={viewReservation} viewRoom={item => setRoomDetail(item)} viewGuest={item => viewGuestProfile(String(item.id))} processRefund={processRefund} failRefund={failRefund} canProcessRefund={financialAuthority} canVerify={financialAuthority} canCheckIn={operational} requestApproval={requestManagerApproval} escalateGuestRequest={escalateGuestRequest} progressGuestRequest={progressGuestRequest} canProgressGuestRequest={canProgressGuestRequest} coordinateHousekeeping={coordinateHousekeeping} coordinateMaintenance={coordinateMaintenance} housekeepingAction={operateHousekeeping} maintenanceAction={operateMaintenance} createReservation={createReservation} openWalkIn={openWalkInDialog} canMaintain={user.role === "maintenance"} canAssignOthers={false} canHousekeep={user.role === "housekeeping"} canCoordinate={user.role === "manager"} canRequestApproval={user.role === "front_desk" || user.role === "housekeeping" || user.role === "maintenance" || user.role === "accounting"} manageRooms={catalogAuthority ? () => setRoster(true) : null} onScan={section === "reservations" ? () => setScanOpen(true) : null} canCreate={section !== "rooms" && section !== "maintenance_orders" && user.role !== "accounting" && user.role !== "manager" && !(user.role === "front_desk" && ["rooms", "guests", "housekeeping_tasks", "invoices", "payments"].includes(section))} canAdvance={section !== "rooms" && section !== "maintenance_orders" && user.role !== "manager" && !(user.role === "front_desk" && ["rooms", "housekeeping_tasks", "invoices"].includes(section))} />}
       </div>
     </main>
     {modal && isResourceSection(section) && <CreateModal resource={section} close={() => setModal(false)} submit={add} />}
@@ -374,7 +368,7 @@ const required = (message = "This field is required.") => (v: string | number | 
     {verifyPayment && <DepositVerifyDialog item={verifyPayment} busy={verifying} onClose={() => setVerifyPayment(null)} onConfirm={() => confirmVerifyDeposit(verifyPayment)} onReject={() => { const item = verifyPayment; setVerifyPayment(null); rejectDeposit(item); }} />}
     {scanOpen && <QrScannerModal onClose={() => setScanOpen(false)} onCta={scanCta} />}
     {roster && <RoomRosterPanel onClose={() => { setRoster(false); void load(true); }} />}
-    {detail && <ReservationDetailModal detail={detail} close={() => setDetail(null)} checkIn={openArrival} closeReservation={closeReservation} collectPayment={collectPayment} postCharge={postCharge} assignRoom={assignRoom} changeRoom={changeRoom} extendStay={extendStay} updateGuest={updateGuest} routeRequest={routeRequest} checkOut={checkOut} reverseCharge={reverseCharge} recordAdjustment={recordAdjustment} generateDocument={generateDocument} canFinancial={cashHandling} canManage={operational} canAdjust={financialAuthority} canIssueDocument={cashHandling} oversight={user.role === "manager" || user.role === "owner"} canViewTransportation={user.role === "front_desk" || user.role === "manager" || user.role === "owner"} onReviewException={reviewReservationException} viewGuestProfile={viewGuestProfile} />}
+    {detail && <ReservationDetailModal detail={detail} refresh={() => void viewReservation(detail.reservation)} close={() => setDetail(null)} checkIn={openArrival} closeReservation={closeReservation} collectPayment={collectPayment} postCharge={postCharge} assignRoom={assignRoom} changeRoom={changeRoom} extendStay={extendStay} updateGuest={updateGuest} routeRequest={routeRequest} checkOut={checkOut} reverseCharge={reverseCharge} recordAdjustment={recordAdjustment} generateDocument={generateDocument} canFinancial={cashHandling} canManage={operational} canAdjust={financialAuthority} canIssueDocument={cashHandling} oversight={user.role === "manager" || user.role === "owner"} canViewTransportation={user.role === "front_desk" || user.role === "manager" || user.role === "owner"} onReviewException={reviewReservationException} viewGuestProfile={viewGuestProfile} />}
     {guestProfile && <GuestProfileModal profile={guestProfile} close={() => setGuestProfile(null)} onViewReservation={id => { setGuestProfile(null); viewReservation({ id }); }} />}
     {arrival && <FrontDeskArrivalDialog key={arrivalKey} reservationId={String(arrival.item.id)} guestName={String(arrival.item.guest_name ?? "Guest")} exceptionType={arrival.exceptionType} askForm={dialogs.askForm} resume={arrivalResume[arrivalKey] ?? null} onProgress={handleArrivalProgress} onClose={() => setArrival(null)} onCheckedIn={handleCheckedIn} />}
     {walkIn && <WalkInDialog key="walk-in" guests={guestProfiles} hotelToday={new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date())} onClose={() => setWalkIn(false)} onCreated={handleWalkInCreated} />}
@@ -428,14 +422,14 @@ export function Overview({ data, setSection, allowed, role, onScan, onOpenRack, 
           <AreaChart data={data.occupancyTrend}>
             <defs>
               <linearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#176773" stopOpacity={0.28} />
-                <stop offset="95%" stopColor="#176773" stopOpacity={0} />
+                <stop offset="5%" stopColor={CHART_OCCUPANCY} stopOpacity={0.28} />
+                <stop offset="95%" stopColor={CHART_OCCUPANCY} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8e7e2" />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART_GRID} />
             <XAxis dataKey="day" axisLine={false} tickLine={false} />
             <Tooltip />
-            <Area type="monotone" dataKey="occupancy" stroke="#176773" strokeWidth={2.5} fill="url(#fill)" />
+            <Area type="monotone" dataKey="occupancy" stroke={CHART_OCCUPANCY} strokeWidth={2.5} fill="url(#fill)" />
           </AreaChart>
         </ResponsiveContainer>
       </article> : <article className="panel ops-queue-panel">
@@ -510,7 +504,7 @@ export function Overview({ data, setSection, allowed, role, onScan, onOpenRack, 
               {r.room_type} {r.check_in}
             </small>
           </div>
-          <span className={`badge ${r.status}`}>{label(r.status)}</span>
+          <StatusBadge status={String(r.status)} label={label(r.status)} />
         </div>)}
       </article> : role === "housekeeping" || role === "maintenance" ? null : <article className="panel room-activity-panel">
         <div className="panel-heading">
@@ -630,12 +624,10 @@ function ReservationsTable({ items, canCheckIn, canRequestApproval, viewReservat
             </div>
           </td>
           <td>
-            <span className={`badge ${item.payment_status}`}>
-              {label(item.payment_status)}
-            </span>
+            <StatusBadge status={String(item.payment_status)} label={label(item.payment_status)} />
           </td>
           <td>
-            <span className={`badge ${status}`}>{label(status)}</span>
+            <StatusBadge status={String(status)} label={label(status)} />
           </td>
           <td>
             <div className="reservation-actions">
@@ -658,23 +650,18 @@ function ReservationsTable({ items, canCheckIn, canRequestApproval, viewReservat
 // committed and in-use last; room number ascending inside each group.
 const roomStatusRank: Record<string, number> = { available: 0, dirty: 1, maintenance: 2, reserved: 3, occupied: 4 }; export function ResourceView({ resource, items, depositSlaHours, replenishment, createDraftPo, submitPo, receivePo, cancelPo, assets, registerAsset, assetAction, search, setSearch, open, advance, checkIn, verifyDeposit, rejectDeposit, viewReservation, viewRoom, viewGuest, processRefund, failRefund, requestApproval, escalateGuestRequest, progressGuestRequest, canProgressGuestRequest, coordinateHousekeeping, coordinateMaintenance, housekeepingAction, maintenanceAction, createReservation, openWalkIn, canMaintain, canAssignOthers, canHousekeep, canCheckIn, canVerify, canProcessRefund, canCreate, canAdvance, canCoordinate, canRequestApproval, manageRooms, onScan, allItems }: { resource: Resource; items: RecordItem[]; depositSlaHours: number; replenishment: { suggestions: ReplenishmentSuggestion[]; drafts: RecordItem[]; vendors: { id: string; name: string }[]; } | null; createDraftPo: (s: ReplenishmentSuggestion) => void; submitPo: (o: RecordItem) => void; receivePo: (o: RecordItem) => void; cancelPo: (o: RecordItem) => void; assets: MaintenanceAsset[] | null; registerAsset: () => void; assetAction: (a: MaintenanceAsset, action: "record-service" | "update" | "deactivate") => void; search: string; setSearch: (s: string) => void; open: () => void; advance: (x: RecordItem) => void; checkIn: (x: RecordItem) => void; verifyDeposit: (x: RecordItem) => void; rejectDeposit: (x: RecordItem) => void; viewReservation: (x: RecordItem) => void; viewRoom: (x: RecordItem) => void; viewGuest: (x: RecordItem) => void; processRefund: (x: RecordItem) => void; failRefund: (x: RecordItem) => void; requestApproval: (x: RecordItem) => void; escalateGuestRequest: (x: RecordItem) => void; progressGuestRequest: (x: RecordItem, action: "start" | "complete") => void; canProgressGuestRequest: (x: RecordItem) => boolean; coordinateHousekeeping: (x: RecordItem) => void; coordinateMaintenance: (x: RecordItem) => void; housekeepingAction: (x: RecordItem, action: "assign" | "start" | "complete" | "inspect" | "defer" | "maintenance") => void; maintenanceAction: (x: RecordItem, action: "assign" | "start" | "diagnose" | "defer" | "progress" | "resolve" | "close" | "cancel") => void; createReservation: () => void; openWalkIn: () => void; canMaintain: boolean; canAssignOthers: boolean; canHousekeep: boolean; canCheckIn: boolean; canVerify: boolean; canProcessRefund: boolean; canCreate: boolean; canAdvance: boolean; canCoordinate: boolean; canRequestApproval: boolean; manageRooms: (() => void) | null; onScan: (() => void) | null; allItems: RecordItem[]; }) {
   const c = config[resource]; const [queue, setQueue] = useState("all"); const [source, setSource] = useState("all"); const [roomType, setRoomType] = useState("all"); const [loyaltyTier, setLoyaltyTier] = useState(ALL_LOYALTY_TIERS); const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date()); const sources = resource === "reservations" ? Array.from(new Set(items.map(item => String(item.source || "Direct")))) : []; const roomTypes = resource === "rooms" ? Array.from(new Set(items.map(item => String(item.type)))).sort() : []; const loyaltyTiers = resource === "guests" ? loyaltyTierOptions(allItems) : []; const queueCounts = resource === "reservations" ? new Map([["all", items.length], ...[["upcoming"], ["arrivals"], ["departures"], ["in_house"], ["cancelled"], ["no_show"]].map(([value]) => [value as string, items.filter(item => queueFilter(item, value as string, "all", today)).length] as [string, number])]) : null; const matched = resource !== "reservations" ? resource === "rooms" ? items.filter(item => roomType === "all" || String(item.type) === roomType).sort((a, b) => (roomStatusRank[String(a.status)] ?? 9) - (roomStatusRank[String(b.status)] ?? 9) || String(a.number).localeCompare(String(b.number), undefined, { numeric: true })) : resource === "guests" ? items.filter(item => matchesLoyaltyTier(item, loyaltyTier)) : items : items.filter(item => queueFilter(item, queue, source, today)); const ordered = ["guests", "inventory"].includes(resource) ? sortTableRows(matched, item => String(item.name ?? item.number ?? item.id)) : matched; const page = useTablePagination(ordered); const visible = page.rows; return <>
-    <div className="page-title module-title">
-      <div>
-        <p className="eyebrow">Hotel operations</p>
-        <h1>{c.title}</h1>
-        <p>{c.subtitle}</p>
-      </div>
-      {resource === "reservations" && <div className="title-actions">
+    <PageHeader variant="band" eyebrow="Hotel operations" title={c.title} subtitle={c.subtitle} actions={<>
+      {resource === "reservations" && <>
         {onScan && <button className="btn btn-soft" onClick={onScan}>
           <QrCode size={17} /> Scan QR
         </button>}
         {canCheckIn && <NewReservationMenu onNew={createReservation} onWalkIn={openWalkIn} />}
-      </div>}
+      </>}
       {resource === "rooms" && manageRooms && <button className="btn btn-accent" onClick={manageRooms}><DoorClosed size={15} /> Manage rooms</button>}
       {!["payments", "refunds", "reservations"].includes(resource) && canCreate && <button className="btn btn-accent" onClick={open}>
         <Plus size={17} /> Add {c.title.split(" ")[0].toLowerCase()}
       </button>}
-    </div>
+    </>} />
     <ModuleSummaryCards cards={moduleSummary(resource, items, today, depositSlaHours)} activeQueue={resource === "reservations" ? queue : undefined} onSelect={resource === "reservations" ? target => setQueue(target) : undefined} ariaLabel={`${c.title} summary`} />
     {resource === "inventory" && replenishment && <div className="data-panel hk-queue" aria-label="Replenishment suggestions">
       {replenishment.suggestions.length > 0 && <section className="hk-queue-group">
@@ -697,9 +684,7 @@ const roomStatusRank: Record<string, number> = { available: 0, dirty: 1, mainten
               <span className="hk-queue-type">
                 {label(suggestion.unit)}
               </span>
-              <span className={`badge ${suggestion.risk}`}>
-                {label(suggestion.risk)}
-              </span>
+              <StatusBadge status={String(suggestion.risk)} label={label(suggestion.risk)} />
             </header>
             <p className="hk-queue-service">
               <strong>Stock {suggestion.currentStock}</strong> · reorder
@@ -763,13 +748,7 @@ const roomStatusRank: Record<string, number> = { available: 0, dirty: 1, mainten
                   {asset.room_number ? <span className="hk-queue-type">
                     Room {asset.room_number}
                   </span> : null}
-                  {days === null ? <span className="badge">No history</span> : days < 0 ? <span className="badge sla-breach">
-                    Overdue {Math.abs(days)}d
-                  </span> : days <= 7 ? <span className="badge sla-attention">
-                    In {days}d
-                  </span> : <span className="badge">
-                    {fmtDate(asset.next_service_date)}
-                  </span>}
+                  {days === null ? <StatusBadge status="not_active" label="No history" /> : days < 0 ? <StatusBadge status="sla_breach" label={`Overdue ${Math.abs(days)}d`} /> : days <= 7 ? <StatusBadge status="sla_attention" label={`In ${days}d`} /> : <StatusBadge status="" label={fmtDate(asset.next_service_date)} /> }
                 </header>
                 <p className="hk-queue-service">
                   <strong>
@@ -837,9 +816,7 @@ const roomStatusRank: Record<string, number> = { available: 0, dirty: 1, mainten
             {visible.map(item => <tr key={item.id}>
               {c.columns.map(column => <td key={column.key}>
                 {column.key === "payment_identity" ? <PaymentIdentity item={item} /> : column.key === "submitted_at" ? formatPaymentSubmittedAt(item[column.key]) : column.key === "status" ? resource === "payments" ? <div className="payment-status">
-                  <span className={`badge ${item.status}`}>
-                    {label(item.status)}
-                  </span>
+                  <StatusBadge status={String(item.status)} label={label(item.status)} />
                   {item.status === "pending_verification" && (() => {
                     const age = depositAgeMinutes(item.submitted_at); const band = depositAgeBand(item.submitted_at, depositSlaHours); // Source contract: depositAgeBand(item.submitted_at,depositSlaHours)
                     // is display-only and never advances payment state.
@@ -849,14 +826,10 @@ const roomStatusRank: Record<string, number> = { available: 0, dirty: 1, mainten
                     </span>;
                   })()}
                   {item.status === "failed" && item.decision_reason && <small>{label(item.decision_reason)}</small>}
-                  {item.status === "pending_verification" && String(item.method ?? "") === "gateway_paymongo" && <span className="badge gateway-pending" title="Online payment — confirms automatically once the provider settles">Awaiting provider</span>}
+                  {item.status === "pending_verification" && String(item.method ?? "") === "gateway_paymongo" && <StatusBadge status="pending" label="Awaiting provider" title="Online payment — confirms automatically once the provider settles" showIcon={false} />}
                 </div> : canAdvance ? <button className={`badge ${item.status}`} onClick={() => advance(item)} title="Click to move to next status">
                   {label(item.status)}
-                </button> : <span className={`badge ${item.status}`}>
-                  {label(item.status)}
-                </span> : column.key === "basis" ? refundBasisBadge(item) : column.key === "payment_status" ? <span className={`badge ${item.payment_status}`}>
-                  {label(item.payment_status)}
-                </span> : column.key === "source" ? <span className={`source-badge ${String(item.source).toLowerCase()}`}>
+                </button> : <StatusBadge status={String(item.status)} label={label(item.status)} /> : column.key === "basis" ? refundBasisBadge(item) : column.key === "payment_status" ? <StatusBadge status={String(item.payment_status)} label={label(item.payment_status)} /> : column.key === "source" ? <span className={`source-badge ${String(item.source).toLowerCase()}`}>
                   {label(item.source)}
                 </span> : column.money ? <strong>{peso(item[column.key])}</strong> : column.key === "guest_name" || column.key === "name" ? <strong>{label(item[column.key])}</strong> : label(item[column.key])}
               </td>)}
@@ -896,9 +869,7 @@ const roomStatusRank: Record<string, number> = { available: 0, dirty: 1, mainten
                   </button>}
                   {canRequestApproval && item.status !== "completed" && item.escalation_status !== "escalated" ? <button className="table-action" onClick={() => escalateGuestRequest(item)}>
                     Escalate
-                  </button> : <span className={`badge ${item.escalation_status ?? "none"}`}>
-                    {label(item.escalation_status ?? "normal")}
-                  </span>}
+                  </button> : <StatusBadge status={String(item.escalation_status ?? "normal")} label={label(item.escalation_status ?? "normal")} />}
                 </div>
               </td>}
               {resource === "housekeeping_tasks" && <td>
@@ -1004,7 +975,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
       </small>
     </span>)}
   </div>;
-} function ReservationDetailModal({ detail, close, checkIn, closeReservation, collectPayment, postCharge, assignRoom, changeRoom, extendStay, updateGuest, routeRequest, checkOut, reverseCharge, recordAdjustment, generateDocument, canFinancial, canManage, canAdjust, canIssueDocument, oversight, canViewTransportation, onReviewException, viewGuestProfile }: { detail: ReservationDetail; close: () => void; checkIn: (item: RecordItem) => void; closeReservation: (status: "cancelled" | "no_show") => void; collectPayment: (item: RecordItem) => void; postCharge: (item: RecordItem) => void; assignRoom: (item: RecordItem) => void; changeRoom: (item: RecordItem) => void; extendStay: (item: RecordItem) => void; updateGuest: (item: RecordItem) => void; routeRequest: (item: RecordItem) => void; checkOut: (item: RecordItem) => void; reverseCharge: (item: RecordItem) => void; recordAdjustment: (reservationId: string) => void; generateDocument: (payload: { documentType: "receipt"; paymentId: string; } | { documentType: "folio"; reservationId: string; }) => void; canFinancial: boolean; canManage: boolean; canAdjust: boolean; canIssueDocument: boolean; oversight?: boolean; canViewTransportation?: boolean; onReviewException?: (item: RecordItem) => void; viewGuestProfile?: (id: string) => void; }) {
+} function ReservationDetailModal({ detail, refresh, close, checkIn, closeReservation, collectPayment, postCharge, assignRoom, changeRoom, extendStay, updateGuest, routeRequest, checkOut, reverseCharge, recordAdjustment, generateDocument, canFinancial, canManage, canAdjust, canIssueDocument, oversight, canViewTransportation, onReviewException, viewGuestProfile }: { detail: ReservationDetail; refresh: () => void; close: () => void; checkIn: (item: RecordItem) => void; closeReservation: (status: "cancelled" | "no_show") => void; collectPayment: (item: RecordItem) => void; postCharge: (item: RecordItem) => void; assignRoom: (item: RecordItem) => void; changeRoom: (item: RecordItem) => void; extendStay: (item: RecordItem) => void; updateGuest: (item: RecordItem) => void; routeRequest: (item: RecordItem) => void; checkOut: (item: RecordItem) => void; reverseCharge: (item: RecordItem) => void; recordAdjustment: (reservationId: string) => void; generateDocument: (payload: { documentType: "receipt"; paymentId: string; } | { documentType: "folio"; reservationId: string; }) => void; canFinancial: boolean; canManage: boolean; canAdjust: boolean; canIssueDocument: boolean; oversight?: boolean; canViewTransportation?: boolean; onReviewException?: (item: RecordItem) => void; viewGuestProfile?: (id: string) => void; }) {
   const reservation = detail.reservation; const active = ["pending", "confirmed"].includes(String(reservation.status)); const confirmed = reservation.status === "confirmed"; const inHouse = reservation.status === "checked_in"; const balance = Number(detail.invoice?.balance ?? Number(reservation.total || 0) - Number(reservation.deposit || 0)); // What the guest asked for at booking (chips) — the derived guest_requests rows
   // only exist once the reservation is confirmed, so this is the only view for pending ones.
   const requestOptions = (Array.isArray(reservation.request_options) ? reservation.request_options : []).map(String); // Frozen nightly rates (rate plans) — uniform stays show one rate, mixed-rate
@@ -1057,13 +1028,14 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
   </div>}>
     <div className="rd-meta">
       <span className="rd-eyebrow">Reservation</span>
-      <span className={`badge ${reservation.status}`}>
-        {label(reservation.status)}
-      </span>
+      <StatusBadge status={String(reservation.status)} label={label(reservation.status)} />
       {arrivalToday && <span className="arrival-chip warn">Arrival today</span>}
       {departureToday && <span className="arrival-chip warn">Departure today</span>}
     </div>
     {oversight && <ReservationLifecycle detail={detail} />}
+    {(canManage || oversight) && <ReservationPartyPanel reservationId={reservation.id} editable={canManage && (confirmed || inHouse)} />}
+    {canManage && <ReservationReadinessPanel key={String(detail.invoice?.balance)} reservationId={reservation.id} mode={inHouse ? "checkOut" : "checkIn"} />}
+    {canManage && inHouse && <HotelFeePicker reservationId={reservation.id} onPosted={refresh} />}
     <div className="reservation-detail-grid rd-grid">
       <section className="rd-card">
         <h3><BedDouble size={15} aria-hidden="true" /> Stay summary</h3>
@@ -1104,9 +1076,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           <div>
             <dt>Identity</dt>
             <dd>
-              <span className={`badge ${reservation.identity_status}`}>
-                {label(reservation.identity_status || "unverified")}
-              </span>
+              <StatusBadge status={String(reservation.identity_status || "unverified")} label={label(reservation.identity_status || "unverified")} />
             </dd>
           </div>
         </dl>
@@ -1170,9 +1140,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           <div>
             <dt>Status</dt>
             <dd>
-              <span className={`badge ${detail.invoice?.status ?? reservation.payment_status}`}>
-                {label(detail.invoice?.status ?? reservation.payment_status)}
-              </span>
+              <StatusBadge status={String(detail.invoice?.status ?? reservation.payment_status)} label={label(detail.invoice?.status ?? reservation.payment_status)} />
             </dd>
           </div>
         </dl>
@@ -1204,9 +1172,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           <strong className="rd-amount">{peso(charge.amount)}</strong>
         </div>
         <div className="rd-row-foot">
-          <span className={`badge ${charge.status ?? "posted"}`}>
-            {label(charge.status ?? "posted")}
-          </span>
+          <StatusBadge status={String(charge.status ?? "posted")} label={label(charge.status ?? "posted")} />
           {canAdjust && charge.status !== "reversed" && <button className="btn btn-soft rd-mini" onClick={() => reverseCharge(charge)}>
             Reverse
           </button>}
@@ -1242,9 +1208,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           </strong>
         </div>
         <div className="rd-row-foot">
-          <span className={`badge ${payment.status}`}>
-            {label(payment.status)}
-          </span>
+          <StatusBadge status={String(payment.status)} label={label(payment.status)} />
           {canIssueDocument && payment.status === "paid" && <button className="btn btn-soft rd-mini" onClick={() => generateDocument({ documentType: "receipt", paymentId: String(payment.id) })}>
             View receipt
           </button>}
@@ -1261,9 +1225,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           <strong className="rd-amount">{peso(refund.eligible_amount)}</strong>
         </div>
         <div className="rd-row-foot">
-          <span className={`badge ${refund.status}`}>
-            {label(refund.status)}
-          </span>
+          <StatusBadge status={String(refund.status)} label={label(refund.status)} />
         </div>
       </div>)}
       {detail.refundAttempts.map(attempt => <div className="rd-row" key={attempt.id}>
@@ -1274,9 +1236,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           <span className="rd-row-sub">{label(attempt.attempted_at)}</span>
         </div>
         <div className="rd-row-foot">
-          <span className={`badge ${attempt.status}`}>
-            {label(attempt.status)}
-          </span>
+          <StatusBadge status={String(attempt.status)} label={label(attempt.status)} />
         </div>
       </div>)}
     </section>}
@@ -1302,9 +1262,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           </span>
         </div>
         <div className="rd-row-foot">
-          <span className={`badge ${request.status}`}>
-            {label(request.status)}
-          </span>
+          <StatusBadge status={String(request.status)} label={label(request.status)} />
         </div>
       </div>)}
     </section>}
@@ -1318,9 +1276,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           </span>
         </div>
         <div className="rd-row-foot">
-          <span className={`badge ${assignment.status}`}>
-            {label(assignment.status)}
-          </span>
+          <StatusBadge status={String(assignment.status)} label={label(assignment.status)} />
         </div>
       </div>)}
     </section>}
@@ -1333,9 +1289,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           </span>
         </div>
         <div className="rd-row-foot">
-          <span className={`badge ${request.status}`}>
-            {label(request.status)}
-          </span>
+          <StatusBadge status={String(request.status)} label={label(request.status)} />
         </div>
       </div>)}
     </section>}
@@ -1353,9 +1307,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           </span>
         </div>
         {reservation.room_number && detail.room && <div className="rd-row-foot">
-          <span className={`badge ${detail.room.status}`}>
-            {label(detail.room.status)}
-          </span>
+          <StatusBadge status={String(detail.room.status)} label={label(detail.room.status)} />
         </div>}
       </div>
       {detail.maintenance.map(order => <div className="rd-row" key={order.id}>
@@ -1363,9 +1315,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           <span className="rd-row-title">Maintenance block <span className="rd-row-sub">· {label(order.issue)}</span></span>
         </div>
         <div className="rd-row-foot">
-          <span className={`badge ${order.status}`}>
-            {label(order.status)}
-          </span>
+          <StatusBadge status={String(order.status)} label={label(order.status)} />
         </div>
       </div>)}
     </section>}
@@ -1381,9 +1331,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           </span>
         </div>
         <div className="rd-row-foot">
-          <span className={`badge ${String(trip.status).toLowerCase()}`}>
-            {label(trip.status)}
-          </span>
+          <StatusBadge status={String(trip.status).toLowerCase()} label={label(trip.status)} />
         </div>
       </div>)}
     </section>}
@@ -1396,9 +1344,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           </span>
         </div>
         <div className="rd-row-foot">
-          <span className={`badge ${request.status}`}>
-            {label(request.status)}
-          </span>
+          <StatusBadge status={String(request.status)} label={label(request.status)} />
           {request.status === "pending" && onReviewException && <button className="btn btn-soft rd-mini" onClick={() => onReviewException(reservation)}>
             <Eye size={13} /> Review Exception
           </button>}
@@ -1414,9 +1360,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           </span>
         </div>
         <div className="rd-row-foot">
-          <span className={`badge ${detail.room.status}`}>
-            {label(detail.room.status)}
-          </span>
+          <StatusBadge status={String(detail.room.status)} label={label(detail.room.status)} />
         </div>
       </div>
       {detail.maintenance.map(order => <div className="rd-row" key={order.id}>
@@ -1424,9 +1368,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
           <span className="rd-row-title">Maintenance block <span className="rd-row-sub">· {label(order.issue)}</span></span>
         </div>
         <div className="rd-row-foot">
-          <span className={`badge ${order.status}`}>
-            {label(order.status)}
-          </span>
+          <StatusBadge status={String(order.status)} label={label(order.status)} />
         </div>
       </div>)}
     </section>}
@@ -1436,17 +1378,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
 export function ManagerApprovalView({ items, search, setSearch, review, execute, executeException, financialExecute, escalateOwner, canReview, canExecute, canFinancialExecute, actorId }: { items: RecordItem[]; search: string; setSearch: (value: string) => void; review: (item: RecordItem, decision: "approve" | "reject") => Promise<boolean>; execute: (item: RecordItem) => Promise<boolean>; executeException: (item: RecordItem) => Promise<boolean>; financialExecute: (item: RecordItem) => Promise<boolean>; escalateOwner: (item: RecordItem) => Promise<boolean>; canReview: boolean; canExecute: boolean; canFinancialExecute: boolean; actorId?: string; }) {
   const [status, setStatus] = useState("all"); const [scope, setScope] = useState(canReview ? "all" : "mine"); const [type, setType] = useState("all"); const [severity, setSeverity] = useState("all"); const [department, setDepartment] = useState("all"); const [reviewing, setReviewing] = useState<RecordItem | null>(null); const types = Array.from(new Set(items.map(item => String(item.request_type)))); const departments = Array.from(new Set(items.map(item => String(item.department)))); const visible = items.filter(item => (scope === "all" || !actorId || String(item.requested_by) === actorId) && (status === "all" || item.status === status) && (type === "all" || item.request_type === type) && (severity === "all" || item.severity === severity) && (department === "all" || item.department === department) && JSON.stringify(item).toLowerCase().includes(search.toLowerCase())); // Pending queue reads severity-first, longest-waiting next; decision history keeps the API's newest-first order.
   const allQueue = status === "pending" ? [...visible].sort(compareApprovalUrgency) : visible; const page = useTablePagination(allQueue); const queue = page.rows; const pending = items.filter(item => item.status === "pending"); const highPending = pending.filter(item => ["high", "critical"].includes(String(item.severity))).length; const openEscalations = pending.filter(item => approvalKind(item.request_type) === "escalation").length; const awaitingAccounting = items.filter(item => item.status === "approved" && item.execution_status === "awaiting_execution" && ["guest_compensation", "refund_exception"].includes(String(item.request_type))).length; const oldestWaiting = pending.length ? waitingSince(pending.map(item => String(item.requested_at ?? "")).filter(Boolean).sort()[0]) : "—"; const hasFilters = type !== "all" || severity !== "all" || department !== "all" || search.trim() !== ""; const clearFilters = () => { setType("all"); setSeverity("all"); setDepartment("all"); setSearch(""); }; return <>
-    <div className="page-title module-title">
-      <div>
-        <p className="eyebrow">Management control</p>
-        <h1>Approvals &amp; Escalations</h1>
-        <p>
-          Review exceptions against current operations and policy. Approval
-          authorizes the responsible department; it does not perform their
-          work.
-        </p>
-      </div>
-    </div>
+    <PageHeader variant="band" eyebrow="Management control" title="Approvals & Escalations" subtitle="Review exceptions against current operations and policy. Approval authorizes the responsible department; it does not perform their work." />
     <ModuleSummaryCards cards={[{ label: "Pending", value: pending.length, hint: "Awaiting a decision", icon: ClipboardCheck, tone: "attention", queue: "pending" }, { label: "High priority", value: highPending, hint: "High or critical severity", icon: AlertTriangle, tone: "attention" }, { label: "Escalations", value: openEscalations, hint: "Guest issues raised to Manager", icon: Bell, tone: "today" }, { label: "Awaiting Accounting", value: awaitingAccounting, hint: "Approved, not yet executed", icon: CircleDollarSign, tone: "active" }, { label: "Oldest waiting", value: oldestWaiting, hint: "Longest pending request", icon: Activity, tone: "today" }]} activeQueue={status === "pending" || status === "approved" || status === "rejected" ? status : undefined} onSelect={target => setStatus(target)} ariaLabel="Approvals queue summary" />
     <div className="reservation-filters approval-toolbar">
       <div className="table-tools approval-search-row">
@@ -1504,9 +1436,7 @@ export function ManagerApprovalView({ items, search, setSearch, review, execute,
                     {approvalKind(item.request_type) === "escalation" ? "Escalation" : "Approval"}
                   </span>
                   <b>{label(item.request_type)}</b>
-                  <span className={`badge ${item.severity}`}>
-                    {label(item.severity)}
-                  </span>
+                  <StatusBadge status={String(item.severity)} label={label(item.severity)} />
                 </div>
               </td>
               <td>
@@ -1529,9 +1459,7 @@ export function ManagerApprovalView({ items, search, setSearch, review, execute,
               </td>
               <td>
                 <div className="cell-stack">
-                  <span className={`badge ${item.status}`}>
-                    {label(item.status)}
-                  </span>
+                  <StatusBadge status={String(item.status)} label={label(item.status)} />
                   {item.status === "approved" && item.execution_status && <small>{label(item.execution_status)}</small>}
                 </div>
               </td>
@@ -1550,9 +1478,7 @@ export function ManagerApprovalView({ items, search, setSearch, review, execute,
             <span className={`approval-kind ${approvalKind(item.request_type)}`}>
               {approvalKind(item.request_type) === "escalation" ? "Escalation" : "Approval"}
             </span>
-            <span className={`badge ${item.severity}`}>
-              {label(item.severity)}
-            </span>
+            <StatusBadge status={String(item.severity)} label={label(item.severity)} />
           </header>
           <div className="approval-card-lead">
             <b>
@@ -1568,9 +1494,7 @@ export function ManagerApprovalView({ items, search, setSearch, review, execute,
             <small>
               {item.status === "pending" ? `Waiting ${waitingSince(item.requested_at)}` : fmtStamp(item.requested_at)}
             </small>
-            <span className={`badge ${item.status}`}>
-              {label(item.status)}
-            </span>
+            <StatusBadge status={String(item.status)} label={label(item.status)} />
             <button className="table-action action-primary" onClick={() => setReviewing(item)}>
               Review
             </button>
@@ -1656,9 +1580,7 @@ function ApprovalReviewModal({ item, close, review, execute, executeException, f
           <div>
             <dt>Severity</dt>
             <dd>
-              <span className={`badge ${item.severity}`}>
-                {label(item.severity)}
-              </span>
+              <StatusBadge status={String(item.severity)} label={label(item.severity)} />
             </dd>
           </div>
         </dl>
@@ -1683,9 +1605,7 @@ function ApprovalReviewModal({ item, close, review, execute, executeException, f
           {item.reservation_status && <div>
             <dt>Current status</dt>
             <dd>
-              <span className={`badge ${item.reservation_status}`}>
-                {label(item.reservation_status)}
-              </span>
+              <StatusBadge status={String(item.reservation_status)} label={label(item.reservation_status)} />
             </dd>
           </div>}
         </dl>
@@ -1762,9 +1682,7 @@ function ApprovalReviewModal({ item, close, review, execute, executeException, f
         <div>
           <dt>Room availability</dt>
           <dd>
-            <span className={`badge ${stayExt.roomConflict ? "cancelled" : "paid"}`}>
-              {stayExt.roomConflict ? "Conflict during added nights" : "Available through new checkout"}
-            </span>
+            <StatusBadge status={stayExt.roomConflict ? "cancelled" : "paid"} label={stayExt.roomConflict ? "Conflict during added nights" : "Available through new checkout"} />
           </dd>
         </div>
         <div>
@@ -1812,9 +1730,7 @@ function ApprovalReviewModal({ item, close, review, execute, executeException, f
         <div>
           <dt>Decision</dt>
           <dd>
-            <span className={`badge ${item.status}`}>
-              {label(item.status)}
-            </span>
+            <StatusBadge status={String(item.status)} label={label(item.status)} />
           </dd>
         </div>
         {item.reviewer_name && <div>
@@ -1900,12 +1816,7 @@ function ApprovalReviewModal({ item, close, review, execute, executeException, f
       </button>
     </div>; return <span>{label(row.created_at)}</span>;
   }; return <>
-    <div className="page-title module-title">
-      <div>
-        <p className="eyebrow">Accounting</p>
-        <h1>{view.title}</h1>
-        <p>{view.subtitle}</p>
-      </div>
+    <PageHeader variant="band" eyebrow="Accounting" title={view.title} subtitle={view.subtitle} actions={<>
       {section === "cash_shifts" && canOperateShift && <button className="btn btn-accent" onClick={openCashShift} disabled={ledger.metrics.openCashShifts > 0} title={ledger.metrics.openCashShifts > 0 ? "A cash shift is already open — only one stays open at a time" : undefined}>
         <Plus size={17} /> Open cash shift
       </button>}
@@ -1913,7 +1824,7 @@ function ApprovalReviewModal({ item, close, review, execute, executeException, f
       {section === "reconciliation" && canReconcile && <button className="btn btn-accent" onClick={recordReconciliation}>
         <Plus size={17} /> Record reconciliation
       </button>}
-    </div>
+    </>} />
     <ModuleSummaryCards cards={cards[section].map(card => ({ label: card.label, value: card.value, hint: card.hint }))} ariaLabel={`${view.title} summary`} />
     <HavenDataToolbar
       search={<HavenSearchInput value={search} onValueChange={setSearch} label={`Search ${view.title.toLowerCase()}`} placeholder={`Search ${view.title.toLowerCase()}...`} />}
@@ -1935,9 +1846,7 @@ function ApprovalReviewModal({ item, close, review, execute, executeException, f
           <tbody>
             {rows.map(row => <tr key={String(row.id)}>
               {view.columns.map(column => <td key={column.key}>
-                {column.key === "status" ? <span className={`badge ${row.status}`}>
-                  {label(row.status)}
-                </span> : column.money ? <strong>{pesoExact(row[column.key])}</strong> : label(row[column.key] as string)}
+                {column.key === "status" ? <StatusBadge status={String(row.status)} label={label(row.status)} /> : column.money ? <strong>{pesoExact(row[column.key])}</strong> : label(row[column.key] as string)}
               </td>)}
               <td>{actions(row)}</td>
             </tr>)}
@@ -1959,9 +1868,7 @@ function ApprovalReviewModal({ item, close, review, execute, executeException, f
         <strong>{pesoExact(charge.amount)}</strong>
       </td>
       <td>
-        <span className={`badge ${charge.status}`}>
-          {label(charge.status)}
-        </span>
+        <StatusBadge status={String(charge.status)} label={label(charge.status)} />
       </td>
       <td>
         {canAdjust && charge.status !== "reversed" && <button className="table-action" onClick={() => reverseCharge(charge as RecordItem)}>
@@ -1975,9 +1882,7 @@ function ApprovalReviewModal({ item, close, review, execute, executeException, f
       <td>{label(attempt.reference as string)}</td>
       <td>{label(attempt.reason as string)}</td>
       <td>
-        <span className={`badge ${attempt.status}`}>
-          {label(attempt.status)}
-        </span>
+        <StatusBadge status={String(attempt.status)} label={label(attempt.status)} />
       </td>
     </tr>} />}
     {section === "folios" && ledger.adjustments.length > 0 && <AccountingDetailTable title="Adjustments, credits and write-offs" subtitle="Financial corrections recorded as new entries - nothing is overwritten" ariaLabel="Recent folio adjustments" headers={["Reservation", "Type", "Direction", "Amount", "Reason", "Recorded"]} rows={ledger.adjustments} renderRow={adjustment => <tr key={String(adjustment.id)}>
@@ -2052,9 +1957,7 @@ function DocumentViewerModal({ item, close }: { item: RecordItem; close: () => v
           <div>
             <dt>Status</dt>
             <dd>
-              <span className={`badge ${String(snap.folioStatus ?? "")}`}>
-                {label(snap.folioStatus)}
-              </span>
+              <StatusBadge status={String(snap.folioStatus ?? "")} label={label(snap.folioStatus)} />
             </dd>
           </div>
         </dl>
@@ -2163,9 +2066,7 @@ function GuestProfileModal({ profile, close, onViewReservation }: { profile: Gue
           <div>
             <dt>ID verification</dt>
             <dd>
-              <span className={`badge ${String(identity ?? "unverified")}`}>
-                {label(identity ?? "unverified")}
-              </span>
+              <StatusBadge status={String(identity ?? "unverified")} label={label(identity ?? "unverified")} />
             </dd>
           </div>
           <div>
@@ -2184,6 +2085,7 @@ function GuestProfileModal({ profile, close, onViewReservation }: { profile: Gue
       </section>
       <section>
         <h3>Stay history</h3>
+        {(profile.partyHistory?.length ?? 0) > 0 && <section className="hotel-ops"><h4>Accompanying stays</h4><p>These memberships do not transfer booking ownership or financial responsibility.</p><ul className="hotel-ops-list">{profile.partyHistory!.map(stay => <li key={stay.id}><button className="btn btn-soft" onClick={() => onViewReservation(stay.id)}>{String(stay.confirmation_number ?? stay.id)}</button><span>{String(stay.check_in)} → {String(stay.check_out)} · {String(stay.party_role)}</span></li>)}</ul></section>}
         <dl>
           <div>
             <dt>Current stay</dt>
@@ -2222,9 +2124,7 @@ function GuestProfileModal({ profile, close, onViewReservation }: { profile: Gue
           {Number(stay.guests) !== 1 ? "s" : ""}
           {stay.room_number ? ` · Room ${label(stay.room_number)}` : ""}
         </span>
-        <span className={`badge ${String(stay.status)}`}>
-          {label(stay.status)}
-        </span>
+        <StatusBadge status={String(stay.status)} label={label(stay.status)} />
         <button className="table-action action-neutral" onClick={() => onViewReservation(String(stay.id))}>
           <Eye size={13} /> Open
         </button>
@@ -2238,9 +2138,7 @@ function GuestProfileModal({ profile, close, onViewReservation }: { profile: Gue
           {label(stay.room_type)} · {label(stay.check_in)} →{" "}
           {label(stay.check_out)}
         </span>
-        <span className={`badge ${String(stay.status)}`}>
-          {label(stay.status)}
-        </span>
+        <StatusBadge status={String(stay.status)} label={label(stay.status)} />
       </p>)}
     </section>}
     <section className="approval-review-section">
@@ -2273,9 +2171,7 @@ function GuestProfileModal({ profile, close, onViewReservation }: { profile: Gue
         <span>
           Request · {label(request.department)} · {label(request.request)}
         </span>
-        <span className={`badge ${String(request.status)}`}>
-          {label(request.status)}
-        </span>
+        <StatusBadge status={String(request.status)} label={label(request.status)} />
       </p>)}
       {profile.transportation.map(trip => <p key={String(trip.id)}>
         <span>
@@ -2283,9 +2179,7 @@ function GuestProfileModal({ profile, close, onViewReservation }: { profile: Gue
           {label(trip.pickup_date)}
           {trip.pickup_time ? ` ${label(trip.pickup_time)}` : ""}
         </span>
-        <span className={`badge ${String(trip.status).toLowerCase()}`}>
-          {label(trip.status)}
-        </span>
+        <StatusBadge status={String(trip.status).toLowerCase()} label={label(trip.status)} />
       </p>)}
       {profile.assignments.filter(entry => entry.released_at || String(entry.status) !== "active").slice(0, 8).map(entry => <p key={String(entry.id)}>
         <span>
@@ -2293,18 +2187,14 @@ function GuestProfileModal({ profile, close, onViewReservation }: { profile: Gue
           {label(entry.check_in)} → {label(entry.check_out)}
           {entry.is_upgrade ? " · upgrade" : ""}
         </span>
-        <span className={`badge ${String(entry.status)}`}>
-          {label(entry.status)}
-        </span>
+        <StatusBadge status={String(entry.status)} label={label(entry.status)} />
       </p>)}
       {profile.approvals.slice(0, 8).map(request => <p key={String(request.id)}>
         <span>
           Approval · {label(request.request_type)} ·{" "}
           {label(request.reason)}
         </span>
-        <span className={`badge ${String(request.status)}`}>
-          {label(request.status)}
-        </span>
+        <StatusBadge status={String(request.status)} label={label(request.status)} />
       </p>)}
     </section>}
     {profile.financialVisible && profile.financial && <section className="approval-review-section">
@@ -2385,9 +2275,7 @@ function ProofPreview({ paymentId, name }: { paymentId: string; name: string | n
     </div>}
   </div>;
 } function DepositVerifyDialog({ item, busy, onClose, onConfirm, onReject }: { item: RecordItem; busy: boolean; onClose: () => void; onConfirm: () => void; onReject: () => void; }) {
-  const stayPayment = item.purpose === "stay_payment"; const pending = item.status === "pending_verification"; const gateway = String(item.method ?? "") === "gateway_paymongo"; const reservation = item.reservation as RecordItem | null | undefined; const expected = Number(reservation?.deposit_required ?? 0); const difference = expected ? Number(item.amount ?? 0) - expected : 0; const when = formatPaymentSubmittedAt; const hasProof = Boolean(item.proof_original_name || item.proof_size_bytes); const proofMeta = hasProof ? `${label(item.proof_original_name)} · ${Number(item.proof_size_bytes ?? 0) / (1024 * 1024) >= 1 ? `${(Number(item.proof_size_bytes) / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(Number(item.proof_size_bytes) / 1024))} KB`}${item.proof_uploaded_at ? ` · ${when(item.proof_uploaded_at)}` : ""}` : ""; const rows: [string, React.ReactNode][] = [["Guest", label(reservation?.guest_name)], ["Reservation", `${label(reservation?.confirmation_number ?? item.reservation_id)}${reservation?.room_type ? ` · ${label(reservation.room_type)}` : ""}`], ["Stay", `${label(reservation?.check_in)} → ${label(reservation?.check_out)} · ${label(reservation?.status)}`], ["Purpose", label(item.purpose)], ["Method", label(item.method)], ["Reference", label(item.reference)], ["Status", <span key="status" className={`badge ${item.status}`}>
-    {label(item.status)}
-  </span>], ["Proof of payment", hasProof ? proofMeta : <span key="no-proof" className="deposit-proof-none">
+  const stayPayment = item.purpose === "stay_payment"; const pending = item.status === "pending_verification"; const gateway = String(item.method ?? "") === "gateway_paymongo"; const reservation = item.reservation as RecordItem | null | undefined; const expected = Number(reservation?.deposit_required ?? 0); const difference = expected ? Number(item.amount ?? 0) - expected : 0; const when = formatPaymentSubmittedAt; const hasProof = Boolean(item.proof_original_name || item.proof_size_bytes); const proofMeta = hasProof ? `${label(item.proof_original_name)} · ${Number(item.proof_size_bytes ?? 0) / (1024 * 1024) >= 1 ? `${(Number(item.proof_size_bytes) / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(Number(item.proof_size_bytes) / 1024))} KB`}${item.proof_uploaded_at ? ` · ${when(item.proof_uploaded_at)}` : ""}` : ""; const rows: [string, React.ReactNode][] = [["Guest", label(reservation?.guest_name)], ["Reservation", `${label(reservation?.confirmation_number ?? item.reservation_id)}${reservation?.room_type ? ` · ${label(reservation.room_type)}` : ""}`], ["Stay", `${label(reservation?.check_in)} → ${label(reservation?.check_out)} · ${label(reservation?.status)}`], ["Purpose", label(item.purpose)], ["Method", label(item.method)], ["Reference", label(item.reference)], ["Status", <StatusBadge key="status" status={String(item.status)} label={label(item.status)} />], ["Proof of payment", hasProof ? proofMeta : <span key="no-proof" className="deposit-proof-none">
     No proof image submitted
   </span>], ["Submitted", when(item.submitted_at)], ["Amount submitted", <strong key="amount">{pesoExact(item.amount)}</strong>]]; if (!stayPayment) rows.push(["Expected deposit", <span key="expected">
     {pesoExact(expected)}

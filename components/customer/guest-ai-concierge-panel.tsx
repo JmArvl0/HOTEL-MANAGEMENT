@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Sparkles } from "lucide-react";
 import AiMarkdown from "@/components/manager/ai-markdown";
+import { HavenSkeleton } from "@/components/ui/haven-skeleton";
 import { GUEST_CONCIERGE_DISCLOSURE } from "@/lib/ai/guest-concierge";
 
 interface Draft {
@@ -134,8 +135,8 @@ export default function GuestAiConciergePanel({ reservationId }: { reservationId
           </article>
         ))}
         {loading && (
-          <div className="concierge-skeleton" aria-label="Waiting for concierge reply">
-            <span className="pulse-bar" /><span className="pulse-bar short" />
+          <div className="concierge-skeleton" role="status" aria-label="Waiting for concierge reply">
+            <HavenSkeleton size="sm" height={12} /><HavenSkeleton size="sm" height={12} width="60%" />
           </div>
         )}
       </div>

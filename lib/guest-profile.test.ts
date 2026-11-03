@@ -42,6 +42,14 @@ function seed() {
 beforeEach(seed);
 
 describe("getStaffGuestProfile", () => {
+  it("shows accompanying stays separately without assigning their folios to the companion", async () => {
+    fake.db.reservation_guests=[{reservation_id:"RSV-OTHER",guest_id:"GST-1",role:"accompanying"}];
+    const { getStaffGuestProfile }=await import("@/lib/staff-data");
+    const profile=await getStaffGuestProfile("GST-1","front_desk");
+    expect(profile!.partyHistory?.map(row=>row.id)).toEqual(["RSV-OTHER"]);
+    expect(profile!.stays.some(row=>row.id==="RSV-OTHER")).toBe(false);
+    expect(profile!.financial!.billed).toBe(1500.5);
+  });
   it("groups stay history by state and keeps other guests' rows out", async () => {
     const { getStaffGuestProfile } = await import("@/lib/staff-data");
     const profile = await getStaffGuestProfile("GST-1", "manager");

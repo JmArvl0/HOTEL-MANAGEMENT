@@ -28,7 +28,7 @@ describe("LoyaltyCardPanel", () => {
   it("renders stable loading geometry before the rewards response arrives", () => {
     vi.stubGlobal("fetch", vi.fn(() => new Promise(() => undefined)));
     const { container } = render(<LoyaltyCardPanel />);
-    expect(container.querySelectorAll(".loyalty-skeleton-kpi")).toHaveLength(4);
+    expect(container.querySelectorAll(".mod-kpis .haven-skeleton")).toHaveLength(4);
     expect(screen.getByLabelText("Loading loyalty rewards").getAttribute("aria-busy")).toBe("true");
   });
 

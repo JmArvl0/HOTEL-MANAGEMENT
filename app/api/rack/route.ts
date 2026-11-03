@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
+import { readAllRows } from "@/lib/read-all-rows";
 import { supabase } from "@/lib/supabase"; import { maintenanceBlockedRoomIds } from "@/lib/room-rack";
 
 const allowed = new Set(["front_desk", "manager", "owner"]);
@@ -31,21 +32,24 @@ export async function GET(request: Request) {
   toDate.setUTCDate(toDate.getUTCDate() + parsed.data.days);
   const to = toDate.toISOString().slice(0, 10);
 
-  const [{ data: rooms }, { data: reservations }, { data: invoices }, { data: types }, { data: orders }] = await Promise.all([
-    supabase
+  try {
+  const [rooms, reservations, invoices, types, orders, assignments] = await Promise.all([
+    readAllRows(() => supabase!
       .from("rooms")
       .select("id,number,floor,wing,type,status,housekeeping,administratively_active")
       .order("floor", { ascending: true })
-      .order("number", { ascending: true }),
-    supabase
+      .order("number", { ascending: true })),
+    readAllRows(() => supabase!
       .from("reservations")
       .select("id,confirmation_number,guest_name,room_type,room_id,room_number,check_in,check_out,status,payment_status,identity_status,source,total")
       .lt("check_in", to)
       .gt("check_out", from)
       .not("status", "in", "(cancelled,no_show)")
-      .order("check_in", { ascending: true }),
-    supabase.from("invoices").select("reservation_id,balance").not("reservation_id", "is", null),
-    supabase.from("room_types").select("name,badge_color_key"), supabase.from("maintenance_orders").select("room_id,room_number,status,serviceability_impact").in("status", ["open", "assigned", "in_progress", "waiting_parts", "deferred"]).in("serviceability_impact", ["blocked", "out_of_service"]),
+      .order("check_in", { ascending: true })),
+    readAllRows(() => supabase!.from("invoices").select("reservation_id,balance").not("reservation_id", "is", null)),
+    readAllRows(() => supabase!.from("room_types").select("name,badge_color_key")),
+    readAllRows(() => supabase!.from("maintenance_orders").select("room_id,room_number,status,serviceability_impact").in("status", ["open", "assigned", "in_progress", "waiting_parts", "deferred"]).in("serviceability_impact", ["blocked", "out_of_service"])),
+    readAllRows(() => supabase!.from("reservation_room_assignments").select("id,reservation_id,room_id,check_in,check_out,effective_from,effective_to,status").lt("check_in",to).gt("check_out",from)),
   ]);
 
   const colors = new Map(
@@ -65,6 +69,7 @@ export async function GET(request: Request) {
   const blockedRoomIds = [...maintenanceBlockedRoomIds(((orders ?? []) as Record<string, unknown>[]).map((row) => ({ room_id: row.room_id, room_number: row.room_number, status: row.status, serviceability_impact: row.serviceability_impact })), ((rooms ?? []) as Record<string, unknown>[]).map((row) => ({ id: String(row.id), number: row.number })))];  return NextResponse.json({
     data: {
       from,
+      assignments,
       blockedRoomIds,
       days: parsed.data.days,
       rooms: ((rooms ?? []) as Record<string, unknown>[]).map((row) => ({
@@ -77,4 +82,7 @@ export async function GET(request: Request) {
       })),
     },
   });
+  } catch {
+    return NextResponse.json({ error: "Room availability is temporarily unavailable." }, { status: 503 });
+  }
 }

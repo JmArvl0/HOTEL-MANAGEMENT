@@ -1,3 +1,4 @@
+import { readAllRows } from "@/lib/read-all-rows";
 import { NextResponse } from "next/server";
 import { getAccountingLedger } from "@/lib/accounting";
 import { ROLE_CAPABILITIES } from "@/lib/admin";
@@ -116,15 +117,15 @@ export async function GET(request: Request) {
 
     const [policyResult, reservationResult, roomResult, taskResult, maintenanceResult, requestResult, invoiceResult, paymentResult, userResult, approvalResult, auditResult] = await Promise.all([
       db.from("hotel_operational_policies").select("hotel_timezone,housekeeping_turnover_overdue_minutes,guest_request_overdue_minutes").eq("key", "default").maybeSingle(),
-      db.from("reservations").select("id,confirmation_number,room_id,room_number,room_type,check_in,check_out,status,source,total,created_at").order("created_at", { ascending: false }).limit(500),
-      db.from("rooms").select("id,number,floor,type,status,housekeeping,administratively_active").order("number"),
-      db.from("housekeeping_tasks").select("id,room_id,room_number,task,priority,status,created_at,completed_at").order("created_at", { ascending: false }).limit(300),
-      db.from("maintenance_orders").select("id,room_id,room_number,issue,priority,severity,status,serviceability_impact,assigned_user_id,created_at,completed_at").order("created_at", { ascending: false }).limit(300),
-      db.from("guest_requests").select("id,department,priority,severity,status,escalation_status,created_at,due_at").order("created_at", { ascending: false }).limit(300),
-      db.from("invoices").select("id,reservation_id,amount,paid,balance,credit_balance,status,created_at").order("created_at", { ascending: false }).limit(500),
-      db.from("payments").select("id,reservation_id,purpose,method,amount,status,verified_at,created_at").order("created_at", { ascending: false }).limit(500),
-      db.from("user_accounts").select("id,role,active,account_status,recovery_required,created_at"),
-      db.from("manager_approval_requests").select("id,request_type,department,severity,status,execution_status,authority_level,requested_at").order("requested_at", { ascending: false }).limit(300),
+      readAllRows(() => db.from("reservations").select("id,confirmation_number,room_id,room_number,room_type,check_in,check_out,status,source,total,created_at").order("created_at", { ascending: false })).then(data => ({ data, error: null })),
+      readAllRows(() => db.from("rooms").select("id,number,floor,type,status,housekeeping,administratively_active").order("number")).then(data => ({ data, error: null })),
+      readAllRows(() => db.from("housekeeping_tasks").select("id,room_id,room_number,task,priority,status,created_at,completed_at").order("created_at", { ascending: false })).then(data => ({ data, error: null })),
+      readAllRows(() => db.from("maintenance_orders").select("id,room_id,room_number,issue,priority,severity,status,serviceability_impact,assigned_user_id,created_at,completed_at").order("created_at", { ascending: false })).then(data => ({ data, error: null })),
+      readAllRows(() => db.from("guest_requests").select("id,department,priority,severity,status,escalation_status,created_at,due_at").order("created_at", { ascending: false })).then(data => ({ data, error: null })),
+      readAllRows(() => db.from("invoices").select("id,reservation_id,amount,paid,balance,credit_balance,status,created_at").order("created_at", { ascending: false })).then(data => ({ data, error: null })),
+      readAllRows(() => db.from("payments").select("id,reservation_id,purpose,method,amount,status,verified_at,created_at").order("created_at", { ascending: false })).then(data => ({ data, error: null })),
+      readAllRows(() => db.from("user_accounts").select("id,role,active,account_status,recovery_required,created_at")).then(data => ({ data, error: null })),
+      readAllRows(() => db.from("manager_approval_requests").select("id,request_type,department,severity,status,execution_status,authority_level,requested_at").order("requested_at", { ascending: false })).then(data => ({ data, error: null })),
       db.from("audit_logs").select("id,action,entity_type,entity_id,created_at").order("created_at", { ascending: false }).limit(12)
     ]);
     for (const result of [reservationResult, roomResult, taskResult, maintenanceResult, requestResult, invoiceResult, paymentResult, userResult, approvalResult, auditResult]) if (result.error) throw result.error;

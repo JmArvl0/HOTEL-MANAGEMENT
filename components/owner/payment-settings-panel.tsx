@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ImageUp, QrCode } from "lucide-react";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
 import { PageHeader } from "@/components/ui/Navigation";
@@ -164,7 +165,7 @@ export default function PaymentSettingsPanel({ notify }: { notify: (message: str
         eyebrow="Business configuration"
         title="Payment Settings"
         subtitle="You control where customers send reservation deposits. Changes apply to new deposits immediately and are audited."
-        actions={<span className={`badge ${enabled ? "paid" : "expired"}`}>{enabled ? "Active" : "Inactive"}</span>}
+        actions={<StatusBadge status={enabled ? "paid" : "expired"} label={enabled ? "Active" : "Inactive"} />}
       />
       {error && <p className="owner-form-error" role="alert">{error}</p>}
       <OwnerSectionHead
@@ -262,7 +263,7 @@ export default function PaymentSettingsPanel({ notify }: { notify: (message: str
           { key: "created_at", header: "When", render: (row) => formatOwnerDate(row.created_at) },
           { key: "actorName", header: "Changed by", render: (row) => String(row.actorName ?? "—") },
           { key: "mobileNumber", header: "Number", render: (row) => { const v = (row.after_data as { mobileNumber?: unknown } | null)?.mobileNumber; return <span className="owner-record-id">{typeof v === "string" && v ? v : "—"}</span>; } },
-          { key: "enabled", header: "Status", render: (row) => <span className={`badge ${(row.after_data as { enabled?: unknown } | null)?.enabled ? "paid" : "expired"}`}>{(row.after_data as { enabled?: unknown } | null)?.enabled ? "Active" : "Inactive"}</span> },
+          { key: "enabled", header: "Status", render: (row) => <StatusBadge status={(row.after_data as { enabled?: unknown } | null)?.enabled ? "paid" : "expired"} label={(row.after_data as { enabled?: unknown } | null)?.enabled ? "Active" : "Inactive"} /> },
         ]}
         empty={<OwnerEmpty icon={<QrCode size={22} />} title="No destination changes" body="Recorded payment destination changes will appear here." />}
       />

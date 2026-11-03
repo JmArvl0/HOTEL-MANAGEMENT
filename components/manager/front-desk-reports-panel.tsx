@@ -4,7 +4,9 @@ import { CalendarDays, ClipboardCheck, Download, FileText, Send, Sparkles, X } f
 import { AI_DISCLOSURE } from "@/lib/ai/prompts";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { TablePagination } from "@/components/ui/table-pagination";
+import { PageHeader } from "@/components/ui";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
+import { HavenSkeletonCard, HavenErrorAlert } from "@/components/ui/haven-data-controls";
 import { canGenerateFrontDeskReport, canReviewFrontDeskReports } from "@/lib/permissions";
 import { REPORT_PAGE_SIZE } from "@/lib/front-desk-reports";
 import type { DailyReportSnapshot } from "@/lib/front-desk-reports";
@@ -102,7 +104,7 @@ function ExecutiveDigestCard({ reportDate }: { reportDate: string }) {
         <button className="btn btn-soft" onClick={() => void refresh()} disabled={loading}>
           {loading ? "Reading the day…" : digest ? "Refresh digest" : "Generate digest"}
         </button>
-        {loading && <p className="pulse-skeleton">Summarizing arrivals, collections, turnover, and open work…</p>}
+        {loading && <HavenSkeletonCard hasHeader />}
         {message && <p role="status">{message}</p>}
         {digest && !loading && <>
           <h4>Executive overview</h4>
@@ -196,12 +198,8 @@ export default function FrontDeskReportsPanel({ role }: { role: Role }) {
 
   const visible = rows.filter((row) => status === "all" || row.status === status);
   return <>
-    <div className="page-title module-title">
-      <div><p className="eyebrow">{canGenerate ? "Hotel operations" : "Management control"}</p><h1>{canGenerate ? "Daily operations report" : "Front desk reports"}</h1>
-      <p>{canGenerate ? "One daily snapshot of front desk operations. Export prints or saves the preview — it never submits. Submitting stores an immutable snapshot for Manager review." : "Daily front desk operations snapshots submitted for review. Acknowledge to close, or return with a note for resubmission."}</p></div>
-      {canGenerate && <div className="report-tools"><label>Report date<input type="date" value={date} max={today} onChange={(event) => setDate(event.target.value)}/></label><button className="btn btn-accent" onClick={() => void generate()} disabled={building}>{building ? "Building…" : "Generate preview"}</button></div>}
-    </div>
-    {error && <div className="empty"><FileText/><h3>Reports unavailable</h3><p>{error}</p></div>}
+    <PageHeader variant="band" eyebrow={canGenerate ? "Hotel operations" : "Management control"} title={canGenerate ? "Daily operations report" : "Front desk reports"} subtitle={canGenerate ? "One daily snapshot of front desk operations. Export prints or saves the preview — it never submits. Submitting stores an immutable snapshot for Manager review." : "Daily front desk operations snapshots submitted for review. Acknowledge to close, or return with a note for resubmission."} actions={canGenerate && <div className="report-tools"><label>Report date<input type="date" value={date} max={today} onChange={(event) => setDate(event.target.value)}/></label><button className="btn btn-accent" onClick={() => void generate()} disabled={building}>{building ? "Building…" : "Generate preview"}</button></div>} />
+    {error && <HavenErrorAlert title="Reports unavailable" body={error} variant="internal" />}
     {canReview && <ExecutiveDigestCard reportDate={viewing ? viewing.report_date.slice(0, 10) : date} />}
     {(preview || viewing) && <article className="panel report-preview">
       <div className="panel-heading"><div><h3>{viewing ? `Submitted snapshot · ${formatDate(viewing.report_date)}` : "Preview"}</h3><p>{viewing ? `Submitted by ${viewing.submitted_by_name ?? "Front Desk"} · ${formatStamp(viewing.submitted_at)}` : "Auto-generated from live hotel records for the selected hotel day."}</p></div>
@@ -235,7 +233,7 @@ export default function FrontDeskReportsPanel({ role }: { role: Role }) {
       </tr>)}</tbody></table></div>
       {!visible.length && <div className="empty"><FileText/><h3>No reports</h3><p>{status === "all" ? "No daily operations reports have been submitted yet." : `No ${label(status)} reports.`}</p></div>}
       <TablePagination page={page + 1} pageCount={pageCount} start={rows.length ? page * REPORT_PAGE_SIZE + 1 : 0} end={page * REPORT_PAGE_SIZE + rows.length} total={total} onPageChange={(next) => void load(next - 1)} noun="reports" note="Submitted snapshots are immutable evidence — they are never edited after submission." /></div>
-    {loading && <div className="empty"><ClipboardCheck/><h3>Loading reports…</h3></div>}
+    {loading && <HavenSkeletonCard hasHeader />}
     {toast && <div className="toast"><ClipboardCheck size={18}/>{toast}</div>}
     {dialogs.view}
   </>;

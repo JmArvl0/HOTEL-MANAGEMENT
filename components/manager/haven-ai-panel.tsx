@@ -17,6 +17,9 @@ import {
   Wrench
 } from "lucide-react";
 import AiMarkdown from "./ai-markdown";
+import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
+import { HavenSkeletonKPI, HavenSkeletonList } from "@/components/ui/haven-data-controls";
+import { PageHeader } from "@/components/ui";
 
 /**
  * HAVEN AI — the Gemini assistance workspace for the Manager. Two features:
@@ -160,34 +163,39 @@ export default function HavenAiPanel({ userName, onOpenQueue }: { userName?: str
 
   return (
     <section className="haven-ai-workspace">
-      <header className="page-title haven-ai-hero">
-        <div>
-          <p className="eyebrow">Gemini AI assistance</p>
-          <h1>HAVEN AI</h1>
-          <p>Advisory intelligence over HAVEN&apos;s own data. Forecasts come from HAVEN predictive analytics; AI explains, summarizes and recommends. It never executes operations.</p>
-        </div>
-        <aside className="haven-ai-advisory" aria-label="HAVEN AI permission boundary">
+      <PageHeader
+        variant="band"
+        className="haven-ai-hero"
+        eyebrow="Gemini AI assistance"
+        title="HAVEN AI"
+        subtitle="Advisory intelligence over HAVEN's own data. Forecasts come from HAVEN predictive analytics; AI explains, summarizes and recommends. It never executes operations."
+        actions={<aside className="haven-ai-advisory" aria-label="HAVEN AI permission boundary">
           <ShieldCheck size={20} aria-hidden="true" />
           <span><b>Read-only advisory</b><small>AI can&apos;t make changes in HAVEN.</small></span>
-        </aside>
-      </header>
+        </aside>}
+      />
 
       <section className="haven-ai-indicators" aria-labelledby="ai-indicators-title">
         <div className="haven-ai-section-heading">
           <h2 id="ai-indicators-title">Key operational indicators from today&apos;s data</h2>
           <p>Direct values from HAVEN&apos;s operational records.</p>
         </div>
-        <div className="haven-ai-kpi-grid">
-          {loadingBrief ? Array.from({ length: 5 }, (_, index) => <div className="haven-ai-kpi-skeleton" key={index} aria-hidden="true" />) : (
-            <>
-              <article className="haven-ai-kpi"><BedDouble size={18} aria-hidden="true"/><span><small>Occupied now</small><b>{metricValue(indicators?.occupiedNow, "rooms")}</b><em>Current room status</em></span></article>
-              <article className="haven-ai-kpi"><CalendarCheck2 size={18} aria-hidden="true"/><span><small>Arrivals tomorrow</small><b>{metricValue(indicators?.arrivalsTomorrow, "reservations")}</b><em>Confirmed and checked-in stays</em></span></article>
-              <article className="haven-ai-kpi"><ClipboardList size={18} aria-hidden="true"/><span><small>Open guest requests</small><b>{metricValue(indicators?.openGuestRequests, "requests")}</b><em>Awaiting completion</em></span></article>
-              <article className="haven-ai-kpi warning"><PackageSearch size={18} aria-hidden="true"/><span><small>High-risk supplies</small><b>{metricValue(indicators?.highRiskSupplies, "items")}</b><em>Flagged by HAVEN analytics</em></span></article>
-              <article className="haven-ai-kpi risk"><Wrench size={18} aria-hidden="true"/><span><small>Open maintenance items</small><b>{metricValue(indicators?.openMaintenanceItems, "items")}</b><em>Unresolved work orders</em></span></article>
-            </>
-          )}
-        </div>
+        {loadingBrief ? (
+          <div className="mod-kpis" role="status" aria-label="Loading operational indicators">
+            {Array.from({ length: 5 }, (_, index) => <HavenSkeletonKPI key={index} />)}
+          </div>
+        ) : (
+          <ModuleSummaryCards
+            cards={[
+              { label: "Occupied now", value: metricValue(indicators?.occupiedNow, "rooms"), hint: "Current room status", icon: BedDouble, tone: "today" },
+              { label: "Arrivals tomorrow", value: metricValue(indicators?.arrivalsTomorrow, "reservations"), hint: "Confirmed and checked-in stays", icon: CalendarCheck2, tone: "today" },
+              { label: "Open guest requests", value: metricValue(indicators?.openGuestRequests, "requests"), hint: "Awaiting completion", icon: ClipboardList, tone: "today" },
+              { label: "High-risk supplies", value: metricValue(indicators?.highRiskSupplies, "items"), hint: "Flagged by HAVEN analytics", icon: PackageSearch, tone: "attention" },
+              { label: "Open maintenance items", value: metricValue(indicators?.openMaintenanceItems, "items"), hint: "Unresolved work orders", icon: Wrench, tone: "danger" },
+            ]}
+            ariaLabel="Key operational indicators"
+          />
+        )}
       </section>
 
       <div className="haven-ai-main-grid">
@@ -206,7 +214,7 @@ export default function HavenAiPanel({ userName, onOpenQueue }: { userName?: str
           </div>
 
           {loadingBrief ? (
-            <div className="ai-brief-loading" aria-label="Preparing today's brief"><i/><i/><i/><i/></div>
+            <div role="status" aria-label="Preparing today's brief"><HavenSkeletonList lines={4} lineSize="lg" /></div>
           ) : brief ? (
             <div className="ai-brief">
               <section className="ai-brief-block summary">

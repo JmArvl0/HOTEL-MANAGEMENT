@@ -1,9 +1,9 @@
 /* =============================================================================
    HAVEN — UI PRIMITIVES (normalization layer)  ·  added 2026-09-05
    -----------------------------------------------------------------------------
-   Loaded LAST in app/layout.tsx (after design-tokens.css) so, at equal
-   specificity, these rules win the cascade over the three legacy sheets
-   (globals.css, guest-booking.css, manager-dashboard-theme.css).
+   Loaded midway in app/layout.tsx (before staff-theme.css, which loads
+   last) so, at equal specificity, staff-theme wins the cascade over
+   these rules.
 
    Scope: SHARED CONTROL METRICS + action-row spacing only. It deliberately
    does NOT re-paint any portal. Colors/palettes stay in each surface's own
@@ -13,7 +13,7 @@
    Findings addressed: button/action spacing slop, the ≤680px blank
    header-button bug, DESIGN-STATUS F5 (badge coverage) and F7 (guest-shell
    light remnants). F4 (staff type floor) is raised in-place in
-   manager-dashboard-theme.css; F3 is trimmed in design-tokens.css.
+   app/staff-theme.css; F3 is trimmed in design-tokens.css.
    ============================================================================= */
 
 /* ---- 1. One canonical .btn metric block (overrides globals.css:1) ----------
@@ -21,9 +21,9 @@
    icon gap, shares the radius/focus tokens and keeps one hover/active curve.
    Colors are untouched — each portal's .btn-accent / .btn-soft rules still
    decide the palette. Staff `.app-shell .btn` keeps its intentional compact
-   scale (see manager-dashboard-theme.css) but shares this radius + motion. */
+    scale (see app/staff-theme.css) but shares this radius + motion. */
 .btn {
-  min-height: 40px;                 /* --btn-height-md */
+  min-height: 44px;                 /* --btn-height-md */
   gap: 8px;
   border-radius: 8px;               /* --radius-btn / --radius-md */
   transition: transform .18s ease, box-shadow .18s ease,
@@ -67,13 +67,13 @@
   background: var(--btn-danger-bg, #b91c1c);
   color: var(--btn-danger-fg, #fff);
 }
-.haven-button--internal { min-height: 36px; padding: 8px 14px; }
+.haven-button--internal { min-height: 44px; padding: 8px 14px; }
 .haven-button--customer { min-height: 44px; padding: 11px 18px; border-radius: 8px; }
 .haven-button-icon { display: inline-grid; place-items: center; }
 
 /* Size opt-ins on the shared scale (--btn-height-sm/md/lg). */
 .btn-sm {
-  min-height: 32px;
+  min-height: 44px;
   padding-top: 5px;
   padding-bottom: 5px;
   padding-inline: 12px;
@@ -110,7 +110,7 @@
    read on desktop. Raise the floor; mobile already lifts them to 40px hit
    areas in responsive.css. */
 .table-action {
-  min-height: 26px;
+  min-height: 44px;
   padding: 5px 9px;
   font-size: 10px;
   line-height: 1.2;
@@ -123,7 +123,7 @@
 }
 .table-action svg { flex-shrink: 0; }
 /* Interaction metrics for the staff table-action chips (palette lives in
-   manager-dashboard-theme.css, per the DESIGN.md scope split). */
+   app/staff-theme.css, per the DESIGN.md scope split). */
 .table-action {
   transition: background-color .18s ease, border-color .18s ease,
               color .18s ease, transform .12s ease;
@@ -131,24 +131,24 @@
 .app-shell .table-action svg { width: 13px; height: 13px; }
 
 /* ---- 3. Mobile header buttons (globals.css:6 bug) --------------------------
-   globals.css collapses every `.page-title .btn` to `font-size:0` under
-   680px, turning icon-less header CTAs (Manage users, Update policy, …) into
-   blank squares. Keep text-only and icon+label buttons readable; collapse to
-   a square ONLY when the button is genuinely icon-only (:has guard). In
-   browsers without :has the first rule still wins → no blank buttons. */
-@media (max-width: 680px) {
-  .page-title .btn {
+   globals.css collapses every header CTA to `font-size:0` under 680px, turning
+   icon-less header CTAs (Manage users, Update policy, …) into blank squares.
+   Keep text-only and icon+label buttons readable; collapse to a square ONLY
+   when the button is genuinely icon-only (:has guard). In browsers without
+   :has the first rule still wins → no blank buttons. */
+@media (max-width: 720px) {
+  .page-header-actions .btn {
     font-size: 12px;
     padding: 0 13px;
     min-height: 44px;
     white-space: nowrap;
   }
-  .page-title .btn:has(> svg:only-child) {
+  .page-header-actions .btn:has(> svg:only-child) {
     font-size: 0;
     padding: 0;
     width: 44px;
   }
-  .page-title .btn svg { margin: 0; }
+  .page-header-actions .btn svg { margin: 0; }
   /* Touch floor for every button, staff shell included (keeps 44px on
      phones; desktop density untouched). */
   .app-shell .btn,
@@ -205,3 +205,139 @@
 .haven-logo-tile{display:inline-grid;place-items:center;flex:none;overflow:hidden;border-radius:8px;background:#f3f3f3;padding:2px}
 .haven-logo-tile img{width:100%;height:100%;object-fit:contain;border-radius:6px}
 .brand-mark:has(.haven-logo-tile){border:0;color:inherit}
+
+/* ---- 7. Shared KPI/summary card (.mod-kpis / .mod-kpi) ---------------------
+   THE one KPI/overview card for staff AND guest surfaces (reference-design
+   Stage 2). Lifted from app/staff-theme.css on 2026-10-19; structural rules
+   consume the surface's own tokens (--st-* staff, --cp-* customer) so one
+   rule paints every role. Per-theme paint that genuinely differs (chip tints,
+   pressed accent) rides --kpi-* component tokens set in the two small
+   mirror blocks right below - token flip only, never a second format. */
+.mod-kpis{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:20px;
+  margin-bottom:24px;
+}
+.mod-kpi{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  padding:16px 18px;
+  border:1px solid var(--st-border-color,var(--cp-line,#d1d5db));
+  border-radius:var(--ops-r-stat,24px);                 /* stat radius (DESIGN.md) */
+  background:var(--st-bg-surface,var(--cp-panel,#ffffff));
+  box-shadow:var(--st-shadow-xs,0 1px 2px 0 rgb(0 0 0 / .03));
+  text-align:left;
+  transition:all .2s cubic-bezier(.4,0,.2,1);
+}
+.mod-kpi:hover{
+  border-color:var(--kpi-accent,#3b82f6);
+  box-shadow:var(--st-shadow-md,0 4px 6px -1px rgb(0 0 0 / .05));
+  transform:translateY(-1px);
+}
+button.mod-kpi{
+  cursor:pointer;
+  transition:transform 280ms var(--ops-ease-tactile,cubic-bezier(.32,.72,0,1)),
+             box-shadow 280ms var(--ops-ease-tactile,cubic-bezier(.32,.72,0,1)),
+             border-color 280ms var(--ops-ease-tactile,cubic-bezier(.32,.72,0,1));
+}
+button.mod-kpi:active{transform:translateY(0) scale(.995)}
+button.mod-kpi[disabled]{opacity:.55;cursor:default}
+.mod-kpi:focus-visible{outline:2px solid var(--kpi-accent,#3b82f6);outline-offset:2px}
+.mod-kpi span{display:block;color:var(--st-text-secondary,var(--cp-muted,#5b6472));font-size:12px;font-weight:500}
+.mod-kpi b{
+  display:block;
+  margin:6px 0 4px;
+  color:var(--st-text-primary,var(--cp-text,#111827));
+  font-family:var(--font-sans),Inter,system-ui,sans-serif;
+  font-variant-numeric:tabular-nums;
+  font-size:28px;
+  font-weight:750;
+  overflow-wrap:anywhere;
+  min-width:0;
+  letter-spacing:-.02em;
+  line-height:1.15;
+}
+.mod-kpi small{display:block;color:var(--st-text-muted,var(--cp-muted,#6b7280));font-size:12px;line-height:1.4}
+.mod-kpi>i{
+  position:absolute;top:12px;right:12px;
+  width:46px;height:46px;
+  display:inline-flex;align-items:center;justify-content:center;
+  border-radius:var(--st-radius-xl,12px);
+  background:var(--kpi-chip-bg,rgba(37,99,235,.16));
+  border:1px solid var(--kpi-chip-border,rgba(37,99,235,.3));
+  color:var(--kpi-chip-ink,#60a5fa);
+}
+.mod-kpi>i svg{width:15px;height:15px}
+.mod-kpi>i.attention{background:var(--kpi-attention-bg,var(--ops-warning-tint,#f59e0b14));border-color:transparent;color:var(--kpi-attention-ink,var(--ops-warning-ink,#b45309))}
+.mod-kpi>i.today{background:var(--kpi-today-bg,var(--ops-info-tint,#3b82f614));border-color:transparent;color:var(--kpi-today-ink,var(--ops-info-ink,#1d4ed8))}
+.mod-kpi>i.active{background:var(--kpi-active-bg,var(--ops-info-tint,#3b82f614));border-color:transparent;color:var(--kpi-active-ink,var(--ops-info-ink,#1d4ed8))}
+.mod-kpi>i.done{background:var(--kpi-done-bg,var(--ops-success-tint,#10b98114));border-color:transparent;color:var(--kpi-done-ink,var(--ops-success-ink,#047857))}
+.mod-kpi>i.danger{background:var(--kpi-danger-bg,#ef444414);border-color:transparent;color:var(--kpi-danger-ink,#b91c1c)}
+.mod-kpi>i.gold{background:var(--kpi-gold-bg,var(--haven-gold-100,#fef3c7));border-color:transparent;color:var(--kpi-gold-ink,var(--haven-gold-700,#b45309))}
+button.mod-kpi[aria-pressed="true"]{
+  border-color:var(--kpi-accent,#3b82f6);
+  background:var(--kpi-pressed-bg,#3b82f614);
+  box-shadow:0 0 0 1px var(--kpi-accent,#3b82f6);
+}
+@media(max-width:1000px){
+  .mod-kpis{grid-template-columns:1fr 1fr}
+  .mod-kpis>*:last-child:nth-child(odd){grid-column:1/-1}
+}
+@media(max-width:480px){.mod-kpis{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){
+  button.mod-kpi{transition:none;transform:none}
+  .mod-kpi{transition:none}
+  .mod-kpi:hover{transform:none;box-shadow:none}
+}
+@media print{
+  .mod-kpi,.mod-kpi b,.mod-kpi span,.mod-kpi small{
+    background:#fff !important;color:#111 !important;box-shadow:none !important;border-color:#e8edf4 !important;
+  }
+}
+/* Staff dark accents (the .app-shell default): amber/blue chip tints from the
+   merged staff layer (formerly staff-theme.css:2370-2373), pale-blue accent. */
+.app-shell .mod-kpi{
+  --kpi-accent:#8fb4ec;
+  --kpi-pressed-bg:#10b9811f;
+  --kpi-chip-bg:rgba(37,99,235,.16);
+  --kpi-chip-border:rgba(37,99,235,.3);
+  --kpi-chip-ink:#60a5fa;
+  --kpi-attention-bg:#3a2d1a;     --kpi-attention-ink:#e8b96a;
+  --kpi-today-bg:#16233f;        --kpi-today-ink:#8fb4ec;
+  --kpi-active-bg:#16233f;       --kpi-active-ink:#8fb4ec;
+  --kpi-done-bg:#10b9811f;       --kpi-done-ink:#6ee7b7;
+  --kpi-danger-bg:#3a1f26;       --kpi-danger-ink:#fca5a5;
+}
+/* Staff light (.theme-light) accents: ink accent/default chip on the brand
+   ramp, ops tints for the four tones (formerly staff-theme.css:2247-2255). */
+.theme-light .app-shell .mod-kpi{
+  --kpi-accent:var(--ops-ink,#111827);
+  --kpi-pressed-bg:#3b82f614;
+  --kpi-chip-bg:var(--haven-brand-50,#eff6ff);
+  --kpi-chip-border:var(--haven-brand-200,#bfdbfe);
+  --kpi-chip-ink:var(--haven-brand-600,#2563eb);
+  --kpi-attention-bg:var(--ops-warning-tint,#f59e0b14); --kpi-attention-ink:var(--ops-warning-ink,#b45309);
+  --kpi-today-bg:var(--ops-info-tint,#3b82f614);        --kpi-today-ink:var(--ops-info-ink,#1d4ed8);
+  --kpi-active-bg:var(--ops-info-tint,#3b82f614);       --kpi-active-ink:var(--ops-info-ink,#1d4ed8);
+  --kpi-done-bg:var(--ops-success-tint,#10b98114);      --kpi-done-ink:var(--ops-success-ink,#047857);
+  --kpi-danger-bg:#ef444414;      --kpi-danger-ink:#b91c1c;
+}
+
+/* ---- 8. Skeleton atom (.haven-skeleton) -------------------------------------
+   One loading placeholder shape app-wide (Stage 3 3c): staff panels, guest
+   portal, rack, notifications, and modals all pulse the same atom. Paint rides
+   each shell's panel/line tokens; reduced-motion kills the pulse everywhere.
+------------------------------------------------------------------------------ */
+.haven-skeleton{display:block;border-radius:6px;background:var(--ds2,var(--cp-panel-2,#e8ecf2));animation:haven-skeleton-pulse 1.2s ease-in-out infinite}
+.haven-skeleton[data-size="sm"]{height:16px;border-radius:5px}
+.haven-skeleton[data-size="md"]{height:44px;border-radius:6px}
+.haven-skeleton[data-size="lg"]{height:62px;border-radius:10px}
+.haven-skeleton[data-size="tile"]{min-height:100px;border:1px solid var(--dl,var(--cp-line,#e2e6ec));border-radius:12px;background:var(--ds,var(--cp-panel,#f2f4f7))}
+@keyframes haven-skeleton-pulse{0%,100%{opacity:.5}50%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.haven-skeleton{animation:none}}
+/* Loading containers: pane-inset list (data-panel wrappers) vs bare lines
+   (inside padded panels). */
+.haven-skeleton-list{display:grid;gap:10px;padding:14px}
+.haven-skeleton-lines{display:grid;gap:10px}

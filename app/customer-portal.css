@@ -119,19 +119,19 @@
 .customer-shell .crd-transport-card b{font-size:12px}
 .customer-shell .crd-transport-card small{font-size:10px}
 /* ctr-* transportation */
-.customer-shell .ctr-service-options legend{font-size:10px}
+.customer-shell .ctr-service-options legend{font-size:11px}
 .customer-shell .ctr-service-option b{font-size:12px}
-.customer-shell .ctr-service-option small{font-size:10px}
-.customer-shell .ctr-hotel-end span{font-size:10px}
+.customer-shell .ctr-service-option small{font-size:9px}
+.customer-shell .ctr-hotel-end span{font-size:9px}
 .customer-shell .ctr-hotel-end b{font-size:11px}
 .customer-shell .ctr-route-stops b{font-size:11px}
-.customer-shell .ctr-route-stops small{font-size:10px}
+.customer-shell .ctr-route-stops small{font-size:9px}
 .customer-shell .ctr-card-header b{font-size:12px}
-.customer-shell .ctr-card-header small{font-size:10px}
+.customer-shell .ctr-card-header small{font-size:9px}
 .customer-shell .ctr-card-meta{font-size:11px}
-.customer-shell .ctr-note{font-size:10px}
-.customer-shell .ctr-note b{font-size:10px}
-.customer-shell .ctr-stay-window span{font-size:10px}
+.customer-shell .ctr-note{font-size:9px}
+.customer-shell .ctr-note b{font-size:9px}
+.customer-shell .ctr-stay-window span{font-size:9px}
 /* cgr-* guest requests — readable type scale (system standard: 14px titles, 12px meta) */
 .customer-shell .cgr-batch-heading small{font-size:12px}
 .customer-shell .cgr-batch-count{font-size:12px;font-variant-numeric:tabular-nums}
@@ -702,26 +702,23 @@
 .customer-rewards-page .customer-page-title{margin-bottom:0}
 .customer-rewards-hero h1{max-width:760px;text-wrap:balance}
 
-.loyalty-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-.loyalty-kpi-card{display:flex;flex-direction:column;justify-content:space-between;min-width:0;min-height:165px;padding:20px;border:1px solid var(--cp-line);border-radius:var(--cp-card-radius);background:var(--cp-panel);box-shadow:var(--cp-shadow);transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease}
-.loyalty-kpi-card:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--cp-green) 35%,var(--cp-line));box-shadow:var(--cp-shadow-hover)}
-.loyalty-kpi-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
-.loyalty-kpi-content{display:grid;align-content:start;gap:5px;min-width:0}
-.loyalty-kpi-card.loyalty-kpi-balance{background:linear-gradient(145deg,color-mix(in srgb,var(--cp-panel) 90%,var(--cp-green) 10%) 0%,var(--cp-panel) 100%)}
-.loyalty-kpi-card.loyalty-kpi-lifetime{background:linear-gradient(145deg,color-mix(in srgb,var(--cp-panel) 88%,var(--cp-gold) 12%) 0%,var(--cp-panel) 100%)}
-.loyalty-kpi-card.loyalty-kpi-progress{background:linear-gradient(145deg,color-mix(in srgb,var(--cp-panel) 92%,var(--cp-gold) 8%) 0%,var(--cp-panel) 100%)}
-.loyalty-kpi-card.loyalty-kpi-power{background:linear-gradient(145deg,color-mix(in srgb,var(--cp-panel) 92%,var(--st-info-fg) 8%) 0%,var(--cp-panel) 100%)}
-.loyalty-kpi-icon,.loyalty-section-icon{display:grid;place-items:center;flex:none;width:42px;height:42px;border-radius:12px;background:color-mix(in srgb,var(--cp-green) 12%,var(--cp-panel));color:var(--cp-green)}
-.loyalty-kpi-icon.loyalty-kpi-icon-gold{background:color-mix(in srgb,var(--cp-gold) 15%,var(--cp-panel));color:var(--cp-gold);box-shadow:0 0 14px color-mix(in srgb,var(--cp-gold) 20%,transparent)}
-.loyalty-spend-qualifying-badge{padding:4px 9px;border-radius:999px;font-size:10.5px;font-weight:750;background:color-mix(in srgb,var(--cp-gold) 14%,var(--cp-panel));color:var(--cp-gold);border:1px solid color-mix(in srgb,var(--cp-gold) 28%,transparent);white-space:nowrap}
-.loyalty-multiplier-chip{padding:3px 8px;border-radius:999px;font-size:10.5px;font-weight:750;background:color-mix(in srgb,var(--cp-green) 14%,var(--cp-panel));color:var(--cp-green);border:1px solid color-mix(in srgb,var(--cp-green) 25%,transparent);white-space:nowrap}
+
+
+
+
+
+
+
+
+
+
+
 .loyalty-progress-badge{padding:4px 9px;border-radius:999px;font-size:10.5px;font-weight:750;background:color-mix(in srgb,var(--cp-gold) 14%,var(--cp-panel));color:var(--cp-gold);border:1px solid color-mix(in srgb,var(--cp-gold) 25%,transparent);white-space:nowrap}
 .loyalty-conversion-badge{padding:4px 9px;border-radius:999px;font-size:10.5px;font-weight:750;background:var(--cp-panel-2);color:var(--cp-muted);border:1px solid var(--cp-line);white-space:nowrap}
-.loyalty-balance-display{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px}
-.loyalty-kpi-card small{color:var(--cp-muted);font-size:10px;font-weight:750;letter-spacing:.07em;text-transform:uppercase}
-.loyalty-kpi-card strong{display:block;color:var(--cp-text);font-size:clamp(20px,1.9vw,26px);line-height:1.15;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
-.loyalty-kpi-card strong em{color:var(--cp-muted);font-size:12px;font-style:normal;font-weight:600}
-.loyalty-kpi-card p{margin:0;color:var(--cp-muted);font-size:11px;line-height:1.55}
+
+
+
+
 .loyalty-tier-badge,.loyalty-active-tier,.loyalty-transaction-badge{display:inline-flex;align-items:center;width:max-content;border:1px solid transparent;border-radius:999px;font-weight:750;line-height:1;white-space:nowrap}
 .loyalty-tier-badge{margin:2px 0;padding:5px 9px;font-size:11px}
 .loyalty-tier-badge.tier-silver,.loyalty-tier-mark.tier-silver{border-color:var(--st-neutral-bd);background:var(--st-neutral-bg);color:var(--st-neutral-fg)}
@@ -792,9 +789,6 @@
 .loyalty-error h2{font-size:14px}.loyalty-error p{margin-top:4px;font-size:11px;line-height:1.5}
 .loyalty-error .btn{min-height:40px}
 .loyalty-loading{display:grid;gap:24px}
-.loyalty-skeleton{display:block;border-radius:var(--cp-card-radius);background:linear-gradient(100deg,var(--cp-panel-2) 20%,color-mix(in srgb,var(--cp-panel) 72%,var(--cp-line)) 50%,var(--cp-panel-2) 80%);background-size:220% 100%;animation:loyaltyShimmer 1.4s ease-in-out infinite}
-.loyalty-skeleton-kpi{height:132px}.loyalty-skeleton-heading{width:240px;height:28px}.loyalty-skeleton-tier{height:190px}.loyalty-skeleton-ledger{height:245px}
-@keyframes loyaltyShimmer{to{background-position:-220% 0}}
 
 /* Redemption sub-panel — guest reservation "Rate & folio", not the rewards page.
    The surrounding .customer-detail-card supplies the page padding, so this is a
@@ -835,13 +829,12 @@
 .loyalty-redeem-credit strong{color:var(--cp-green);font-variant-numeric:tabular-nums}
 .loyalty-redeem-error{margin:0;padding:11px 13px;border:1px solid var(--st-neg-bd);border-radius:10px;background:var(--st-neg-bg);color:var(--st-neg-fg);font-size:11px;line-height:1.5}
 
-@media(max-width:1100px){.loyalty-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
 @media(max-width:900px){
   .loyalty-tier-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .loyalty-tier-option:last-child{grid-column:1/-1}
 }
 @media(max-width:680px){
-  .loyalty-kpi-grid{grid-template-columns:1fr}
   .customer-rewards-page{gap:20px}
   .loyalty-comparison>header{align-items:flex-start;flex-direction:column}
   .loyalty-lifetime-spend{width:100%;justify-content:space-between}
@@ -863,9 +856,8 @@
   .loyalty-redeem-row .btn{width:100%}
 }
 @media(prefers-reduced-motion:reduce){
-  .loyalty-kpi-card,.loyalty-tier-option,.loyalty-progress>span,.loyalty-ledger-table tbody tr{transition:none}
+  .loyalty-tier-option,.loyalty-progress>span,.loyalty-ledger-table tbody tr{transition:none}
   .loyalty-redeem-max{transition:none}
-  .loyalty-skeleton{animation:none}
 }
 
 /* Floating virtual-concierge widget — bottom-right, every guest module. */
@@ -902,8 +894,6 @@
 .customer-shell .concierge-draft button{justify-self:start;min-height:36px;padding:8px 14px;border:0;border-radius:999px;background:var(--cp-accent);color:#111827;font-size:11.5px;font-weight:700;cursor:pointer}
 .theme-light .customer-shell .concierge-draft button{background:#111827;color:#fff}
 .customer-shell .concierge-skeleton{display:grid;gap:6px}
-.customer-shell .concierge-skeleton .pulse-bar{height:12px;border-radius:6px;background:var(--cp-panel-2)}
-.customer-shell .concierge-skeleton .pulse-bar.short{width:60%}
 .customer-shell .concierge-error{margin:0;font-size:11.5px;color:#fca5a5}
 .customer-shell .concierge-ok{margin:0;font-size:11.5px;color:var(--cp-accent)}
 .customer-shell .concierge-chips{display:flex;flex-wrap:wrap;gap:6px}

@@ -103,7 +103,11 @@ export const authOptions: NextAuthOptions = {
   })],
   callbacks: {
     async jwt({ token, user, trigger, session }) {
+      // NextAuth rewrites iat when its session endpoint renews the cookie.
+      // Pin legacy tokens once and never accept a client-supplied replacement.
+      if (typeof token.loginIssuedAt !== "number") token.loginIssuedAt = typeof token.iat === "number" ? token.iat : Math.floor(Date.now() / 1000);
       if (user) {
+        token.loginIssuedAt = Math.floor(Date.now() / 1000);
         const signedIn=user as typeof user&{role:Role;authVersion:number;persistent?:boolean;otpPending?:boolean;challengeId?:string};
         if (signedIn.otpPending === true && signedIn.challengeId) {
           // Stage-1 login OTP token: deliberately carries NO role and NO user
@@ -120,13 +124,17 @@ export const authOptions: NextAuthOptions = {
         else { token.disabled=false;token.role=data.role as Role; }
       }
       if (trigger === "update" && typeof session?.name === "string") token.name = session.name;
+      if (typeof token.loginIssuedAt === "number" && Date.now() / 1000 - token.loginIssuedAt > SESSION_MAX_AGE) {
+        token.disabled = true;
+        token.role = "guest";
+      }
       return token;
     },
     async session({ session, token }) {
+      const issuedAtSec = typeof token.loginIssuedAt === "number" ? token.loginIssuedAt : typeof token.iat === "number" ? token.iat : null;
       if (session.user) { session.user.id=token.sub??"";session.user.role=(token.role as Role)??"guest";session.user.disabled=Boolean(token.disabled);session.user.otpPending=token.otpPending===true; }
-      // Authoritative idle/absolute enforcement. getToken only decodes, so
-      // callbacks.jwt does NOT run per request — this callback does, on every
-      // getServerSession. An expired session is neutralized here (disabled +
+      // Authoritative idle/absolute enforcement on every getServerSession.
+      // An expired session is neutralized here (disabled +
       // guest + blank id) so every guard, page, and inline session check sees
       // the same verdict without touching any route.
       if (session.user && !session.user.disabled && session.user.id && supabase) {
@@ -140,7 +148,7 @@ export const authOptions: NextAuthOptions = {
             queryError: seen.queryError,
             hasRow: seen.data != null,
             verdict: evaluateSessionExpiry({
-              issuedAtSec: typeof token.iat === "number" ? token.iat : null,
+              issuedAtSec,
               lastSeenAt: lastSeen,
               persistent: token.persistent === true,
               policy,
@@ -154,7 +162,7 @@ export const authOptions: NextAuthOptions = {
               ? await touchSecuritySeen(session.user.id, null)
               : lastSeen;
             if (!seen.queryError) session.sessionExpiresAt = sessionExpiryDeadline({
-              issuedAtSec: typeof token.iat === "number" ? token.iat : null,
+              issuedAtSec,
               lastSeenAt: effectiveLastSeen,
               persistent: token.persistent === true,
               policy,

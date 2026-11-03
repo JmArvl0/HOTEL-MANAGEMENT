@@ -91,7 +91,7 @@ describe("refundBasisBadge", () => {
   it("badges a Manager-approved exception and shows the policy baseline it exceeded", () => {
     const { container } = render(refundBasisBadge({ id: "r3", exception_approval_id: "ap-2", approval_status: "approved", normal_policy_amount: 2500 } as unknown as RecordItem));
     expect(container.textContent).toBe("Approved exception");
-    expect(container.querySelector(".badge.approved-exception")?.getAttribute("title")).toContain("2,500");
+    expect(container.querySelector(".haven-status--info")?.getAttribute("title")).toContain("2,500");
     cleanup();
   });
 });
@@ -159,14 +159,16 @@ describe("ManagerApprovalView", () => {
     expect(within(criticalRow).getByText("critical")).toBeTruthy();
     expect(within(criticalRow).getByText("room upgrade")).toBeTruthy();
     // Severity badges use honest classes with theme rules (DESIGN.md §21):
-    // critical rides the danger family, high the warning family.
-    expect(within(criticalRow).getByText("critical").className).toMatch(/critical/);
-    const managerTheme = readFileSync(join(process.cwd(), "app/staff-theme.css"), "utf8");
-    expect(managerTheme).toContain(".app-shell .badge.critical");
-    expect(managerTheme).toContain(".app-shell .badge.high");
-    const opsTheme = readFileSync(join(process.cwd(), "app/staff-theme.css"), "utf8");
-    expect(opsTheme).toContain(".badge.critical");
-    expect(opsTheme).toContain(".badge.high");
+    // critical rides the danger family (haven-status--danger), high the warning family.
+    const criticalBadge = within(criticalRow).getByText("critical").closest(".haven-status");
+    expect(criticalBadge).toBeTruthy();
+    expect(criticalBadge!.className).toMatch(/haven-status--danger/);
+    const havenControls = readFileSync(join(process.cwd(), "components/ui/haven-data-controls.css"), "utf8");
+    expect(havenControls).toContain(".app-shell .haven-status--danger");
+    expect(havenControls).toContain(".app-shell .haven-status--warning");
+    const opsTheme = readFileSync(join(process.cwd(), "components/ui/haven-data-controls.css"), "utf8");
+    expect(opsTheme).toContain(".haven-status--danger");
+    expect(opsTheme).toContain(".haven-status--warning");
   });
 
   it("Review opens the decision modal; Approve routes through review() and closes on success", async () => {

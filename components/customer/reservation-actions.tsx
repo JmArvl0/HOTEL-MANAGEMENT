@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { HavenErrorAlert, HavenSkeletonCard } from "@/components/ui/haven-data-controls";
 import { useRouter } from "next/navigation";
 import { CalendarClock, Clock3, MessageSquareText, XCircle } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
@@ -291,7 +292,7 @@ export function ReservationActions({
         }
       >
         <div className="cancel-consequence">
-          {preview.status === "loading" && <p role="status">Calculating your refund eligibility…</p>}
+          {preview.status === "loading" && <div role="status" aria-label="Calculating your refund eligibility"><HavenSkeletonCard hasHeader /></div>}
           {preview.status === "failed" && (
             <p className="booking-error" role="alert">
               {preview.error} You can still cancel — the server always recalculates eligibility before committing.
@@ -341,7 +342,7 @@ export function ReservationActions({
               onChange={(event) => setCancelReason(event.target.value)}
             />
           </div>
-          {cancelError && <p className="booking-error" role="alert">{cancelError}</p>}
+          {cancelError && <HavenErrorAlert title="Cancellation failed" body={cancelError} variant="customer" />}
         </div>
       </Modal>
 
@@ -425,7 +426,7 @@ export function ReservationActions({
               onChange={(e) => setReason(e.target.value)}
             />
           </div>
-          {error && <p className="booking-error" role="alert">{error}</p>}
+          {error && <HavenErrorAlert title="Change request failed" body={error} variant="customer" />}
         </div>
       </Modal>
     </div>

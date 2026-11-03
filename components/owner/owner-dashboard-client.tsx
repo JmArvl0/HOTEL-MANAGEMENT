@@ -1,6 +1,9 @@
 "use client";
+import HotelOperationsPanel, { OperatingDateBanner } from "@/components/manager/hotel-operations-panel";
+
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { Activity, BarChart3, BedDouble, Bell, Building2, CalendarDays, CarTaxiFront, ChevronDown, ChevronRight, CircleDollarSign, CircleDot, ClipboardCheck, Clock, Eye, FileText, Globe, Image, KeyRound, LogOut, Mail, MapPin, PanelLeftClose, Percent, Pencil, QrCode, Receipt, Search, Settings, ShieldCheck, Sparkles, Star, Tag, Timer, Users } from "lucide-react";
@@ -26,7 +29,8 @@ import {
   OWNER_ROLE_META,
 } from "@/components/owner/owner-primitives";
 import { SettingsDialog } from "@/components/ui/SettingsDialog";
-import { SoundToggleMenuItem } from "@/components/ui/sound-toggle";
+import { ProfilePopover } from "@/components/ui/ProfilePopover";
+import { useNotificationSound } from "@/components/ui/sound-toggle";
 import RoomCatalogPanel from "@/components/catalog/room-catalog-panel";
 import PaymentSettingsPanel from "@/components/owner/payment-settings-panel";
 import TransportServicesPanel from "@/components/catalog/transport-vehicle-types-panel";
@@ -53,7 +57,7 @@ const label = (value: unknown) => String(value ?? "—").replace(/([a-z])([A-Z])
 // System Administrator display name: internal role id stays "admin".
 const roleLabel = (role: unknown) => String(role) === "admin" ? "System Administrator" : label(role);
 const money = (value: unknown) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(Number(value || 0));
-const badge = (value: unknown) => <span className={`badge ${String(value ?? "")}`}>{label(value)}</span>;
+const badge = (value: unknown) => <StatusBadge status={String(value ?? "")} label={label(value)} />;
 const shortId = (value: unknown) => { const text = String(value ?? ""); return text.length > 12 ? `${text.slice(0, 8)}…` : text; };
 const sub = (main: unknown, secondary: unknown) => <>{label(main)}{secondary !== null && secondary !== undefined && String(secondary) !== "" ? <><br /><small>{String(secondary)}</small></> : null}</>;
 // Presentation-only value formatting (delegates to the shared primitive so
@@ -254,23 +258,8 @@ export default function OwnerDashboardClient({ user, sessionExpiresAt }: { user:
   const toggleSidebar = () => { if (window.matchMedia("(max-width: 1000px)").matches) setMenu(false); else { const next = !collapsed; setCollapsed(next); window.localStorage.setItem("haven-owner-sidebar-collapsed", String(next)); } };
   const [profileOpen, setProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const profileMenu = useRef<HTMLDivElement>(null);
+  const [soundOn, setSoundOn] = useNotificationSound();
   const profileBtn = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    if (!profileOpen) return;
-    const outside = (event: Event) => {
-      if (profileMenu.current && !profileMenu.current.contains(event.target as Node)) setProfileOpen(false);
-    };
-    const escape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setProfileOpen(false);
-    };
-    document.addEventListener("pointerdown", outside);
-    document.addEventListener("keydown", escape);
-    return () => {
-      document.removeEventListener("pointerdown", outside);
-      document.removeEventListener("keydown", escape);
-    };
-  }, [profileOpen]);
   return <div className={`app-shell owner-workspace${collapsed ? " sidebar-collapsed" : ""}`}>
     <aside id="owner-navigation" className={`sidebar${menu ? " open" : ""}${collapsed ? " collapsed" : ""}`}>
       <div className="sidebar-top"><div className="brand"><button className="brand-mark sidebar-brand-toggle" onClick={toggleSidebar} aria-label={collapsed ? "Expand navigation" : "Collapse navigation"} aria-controls="owner-navigation" aria-expanded={!collapsed} title={collapsed ? "Expand navigation" : "Collapse navigation"}><HavenLogo size={48} small /></button><Link href="/" className="brand-copy" aria-label="Hotel homepage" title="Hotel homepage">HAVEN<small>OWNER GOVERNANCE</small></Link><button className="sidebar-collapse-button" onClick={toggleSidebar} aria-label="Collapse navigation" aria-controls="owner-navigation" aria-expanded={!collapsed} title="Collapse navigation"><PanelLeftClose size={16} /></button></div></div>
@@ -281,8 +270,8 @@ export default function OwnerDashboardClient({ user, sessionExpiresAt }: { user:
         </div>;
       })}</nav>
     </aside>
-    <main className="workspace"><header className="app-header"><button className="menu-btn brand-menu-btn" onClick={() => setMenu(true)} aria-label="Open navigation"><span className="brand-mark"><HavenLogo size={31} small /></span></button><div><p>{nav.find((item) => item[0] === section)?.[1]}</p><small>Provisional Owner / Super Admin Governance Baseline</small></div><div className="header-actions"><button type="button" className="saas-header-search-btn" onClick={() => setCmdOpen(true)} aria-label="Search or jump to... (Press Cmd+K)" title="Search or jump to... (Cmd+K)"><Search size={14} /><span suppressHydrationWarning>Search...</span><kbd className="saas-kbd">⌘K</kbd></button><SessionExpiryGuard expiresAt={sessionExpiresAt} /><ThemeToggle /><div className="profile-menu-wrap" ref={profileMenu}><button ref={profileBtn} type="button" className="profile-menu-btn" onClick={() => setProfileOpen((value) => !value)} aria-expanded={profileOpen} aria-haspopup="menu" aria-label="Account menu"><b>{(user.name ?? "OW").slice(0, 2).toUpperCase()}</b><span>{user.name}</span><ChevronDown size={14} /></button>{profileOpen && <div className="popover-gap"><div className="profile-popover"><p><strong>{user.name}</strong><small>{user.email}</small><small>Owner / Super Admin</small></p><button type="button" onClick={() => { setProfileOpen(false); setSettingsOpen(true); }}><Settings size={15} />Settings</button><SoundToggleMenuItem onToggle={() => setProfileOpen(false)} /><button type="button" onClick={() => signOut({ callbackUrl: "/" })}><LogOut size={15} />Sign Out</button></div></div>}</div></div></header><ToastStack controller={toastController} />
-      <div className="workspace-body owner-module">{section === "room_types" ? <RoomCatalogPanel role="owner" /> : section === "transport_services" ? <TransportServicesPanel /> : section === "transportation" ? <TransportationPanel role="owner" /> : section === "payments" ? <PaymentSettingsPanel notify={notify} /> : loading ? <div className="empty"><Activity /><h3>Loading executive records…</h3></div> : section === "overview" ? <Overview data={data as ExecutiveData} setSection={setSection} /> : section === "operations" ? <Operations data={data as { metrics: Record<string, number>; departmentSummary: Record<string, Record<string, number>>; risks: Record<string, Row[]>; trend: Row[] }} /> : section === "financial" ? <Financial data={data as Row} /> : section === "departments" ? <Departments data={data as { departmentSummary: Record<string, Record<string, number>>; risks: Record<string, Row[]> }} /> : section === "admins" ? <Admins rows={rows} currentId={user.id} createAdmin={createAdmin} action={adminAction} /> : section === "roles" ? <Roles data={data as { catalogue: Record<string, string[]>; ownerPrinciples: string[] }} /> : section === "policy" ? <Policy item={((data as { policy?: Row } | null)?.policy ?? data) as Row} trail={((data as { trail?: Row[] } | null)?.trail ?? []) as Row[]} edit={editPolicy} /> : section === "exceptions" ? <Exceptions rows={rows} review={reviewException} /> : section === "audit" || section === "security" ? <Audit rows={rows} security={section === "security"} /> : <Reports data={data as ExecutiveData} />}</div>
+    <main className="workspace"><header className="app-header"><button className="menu-btn brand-menu-btn" onClick={() => setMenu(true)} aria-label="Open navigation"><span className="brand-mark"><HavenLogo size={31} small /></span></button><div><p>{nav.find((item) => item[0] === section)?.[1]}</p><small>Provisional Owner / Super Admin Governance Baseline</small></div><div className="header-actions"><button type="button" className="saas-header-search-btn" onClick={() => setCmdOpen(true)} aria-label="Search or jump to... (Press Cmd+K)" title="Search or jump to... (Cmd+K)"><Search size={14} /><span suppressHydrationWarning>Search...</span><kbd className="saas-kbd">⌘K</kbd></button><SessionExpiryGuard expiresAt={sessionExpiresAt} /><ThemeToggle /><div className="profile-menu-wrap"><button ref={profileBtn} type="button" className="profile-menu-btn" onClick={() => setProfileOpen((value) => !value)} aria-expanded={profileOpen} aria-haspopup="menu" aria-label="Account menu"><b>{(user.name ?? "OW").slice(0, 2).toUpperCase()}</b><span>{user.name}</span><ChevronDown size={14} /></button><ProfilePopover variant="staff" user={user} roleLabel="Owner / Super Admin" triggerRef={profileBtn} open={profileOpen} onClose={() => setProfileOpen(false)} onSignOut={() => signOut({ callbackUrl: "/" })} onSettings={() => setSettingsOpen(true)} soundEnabled={soundOn} onSoundToggle={setSoundOn} /></div></div></header><OperatingDateBanner /><ToastStack controller={toastController} />
+      <div className="workspace-body owner-module">{section === "room_types" ? <RoomCatalogPanel role="owner" /> : section === "transport_services" ? <TransportServicesPanel /> : section === "transportation" ? <TransportationPanel role="owner" /> : section === "payments" ? <PaymentSettingsPanel notify={notify} /> : loading ? <div className="empty"><Activity /><h3>Loading executive records…</h3></div> : section === "overview" ? <Overview data={data as ExecutiveData} setSection={setSection} /> : section === "operations" ? <><Operations data={data as { metrics: Record<string, number>; departmentSummary: Record<string, Record<string, number>>; risks: Record<string, Row[]>; trend: Row[] }} /><HotelOperationsPanel role="owner" /></> : section === "financial" ? <Financial data={data as Row} /> : section === "departments" ? <Departments data={data as { departmentSummary: Record<string, Record<string, number>>; risks: Record<string, Row[]> }} /> : section === "admins" ? <Admins rows={rows} currentId={user.id} createAdmin={createAdmin} action={adminAction} /> : section === "roles" ? <Roles data={data as { catalogue: Record<string, string[]>; ownerPrinciples: string[] }} /> : section === "policy" ? <Policy item={((data as { policy?: Row } | null)?.policy ?? data) as Row} trail={((data as { trail?: Row[] } | null)?.trail ?? []) as Row[]} edit={editPolicy} /> : section === "exceptions" ? <Exceptions rows={rows} review={reviewException} /> : section === "audit" || section === "security" ? <Audit rows={rows} security={section === "security"} /> : <Reports data={data as ExecutiveData} />}</div>
     </main>{settingsOpen && <SettingsDialog isOpen onClose={() => setSettingsOpen(false)} />}{dialogs.view}<CommandPalette isOpen={cmdOpen} onClose={() => setCmdOpen(false)} items={ownerCommandItems} />
   </div>;
 }

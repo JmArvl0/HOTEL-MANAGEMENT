@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { BedDouble, CalendarDays, DoorOpen, Plus, QrCode, Sparkles, SprayCan } from "lucide-react";
 import { Modal, ConfirmDialog } from "@/components/ui/Modal";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
-import { HavenDataToolbar, HavenSearchInput } from "@/components/ui";
+import { HavenDataToolbar, HavenSearchInput, PageHeader } from "@/components/ui";
 import { HavenSelect } from "@/components/ui/haven-select";
 import { useFrontOfficeRack } from "@/hooks/use-front-office-rack";
 import BoardReservationTabs, { type BoardTab } from "./board-reservation-tabs";
@@ -21,6 +21,7 @@ import {
 } from "@/lib/room-rack";
 import type { RecordItem } from "@/lib/types";
 import type { ToastTone } from "@/components/ui/toast-stack";
+import { HavenSkeleton } from "@/components/ui/haven-skeleton";
 import "./fused-room-rack-panel.css";
 
 const asRecord = (value: object): RecordItem => value as unknown as RecordItem;
@@ -226,7 +227,7 @@ export default function FrontOfficeRack({
       setConfirm(null);
       return;
     }
-    const bars = barsForRoom(reservations, room.id, from, days);
+    const bars = barsForRoom(reservations, room.id, from, days, snapshot?.assignments);
     const check = assignableCell(room, reservation, bars);
     if (!check.ok) {
       say((check as { reason: string }).reason, "warning");
@@ -323,24 +324,14 @@ export default function FrontOfficeRack({
     setActiveRoom(room);
   }
 
-  if (loading && !snapshot) return <div className="rack-skeleton" aria-label="Loading room rack"><span className="pulse-bar" /><span className="pulse-bar" /><span className="pulse-bar short" /></div>;
+  if (loading && !snapshot) return <div className="rack-skeleton" role="status" aria-label="Loading room rack"><HavenSkeleton radius={8} /><HavenSkeleton radius={8} /><HavenSkeleton radius={8} width="60%" /></div>;
   if (error && !snapshot) return <div className="rack-error" role="alert"><p>{error}</p><button type="button" onClick={() => void reload()}>Retry</button></div>;
 
   const activeBoard = activeRoom ? states.get(activeRoom.id) ?? roomBoardState(activeRoom, reservations, today, blockedIds) : null;
 
   return (
     <>
-      <div className="page-title module-title">
-        <div>
-          <p className="eyebrow">Front Office</p>
-          <h1>Room Reservations</h1>
-          <p>
-            Interactive room board and reservations ledger. Assign arrivals, manage in-house stays,
-            and monitor turnover.
-          </p>
-        </div>
-        {(onScan || onNewReservation) && (
-          <div className="title-actions">
+      <PageHeader variant="band" eyebrow="Front Office" title="Room Reservations" subtitle="Interactive room board and reservations ledger. Assign arrivals, manage in-house stays, and monitor turnover." actions={(onScan || onNewReservation) && <>
             {onScan && (
               <button type="button" className="btn btn-soft" onClick={onScan}>
                 <QrCode size={17} aria-hidden="true" /> Scan QR
@@ -351,9 +342,7 @@ export default function FrontOfficeRack({
                 <Plus size={17} aria-hidden="true" /> New reservation
               </button>
             )}
-          </div>
-        )}
-      </div>
+          </>} />
 
       <ModuleSummaryCards
         ariaLabel="Front office summary"
@@ -429,6 +418,7 @@ export default function FrontOfficeRack({
         />
       </div>
 
+      {snapshot?.assignments && <section className="hotel-ops" aria-label="Room assignment diary"><h2>Room assignment diary</h2><p>Dated room allocations share the original reservation reference. Earlier room-move boundaries may be unavailable.</p><ul className="hotel-ops-list">{rooms.flatMap(room=>barsForRoom(reservations,room.id,from,days,snapshot.assignments).map((bar,index)=><li key={bar.segmentId??`${room.id}-${bar.reservation.id}-${index}`}><strong>Room {room.number}</strong><span>{bar.reservation.check_in} → {bar.reservation.check_out}</span><small>{bar.historyKnown?"Recorded segment":"Planned allocation; historical boundary unavailable"}</small><button type="button" className="btn btn-soft" onClick={()=>onOpenFolio(bar.reservation.id)}>{bar.reservation.confirmation_number??bar.reservation.id}</button></li>))}</ul>{snapshot.assignments.length===0&&<p>No dated room allocations in this window.</p>}</section>}
       {activeRoom && activeBoard && (
         <RoomActionSheet
           room={activeRoom}

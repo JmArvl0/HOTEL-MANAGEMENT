@@ -1,5 +1,6 @@
 "use client";
 import { FormEvent, useState } from "react";
+import { HavenErrorAlert } from "@/components/ui/haven-data-controls";
 import { useRouter } from "next/navigation";
 import { CircleCheckBig, ConciergeBell, Send } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
@@ -71,7 +72,7 @@ export function GuestRequestForm({ reservations, options }: { reservations: { id
         </fieldset>
         {selected.includes("stay_extension") && <label>Requested new check-out<input name="requestedCheckOut" type="date" required /></label>}
         <label>Details <small className="customer-data-note">Optional — one note applies to everything you chose above.</small><textarea name="description" rows={4} maxLength={500} placeholder="Any useful details, e.g. room floor, preferred time, how many." /></label>
-        {error && <p className="booking-error" role="alert">{error}</p>}
+        {error && <HavenErrorAlert title="Request failed" body={error} variant="customer" />}
         <div><button type="button" className="btn btn-soft" onClick={close}>Cancel</button><button className="btn btn-accent" disabled={loading || selected.length === 0}><Send size={15} />{loading ? "Submitting…" : "Submit request"}</button></div>
       </form>}
     </Modal>

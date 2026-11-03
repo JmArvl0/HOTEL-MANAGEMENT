@@ -83,7 +83,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const eligible = Number(row?.eligible_refund ?? 0);
   // Persistent bell entry + optional email copy. Never throws and never
   // blocks the already-committed cancellation (see lib/notifications).
-  void notifyWithOptionalEmail(
+  await notifyWithOptionalEmail(
     {
       userId: session.user.id,
       type: "reservation_cancelled",

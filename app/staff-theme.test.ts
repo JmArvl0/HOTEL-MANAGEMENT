@@ -62,4 +62,10 @@ describe("staff theme layer", () => {
     const body = css.split(".saas-page")[1] ?? "";
     expect(body).not.toMatch(/#[0-9a-fA-F]{3,6}/);
   });
+
+  it("puts staff navigation in a fixed off-canvas overlay on narrow screens", () => {
+    const css = readFileSync(FILE, "utf8");
+    const drawerRules = /@media\s*\(max-width:\s*1000px\)\s*\{[\s\S]*?\.app-shell\s+\.sidebar\s*\{[^}]*position:\s*fixed[^}]*\}\s*\.app-shell\s+\.sidebar\.open\s*\{[^}]*transform:\s*translateX\(0\)/;
+    expect(drawerRules.test(css)).toBe(true);
+  });
 });

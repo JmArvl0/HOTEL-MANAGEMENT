@@ -2,6 +2,7 @@ import { fromCentavos, toCentavos } from "@/lib/booking";
 import { supabase } from "@/lib/supabase";
 import { canOperateCashShift, canViewAccountingLedger } from "@/lib/permissions";
 import type { AccountingMetrics, Role } from "@/lib/types";
+import { readAllRows } from "@/lib/read-all-rows";
 
 // Money is compared and combined in minor units only. These mirror the SQL side exactly so the
 // dashboard, the tests and sync_invoice_financials cannot drift apart.
@@ -72,11 +73,11 @@ export async function getAccountingLedger(role: Role): Promise<AccountingLedger 
   if ((!canViewAccountingLedger(role) && !canOperateCashShift(role)) || !supabase) return null;
   const full = canViewAccountingLedger(role);
   const client = supabase;
-  const take = async (table: string, fields: string, order: string, limit = 200) =>
-    ((await client.from(table).select(fields).order(order, { ascending: false }).limit(limit)).data ?? []) as unknown as Row[];
+  const take = (table: string, fields: string, order: string) =>
+    readAllRows<Row>(() => client.from(table).select(fields).returns<Row[]>().order(order, { ascending: false }));
   const [transactions, invoices, charges, adjustments, cashShifts, documents] = await Promise.all([
-    take("payments", PAYMENT_FIELDS, "created_at", 300), take("invoices", INVOICE_FIELDS, "created_at", 300),
-    take("folio_charges", CHARGE_FIELDS, "created_at", 300), take("financial_adjustments", ADJUSTMENT_FIELDS, "created_at"),
+    take("payments", PAYMENT_FIELDS, "created_at"), take("invoices", INVOICE_FIELDS, "created_at"),
+    take("folio_charges", CHARGE_FIELDS, "created_at"), take("financial_adjustments", ADJUSTMENT_FIELDS, "created_at"),
     take("cash_shifts", SHIFT_FIELDS, "opened_at"), take("financial_documents", DOCUMENT_FIELDS, "created_at")
   ]);
   const [refunds, refundAttempts, reconciliations] = full ? await Promise.all([
@@ -84,12 +85,12 @@ export async function getAccountingLedger(role: Role): Promise<AccountingLedger 
     take("payment_reconciliations", RECONCILIATION_FIELDS, "reconciled_at")
   ]) : [[] as Row[], [] as Row[], [] as Row[]];
   const staffIds = [...new Set(cashShifts.map((shift) => String(shift.staff_user_id)).filter(Boolean))];
-  const staff = staffIds.length ? ((await client.from("user_accounts").select("id,name").in("id", staffIds)).data ?? []) : [];
+  const staff = staffIds.length ? await readAllRows(() => client.from("user_accounts").select("id,name").in("id", staffIds)) : [];
   const nameById = new Map(staff.map((person) => [String(person.id), String(person.name)]));
   // Per-shift cash collected, derived from the payments linked to each shift (in − refunds out)
   // so an open shift shows its running total and a closed one matches its expected-cash basis.
   const shiftIds = cashShifts.map((shift) => String(shift.id)).filter(Boolean);
-  const shiftPayments = shiftIds.length ? ((await client.from("payments").select("cash_shift_id,amount,purpose").in("cash_shift_id", shiftIds).eq("status", "paid")).data ?? []) as Row[] : [];
+  const shiftPayments = shiftIds.length ? await readAllRows<Row>(() => client.from("payments").select("cash_shift_id,amount,purpose").in("cash_shift_id", shiftIds).eq("status", "paid")) : [];
   const collectedByShift = new Map<string, number>();
   for (const row of shiftPayments) {
     const key = String(row.cash_shift_id);
