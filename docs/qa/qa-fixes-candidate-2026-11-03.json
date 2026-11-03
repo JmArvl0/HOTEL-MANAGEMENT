@@ -1,0 +1,778 @@
+{
+  "status": "verified locally; hosted rollout pending Vercel sign-in",
+  "buildId": "1pkarVr96xetkX6XpkXS-",
+  "migrations": 112,
+  "remoteSourcesVerified": 8,
+  "checks": {
+    "vitest": 2205,
+    "focused": 44,
+    "sql": 87,
+    "upgradeOrder": true,
+    "build": true,
+    "typecheck": true,
+    "lintErrors": 0,
+    "lintWarnings": 0
+  },
+  "files": [
+    {
+      "path": "app/(booking)/(customer)/account/find-room/page.tsx",
+      "sha256": "58b90f8e4646183a2631a3b74130b17c23cdd4c8b3905e83d5e8970dc7277a2b"
+    },
+    {
+      "path": "app/(booking)/booking/search/page.tsx",
+      "sha256": "d2d24d28cd3d4d0a622b7407fd9051cb389086b78aab76510b6e404a662bfe7f"
+    },
+    {
+      "path": "app/api/accounting/hotel-fees/route.ts",
+      "sha256": "cf3336285518379e3d9b10d09b2dac3a44d5e3107deffcd79859370003e39b11"
+    },
+    {
+      "path": "app/api/accounting/night-audit/close/route.ts",
+      "sha256": "84b6a97c1d8c1888de1f2b66cf36b99c6e42797cdcb1c39268827278579367a1"
+    },
+    {
+      "path": "app/api/front-desk/fees/quote/route.ts",
+      "sha256": "18f296ba3454309cb4a269fc293a837ed2da6d93b86dc7ca059f08c8d7aece6b"
+    },
+    {
+      "path": "app/api/front-desk/reservations/[id]/charge/route.ts",
+      "sha256": "d493ff408316640147899d2a8cdeb2eb0e321d8db330694ff9a5333ff0d7e0c3"
+    },
+    {
+      "path": "app/api/front-desk/reservations/[id]/guests/route.ts",
+      "sha256": "1eb944cdf209503652d393a534b203db411ee61f5c700a4c2775d612bc9221e0"
+    },
+    {
+      "path": "app/api/housekeeping/tasks/[id]/assign/route.ts",
+      "sha256": "e270d73a9464a62863ee4b5722c67bc01064ca14a001a338226276ba6968aedf"
+    },
+    {
+      "path": "app/api/rack/route.ts",
+      "sha256": "a61c66966682e0279fe9e79d9d51d9c2339eee2e287560042a6ebb55d0854fe1"
+    },
+    {
+      "path": "app/api/staff/guests/duplicates/route.ts",
+      "sha256": "02c401f9bb8a42d8056f735b15c14913191d7ce476e920002502c08c3d467bcc"
+    },
+    {
+      "path": "app/api/staff/handover/[id]/route.ts",
+      "sha256": "9981c3bf7e04bb042e8c97405940c441be1f801c99788fb4f098a1c94e3d1c8d"
+    },
+    {
+      "path": "app/api/staff/handover/assignees/route.ts",
+      "sha256": "a49e6eef23e1f28bc847cf8ae1b02b13ffa0cd19a935240d404999c09332e030"
+    },
+    {
+      "path": "app/api/staff/handover/references/route.ts",
+      "sha256": "046c5919646b2dd31436b926acf4ea3b0ca449cff83a199c485173b912f73ab9"
+    },
+    {
+      "path": "app/api/staff/handover/route.ts",
+      "sha256": "f46a1cae8d4f00c35a51dee0b697ecf6908352fb57047a4f14468876e6160a49"
+    },
+    {
+      "path": "app/api/staff/hotel-fees/route.ts",
+      "sha256": "104f662b3df3fb1a120d10481b98e2e1e358897deb8e131feabe7ab0c25362e0"
+    },
+    {
+      "path": "app/api/staff/night-audit/route.ts",
+      "sha256": "115d5592b508ba506a3d7187960e9324745301bdb968bca9077ddb833b427802"
+    },
+    {
+      "path": "app/api/staff/operational-date/route.ts",
+      "sha256": "726cd6ba4da04bbec8364316071791edb1d42a1c311374edef56a24e53fdd297"
+    },
+    {
+      "path": "app/api/staff/reservations/[id]/guests/route.ts",
+      "sha256": "84eb05d67e65c172d99e65733e8c5573038b05c7cd9af670f803f334626aac03"
+    },
+    {
+      "path": "app/api/staff/reservations/[id]/readiness/route.ts",
+      "sha256": "ec711cebe34856a7dcb8db61976be030978bc42278a1d600a2334564804f0dd5"
+    },
+    {
+      "path": "app/fonts/Inter-OFL.txt",
+      "sha256": "5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57"
+    },
+    {
+      "path": "app/fonts/Inter-Variable.ttf",
+      "sha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031"
+    },
+    {
+      "path": "app/fonts/PlayfairDisplay-OFL.txt",
+      "sha256": "566be814f8e96e93dfa16101331557eb6b5467e9e03f627c0910fe93ca12300e"
+    },
+    {
+      "path": "app/fonts/PlayfairDisplay-Variable.ttf",
+      "sha256": "c40f2293766a503bc70cce9e512ef844a4ccb7cbcde792fe2ea31d191917d8d6"
+    },
+    {
+      "path": "app/layout.tsx",
+      "sha256": "7dabe5373a19a895b82411dde7e28f917ba40c9b9e6369cb4b801aac1572e125"
+    },
+    {
+      "path": "app/staff-theme.css",
+      "sha256": "c1d52bf7bec2676db55a31ece714235be250a46ba1cae93376e53e600e6168b7"
+    },
+    {
+      "path": "app/staff-theme.test.ts",
+      "sha256": "07905dcde9b07fca410298535193ed4d4684c9bb32752196b7407124b1377ba8"
+    },
+    {
+      "path": "components/admin/admin-dashboard-client.tsx",
+      "sha256": "b7aa9def4afd3b6c629b419cea47bcecb60a53f53c6a980fb9031e56fac91f42"
+    },
+    {
+      "path": "components/admin/admin-shell.test.ts",
+      "sha256": "d1d51f32cf38d910064e42ac9f9f1f41daa7eea38adb5f563fc0bf751fd9e42c"
+    },
+    {
+      "path": "components/booking/availability-state.test.tsx",
+      "sha256": "18e331c29670fbccaedc08bc8655f3b84aac52356565bf4e30dcd7f1971602a5"
+    },
+    {
+      "path": "components/booking/room-results.tsx",
+      "sha256": "32693f0b6c59efcc93af3266febe1395538f9fe9a11568ce39aa9dfe2ac75695"
+    },
+    {
+      "path": "components/front-desk/fused-room-rack-panel-style.test.ts",
+      "sha256": "51f9e784df4ab36883f985e1694ff476ea262f359b95239c450a9df1c98aa937"
+    },
+    {
+      "path": "components/front-desk/fused-room-rack-panel.tsx",
+      "sha256": "6392fbd658811b8fc7b4c989c30e05909507630a83ea91b98bf50167e3d5d2b0"
+    },
+    {
+      "path": "components/manager/front-desk-arrival-dialog.tsx",
+      "sha256": "c5ce600dc8febf9365ded5f3e70c855b8e9ab2bebc07ea2c7c882cd47d76c421"
+    },
+    {
+      "path": "components/manager/guest-duplicates-panel.tsx",
+      "sha256": "e6e2f55239c0417dd1f3cbe95896ea467e3f5a2d75b29856d4e0b7871844b995"
+    },
+    {
+      "path": "components/manager/handover-panel.tsx",
+      "sha256": "f834b4d59aa1e8a3b4d765ba061f5d768ca9e3c5fac076cfeea9e874551b6bda"
+    },
+    {
+      "path": "components/manager/hotel-fee-picker.tsx",
+      "sha256": "4728067264889a3fdc0b71486b2b0a7bc55f7d962d4b42af098857242f93e10b"
+    },
+    {
+      "path": "components/manager/hotel-operations-client.ts",
+      "sha256": "b4180f935b73b68a0e64f10ec449385ab94ab0386d5748486979327cab102347"
+    },
+    {
+      "path": "components/manager/hotel-operations-panel.tsx",
+      "sha256": "7c87981f85ed3ed95954bef642368f3aa16c8a5c32e6bc14d1b69ffa40eb8c12"
+    },
+    {
+      "path": "components/manager/hotel-operations.css",
+      "sha256": "07c1f95f5c016f40280319912393e4dacbc99d591dc51128abe0b7199450c8b3"
+    },
+    {
+      "path": "components/manager/hotel-operations.test.tsx",
+      "sha256": "6f574c2bfcf51a70bbd4b3080b38a038e6af7ca2d8012b85af6e70d3de4c1509"
+    },
+    {
+      "path": "components/manager/housekeeping-queue-panel.test.tsx",
+      "sha256": "5932f9db74e330614ebfff9e702fd6ea055de3f617e8a351e5f32767dc4f41a8"
+    },
+    {
+      "path": "components/manager/housekeeping-queue-panel.tsx",
+      "sha256": "abc690d649d5ab29b665418213e15765a029225bb3ead9b841b9ab1926343a93"
+    },
+    {
+      "path": "components/manager/manager-dashboard-client.tsx",
+      "sha256": "c37021047d6ddd147fb5743698befce08533d42a16b2e953e05268a72643be16"
+    },
+    {
+      "path": "components/manager/night-audit-panel.tsx",
+      "sha256": "398973dc8c102d3c50f2a224fa643e3c34aeaac5f5e487c03cf9d7608fdfe767"
+    },
+    {
+      "path": "components/manager/performance-reports.tsx",
+      "sha256": "2a128a5715628049366fb9a95cc6ba61f2238567382ad04265ae2344f2cd1066"
+    },
+    {
+      "path": "components/manager/reservation-party-panel.tsx",
+      "sha256": "4f73012dc0c5375b95884d5b484ab4f934629b75554bdec5b90cd506de13aee0"
+    },
+    {
+      "path": "components/manager/reservation-readiness-panel.tsx",
+      "sha256": "41aefa049f5710ef2023c3f654d215db2767ba64dca3d4d7dee7868da4c17a7d"
+    },
+    {
+      "path": "components/owner/owner-dashboard-client.tsx",
+      "sha256": "b593a55ae33b33c488b0a71fa3d73a744e14afdf3964cb32f7c014e5ad316d9f"
+    },
+    {
+      "path": "config/role-navigation.test.ts",
+      "sha256": "7bf639ace6f9bbaedadb8659143166b8132ae8e17cb484a4e5a84bcb3070548f"
+    },
+    {
+      "path": "config/role-navigation.ts",
+      "sha256": "43cf416d85d555a646b252316951819a6c17b831938e5544c891364b3ffb9540"
+    },
+    {
+      "path": "hooks/use-front-office-rack.ts",
+      "sha256": "4265e6c01d0b08c90b295c099bdf55c9b5d2c1945d040b7c3857ee9fa2de7be3"
+    },
+    {
+      "path": "lib/accounting.test.ts",
+      "sha256": "5439a7dc5c9fd28819df2246c1ebe4cc783480c52ad9dfac687e1c29a5c1cbbd"
+    },
+    {
+      "path": "lib/availability.test.ts",
+      "sha256": "7a91bf2c34903b108e71b28ba0608b166913a7e5e254d1f30eb991c1b883c9a7"
+    },
+    {
+      "path": "lib/booking.ts",
+      "sha256": "fac8302e8da1fa3bc0755fa979eb89832cf757596efcfdee9caf88337aab6154"
+    },
+    {
+      "path": "lib/financial-route.test.ts",
+      "sha256": "fd8b9a57bf3e627b04aebfcd90400da3eee5399cde963e1ad4025f7a92a13485"
+    },
+    {
+      "path": "lib/financial-route.ts",
+      "sha256": "aedd8a07dd37b0defd2a2f25dae1ad4baf93706c21b7fd12645f6c9fb3c2e474"
+    },
+    {
+      "path": "lib/guest-duplicates.test.ts",
+      "sha256": "2cd1214fa90a8b781357c9afda0f677a9651204d0673f00a8927613ade1cde39"
+    },
+    {
+      "path": "lib/guest-duplicates.ts",
+      "sha256": "567c972628d88a51900b2bbc8ec26beb51afe70a65004946d2623c90e4851b6f"
+    },
+    {
+      "path": "lib/guest-profile.test.ts",
+      "sha256": "160181cce93c0d9724e45e308f78c077c0e85d3c33a43a0dc4b4cb15377dc302"
+    },
+    {
+      "path": "lib/hotel-operations-route.test.ts",
+      "sha256": "7f1cb3f189c98ad241520573981cb58f6f11b2c371d595809a53172703ed81f3"
+    },
+    {
+      "path": "lib/hotel-operations-route.ts",
+      "sha256": "e10f13a18f5998fac7e04848694cc02680c8b421b9902f687f704edd0f8239ee"
+    },
+    {
+      "path": "lib/hotel-operations.test.ts",
+      "sha256": "4f17e0d7451bc11223b2aa2d11938f668dcbd95d40fc1f373012389ba97cffe8"
+    },
+    {
+      "path": "lib/hotel-operations.ts",
+      "sha256": "76b8533c1a4ff9fe2612308a15faae7ddfa790ae95421b1aa91f73047500c80a"
+    },
+    {
+      "path": "lib/housekeeping-action-routes.test.ts",
+      "sha256": "a772da284bcf764d54cec0e7e693fc6a49311eaa22a56c38600328a5348060e0"
+    },
+    {
+      "path": "lib/housekeeping-assignment-route.test.ts",
+      "sha256": "29c643c41a9968a50b67c914d49c657897796082e81df790510343cbccde5a93"
+    },
+    {
+      "path": "lib/housekeeping-route.ts",
+      "sha256": "494c7fdd03ef40ea1edc67ec12b9ae8c100466d3e58eff76c1aba0678ee2077f"
+    },
+    {
+      "path": "lib/read-all-rows.test.ts",
+      "sha256": "5913bfca3f744013e0fdba7c23c39a62467cf620935e76d86e5dcb5702876791"
+    },
+    {
+      "path": "lib/read-all-rows.ts",
+      "sha256": "986e129825f75986d6e97326e4ba5920b452940d6ea0319c44471c660a15059f"
+    },
+    {
+      "path": "lib/room-rack.test.ts",
+      "sha256": "a344812a9b0d489778b230b8c2903cde9e4bbf2108e46e857ce3c52f8f740db9"
+    },
+    {
+      "path": "lib/room-rack.ts",
+      "sha256": "4e7933db75013992855788a8a4c52b6730b9cb748b5cdeddec17a867f313c533"
+    },
+    {
+      "path": "lib/staff-data.ts",
+      "sha256": "707a8100245fd31f95939ba3343355b5efbfb8e30f65efc9b3ce434bdd10a209"
+    },
+    {
+      "path": "lib/types.ts",
+      "sha256": "086e1f9e2dee6408c56205518e8c49d735aad914a5dbe0407498f83a10abc9f0"
+    },
+    {
+      "path": "next.config.mjs",
+      "sha256": "b667556dd470573351dda912dd6b5915deeb59187c854e9c5541e08bd903bd2c"
+    },
+    {
+      "path": "scripts/backend-remediation-db-test.mjs",
+      "sha256": "8631f8b284393a34e2cd0ee70763485f1c37ca3e9bb6168e554fffe01afdfb18"
+    },
+    {
+      "path": "scripts/hotel-availability-db-test.mjs",
+      "sha256": "f078859c29a4106257cfac6e5924362a6db3c742a56f2148533970b9a68e0a2b"
+    },
+    {
+      "path": "scripts/hotel-db-test-helpers.mjs",
+      "sha256": "37f3e787fe35f4a4bbbe6d374af076f936e2b5826dd08144df6818c3a0c29cc6"
+    },
+    {
+      "path": "scripts/hotel-operations-db-test.mjs",
+      "sha256": "6a22341cb4678d64c53d18df2177463a874f46bbb03092d3e2e4eeba3f0442e8"
+    },
+    {
+      "path": "scripts/housekeeping-workflow-db-test.mjs",
+      "sha256": "e51a892b90e15f9e12aa2f6ec03aa32aec8409a01335c121f62d04d3a4c00075"
+    },
+    {
+      "path": "supabase/migrations/20260826125341_initial_hotel_schema.sql",
+      "sha256": "60850cab5a0299bc477f64ed758d6588b477428017a373cc6bcf34f815a53394"
+    },
+    {
+      "path": "supabase/migrations/20260826130603_migrate_legacy_user_accounts.sql",
+      "sha256": "096a20f04f61b74f9b61b16b6cce376723e334271d27053c16b89ea1b9b23b99"
+    },
+    {
+      "path": "supabase/migrations/20260826132411_guest_booking_flow.sql",
+      "sha256": "349de13139fe5271f89bbfcf01c7325f804e24fff7ee61f889cae7d4d32c114e"
+    },
+    {
+      "path": "supabase/migrations/20260828010000_reservation_deposit_model.sql",
+      "sha256": "9e93aa39112e24b56ea7d1dac49c5e8769272c86ba5e2940bcd9bc602dbe7c4a"
+    },
+    {
+      "path": "supabase/migrations/20260828020000_fix_deposit_verification_ambiguity.sql",
+      "sha256": "2e50ca44c15495f602fecae967edf593379514fda048ea4f04da80e5a2e7fc17"
+    },
+    {
+      "path": "supabase/migrations/20260828030000_preserve_historical_checkin.sql",
+      "sha256": "859897247247e04b571c7dd69966209916c60ddc51d129ad3f8e17c775bbc731"
+    },
+    {
+      "path": "supabase/migrations/20260828040000_staff_reservation_operations.sql",
+      "sha256": "c2504ab35597ea5f09709854ed1e4070e63e7ae9a6142f03d04e62eab0070f43"
+    },
+    {
+      "path": "supabase/migrations/20260828050000_connected_hotel_workflows.sql",
+      "sha256": "6c00ffff1bb9eb93bdcd2f60793390c47d985ffa16f3688dcef99c6fd2c30903"
+    },
+    {
+      "path": "supabase/migrations/20260828060000_preserve_hold_policy_on_confirmation.sql",
+      "sha256": "73439cf9050e5fc266c2994d5acec9c82cffd956db0ce8b01652167229ddf9e9"
+    },
+    {
+      "path": "supabase/migrations/20260828070000_front_desk_operations.sql",
+      "sha256": "0e5eb023dcf489df78b0ac496c108808057f7826393500aad698f714ac4f80d5"
+    },
+    {
+      "path": "supabase/migrations/20260829010000_accounting_financial_operations.sql",
+      "sha256": "df1f5bc1f81d849d878172f4fdff438240baeffdc3c39ff445d209b5a3dfa8f0"
+    },
+    {
+      "path": "supabase/migrations/20260829020000_accounting_operations_rpcs.sql",
+      "sha256": "dad6189327d2ea30026a52a8b09a41f0a0a759e806e38c84cdcfe11eb29bf938"
+    },
+    {
+      "path": "supabase/migrations/20260829030000_manager_operations.sql",
+      "sha256": "080a5feb3bf2f24b8d54face0c5596746b3f258256b01207350d32313399b644"
+    },
+    {
+      "path": "supabase/migrations/20260829031000_manager_sql_lint_and_rbac.sql",
+      "sha256": "fa8dfecde13e2a3ae88d0eef0f9aa179fed8a12e176ed84f560dc00d16920cfe"
+    },
+    {
+      "path": "supabase/migrations/20260829040000_lock_leaked_seed_passwords.sql",
+      "sha256": "89acfeb784f00d3e0c8d969f0afb9fec5bc8cb39d0c2e83b58b4dd26029a7e2d"
+    },
+    {
+      "path": "supabase/migrations/20260829041000_customer_guest_workflows.sql",
+      "sha256": "96112e5a137493049bad364d944f8cbabfe312e328c6a0b39447005065079c26"
+    },
+    {
+      "path": "supabase/migrations/20260829050000_hotel_timezone_modification_threshold.sql",
+      "sha256": "9f15b06116e54f6247901ee16a1d8148d8fb113d64b7d72fa771da987dea28f4"
+    },
+    {
+      "path": "supabase/migrations/20260830010000_housekeeping_operational_workflow.sql",
+      "sha256": "155cf59ccab11b47000f4b2fd7dd9c2c0acb855ed66e56106acab8d3511302ec"
+    },
+    {
+      "path": "supabase/migrations/20260830020000_repoint_legacy_user_account_fks.sql",
+      "sha256": "160b639025cb13f8d201a8867f1f4d52b1e368d30b724ecbcae31676f2a3a325"
+    },
+    {
+      "path": "supabase/migrations/20260830030000_lock_rpc_execute_to_service_role.sql",
+      "sha256": "fa6d92cf63237008a7b0f3a650f758ab31d91f64e2ff6500d6c5b5422a3e5169"
+    },
+    {
+      "path": "supabase/migrations/20260830040000_null_safe_actor_role_guards.sql",
+      "sha256": "c95bc822df3e6a3891a5375746480e6ba62087e9dabbf7d89a872d09d4324298"
+    },
+    {
+      "path": "supabase/migrations/20260831010000_maintenance_operational_workflow.sql",
+      "sha256": "95e17c35fa9a3c1ced50f73e217227126dc4fcce2ecb64fbe1b222e5246317bb"
+    },
+    {
+      "path": "supabase/migrations/20260901010000_admin_governance.sql",
+      "sha256": "f3caab9047461d22f2b66633199de106ed533f1a235b89e3d8ade20d6b96174e"
+    },
+    {
+      "path": "supabase/migrations/20260902010000_owner_executive_governance.sql",
+      "sha256": "7b55df804da60518c71145cfa188621d1ef6390a22b69b5c64bc018642137dac"
+    },
+    {
+      "path": "supabase/migrations/20260903010000_system_integration_hardening.sql",
+      "sha256": "1e30d14eb04bb2cbd3616aee12c45cb85e67bd52f5ebf76a6e7be2beb2610a2b"
+    },
+    {
+      "path": "supabase/migrations/20260904010000_room_catalog_photos.sql",
+      "sha256": "c147296d03da33feb43e50e22065173070a6c2e7cb4ab73f07f8c877cab48afa"
+    },
+    {
+      "path": "supabase/migrations/20260904020000_structured_guest_requests.sql",
+      "sha256": "bab3eddf0cea29a749263fef9bed38648e0fb4a8c0f46470970c7ac647b9d129"
+    },
+    {
+      "path": "supabase/migrations/20260904030000_transport_booking.sql",
+      "sha256": "1b777a69477cfc89f0b6f6fb82f5e4ca8af35a0bbed47094f4c6cb0c2b70410f"
+    },
+    {
+      "path": "supabase/migrations/20260904040000_transfer_vehicle_fares.sql",
+      "sha256": "920307a007a474f3994084bb58cf22a88d48908b7c75627993efda6d4034550e"
+    },
+    {
+      "path": "supabase/migrations/20260904050000_transport_included_in_deposit.sql",
+      "sha256": "a8c5a59beb0c1c37d78299c48d1b1ee09e68676c7f31c58c9717aa7487958723"
+    },
+    {
+      "path": "supabase/migrations/20260905010000_transportation_requests.sql",
+      "sha256": "ef22908771d9babdb0d870ef566a83461e78da23d42390f6da089943691a9565"
+    },
+    {
+      "path": "supabase/migrations/20260905020000_settled_payment_status_immutable.sql",
+      "sha256": "b2a793d3ac28dfbe59064c8b27311ba3bf7e76bfd754eb84c42996339be9d64e"
+    },
+    {
+      "path": "supabase/migrations/20260906010000_transportation_at_checkout.sql",
+      "sha256": "220b564e7d9387208162818aa6ea2fb782df50b13e16a9b69a550a2e0b4603a6"
+    },
+    {
+      "path": "supabase/migrations/20260907010000_verification_no_time_limit.sql",
+      "sha256": "a9009fb0a738223d965dc3f2f7ecdb7811c040e6f2ad7f31ead97c5d9691bcef"
+    },
+    {
+      "path": "supabase/migrations/20260908010000_deposit_verification_accounting_only.sql",
+      "sha256": "19711ffd1ce893b9ba0a06bb0ac919ab86a836958faeff34d406834f9ab861e6"
+    },
+    {
+      "path": "supabase/migrations/20260908020000_guest_request_batches_and_approval.sql",
+      "sha256": "833874b23b42000e4e2ff53b43e869742fe88e38e64556c52320aa195c28666f"
+    },
+    {
+      "path": "supabase/migrations/20260909010000_checkout_request_batch.sql",
+      "sha256": "950d27df847b638804117ef2d6ae59f3c6ce1f17ba8de7b2d13fc828351b2023"
+    },
+    {
+      "path": "supabase/migrations/20260910010000_transportation_folio_charge.sql",
+      "sha256": "a9cb8ae77233aa03c50f5f6ac220bf9983009cce230346e90fc732b0aa9ed42e"
+    },
+    {
+      "path": "supabase/migrations/20260911010000_transportation_stay_window.sql",
+      "sha256": "dcc0c99d8990d451527103858e7a0a0a1ac93bfe75d4b075bf77f11d772143ae"
+    },
+    {
+      "path": "supabase/migrations/20260912010000_front_desk_reports.sql",
+      "sha256": "2702f4cb4bbe6f3155d56710bd89b799a2c728fa73d4b4968464f063223eb526"
+    },
+    {
+      "path": "supabase/migrations/20260912020000_room_type_exception_checkin.sql",
+      "sha256": "3e3103db8cf59e177b626ee9305fd8df4c511eee1e8b3938bb258ea404cafadb"
+    },
+    {
+      "path": "supabase/migrations/20260913010000_cash_payment_internal_reference.sql",
+      "sha256": "afd272c9ef11f730858027b8deb3951a478893f0edbfc327b8d8e49501dc7aa0"
+    },
+    {
+      "path": "supabase/migrations/20260914010000_drop_unused_reviews_table.sql",
+      "sha256": "fa540d4f5090014d9bb0e7f9e2d441838eeacfd1dc94eaac5bcd7cc8e3282e2c"
+    },
+    {
+      "path": "supabase/migrations/20260915010000_room_type_governance.sql",
+      "sha256": "9d0fd85f00b34630580a0d9dcac955a82f60505cb2ad946a0bdef915b1aab606"
+    },
+    {
+      "path": "supabase/migrations/20260915020000_review_proposal_status_fix.sql",
+      "sha256": "270d6f370871ffc43dd1fab5e503f43e7f5678e6d3097fd03f8e74e646eed6fc"
+    },
+    {
+      "path": "supabase/migrations/20260916010000_physical_room_management.sql",
+      "sha256": "8218e5df7c57a2efcbd97a6e9ccce059de3da804459e129a2e2aeb87795038b4"
+    },
+    {
+      "path": "supabase/migrations/20260917010000_innovation_analytics_ai_qr.sql",
+      "sha256": "c89921080c5a6e16964cdf61450122374c1d7ca1b13ae78335102d062bfab74c"
+    },
+    {
+      "path": "supabase/migrations/20260918010000_guest_request_catalog.sql",
+      "sha256": "8e6fcee53ed5f401db938e348a347965821982edbace3bd329fd6536df48c497"
+    },
+    {
+      "path": "supabase/migrations/20260919010000_room_assignment_exception_inventory.sql",
+      "sha256": "b06e31eb5e60d3533fa001c087ef909543def711e3eb8632dead857e66056309"
+    },
+    {
+      "path": "supabase/migrations/20260920010000_event_notifications.sql",
+      "sha256": "5ee9f96fbe2cba26b9dbcd8799991f35bde8089b2ff12f1a9f09374668e28b69"
+    },
+    {
+      "path": "supabase/migrations/20260921010000_payment_proof.sql",
+      "sha256": "e4a977575f7cebaaea160025c8d08b725f4864f2318fc01bd047c52daf04ccf3"
+    },
+    {
+      "path": "supabase/migrations/20260922010000_room_type_change_responsibility.sql",
+      "sha256": "551df36ed80aa521dac5e9f840703caf7619df7070bea3b07e5e5bf51800bf19"
+    },
+    {
+      "path": "supabase/migrations/20260923010000_stay_extension_exception.sql",
+      "sha256": "7805786c7b38e44b1f44d8c9734ac2e1f180ebca3d95a9140473c264b314f52a"
+    },
+    {
+      "path": "supabase/migrations/20260924010000_system_health_ledger.sql",
+      "sha256": "20495994693bc470b2a0fca2f8f31e9c3ebba4a84fa44d585834f6682ffcfdbb"
+    },
+    {
+      "path": "supabase/migrations/20260925010000_room_type_badge_colors.sql",
+      "sha256": "0994a243b465f47ec97fc6b1c046fc9e63cfb391ff1dffd92f00258186e1cbfb"
+    },
+    {
+      "path": "supabase/migrations/20260926010000_approval_execution_fixes.sql",
+      "sha256": "0055f22d6934ae4cea2efea9ce00b69e9d04f11a2c98693c4a79e36e17e8573e"
+    },
+    {
+      "path": "supabase/migrations/20260927010000_badge_color_governance.sql",
+      "sha256": "8fbcb0aa2ffd34c7ff4c32727486d4665176edb7e2bf9710bf803029eac41d6a"
+    },
+    {
+      "path": "supabase/migrations/20260928010000_tax_aware_documents.sql",
+      "sha256": "5bf59cedcc6520d0392f0fe00ea5e0c59b4b27a0f565967b2c408aeff3b003ed"
+    },
+    {
+      "path": "supabase/migrations/20260929010000_room_rate_plans.sql",
+      "sha256": "75a40596de0c7588b1aee5b0e045aed4913fc45baeef2f346c62e0573543510b"
+    },
+    {
+      "path": "supabase/migrations/20260930010000_guest_reminders.sql",
+      "sha256": "a198f09849838fce851b997cbcd75ae2933ee27590958af2b82e70e5b9594e61"
+    },
+    {
+      "path": "supabase/migrations/20260931010000_deposit_sla.sql",
+      "sha256": "84055185b7c0f099fa37cfe4d9189c8818cc1449b94c36df959ab781c5fbe3b2"
+    },
+    {
+      "path": "supabase/migrations/20260932010000_maintenance_assets.sql",
+      "sha256": "c9b05a7c3384692212bab7a109a66f1e5cacb6b1511ebe3c203d7199fd062aa8"
+    },
+    {
+      "path": "supabase/migrations/20260933010000_maintenance_asset_roles.sql",
+      "sha256": "b3c1926868f11270166c58dfd6eefa5606aa207baf477b1d85a8729671c21b74"
+    },
+    {
+      "path": "supabase/migrations/20260934010000_ota_readiness.sql",
+      "sha256": "ed42d29c25a239c3df9f084a4f1f488f4f8608be0a58287cda74fb5951e288dc"
+    },
+    {
+      "path": "supabase/migrations/20260935010000_stay_reviews.sql",
+      "sha256": "e067cc8ef1cf2f279cc4700f4ea78b95d2b03f0af32aff3e3adafbced2fb1167"
+    },
+    {
+      "path": "supabase/migrations/20261001010000_policy_timezone_admin.sql",
+      "sha256": "afbb72f977abe3392c8959b60e6fe59e1c1dd3533b473bcd7b459725a9553c19"
+    },
+    {
+      "path": "supabase/migrations/20261002010000_room_create_reason_optional.sql",
+      "sha256": "c60c575d023a0b2a64d00bd8b847aee10a62d71fcf274a6274b0c71a5a8cc62b"
+    },
+    {
+      "path": "supabase/migrations/20261003010000_guest_request_progress.sql",
+      "sha256": "f23bcf4b29124c8e68f5718d106ccf708830b4e9e761b04a41feffec9227c1c1"
+    },
+    {
+      "path": "supabase/migrations/20261004010000_reservation_qr_lifecycle.sql",
+      "sha256": "3a464272f57641f2cde8fc3bda47ce194ffa6536039c3eeed0cf75f6c0162082"
+    },
+    {
+      "path": "supabase/migrations/20261005010000_pre_arrival_inventory_requests.sql",
+      "sha256": "2adc0f39a31021473d0a362aad315e3402f3e04f3ba1b294fe95fa118e94efe7"
+    },
+    {
+      "path": "supabase/migrations/20261006010000_gcash_payment_destination.sql",
+      "sha256": "80a64273d4b95851eafb230f8e767390c857bdcdd0c2844bc20eb76758700a57"
+    },
+    {
+      "path": "supabase/migrations/20261007010000_change_request_notifications.sql",
+      "sha256": "ff33aba08f3a38b813bbcc217cbca35dc61505d44c381a298a70a773a645eae3"
+    },
+    {
+      "path": "supabase/migrations/20261008010000_reservation_cancelled_notifications.sql",
+      "sha256": "a8488a8712ff902f0eb0077edfcf94f48f12f02663cdf0c2a79bae4b7ead1c96"
+    },
+    {
+      "path": "supabase/migrations/20261009010000_security_policy.sql",
+      "sha256": "2e4004710f4eaf55bd31349fe001fc983464e86dcfa9f35bd0d4878e0bc2215a"
+    },
+    {
+      "path": "supabase/migrations/20261010010000_login_otp.sql",
+      "sha256": "51a7313f9980cd1eec5d910067098d84a4437096ac327c088a7ddbb00699bf8d"
+    },
+    {
+      "path": "supabase/migrations/20261011010000_staff_email_taken.sql",
+      "sha256": "a7893ac266e10e18a30419ec0fe9e513dfc99dbba7478bfbeb4e382deda224ad"
+    },
+    {
+      "path": "supabase/migrations/20261012010000_guest_to_staff_conversion.sql",
+      "sha256": "546c937f6296f3aa3c48709a26f45e8fa2401690750aba50bdbfd0bbaee72c02"
+    },
+    {
+      "path": "supabase/migrations/20261012020000_guest_to_staff_conversion_input_hardening.sql",
+      "sha256": "fa8998611cb904f09071507c838bb1d214abc7ad77fd83aa6a8fbae64823a86d"
+    },
+    {
+      "path": "supabase/migrations/20261013010000_guest_to_staff_with_history.sql",
+      "sha256": "5984762fbcd211fb0308e079f0f6193a46951aff3c029ac6d8a8d9096672eabe"
+    },
+    {
+      "path": "supabase/migrations/20261014010000_inventory_replenishment_workflow.sql",
+      "sha256": "a4c0654bff09e3f23314ada562ea98653587257b318944207248aaf0d4b45fc3"
+    },
+    {
+      "path": "supabase/migrations/20261015010000_guest_loyalty_submodule.sql",
+      "sha256": "39bfab50464a5dc86af10afccd3d138ca145f987f30aafce44c20e2fd0f98ba4"
+    },
+    {
+      "path": "supabase/migrations/20261016010000_express_checkin_and_gateway.sql",
+      "sha256": "2acb588e2f4b8f6b3f76c5d31bdaf1dc1ccefcb550a8d339c04770f45a1d90b6"
+    },
+    {
+      "path": "supabase/migrations/20261017010000_ai_executive_digest_feature.sql",
+      "sha256": "2ec659fb8f5f23088ab93466f59a1740c7b245ef2c727e4cceff617ebb9e8aac"
+    },
+    {
+      "path": "supabase/migrations/20261018010000_predictive_dynamic_pricing.sql",
+      "sha256": "66f24a1ec264f47f49c69dfc80cb8453ace9e07b1558a5a3598eb58380947292"
+    },
+    {
+      "path": "supabase/migrations/20261021010000_paymongo_gcash_automation.sql",
+      "sha256": "83ecfedc25e419a86f5058e332a93be8f3a0e15ff3c2a35b44b7689c4529ed9b"
+    },
+    {
+      "path": "supabase/migrations/20261022010000_password_reset_audit.sql",
+      "sha256": "f598662090a0d0143c1a38170b02b67e14742a51fa190a0d51aad52ba9cfa8af"
+    },
+    {
+      "path": "supabase/migrations/20261023010000_cookie_policy.sql",
+      "sha256": "d6fe653b82e0f23e36e62783c2f196dabc40fc5125ef8f29e987ceb44c62ef86"
+    },
+    {
+      "path": "supabase/migrations/20261024010000_migration_apply_log.sql",
+      "sha256": "dd75036a716d7b7b1d95f93c9b5c2f444a016817fdadd5216f5d9df6f568e048"
+    },
+    {
+      "path": "supabase/migrations/20261024020000_migration_ledger_ambiguity.sql",
+      "sha256": "d01ae320f99a3c3a9a56e805dfe362105ca9c428cb66a693c35d306d9fedc640"
+    },
+    {
+      "path": "supabase/migrations/20261024030000_migration_ledger_upsert.sql",
+      "sha256": "89c52d8301a2d9b92930c1d5e434a1225bea9285f52ea383f643c252e291515a"
+    },
+    {
+      "path": "supabase/migrations/20261024040000_restore_submit_gateway_deposit.sql",
+      "sha256": "dfc54d124fb35f3aa6f004f2c37b02503f0c4b4d9de774a80ed2ff5b83c3268d"
+    },
+    {
+      "path": "supabase/migrations/20261024050000_deposit_method_toggle.sql",
+      "sha256": "e656300e53fe5b84845d3a3c507d2fb10fe1e53d74e1db520929a214e18baee3"
+    },
+    {
+      "path": "supabase/migrations/20261024060000_guest_loyalty_default.sql",
+      "sha256": "eca0d06eb85036fdaec9bf29e83730ce97d414d5d7dac37e2b3e325109d2d62e"
+    },
+    {
+      "path": "supabase/migrations/20261024070000_gateway_abandonment.sql",
+      "sha256": "aee09b46c40102245c372305ad7b4bd79c5ac92fd4777aa625835f89b46822da"
+    },
+    {
+      "path": "supabase/migrations/20261024080000_cancel_settles_pending_state.sql",
+      "sha256": "c29829e46f3a1e9486640698caa953a3b656c3a9c905626fd9f8fa84f1109525"
+    },
+    {
+      "path": "supabase/migrations/20261024090000_single_open_cash_shift.sql",
+      "sha256": "0f1249fafb295cd545ccc14b565e47d98703fc1315b716d3cd2c15ae968aafb9"
+    },
+    {
+      "path": "supabase/migrations/20261024100000_cancel_backfill_stale_pending.sql",
+      "sha256": "522721e36619ad1a3f5e9ddc268552ff83492b534bb9da88a6d62e7cfeec0d54"
+    },
+    {
+      "path": "supabase/migrations/20261024110000_shared_cash_drawer.sql",
+      "sha256": "42cf3707489ebb7670e440286b5073c8807ec0a76d659eb2c2d14a5825d5a790"
+    },
+    {
+      "path": "supabase/migrations/20261024120000_unattributed_cash_bypass.sql",
+      "sha256": "a808ad87e080dba99779ea9620f178e302e07875635705b3ba05a6a68b7630a1"
+    },
+    {
+      "path": "supabase/migrations/20261024130000_eta_honored_checkin.sql",
+      "sha256": "ab1f8f3cc34cbe20233313779fb644815813c5f77b7c53c82fef456190a889a7"
+    },
+    {
+      "path": "supabase/migrations/20261102010000_backend_audit_remediation.sql",
+      "sha256": "769f257c4fbbfae9ea9973bd89a5e72330078e93ae1538d541ea081d175d261b"
+    },
+    {
+      "path": "supabase/migrations/20261103010000_restore_cash_controls.sql",
+      "sha256": "2d602ae936823d3cfdd7458d8a44383858ebf9c6cd740ddaaab745dcb8f38c44"
+    },
+    {
+      "path": "supabase/migrations/20261103030000_guest_request_withdrawal.sql",
+      "sha256": "7208c72d4c126a643a0e9d3ef9884bba84ce5593353ca63de763162229cf0977"
+    },
+    {
+      "path": "supabase/migrations/20261103070000_cash_exception_review.sql",
+      "sha256": "913983d873242e6b609287c621c204d58a812593ca3e20342dae17142e2b9d59"
+    },
+    {
+      "path": "supabase/migrations/20261103080000_hms_integrity.sql",
+      "sha256": "d62c7b5c2331bb7492c6cf12354db6fd5a7627a9180e241ad8b596a3665fe66f"
+    },
+    {
+      "path": "supabase/migrations/20261103090000_operational_handovers.sql",
+      "sha256": "d39034744fcbfb93fa8882549d39bb57766640fb81f685cb7062124241913a07"
+    },
+    {
+      "path": "supabase/migrations/20261103100000_hms_cash_receipts.sql",
+      "sha256": "105b102ffedacf6a44b0aa25ca652607dbbd27643f5fdb906d774b906e6c012d"
+    },
+    {
+      "path": "supabase/migrations/20261103110000_request_supply_completion.sql",
+      "sha256": "62cb9914ede6308289cb1f17f1fa5387502aafc028022780d06e1174ca846a55"
+    },
+    {
+      "path": "supabase/migrations/20261103120000_approved_request_routing.sql",
+      "sha256": "33ff4e754b59c259f886e93444e861558c1a41be7c02ffc650e23b9bf2835ee0"
+    },
+    {
+      "path": "supabase/migrations/20261103130000_hotel_nightly_availability.sql",
+      "sha256": "947d6174d74cf02e9482fdbf2a8a16ed0c3ef6d07315395f9c39cfd2331a5216"
+    },
+    {
+      "path": "supabase/migrations/20261103140000_hotel_operations.sql",
+      "sha256": "2811a8212a3c6005f3845b7af84970db73329b48529e3ddb6a72a60a4b69c9a5"
+    },
+    {
+      "path": "supabase/migrations/20261103150000_hotel_operating_day.sql",
+      "sha256": "1a66672443bc15e27b908d1a63d6a7ff3852216fc4d35856d03eaa044a7d2bd5"
+    }
+  ]
+}

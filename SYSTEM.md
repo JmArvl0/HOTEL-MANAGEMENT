@@ -514,8 +514,10 @@ Confirmation**, wired through search-params → a server-issued **hold token** �
 
 1. **Search** (`/booking/search`) — dates + guest count, zod-validated (`searchSchema`): check-in not
    in the past, check-out after check-in, 1–8 guests. Availability is computed server-side
-   (`lib/booking.getAvailability` → `countAvailableUnits`): per room type, `inventory − blocking
-   reservations − active holds`, counting only administratively active rooms and excluding
+   (`lib/booking.getAvailability` → `countAvailableUnits`): per room type, the **minimum free
+   capacity on any night** in `[check_in, check_out)` (inventory minus that night's blocking
+   reservations and unconverted active holds). Consecutive stays do not consume simultaneous
+   capacity. Count only administratively active rooms and exclude
    maintenance-blocked/out-of-service rooms and (for tonight) not-yet-clean ones. Types with
    `availableUnits > 0` are offered first, cheapest first; sold-out types stay visible as
    Unavailable with booking disabled (details page redirects them back to search). The
@@ -530,6 +532,15 @@ Confirmation**, wired through search-params → a server-issued **hold token** �
    with the TypeScript count. Sites with no policy in scope pass `null`, which the helper resolves
    via `hotel_today` from `hotel_operational_policies`, so the same-day boundary is hotel-local
    rather than UTC `current_date`.
+
+   **Nightly inventory correction (2026-11-03, migration `20261103130000_hotel_nightly_availability`, deployed 2026-11-03):**
+   `hotel_available_units` shares that arithmetic across all nine SQL gates: the seven above
+   plus `submit_gateway_deposit` and `confirm_gateway_payment`. All use the same normalized
+   room-type advisory-lock key, include outstanding holds (including Front Desk creation),
+   exclude the converting hold or current reservation, and preserve pending-website expiry.
+   This is type capacity; physical room assignment still independently requires a continuous,
+   conflict-free assignment. Pricing and frozen nightly rates are unchanged. Public/portal
+   search errors retain search details and offer retry; a failed lookup never claims sold out.
 
    **Intent-aware room discovery (2026-09-10):** the landing page's three room-discovery CTAs all
    land on `/booking/search`, whose mode is *derived from the URL* by `lib/booking.parseSearchIntent`
@@ -1491,6 +1502,88 @@ stock, reorder point, predicted 3-day need, shortage, suggested quantity, estima
   `audit_logs` row (`inventory_draft_purchase_order`, `after_data.submittedToVendor: false`)
   records the creation. Submitting/receiving against a real vendor remains a human, out-of-system
   act — `purchase_orders` is still the future supply-chain interface table (§9).
+
+### 7.16 Hotel operations implementation candidate (2026-11-03)
+
+QA follow-up: the recovered remote history is present in migrations; hotel files
+are `20261103130000_hotel_nightly_availability.sql`,
+`20261103140000_hotel_operations.sql`, and `20261103150000_hotel_operating_day.sql`.
+Both clean and hosted-upgrade-order replays pass locally. The hosted project now
+has all of these applied and the matching build is deployed to production; the
+maintenance cutover and verification are recorded in
+`nano_bots/05 Memory/Sessions/OpenCode/2026-11-03 - Coordinated Production Cutover.md`.
+Operating-day lookup failures are visible with retry and pause automatic polling.
+App fonts are bundled with SIL licenses via `next/font/local`; builds require
+no font download. See `docs/qa/qa-fixes-2026-11-03.md` for verified local outcomes.
+
+The migration drift recorded below was reconciled before the cutover: the
+remote sources at `20261103010000` and `20261103030000` were recovered into the
+local migration files, combined with the hotel files above, and pushed with
+`supabase db push --linked` after a verified backup/restore rehearsal.
+`docs/qa/staff-walkthrough-2026-11-03.md` remains the evidence for the local
+staff walkthrough that preceded it.
+
+- **Hotel Operations** is available to Front Desk, Housekeeping, Maintenance,
+  Accounting, Manager and Owner through existing role shells. Handover records have
+  department/person ownership, due time, scoped room/reservation/guest/task links,
+  versioned edits and audit history. Resolving and archiving are separate actions;
+  reopen/restore preserves history. Guest links stay with Front Desk/Management.
+  Refresh is polling, with no new reminder-delivery promise.
+- **Reservation readiness** names current identity, money, arrival-time, room and
+  inspection blockers near the existing arrival flow. It is an assessment, with a
+  timestamp/version; the existing final check-in RPC remains authoritative. Staff
+  reads use `/api/staff/reservations/[id]/readiness` and accept a candidate room.
+- **Staying guests** use `reservation_guests`, separate from booking/login ownership.
+  Front Desk can maintain companions within the reservation/type capacity using
+  versioned idempotent updates; Manager/Owner have read access. The primary remains
+  anchored to the reservation's registered guest. Existing rows are backfilled only
+  where guest ID/name agrees, and unmatched legacy identities require resolution.
+  Companion profile history is separate from booked stays and financial responsibility.
+- **Room diary** uses newly recorded effective assignment segments, half-open date
+  boundaries and the same reservation reference through moves. In-house moves check
+  remaining nights. Existing unknown assignment boundaries remain visibly unknown;
+  they are never invented from the reservation's full stay. Ordinary early checkout
+  ends the physical segment without silently changing contracted prices/stay dates.
+- **Operating date** is explicitly activated by Accounting on the current hotel-local
+  day, never by migration. Booking expiry, security and calendar clocks stay real-time.
+  New payments, charges, adjustments, refunds and invoices receive server-owned
+  posting dates; previously posted history remains NULL/pre-cutover. Corrections use
+  existing authorized ledger workflows on the current open day, with no backdating
+  or editing an immutable closed snapshot.
+- **Night audit**: Front Desk resolves operational blockers; Accounting activates and
+  closes; Manager/Owner review financial summaries. Preview is
+  `/api/staff/night-audit`; close is Accounting-only
+  `/api/accounting/night-audit/close`. Closing today before its calendar day ends,
+  unresolved arrivals/departures, unreconciled cash/ledger or missing frozen rates
+  blocks close. Pending inspections and handover work carry forward as warnings;
+  close never releases rooms or makes automatic no-show decisions. No force bypass.
+  The transaction serializes financial postings through the policy-row lock, freezes
+  operational assessment inputs with nonwaiting table locks, rechecks, records an
+  immutable snapshot and advances one day exactly once. Busy operational writes
+  return a refreshable conflict rather than a mixed snapshot or deadlock wait.
+- **Reconciliation** keeps D-033 booked room nights separate from physical rack
+  occupancy measured at assessment/close. Room accrual uses contracted frozen nightly
+  rates; receipts/refunds use actual stamped paid events, charges and signed
+  adjustments stay separate, outstanding is the closing invoice balance. Capacity is
+  closing active inventory (serviceable capacity also shown), not reconstructed
+  historical inventory. Pre-cutover payments are explicitly counted/excluded from
+  stamped period receipts. Missing rates produce a blocker rather than an estimate.
+  Reports can show live assessment and immutable recent closes; formal Front Desk
+  daily report submissions remain independent.
+- **Optional fee templates** are Accounting-maintained with no seeded property fees.
+  Front Desk obtains a server quote and posts its version/quantity through the
+  existing reservation charge route. The existing `folio_charges` ledger freezes
+  catalog code/name/price/quantity/tax evidence. Catalog changes cannot reprice old
+  charges. Generic authorized charges remain; retries bind actor/reservation/payload.
+- **Identity review** is Manager/Owner-only: conservative exact normalized email or
+  shared-account evidence, masked identifiers and retained review decisions. Shared
+  names/phones alone do not create candidates. No guest/login merge is provided:
+  the read-only live aggregate found zero candidate groups for either criterion.
+
+Future scheduled room moves, special shortened-stay repricing, borrowed-item tracking,
+active-cleaning timers, security collateral, day-use and extra tax rules remain conditional
+non-adoptions until a property need/policy exists. Existing extensions, DND, checkout,
+requests and financial controls remain the applicable workflows.
 
 ## 8. Business policies & configuration
 
