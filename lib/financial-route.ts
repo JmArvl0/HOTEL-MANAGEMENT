@@ -3,7 +3,7 @@ import{getServerSession}from"next-auth";import{NextResponse}from"next/server";im
 // inside each security-definer RPC, so hiding a control in the UI is never the only protection.
 export type FinancialContext={actorId:string;role:Role;client:NonNullable<typeof supabase>};
 export async function guardFinancial(allow:(role:Role)=>boolean,denial:string):Promise<FinancialContext|NextResponse>{
- const session=await getServerSession(authOptions);if(!session)return NextResponse.json({error:"Unauthorized"},{status:401});
+ const session=await getServerSession(authOptions);if(!session||session.user.disabled)return NextResponse.json({error:"Unauthorized"},{status:401});
  const role=session.user.role as Role;if(!allow(role))return NextResponse.json({error:denial},{status:403});
  if(!supabase)return NextResponse.json({error:"Database unavailable."},{status:503});
  return{actorId:session.user.id,role,client:supabase};}

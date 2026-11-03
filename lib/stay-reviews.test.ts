@@ -1,13 +1,12 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-  DUMMY_REVIEWS,
   maskGuestName,
   validateReview,
 } from "@/lib/stay-reviews";
 
 // Stay-gated guest reviews: 1 review per completed stay, surfaced on the
-// landing page with dummy placeholders until the first real review lands.
+// landing page only when real reviews are available.
 describe("stay review helpers", () => {
   it("masks guest names to first name + last initial", () => {
     expect(maskGuestName("Maria Santos")).toBe("Maria S.");
@@ -28,15 +27,7 @@ describe("stay review helpers", () => {
     expect(validateReview(5, "x".repeat(1001))).not.toBeNull();
   });
 
-  it("ships dummy placeholders shaped like real reviews", () => {
-    expect(DUMMY_REVIEWS.length).toBeGreaterThan(0);
-    for (const review of DUMMY_REVIEWS) {
-      expect(review.rating).toBeGreaterThanOrEqual(1);
-      expect(review.rating).toBeLessThanOrEqual(5);
-      expect(review.comment.length).toBeGreaterThan(0);
-      expect(review.dummy).toBe(true);
-    }
-  });
+
 });
 
 describe("stay review migration and surface contract", () => {
@@ -75,9 +66,9 @@ describe("stay review migration and surface contract", () => {
     expect(route).toContain("NOT_BOOKED");
   });
 
-  it("falls back to dummies only when no real review exists", () => {
-    expect(lib).toContain("DUMMY_REVIEWS");
-    expect(lib).toContain("if (error || !data?.length) return DUMMY_REVIEWS");
+  it("never supplies sample reviews in production", () => {
+    expect(lib).not.toContain("DUMMY_REVIEWS");
+    expect(lib).toContain("if (error || !data?.length) return []");
   });
 
   it("renders verified-stay reviews on the landing page past the teaser", () => {

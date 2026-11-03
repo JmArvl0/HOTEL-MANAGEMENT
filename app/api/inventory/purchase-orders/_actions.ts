@@ -28,7 +28,7 @@ export async function receiveRoute(id: string, userId: string, role: string | un
   if (denied(role, RECEIVE_ROLES)) return NextResponse.json({ error: "Receiving access required." }, { status: 403 });
   const parsed = z.object({
     version: z.number().int().positive(),
-    items: z.array(z.object({ itemId: z.string().min(1), quantity: z.number().min(0).max(100000) })).default([])
+    items: z.array(z.object({ itemId: z.string().min(1), quantity: z.number().int().positive().max(100000) })).min(1).max(100)
   }).safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Check the received quantities." }, { status: 400 });
   if (!supabase) return NextResponse.json({ error: "Database unavailable." }, { status: 503 });
@@ -38,8 +38,8 @@ export async function receiveRoute(id: string, userId: string, role: string | un
   if (error) {
     const msg = error.message ?? "";
     if (msg.includes("PO_STALE")) return NextResponse.json({ error: "Order changed — reload and retry.", code: "PO_STALE" }, { status: 409 });
-    if (msg.includes("PO_NOT_APPROVED")) return NextResponse.json({ error: "Only approved orders can be received." }, { status: 409 });
-    if (msg.includes("PO_INVALID_RECEIVED_QTY")) return NextResponse.json({ error: "Received quantity exceeds what was ordered." }, { status: 400 });
+    if (msg.includes("PO_NOT_APPROVED")) return NextResponse.json({ error: "Only approved or partially received orders can be received." }, { status: 409 });
+    if (msg.includes("PO_INVALID_RECEIVED_QTY")) return NextResponse.json({ error: "Enter positive quantities within the outstanding balance." }, { status: 400 });
     if (msg.includes("FORBIDDEN")) return NextResponse.json({ error: "Receiving access required." }, { status: 403 });
     return NextResponse.json({ error: "Unable to receive the purchase order." }, { status: 409 });
   }

@@ -16,7 +16,10 @@ import "@/components/auth/session-expiry.css";
 import "@/components/ui/app-shell.css";
 import "@/components/ui/command-palette.css";
 import "@/components/ui/haven-account-modal.css";
+import "./operations-workspace.css";
 import "./staff-theme.css";
+import "./hms-workflows.css";
+import "./sidebar-navigation.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-display" });

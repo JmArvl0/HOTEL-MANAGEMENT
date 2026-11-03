@@ -24,16 +24,16 @@ describe("single-property branding", () => {
       expect(src, path).not.toMatch(/Main property/);
     }
   });
-  it("has no switcher chevron inside the brand pill", () => {
+  it("does not repeat the hotel identity in a property pill", () => {
     for (const path of BRANDED_UI.slice(0, 3)) {
       const src = read(path);
-      const pill = src.slice(src.indexOf("property-pill"));
-      expect(pill.slice(0, 400), path).not.toMatch(/Chevron/);
+      expect(src, path).not.toMatch(/className="property-pill"/);
     }
   });
-  it("brands the pill as HAVEN / HOTEL & RESIDENCES", () => {
+  it("retains the primary HAVEN brand in every staff shell", () => {
     for (const path of BRANDED_UI.slice(0, 3)) {
-      expect(read(path), path).toMatch(/HOTEL &/);
+      expect(read(path), path).toMatch(/className="brand-copy"/);
+      expect(read(path), path).toMatch(/HAVEN/);
     }
   });
 });

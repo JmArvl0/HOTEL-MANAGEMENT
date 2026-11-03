@@ -129,25 +129,19 @@ describe("cash payment collection", () => {
     expect(paymentRoute).toContain("isCash?null:");
   });
   it("hides the reference field for cash in the collect dialog", () => {
-    expect(arrivalDialog).toContain('showWhen: (v: string | number | boolean) => String(v) !== "cash"');
-    expect(arrivalDialog).toContain('reference: method === "cash" ? null : String(data.reference)');
+    expect(arrivalDialog).toContain('PaymentCollectionDialog');
+    expect(readFileSync("components/manager/payment-collection-dialog.tsx", "utf8")).toContain('method !== "cash" &&');
+    expect(readFileSync("components/manager/payment-collection-dialog.tsx", "utf8")).toContain('reference: method === "cash" ? null : reference');
   });
-  it("allows drawer-less cash only behind an explicit, default-off flag (temporary bypass)", () => {
-    // Defense (2026-10-03): reopen is broken with no open drawer, so cash
-    // may record unattributed instead of blocking check-in. Tender stays
-    // "cash", the folio math is untouched, and the default keeps every
-    // existing caller on today's strict behavior.
+  it("retires the temporary drawer-less cash bypass", () => {
     expect(bypassMigration).toContain("p_allow_unattributed_cash boolean default false");
-    expect(bypassMigration).toContain("if v_shift is null and not coalesce(p_allow_unattributed_cash,false) then raise exception'CASH_SHIFT_REQUIRED'");
-    expect(bypassMigration).toContain("'unattributedCash',v_shift is null");
-    expect(bypassMigration).toContain("grant execute on function public.record_staff_payment(text,numeric,text,text,uuid,uuid,boolean,boolean)to service_role");
-    expect(paymentRoute).toContain("CASH_BYPASS_ACTIVE");
-    expect(paymentRoute).toContain("p_allow_unattributed_cash:CASH_BYPASS_ACTIVE");
-    expect(paymentRoute).toContain("unattributedCash");
-    expect(dashboard).toContain("unattributedCash");
-    expect(dashboard).toContain("keep the cash secure with the receipt");
-  });
-});
+    expect(paymentRoute).not.toContain("CASH_BYPASS_ACTIVE");
+    expect(paymentRoute).toContain('rpc("hms_collect_payment"');
+    expect(readFileSync("supabase/migrations/20261103100000_hms_cash_receipts.sql", "utf8")).toContain('p_allow_overpayment,false)');
+    const restored = readFileSync("supabase/migrations/20261103010000_restore_cash_controls.sql", "utf8");
+    expect(restored).toContain("hashtextextended('cash_shift_open',0)");
+    expect(restored).not.toContain("and not coalesce(p_allow_unattributed_cash,false)");
+  });});
 
 describe("centralized reporting replaces scattered module exports", () => {
   it("keeps exactly one window.print — on the Reports page itself", () => {

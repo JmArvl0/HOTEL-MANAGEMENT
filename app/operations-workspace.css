@@ -1,0 +1,18 @@
+.app-shell .ops-workspace{display:grid;gap:20px;padding:24px;margin-block:16px}
+.app-shell .ops-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.app-shell .ops-heading h2{margin:4px 0 8px;font-size:22px;line-height:1.3}
+.app-shell .ops-heading p{max-width:66ch;line-height:1.6}
+.app-shell .ops-card-list{display:grid;gap:12px}
+.app-shell .ops-card{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;padding:20px;border:1px solid var(--tail-border-color);border-radius:12px;min-width:0}
+.app-shell .ops-card>div{min-width:0}
+.app-shell .ops-card h3{font-size:16px;line-height:1.5;margin:6px 0;overflow-wrap:anywhere}
+.app-shell .ops-card p,.app-shell .ops-card small{line-height:1.6;overflow-wrap:anywhere}
+.app-shell .ops-card code{overflow-wrap:anywhere}
+.app-shell .ops-week{display:grid;gap:8px;max-width:240px}
+.app-shell .ops-week input{min-height:44px;color:inherit;background:transparent;border:1px solid var(--tail-border-color);border-radius:8px;padding:8px 12px}
+.app-shell .ops-workspace details{margin-block:12px}
+.app-shell .ops-workspace summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
+.app-shell .ops-workspace .table-action{min-height:44px;padding-inline:12px}
+.app-shell .ops-empty{padding:32px 16px;text-align:center;line-height:1.6}
+.app-shell .ops-workspace [role=alert]{padding:12px;border-left:3px solid currentColor}
+@media(max-width:720px){.app-shell .ops-workspace{padding:16px}.app-shell .ops-card{flex-direction:column;padding:16px}.app-shell .ops-heading .btn-row{width:100%}.app-shell .ops-heading .btn-row button{flex:1}.app-shell .ops-card .btn-row{flex-wrap:wrap}}

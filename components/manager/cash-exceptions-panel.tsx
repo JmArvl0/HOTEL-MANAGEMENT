@@ -1,0 +1,17 @@
+"use client";
+import { useCallback, useEffect, useState } from "react";
+import { useActionDialogs } from "@/components/ui/action-dialogs";
+type Exception = { id: string; reservation_id: string; amount: number; reference: string; created_at: string; cash_exception_reviews: { note: string; version: number; reviewed_at: string } | null };
+export default function CashExceptionsPanel() {
+  const [rows, setRows] = useState<Exception[]>([]), [page, setPage] = useState(1), [count, setCount] = useState(0);
+  const [error, setError] = useState(""), [busy, setBusy] = useState(false), [message, setMessage] = useState("");
+  const dialogs = useActionDialogs();
+  const load = useCallback(async () => { try { const r = await fetch(`/api/accounting/cash-exceptions?page=${page}`, { cache: "no-store" }); const b = await r.json(); if (!r.ok) throw new Error(b.error); setRows(b.data); setCount(b.count); setError(""); } catch (e) { setError(e instanceof Error ? e.message : "Unable to load cash exceptions."); } }, [page]);
+  useEffect(() => { let active = true; queueMicrotask(() => { if (active) void load(); }); return () => { active = false; }; }, [load]);
+  async function review(row: Exception) {
+    const note = await dialogs.askPrompt({ title: "Investigate unattributed cash", message: "Record the evidence and physical custody findings. This note does not change the payment, attach it to a drawer, or settle a variance.", label: "Investigation note", multiline: true, required: true, defaultValue: row.cash_exception_reviews?.note ?? "" });
+    if (!note) return; setBusy(true); setError("");
+    try { const r = await fetch("/api/accounting/cash-exceptions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paymentId: row.id, version: row.cash_exception_reviews?.version ?? 0, note }) }); const b = await r.json(); if (!r.ok) throw new Error(b.error); setMessage("Investigation recorded; payment history is preserved."); await load(); } catch (e) { setError(e instanceof Error ? e.message : "Unable to save the review."); } finally { setBusy(false); }
+  }
+  return <section className="data-panel ops-workspace">{dialogs.view}<header><h2>Historical cash exceptions</h2><p>Paid cash without a drawer reference. Investigation notes preserve the original financial record.</p></header>{error && <p role="alert">{error} <button className="table-action" onClick={() => void load()}>Retry</button></p>}{message && <p role="status">{message}</p>}<div className="ops-card-list">{rows.map(row => <article className="ops-card" key={row.id}><div><h3>{row.reference}</h3><p>{row.reservation_id} · {Number(row.amount).toLocaleString("en-PH", { style: "currency", currency: "PHP" })}</p><small>{row.cash_exception_reviews ? "Investigation recorded" : "Needs investigation"}</small>{row.cash_exception_reviews && <p>{row.cash_exception_reviews.note}</p>}</div><button className="table-action" disabled={busy} onClick={() => void review(row)}>{row.cash_exception_reviews ? "Update investigation" : "Record investigation"}</button></article>)}</div>{!rows.length && !error && <p>No cash exceptions on this page.</p>}<nav className="btn-row" aria-label="Cash exception pages"><button className="btn btn-secondary" disabled={page <= 1 || busy} onClick={() => setPage(p => p - 1)}>Previous</button><span>Page {page} · {count} records</span><button className="btn btn-secondary" disabled={page * 25 >= count || busy} onClick={() => setPage(p => p + 1)}>Next</button></nav></section>;
+}

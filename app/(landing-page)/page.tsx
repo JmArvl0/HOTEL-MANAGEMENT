@@ -86,7 +86,8 @@ export default async function LandingPage() {
     </section>
 
     <section className="coast-section coast-reviews" id="reviews" aria-labelledby="reviews-title">
-      <header className="coast-section-heading"><div><p className="coast-eyebrow">Guest stories</p><h2 id="reviews-title">Loved by our guests.</h2><p>Real words from real stays — one review per completed stay.</p></div><Link href="/booking/search" className="coast-text-link">Book your stay <ArrowRight size={18} /></Link></header>
+      <header className="coast-section-heading"><div><p className="coast-eyebrow">Guest stories</p><h2 id="reviews-title">Guest experiences.</h2><p>Real words from real stays — one review per completed stay.</p></div><Link href="/booking/search" className="coast-text-link">Book your stay <ArrowRight size={18} /></Link></header>
+      {reviews.length === 0 && <p className="coast-caption">No guest reviews are available to display right now.</p>}
       <div className="coast-review-grid">
         {reviews.map((review) => (
           <article key={review.id} className="coast-review-card">
@@ -94,7 +95,7 @@ export default async function LandingPage() {
               {[1, 2, 3, 4, 5].map((star) => <Star key={star} size={15} aria-hidden="true" fill={star <= review.rating ? "currentColor" : "none"} />)}
             </p>
             <p className="coast-review-comment">&ldquo;{review.comment}&rdquo;</p>
-            <footer><b>{review.guestName}</b><span>{review.roomType}{review.stayLabel ? ` · ${review.stayLabel}` : ""}</span>{!review.dummy && <span className="coast-review-verified"><BadgeCheck size={13} aria-hidden="true" />Verified stay</span>}</footer>
+            <footer><b>{review.guestName}</b><span>{review.roomType}{review.stayLabel ? ` · ${review.stayLabel}` : ""}</span>{<span className="coast-review-verified"><BadgeCheck size={13} aria-hidden="true" />Verified stay</span>}</footer>
           </article>
         ))}
       </div>

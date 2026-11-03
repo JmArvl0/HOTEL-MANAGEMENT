@@ -280,8 +280,8 @@ describe("shared cash drawer (20261024110000)", () => {
     expect(dashboard).toContain("Open · ${myShift.staff_name}");
   });
 
-  it("blocks only the opener at sign-out so a second cashier is never stranded", () => {
-    expect(dashboard).toContain("body.data?.open && body.data?.mine");
+  it("allows shared-drawer sign-out after an explicit custody reminder", () => {
+    expect(dashboard).toContain("Signing out leaves the shared drawer open for the team.");
     expect(dashboard).not.toContain("body.data?.open) { const shift = body.data.shift; const go = await dialogs.askConfirm({ title: \"Close your cash shift first\"");
   });
 
@@ -291,22 +291,16 @@ describe("shared cash drawer (20261024110000)", () => {
   });
 });
 
-describe("suspended cash-shift close (temporary defense, 2026-10-03)", () => {
+describe("restored shared cash-shift controls", () => {
   const patchRoute = read("app/api/accounting/cash-shifts/[id]/route.ts");
-
-  it("hides the Close action and announces the suspension on the dashboard", () => {
-    // While reopen is broken, the drawer must stay open: no Close button,
-    // a visible banner, and sign-out that warns instead of trapping.
-    expect(dashboard).toContain("CASH_SHIFT_CLOSE_SUSPENDED");
-    expect(dashboard).toContain("!CASH_SHIFT_CLOSE_SUSPENDED && row.status === \"open\"");
-    expect(dashboard).toContain("Shift closing is temporarily suspended");
-    expect(dashboard).toContain("sign-out proceeds; closing is temporarily suspended.");
+  it("restores close controls and explains shared-drawer sign-out", () => {
+    expect(dashboard).not.toContain("CASH_SHIFT_CLOSE_SUSPENDED");
+    expect(dashboard).toContain("Shared drawer is open");
+    expect(dashboard).toContain("Only the opener or Accounting can close it");
   });
-
-  it("rejects close at the API backstop while reconcile stays untouched", () => {
-    expect(patchRoute).toContain("TEMPORARY (cash-shift defense");
-    expect(patchRoute).toContain("Shift closing is temporarily suspended");
-    expect(patchRoute).toContain('if(closing)return NextResponse.json({error:"Shift closing is temporarily suspended');
+  it("retains authorized close and reconciliation RPC paths", () => {
+    expect(patchRoute).not.toContain("Shift closing is temporarily suspended");
+    expect(patchRoute).toContain("accounting_close_cash_shift");
     expect(patchRoute).toContain("accounting_reconcile_cash_shift");
   });
 });

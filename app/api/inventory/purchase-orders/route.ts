@@ -24,8 +24,14 @@ const DRAFT_PO_ROLES: Role[] = ["manager", "owner", "admin"];
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session || session.user.disabled) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!DRAFT_PO_ROLES.includes(session.user.role as Role)) return NextResponse.json({ error: "Replenishment suggestion access required." }, { status: 403 });
+  if (session.user.role !== "housekeeping" && !DRAFT_PO_ROLES.includes(session.user.role as Role)) return NextResponse.json({ error: "Replenishment suggestion access required." }, { status: 403 });
   if (!supabase) return NextResponse.json({ error: "Database unavailable." }, { status: 503 });
+  if (session.user.role === "housekeeping") {
+    const { data, error } = await supabase.from("purchase_orders").select("id,status,items,received_quantities,version,created_at,purchase_order_receipts(id,items,created_at)").in("status", ["approved", "partially_received"]).order("created_at").limit(100);
+    if (error) return NextResponse.json({ error: "Unable to load approved deliveries." }, { status: 503 });
+    const drafts = (data ?? []).map(o => ({ ...o, items: (o.items as {itemId:string;name:string;quantity:number;unit:string}[]).map(l => ({ itemId:l.itemId,name:l.name,quantity:l.quantity,unit:l.unit })) }));
+    return NextResponse.json({ data: { suggestions: [], drafts, vendors: [], receivingOnly: true } });
+  }
   const params = new URL(request.url).searchParams;
   try {
     const inputs = await getAnalyticsInputs();
@@ -39,7 +45,7 @@ export async function GET(request: Request) {
     const [costResult, ordersResult, vendorResult, policyResult] = await Promise.all([
       shortageIds.length ? supabase.from("inventory").select("id,unit_cost,vendor_id").in("id", shortageIds) : Promise.resolve({ data: [] as { id: string; unit_cost: number | null; vendor_id: string | null }[], error: null as null }),
       (() => {
-        let q = supabase.from("purchase_orders").select("id,vendor_id,status,total,items,created_at,version,approved_at,received_at").order("created_at", { ascending: false }).limit(50);
+        let q = supabase.from("purchase_orders").select("id,vendor_id,status,total,items,received_quantities,created_at,version,approved_at,received_at,purchase_order_receipts(id,items,created_at)").order("created_at", { ascending: false }).limit(50);
         const status = params.get("status");
         if (status) q = q.eq("status", status);
         const vendor = params.get("vendor");

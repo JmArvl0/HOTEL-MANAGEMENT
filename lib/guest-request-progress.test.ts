@@ -88,7 +88,8 @@ describe("guest request fulfillment presentation", () => {
     expect(badge).not.toContain('"completed"');
   });
   it("keeps inventory consumption on task completion only", () => {
-    expect(completeRoute).toContain("logGuestRequestConsumption");
+    expect(completeRoute).not.toContain("logGuestRequestConsumption");
+    expect(readFileSync("supabase/migrations/20261103080000_hms_integrity.sql", "utf8")).toContain("hms_request_stock_completion before update of status");
     expect(migration).not.toContain("inventory_movements");
   });
 });

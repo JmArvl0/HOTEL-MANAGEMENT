@@ -22,6 +22,25 @@ tests, deployment).
 
 ## 1. What this is
 
+**Focused HMS update (2026-11-03):** The approved workflow prototype is implemented
+in the current local application. The configured database now includes scoped
+versions `20261103010000`, `20261103030000`, `20261103070000`,
+`20261103080000`, `20261103090000`, `20261103100000`, `20261103110000`, and
+`20261103120000`. Stock changes and
+mapped request fulfillment are atomic and retry-safe; new supply corrections use
+`hms_stock_movement`, with generic quantity PATCH blocked. Guest profile/account
+save and uploaded-ID review use protected atomic RPCs. Payment collection creates
+its receipt in the same transaction; shared drawer counts retain explained
+variance. Pending department work is created after approval; withdrawal serializes
+with approval/assignment. Physical stock-count drafts retain their original item
+version through refresh until an explicit clear/recount; cash-count draft state
+resets when drawer/operator identity changes, and blank counts cannot submit.
+Standalone operational handover replaces the roster
+screen in shared staff navigation. Held HR/procurement/assets/Lost & Found
+migrations remain unapplied; do not blindly push the root migration directory.
+See `docs/HMS-WORKFLOW-IMPLEMENTATION-2026-11-03.md` for exact versions, scope,
+test evidence and the signed-in/browser/application-deployment limitations.
+
 A **single-property hotel operations system** for a ~48-room boutique property (brand: **Haven
 Makati**). One Next.js deployment serves four surfaces:
 
@@ -1104,6 +1123,17 @@ Executive · Governance · Catalog. The active module's category is always expan
 persists its own open/closed choices (`localStorage["haven-admin-sidebar-groups"]` /
 `["haven-owner-sidebar-groups"]`). Grouping is presentational — every module stays reachable.
 
+All account sidebars share navigation metrics through `app/sidebar-navigation.css`
+(last root stylesheet): 280px expanded / 80px collapsed on desktop, 48px logo and
+click targets, 22px expanded / 24px collapsed module icons. Manager and operational
+roles, Admin, Owner, and the separate Guest shell all use these metrics. Staff
+shells no longer repeat the brand in a property pill. Small logo marks use a cropped
+transparent asset with a white silhouette in dark mode. Mobile drawers retain
+labels regardless of the saved desktop collapse preference.
+Shared account sidebars hide scrollbar tracks/thumbs while preserving their native
+overflow behavior, mouse/trackpad scrolling and keyboard access (including expanded,
+collapsed and mobile views); rules live in `app/sidebar-navigation.css`.
+
 - **System Administrator** (internal role `admin`, displayed as "System Administrator" /
   "System Administration" in the UI; `AdminDashboardClient`, `/api/admin/*`): HAVEN's
   system administrator — maintains users, system configuration, hotel setup, technical
@@ -1431,12 +1461,12 @@ visibility is never the gate) serves a **read-only** workforce snapshot derived 
   accounts, role changes, password recovery, and account governance stay exclusively with the
   Admin/Owner portals (§7.10); `canViewStaffDuty` grants no write path of any kind. Department
   staff have no access to it at all — a hotel-wide workforce view is Manager supervision scope.
-- **Authoritative "on duty" definition.** HAVEN has no shift/schedule model, and **login is never a
+- **Operational activity definition.** Planned schedules (§7.16) are separate, and **login is never a
   duty signal** — authentication state is deliberately excluded. Duty is *derived*: **working** =
   an `in_progress` housekeeping task, an `in_progress` maintenance order, or an open cash shift;
   **assigned** = open (not-yet-started) task/order; **no active work** = neither. No shift times,
-  break states, or off-duty rosters are invented — if a `staff_shifts` table is ever added, it
-  becomes the duty authority and this module joins onto it.
+  break states or attendance are inferred. The planned roster never overrides these activity
+  signals or proves that somebody is physically present.
 - **Data sources.** One batched parallel query set (no per-member queries): active `user_accounts`
   (name + role only — no contact, credential, or account-security columns), open + completed-today
   `housekeeping_tasks`, open + resolved-today `maintenance_orders`, and open `cash_shifts`.
@@ -1453,29 +1483,51 @@ visibility is never the gate) serves a **read-only** workforce snapshot derived 
 - **Demo mode.** Without Supabase env the snapshot is served from the demo store (assignee names
   matched by name; no cash shifts in demo data).
 
-### 7.15 Inventory replenishment (roadmap Phase 7 — draft-only)
+### 7.15 Inventory replenishment and receiving
 
-The inventory demand forecast (§7.13) closes its loop into purchasing — as a **suggestion, never an
-order**. `GET /api/inventory/purchase-orders` (Manager/Owner/Admin) returns the same
-`forecastInventory` output the Predictive Insights panel uses, filtered to projected shortages (plus
-`current-low-stock` items without movement history — facts, not guesses), with a suggested reorder
-quantity (forecast's `recommendedReorder`, else the reorder point) and the live unit cost. The
-Manager dashboard's Inventory section renders a **"Replenishment suggestions"** strip (each card:
-stock, reorder point, predicted 3-day need, shortage, suggested quantity, estimated total) with a
-**"Create draft PO"** button opening a dialog where **quantity and vendor are staff-editable**
-(default = the suggested quantity). `POST` to the same route creates a row in the existing
-`purchase_orders` table:
+The live workflow supports draft → submit → threshold approval → receive/cancel
+(migration 20261014010000; live receive function inspected 2026-11-03). Earlier draft-only wording
+was stale. Manager/Owner/Admin create drafts using server-read inventory costs; submission does
+not transmit an order to a vendor. Above-threshold approval remains with Owner/Admin.
+Forecast suggestions remain advisory, never automatic orders.
 
-- **Draft means draft.** The route writes `status: 'draft'` (via `lib/purchase-orders.ts`
-  `buildDraftPurchaseOrder`, whose `status` type is the literal `"draft"`) and can write no other
-  status — there is no update/submit/send path of any kind, and nothing is ever transmitted to a
-  vendor. Existing drafts render read-only beneath the strip ("Draft only — review before any
-  order").
-- **Server-side truth.** Unit cost is re-read from the `inventory` rows (never trusted from the
-  client), the vendor must be active or absent, the total is recomputed server-side, and an
-  `audit_logs` row (`inventory_draft_purchase_order`, `after_data.submittedToVendor: false`)
-  records the creation. Submitting/receiving against a real vendor remains a human, out-of-system
-  act — `purchase_orders` is still the future supply-chain interface table (§9).
+Local improvements (2026-11-03; remote deployment pending): explicit integer delivery quantities,
+atomic cumulative receipts/stock movements, partial status, receipt history, and an approved-
+deliveries-only Housekeeping queue. Omitted lines are not assumed delivered. Retry identity is
+the PO/version plus actor and payload. Partially received orders cannot be cancelled or edited
+into different orders. Completed orders remain immutable; historical quantities are not inferred.
+
+### 7.16 Operational continuity additions (local; deployment pending)
+
+User authorized implementation of role-improvement Phases 0–5 on 2026-11-03. Migrations
+20261103010000–20261103070000 are locally implemented; this is not a statement that they are
+applied remotely. See `docs/ROLE-IMPROVEMENT-IMPLEMENTATION.md` for deployment and QA state.
+
+- **Shared cash drawer:** correct the deployed `hashtextended` typo to `hashtextextended`,
+  serialize drawer transitions and payments, restore close UI and retire the cash bypass.
+  New paid cash requires an open drawer. Only the opener or Accounting closes; Accounting
+  reconciles. Sign-out does not close shared drawers. Historical unattributed cash has an
+  Accounting-only investigation queue; notes never rewrite payments or assign arbitrary drawers.
+- **Guest requests:** guests withdraw their own pending/unassigned individual lines using a
+  version check and audit history. Withdrawal sets cancelled/withdrawn; batch review skips it.
+  Existing department work prevents withdrawal; new work is serialized against it.
+- **Reviews:** public testimonials come from real records, with an honest empty/unavailable
+  state. Production fallback never supplies sample reviews.
+- **Schedule & Handover:** all five operational roles have a navigation entry. Manager schedules
+  active operational staff with overlap protection and Manila times. Staff read only their own
+  roster. Scheduling does not grant account-governance powers or prove attendance. Department
+  handovers retain source references, follow-up ownership, acknowledgement and resolution.
+- **Preventive work:** Manager assigns maintenance technicians; technicians assign themselves.
+  An asset has at most one unfinished linked occurrence. Existing work-order lifecycle applies;
+  completed work and an actual service date are required before updating the linked schedule.
+  Due dates alone do not block rooms.
+- **Lost & Found:** Housekeeping records/secures; Front Desk records claims; Manager authorizes
+  release or declines claims; Front Desk verifies identity before release. Custody changes are
+  acknowledged and audited. Manager disposition requires explicit policy confirmation/reason;
+  no retention period or automated disposal is invented. Claim notes are hidden from Housekeeping.
+
+OTA, group/corporate, linen/laundry, formal night audit and full accounting remain separately
+scoped evaluations under Phase 5; no integrations are claimed.
 
 ## 8. Business policies & configuration
 

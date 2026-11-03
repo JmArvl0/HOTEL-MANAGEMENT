@@ -7,7 +7,6 @@ export type PublishedReview = {
   guestName: string;
   roomType: string;
   stayLabel: string;
-  dummy?: boolean;
 };
 
 export const REVIEW_COMMENT_MIN = 10;
@@ -34,40 +33,6 @@ export function validateReview(
   return null;
 }
 
-// Empty-state placeholders until the first real stay review lands.
-export const DUMMY_REVIEWS: PublishedReview[] = [
-  {
-    id: "dummy-1",
-    rating: 5,
-    comment:
-      "Check-in took minutes and the room was spotless. The airport pickup they arranged made the whole arrival effortless.",
-    guestName: "Jen R.",
-    roomType: "Deluxe King",
-    stayLabel: "Aug 2026",
-    dummy: true,
-  },
-  {
-    id: "dummy-2",
-    rating: 5,
-    comment:
-      "Quiet, comfortable, and the staff remembered the little things we asked for. Best sleep we've had on a trip in years.",
-    guestName: "Marco D.",
-    roomType: "Ocean Suite",
-    stayLabel: "Jul 2026",
-    dummy: true,
-  },
-  {
-    id: "dummy-3",
-    rating: 4,
-    comment:
-      "Great value for the location. Requests through the guest account were answered fast — fresh towels within the hour.",
-    guestName: "Aira M.",
-    roomType: "Garden Twin",
-    stayLabel: "Jul 2026",
-    dummy: true,
-  },
-];
-
 function stayLabel(checkOut: string | null): string {
   if (!checkOut) return "";
   const date = new Date(`${checkOut.slice(0, 10)}T00:00:00Z`);
@@ -75,16 +40,15 @@ function stayLabel(checkOut: string | null): string {
   return new Intl.DateTimeFormat("en-PH", { month: "short", year: "numeric", timeZone: "UTC" }).format(date);
 }
 
-// Latest verified-stay reviews for the landing page. Falls back to the
-// dummy set only when no real review exists yet — never mixed.
+// Production testimonials always come from actual completed-stay reviews.
 export async function getPublishedReviews(): Promise<PublishedReview[]> {
-  if (!supabase) return DUMMY_REVIEWS;
+  if (!supabase) return [];
   const { data, error } = await supabase
     .from("stay_reviews")
     .select("id,rating,comment,reservation_id,created_at")
     .order("created_at", { ascending: false })
     .limit(LANDING_REVIEW_LIMIT);
-  if (error || !data?.length) return DUMMY_REVIEWS;
+  if (error || !data?.length) return [];
   const ids = data.map((row) => String(row.reservation_id));
   const { data: stays } = await supabase
     .from("reservations")

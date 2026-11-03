@@ -51,6 +51,8 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Cash & Shifts", section: "cash_shifts", roles: ["front_desk", "accounting"], group: "finance" },
   { label: "Reconciliation", section: "reconciliation", roles: ["accounting"], group: "finance" },
   { label: "Financial Documents", section: "documents", roles: ["front_desk", "accounting"], group: "finance" },
+  { label: "Operational Handover", section: "team_operations", roles: ["manager", "front_desk", "housekeeping", "maintenance", "accounting"], group: "operations" },
+  { hidden: true, label: "Lost & Found", section: "lost_found", roles: ["manager", "front_desk", "housekeeping"], group: "operations" },
   { label: "Staff & Duty", section: "staff_duty", roles: ["manager"], group: "management" },
   { label: "Room Types & Photos", section: "room_types", roles: ["manager"], group: "management" },
   { label: "Transfer Vehicles", section: "transport_services", roles: ["manager"], group: "management" },

@@ -4,6 +4,15 @@ The source-of-truth reference for the shipped UI. **Do not apply
 `design-system/haven-hotel/MASTER.md`** — it is superseded (see `DESIGN-STATUS.md` F2).
 This doc and `app/ui-primitives.css` are the current system.
 
+**Approved HMS workflows (2026-11-03):** `app/hms-workflows.css` follows
+`staff-theme.css` and precedes the final shared sidebar layer. Inventory uses
+the approved table/history plus adjacent issue/count form; cash uses a visible
+physical-count/variance form beside the ledger. Operational Handover has a
+standalone source/owner form and filterable follow-up log. Guest and uploaded-ID
+forms preserve the existing portal/arrival shell. Labels, draft preservation,
+stable retry keys, truthful status/error feedback and keyboard focus are part of
+the workflow; no prototype/sample records are wired into production screens.
+
 - **Companions:** `DESIGN-STATUS.md` (what is off / what got fixed), `SYSTEM.md` (behavior).
 - **Snapshot:** working tree on `main`, 2026-09-10 (coastal brand refresh plus the public booking
   search surface; see `DESIGN-STATUS.md` and `.impeccable/surfaces/app-booking-search.md`).
@@ -11,6 +20,19 @@ This doc and `app/ui-primitives.css` are the current system.
 ---
 
 ## 1. How CSS is loaded (what wins)
+
+**Navigation update (2026-11-03):** The table below is historical; current
+`app/layout.tsx` loads `staff-theme.css` near the end, followed by
+`sidebar-navigation.css` as the final shared navigation layer. It owns sidebar
+metrics for Manager/operational staff, Admin, Owner, and Guest: 280px expanded,
+80px collapsed, 48px targets, 22px expanded / 24px collapsed icons, and 48px
+cropped transparent logo marks. Mobile drawers retain labels even when a desktop
+collapse preference is saved. Staff property pills have been removed. The shared
+small logo uses its original colors in light mode and a white silhouette in dark
+mode; public/auth large logo tiles retain their existing presentation.
+Sidebar scrollbars are hidden with `scrollbar-width:none` and WebKit scrollbar
+rules in that same layer, including staff outer/nav containers, Guest, and the
+reusable navigation shells. Existing overflow, focus and scrolling behavior remain.
 
 `app/layout.tsx` imports, in order — later files win at equal specificity:
 

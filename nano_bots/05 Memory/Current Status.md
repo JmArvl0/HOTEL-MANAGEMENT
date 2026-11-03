@@ -1,5 +1,49 @@
 # Current Status
 
+## Focused HMS workflow release (2026-11-03 — current)
+
+- Follow-up QA defects KI-014–016 fixed: stock baseline, drawer draft identity
+  and cash grid. Six form tests, typecheck/build/lint pass; full suite 2,102 pass /
+  existing KI-012 failure. Cash layout verified signed in at desktop/mobile.
+  Broader browser write-path QA remains partial; see workflow QA report.
+- Approved prototype implemented locally; eight scoped migrations applied through
+  `20261103120000` (exact allowlist in implementation report).
+- Stock/history, cash/folio/receipt, guest profile/ID and request/handover repaired.
+  No roster dependency; HR/procurement/assets/Lost & Found held.
+- Fresh PostgreSQL: 108 scoped migrations + 19 acceptance scenarios pass; live
+  rollback-only smoke passed. Typecheck/build pass; full suite 2,100 pass /
+  one existing Windows SQL text assertion. New workflow ESLint clean.
+- Full signed-in write-path walkthrough and hosted app deployment remain pending. No Git
+  push. See [[2026-11-03 - Approved HMS Workflow Implementation]] and
+  `docs/HMS-WORKFLOW-IMPLEMENTATION-2026-11-03.md`.
+
+## Earlier broad role improvements (2026-11-03 — historical checkpoint)
+
+- Authorized Phases 0–5 implemented in source: cash controls, partial receiving,
+  guest withdrawal/review honesty, roster/handover, linked preventive work,
+  Lost & Found and historical cash investigation. Seven migrations were pending
+  then; the focused release above supersedes that rollout status.
+- Local SQL acceptance 11 pass; HTTP scope tests 16 pass; full suite 2087 pass /
+  existing CRLF assertion failure. Build blocked fetching Google Fonts.
+- Remote ledger/function baseline checked; deployed cash-open typo reproduced.
+  Remote migration verification/application and signed-in role QA remain pending.
+- See [[2026-11-03 - Role Improvement Implementation]] and
+  `docs/ROLE-IMPROVEMENT-IMPLEMENTATION.md`.
+
+## Shared Account Sidebar (2026-11-03)
+
+- Approved navigation refinement implemented across all staff shells and Guest:
+  property pills removed, larger box-free logo, fixed-size icons, consistent
+  expanded/collapsed metrics and mobile drawer labels.
+- Approved hidden-scrollbar refinement is also implemented across staff, Guest,
+  and reusable sidebar navigation. Native overflow remains scrollable. Latest
+  navigation checks: typecheck + 37 targeted tests pass; full suite 2068 pass /
+  same unrelated SQL assertion failure; build still blocked fetching Google Fonts.
+- Typecheck and 54 targeted tests pass. Full suite 2068 pass / 1 unrelated Windows
+  SQL line-ending assertion failure; build blocked on Google Fonts connection.
+  Visual verification used production-CSS fixtures; signed-in QA remains manual.
+- See [[2026-11-03 - Shared Account Sidebar]].
+
 ## Guest Rewards & Loyalty Module Redesign (2026-10-06)
 
 - Completely redesigned the guest account Rewards module ([`app/(booking)/(customer)/account/loyalty/page.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/app/%28booking%29/%28customer%29/account/loyalty/page.tsx) and [`components/customer/loyalty-card-panel.tsx`](file:///c:/Projects/HOTEL-MANAGEMENT/components/customer/loyalty-card-panel.tsx)) using modern SaaS (TailAdmin / Finwise) paradigms, elevated UI/UX Pro Max aesthetics, and full responsive design:
