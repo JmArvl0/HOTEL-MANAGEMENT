@@ -23,6 +23,7 @@
 .sys-attention{margin-bottom:1.5rem}
 .sys-queue{list-style:none;margin:0;padding:4px 18px 16px;display:grid;gap:10px}
 .sys-queue-row{display:flex;gap:12px;align-items:flex-start;padding:12px;border:1px solid var(--dl);border-radius:8px;background:var(--ds2,transparent)}
+.theme-light .app-shell .sys-queue-row{border-color:var(--ops-border);background:var(--ops-surface)}
 .sys-queue-row>div{min-width:0;display:grid;gap:4px}
 .sys-queue-row strong{font-size:13px}
 .sys-queue-row p{margin:0;font-size:12px;line-height:1.55}
@@ -60,11 +61,13 @@
    deliberate badge rather than a glyph floating next to the label. Card-name
    icons additionally carry the card tone as a 10% tint chip (stat grammar). */
 .sys-ico{width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:8px;background:var(--ds2);border:1px solid var(--dl)}
+.theme-light .app-shell .sys-ico{background:var(--ops-paper);border-color:var(--ops-border)}
 .sys-card-name .sys-ico{border-radius:12px;border-color:transparent}
 .sys-card-name .sys-ico-ok{color:var(--color-success-fg);background:color-mix(in srgb,currentColor 12%,transparent)}
 .sys-card-name .sys-ico-warn{color:var(--color-warning-fg);background:color-mix(in srgb,currentColor 12%,transparent)}
 .sys-card-name .sys-ico-bad{color:var(--color-danger-fg);background:color-mix(in srgb,currentColor 12%,transparent)}
 .sys-card-name .sys-ico-neutral{color:var(--dm);background:var(--ds2);border-color:var(--dl)}
+.theme-light .app-shell .sys-card-name .sys-ico-neutral{color:var(--ops-text-2);background:var(--ops-paper);border-color:var(--ops-border)}
 .sys-ico--inline{display:inline-flex;align-items:center;justify-content:center;flex:none}
 /* Rail jobs: stacked definition list — fits any rail width with zero table
    floor, zero x-scroll. Reuses shell tokens + .table-action untouched. */
@@ -178,6 +181,7 @@
 .system-health-config>div:last-child{border-bottom:0}
 .system-health-config dt{color:var(--dm);font-size:12px;flex:none}
 .sys-skel{display:inline-block;min-height:12px;min-width:72px;border-radius:6px;background:var(--ds2);vertical-align:middle}
+.theme-light .app-shell .sys-skel{background:#d1d5db}
 .sys-skel-dt{width:96px}
 .sys-skel-dd{width:144px;max-width:100%}
 .system-health-config dd{margin:0;color:var(--dt);font-size:13px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;min-width:0}

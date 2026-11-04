@@ -59,7 +59,7 @@ Where a rule does not carry a family prefix it is base shell furniture
 .app-shell .metric-card>i{position:relative;z-index:2;width:27px;height:27px;color:#2a3442;background:#0f141b;border:1px solid #0f141b}
 .app-shell .metric-card>i svg{width:14px}
 .app-shell .dashboard-grid{grid-template-columns:1.62fr .88fr;gap: 16px;margin-top: 16px}
-.app-shell .panel{background: var(--st-bg-surface);border-color:var(--dl);padding: 20px;border: 1px solid var(--st-border-color);border-radius: var(--st-radius-2xl);box-shadow: var(--st-shadow-xs);overflow: hidden;transition: all 0.2s ease}
+.app-shell .panel{background: var(--st-bg-surface);border-color:var(--dl);--panel-divider-inset:20px;padding: 20px;border: 1px solid var(--st-border-color);border-radius: var(--st-radius-2xl);box-shadow: var(--st-shadow-xs);overflow: hidden;transition: all 0.2s ease}
 .app-shell .panel-heading h3{color: var(--st-text-primary);font-family: var(--font-sans);line-height: normal;font-size: 16px;font-weight: 700;margin: 0}
 .app-shell .panel-heading p{color: var(--st-text-secondary);font-size: 13px;line-height:1.5;margin: 3px 0 0}
 .app-shell .trend{color: #b9c6de;background: #1a2440;font-size: 11px}
@@ -96,7 +96,7 @@ Where a rule does not carry a family prefix it is base shell furniture
 @media print{.app-shell .report-actions{display:none!important}}
 @media print{.app-shell .report-tools{display:none!important}}
 @media print{.app-shell .export-note{display:none!important}}
-.theme-light .app-shell{--db:#f3f3f3;--ds:#fff;--ds2:#111827;--dl:#f3f3f3;--dt:#111827;--dm:#5b6472;--dg:#111827;background: var(--ops-paper);color: var(--ops-ink);color-scheme:light;font-family: var(--font-sans), system-ui, sans-serif}
+.theme-light .app-shell{--db:#f3f3f3;--ds:#fff;--ds2:var(--ops-paper);--dl:var(--ops-border);--dt:#111827;--dm:#5b6472;--dg:#111827;background: var(--ops-paper);color: var(--ops-ink);color-scheme:light;font-family: var(--font-sans), system-ui, sans-serif}
 .theme-light .app-shell .sidebar{background: var(--ops-surface);color: var(--ops-text-2);border-color:var(--dl);border-right: 1px solid var(--ops-border)}
 .theme-light .app-shell .sidebar .brand{color: var(--ops-ink);font-size: 13px;font-weight: 600;letter-spacing: 1.2px}
 .theme-light .app-shell .sidebar .brand-mark{border-color: var(--haven-brand-200);color: var(--haven-brand-600);background: var(--haven-brand-50)}
@@ -105,8 +105,8 @@ Where a rule does not carry a family prefix it is base shell furniture
 .theme-light .app-shell .property-pill>span{background:#e8edf4;color:#111827}
 .theme-light .app-shell .nav-caption{color: var(--ops-text-3);font-size: 11px;letter-spacing: 1.2px}
 .theme-light .app-shell .sidebar nav button:hover{background: var(--ops-paper);color: var(--ops-ink)}
-.theme-light .app-shell .sidebar nav button.active{background: var(--haven-brand-50);color: var(--haven-brand-600);box-shadow: none;border-color: var(--haven-brand-200)}
-.theme-light .app-shell .sidebar nav button.active svg{color: #fff}
+.theme-light .app-shell .sidebar nav button.active{background:var(--ops-paper);color:var(--ops-ink);box-shadow:none;border-color:var(--ops-border)}
+.theme-light .app-shell .sidebar nav button.active svg{color:var(--ops-ink)}
 .theme-light .app-shell .sidebar nav i{background: var(--ops-paper);color: var(--ops-text-2)}
 .theme-light .app-shell .sidebar-bottom{border-color: var(--ops-border)}
 .theme-light .app-shell .profile{border-color: var(--ops-border);background: var(--ops-paper);border-radius: var(--ops-r-card)}
@@ -132,7 +132,7 @@ Where a rule does not carry a family prefix it is base shell furniture
 .theme-light .app-shell .metric-card b{color:#111827}
 .theme-light .app-shell .metric-card small{color:#1d4ed8}
 .theme-light .app-shell .metric-card>i{color:#1d4ed8;background:#3b82f614;border-color:#3b82f640}
-.theme-light .app-shell .panel{background: var(--ops-surface);border-color:#f3f3f3;border: 1px solid var(--ops-border);border-radius: var(--ops-r-card);box-shadow: var(--ops-shadow-rest);padding: 20px}
+.theme-light .app-shell .panel{background: var(--ops-surface);border-color:#f3f3f3;border: 1px solid var(--ops-border);border-radius: var(--ops-r-card);box-shadow: var(--ops-shadow-rest);--panel-divider-inset:20px;padding: 20px}
 .theme-light .app-shell .panel-heading h3{color: var(--ops-ink);font-size: 15px;font-weight: 600}
 .theme-light .app-shell .panel-heading p{color: var(--ops-text-2);font-size: 12px}
 .theme-light .app-shell .panel-heading button{color: var(--ops-ink);font-size: 12px;font-weight: 600}
@@ -167,7 +167,7 @@ Where a rule does not carry a family prefix it is base shell furniture
 .app-shell .sidebar nav button.active .nav-badge{background: var(--haven-brand-600);color: #ffffff;border-color: var(--haven-brand-600)}
 .app-shell .sidebar .nav-group-header .nav-badge{position:static;transform:none;margin-left:6px;flex:0 0 auto}
 .theme-light .app-shell .sidebar nav button .nav-badge{background: var(--ops-warning-tint);color: var(--ops-warning-ink);font-size: 11px}
-.theme-light .app-shell .sidebar nav button.active .nav-badge{background: rgb(255 255 255 / 0.2);color: #fff}
+.theme-light .app-shell .sidebar nav button.active .nav-badge{background:var(--ops-surface);color:var(--ops-text-2);border-color:var(--ops-border)}
 .app-shell .notification-center .icon-button{position:relative!important;width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;flex:0 0 38px!important;padding:0!important;margin:0!important;border-radius:10px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;overflow:visible!important}
 .app-shell .app-header .theme-toggle{position:relative!important;width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;flex:0 0 38px!important;padding:0!important;margin:0!important;border-radius:10px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;overflow:visible!important}
 .app-shell .notification-center .icon-button svg{position:absolute!important;top:50%!important;left:50%!important;transform:translate(-50%,-50%)!important;width:18px!important;height:18px!important;margin:0!important;padding:0!important;pointer-events:none!important;transform-origin:50% 15%!important;transition:transform .28s cubic-bezier(0.34, 1.56, 0.64, 1),color .18s ease!important}
@@ -946,7 +946,7 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .app-shell .insights-metric-card.medium>i{border-color:#f59e0b40;background:#f59e0b1f;color:#fcd34d}
 .app-shell .insights-metric-card.high>i{border-color:#ef444440;background:#ef44441f;color:#fca5a5}
 .app-shell .insights-metric-card.low>i{border-color:#10b98140;background:#10b9811f;color:#6ee7b7}
-.app-shell .insights-panel{min-width:0;padding:16px;border-radius:12px}
+.app-shell .insights-panel{--panel-divider-inset:16px;min-width:0;padding:16px;border-radius:12px}
 .app-shell .insights-panel>.panel-heading{align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--dl);gap:16px}
 .app-shell .insights-panel>.panel-heading>div{min-width:0}
 .app-shell .insights-panel>.panel-heading h3{font-size:14px;line-height:1.25}
@@ -1070,7 +1070,7 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 @media(max-width:720px){.app-shell .insights-freshness{padding:0 0 10px;border-inline-end:0;border-bottom:1px solid rgba(59,130,246,.28)}}
 @media(max-width:720px){.app-shell .predictive-insights .insights-title .page-header-actions .btn{justify-content:center;width:100%;font-size:10px}}
 @media(max-width:720px){.app-shell .insights-metric-grid{grid-template-columns:1fr}}
-@media(max-width:720px){.app-shell .insights-panel{padding:15px}}
+@media(max-width:720px){.app-shell .insights-panel{--panel-divider-inset:15px;padding:15px}}
 @media(max-width:720px){.app-shell .insights-panel>.panel-heading{align-items:flex-start;flex-direction:column}}
 @media(max-width:720px){.app-shell .insights-panel>.panel-heading .btn{width:100%;justify-content:center}}
 @media(max-width:720px){.app-shell .insights-performance-panel .snapshot-list{grid-template-columns:1fr}}
@@ -1088,7 +1088,7 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .app-shell .performance-reports{display:grid;gap:12px;min-width:0}
 .app-shell .performance-reports .reports-title{margin:0}
 .app-shell .report-analysis-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(260px,.75fr);gap:10px;align-items:stretch;min-width:0}
-.app-shell .report-analysis-panel{min-width:0;margin:0;padding:20px;border-radius:10px}
+.app-shell .report-analysis-panel{--panel-divider-inset:20px;min-width:0;margin:0;padding:20px;border-radius:10px}
 .app-shell .report-panel-heading{align-items:flex-start;gap:12px;margin-bottom:12px}
 .app-shell .report-panel-heading h2{margin:3px 0 4px;color:var(--dt);font-size:15px;line-height:1.2}
 .app-shell .report-section-label{margin:0;color:var(--dg)!important;font-size:9px!important;font-weight:800;text-transform:uppercase;letter-spacing:1.2px}
@@ -1123,7 +1123,7 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .theme-light .app-shell .performance-reports+.page-header{background:#fff;box-shadow:0 8px 24px rgba(30,52,41,.04)}
 @media(max-width:1050px){.app-shell .report-analysis-grid{grid-template-columns:1fr}}
 @media(max-width:1050px){.app-shell .report-room-status ul{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:760px){.app-shell .report-analysis-panel{padding:16px}}
+@media(max-width:760px){.app-shell .report-analysis-panel{--panel-divider-inset:16px;padding:16px}}
 @media(max-width:760px){.app-shell .report-panel-heading{flex-direction:column}}
 @media(max-width:760px){.app-shell .report-room-status ul{grid-template-columns:1fr}}
 @media(max-width:760px){.app-shell .performance-reports+.page-header{align-items:stretch;flex-direction:column;padding:17px}}
@@ -1174,7 +1174,7 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .app-shell .haven-ai-section-heading h2{margin:0;color:var(--dt);font:650 15px var(--font-sans);letter-spacing:-.01em}
 .app-shell .haven-ai-section-heading p{margin:0;color:var(--dm);font-size:9px;line-height:1.5}
 .app-shell .haven-ai-main-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(310px,.95fr);gap:12px;align-items:stretch;min-width:0}
-.app-shell .haven-ai-main-grid>.panel{min-width:0;margin:0;padding:19px;border-radius:12px}
+.app-shell .haven-ai-main-grid>.panel{--panel-divider-inset:19px;min-width:0;margin:0;padding:19px;border-radius:12px}
 .app-shell .haven-ai-main-grid>.panel>.panel-heading{align-items:flex-start;margin-bottom:14px;padding-bottom:13px;border-bottom:1px solid var(--dl);gap:14px}
 .app-shell .haven-ai-main-grid>.panel>.panel-heading>div{min-width:0}
 .app-shell .haven-ai-main-grid>.panel>.panel-heading h2{margin:0;color:var(--dt);font:650 15px var(--font-sans);line-height:1.3}
@@ -1270,7 +1270,7 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 @media(max-width:680px){.app-shell .haven-ai-hero{padding:19px}}
 @media(max-width:680px){.app-shell .haven-ai-hero .page-header-title{font-size:26px}}
 @media(max-width:680px){.app-shell .haven-ai-section-heading{align-items:flex-start;flex-direction:column;gap:4px}}
-@media(max-width:680px){.app-shell .haven-ai-main-grid>.panel{padding:15px}}
+@media(max-width:680px){.app-shell .haven-ai-main-grid>.panel{--panel-divider-inset:15px;padding:15px}}
 @media(max-width:680px){.app-shell .haven-ai-main-grid>.panel>.panel-heading{flex-direction:column}}
 @media(max-width:680px){.app-shell .ai-brief-controls{width:100%;justify-content:space-between}}
 @media(max-width:680px){.app-shell .ai-brief-controls .btn{justify-content:center}}
@@ -1518,7 +1518,7 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .app-shell .admin-overview-lower .panel-heading{align-items:center}
 .app-shell .admin-overview-lower .panel-heading .btn{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 12px;border:1px solid var(--dl);border-radius:999px;background:transparent;white-space:nowrap}
 .app-shell .admin-overview-lower .panel-heading .btn:hover{border-color:var(--dg);background:var(--ds2)}
-.app-shell .admin-audit-panel .panel-heading{padding:16px;margin:0;border-bottom:1px solid var(--dl)}
+.app-shell .admin-audit-panel .panel-heading{padding:16px;padding-top:0;margin:0;border-bottom:1px solid var(--dl)}
 .app-shell .admin-role-list{display:grid;gap:12px}
 .app-shell .admin-role-row{display:grid;grid-template-columns:minmax(105px,.8fr) minmax(80px,1fr) 24px;align-items:center;gap:10px}
 .app-shell .admin-role-row>span{display:grid;gap:2px}
@@ -1551,7 +1551,7 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .app-shell .admin-role-card header small{color:var(--dm);font-size:11px;line-height:1.5}
 .app-shell .admin-role-card ul{display:flex;flex-wrap:wrap;gap:5px;margin:0;padding:0;list-style:none}
 .app-shell .admin-role-card li{padding:4px 9px;border:1px solid var(--dl);border-radius:999px;background:var(--ds2);color:var(--dt);font-size:11px;font-weight:600}
-.app-shell .admin-policy-panel{display:grid;padding:0}
+.app-shell .admin-policy-panel{--panel-divider-inset:0px;display:grid;padding:0}
 .app-shell .admin-policy-meta{margin:0;padding:12px 16px;border-bottom:1px solid var(--dl);color:var(--dm);font-size:9px}
 .app-shell .admin-policy-warn{margin:10px 0 0;padding:10px 12px;border:1px solid #f59e0b40;border-radius:7px;background:#f59e0b1f;color:#fcd34d;font-size:10px}
 .theme-light .app-shell .admin-policy-warn{background:#fff0dd;border-color:#f59e0b40;color:#b45309}
@@ -1599,8 +1599,10 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .app-shell .table-pagination-page{min-width:78px;color:var(--dm);font-size:10px;font-weight:700;text-align:center;font-variant-numeric:tabular-nums}
 .app-shell .table-pagination-button{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-height:32px;padding:6px 9px;border:1px solid var(--dl);border-radius:6px;background:var(--ds2);color:var(--dt);font-size:10px;font-weight:750;cursor:pointer;transition:border-color .16s ease,background-color .16s ease,color .16s ease}
 .app-shell .table-pagination-button:hover:not(:disabled){border-color:var(--dg);background:#3b82f61f;color:#6ee7b7}
+.theme-light .app-shell .table-pagination-button:hover:not(:disabled){border-color:var(--ops-ink);background:var(--ops-paper);color:var(--ops-ink)}
 .app-shell .table-pagination-button:focus-visible{outline:2px solid var(--dg);outline-offset:2px}
 .app-shell .table-pagination-button:disabled{cursor:not-allowed;opacity:.42}
+.theme-light .app-shell .table-pagination-button:disabled{border-color:var(--ops-border);background:var(--ops-paper);color:var(--ops-text-2);opacity:1}
 .app-shell .admin-overview-title::after{content: none;display:none}
 .app-shell .admin-overview-title>div:first-child{position:relative;z-index:1;max-width:820px;min-width:0;flex:1 1 auto}
 .app-shell .admin-overview-title>div:first-child>p{color:#93a0b4;font-size:12px;line-height:1.45;margin-top:3px;margin-bottom:0;max-width:78ch}
@@ -1644,7 +1646,7 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .app-shell .admin-workspace>.table-tools{margin-bottom:10px}
 .app-shell .admin-workspace .workspace-body-inner>.table-tools{margin-bottom:10px}
 .app-shell .admin-workspace .data-panel{overflow:hidden;border-radius:10px;box-shadow:0 8px 26px rgba(0,0,0,.08)}
-.app-shell .admin-workspace .data-panel>.panel-heading{padding:15px 16px;margin:0;border-bottom:1px solid var(--dl)}
+.app-shell .admin-workspace .data-panel>.panel-heading{padding:15px 16px;padding-top:0;margin:0;border-bottom:1px solid var(--dl)}
 .app-shell .admin-workspace .table-scroll{max-width:100%}
 .app-shell .admin-workspace th{height:38px;padding-inline:14px;white-space:nowrap}
 .app-shell .admin-workspace td{height:48px;padding-inline:14px;vertical-align:middle}
@@ -1782,8 +1784,8 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .app-shell.owner-workspace .owner-boundaries p{margin:0;padding:10px 12px;border-left:3px solid #3b82f640;background:var(--ds2);line-height:1.5}
 .app-shell.owner-workspace .owner-department-layout{display:grid;gap:16px;min-width:0}
 .app-shell.owner-workspace .owner-risk-stack{display:grid;gap:16px;min-width:0}
-.app-shell.owner-workspace .owner-summary-panel{min-width:0;padding:0;border-radius:12px;overflow:hidden}
-.app-shell.owner-workspace .owner-summary-panel>.panel-heading{margin:0;padding:16px 18px;border-bottom:1px solid var(--dl)}
+.app-shell.owner-workspace .owner-summary-panel{--panel-divider-inset:0px;min-width:0;padding:0;border-radius:12px;overflow:hidden}
+.app-shell.owner-workspace .owner-summary-panel>.panel-heading{margin:0;padding:16px 18px;padding-top:0;border-bottom:1px solid var(--dl)}
 .app-shell.owner-workspace .owner-summary-grid{grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;padding:14px}
 .app-shell.owner-workspace .owner-summary-grid>div{min-width:0;padding:14px;border:1px solid var(--dl);border-radius:10px;background:var(--ds2)}
 .app-shell.owner-workspace .owner-summary-grid h4{margin-bottom:9px}
@@ -1793,7 +1795,7 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .app-shell.owner-workspace .owner-summary-grid strong{flex:none;font-variant-numeric:tabular-nums}
 .app-shell.owner-workspace .owner-module .data-panel{min-width:0;border-radius:12px;overflow:hidden}
 .app-shell.owner-workspace .owner-table{min-width:0;margin:0}
-.app-shell.owner-workspace .owner-table>.panel-heading{margin:0;padding:16px 18px;border-bottom:1px solid var(--dl)}
+.app-shell.owner-workspace .owner-table>.panel-heading{margin:0;padding:16px 18px;padding-top:0;border-bottom:1px solid var(--dl)}
 .app-shell.owner-workspace .owner-table .table-scroll{max-width:100%;margin:0}
 .app-shell.owner-workspace .owner-table th{padding-inline:14px}
 .app-shell.owner-workspace .owner-table td{padding-inline:14px}
@@ -1806,7 +1808,7 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .app-shell.owner-workspace .owner-qr{width:100%;max-width:11rem;aspect-ratio:1;object-fit:contain;border:1px solid var(--dl);border-radius:12px;background:var(--ds2);padding:8px}
 .app-shell.owner-workspace .owner-qr-input{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .app-shell.owner-workspace .owner-payment-settings .owner-panel{display:grid;align-content:start;gap:12px;min-width:0;padding:0 18px 18px}
-.app-shell.owner-workspace .owner-payment-settings .owner-panel>.panel-heading{margin-inline:-18px;padding:16px 18px;border-bottom:1px solid var(--dl)}
+.app-shell.owner-workspace .owner-payment-settings .owner-panel>.panel-heading{margin-inline:-18px;padding:16px 18px;padding-top:0;border-bottom:1px solid var(--dl)}
 .app-shell.owner-workspace .owner-steps{display:grid;gap:16px;min-width:0}
 .app-shell.owner-workspace .owner-method-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(12rem,1fr));gap:10px}
 .app-shell.owner-workspace .owner-method-card{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1px solid var(--dl);border-radius:12px;cursor:pointer;font-size:12px;transition:border-color .18s,transform .18s,box-shadow .18s}
@@ -1916,7 +1918,7 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .app-shell.owner-workspace .owner-policy-meta{margin:0 0 4px;font-size:10px;color:#93a0b4}
 .app-shell.owner-workspace .owner-policy-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .app-shell.owner-workspace .owner-policy-groups section{padding:0 18px 18px;min-width:0}
-.app-shell.owner-workspace .owner-policy-groups .panel-heading{margin:0 -18px 6px;padding:16px 18px;border-bottom:1px solid var(--dl)}
+.app-shell.owner-workspace .owner-policy-groups .panel-heading{margin:0 -18px 6px;padding:16px 18px;padding-top:0;border-bottom:1px solid var(--dl)}
 .app-shell.owner-workspace .owner-policy-head{display:flex;align-items:center;gap:10px}
 .app-shell.owner-workspace .owner-policy-head>div{flex:1;min-width:0}
 .app-shell.owner-workspace .owner-policy-icon{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:9px;background:var(--ds2);color:var(--dg)}
@@ -2248,12 +2250,13 @@ h3.room-title{font-family: var(--font-display, Georgia, serif) !important;font-w
 .app-shell .sidebar nav a{display: flex;align-items: center;gap: 12px;width: 100%;min-height: 42px;padding: 9px 12px;border-radius: var(--st-radius-lg);font-size: 13px;font-weight: 500;color: var(--st-text-secondary);background: transparent;border: 1px solid transparent;text-decoration: none;cursor: pointer;transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);box-sizing: border-box}
 .app-shell .sidebar nav a:hover{background: var(--st-bg-surface-hover);color: var(--st-text-primary)}
 .app-shell .sidebar nav a.active{background: var(--haven-brand-50);color: var(--haven-brand-600);border-color: var(--haven-brand-200);font-weight: 600}
-.theme-light .app-shell .sidebar nav a.active{background: var(--haven-brand-50);color: var(--haven-brand-600);border-color: var(--haven-brand-200)}
-.app-shell:not(.theme-light) .sidebar nav button.active{background: rgba(37, 99, 235, 0.16);color: #60a5fa;border-color: rgba(37, 99, 235, 0.3)}
-.app-shell:not(.theme-light) .sidebar nav a.active{background: rgba(37, 99, 235, 0.16);color: #60a5fa;border-color: rgba(37, 99, 235, 0.3)}
+.theme-light .app-shell .sidebar nav a.active{background:var(--ops-paper);color:var(--ops-ink);border-color:var(--ops-border)}
+.theme-light .app-shell .sidebar nav a.active svg{color:var(--ops-ink)}
+html:not(.theme-light) .app-shell .sidebar nav button.active{background:rgba(37,99,235,.16);color:#60a5fa;border-color:rgba(37,99,235,.3)}
+html:not(.theme-light) .app-shell .sidebar nav a.active{background:rgba(37,99,235,.16);color:#60a5fa;border-color:rgba(37,99,235,.3)}
 .app-shell .sidebar nav a.active svg{color: var(--haven-brand-600)}
-.app-shell:not(.theme-light) .sidebar nav button.active svg{color: #60a5fa}
-.app-shell:not(.theme-light) .sidebar nav a.active svg{color: #60a5fa}
+html:not(.theme-light) .app-shell .sidebar nav button.active svg{color:#60a5fa}
+html:not(.theme-light) .app-shell .sidebar nav a.active svg{color:#60a5fa}
 .app-shell .sidebar .nav-badge{margin-left: auto;display: inline-flex;align-items: center;justify-content: center;min-width: 20px;height: 20px;padding: 0 6px;border-radius: var(--st-radius-full);font-size: 11px;font-weight: 750;font-variant-numeric: tabular-nums;background: var(--haven-gold-50);color: var(--haven-gold-700);border: 1px solid var(--haven-gold-500)}
 .app-shell.sidebar-collapsed .sidebar{width: 80px}
 .app-shell.sidebar-collapsed .sidebar .brand-copy{display: none !important}
@@ -2287,7 +2290,7 @@ h3.room-title{font-family: var(--font-display, Georgia, serif) !important;font-w
 .app-shell .data-panel:hover{box-shadow: var(--st-shadow-sm)}
 .app-shell .panel-heading h2{font-size: 16px;font-weight: 700;color: var(--st-text-primary);margin: 0}
 .app-shell .metric-card:hover{box-shadow: var(--st-shadow-md);border-color: var(--haven-brand-300);transform: translateY(-1px)}
-.app-shell:not(.theme-light) .metric-card > i{background: rgba(37, 99, 235, 0.16);border-color: rgba(37, 99, 235, 0.3);color: #60a5fa}
+html:not(.theme-light) .app-shell .metric-card > i{background:rgba(37,99,235,.16);border-color:rgba(37,99,235,.3);color:#60a5fa}
 .btn{display: inline-flex;align-items: center;justify-content: center;gap: 8px;min-height: 40px;padding: 9px 18px;border-radius: var(--st-radius-md);font-family: var(--font-sans), system-ui, -apple-system, sans-serif;font-size: 13.5px;font-weight: 600;line-height: 1;border: 1px solid transparent;cursor: pointer;transition: all 0.16s cubic-bezier(0.4, 0, 0.2, 1);text-decoration: none;box-sizing: border-box;letter-spacing: -0.01em}
 .saas-btn{display: inline-flex;align-items: center;justify-content: center;gap: 8px;min-height: 40px;padding: 10px 18px;border-radius: 8px;font-family: inherit;font-size: 13px;font-weight: 600;line-height: 1;border: 1px solid transparent;cursor: pointer;transition: all .18s ease;text-decoration: none;box-sizing: border-box}
 .haven-button{display: inline-flex;align-items: center;justify-content: center;gap: 8px;min-height: 40px;padding: 9px 18px;border-radius: var(--st-radius-md);font-family: inherit;font-size: 13.5px;font-weight: 600;line-height: 1;border: 1px solid transparent;cursor: pointer;transition: all 0.16s cubic-bezier(0.4, 0, 0.2, 1);text-decoration: none;box-sizing: border-box}
@@ -2485,7 +2488,7 @@ tbody tr:hover{background: var(--surface-hover)}
 .app-shell .page-header-title{color: var(--st-text-primary);font-family: var(--font-sans);letter-spacing: -0.02em;line-height: 1.25;margin: 0;font-size: clamp(18px, 1.8vw, 22px);font-weight: 700;overflow-wrap: break-word}
 .app-shell .page-header-actions{flex: none;display: flex;flex-wrap: wrap;gap: 8px}
 .app-shell .metric-card b{margin: 6px 0 4px;color: var(--st-text-primary);font-family: var(--font-sans);font-size: 28px;font-weight: 750;font-variant-numeric: tabular-nums;overflow-wrap: anywhere;min-width: 0;letter-spacing: -0.02em;line-height: 1.15}
-.app-shell .panel-heading{margin-bottom:13px;display: flex;flex-wrap: wrap;gap: 12px;align-items: center;justify-content: space-between;padding: 18px 24px;border-bottom: 1px solid var(--st-border-color);background: var(--st-bg-surface)}
+.app-shell .panel-heading{margin-bottom:13px;display: flex;flex-wrap: wrap;gap: 12px;align-items: center;justify-content: space-between;padding: 18px 24px;padding-top:0;border-bottom: 1px solid var(--st-border-color);background: var(--st-bg-surface)}
 .app-shell .panel-heading > div:first-child{flex: 1 1 200px;min-width: 0}
 .app-shell .panel-heading button{color: #b9c6de;font-size: 12px;font-weight: 600;flex: none}
 .app-shell .table-scroll{overflow-x: auto;max-width: 100%}
@@ -2563,4 +2566,124 @@ tbody tr:hover{background: var(--surface-hover)}
   .app-shell .sidebar.open {
     transform: translateX(0);
   }
+}
+
+/* Keep the article inset; remove only the heading's extra horizontal inset. */
+.app-shell .overview-role-front_desk > .arrivals > .panel-heading .recent-reservations-view-all {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--st-border-color);
+  border-radius: 8px;
+  background: var(--btn-secondary-hover-bg, var(--st-bg-surface));
+  color: var(--st-text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.app-shell .overview-role-front_desk > .arrivals > .panel-heading .recent-reservations-view-all:hover {
+  background: var(--btn-secondary-hover-bg, var(--st-bg-surface));
+  border-color: var(--st-text-secondary);
+  text-decoration: none;
+}
+.app-shell .overview-role-front_desk > .arrivals > .panel-heading .recent-reservations-view-all:focus-visible {
+  outline: 2px solid var(--focus-ring, #2563eb);
+  outline-offset: 2px;
+}
+
+.app-shell .overview-role-front_desk > .panel > .panel-heading {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Match each padded panel inset without changing heading/content spacing. */
+.app-shell .panel > .panel-heading {
+  position: relative;
+  border-bottom-color: transparent;
+}
+.app-shell .panel > .panel-heading::after {
+  content: "";
+  position: absolute;
+  left: calc(-1 * var(--panel-divider-inset));
+  right: calc(-1 * var(--panel-divider-inset));
+  bottom: -1px;
+  height: 1px;
+  background: var(--st-border-color);
+  pointer-events: none;
+}
+
+/* Approved Front Desk dashboard metrics: shared baselines, top-right icons. */
+.app-shell .metric-grid.front-desk-metrics {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+}
+.app-shell .front-desk-metrics > .metric-card {
+  position: relative;
+  display: block;
+  min-width: 0;
+  min-height: 150px;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: none;
+  overflow: visible;
+}
+.app-shell .front-desk-metrics > .metric-card::after { display: none; }
+.app-shell .front-desk-metrics > .metric-card > div {
+  display: grid;
+  grid-template-rows: minmax(36px, auto) auto minmax(36px, auto);
+  align-content: start;
+  min-width: 0;
+}
+.app-shell .front-desk-metrics > .metric-card span {
+  padding-right: 44px;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--st-text-secondary);
+}
+.app-shell .front-desk-metrics > .metric-card b {
+  margin: 8px 0 12px;
+  font-family: var(--font-sans), sans-serif;
+  font-size: 32px;
+  line-height: 1.1;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+  color: var(--st-text-primary);
+}
+.app-shell .front-desk-metrics > .metric-card small {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--st-text-secondary);
+}
+.app-shell .front-desk-metrics > .metric-needs-attention small { color: #fbbf24; }
+.theme-light .app-shell .front-desk-metrics > .metric-needs-attention small { color: #b45309; }
+.app-shell .front-desk-metrics > .metric-card > i {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 10px;
+  color: #93c5fd;
+  background: #1e3a5f;
+}
+.theme-light .app-shell .front-desk-metrics > .metric-card > i {
+  color: #2563eb;
+  background: #eaf1ff;
+}
+.app-shell .front-desk-metrics > .metric-card > i svg { width: 20px; height: 20px; }
+@media (max-width: 1400px) {
+  .app-shell .metric-grid.front-desk-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+  .app-shell .metric-grid.front-desk-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 420px) {
+  .app-shell .metric-grid.front-desk-metrics { grid-template-columns: minmax(0, 1fr); }
 }

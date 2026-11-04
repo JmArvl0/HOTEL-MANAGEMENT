@@ -39,6 +39,14 @@
   --hc-muted:var(--ops-text-2,#5b6472);
   --hc-accent:var(--dg,#111827);
 }
+.theme-light .app-shell .haven-data-toolbar{
+  --hc-surface:var(--ops-surface,#ffffff);
+  --hc-surface-soft:var(--ops-surface,#ffffff);
+  --hc-line:var(--ops-border,#d1d5db);
+  --hc-text:var(--ops-ink,#111827);
+  --hc-muted:var(--ops-text-2,#5b6472);
+  --hc-accent:var(--ops-ink,#111827);
+}
 .haven-toolbar-section{display:grid;gap:7px;min-width:0}
 .haven-data-toolbar.filters-inline{grid-template-columns:minmax(0,1fr) auto;column-gap:16px}
 .haven-data-toolbar.filters-inline .haven-toolbar-search,
