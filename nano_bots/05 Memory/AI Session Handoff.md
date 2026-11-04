@@ -1,6 +1,21 @@
 # AI Session Handoff
 
-## Current - merge conflict resolution (2026-11-04)
+## Current - enterprise architecture implementation plan (2026-11-04)
+
+Created `docs/plans/2026-11-04-enterprise-architecture-10-of-10.md`: 25 tasks,
+7 phases, 18 business acceptance scenarios and explicit partner/release gates.
+Planning only; no task executed, runtime change, DB push, policy activation or
+deployment. Prior audit remains `docs/audits/ENTERPRISE-MODULE-AUDIT-2026-11-04.md`
+(69 module/group rows, 146 features). Proposed ownership is not approved cutover.
+
+Audit's earlier Node22 checks (not rerun for planning): typecheck/build pass; lint
+0 errors/88 warnings. Full Vitest 2,281 pass/3 fail; isolated 50 pass/2 fail.
+PO surface-contract and room-rack history assertions reproduce; clipboard passes
+alone. Gateway envelope issue remains unpatched; partner sandbox unverified.
+See [[2026-11-04 - Enterprise Architecture Implementation Plan]] and
+[[2026-11-04 - Enterprise Module Architecture Audit]].
+
+## Previous context - merge conflict resolution (2026-11-04)
 
 Reconciled local `main` with incoming `b9619c3` at the user's request. Kept the
 incoming hotel workflow, cash-shift, payment-details, room-calendar, and staff-theme
