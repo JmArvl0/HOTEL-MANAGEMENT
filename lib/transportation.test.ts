@@ -17,7 +17,7 @@ const staffListRoute = readFileSync("app/api/transportation/route.ts", "utf8");
 const staffTransitionRoute = readFileSync("app/api/transportation/[id]/transition/route.ts", "utf8");
 const managerPanel = readFileSync("components/manager/transportation-panel.tsx", "utf8");
 // Stage 2 (2026-10-19): the shared card family (.mod-kpis/.mod-kpi) lives in ui-primitives.css.
-const uiPrimitives = readFileSync("app/ui-primitives.css", "utf8");
+const uiPrimitives = readFileSync("app/ui-primitives.css", "utf8").replace(/\r\n/g, "\n");
 const customerList = readFileSync("components/customer/transportation-request-list.tsx", "utf8");
 const holdsRoute = readFileSync("app/api/booking/holds/route.ts", "utf8");
 const guestDetailsForm = readFileSync("components/booking/guest-details-form.tsx", "utf8");

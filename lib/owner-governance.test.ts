@@ -44,7 +44,7 @@ describe("Owner authority hierarchy", () => {
   it("routes Owner to a dedicated executive surface", () => {
     expect(page).toContain('session.user.role === "owner"');
     expect(page).toContain("OwnerDashboardClient");
-    expect(ownerDashboard).toContain("Executive Overview");
+    expect(ownerDashboard).toContain('["overview", "Dashboard",');
     expect(ownerDashboard).toContain("Financial Overview");
     expect(ownerDashboard).toContain("Admin Governance");
     expect(ownerDashboard).not.toContain("Mark repaired");

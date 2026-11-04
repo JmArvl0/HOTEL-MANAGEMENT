@@ -405,6 +405,6 @@ describe("gateway abandonment migration contract", () => {
     const dashboard = read("components/manager/manager-dashboard-client.tsx");
     expect(dashboard).toContain("Awaiting provider");
     expect(dashboard).toContain('!== "gateway_paymongo"');
-    expect(dashboard).toContain("manual verification is disabled for them");
+    expect(read("components/manager/payment-details-dialog.tsx")).toContain("manual verification is disabled for them");
   });
 });
