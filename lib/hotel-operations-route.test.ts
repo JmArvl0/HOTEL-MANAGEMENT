@@ -18,11 +18,14 @@ describe("hotel operation routes keep their server actor and role boundaries",()
   const log=vi.spyOn(console,"error").mockImplementation(()=>{});
   try{const response=await day.GET();expect(response.status).toBe(503);const body=await response.json();expect(body.code).toBe("HOTEL_OPERATIONS_UNAVAILABLE");expect(body.error).not.toContain("Private schema detail");expect(log).toHaveBeenCalledWith("Hotel operation unavailable",{operation:"hotel_operating_day",code:"PGRST202"});}finally{log.mockRestore();}
  });
- it("ignores a forged actor in party input",async()=>{
-  vi.mocked(getServerSession).mockResolvedValue({user:{id:"server-actor",role:"front_desk"}} as never);
-  expect((await party.POST(request({members:[{guestId:"guest",role:"primary"}],expectedVersion:0,idempotencyKey:crypto.randomUUID(),p_actor:"forged"}),{params:Promise.resolve({id:"reservation"})})).status).toBe(200);
-  expect(boundary.rpc).toHaveBeenCalledWith("hotel_party_update",expect.objectContaining({p_actor:"server-actor"}));
- });
+	it("rejects client actor fields and binds party writes to the session actor",async()=>{
+		vi.mocked(getServerSession).mockResolvedValue({user:{id:"server-actor",role:"front_desk"}} as never);
+		const params={params:Promise.resolve({id:"reservation"})};
+		const forged=await party.POST(request({members:[{guestId:"guest",role:"primary"}],completeRegister:false,expectedVersion:0,idempotencyKey:crypto.randomUUID(),p_actor:"forged"}),params);
+		expect(forged.status).toBe(400);expect(boundary.rpc).not.toHaveBeenCalled();
+		const valid=await party.POST(request({members:[{guestId:"guest",role:"primary"}],completeRegister:false,expectedVersion:0,idempotencyKey:crypto.randomUUID()}),params);
+		expect(valid.status).toBe(200);expect(boundary.rpc).toHaveBeenCalledWith("hotel_party_update",expect.objectContaining({p_actor:"server-actor"}));
+	});
  it.each(["front_desk","manager","owner","housekeeping","admin","guest"])("does not let %s execute financial close",async role=>{
   vi.mocked(getServerSession).mockResolvedValue({user:{id:"actor",role}} as never);
   expect((await close.POST(request({businessDate:"2026-11-03",expectedVersion:1,idempotencyKey:crypto.randomUUID()}))).status).toBe(403);expect(boundary.rpc).not.toHaveBeenCalled();

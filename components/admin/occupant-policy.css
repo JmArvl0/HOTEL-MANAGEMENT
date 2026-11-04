@@ -1,0 +1,13 @@
+.admin-occupant-policy{display:grid;gap:12px;padding:16px;margin-top:16px}
+.admin-occupant-policy .occupant-policy-intro{display:grid;gap:4px}
+.admin-occupant-policy h3,.admin-occupant-policy p{margin:0}
+.admin-occupant-policy p{max-width:80ch;line-height:1.55}
+.admin-occupant-policy form{display:grid;gap:12px}
+.admin-occupant-policy .occupant-policy-dates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.admin-occupant-policy label{display:grid;gap:6px;min-width:0}
+.admin-occupant-policy input,.admin-occupant-policy textarea{font:inherit;color:var(--dt);background:var(--ds2);border:1px solid var(--dl);border-radius:6px;padding:9px 11px;min-height:42px;width:100%;box-sizing:border-box}
+.admin-occupant-policy textarea{min-height:80px;resize:vertical}
+.admin-occupant-policy input:focus-visible,.admin-occupant-policy textarea:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.admin-occupant-policy [role=alert]{color:var(--danger,#ef797e)}
+.theme-light .app-shell .admin-occupant-policy input,.theme-light .app-shell .admin-occupant-policy textarea{background:#fff;border-color:var(--ops-line,#d1d5db);color:#1f2937}
+@media(max-width:620px){.admin-occupant-policy .occupant-policy-dates{grid-template-columns:1fr}}

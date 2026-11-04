@@ -108,7 +108,9 @@ export default function FrontOfficeRack({
   notify,
   initialView,
   initialTab,
+  refreshVersion = 0,
 }: {
+  refreshVersion?: number;
   role: string;
   onOpenFolio: (reservationId: string) => void;
   onCheckIn: (reservationId: string) => void;
@@ -123,6 +125,9 @@ export default function FrontOfficeRack({
   notify?: (message: string, tone?: ToastTone) => void;
 }) {
   const { from, days, setDays, setFrom, snapshot, loading, error, reload } = useFrontOfficeRack();
+  useEffect(() => {
+    if (refreshVersion > 0) void reload(true);
+  }, [refreshVersion, reload]);
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -189,7 +194,7 @@ export default function FrontOfficeRack({
       })
       .catch(() => {});
     return () => { live = false; };
-  }, []);
+  }, [refreshVersion]);
 
   const queue = useMemo(() => unassignedArrivals(reservations), [reservations]);
   const types = useMemo(() => [...new Set(rooms.map((r) => r.type))], [rooms]);

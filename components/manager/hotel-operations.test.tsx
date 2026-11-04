@@ -30,9 +30,39 @@ describe("hotel operation screens",()=>{
   const request=vi.fn().mockResolvedValueOnce({ok:true,json:async()=>({data:{version:0,capacity:2,members:[{guestId:"g",name:"Guest",role:"primary"}]}})}).mockResolvedValueOnce({ok:false,json:async()=>({error:"This record changed. Refresh before editing again."})});
   vi.stubGlobal("fetch",request);render(<ReservationPartyPanel reservationId="r" editable />);
   await screen.findByText("Guest");fireEvent.change(screen.getByLabelText("Companion name"),{target:{value:"Ana"}});fireEvent.click(screen.getByRole("button",{name:"Add companion"}));
-  fireEvent.click(screen.getByRole("button",{name:"Save occupants"}));
+  fireEvent.click(screen.getByRole("button",{name:"Save staying guests"}));
   await screen.findByRole("alert");expect(screen.getByText("Ana")).toBeTruthy();
   expect(JSON.parse(request.mock.calls[1][1].body).expectedVersion).toBe(0);
+ });
+ it("sends only writable occupant fields when saving the roster",async()=>{
+  const request=vi.fn()
+   .mockResolvedValueOnce({ok:true,json:async()=>({data:{version:0,capacity:2,declaredCount:2,members:[{occupantId:"11111111-1111-4111-8111-111111111111",guestId:"g",name:"Guest",role:"primary",occupantType:"adult",dateOfBirth:null,nationality:null,idVerified:false,ageVerified:false,attendanceStatus:"expected",removedAt:null}]}})})
+   .mockResolvedValueOnce({ok:true,json:async()=>({data:{version:1,capacity:2,declaredCount:2,members:[]}})});
+  vi.stubGlobal("fetch",request);render(<ReservationPartyPanel reservationId="r" editable />);
+  await screen.findByText("Guest");fireEvent.change(screen.getByLabelText("Companion name"),{target:{value:"Ana"}});fireEvent.click(screen.getByRole("button",{name:"Add companion"}));
+  fireEvent.click(screen.getByRole("button",{name:"Save staying guests"}));
+  await screen.findByText("Staying guests saved.");
+  const payload=JSON.parse(request.mock.calls[1][1].body);
+  expect(payload.members).toHaveLength(2);
+  expect(payload.members[0]).not.toHaveProperty("idVerified");
+  expect(payload.members[0]).not.toHaveProperty("ageVerified");
+  expect(payload.members[0]).not.toHaveProperty("attendanceStatus");
+  expect(payload.members[0]).not.toHaveProperty("removedAt");
+ });
+ it("lets Front Desk complete a one-person register without adding a companion",async()=>{
+  const member={occupantId:"11111111-1111-4111-8111-111111111111",guestId:"g",name:"Solo guest",role:"primary",occupantType:"unknown",dateOfBirth:null,nationality:null,idVerified:false,ageVerified:false,attendanceStatus:"expected"};
+  const party={version:3,status:"confirmed",capacity:1,declaredCount:1,complete:false,members:[member]};
+  const request=vi.fn().mockResolvedValueOnce({ok:true,json:async()=>({data:party})}).mockResolvedValueOnce({ok:true,json:async()=>({data:{...party,version:4,complete:true,members:[{...member,occupantType:"adult"}]}})});
+  vi.stubGlobal("fetch",request);render(<ReservationPartyPanel reservationId="solo" editable />);
+  await screen.findByText("Solo guest");
+  fireEvent.click(screen.getByRole("button",{name:"Edit staying guests"}));
+  fireEvent.change(screen.getByRole("combobox",{name:"Age group"}),{target:{value:"adult"}});
+  fireEvent.click(screen.getByRole("checkbox",{name:"I confirmed this list names everyone included in the reservation."}));
+  fireEvent.click(screen.getByRole("button",{name:"Save staying guests"}));
+  await screen.findByText("Staying guests saved.");
+  const payload=JSON.parse(request.mock.calls[1][1].body);
+  expect(payload.completeRegister).toBe(true);expect(payload.expectedVersion).toBe(3);
+  expect(payload.members).toHaveLength(1);expect(payload.members[0]).toMatchObject({occupantId:member.occupantId,guestId:"g",occupantType:"adult"});
  });
  it("never gives Front Desk a financial close button or financial totals",async()=>{
   vi.stubGlobal("fetch",vi.fn().mockResolvedValue({ok:true,json:async()=>({data:{active:true,businessDate:"2026-11-03",version:1,blockers:[],warnings:[],metrics:null,recentCloses:[]}})}));

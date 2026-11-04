@@ -218,7 +218,7 @@ export default function WalkInDialog({ guests, hotelToday, onClose, onCreated }:
                 <label className="arrival-field">Email<input type="email" value={draft.email} onChange={(e) => setDraft({ ...draft, email: e.target.value })} placeholder="guest@example.com" required autoComplete="off" /></label>
                 <label className="arrival-field">Phone<input type="tel" value={draft.phone} onChange={(e) => setDraft({ ...draft, phone: e.target.value })} placeholder="+63 917 000 0000" required minLength={5} autoComplete="off" /></label>
               </div>
-              <p className="arrival-notice">An email match reuses the guest&apos;s existing profile — duplicates are merged server-side.</p>
+              <p className="arrival-notice">An exact email match reuses the guest&apos;s existing profile. Potential duplicates require a reviewed merge in Guest Identity Review.</p>
             </section>
           )}
 

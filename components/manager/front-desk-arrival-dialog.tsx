@@ -444,6 +444,7 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
               <div className="arrival-actions">
                 {String(reservation.identity_status) !== "verified" && <button className="btn btn-soft" onClick={doVerify} disabled={busy}><KeyRound size={15} /> Verify guest ID</button>}
               </div>
+              <ReservationPartyPanel reservationId={reservationId} editable />
             </section>
           )}
 
@@ -564,7 +565,6 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
           {step === 3 && (
             <section className="arrival-section">
               <ReservationReadinessPanel reservationId={reservationId} onResolve={setStep} candidateRoom={selected} />
-              <ReservationPartyPanel reservationId={reservationId} editable />
               <h3>Review and check in</h3>
               <div className="arrival-facts">
                 <div><dt>Guest</dt><dd>{human(reservation.guest_name)}</dd></div>

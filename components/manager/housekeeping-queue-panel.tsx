@@ -64,7 +64,7 @@ export const queueTaskOrder = (a: RecordItem, b: RecordItem): number =>
 
 type GroupSpec = { key: QueueGroup; title: string; hint: string; icon: typeof BedDouble };
 
-export default function HousekeepingQueuePanel({ role, userId, items, allItems, search, setSearch, housekeepingAction, coordinate, applySuggestion, suggestions = [], onViewMaintenance, onViewRoom, guestRequestOpen = 0, onOpenGuestRequests }: {
+export default function HousekeepingQueuePanel({ role, userId, items, allItems, search, setSearch, housekeepingAction, coordinate, applySuggestion, suggestions = [], onViewMaintenance, onViewRoom, guestRequestOpen = 0, onOpenGuestRequests, onServiceOutcome, onSetDnd }: {
   role: Role;
   userId: string;
   items: RecordItem[];
@@ -84,6 +84,8 @@ export default function HousekeepingQueuePanel({ role, userId, items, allItems, 
   guestRequestOpen?: number;
   /** Navigates to the Guest Requests module. Rendered only for the housekeeping role. */
   onOpenGuestRequests?: () => void;
+  onServiceOutcome?: (item: RecordItem, outcome: "service_declined" | "late_service") => void;
+  onSetDnd?: (item: RecordItem) => void;
 }) {
   const [showCompleted, setShowCompleted] = useState(false);
   const [workType, setWorkType] = useState("all");
@@ -208,18 +210,18 @@ export default function HousekeepingQueuePanel({ role, userId, items, allItems, 
       {queueItems.length === 0 && <div className="empty"><Search /><h3>No records found</h3><p>No matching operational records are available.</p></div>}
       {actionable.map(({ key, title, hint, icon: Icon }) => <section key={key} className={`hk-queue-group${key === primaryKey ? " hk-group-primary" : ""}`} aria-label={title}>
         <header><h3><Icon size={14} aria-hidden="true" />{title}<i>{groups[key].length}</i></h3><p>{hint}</p></header>
-        {groups[key].map((item) => <QueueCard key={String(item.id)} item={item} userId={userId} canHousekeep={canHousekeep} canCoordinate={canCoordinate} housekeepingAction={housekeepingAction} coordinate={coordinate} onViewMaintenance={onViewMaintenance} onViewRoom={onViewRoom} />)}
+        {groups[key].map((item) => <QueueCard key={String(item.id)} item={item} userId={userId} canHousekeep={canHousekeep} canCoordinate={canCoordinate} housekeepingAction={housekeepingAction} coordinate={coordinate} onViewMaintenance={onViewMaintenance} onViewRoom={onViewRoom} onServiceOutcome={onServiceOutcome} onSetDnd={onSetDnd} />)}
       </section>)}
       {completed.length > 0 && <section className="hk-queue-group" aria-label="Completed today">
         <header><button className="hk-queue-toggle" aria-expanded={showCompleted} onClick={() => setShowCompleted((value) => !value)}><h3><ClipboardCheck size={14} aria-hidden="true" />Completed today<i>{completed.length}</i><ChevronDown size={14} aria-hidden="true" className={showCompleted ? "open" : ""} /></h3></button><p>Finished work, with inspection outcome. Full history lives in the room detail.</p></header>
-        {showCompleted && completed.map((item) => <QueueCard key={String(item.id)} item={item} userId={userId} canHousekeep={canHousekeep} canCoordinate={false} housekeepingAction={housekeepingAction} coordinate={coordinate} onViewMaintenance={onViewMaintenance} onViewRoom={onViewRoom} />)}
+        {showCompleted && completed.map((item) => <QueueCard key={String(item.id)} item={item} userId={userId} canHousekeep={canHousekeep} canCoordinate={false} housekeepingAction={housekeepingAction} coordinate={coordinate} onViewMaintenance={onViewMaintenance} onViewRoom={onViewRoom} onServiceOutcome={onServiceOutcome} onSetDnd={onSetDnd} />)}
       </section>}
       {queueItems.length > 0 && <div className="table-footer">Showing {visibleCount} of {queueItems.length} task{queueItems.length !== 1 ? "s" : ""}<span>Readiness is decided by the audited housekeeping workflow, not by this view.</span></div>}
     </section>
   </>;
 }
 
-function QueueCard({ item, userId, canHousekeep, canCoordinate, housekeepingAction, coordinate, onViewMaintenance, onViewRoom }: {
+function QueueCard({ item, userId, canHousekeep, canCoordinate, housekeepingAction, coordinate, onViewMaintenance, onViewRoom, onServiceOutcome, onSetDnd }: {
   item: RecordItem;
   userId: string;
   canHousekeep: boolean;
@@ -228,11 +230,15 @@ function QueueCard({ item, userId, canHousekeep, canCoordinate, housekeepingActi
   coordinate: (item: RecordItem) => void;
   onViewMaintenance: () => void;
   onViewRoom: (item: RecordItem) => void;
+  onServiceOutcome?: (item: RecordItem, outcome: "service_declined" | "late_service") => void;
+  onSetDnd?: (item: RecordItem) => void;
 }) {
   const status = String(item.status);
   const type = String(item.task_type);
   const assignedElsewhere = Boolean(item.assigned_user_id) && item.assigned_user_id !== userId;
   const canWork = canHousekeep && !assignedElsewhere;
+  const dndActive = item.dnd_active === true;
+  const stayServiceTask = ["stayover_cleaning", "guest_request"].includes(type);
   const isTurnover = type === "checkout_cleaning";
   const created = isTurnover ? `checked out ${when(item.created_at) ?? "recently"}` : `created ${time(item.created_at) ?? "recently"}`;
   const arrival = item.next_arrival ? `next arrival ${day(item.next_arrival)}` : null;
@@ -244,6 +250,7 @@ function QueueCard({ item, userId, canHousekeep, canCoordinate, housekeepingActi
         <StatusBadge status={String(item.priority)} label={label(item.priority)} />
         <StatusBadge status={status} label={label(status)} />
         {item.maintenance_blocked === true && <span className="badge maintenance">maintenance</span>}
+        {dndActive && <span className="badge attention">Do Not Disturb</span>}
       </header>
       <p className="hk-queue-service"><strong>{label(type)}</strong> · {label(item.task)}</p>
       <small>
@@ -258,12 +265,16 @@ function QueueCard({ item, userId, canHousekeep, canCoordinate, housekeepingActi
         {String(item.inspection_status) === "failed" ? ` · inspection failed: ${label(item.inspection_reason)}` : ""}
         {String(item.inspection_status) === "passed" ? " · inspection passed" : ""}
       </small>
+      {item.service_outcome && <small>Service outcome: {label(item.service_outcome)}{item.service_outcome_note ? ` · ${item.service_outcome_note}` : ""}</small>}
     </div>
     <div className="hk-queue-actions">
       {canWork && status === "in_progress" && <button className="table-action action-primary" onClick={() => housekeepingAction(item, "complete")}>Complete Task</button>}
       {canHousekeep && String(item.inspection_status) === "pending" && <button className="table-action" onClick={() => housekeepingAction(item, "inspect")}>Inspect</button>}
       {canWork && openTaskStatuses.includes(status) && type !== "inspection" && <button className="table-action action-primary" onClick={() => housekeepingAction(item, "assign")}>{item.assigned_user_id ? "Reassign" : "Claim"}</button>}
-      {canWork && openTaskStatuses.includes(status) && type !== "inspection" && <button className="table-action action-primary" onClick={() => housekeepingAction(item, "start")}>Start cleaning</button>}
+      {canWork && openTaskStatuses.includes(status) && type !== "inspection" && !(dndActive && type === "stayover_cleaning") && <button className="table-action action-primary" onClick={() => housekeepingAction(item, "start")}>Start cleaning</button>}
+      {canWork && stayServiceTask && openTaskStatuses.includes(status) && !dndActive && item.active_reservation_id && onSetDnd && <button className="table-action" onClick={() => onSetDnd(item)}>Set DND</button>}
+      {canWork && stayServiceTask && openTaskStatuses.includes(status) && !item.service_outcome && onServiceOutcome && <button className="table-action" onClick={() => onServiceOutcome(item, "service_declined")}>Guest declined</button>}
+      {canWork && stayServiceTask && openTaskStatuses.includes(status) && !item.service_outcome && onServiceOutcome && <button className="table-action" onClick={() => onServiceOutcome(item, "late_service")}>Mark late</button>}
       {canWork && status === "in_progress" && ["stayover_cleaning", "guest_request"].includes(type) && <button className="table-action" onClick={() => housekeepingAction(item, "defer")}>Defer</button>}
       {canHousekeep && status !== "cancelled" && <button className="table-action" onClick={() => housekeepingAction(item, "maintenance")}>Report Issue</button>}
       {item.maintenance_blocked === true && <button className="table-action" onClick={onViewMaintenance}>View work order</button>}

@@ -7,7 +7,8 @@ import { Modal } from "@/components/ui/Modal";
 import { HavenSkeleton } from "@/components/ui/haven-skeleton";
 import { formatPeso } from "@/lib/format";
 import { roomPrimary } from "@/lib/room-images";
-import type { RecordItem } from "@/lib/types";
+import type { RecordItem, Role } from "@/lib/types";
+import {RoomDiscrepancyReporter} from "./room-discrepancy-panel";
 
 export type RoomDetail = {
   room: RecordItem;
@@ -47,7 +48,7 @@ function readiness(room: RecordItem, blocked: boolean): string[] {
 
 export type RoomDetailAction = { label: string; hint?: string; onSelect: () => void };
 
-export default function RoomDetailModal({ room, onClose, onViewReservation, actions = [] }: { room: RecordItem; onClose: () => void; onViewReservation: (reservationId: string) => void; actions?: RoomDetailAction[] }) {
+export default function RoomDetailModal({ room, role, onClose, onViewReservation, actions = [] }: { room: RecordItem; role?:Role; onClose: () => void; onViewReservation: (reservationId: string) => void; actions?: RoomDetailAction[] }) {
   const [detail, setDetail] = useState<RoomDetail | null>(null);
   const [error, setError] = useState("");
   const [tab, setTab] = useState("overview");
@@ -117,6 +118,7 @@ export default function RoomDetailModal({ room, onClose, onViewReservation, acti
             {tab === "booking" && <BookingPanel detail={detail} onViewReservation={onViewReservation} shown={shown("booking")} onShowMore={() => setExpanded((state) => ({ ...state, booking: (state.booking ?? 6) + 9 }))} />}
             {tab === "housekeeping" && <HousekeepingPanel detail={detail} shown={shown("housekeeping")} onShowMore={() => setExpanded((state) => ({ ...state, housekeeping: (state.housekeeping ?? 6) + 9 }))} />}
             {tab === "maintenance" && <MaintenancePanel detail={detail} shown={shown("maintenance")} onShowMore={() => setExpanded((state) => ({ ...state, maintenance: (state.maintenance ?? 6) + 9 }))} />}
+            {role&&<RoomDiscrepancyReporter roomId={String(room.id)} roomNumber={String(room.number)} taskId={typeof room.sourceTaskId==="string"?room.sourceTaskId:undefined} role={role} />}
           </>
         )}
       </div>

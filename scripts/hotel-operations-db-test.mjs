@@ -16,12 +16,15 @@ try {
   const invoice = (await db.query("insert into invoices(reservation_id,guest_name,amount,paid,balance,status) values($1,'Test',200,0,200,'unpaid') returning id", [reservation])).rows[0].id;
   await test("party updates preserve booking account, enforce capacity, version and retries", async () => {
     const key = randomUUID();
+    const primaryBefore = (await db.query("select id from reservation_guests where reservation_id=$1 and role='primary' and removed_at is null", [reservation])).rows[0].id;
     const args = { p_reservation_id: reservation, p_members: [{ guestId: f.guest, role: "primary" }, { name: "Companion", role: "accompanying" }], p_expected_version: 0, p_key: key, p_actor: f.users.front_desk };
     const result = (await rpc(db, "hotel_party_update", args))[0].hotel_party_update;
     assert.equal(result.version, 1); assert.equal(result.members.length, 2);
+    assert.equal(result.members.find(member=>member.role==="primary").occupantId, primaryBefore, "guest-ID-only updates must reuse the existing primary occupant");
     assert.deepEqual((await rpc(db, "hotel_party_update", args))[0].hotel_party_update, result);
     const companion=result.members.find(member=>member.role==="accompanying");
-    await assert.rejects(rpc(db,"hotel_party_update",{...args,p_key:randomUUID(),p_expected_version:1,p_members:[{guestId:companion.guestId,role:"primary"},{guestId:f.guest,role:"accompanying"}]}),/PRIMARY_STAYING_GUEST_LOCKED/);
+    assert.equal(companion.guestId, null, "name-only companions must not create CRM profiles");
+    await assert.rejects(rpc(db,"hotel_party_update",{...args,p_key:randomUUID(),p_expected_version:1,p_members:[{occupantId:companion.occupantId,name:companion.name,role:"primary"},{guestId:f.guest,role:"accompanying"}]}),/PRIMARY_STAYING_GUEST_LOCKED/);
     await assert.rejects(rpc(db, "hotel_party_update", { ...args, p_key: randomUUID() }), /STALE_VERSION/);
     await assert.rejects(rpc(db, "hotel_party_update", { ...args, p_key: randomUUID(), p_expected_version: 1, p_members: [...args.p_members, { name: "Excess", role: "accompanying" }] }), /PARTY_CAPACITY/);
     await assert.rejects(rpc(db, "hotel_party_update", { ...args, p_key: randomUUID(), p_expected_version: 1, p_actor: f.users.housekeeping }), /FORBIDDEN/);

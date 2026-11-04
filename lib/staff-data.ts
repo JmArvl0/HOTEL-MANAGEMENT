@@ -43,17 +43,24 @@ export async function listForRole(resource: Resource, role: Role): Promise<Recor
     return (data ?? []).map(({ reservations, ...item }) => ({ ...item, reservation: ((reservations ?? null) as unknown as RecordItem | null) })) as RecordItem[];
   }
   if (resource === "housekeeping_tasks") {
-    const { data, error } = await supabase.from("housekeeping_tasks").select("id,room_id,room_number,task,task_type,assignee,assigned_user_id,priority,status,due,notes,reservation_id,guest_request_id,source_type,started_at,completed_at,deferred_at,deferred_reason,inspection_status,inspection_reason,version,created_at,updated_at").order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("housekeeping_tasks").select("id,room_id,room_number,task,task_type,assignee,assigned_user_id,priority,status,due,notes,reservation_id,guest_request_id,source_type,started_at,completed_at,deferred_at,deferred_reason,inspection_status,inspection_reason,service_outcome,service_outcome_note,service_outcome_at,service_due_at,version,created_at,updated_at").order("created_at", { ascending: false });
     if (error) throw error;
     const roomIds=Array.from(new Set((data??[]).map(item=>item.room_id).filter(Boolean))) as string[];
     const userIds=Array.from(new Set((data??[]).map(item=>item.assigned_user_id).filter(Boolean))) as string[];
-    const [roomsResult,maintenanceResult,arrivalsResult,usersResult]=await Promise.all([
+    const [roomsResult,maintenanceResult,arrivalsResult,usersResult,inHouseResult]=await Promise.all([
       roomIds.length?supabase.from("rooms").select("id,type,status,housekeeping").in("id",roomIds):Promise.resolve({data:[]}),
       roomIds.length?supabase.from("maintenance_orders").select("room_id,id,priority,status,serviceability_impact").in("room_id",roomIds).in("status",["open","assigned","in_progress","waiting_parts","deferred"]).in("serviceability_impact",["blocked","out_of_service"]):Promise.resolve({data:[]}),
       roomIds.length?supabase.from("reservations").select("room_id,check_in").in("room_id",roomIds).in("status",["pending","confirmed"]).gte("check_in",new Date().toISOString().slice(0,10)).order("check_in",{ascending:true}):Promise.resolve({data:[]}),
-      userIds.length?supabase.from("user_accounts").select("id,name").in("id",userIds):Promise.resolve({data:[]})
+      userIds.length?supabase.from("user_accounts").select("id,name").in("id",userIds):Promise.resolve({data:[]}),
+      roomIds.length?supabase.from("reservations").select("id,room_id").in("room_id",roomIds).eq("status","checked_in"):Promise.resolve({data:[]})
     ]);
-    return (data??[]).map(item=>{const room=roomsResult.data?.find(value=>value.id===item.room_id);const blocks=maintenanceResult.data?.filter(value=>value.room_id===item.room_id)??[];const nextArrival=arrivalsResult.data?.find(value=>value.room_id===item.room_id);const assigned=usersResult.data?.find(value=>value.id===item.assigned_user_id);return{...item,assigned_to:assigned?.name??item.assignee??"Unassigned",room_type:room?.type??null,room_status:room?.status??null,room_housekeeping:room?.housekeeping??null,maintenance_blocked:blocks.length>0,maintenance_priority:blocks[0]?.priority??null,next_arrival:nextArrival?.check_in??null}}) as RecordItem[];
+    const inHouseByRoom=new Map((inHouseResult.data??[]).map(stay=>[stay.room_id,stay.id]));
+    const inHouseIds=new Set((inHouseResult.data??[]).map(stay=>stay.id));
+    const currentStayIds=Array.from(new Set((data??[]).map(item=>item.reservation_id&&inHouseIds.has(item.reservation_id)?item.reservation_id:item.room_id?inHouseByRoom.get(item.room_id):null).filter(Boolean))) as string[];
+    const serviceConditionsResult=currentStayIds.length?await supabase.from("reservation_service_conditions").select("reservation_id").in("reservation_id",currentStayIds).eq("condition_type","dnd").eq("status","active"):null;
+    if(serviceConditionsResult?.error)throw serviceConditionsResult.error;
+    const activeDndReservations=new Set((serviceConditionsResult?.data??[]).map(condition=>condition.reservation_id));
+    return (data??[]).map(item=>{const room=roomsResult.data?.find(value=>value.id===item.room_id);const blocks=maintenanceResult.data?.filter(value=>value.room_id===item.room_id)??[];const nextArrival=arrivalsResult.data?.find(value=>value.room_id===item.room_id);const assigned=usersResult.data?.find(value=>value.id===item.assigned_user_id);const activeReservationId=item.reservation_id&&inHouseIds.has(item.reservation_id)?item.reservation_id:item.room_id?inHouseByRoom.get(item.room_id)??null:null;return{...item,assigned_to:assigned?.name??item.assignee??"Unassigned",room_type:room?.type??null,room_status:room?.status??null,room_housekeeping:room?.housekeeping??null,maintenance_blocked:blocks.length>0,maintenance_priority:blocks[0]?.priority??null,next_arrival:nextArrival?.check_in??null,active_reservation_id:activeReservationId,dnd_active:Boolean(activeReservationId&&activeDndReservations.has(activeReservationId))}}) as RecordItem[];
   }
   if (resource === "payments") {
     const { data, error } = await supabase.from("payments").select("id,reservation_id,invoice_id,purpose,method,reference,amount,currency,status,submitted_at,verified_at,reviewed_at,decision_reason,proof_original_name,proof_size_bytes,proof_uploaded_at,created_at,reservations(guest_name,confirmation_number,room_type,check_in,check_out,deposit_required,deposit,total,status,user_id)").order("created_at", { ascending: false });
@@ -103,6 +110,13 @@ export async function listForRole(resource: Resource, role: Role): Promise<Recor
   }
   const { data, error } = await supabase.from(resource).select("*").order("created_at", { ascending: false });
   if (error) throw error;
+  if (resource === "guests") {
+    const activeGuests=(data??[]).filter(item=>!item.merged_into_guest_id) as RecordItem[];
+    const ids=activeGuests.map(item=>String(item.id));
+    let aliasRows:{survivor_guest_id:string;alias_type:string;display_value:string}[]=[];
+    if(ids.length){const aliases=await supabase.from("guest_aliases").select("survivor_guest_id,alias_type,display_value").in("survivor_guest_id",ids);if(aliases.error)throw aliases.error;aliasRows=aliases.data??[];}
+    return activeGuests.map(guest=>({...guest,merge_alias_search:aliasRows.filter(alias=>alias.survivor_guest_id===guest.id).map(alias=>alias.display_value).join(" ")})) as RecordItem[];
+  }
   // Rooms carry only the type NAME — attach its badge color key so the room-card
   // grid can render the shared room-type badge (one extra query, one small table).
   if (resource === "rooms") {
@@ -283,18 +297,25 @@ export async function getStaffGuestProfile(id: string, role: Role) {
       requestOptions: [], financialVisible, partyHistory: [] as RecordItem[],
     };
   }
-  const guestResult = await supabase.from("guests").select("id,name,email,phone,loyalty_tier,loyalty_points,lifetime_spend,stays,preferences,special_requests,nationality,address,created_at").eq("id", id).maybeSingle();
+  const requestedGuest=await supabase.from("guests").select("id,merged_into_guest_id").eq("id",id).maybeSingle();
+  if(requestedGuest.error)throw requestedGuest.error;
+  if(!requestedGuest.data)return null;
+  const canonicalId=requestedGuest.data.merged_into_guest_id??id;
+  const aliasesResult=await supabase.from("guest_aliases").select("source_guest_id,alias_type,display_value").eq("survivor_guest_id",canonicalId).order("created_at",{ascending:false});
+  if(aliasesResult.error)throw aliasesResult.error;
+  const mergedGuestIds=Array.from(new Set([canonicalId,...(aliasesResult.data??[]).map(alias=>alias.source_guest_id)]));
+  const guestResult = await supabase.from("guests").select("id,name,email,phone,loyalty_tier,loyalty_points,lifetime_spend,stays,preferences,special_requests,nationality,address,created_at").eq("id", canonicalId).maybeSingle();
   if (guestResult.error) throw guestResult.error;
   const guest = guestResult.data as RecordItem | null;
   if (!guest) return null;
-  const stayResult = await supabase.from("reservations").select("id,confirmation_number,room_id,room_number,room_type,check_in,check_out,guests,status,source,total,deposit,deposit_required,payment_status,special_requests,request_options,expected_arrival,identity_status,identity_verified_at,checked_in_at,checked_out_at,cancellation_reason,created_at").eq("guest_id", id).order("created_at", { ascending: false });
+  const stayResult = await supabase.from("reservations").select("id,confirmation_number,room_id,room_number,room_type,check_in,check_out,guests,status,source,total,deposit,deposit_required,payment_status,special_requests,request_options,expected_arrival,identity_status,identity_verified_at,checked_in_at,checked_out_at,cancellation_reason,created_at").in("guest_id", mergedGuestIds).order("created_at", { ascending: false });
   if (stayResult.error) throw stayResult.error;
   const stays = (stayResult.data ?? []) as RecordItem[];
   let partyHistory: RecordItem[] = [];
   if (["front_desk", "manager", "owner"].includes(role)) {
-    const memberships = await supabase.from("reservation_guests").select("reservation_id,role").eq("guest_id", id);
+    const memberships = await supabase.from("reservation_guests").select("reservation_id,role,removed_at").in("guest_id", mergedGuestIds).is("removed_at", null);
     if (memberships.error) throw memberships.error;
-    const partyIds = (memberships.data ?? []).map(row => row.reservation_id).filter(value => !stays.some(stay => stay.id === value));
+    const partyIds = Array.from(new Set((memberships.data ?? []).map(row => row.reservation_id).filter(value => !stays.some(stay => stay.id === value))));
     if (partyIds.length) {
       const history = await supabase.from("reservations").select("id,confirmation_number,room_type,check_in,check_out,status").in("id", partyIds).order("check_in", { ascending: false });
       if (history.error) throw history.error;
@@ -312,7 +333,7 @@ export async function getStaffGuestProfile(id: string, role: Role) {
   const invoiceRows = (invoices ?? []) as RecordItem[];
   const sum = (key: string) => fromCentavos(invoiceRows.reduce((total, row) => total + toCentavos(Number(row[key] || 0)), 0));
   return {
-    guest, stays, stayCounts: guestStayCounts(stays), partyHistory,
+    guest, mergedAliases:(aliasesResult.data??[]).map(alias=>({id:alias.source_guest_id,type:alias.alias_type,value:alias.display_value})), stays, stayCounts: guestStayCounts(stays), partyHistory,
     requests: (requests ?? []) as RecordItem[],
     transportation: (transportation ?? []) as RecordItem[],
     assignments: (assignments ?? []) as RecordItem[],

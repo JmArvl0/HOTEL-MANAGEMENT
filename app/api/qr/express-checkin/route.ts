@@ -10,6 +10,10 @@ const schema = z.object({ qrToken: z.string().trim().min(10).max(200) });
 const FRIENDLY: Record<string, string> = {
   SELF_CHECKIN_NOT_CONFIRMED: "This reservation is not confirmed yet. Please see the Front Desk.",
   SELF_CHECKIN_ID_UNVERIFIED: "Your ID is not verified yet. Please see the Front Desk with a valid ID.",
+  OCCUPANT_REGISTER_REQUIRED: "The Front Desk needs to record each staying guest before check-in.",
+  PRIMARY_AGE_UNVERIFIED: "The Front Desk must check the primary guest's age from official ID.",
+  PRIMARY_UNDER_MINIMUM_AGE: "The primary guest does not meet the hotel's minimum age. Please see the Front Desk.",
+  GUEST_DO_NOT_RENT: "Please see the Front Desk for help completing check-in.",
   SELF_CHECKIN_BALANCE_DUE: "There is a remaining balance on your folio. Please settle it at the Front Desk first.",
   SELF_CHECKIN_OUTSIDE_WINDOW: "Self check-in is available from your check-in date. Please see the Front Desk.",
   SELF_CHECKIN_TOO_EARLY: "Your room is not ready for early check-in. Please see the Front Desk.",
@@ -40,7 +44,7 @@ export async function POST(request: Request) {
     const code = error.message.split(":")[0].trim();
     if (code === "SELF_CHECKIN_FORBIDDEN")
       return NextResponse.json({ error: "This QR code does not belong to your reservation." }, { status: 403 });
-    if (code in FRIENDLY) return NextResponse.json({ error: FRIENDLY[code], code }, { status: 409 });
+    if (code in FRIENDLY) return NextResponse.json({ error: FRIENDLY[code], ...(code==="GUEST_DO_NOT_RENT"?{}:{code}) }, { status: 409 });
     return NextResponse.json({ error: "Self check-in is unavailable. Please see the Front Desk." }, { status: 500 });
   }
   const row = (Array.isArray(data) ? data[0] : data) as {
