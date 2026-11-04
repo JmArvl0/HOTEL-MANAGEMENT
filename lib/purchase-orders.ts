@@ -1,11 +1,7 @@
-// Roadmap Phase 7 — inventory replenishment assistance, DRAFT-ONLY.
-//
-// A forecast shortage (lib/analytics/inventory.ts) suggests a reorder; a
-// Manager/Owner/Admin turns it into a DRAFT purchase order that a human
-// reviews. A draft is a draft: nothing is ever submitted, sent, e-mailed, or
-// ordered externally by this system, and no purchase-order status other than
-// "draft" is writable from here. Quantities and vendors stay editable by
-// design — the forecast suggests, people decide.
+// Inventory replenishment: the forecast suggests and staff decide.
+// buildDraftPurchaseOrder only builds drafts. Separate submit/review/receive/
+// cancel RPCs manage the local approval and stock-receipt lifecycle; they do
+// not transmit orders to suppliers. See the 20261014010000 migration.
 
 export interface DraftPurchaseItem {
   itemId: string;
@@ -19,7 +15,7 @@ export interface DraftPurchaseOrder {
   items: DraftPurchaseItem[];
   vendorId: string | null;
   orderedBy: string;
-  /** Always "draft" — the only status this module can ever write. */
+  /** This draft builder never submits or approves an order. */
   status: "draft";
   total: number;
   note?: string;

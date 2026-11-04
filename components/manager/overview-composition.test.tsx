@@ -55,6 +55,14 @@ const show = (role: Role, allowed: string[]) => render(
 afterEach(cleanup);
 
 describe("Overview role composition", () => {
+  it("opens Accounting reservations without routing through the room board it cannot access", () => {
+    const setSection = vi.fn();
+    const onOpenRack = vi.fn();
+    render(<Overview data={data} setSection={setSection} allowed={["overview", "reservations"]} role="accounting" onScan={() => {}} onOpenRack={onOpenRack} />);
+    fireEvent.click(screen.getByText("View all"));
+    expect(setSection).toHaveBeenCalledWith("reservations");
+    expect(onOpenRack).not.toHaveBeenCalled();
+  });
   it("manager keeps the occupancy chart and leads with decisions & exceptions", () => {
     const { container } = show("manager", ["overview", "reservations", "rooms", "approvals", "insights"]);
     expect(screen.getByText("Booked occupancy this week")).toBeTruthy();

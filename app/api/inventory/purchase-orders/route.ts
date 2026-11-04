@@ -8,15 +8,11 @@ import { getAnalyticsInputs } from "@/lib/analytics/data";
 import { buildDraftPurchaseOrder, suggestedQuantity, type DraftPurchaseItem } from "@/lib/purchase-orders";
 import type { Role } from "@/lib/types";
 
-// Roadmap Phase 7 — inventory replenishment assistance, DRAFT-ONLY.
-// GET returns the forecast shortage suggestions (predicted 3-day consumption
-// vs stock) plus the existing draft purchase orders, read-only. POST creates a
-// DRAFT purchase order from a suggestion (Manager/Owner/Admin). "Draft means
-// draft": the row is written with status 'draft' (the table default), nothing
-// is submitted or sent to any vendor, and this route can never write any
-// other status. Quantity and vendor are staff-editable inputs; unit cost is
-// re-read from the inventory row server-side (never trusted from the client);
-// the total is recomputed. An audit_logs row records the draft's creation.
+// GET returns forecast shortage suggestions and recent purchase orders, with
+// optional status/vendor/date filters. POST creates or edits drafts only.
+// Separate submit/review/receive/cancel routes manage local order transitions;
+// no route sends an order to a supplier. Quantity and vendor are editable,
+// while unit costs and totals are resolved server-side and changes audited.
 
 const DRAFT_PO_ROLES: Role[] = ["manager", "owner", "admin"];
 
