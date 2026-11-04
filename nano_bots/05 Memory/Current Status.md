@@ -1,5 +1,67 @@
 # Current Status
 
+## Final local audit (2026-11-04)
+
+- Reviewed the complete uncommitted set and committed each logical group: Front
+  Office/payment workflow, staff light theme, Windows test fixtures, lint scope,
+  Cash & Shifts proposal, and audit/session records. No conflict markers found.
+- Final verification: 211 test files / 2,272 tests pass; typecheck, production
+  build, and lint pass (0 errors; 86 repo-wide warnings, with seven baseline
+  warnings on touched TSX files). `git diff --check` passes.
+- Chrome light-mode review covered Room Management, Reservations, Guest
+  Management, Guest Requests, Shift handover, Operational Handover, and Cash &
+  Shifts. Earlier per-feature test counts below are checkpoints; this final run
+  supersedes their recorded Windows assertion failures.
+- No database write or deployment.
+
+## Shared Payment Details (2026-11-04 — local)
+
+- Deposit and stay-payment details/reviews share one receipt component with the actual
+  HAVEN Hotel & Residences name and shared HAVEN logo (Garden Twin is a room type);
+  live payment/proof data, deposit comparison and existing review callbacks preserved.
+  Pending review actions require Accounting capability; provider-settled payments
+  cannot be manually confirmed.
+- Responsive sizing replaces the initial screenshot geometry: 560px desktop/laptop,
+  520px tablet cap, 12px mobile margins, readable fluid type, scrolling record with
+  persistent header/X. Duplicate bottom Close removed at the user's request.
+  Desktop/tablet/mobile/dark and short-window QA completed.
+- 69 focused tests passed at the feature checkpoint. The final cross-change run
+  passes 211 files / 2,272 tests, typecheck, and production build; full lint has
+  0 errors / 86 repo-wide warnings. Seven touched-TSX warnings match baseline.
+  Live payment E2E remains unverified. The receipt-test type error is corrected.
+- No database or deployment change. [[2026-11-04 - Shared Payment Details]].
+
+## Staff light-theme contrast audit (2026-11-04 — local)
+
+- Corrected shared light surfaces/borders, data-toolbar tokens, active navigation,
+  pagination controls and system-health accents after auditing `--ds2` / `--dl`
+  consumers and the root theme selector scope.
+- Live browser review covered all manager navigation modules, including the
+  populated Guest Management pager and Finance tables. Also fixed Cash & Shifts:
+  the ledger now uses full width while the drawer stays beside the header.
+  `git diff --check` and `npm run typecheck` pass.
+- No database or deployment changes. See [[2026-11-04 - Staff Light Theme Contrast Audit]].
+
+## Front Office modules and room calendar (2026-11-04 — local)
+
+- User-selected seven-day guest calendar is now Room Management's default;
+  Reservations and Guest Management have separate staff navigation entries.
+- Final cross-change run passes 211 files / 2,272 tests, typecheck, and production
+  build. Component-fixture QA and read-only Chrome module review completed;
+  authenticated live action E2E remains unverified.
+  No deployment or DB changes. D-035;
+  [[2026-11-04 - Room Calendar and Front Office Modules]].
+
+## Room Reservations workflow (2026-11-04 — local)
+
+- Approved prototype integrated: two views, actionable summaries, attention queue,
+  contextual reservation rows, explicit scope/history retry, and room-history disclosure.
+- 75 targeted tests passed at the feature checkpoint. Final cross-change run
+  passes 211 files / 2,272 tests, typecheck, and production build. Component-fixture
+  QA completed; authenticated live action E2E remains unverified. No deployment
+  or database changes.
+- [[2026-11-04 - Room Reservations Workflow Integration]].
+
 ## Production cutover (2026-11-03)
 
 - Authorized sequence executed and verified: maintenance gate → backup
