@@ -16,7 +16,7 @@ export default async function ReservationPage({ params }: { params: Promise<{ id
   const invoice = reservation.invoice;
   const stayTotal = Number(reservation.total || 0);
   const folioTotal = Number(invoice?.amount ?? stayTotal);
-  const paid = Number(invoice?.paid ?? reservation.deposit ?? 0);
+  const paid = Number(invoice?.paid ?? reservation.deposit ?? 0) + Number(invoice?.credit_balance ?? 0);
   const balance = Number(invoice?.balance ?? Math.max(folioTotal - paid, 0));
   const nightly = reservation.nights ? stayTotal / reservation.nights : stayTotal;
   const policy = operationalPolicyFromSnapshot(reservation.operational_policy_snapshot);
@@ -225,7 +225,9 @@ export default async function ReservationPage({ params }: { params: Promise<{ id
           paid,
           balance,
           nightly,
+          creditBalance: Number(invoice?.credit_balance ?? 0),
         },
+        adjustments: reservation.adjustments.map((row) => ({ id: String(row.id), reason: String(row.reason), direction: String(row.direction), amount: Number(row.amount), createdAt: String(row.created_at) })),
         charges: reservation.charges.map((charge) => ({ id: charge.id, description: charge.description, category: charge.category, amount: Number(charge.amount), status: charge.status, createdAt: String(charge.created_at) })),
         payments: reservation.payments.map((payment) => ({ id: payment.id, amount: Number(payment.amount), method: payment.method, purpose: payment.purpose, status: payment.status, createdAt: String(payment.created_at) })),
         refunds: reservation.refunds.map((refund) => ({ id: refund.id, reason: refund.reason, eligibleAmount: Number(refund.eligible_amount), status: refund.status, createdAt: String(refund.created_at) })),

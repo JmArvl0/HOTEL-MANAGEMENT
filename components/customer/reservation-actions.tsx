@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { HavenErrorAlert, HavenSkeletonCard } from "@/components/ui/haven-data-controls";
 import { useRouter } from "next/navigation";
 import { CalendarClock, Clock3, MessageSquareText, XCircle } from "lucide-react";
-import { Modal } from "@/components/ui/Modal";
+import { ConfirmDialog, Modal } from "@/components/ui/Modal";
 import { HavenSelect } from "@/components/ui/haven-select";
 import { useCustomerToast } from "@/components/customer/customer-toast";
 import { formatPeso } from "@/lib/format";
@@ -42,9 +42,9 @@ export function ReservationActions({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  // Cancel — ONE modal: server-authoritative consequence preview plus the
-  // required free-text reason. No dropdown, no second step.
+  // Cancellation uses a review step followed by an explicit final confirmation.
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelError, setCancelError] = useState("");
   const [preview, setPreview] = useState<
@@ -118,6 +118,7 @@ export function ReservationActions({
   function openCancel() {
     setCancelReason("");
     setCancelError("");
+    setCancelConfirmOpen(false);
     setPreview({ status: "loading" });
     setCancelOpen(true);
     fetch(`/api/account/reservations/${id}/cancel`, { cache: "no-store" })
@@ -267,9 +268,9 @@ export function ReservationActions({
         <p role="status">We received your requested changes. You&apos;ll be notified when there&apos;s an update.</p>
       )}
 
-      {/* Cancel reservation — one modal: consequences first, then the required free-text reason. */}
+      {/* Cancellation review: consequences and required reason before the final confirmation. */}
       <Modal
-        isOpen={cancelOpen}
+        isOpen={cancelOpen && !cancelConfirmOpen}
         onClose={() => { if (!busy) setCancelOpen(false); }}
         title="Cancel Reservation"
         description="Before you cancel — review what will happen to this reservation."
@@ -284,9 +285,9 @@ export function ReservationActions({
               type="button"
               className="btn btn-accent danger-action"
               disabled={busy || !cancelReasonValid || preview.status === "loading"}
-              onClick={handleCancelSubmit}
+              onClick={() => setCancelConfirmOpen(true)}
             >
-              {busy ? "Cancelling…" : "Cancel reservation"}
+              Continue to cancellation
             </button>
           </div>
         }
@@ -307,13 +308,25 @@ export function ReservationActions({
                   <dd>This reservation will be cancelled.</dd>
                 </div>
                 <div>
-                  <dt>Refund eligibility</dt>
+                  <dt>Deposit refund policy</dt>
                   <dd>
                     {preview.data.eligibility === "full" && "Full refund under your booking policy."}
                     {preview.data.eligibility === "partial" && "Partial refund under your booking policy."}
-                    {preview.data.eligibility === "none" && "Not refundable under your booking policy."}
+                    {preview.data.eligibility === "none" && (preview.data.depositPaid > 0 ? "Deposit applied to the cancellation fee." : "No settled deposit to apply.")}
                   </dd>
                 </div>
+                <div>
+                  <dt>Settled payments</dt>
+                  <dd>{formatPeso(preview.data.netPaid)}</dd>
+                </div>
+                <div>
+                  <dt>Cancellation fee</dt>
+                  <dd>{formatPeso(preview.data.feeAmount)}</dd>
+                </div>
+                {preview.data.retainedCharges > 0 && <div>
+                  <dt>Existing transportation charges</dt>
+                  <dd>{formatPeso(preview.data.retainedCharges)}</dd>
+                </div>}
                 <div>
                   <dt>Estimated eligible refund</dt>
                   <dd>{formatPeso(preview.data.eligibleAmount)}</dd>
@@ -345,6 +358,24 @@ export function ReservationActions({
           {cancelError && <HavenErrorAlert title="Cancellation failed" body={cancelError} variant="customer" />}
         </div>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={cancelConfirmOpen}
+        onClose={() => setCancelConfirmOpen(false)}
+        onConfirm={handleCancelSubmit}
+        title="Confirm cancellation"
+        message={
+          preview.status === "ready"
+            ? `Are you sure you want to cancel this reservation? Cancellation fee: ${formatPeso(preview.data.feeAmount)}. Estimated eligible refund: ${formatPeso(preview.data.eligibleAmount)}. This action cannot be undone online.`
+            : "Are you sure you want to cancel this reservation? This action cannot be undone online. The final fee and refund will be recalculated before cancellation."
+        }
+        confirmText="Yes, cancel reservation"
+        cancelText="Go back"
+        variant="danger"
+        loading={busy}
+        disabled={!cancelReasonValid}
+        headerVariant="branded"
+      />
 
       {/* Change Request — one complete modal */}
       <Modal

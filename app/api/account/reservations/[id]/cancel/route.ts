@@ -39,19 +39,29 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Reservation not found." }, { status: 404 });
   if (!["pending", "confirmed"].includes(String(reservation.status)))
     return NextResponse.json({ error: "This reservation can no longer be cancelled." }, { status: 409 });
-  const { data: deposits } = await db
-    .from("payments")
-    .select("amount")
-    .eq("reservation_id", reservation.id)
-    .eq("purpose", "reservation_deposit")
-    .eq("status", "paid");
-  const depositPaid = (deposits ?? []).reduce((sum, row) => sum + Number(row.amount || 0), 0);
+  const [paymentResult, chargeResult, adjustmentResult, invoiceResult] = await Promise.all([
+    db.from("payments").select("amount,purpose").eq("reservation_id", reservation.id).eq("status", "paid"),
+    db.from("folio_charges").select("id,amount,status").eq("reservation_id", reservation.id).eq("category", "transportation"),
+    db.from("financial_adjustments").select("source_charge_id,amount,transaction_type").eq("reservation_id", reservation.id),
+    db.from("invoices").select("amount").eq("reservation_id", reservation.id).maybeSingle(),
+  ]);
+  if (paymentResult.error || chargeResult.error || adjustmentResult.error || invoiceResult.error || !invoiceResult.data)
+    return NextResponse.json({ error: "Unable to calculate the cancellation settlement. Please retry." }, { status: 503 });
+  const deposits = paymentResult.data;
+  const retainedCharges = Math.min(Number(invoiceResult.data.amount), (chargeResult.data ?? []).reduce((sum, charge) => {
+    if (charge.status === "reversed") return sum;
+    const reversed = (adjustmentResult.data ?? []).filter((row) => row.source_charge_id === charge.id && row.transaction_type === "reversal").reduce((total, row) => total + Math.round(Number(row.amount) * 100), 0);
+    return sum + Math.max(0, Math.round(Number(charge.amount) * 100) - reversed) / 100;
+  }, 0));
+  const depositPaid = (deposits ?? []).filter((row) => row.purpose === "reservation_deposit").reduce((sum, row) => sum + Number(row.amount || 0), 0);
   const policy = cancellationWindowsFromSnapshot(reservation.operational_policy_snapshot);
   const preview = previewCancellationRefund({
     checkIn: String(reservation.check_in),
     today: hotelToday(policy.hotelTimezone),
     policy,
     depositPaid,
+    retainedCharges,
+    netPaid: (deposits ?? []).reduce((sum, row) => sum + (row.purpose === "refund" ? -1 : 1) * Number(row.amount || 0), 0),
   });
   return NextResponse.json({ data: preview });
 }

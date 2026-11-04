@@ -8,7 +8,7 @@
 //   manual "Request Refund" step), retries stay idempotent,
 // - the customer gets toast + bell confirmation and a folio handoff,
 // - cancellation/inventory/refund responsibilities stay separated.
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -20,12 +20,20 @@ import {
   ReservationDetailView,
   type ReservationDetailViewData,
 } from "../components/customer/reservation-detail-view";
+import { ReservationActions } from "../components/customer/reservation-actions";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }),
 }));
 
-afterEach(() => cleanup());
+vi.mock("@/components/customer/customer-toast", () => ({
+  useCustomerToast: () => vi.fn(),
+}));
+
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 const actions = () => read("components/customer/reservation-actions.tsx");
@@ -94,7 +102,7 @@ describe("cancel reason input", () => {
   const cancelFlow = () => {
     const source = actions();
     return source.slice(
-      source.indexOf("Cancel reservation — one modal"),
+      source.indexOf("Cancellation review: consequences and required reason"),
       source.indexOf("Change Request — one complete modal"),
     );
   };
@@ -115,9 +123,68 @@ describe("cancel reason input", () => {
     expect(route()).toContain("z.string().trim().min(3).max(500)");
   });
 
-  it("collects reason and consequences in ONE modal, not two dialogs", () => {
+  it("requires a second explicit confirmation before sending cancellation", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: {
+            eligibility: "partial",
+            eligibleAmount: 2500,
+            depositPaid: 5000,
+            feeAmount: 2500,
+            netPaid: 5000,
+            retainedCharges: 0,
+            basisPoints: 5000,
+            daysBefore: 10,
+            policySummary: "Partial refund under your booking policy.",
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: { eligible_refund: 2500 } }),
+      });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <ReservationActions
+        id="reservation-1"
+        status="confirmed"
+        checkIn="2026-11-20"
+        checkOut="2026-11-22"
+        roomType="Garden Twin"
+        openRequest={null}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel reservation" }));
+    await screen.findByText("Cancellation & refund");
+    fireEvent.change(screen.getByLabelText(/Reason for cancellation/), { target: { value: "Change of plans" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue to cancellation" }));
+
+    expect(screen.getByRole("dialog", { name: "Confirm cancellation" })).toBeTruthy();
+    expect(screen.getByText(/Are you sure you want to cancel this reservation/i)).toBeTruthy();
+    expect(screen.getByText(/Cancellation fee: ₱2,500/)).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Go back" }));
+    expect((screen.getByLabelText(/Reason for cancellation/) as HTMLTextAreaElement).value).toBe("Change of plans");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Continue to cancellation" }));
+    fireEvent.click(screen.getByRole("button", { name: "Yes, cancel reservation" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(fetchMock.mock.calls[1][1]).toMatchObject({
+      method: "POST",
+      body: JSON.stringify({ reason: "Change of plans" }),
+    });
+  });
+
+  it("keeps the preview and required reason in the first dialog", () => {
     expect(actions()).not.toContain("PromptDialog");
-    expect(actions()).not.toContain("ConfirmDialog");
+    expect(actions()).toContain("ConfirmDialog");
     expect(actions()).toContain("cancel-consequence-panel");
   });
 });
@@ -136,9 +203,10 @@ describe("preview endpoint (read-only by construction)", () => {
     expect(getSlice()).toContain('["pending", "confirmed"].includes(String(reservation.status))');
   });
 
-  it("bases the preview on settled deposit payments only", () => {
+  it("uses settled deposits for the fee and settled receipts for the refundable credit", () => {
     const get = getSlice();
-    expect(get).toContain('eq("purpose", "reservation_deposit")');
+    expect(get).toContain('row.purpose === "reservation_deposit"');
+    expect(get).toContain('row.purpose === "refund" ? -1 : 1');
     expect(get).toContain('eq("status", "paid")');
   });
 

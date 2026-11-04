@@ -62,7 +62,9 @@ export type ReservationDetailViewData = {
     paid: number;
     balance: number;
     nightly: number;
+    creditBalance?: number;
   };
+  adjustments?: { id: string; reason: string; direction: string; amount: number; createdAt: string }[];
   charges: { id: string; description: string; category: string; amount: number; status: string; createdAt: string }[];
   payments: { id: string; amount: number; method: string; purpose: string; status: string; createdAt: string }[];
   refunds: { id: string; reason: string; eligibleAmount: number; status: string; createdAt: string }[];
@@ -367,6 +369,7 @@ export function ReservationDetailView({ data }: { data: ReservationDetailViewDat
           <DetailRow term={`Nightly rate × ${data.nights}`}>{formatPeso(money.nightly * data.nights)}</DetailRow>
           <DetailRow term="Original stay total">{formatPeso(money.stayTotal)}</DetailRow>
           <DetailRow term="Current folio total">{formatPeso(money.folioTotal)}</DetailRow>
+          <DetailRow term="Refundable folio credit">{formatPeso(money.creditBalance ?? 0)}</DetailRow>
           <DetailRow term="Net payments received">{formatPeso(money.paid)}</DetailRow>
           <div className="detail-balance"><dt>Remaining balance</dt><dd>{formatPeso(money.balance)}</dd></div>
         </dl>
@@ -382,12 +385,21 @@ export function ReservationDetailView({ data }: { data: ReservationDetailViewDat
               </div>
             ))}
           </ActivityGroup>
+          <ActivityGroup title="Credits & adjustments" icon={ReceiptText} count={data.adjustments?.length ?? 0}>
+            {(data.adjustments ?? []).map((adjustment) => (
+              <div key={adjustment.id} className="crd-activity-row">
+                <TimelineDot tone="refund" />
+                <div><b>{adjustment.reason}</b><small>{formatStamp(adjustment.createdAt)}</small></div>
+                <span>{adjustment.direction === "credit" ? "−" : "+"}{formatPeso(adjustment.amount)}</span>
+              </div>
+            ))}
+          </ActivityGroup>
           <ActivityGroup title="Transactions" icon={ReceiptText} count={data.payments.length}>
             {data.payments.map((payment) => (
               <div key={payment.id} className="crd-activity-row">
                 <TimelineDot tone="payment" />
                 <div><b>{friendly(payment.purpose)} · {friendly(payment.method)}</b><small>{friendly(payment.status)} · {formatStamp(payment.createdAt)}</small></div>
-                <span>{formatPeso(payment.amount)}{payment.status === "paid" && <> · <Link href={`/account/receipts/${payment.id}`}>Receipt</Link></>}</span>
+                <span>{formatPeso(payment.amount)}{payment.status === "paid" && payment.purpose !== "refund" && <> · <Link href={`/account/receipts/${payment.id}`}>Receipt</Link></>}</span>
               </div>
             ))}
           </ActivityGroup>

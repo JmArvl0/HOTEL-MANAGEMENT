@@ -2,7 +2,7 @@
  * Customer cancellation preview — pure, display-only math.
  *
  * Mirrors the authoritative `cancel_reservation` RPC semantics (booking-time
- * snapshot first, hotel-timezone day count, paid-deposit basis, basis points)
+ * snapshot first, hotel-timezone day count, deposit-based fee and resulting credit)
  * so the modal can show consequences BEFORE the customer commits. The RPC
  * always recalculates on execution; this helper never writes anything and its
  * output is never trusted for settlement.
@@ -20,6 +20,9 @@ export interface CancellationPreview {
   eligibility: CancellationEligibility;
   eligibleAmount: number;
   depositPaid: number;
+  feeAmount: number;
+  netPaid: number;
+  retainedCharges: number;
   basisPoints: number;
   daysBefore: number;
   policySummary: string;
@@ -54,6 +57,8 @@ export function previewCancellationRefund(input: {
   today: string;
   policy: CancellationPolicyWindows;
   depositPaid: number;
+  netPaid?: number;
+  retainedCharges?: number;
 }): CancellationPreview {
   const daysBefore = Math.round(
     (Date.parse(`${input.checkIn}T00:00:00Z`) - Date.parse(`${input.today}T00:00:00Z`)) / 86400000,
@@ -65,7 +70,9 @@ export function previewCancellationRefund(input: {
         ? input.policy.partialRefundBasisPoints
         : 0;
   // Centavo-exact, matching round(deposit_paid * basis / 10000, 2) in the RPC.
-  const eligibleAmount = Math.max(0, Math.round(Number(input.depositPaid) * basisPoints) / 100) / 100;
+  const depositCentavos = Math.max(0, Math.round(Number(input.depositPaid) * 100));
+  const feeCentavos = depositCentavos - Math.round(depositCentavos * basisPoints / 10000);
+  const eligibleAmount = Math.max(0, Math.round((input.netPaid ?? input.depositPaid) * 100) - feeCentavos - Math.round((input.retainedCharges ?? 0) * 100)) / 100;
   const eligibility: CancellationEligibility =
     basisPoints >= 10000 ? "full" : basisPoints > 0 ? "partial" : "none";
   const rate = input.policy.partialRefundBasisPoints / 100;
@@ -76,6 +83,9 @@ export function previewCancellationRefund(input: {
   return {
     eligibility,
     eligibleAmount,
+    feeAmount: feeCentavos / 100,
+    netPaid: Math.max(0, Math.round((input.netPaid ?? input.depositPaid) * 100)) / 100,
+    retainedCharges: Math.max(0, Math.round((input.retainedCharges ?? 0) * 100)) / 100,
     depositPaid: Math.max(0, Number(input.depositPaid) || 0),
     basisPoints,
     daysBefore,

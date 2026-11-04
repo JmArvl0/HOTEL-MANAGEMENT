@@ -22,13 +22,13 @@ describe("single complete modal", () => {
     expect(actions).toContain("<textarea");
     expect(actions).toContain("Submit change request");
   });
-  it("has no second reason step (change flow stays one modal; cancel is its own one modal)", () => {
+  it("keeps the change request in one modal independently of cancellation confirmation", () => {
+    const changeFlow = actions.slice(actions.indexOf("{/* Change Request — one complete modal */}"));
+    expect(changeFlow).toContain('title="Request a reservation change"');
     expect(actions).not.toContain("changeStep");
-    // Change modal + cancel modal, each self-contained. The old
-    // PromptDialog+ConfirmDialog cancel pair is gone (see cancel-reservation tests).
-    expect(actions.match(/<Modal\s/g)?.length).toBe(2);
-    expect(actions).not.toContain("PromptDialog");
-    expect(actions).not.toContain("ConfirmDialog");
+    expect(changeFlow.match(/<Modal\s/g)?.length).toBe(1);
+    expect(changeFlow).not.toContain("PromptDialog");
+    expect(changeFlow).not.toContain("ConfirmDialog");
   });
   it("keeps the reason a plain textarea with no dropdown affordance", () => {
     expect(actions).toContain('id="change-reason"');
