@@ -6,7 +6,7 @@
 // what it is given and report its count honestly.
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ResourceView } from "./manager-dashboard-client";
+import { InventoryReplenishment, ResourceView } from "./manager-dashboard-client";
 import { filterStaffItems } from "@/lib/staff-search";
 import type { RecordItem } from "@/lib/types";
 
@@ -33,18 +33,13 @@ const all = [
   invoice({ id: "inv-3", guest_name: "Marco Reyes" }),
 ];
 
-function renderBilling(items: RecordItem[], search: string, resource: "invoices" | "reservations" | "inventory" = "invoices", viewReservation = noop, requestApproval = noop, replenishment: Parameters<typeof ResourceView>[0]["replenishment"] = null) {
+function renderBilling(items: RecordItem[], search: string, resource: "invoices" | "reservations" = "invoices", viewReservation = noop, requestApproval = noop) {
   render(
     <ResourceView
       resource={resource}
       items={items}
       allItems={all}
       depositSlaHours={4}
-      replenishment={replenishment}
-      createDraftPo={noop}
-      submitPo={noop}
-      receivePo={noop}
-      cancelPo={noop}
       assets={null}
       registerAsset={noop}
       assetAction={noop}
@@ -119,10 +114,10 @@ describe("Billing search narrows records and count", () => {
 
 describe("Purchase order history", () => {
   it("keeps received orders accessible when no item needs replenishment", () => {
-    renderBilling([], "", "inventory", noop, noop, {
+    render(<InventoryReplenishment receivingOnly={false} createDraftPo={noop} submitPo={noop} receivePo={noop} cancelPo={noop} replenishment={{
       suggestions: [], vendors: [],
-      drafts: [{ id: "PO-QA-HISTORY", status: "received", total: 200, items: [{ itemId: "ITM-QA", name: "QA Shampoo", quantity: 20, unit: "bottles" }] } as unknown as RecordItem],
-    });
+      drafts: [{ id: "PO-QA-HISTORY", status: "received", total: 200, items: [{ itemId: "ITM-QA", name: "QA Shampoo", quantity: 20, unit: "bottles" }] }],
+    }} />);
     expect(screen.getByRole("region", { name: "Purchase orders" }).textContent).toContain("Received — immutable");
     expect(screen.queryByRole("heading", { name: /Replenishment suggestions/ })).toBeNull();
   });

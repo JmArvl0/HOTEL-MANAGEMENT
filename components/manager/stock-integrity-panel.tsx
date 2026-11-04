@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import type { Role } from "@/lib/types";
 type Item = { id: string; name: string; quantity: number; unit: string; reorder_point: number; updated_at: string };
 type Movement = { id: string; item_id: string; quantity: number; direction: string; note: string | null; created_at: string };
-export default function StockIntegrityPanel({ role }: { role: Role }) {
+export default function StockIntegrityPanel({ role, refreshVersion = 0 }: { role: Role; refreshVersion?: number }) {
  const [data, setData] = useState<{ items: Item[]; movements: Movement[] } | null>(null);
  const [selected, setSelected] = useState("");
  const [kind, setKind] = useState("issue");
@@ -21,7 +21,7 @@ export default function StockIntegrityPanel({ role }: { role: Role }) {
   try { const res = await fetch("/api/inventory/movements", { cache: "no-store", signal }); const body = await res.json(); if (!res.ok) throw new Error(body.error); setData(body.data); setSelected(previous => previous || body.data.items[0]?.id || ""); setError(""); }
   catch (e) { if (!signal?.aborted) setError(e instanceof Error ? e.message : "Unable to load stock. Retry."); }
  }, []);
- useEffect(() => { const c = new AbortController(); queueMicrotask(() => { if (!c.signal.aborted) void load(c.signal); }); return () => c.abort(); }, [load]);
+ useEffect(() => { const c = new AbortController(); queueMicrotask(() => { if (!c.signal.aborted) void load(c.signal); }); return () => c.abort(); }, [load, refreshVersion]);
  async function submit(e: FormEvent) {
   e.preventDefault(); if (!item || busy) return;
   const payload = { itemId: item.id, kind, quantity: Number(quantity), expectedUpdated: kind === "count" ? countVersion : null, reason, reference };

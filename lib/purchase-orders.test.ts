@@ -193,8 +193,5 @@ describe("surface contracts", () => {
     expect(panel).toContain("Received — immutable");
     expect(panel).toContain("onSubmit");
     expect(panel).toContain("haven-filter-badge");
-    const ui = read("components/manager/manager-dashboard-client.tsx");
-    expect(ui).toContain("Confirm stock restock");
-    expect(ui).toContain("Outstanding quantities stay open for the next delivery.");
   });
 });

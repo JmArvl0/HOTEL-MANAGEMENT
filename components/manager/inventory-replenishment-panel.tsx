@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
+import { useActionDialogs } from "@/components/ui/action-dialogs";
 
 export type PoLine = { itemId: string; name: string; quantity: number; unit: string; unitCost?: number };
 export type PoOrder = {
@@ -7,6 +8,7 @@ export type PoOrder = {
   purchase_order_receipts?: { id: string; items: {itemId:string; quantity:number}[]; created_at:string }[]; received_quantities?: Record<string, number>; created_at?: string; version?: number; vendor_id?: string | null;
 };
 export type PoVendor = { id: string; name: string };
+export type PoReceiptLine = { itemId: string; quantity: number };
 
 const FILTERS = ["all", "draft", "pending_approval", "approved", "partially_received", "received", "cancelled"] as const;
 
@@ -19,11 +21,43 @@ function peso(n: number) {
 // order queue. Server RPCs remain the authority — buttons only call them.
 export default function PurchaseOrderList({ orders, vendors, onSubmit, onReceive, onCancel, receivingOnly = false }: {
   receivingOnly?: boolean; orders: PoOrder[]; vendors: PoVendor[];
-  onSubmit: (o: PoOrder) => void; onReceive: (o: PoOrder) => void; onCancel: (o: PoOrder) => void;
+  onSubmit: (o: PoOrder) => void; onReceive: (o: PoOrder, items: PoReceiptLine[]) => void; onCancel: (o: PoOrder) => void;
 }) {
+  const dialogs = useActionDialogs();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
   const vendorName = useMemo(() => new Map(vendors.map((v) => [v.id, v.name])), [vendors]);
   const visible = filter === "all" ? orders : orders.filter((o) => o.status === filter);
+
+  async function receive(order: PoOrder) {
+    const outstanding = (order.items ?? []).map((line) => ({
+      ...line,
+      remaining: line.quantity - (order.received_quantities?.[line.itemId] ?? 0),
+    })).filter((line) => line.remaining > 0);
+    const data = await dialogs.askForm({
+      title: `Receive PO ${order.id.slice(0, 8)}`,
+      description: "Confirming adds this delivery to inventory. Outstanding quantities stay open for the next delivery.",
+      fields: outstanding.map((line, index) => ({
+        key: `q${index}`,
+        label: `Received — ${line.name} (${line.remaining} ${line.unit} remaining)`,
+        type: "number",
+        required: true,
+        defaultValue: line.remaining,
+        min: 0,
+        max: line.remaining,
+        step: 1,
+        validation: (value) => Number.isInteger(value) && Number(value) >= 0 && Number(value) <= line.remaining
+          ? null : `Enter a whole quantity from 0 to ${line.remaining}.`,
+      })),
+      submitText: "Confirm stock restock",
+    });
+    if (!data) return;
+    const items = outstanding.map((line, index) => ({
+      itemId: line.itemId,
+      quantity: Number(data[`q${index}`]),
+    })).filter((line) => line.quantity > 0);
+    onReceive(order, items);
+  }
+
   return (
     <section className="hk-queue-group" aria-label="Purchase orders">
       <header>
@@ -62,7 +96,7 @@ export default function PurchaseOrderList({ orders, vendors, onSubmit, onReceive
           </div>
           <div className="hk-queue-actions">
             {!receivingOnly && o.status === "draft" && <button className="table-action action-primary" onClick={() => onSubmit(o)}>Submit</button>}
-            {["approved", "partially_received"].includes(o.status) && <button className="table-action action-primary" onClick={() => onReceive(o)}>Receive delivery</button>}
+            {["approved", "partially_received"].includes(o.status) && <button className="table-action action-primary" onClick={() => void receive(o)}>Receive delivery</button>}
             {!receivingOnly && (o.status === "draft" || o.status === "pending_approval" || o.status === "approved") && (
               <button className="table-action" onClick={() => onCancel(o)}>Cancel</button>
             )}
@@ -72,6 +106,7 @@ export default function PurchaseOrderList({ orders, vendors, onSubmit, onReceive
           </div>
         </article>
       ))}
+      {dialogs.view}
     </section>
   );
 }

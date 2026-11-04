@@ -69,14 +69,22 @@ function renderRack(role = "front_desk") {
 describe("FrontOfficeRack", () => {
   it("refreshes full reservation history after a folio mutation without losing the selected view", async () => {
     let closed = false;
-    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({ data: [{ ...reservations[0], status: closed ? "no_show" : "confirmed" }] }) })));
-    const props = { role: "front_desk", onOpenFolio: vi.fn(), onCheckIn: vi.fn(), initialView: "all" as const, initialTab: "all" as const };
+    const pastStay = { ...reservations[0], check_in: "2026-09-01", check_out: "2026-09-03" };
+    const fetchHistory = vi.fn(async () => ({ ok: true, json: async () => ({ data: [{ ...pastStay, status: closed ? "no_show" : "confirmed" }] }) }));
+    vi.stubGlobal("fetch", fetchHistory);
+    const props = { role: "front_desk", onOpenFolio: vi.fn(), onCheckIn: vi.fn(), workspace: "reservations" as const };
     const view = render(<FrontOfficeRack {...props} refreshVersion={0} />);
-    await waitFor(() => expect(within(screen.getByRole("table", { name: "All Reservations" })).getByText("Confirmed")).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Reservation date scope" }));
+    fireEvent.click(screen.getByRole("option", { name: "Full history · all dates" }));
+    const list = () => within(screen.getByRole("table", { name: "Reservation list" }));
+    await waitFor(() => expect(list().getByText("Confirmed")).toBeTruthy());
     closed = true;
     view.rerender(<FrontOfficeRack {...props} refreshVersion={1} />);
-    await waitFor(() => expect(within(screen.getByRole("table", { name: "All Reservations" })).getByText("No Show")).toBeTruthy());
-    vi.unstubAllGlobals();
+    await waitFor(() => expect(list().getAllByText("No Show")).toHaveLength(1));
+    expect(list().queryByText("Confirmed")).toBeNull();
+    expect(screen.getByText("Full reservation history · All dates")).toBeTruthy();
+    expect(fetchHistory).toHaveBeenCalledTimes(2);
+    expect(fetchHistory).toHaveBeenLastCalledWith("/api/resources/reservations", { cache: "no-store" });
   });
   it("groups rooms by live type and renders card states with guests", () => {
     renderRack();
