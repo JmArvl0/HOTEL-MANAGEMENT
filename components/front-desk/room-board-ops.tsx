@@ -1,93 +1,26 @@
 "use client";
 
-import { BedDouble, CalendarCheck, CalendarClock, ChevronRight, ClipboardCheck, Gauge, LogIn, LogOut } from "lucide-react";
+import { ClipboardCheck } from "lucide-react";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { HavenEmptyState } from "@/components/ui";
+import { reservationPreview } from "@/lib/reservation-workspace";
+import type { RackReservation, RackRoom } from "@/lib/room-rack";
 
-export type OpsAction = { label: string; icon: React.ElementType; onSelect: () => void; disabled?: boolean };
-
-/**
- * Right-side operations rail: quick actions (existing flows only),
- * today's activity from live snapshot data, occupancy, and the real-state
- * legend. All figures arrive computed; nothing here invents data.
- */
-export default function RoomBoardOps({
-  actions,
-  arrivals,
-  departures,
-  checkIns,
-  checkOuts,
-  occupied,
-  total,
-  onSelectTab,
-}: {
-  actions: OpsAction[];
-  arrivals: number;
-  departures: number;
-  checkIns: number;
-  checkOuts: number;
-  occupied: number;
-  total: number;
-  onSelectTab: (tab: string) => void;
+export default function RoomBoardOps({ reservations, rooms, blockedRoomIds, today, onOpenFolio, error, loading, onRetry }: {
+  reservations: RackReservation[]; rooms: RackRoom[]; blockedRoomIds: Set<string>; today: string;
+  onOpenFolio: (id: string) => void; error: string; loading: boolean; onRetry: () => void;
 }) {
-  const pct = total > 0 ? Math.round((occupied / total) * 100) : 0;
-  const rows = [
-    { label: "Arrivals", value: arrivals, Icon: CalendarCheck, tone: "ops-arr", tab: "arrivals" },
-    { label: "Departures", value: departures, Icon: CalendarClock, tone: "ops-dep", tab: "departures" },
-    { label: "Check-ins", value: checkIns, Icon: LogIn, tone: "ops-in", tab: "in_house" },
-    { label: "Check-outs", value: checkOuts, Icon: LogOut, tone: "ops-out", tab: "departures" },
-  ];
-  return (
-    <aside className="board-ops" aria-label="Front office operations">
-      <section className="data-panel ops-panel" aria-labelledby="ops-actions">
-        <h2 id="ops-actions"><ClipboardCheck size={15} aria-hidden="true" /> Quick Actions</h2>
-        <ul>
-          {actions.map(({ label, icon: Icon, onSelect, disabled }) => (
-            <li key={label}>
-              <button type="button" onClick={onSelect} disabled={disabled}>
-                <Icon size={16} aria-hidden="true" />
-                <span>{label}</span>
-                <ChevronRight size={15} aria-hidden="true" />
-              </button>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="data-panel ops-panel" aria-labelledby="ops-activity">
-        <h2 id="ops-activity"><BedDouble size={15} aria-hidden="true" /> Today&apos;s Activity</h2>
-        <ul className="ops-activity">
-          {rows.map(({ label, value, Icon, tone, tab }) => (
-            <li key={label}>
-              <button type="button" onClick={() => onSelectTab(tab)} aria-label={`${label}: ${value}. Show in reservations.`}>
-                <span className={`ops-ico ${tone}`} aria-hidden="true"><Icon size={15} /></span>
-                <span>{label}</span>
-                <b>{value}</b>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="data-panel ops-panel" aria-labelledby="ops-occupancy">
-        <h2 id="ops-occupancy"><Gauge size={15} aria-hidden="true" /> Occupancy</h2>
-        <div className="ops-occupancy">
-          <span
-            className="ops-donut"
-            role="img"
-            aria-label={`Occupied ${pct} percent, ${occupied} of ${total} rooms`}
-            style={{ background: `conic-gradient(var(--dg) ${pct * 3.6}deg, var(--dl) 0deg)` }}
-          >
-            <b>{pct}%</b>
-          </span>
-          <span className="ops-occupancy-copy"><b>Occupied</b><small>{occupied} / {total} Rooms</small></span>
-        </div>
-        <h3>Legend</h3>
-        <ul className="ops-legend">
-          <li><i className="dot dot-available" aria-hidden="true" /> Clean</li>
-          <li><i className="dot dot-occupied" aria-hidden="true" /> Occupied</li>
-          <li><i className="dot dot-dirty" aria-hidden="true" /> Dirty</li>
-          <li><i className="dot dot-oos" aria-hidden="true" /> Out of Service</li>
-        </ul>
-      </section>
-  </aside>
-  );
+  const attention = reservations.map(r => ({ r, issues: reservationPreview(r, rooms, blockedRoomIds, today) }))
+    .filter(({ r, issues }) => issues.length && ((["pending", "confirmed"].includes(r.status) && r.check_in.slice(0, 10) <= today) || (r.status === "checked_in" && r.check_out.slice(0, 10) <= today)))
+    .sort((a, b) => a.r.check_in.localeCompare(b.r.check_in));
+  return <aside className="board-ops" aria-label="Needs attention">
+    <section className="data-panel ops-panel">
+      <h2><ClipboardCheck size={16} aria-hidden="true" /> Needs attention</h2>
+      <p className="ops-attention-note">Today and overdue stays · {today}</p>
+      {error ? <div role="alert"><p>{error}</p><button type="button" className="btn btn-soft" onClick={onRetry} disabled={loading}>Retry reservations</button></div> : loading ? <p role="status">Updating reservations…</p> : !attention.length ? <HavenEmptyState icon={<ClipboardCheck size={20} aria-hidden="true" />} title="No flagged stays" body="Final readiness remains available inside each reservation." /> : <>
+        <ul>{attention.slice(0, 5).map(({ r, issues }) => <li key={r.id} className="ops-attention-item"><StatusBadge status="pending" label={issues[0]} size="sm" /><b>{r.guest_name ?? r.confirmation_number ?? r.id}</b><small>{r.confirmation_number ?? r.id}{r.room_number ? ` · Room ${r.room_number}` : ""}</small>{issues.length > 1 && <small>{issues.slice(1).join(" · ")}</small>}<button type="button" onClick={() => onOpenFolio(r.id)}>{r.status === "checked_in" ? "Review departure" : "Review arrival"}</button></li>)}</ul>
+        {attention.length > 5 && <p className="ops-attention-note">Showing 5 of {attention.length} flagged stays. Review the reservation list for more.</p>}
+      </>}
+    </section>
+  </aside>;
 }

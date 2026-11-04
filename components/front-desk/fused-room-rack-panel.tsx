@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { BedDouble, CalendarDays, DoorOpen, Plus, QrCode, Sparkles, SprayCan } from "lucide-react";
+import { BedDouble, CalendarDays, DoorOpen, Plus, QrCode, LogOut } from "lucide-react";
 import { Modal, ConfirmDialog } from "@/components/ui/Modal";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
-import { HavenDataToolbar, HavenSearchInput, PageHeader } from "@/components/ui";
+import { HavenDataToolbar, HavenSearchInput, HavenFilterBadges, PageHeader } from "@/components/ui";
+import { inReservationQueue, reservationOverlapsWindow, reservationQueues } from "@/lib/reservation-workspace";
 import { HavenSelect } from "@/components/ui/haven-select";
 import { useFrontOfficeRack } from "@/hooks/use-front-office-rack";
 import BoardReservationTabs, { type BoardTab } from "./board-reservation-tabs";
 import RoomBoard, { RoomActionSheet, type BoardAction } from "./room-board";
 import RoomBoardOps from "./room-board-ops";
+import RoomCalendar from "./room-calendar";
 import {
   assignableCell,
   barsForRoom,
@@ -60,7 +62,7 @@ function BoardDateRange({ from, days, onRange, notify }: {
     onRange(nextFrom, Math.min(14, span));
   };
   return (
-    <span className="board-range">
+    <div className="board-range">
       <button
         type="button"
         className="board-range-trigger"
@@ -74,7 +76,7 @@ function BoardDateRange({ from, days, onRange, notify }: {
       {open && (
         <>
           <button type="button" className="board-range-backdrop" aria-label="Close date picker" onClick={() => setOpen(false)} />
-          <span className="board-range-pop" role="dialog" aria-label="Choose stay window">
+          <div className="board-range-pop" role="dialog" aria-label="Choose stay window">
             <label>From
               <input type="date" className="board-date-input" data-range="from" value={ISO_DAY.test(draftFrom) ? draftFrom : ""} required aria-required="true"
                 onChange={(e) => { setDraftFrom(e.target.value); if (ISO_DAY.test(e.target.value)) apply(e.target.value, draftTo); }} />
@@ -83,10 +85,10 @@ function BoardDateRange({ from, days, onRange, notify }: {
               <input type="date" className="board-date-input" data-range="to" value={ISO_DAY.test(draftTo) ? draftTo : ""} min={ISO_DAY.test(draftFrom) ? draftFrom : undefined} required aria-required="true"
                 onChange={(e) => { setDraftTo(e.target.value); if (ISO_DAY.test(e.target.value)) apply(draftFrom, e.target.value); }} />
             </label>
-          </span>
+          </div>
         </>
       )}
-    </span>
+    </div>
   );
 }
 
@@ -108,6 +110,11 @@ export default function FrontOfficeRack({
   notify,
   initialView,
   initialTab,
+  workspace = "combined",
+  onNavigateReservations,
+  onNavigateRooms,
+  onManageRooms,
+  initialRoomStatus,
 }: {
   role: string;
   onOpenFolio: (reservationId: string) => void;
@@ -119,23 +126,31 @@ export default function FrontOfficeRack({
   /** Deep-link entry from Overview shortcuts — applied on mount and when changed. */
   initialView?: "board" | BoardTab;
   initialTab?: BoardTab;
+  workspace?: "combined" | "rooms" | "reservations";
+  onNavigateReservations?: (queue: BoardTab) => void;
+  onNavigateRooms?: () => void;
+  onManageRooms?: () => void;
+  initialRoomStatus?: "available";
   /** Transient feedback — the shared toast stack. Falls back to inline text. */
   notify?: (message: string, tone?: ToastTone) => void;
 }) {
   const { from, days, setDays, setFrom, snapshot, loading, error, reload } = useFrontOfficeRack();
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<string>(initialRoomStatus ?? "all");
   const [floorFilter, setFloorFilter] = useState("all");
-  const [tab, setTab] = useState<BoardTab>(initialTab ?? "arrivals");
-  const [view, setView] = useState<"board" | BoardTab>(initialView ?? "board");
-  // Overview shortcuts deep-link into a specific rack view — applied on
-  // mount and whenever the entry changes (section switches remount anyway).
-  useEffect(() => {
-    if (initialTab) setTab(initialTab);
-    if (initialView) setView(initialView);
-  }, [initialTab, initialView]);
+  const [tab, setTab] = useState<BoardTab>(initialTab ?? "all");
+  const entryView = workspace === "rooms" ? "board" : workspace === "reservations" ? initialView && initialView !== "board" ? initialView : "all" : initialView ?? "board";
+  const [view, setView] = useState<"board" | BoardTab>(entryView);
+  const [boardFormat, setBoardFormat] = useState(workspace === "rooms" ? "calendar" : "cards");
+  // The parent remounts this workspace when its section changes, so shortcut
+  // and cross-module entries are applied through the initial state above.
   const [history, setHistory] = useState<RackReservation[] | null>(null);
+  const [historyError, setHistoryError] = useState("");
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyVersion, setHistoryVersion] = useState(0);
+  const [scope, setScope] = useState(initialTab === "in_house" ? "history" : "window");
+  const [closedStatus, setClosedStatus] = useState("all");
   const [activeRoom, setActiveRoom] = useState<RackRoom | null>(null);
   const [arrivalPick, setArrivalPick] = useState<RackRoom | null>(null);
   const [confirm, setConfirm] = useState<{ reservation: RackReservation; room: RackRoom } | null>(null);
@@ -162,16 +177,18 @@ export default function FrontOfficeRack({
   const canAssign = role === "front_desk";
   const canDispatch = role === "front_desk" || role === "manager";
 
-  // Full reservation history for the All/Completed tabs: the rack snapshot
-  // only covers the selected window, so closed past stays need the existing
-  // resources list (same RBAC — front_desk holds reservations access).
-  // Failure falls back to snapshot rows; tabs stay usable either way.
+  // Refresh independently of the room window, including after a failed rack read.
+  // Never substitute window rows for a failed full-history read.
   useEffect(() => {
     let live = true;
     fetch("/api/resources/reservations", { cache: "no-store" })
-      .then((res) => (res.ok ? res.json() : null))
+      .then(async res => {
+        if (!res.ok) throw new Error("Reservation history could not be loaded.");
+        return res.json();
+      })
       .then((body) => {
-        if (!live || !Array.isArray(body?.data)) return;
+        if (!Array.isArray(body?.data)) throw new Error("Reservation history could not be loaded.");
+        if (!live) return;
         setHistory(
           (body.data as Record<string, unknown>[]).map((row) => ({
             id: String(row.id),
@@ -184,12 +201,25 @@ export default function FrontOfficeRack({
             check_out: String(row.check_out ?? ""),
             status: String(row.status ?? ""),
             payment_status: (row.payment_status as string | null) ?? null,
+            identity_status: (row.identity_status as string | null) ?? null,
+            folio_balance: row.folio_balance == null ? null : Number(row.folio_balance),
           }))
         );
+        setHistoryError("");
       })
-      .catch(() => {});
+      .catch(() => { if (live) setHistoryError("Reservation history unavailable. Retry to load complete results."); })
+      .finally(() => { if (live) setHistoryLoading(false); });
     return () => { live = false; };
+  }, [historyVersion]);
+
+  useEffect(() => {
+    const refresh = () => { setHistoryLoading(true); setHistoryVersion(v => v + 1); };
+    window.addEventListener("focus", refresh);
+    const timer = window.setInterval(() => setHistoryVersion(v => v + 1), 30000);
+    return () => { window.removeEventListener("focus", refresh); window.clearInterval(timer); };
   }, []);
+
+  function retryHistory() { setHistoryLoading(true); setHistoryVersion(v => v + 1); }
 
   const queue = useMemo(() => unassignedArrivals(reservations), [reservations]);
   const types = useMemo(() => [...new Set(rooms.map((r) => r.type))], [rooms]);
@@ -209,17 +239,34 @@ export default function FrontOfficeRack({
       if (`${room.number} ${room.type} ${room.floor ?? ""}`.toLowerCase().includes(needle)) return true;
       return reservations.some(
         (r) =>
-          r.room_id === room.id &&
+          (r.room_id === room.id || snapshot?.assignments?.some(a => a.reservation_id === r.id && a.room_id === room.id && a.status !== "cancelled")) &&
           `${r.guest_name ?? ""} ${r.confirmation_number ?? ""} ${r.id}`.toLowerCase().includes(needle)
       );
     });
-  }, [rooms, reservations, query, typeFilter, floorFilter, statusFilter, states]);
+  }, [rooms, reservations, query, typeFilter, floorFilter, statusFilter, states, snapshot?.assignments]);
 
-  const arrivalsToday = reservations.filter((r) => r.check_in.slice(0, 10) === today && ["pending", "confirmed"].includes(r.status)).length;
-  const departuresToday = reservations.filter((r) => r.check_out.slice(0, 10) === today).length;
-  const checkIns = reservations.filter((r) => r.status === "checked_in").length;
-  const checkOuts = reservations.filter((r) => r.status === "checked_out").length;
   const hasActiveFilters = query.trim() !== "" || typeFilter !== "all" || statusFilter !== "all" || floorFilter !== "all";
+  const historyAvailable = history !== null && !historyError;
+  const dailyRows = historyAvailable ? history : [];
+  const readyRooms = Array.from(states.values()).filter(state => state.state === "available").length;
+  const listRows = useMemo(() => {
+    if (!history || historyError) return [];
+    if (scope === "history") return history;
+    const end = addDays(from, days - 1);
+    return history.filter(r => reservationOverlapsWindow(r, from, end));
+  }, [history, historyError, scope, from, days]);
+  function selectQueue(target: string) {
+    setQuery("");
+    if (target === "ready") {
+      if (workspace === "reservations" && onNavigateRooms) { onNavigateRooms(); return; }
+      setTypeFilter("all"); setFloorFilter("all"); setStatusFilter("available"); setView("board");
+      return;
+    } else {
+      if (workspace === "rooms" && onNavigateReservations) { onNavigateReservations(target as BoardTab); return; }
+      setTab(target as BoardTab); setView(target as BoardTab); setClosedStatus("all");
+    }
+    setScope(target === "in_house" ? "history" : "window"); setFrom(today); setDays(7);
+  }
 
   async function assign(reservation: RackReservation, room: RackRoom) {
     if (blockedIds.has(room.id)) {
@@ -248,6 +295,7 @@ export default function FrontOfficeRack({
       setArrivalPick(null);
       setActiveRoom(null);
       await reload();
+      setHistoryVersion(v => v + 1);
       onCheckIn(reservation.id);
     } catch (cause) {
       say(cause instanceof Error ? cause.message : "Unable to assign room.", "error");
@@ -330,8 +378,9 @@ export default function FrontOfficeRack({
   const activeBoard = activeRoom ? states.get(activeRoom.id) ?? roomBoardState(activeRoom, reservations, today, blockedIds) : null;
 
   return (
-    <>
-      <PageHeader variant="band" eyebrow="Front Office" title="Room Reservations" subtitle="Interactive room board and reservations ledger. Assign arrivals, manage in-house stays, and monitor turnover." actions={(onScan || onNewReservation) && <>
+    <div className="reservation-workspace">
+      <PageHeader variant="default" title={workspace === "rooms" ? "Room Management" : workspace === "reservations" ? "Reservations" : "Room Reservations"} subtitle={workspace === "rooms" ? "See assigned guests across upcoming nights and monitor current room condition." : "Prepare arrivals, manage in-house stays, and review departures."} actions={(onScan || onNewReservation || onManageRooms) && <>
+            {workspace === "rooms" && onManageRooms && <button type="button" className="btn btn-soft" onClick={onManageRooms}>Manage rooms</button>}
             {onScan && (
               <button type="button" className="btn btn-soft" onClick={onScan}>
                 <QrCode size={17} aria-hidden="true" /> Scan QR
@@ -346,79 +395,52 @@ export default function FrontOfficeRack({
 
       <ModuleSummaryCards
         ariaLabel="Front office summary"
+        activeQueue={view === "board" ? statusFilter === "available" ? "ready" : undefined : tab}
+        onSelect={selectQueue}
         cards={[
-          { label: "Available", value: summary.available, hint: "Clean and ready", tone: "done", icon: DoorOpen },
-          { label: "Occupied", value: summary.occupied, hint: "Guests in house", tone: "active", icon: BedDouble },
-          { label: "Dirty", value: summary.dirty, hint: "Awaiting turnover", tone: "attention", icon: SprayCan },
-          { label: "Arrivals today", value: summary.arrivalsToday, hint: "Confirmed for today", tone: "today", icon: CalendarDays },
-          { label: "Departures today", value: summary.departuresToday, hint: "Checking out", tone: "today", icon: Sparkles },
+          { label: "Arrivals today", value: historyAvailable ? dailyRows.filter(r => inReservationQueue(r, "arrivals", today)).length : "—", hint: "Expected arrivals still to check in", tone: "today", icon: CalendarDays, queue: "arrivals" },
+          { label: "Departures today", value: historyAvailable ? dailyRows.filter(r => inReservationQueue(r, "departures", today)).length : "—", hint: "In-house stays due to check out", tone: "today", icon: LogOut, queue: "departures" },
+          { label: "In-house", value: historyAvailable ? dailyRows.filter(r => inReservationQueue(r, "in_house", today)).length : "—", hint: "Current checked-in stays", tone: "active", icon: BedDouble, queue: "in_house" },
+          { label: "Rooms ready", value: readyRooms, hint: `${summary.dirty} awaiting turnover · selected window`, tone: "done", icon: DoorOpen, queue: "ready" },
         ]}
       />
 
-    <section aria-label="Room reservations" className="data-panel room-rack">
-
-      <div className="board-viewtabs" role="tablist" aria-label="Room reservations views">
-        {([["board", "Room Reservations"], ["all", "All Reservations"], ["arrivals", "Upcoming Arrivals"], ["in_house", "Current Guests"], ["departures", "Departures Today"], ["completed", "Completed"]] as ["board" | BoardTab, string][]).map(([value, label]) => (
-          <button
-            key={value}
-            type="button"
-            role="tab"
-            aria-selected={(view === "board" ? "board" : tab) === value}
-            className={(view === "board" ? "board" : tab) === value ? "active" : ""}
-            onClick={() => { if (value === "board") setView("board"); else { setTab(value); setView(value); } }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
+    <section aria-label={workspace === "rooms" ? "Room management" : "Room reservations"} className="data-panel room-rack">
+      {workspace === "combined" && <div className="board-viewtabs" role="group" aria-label="Room reservations views">
+        <button type="button" className={view === "board" ? "active" : ""} aria-pressed={view === "board"} onClick={() => setView("board")}>Room Board</button>
+        <button type="button" className={view !== "board" ? "active" : ""} aria-pressed={view !== "board"} onClick={() => { setView("all"); setTab("all"); }}>Reservation List</button>
+      </div>}
+      {view === "board" && <div className="board-viewtabs" role="group" aria-label="Room board format"><button type="button" className={boardFormat === "calendar" ? "active" : ""} aria-pressed={boardFormat === "calendar"} onClick={() => setBoardFormat("calendar")}>Calendar</button><button type="button" className={boardFormat === "cards" ? "active" : ""} aria-pressed={boardFormat === "cards"} onClick={() => setBoardFormat("cards")}>Cards</button></div>}
       {notice && !notify && <p role="status" className="rack-notice">{notice}</p>}
-
-      <div className="board-layout">
+      {error && snapshot && <div role="alert" className="rack-notice">{error} Displayed room data may be out of date. <button type="button" className="btn btn-soft" onClick={() => void reload()}>Retry room board</button></div>}
+      <div className={`board-layout${workspace === "rooms" ? " room-calendar-layout" : ""}`}>
         <div className="board-main">
-          {view === "board" ? (
-          <>
           <HavenDataToolbar
-        label="Room board search and filters"
-        filtersLayout="compact"
-        search={<HavenSearchInput value={query} onValueChange={setQuery} label="Search room board" placeholder="Search room number, guest name, or reservation #..." />}
-        advancedFilters={<>
-          <div className="haven-filter"><HavenSelect value={typeFilter} onChange={setTypeFilter} ariaLabel="Filter by room type" options={[{ value: "all", label: "All room types" }, ...types.map((t) => ({ value: t, label: t }))]} /></div>
-          <div className="haven-filter"><HavenSelect value={statusFilter} onChange={setStatusFilter} ariaLabel="Filter by room status" options={[{ value: "all", label: "All statuses" }, { value: "available", label: "Clean" }, { value: "occupied", label: "Occupied" }, { value: "dirty", label: "Dirty" }, { value: "reserved", label: "Reserved" }, { value: "out_of_service", label: "Out of service" }]} /></div>
-          <div className="haven-filter"><HavenSelect value={floorFilter} onChange={setFloorFilter} ariaLabel="Filter by floor" options={[{ value: "all", label: "All floors" }, ...floors.map((f) => ({ value: f, label: `Floor ${f}` }))]} /></div>
-          <div className="haven-filter"><BoardDateRange from={from} days={days} notify={(m) => say(m, "warning")} onRange={(nextFrom, nextDays) => { setFrom(nextFrom); setDays(nextDays); }} /></div>
-        </>}
-        resultCount={visibleRooms.length}
-        resultNoun="rooms"
-        onClearFilters={() => { setQuery(""); setTypeFilter("all"); setStatusFilter("all"); setFloorFilter("all"); }}
-        hasActiveFilters={hasActiveFilters}
-      />
-      <p className="board-window-note" aria-live="polite">Window from {from} · {days} days</p>
-          <RoomBoard rooms={visibleRooms} reservations={reservations} today={today} blockedRoomIds={blockedIds} selectedRoomId={activeRoom?.id ?? null} onSelectRoom={openRoom} />
-          </>
-          ) : (
-          <BoardReservationTabs reservations={reservations} history={history} today={today} tab={tab} onOpenFolio={onOpenFolio} search={query} onSearchChange={setQuery} />
-          )}
+            label={view === "board" ? "Room board search and filters" : "Reservation search and filters"}
+            filtersLayout={view === "board" ? "compact" : "stacked"}
+            search={<HavenSearchInput value={query} onValueChange={setQuery} label={view === "board" ? "Search room board" : "Search reservations"} placeholder="Search room number, guest name, or reservation #…" />}
+            quickFilters={view !== "board" ? <HavenFilterBadges value={tab} onChange={value => { setTab(value as BoardTab); setView(value as BoardTab); setClosedStatus("all"); }} label="Reservation queue" options={reservationQueues.map(q => ({ ...q, count: historyAvailable ? listRows.filter(r => inReservationQueue(r, q.value, today)).length : undefined }))} /> : undefined}
+            advancedFilters={<>
+              {view === "board" ? <>
+                <div className="haven-filter"><HavenSelect value={typeFilter} onChange={setTypeFilter} ariaLabel="Filter by room type" options={[{ value: "all", label: "All room types" }, ...types.map(t => ({ value: t, label: t }))]} /></div>
+                <div className="haven-filter"><HavenSelect value={statusFilter} onChange={setStatusFilter} ariaLabel="Filter by room status" options={[{ value: "all", label: "All statuses" }, { value: "available", label: "Clean" }, { value: "occupied", label: "Occupied" }, { value: "dirty", label: "Dirty" }, { value: "reserved", label: "Reserved" }, { value: "out_of_service", label: "Out of service" }]} /></div>
+                <div className="haven-filter"><HavenSelect value={floorFilter} onChange={setFloorFilter} ariaLabel="Filter by floor" options={[{ value: "all", label: "All floors" }, ...floors.map(f => ({ value: f, label: `Floor ${f}` }))]} /></div>
+              </> : <>
+                <div className="haven-filter"><HavenSelect value={scope} onChange={setScope} ariaLabel="Reservation date scope" options={[{ value: "window", label: "Selected window" }, { value: "history", label: "Full history · all dates" }]} /></div>
+                {tab === "closed" && <div className="haven-filter"><HavenSelect value={closedStatus} onChange={setClosedStatus} ariaLabel="Closed reservation outcome" options={[{ value: "all", label: "All closed outcomes" }, { value: "checked_out", label: "Completed" }, { value: "cancelled", label: "Cancelled" }, { value: "no_show", label: "No-show" }]} /></div>}
+              </>}
+              {(view === "board" || scope === "window") && <div className="haven-filter"><BoardDateRange from={from} days={days} notify={message => say(message, "warning")} onRange={(nextFrom, nextDays) => { setFrom(nextFrom); setDays(nextDays); }} /></div>}
+            </>}
+            resultCount={view === "board" ? visibleRooms.length : undefined}
+            resultNoun="rooms"
+            onClearFilters={() => { setQuery(""); setTypeFilter("all"); setStatusFilter("all"); setFloorFilter("all"); setTab("all"); setClosedStatus("all"); if (view !== "board") setView("all"); setScope("window"); }}
+            hasActiveFilters={view === "board" ? hasActiveFilters : Boolean(query.trim() || tab !== "all" || scope !== "window" || closedStatus !== "all")}
+          />
+          <p className="board-window-note" aria-live="polite">{view !== "board" && scope === "history" ? "Full reservation history · All dates" : `${fullDay(from)} – ${fullDay(addDays(from, days - 1))} · ${view === "board" ? "Room status is current; linked stays follow this window" : "Stays overlapping selected dates"}`}</p>
+          {view === "board" ? boardFormat === "calendar" ? (snapshot?.from !== from || snapshot?.days !== days) ? <p role="status">{loading ? "Loading assignments for selected dates…" : "Room allocations unavailable for selected dates. Retry the room board."}</p> : <RoomCalendar rooms={visibleRooms} reservations={reservations} assignments={snapshot?.assignments} from={from} days={days} today={today} blockedRoomIds={blockedIds} onSelectRoom={openRoom} onOpenReservation={onOpenFolio} /> : <RoomBoard rooms={visibleRooms} reservations={reservations} today={today} blockedRoomIds={blockedIds} selectedRoomId={activeRoom?.id ?? null} onSelectRoom={openRoom} /> : historyError ? <div className="rack-error" role="alert"><p>{historyError}</p><button type="button" disabled={historyLoading} onClick={retryHistory}>Retry history</button></div> : historyLoading && !history ? <div className="rack-skeleton" role="status" aria-label="Loading reservation history"><HavenSkeleton /></div> : <BoardReservationTabs reservations={listRows} today={today} tab={tab} onOpenFolio={onOpenFolio} onCheckIn={onCheckIn} canOperate={canAssign} search={query} rooms={rooms} blockedRoomIds={blockedIds} closedStatus={closedStatus} />}
         </div>
-        <RoomBoardOps
-          actions={[
-            ...(onScan ? [{ label: "Scan QR", icon: QrCode, onSelect: onScan }] : []),
-            ...(onNewReservation ? [{ label: "New Reservation", icon: DoorOpen, onSelect: onNewReservation }] : []),
-            { label: "Check In Guest", icon: CalendarDays, onSelect: () => { setTab("arrivals"); setView("arrivals"); say("Choose an arrival below — opening it shows check-in."); } },
-            { label: "Check Out Guest", icon: BedDouble, onSelect: () => { setTab("in_house"); setView("in_house"); say("Choose a current guest below — opening it shows check-out."); } },
-            { label: "Room Status Update", icon: SprayCan, onSelect: () => say("Select a room on the board to see its available actions.") },
-          ]}
-          arrivals={arrivalsToday}
-          departures={departuresToday}
-          checkIns={checkIns}
-          checkOuts={checkOuts}
-          occupied={summary.occupied}
-          total={rooms.length}
-          onSelectTab={(t) => { setTab(t as BoardTab); setView(t as BoardTab); }}
-        />
+        {workspace !== "rooms" && <RoomBoardOps reservations={dailyRows} rooms={rooms} blockedRoomIds={blockedIds} today={today} onOpenFolio={onOpenFolio} error={historyError} loading={historyLoading} onRetry={retryHistory} />}
       </div>
-
-      {snapshot?.assignments && <section className="hotel-ops" aria-label="Room assignment diary"><h2>Room assignment diary</h2><p>Dated room allocations share the original reservation reference. Earlier room-move boundaries may be unavailable.</p><ul className="hotel-ops-list">{rooms.flatMap(room=>barsForRoom(reservations,room.id,from,days,snapshot.assignments).map((bar,index)=><li key={bar.segmentId??`${room.id}-${bar.reservation.id}-${index}`}><strong>Room {room.number}</strong><span>{bar.reservation.check_in} → {bar.reservation.check_out}</span><small>{bar.historyKnown?"Recorded segment":"Planned allocation; historical boundary unavailable"}</small><button type="button" className="btn btn-soft" onClick={()=>onOpenFolio(bar.reservation.id)}>{bar.reservation.confirmation_number??bar.reservation.id}</button></li>))}</ul>{snapshot.assignments.length===0&&<p>No dated room allocations in this window.</p>}</section>}
       {activeRoom && activeBoard && (
         <RoomActionSheet
           room={activeRoom}
@@ -487,6 +509,6 @@ export default function FrontOfficeRack({
         </Modal>
       )}
     </section>
-    </>
+    </div>
   );
 }

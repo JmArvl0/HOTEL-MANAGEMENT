@@ -232,7 +232,7 @@ Key properties:
   nights already past), measured from reservation stay dates. The live figure in
   `metrics.occupancy`/`roomMix` is the room rack (`rooms.status`), which Front Desk updates
   independently — so the two can legitimately differ, and every surface that shows both labels which
-  is which (Reports, Overview, Owner Executive). The Owner executive trend
+  is which (Reports, Dashboard, Owner Executive). The Owner executive trend
   (`/api/owner/data`) is computed by the same helper, never a second copy.
 - **Promise-based dialog bridge.** All three dashboards run their confirm/prompt/form dialogs
   through `components/ui/action-dialogs.tsx` (`useActionDialogs`) — no ad-hoc dialog state.
@@ -828,6 +828,17 @@ Staff operations (each a named RPC with row locks + audit, §10):
   reservation, posts any legacy transport lines as folio charges (deterministic idempotency keys),
   and files the booking's transportation preference as a live request (§7.11). `accounting_reject_deposit`
   returns a proof with a reason.
+- **Payment Details** uses one shared `PaymentDetailsDialog` receipt for deposit
+  and stay-payment records, including pending review. The selected payment supplies the
+  amount, guest/stay, method/reference, status, proof metadata and Manila timestamp;
+  existing signed proof previews remain available. The fluid receipt keeps its
+  header and X close control visible above a keyboard-accessible scrolling record;
+  there is no duplicate bottom Close button. Escape also dismisses the modal.
+  Purpose identifies the payment type; only deposits include the expected amount
+  and over/under comparison. Only pending records with Accounting review capability
+  expose the existing Verify/Reject callbacks in a persistent footer. PayMongo
+  payments never expose manual confirmation; authorized rejection remains. The
+  existing endpoints, signed proof access and server-side authorization are unchanged.
 - **Housekeeping owns the dirty→ready leg** (§7.5); **Maintenance owns serviceability** (§7.6).
 
 ### 7.5 Housekeeping workflow
@@ -1042,11 +1053,36 @@ are unchanged. Workspaces offered per role:
 
 | Role | Sections offered |
 |---|---|
-| Manager | Overview (risk command centre), reservations, rooms (+ **Manage rooms** roster, §6), guests, guest requests, **Transportation**, **Room Types & Photos**, **Transfer Vehicles**, housekeeping, maintenance, inventory, **Approvals & Escalations**, **Reports** (performance center + daily-report review, §7.12) |
-| Front Desk | Overview (arrivals/departures/in-house/rooms ready), reservations, rooms, guests, guest requests, **Transportation**, housekeeping, billing, Deposit verification (queue view — verification itself is Accounting's), **Transactions · Guest folios · Cash & shifts · Financial documents**, Approvals, **Reports** (daily operations report, §7.12) |
-| Housekeeping | Overview, rooms, guest requests, housekeeping tasks, inventory, Approvals |
-| Maintenance | Overview, rooms, guest requests, maintenance orders, inventory, Approvals |
-| Accounting | Overview, reservations, billing, **Deposit verification** (the only role that can act on it), Refunds, **Transactions · Folios · Cash & shifts · Reconciliation · Documents**, Reports, Approvals |
+| Manager | Dashboard (risk command centre), reservations, rooms (+ **Manage rooms** roster, §6), guests, guest requests, **Transportation**, **Room Types & Photos**, **Transfer Vehicles**, housekeeping, maintenance, inventory, **Approvals & Escalations**, **Reports** (performance center + daily-report review, §7.12) |
+| Front Desk | Dashboard (arrivals/departures/in-house/rooms ready), reservations, rooms, guests, guest requests, **Transportation**, housekeeping, billing, Deposit verification (queue view — verification itself is Accounting's), **Transactions · Guest folios · Cash & shifts · Financial documents**, Approvals, **Reports** (daily operations report, §7.12) |
+| Housekeeping | Dashboard, rooms, guest requests, housekeeping tasks, inventory, Approvals |
+| Maintenance | Dashboard, rooms, guest requests, maintenance orders, inventory, Approvals |
+| Accounting | Dashboard, reservations, billing, **Deposit verification** (the only role that can act on it), Refunds, **Transactions · Folios · Cash & shifts · Reconciliation · Documents**, Reports, Approvals |
+
+**Front Office modules (2026-11-04).** Staff navigation separates Room Management
+(`room_rack`), Reservations (`reservations`), and Guest Management (`guests`).
+Front Desk Room Management uses `FrontOfficeRack` in rooms mode, defaulting to a
+seven-day calendar (Cards remains available). Rooms run down the left and dates
+across the top; guest names span assigned nights with checkout day excluded.
+Recorded room-move segments determine each room's allocation; overlapping records
+remain visible in separate lanes and unassigned stays are listed separately.
+Clicking a stay opens existing reservation details; clicking a room opens its
+existing dossier/actions. Only catalog-authorized roles see Manage rooms.
+Front Desk Reservations uses the same shared workspace in ledger mode, while
+Manager/Accounting retain their existing role-specific reservation surfaces.
+Guest Management retains existing profiles and history; no new CRUD or RBAC is
+implied by the label. Clickable summaries route to today's arrivals,
+today's in-house departures, all current in-house stays, or clean/available rooms
+in the selected board window. List queues distinguish arrivals, upcoming, in-house,
+departures and closed outcomes (completed/cancelled/no-show). An explicit selected
+window/full-history control governs dates; arrival/departure queues still mean
+hotel-local today. The Front Desk resource read paginates reservations, invoice
+balances and guest-phone joins; missing balances remain unknown. History refreshes
+independently every 30 seconds and on browser focus, with visible failures/retry
+instead of partial window fallback. The reservation ledger's Needs attention rail previews today/overdue issues
+without authorizing actions. Contextual actions reuse the existing arrival and
+reservation-detail workflows; server readiness/RBAC are unchanged. Room history
+is a disclosure in reservation details, replacing the module-wide assignment diary.
 
 **Consolidated guest profile (roadmap Phase 2).** The Guests module is more than a raw grid: every
 row opens a read-only dossier (`GET /api/staff/guests/[id]`, gated on `canViewGuestContact` —
@@ -1125,7 +1161,7 @@ health, and governance records are not repurposed as notifications.
 
 Refresh architecture: no Supabase Realtime exists anywhere (the browser never talks to Supabase —
 service-role-only, §13 — and realtime would require anon-key policies). Instead the operational
-client polls `/api/manager_dashboard` every 30 s even on non-Overview sections (a dedicated
+client polls `/api/manager_dashboard` every 30 s even on non-Dashboard sections (a dedicated
    `refreshAlerts` interval) so badges, bell, and toasts stay live everywhere — the same cadence as the
    section-data poll, never faster. Contract tests: `lib/staff-notification-badges.test.ts` (count
    definitions, role gating, silent seed, id dedup); history tests: `lib/notification-history.test.ts`
@@ -1472,7 +1508,7 @@ and **per-room operations QR** (persistent placard token, printable at `/qr-plac
 rotatable by Manager; the same QR resolves role-aware: guest with an active in-room stay → guest
 request entry; housekeeping → room task context; maintenance → room work orders; front
 desk/manager/owner/admin → room summary; anyone else → generic refusal). The scanner is a
-dashboard modal (opened from Overview and Reservations): camera via jsQR (works in iPhone Safari)
+dashboard modal (opened from Dashboard and Reservations): camera via jsQR (works in iPhone Safari)
 with a manual token-entry fallback (camera failures differentiate blocked / unavailable / unsupported),
 and explicit
 invalid/expired/revoked/unauthorized states. All manual workflows remain fully intact.
@@ -1842,7 +1878,7 @@ day's report). All return `{ data: null, message }` degradation, never 5xx, when
 **QR operations** (`/api/qr`, §7.13): `POST /resolve` (token → role-aware resolution with current
 resource-state re-check + scan audit); `GET /reservation/[id]` (guest-owner or staff; **confirmed
 reservations only** — token rotates on each fetch); `GET /room/[roomId]` (staff placard data) and
-`POST /room/[roomId]/rotate` (manager/owner/admin). Scanner: dashboard modal opened from Overview
+`POST /room/[roomId]/rotate` (manager/owner/admin). Scanner: dashboard modal opened from Dashboard
 and Reservations; pages: `/qr-placard/[roomId]`
 (printable placard).
 

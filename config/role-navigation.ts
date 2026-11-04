@@ -29,14 +29,14 @@ export const NAV_GROUPS: { id: NavGroupId; label: string }[] = [
 export type NavItem = { label: string; section: Section; roles?: Role[]; group: NavGroupId; hidden?: boolean };
 
 export const NAV_ITEMS: NavItem[] = [
-  { label: "Overview", section: "overview", group: "workspace" },
+  { label: "Dashboard", section: "overview", group: "workspace" },
   { label: "Hotel Operations", section: "hotel_operations", roles: ["front_desk","manager","housekeeping","maintenance","accounting"], group: "operations" },
-  { label: "Room Reservations", section: "room_rack", roles: ["front_desk", "manager", "owner"], group: "front_office" },
-  // Deprecated fused surfaces: hidden from the sidebar but still renderable,
-  // so deep links and in-flight workflows keep working.
-  { label: "Reservations", section: "reservations", group: "front_office", hidden: true },
+  { label: "Room Management", section: "room_rack", roles: ["front_desk", "manager", "owner"], group: "front_office" },
+  { label: "Reservations", section: "reservations", group: "front_office" },
+  // The legacy rooms route remains available for existing links; the room
+  // calendar and authorized configuration entry live under Room Management.
   { label: "Rooms", section: "rooms", group: "front_office", hidden: true },
-  { label: "Guests", section: "guests", group: "front_office" },
+  { label: "Guest Management", section: "guests", group: "front_office" },
   { label: "Guest Requests", section: "guest_requests", roles: ["front_desk", "manager", "housekeeping"], group: "front_office" },
   { label: "Transportation", section: "transportation", roles: ["front_desk", "manager", "owner"], group: "front_office" },
   { label: "Approvals & Escalations", section: "approvals", roles: ["manager", "front_desk", "housekeeping", "maintenance", "accounting"], group: "operations" },

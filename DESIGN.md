@@ -4,6 +4,34 @@ The source-of-truth reference for the shipped UI. **Do not apply
 `design-system/haven-hotel/MASTER.md`** — it is superseded (see `DESIGN-STATUS.md` F2).
 This doc and `app/ui-primitives.css` are the current system.
 
+**Front Office workspaces (2026-11-04):** Separate Room Management, Reservations
+and Guest Management navigation entries. Room Management defaults to a full-width
+seven-day room/guest calendar, with Cards as an alternate format. Its room column
+and date header stay visible inside a horizontally scrollable frame; named stay
+bars carry status/reference/dates, with distinct lanes for overlapping allocations.
+Reservations opens the ledger directly, with four clickable shared summary cards
+and an actionable Needs attention rail. Summary links navigate between modules.
+List order is search → queue filters → scope/date controls → results. Dates stay
+visible in both views when the selected-window scope applies; full history is
+explicit. Rows expose stay dates/nights, payment/balance, advisory readiness and
+the next authorized action. Room history lives in a collapsed details disclosure.
+At ≤600px summaries use two columns and header actions wrap; at ≤760px the
+attention rail leads with a bounded scrollable queue and the table scrolls inside
+its frame. All styling is scoped to the reservation workspace; shared controls
+and live business workflows retain their ownership.
+
+**Front Desk dashboard spacing (2026-11-03):** Approved metric cards use
+top-right icons and aligned values/helper text. Direct panel headings in
+`.overview-role-front_desk` have zero left/right padding. Shared staff
+`.panel-heading` styles also have zero top padding; existing bottom padding
+and outer article padding remain intact.
+
+**Shared panel dividers (2026-11-03):** Direct `.panel > .panel-heading`
+dividers extend to the container edges across staff portals. The divider inset
+tracks the panel's actual padding, including analytics, reports and AI responsive
+variants; heading and body spacing remain unchanged. Flush `.data-panel` headers
+retain their existing full-width borders.
+
 **Approved HMS workflows (2026-11-03):** `app/hms-workflows.css` follows
 `staff-theme.css` and precedes the final shared sidebar layer. Inventory uses
 the approved table/history plus adjacent issue/count form; cash uses a visible
@@ -167,6 +195,27 @@ Canonical base (in `ui-primitives.css`, overrides the three legacy `.btn` blocks
    (Manage users, Update policy, …) never turn into blank squares (bug fixed in `ui-primitives.css`).
 
 ## 6. Forms & modals
+
+Staff deposit/stay-payment details and pending reviews share `PaymentDetailsDialog`, matching the
+user-supplied green-header receipt reference (2026-11-04), with the actual
+HAVEN Hotel & Residences name and shared `HavenLogo` mark (white on the green
+header in both themes). Garden Twin is a room type, never the hotel brand. This
+scoped exception keeps cream paper, subtle leaves, dotted rows, sage Paid/clay
+Cancelled chips, a beige total strip and scalloped bottom in
+both themes. The responsive follow-up replaces screenshot-sized geometry with a
+560px preferred desktop/laptop width (90vw cap), a tablet width capped at 520px,
+and mobile width `100vw - 24px` with 12px minimum side margins (≤680px). Height
+is automatic, capped at 88dvh/720px with safe viewport margins; short windows
+prioritize the available height. Titles use 26–34px, values 13–15px and labels
+10–12px with fluid padding. The branded header and its 44px X control remain
+outside the keyboard-accessible scrolling record; the redundant bottom Close
+button is removed, with balanced paper padding below Total. Proof content expands the
+scroll region. No scale transforms. Values remain live. The common title is
+Payment Details; Purpose distinguishes the payment type. The same detail-row
+component renders both sections. Deposits include Expected Deposit and over/under
+comparison. Pending records get review actions only when the caller has Accounting
+authority; these actions stay in a fixed footer. Gateway payments never offer manual
+confirmation. Other viewers and settled records use the same receipt in read-only mode.
 
 - `.form-actions` / `.multistep-actions` right-align with a 10px gap; the multi-step **Back** button
   sits alone on the left, Cancel + primary hug the right. No spacer elements — the old

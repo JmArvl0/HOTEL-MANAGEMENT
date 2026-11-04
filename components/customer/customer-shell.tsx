@@ -21,7 +21,7 @@ const getGuestNavLabels = () => ({
   // Add more context-aware labels here if needed
 });
 
-const NAV = [{ href: "/account", label: "Overview", icon: Home, exact: true }, { href: "/account/find-room", label: "Find a Room", icon: Compass }, { href: "/my-reservations", label: "My Reservations", icon: CalendarDays }, { href: "/account/transportation", label: "Transportation", icon: CarTaxiFront }, { href: "/account/payments", label: "Payments & Folio", icon: ReceiptText }, { href: "/account/requests", label: getGuestNavLabels().requests, icon: BookOpenText }, { href: "/account/loyalty", label: "Rewards", icon: Award }];
+const NAV = [{ href: "/account", label: "Dashboard", icon: Home, exact: true }, { href: "/account/find-room", label: "Find a Room", icon: Compass }, { href: "/my-reservations", label: "My Reservations", icon: CalendarDays }, { href: "/account/transportation", label: "Transportation", icon: CarTaxiFront }, { href: "/account/payments", label: "Payments & Folio", icon: ReceiptText }, { href: "/account/requests", label: getGuestNavLabels().requests, icon: BookOpenText }, { href: "/account/loyalty", label: "Rewards", icon: Award }];
 const HELP = { href: "/account/help", label: "Help & Support", icon: CircleHelp };
 // Pages reachable from the account menu or header still need a header title.
 const TITLES = [...NAV, { href: "/account/notifications", label: "Notifications" }, { href: "/account/profile", label: "My Profile" }, { href: "/account/loyalty", label: "HAVEN Rewards" }, HELP, { href: "/account/settings", label: "Account Security" }, { href: "/booking/details", label: "Guest details" }, { href: "/booking/review", label: "Review" }, { href: "/booking/payment", label: "Reservation deposit" }, { href: "/booking/confirmation", label: "Confirmation" }];
@@ -49,7 +49,7 @@ export function CustomerShell({ user, notifications, initialUnreadCount, session
   const commandItems: CommandItem[] = useMemo(() => {
     const labels = getGuestNavLabels();
     return [
-      { id: "overview", label: "Overview", category: "Navigation", hint: "Your stay & guest dashboard", icon: Home, onSelect: () => router.push("/account") },
+      { id: "overview", label: "Dashboard", category: "Navigation", hint: "Your stay & guest dashboard", icon: Home, onSelect: () => router.push("/account") },
       { id: "find-room", label: "Find a Room", category: "Navigation", hint: "Browse and book rooms", icon: Compass, onSelect: () => router.push("/account/find-room") },
       { id: "reservations", label: "My Reservations", category: "Navigation", hint: "View your bookings and stays", icon: CalendarDays, onSelect: () => router.push("/my-reservations") },
       { id: "transportation", label: "Transportation", category: "Navigation", hint: "Airport transfers and rides", icon: CarTaxiFront, onSelect: () => router.push("/account/transportation") },

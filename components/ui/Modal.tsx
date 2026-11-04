@@ -51,6 +51,8 @@ export interface ModalProps {
   size?: "sm" | "md" | "lg" | "xl" | "full";
   /** "branded" = the Haven forest header (title/description/close only); "plain" = compact light header for utility dialogs. */
   headerVariant?: "branded" | "plain";
+  /** Optional brand artwork kept in the non-scrolling header. */
+  headerBrand?: ReactNode;
   showCloseButton?: boolean;
   closeOnOverlayClick?: boolean;
   closeOnEscape?: boolean;
@@ -75,6 +77,7 @@ export function Modal({
   children,
   size = "md",
   headerVariant = "plain",
+  headerBrand,
   showCloseButton = true,
   closeOnOverlayClick = true,
   closeOnEscape = true,
@@ -180,7 +183,11 @@ export function Modal({
       modal.focus();
       const { initialFocusRef: initial } = latest.current;
       setTimeout(() => {
-        initial?.current?.focus() ?? modal.focus();
+        if (initial?.current) {
+          initial.current.focus();
+        } else {
+          modal.focus();
+        }
       }, 0);
     }
 
@@ -225,6 +232,7 @@ export function Modal({
           onClick={(e) => e.stopPropagation()}
         >
           <div className="modal-header">
+            {headerBrand}
             <div className="modal-header-text">
               <h2 id={titleId} className="modal-title">{title}</h2>
               {description && (

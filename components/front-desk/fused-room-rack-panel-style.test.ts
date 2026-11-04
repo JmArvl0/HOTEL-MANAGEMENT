@@ -31,10 +31,11 @@ describe("fused room rack style contract", () => {
     expect(css).toMatch(/\.board-ops\{[^}]*position:\s*sticky/);
   });
 
-  it("styles the range control and keeps the search section outside the table card", () => {
+  it("styles the date range and separates workspace controls from reservation results", () => {
     expect(css).toContain(".board-range-trigger");
     expect(css).toContain(".board-range-pop");
-    expect(css).toContain(".board-tabs-searchpanel");
+    expect(css).toContain(".app-shell .reservation-workspace .page-header-actions");
+    expect(css).toContain(".room-rack .board-tabs .table-scroll");
     expect(css).not.toContain(".board-date-nav");
     expect(css).not.toContain(".board-date-field");
     expect(css).not.toContain(".board-tabs-search{");
