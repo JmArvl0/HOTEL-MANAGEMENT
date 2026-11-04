@@ -2,17 +2,3 @@
 @media(max-width:850px){.app-shell .hms-split{grid-template-columns:1fr}.app-shell .hms-metrics>div{padding:14px 12px}.app-shell .hms-metrics b{font-size:22px}.app-shell .hms-workflow input,.app-shell .hms-workflow select,.app-shell .hms-workflow textarea{font-size:16px;min-height:44px}.app-shell .hms-workflow .btn,.app-shell .hms-workflow .table-action{min-height:44px}.app-shell .hms-metrics span{font-size:11px}}
 
 .hms-cash-count select{padding:10px 12px;border:1px solid var(--line);border-radius:8px;color:inherit;background:var(--tail-bg-surface)}.hms-cash-count input[type=checkbox]{width:18px;height:18px}.hms-cash-count{margin-block:16px}
-
-.app-shell .hms-accounting-split>.data-panel{min-width:0}.app-shell .hms-accounting-split>.hms-panel{margin-top:0}
-
-.app-shell .hms-accounting-ledger{min-width:0;display:grid;gap:18px}.app-shell .hms-accounting-ledger>.data-panel{min-width:0}
-
-/* Keep the cash drawer beside the page heading; let its dense ledger use the full width. */
-.app-shell .hms-accounting-split>.hms-accounting-ledger{display:contents}
-.app-shell .hms-accounting-split>.hms-accounting-ledger>.page-header{grid-column:1;grid-row:1;min-width:0}
-.app-shell .hms-accounting-split>.hms-accounting-ledger>.mod-kpis{grid-column:1/-1;grid-row:2;min-width:0}
-.app-shell .hms-accounting-split>.hms-accounting-ledger>.haven-data-toolbar{grid-column:1/-1;grid-row:3;min-width:0}
-.app-shell .hms-accounting-split>.hms-accounting-ledger>.data-panel{grid-column:1/-1;grid-row:4;min-width:0}
-.app-shell .hms-accounting-split>.hms-accounting-ledger>.data-panel .table-scroll table{width:100%;min-width:1080px}
-.app-shell .hms-accounting-split>.hms-panel{grid-column:2;grid-row:1}
-@media(max-width:850px){.app-shell .hms-accounting-split>.hms-panel{grid-column:1;grid-row:5}}

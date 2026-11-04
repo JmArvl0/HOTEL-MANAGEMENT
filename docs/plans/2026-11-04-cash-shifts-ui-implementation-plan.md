@@ -1,9 +1,14 @@
 # Cash & Shifts / Cash Drawer — Implementation Plan
 
 - **Date:** 4 November 2026, Asia/Manila
-- **Status:** Plan and visual reference only. Application implementation awaits approval.
+- **Status:** Approved by the user's subsequent implementation request and implemented locally on 4 November 2026. Verification and remaining manual coverage are recorded in [implementation QA](../qa/cash-shifts-ui-implementation-2026-11-04.md).
 - **Scope:** Existing cashier workflow plus the proposed desktop, tablet and mobile UI.
 **Execution:** One agent; preserve concurrent changes and follow root `AGENTS.md`.
+
+**Subsequent QA:** [Data destinations and persistence report](../qa/cash-shifts-data-flow-qa-2026-11-04.md)
+confirms local SQL save/read-back and identifies KI-021: normal refunds do not
+provide a drawer link. Unsubmitted drafts last only while the component remains
+mounted. No refund payout-policy correction is included in this UI implementation.
 
 ## 1. Outcome and review boundary
 
@@ -15,7 +20,7 @@ The business workflow stays:
 
 Handover is parallel operational follow-up. It does not transfer cash, change the drawer opener, authorize closure or become an additional mandatory closing step. This is a cashier session, not an attendance or employee-scheduling feature.
 
-The user's latest request authorizes this plan and the inclusion of the proposed UI. It does not approve implementation, a label rename, deployment, schema changes or hosted operational writes.
+The user subsequently explicitly authorized application implementation. The existing “Cash & Shifts” label is retained. Deployment, schema changes and hosted operational writes are outside this task.
 
 **Naming recommendation:** “Cash Drawer” is clearer for staff. Until explicitly accepted, retain the existing “Cash & Shifts” label. If accepted, change display text only; retain `cash_shifts`, existing URLs, permission keys and database names. Renaming is not a dependency of the UI work.
 
@@ -115,10 +120,10 @@ Existing ManagerDashboardClient / authenticated staff shell
     Attention summary
     Current shift / no-open-drawer surface
       Identity and Manila timing
-      Cash basis breakdown
       CashCountPanel: one owner of count, note and retry state
         Expected / counted / difference
-        Count review using existing Modal or visible form
+        Count review using existing Modal
+      Supporting cash basis breakdown
       Lifecycle and reconciliation state
     Cash movements
     Authorized linked handover summary → existing module
@@ -134,7 +139,7 @@ These are logical sections, not a requirement to create a file per section. Keep
 | `components/manager/cash-shifts-workspace.css` — new | Scoped light/dark layout, semantic states, responsive recomposition and financial/table typography. |
 | `components/manager/cash-count-panel.tsx` | Adapt count comparison/review presentation without duplicating state, losing retry behavior or weakening reset/validation. Keep component mounted across presentation-only changes. |
 | `components/manager/manager-dashboard-client.tsx` | Route only `cash_shifts` through the new workspace; reuse action callbacks, loading and status refresh; preserve all other Accounting sections and concurrent payment-detail work. |
-| `lib/cash-shift-display.ts` — new if needed | Small pure selectors/formatters for derived breakdown, nullable values, role/state presentation and history filtering. Reuse centavo utilities. No database access here. |
+| `lib/cash-shift-display.ts` — new if needed | Small pure selectors/formatters for derived breakdown, nullable values, role/state presentation and history filtering. Match the existing centavo arithmetic in a browser-pure helper; avoid importing server/database dependencies. |
 | `app/hms-workflows.css` | Remove only obsolete cash-specific split/placement rules after the new workspace is wired. Do not alter stock/handover or shared contrast behavior. |
 | Focused component/helper tests and existing regressions | Verify observable cash behavior, not snapshots that merely mirror markup. |
 | `DESIGN.md`, `SYSTEM.md`, session/handoff | Update only verified implementation outcomes after approval and completed validation. No new approved decision is recorded for this draft plan. |
@@ -143,73 +148,75 @@ These are logical sections, not a requirement to create a file per section. Keep
 
 ### P0 — Baseline and approval
 
-- [ ] Obtain approval of the proposed direction/plan before editing application files. Retain the current display name unless rename is explicitly accepted.
-- [ ] Check git status and reread the current target files; isolate this task's diff and preserve unrelated changes.
-- [ ] Run current typecheck and relevant cash regression tests. Record failures with paths before making changes; do not claim historical test counts as a current result.
-- [ ] Confirm current cash/ledger/handover schemas and actual imports. Do not query or change hosted financial records as part of layout work.
+- [x] Obtain approval of the proposed direction/plan before editing application files. Retain the current display name unless rename is explicitly accepted.
+- [x] Check git status and reread the current target files; isolate this task's diff and preserve unrelated changes.
+- [x] Run current typecheck and relevant cash regression tests. Record failures with paths before making changes; do not claim historical test counts as a current result.
+- [x] Confirm current cash/ledger/handover schemas and actual imports. Do not query or change hosted financial records as part of layout work.
 
 **Exit:** clear baseline, bounded files and confirmed existing contracts.
 
 ### P1 — Financial presentation selectors
 
-- [ ] Select the current open drawer independently from filtered/paged history; select latest closed drawer separately when none is open.
-- [ ] Implement nullable money handling, paid-linked incoming/refund breakdown, recorded closed comparisons and Manila date/duration formatting.
-- [ ] Keep net collected and historical signed variance semantics unchanged. Handle missing/unknown staff and invalid timestamps explicitly.
-- [ ] Test cents, zero, missing count, refund direction, excluded transactions, recorded closed values and retained reconciliation differences.
+- [x] Select the current open drawer independently from filtered/paged history; select latest closed drawer separately when none is open.
+- [x] Implement nullable money handling, paid-linked incoming/refund breakdown, recorded closed comparisons and Manila date/duration formatting.
+- [x] Keep net collected and historical signed variance semantics unchanged. Handle missing/unknown staff and invalid timestamps explicitly.
+- [x] Test cents, zero, missing count, refund direction, excluded transactions, recorded closed values and retained reconciliation differences.
 
 **Exit:** every displayed financial value has one source and the sample arithmetic agrees without changing server calculations.
 
 ### P2 — Current-shift UI and count integration
 
-- [ ] Add the scoped workspace, identity/timing, cash basis, comparison, attention and lifecycle sections.
-- [ ] Retain one count/note/retry owner keyed by drawer ID + actor ID + role. A same-drawer refresh preserves the draft; changing drawer/operator/role clears it.
-- [ ] Keep count input explicitly entered and preserve nonnegative amount, note-length/400-character limits and nonzero-variance explanation behavior.
-- [ ] Wire the page action and local action to the same review/count flow. If using a modal, use the existing Modal component; Cancel must make no request and must not lose the underlying draft.
-- [ ] Preserve opening defaults/location validation and existing POST/PATCH payloads. Disable duplicate submits. Preserve draft on failures; display server-returned close values on success.
-- [ ] On open/close success refresh the ledger and shared header drawer status. On stale/already-closed responses refresh without submitting a second financial operation automatically.
+- [x] Add the scoped workspace, identity/timing, cash basis, comparison, attention and lifecycle sections.
+- [x] Retain one count/note/retry owner keyed by drawer ID + actor ID + role. A same-drawer refresh preserves the draft; changing drawer/operator/role clears it.
+- [x] Keep count input explicitly entered and preserve nonnegative amount, note-length/400-character limits and nonzero-variance explanation behavior.
+- [x] Wire the page action and local action to the same review/count flow. If using a modal, use the existing Modal component; Cancel must make no request and must not lose the underlying draft.
+- [x] Preserve opening defaults/location validation and existing POST/PATCH payloads. Disable duplicate submits. Preserve draft on failures; display server-returned close values on success.
+- [x] On open/close success refresh the ledger and shared header drawer status. On stale/already-closed responses refresh without submitting a second financial operation automatically.
 
 **Exit:** existing open/count/close behavior works through the proposed layout with no synthetic production data.
 
 ### P3 — Movements and complete shift history
 
-- [ ] Render existing payments linked to the selected drawer; clearly distinguish paid cash included in the total from any other displayed state. Use source timestamps/reference/purpose and signed amounts.
-- [ ] Show unprovided movement staff honestly. Keep refund processing in its existing Accounting workflow.
-- [ ] Preserve full history with search, existing pagination and a local All / Awaiting reconciliation / Reconciled filter. Reset the page when filters change; filters must not hide current drawer operations.
-- [ ] Put all existing fields in the history row/detail: full ID, cashier, location, opening float, net collected, expected, counted, variance, status, opening/closure/reconciliation times and notes. Retain callable actions for every eligible historical closed record.
-- [ ] Surface older pending reconciliations even when a newer shift is already reconciled or another drawer is open. Do not route a pending-review count to an unrelated latest record.
-- [ ] Keep recorded historical aggregate access in a secondary scope-labeled summary/detail. Show honest empty and no-match states.
+- [x] Render existing payments linked to the selected drawer; clearly distinguish paid cash included in the total from any other displayed state. Use source timestamps/reference/purpose and signed amounts.
+- [x] Show unprovided movement staff honestly. Keep refund processing in its existing Accounting workflow.
+- [x] Preserve full history with search, existing pagination and a local All / Awaiting reconciliation / Reconciled filter. Reset the page when filters change; filters must not hide current drawer operations.
+- [x] Put all existing fields in the history row/detail: full ID, cashier, location, opening float, net collected, expected, counted, variance, status, opening/closure/reconciliation times and notes. Retain callable actions for every eligible historical closed record.
+- [x] Surface older pending reconciliations even when a newer shift is already reconciled or another drawer is open. Do not route a pending-review count to an unrelated latest record.
+- [x] Keep recorded historical aggregate access in a secondary scope-labeled summary/detail. Show honest empty and no-match states.
 
 **Exit:** no existing history, financial field or authorized action is lost in the more compact view.
 
 ### P4 — Operational handover summary
 
-- [ ] Read `/api/staff/handovers` only for this authorized workspace, with cancellation on unmount; do not change endpoint schemas or widen departments.
-- [ ] Select `source_type === "cash_shift"`, group by the actual `source_id`, distinguish current versus older visible shifts and resolve names only from supplied authorized staff.
-- [ ] Show actual awaiting-acknowledgement / acknowledged / resolved state. A personal attention count includes only unresolved, unacknowledged records assigned to this actor; label other visible departmental follow-up separately.
-- [ ] Label “recent 100 authorized records”; unknown/error/loading is not zero. Missing archived/older records must not produce an “all handovers clear” claim.
-- [ ] Navigate to the existing `team_operations` module for follow-up actions. Prefer a small optional existing-record focus prop over a new workflow; preserve source and version checks.
-- [ ] If handovers fail, keep cash operations usable, show a local retry and do not report a successful acknowledgement.
+- [x] Read `/api/staff/handovers` only for this authorized workspace, with cancellation on unmount; do not change endpoint schemas or widen departments.
+- [x] Select `source_type === "cash_shift"`, group by the actual `source_id`, distinguish current versus older visible shifts and resolve names only from supplied authorized staff.
+- [x] Show actual awaiting-acknowledgement / acknowledged / resolved state. A personal attention count includes only unresolved, unacknowledged records assigned to this actor; label other visible departmental follow-up separately.
+- [x] Label “recent 100 authorized records”; unknown/error/loading is not zero. Missing archived/older records must not produce an “all handovers clear” claim.
+- [x] Navigate to the existing `team_operations` module for follow-up actions. Prefer a small optional existing-record focus prop over a new workflow; preserve source and version checks.
+- [x] If handovers fail, keep cash operations usable, show a local retry and do not report a successful acknowledgement.
 
 **Exit:** contextual continuity is visible without adding cash-transfer semantics or duplicating handover writes.
 
 ### P5 — Responsive, theme and accessibility pass
 
-- [ ] Desktop: current shift with adjacent handover/reconciliation; movements and history below, financial columns aligned.
-- [ ] Tablet: shared navigation follows its existing behavior; current shift spans the width; narrower supporting panels stack as needed.
-- [ ] Mobile: owner/state → expected/count → difference → main action; supporting opening/in/out follows; movements → handover → history. Keep essential pending follow-up signposted above.
-- [ ] At very narrow widths stack cash comparisons and history controls; recompose table rows rather than shrinking typography. No page-level horizontal overflow.
-- [ ] Keep DOM/keyboard reading order aligned with the visual order; explicit labels, text plus color, visible focus, focus return, Escape, reduced motion and 44px touch actions.
-- [ ] Review light and dark appearances, long names/notes, large peso amounts, 200% zoom, short windows and nullable financial fields. Loading/error surfaces must not resemble a balanced drawer.
+- [x] Desktop: current shift with adjacent handover/reconciliation; movements and history below, financial columns aligned.
+- [x] Tablet: shared navigation follows its existing behavior; current shift spans the width; narrower supporting panels stack as needed.
+- [x] Mobile: owner/state → expected/count → difference → main action; supporting opening/in/out follows; movements → handover → history. Keep essential pending follow-up signposted above.
+- [x] At very narrow widths stack cash comparisons and history controls; recompose table rows rather than shrinking typography. No page-level horizontal overflow.
+- [x] Keep DOM/keyboard reading order aligned with the visual order; explicit labels, text plus color, visible focus, focus return, Escape, reduced motion and 44px touch actions.
+- [x] Review light/dark, large peso amounts, narrow layouts, nullable values and explicit unavailable states; retain the existing shared Modal focus/Escape behavior.
+- [ ] Complete manual 200% browser zoom, physical touch/Safari, long-content and very short-window combinations. These are unverified coverage, not completed checks.
 
 **Exit:** all proposed layouts remain usable with real content and each authorized state.
 
 ### P6 — Regression, browser QA and documentation
 
-- [ ] Run touched-file lint, typecheck, targeted tests, full suite and production build. Investigate new failures; report unrelated baseline failures separately without silently fixing them.
-- [ ] Render actual React components with representative fixtures for screenshot QA. Then perform authenticated read-only walkthroughs for Front Desk and Accounting where available; test financial mutations only in a verified isolated environment with disposable records.
-- [ ] Compare the actual application with the proposed identity/hierarchy, not only the standalone documentation mockup. Check 320, 390, 768, 1024 and 1440px plus light/dark and keyboard flow.
-- [ ] Confirm Transactions, Folios, statement Reconciliation, Documents, refund handling, payment collection and the shared header remain unchanged outside intended integration.
-- [ ] Update verified documentation and session/handoff selectively; label anything unverified. Do not mark a planned feature implemented.
+- [x] Run touched-file lint, typecheck, targeted tests, full suite and production build. Investigate new failures; report unrelated baseline failures separately without silently fixing them.
+- [x] Render actual React components with sample fixtures; complete authenticated Front Desk read-only walkthrough. Accounting sample-component checks and automated request tests pass.
+- [ ] Perform live Accounting walkthrough and isolated financial mutation E2E; no suitable disposable financial environment/session was used.
+- [x] Compare the actual application with the proposed identity/hierarchy, not only the standalone documentation mockup. Check 320, 390, 768, 1024 and 1440px plus light/dark and keyboard flow.
+- [x] Confirm Transactions, Folios, statement Reconciliation, Documents, refund handling, payment collection and the shared header remain unchanged outside intended integration.
+- [x] Update verified documentation and session/handoff selectively; label anything unverified. Do not mark a planned feature implemented.
 
 **Exit:** acceptance matrix satisfied, evidence recorded, implementation ready for review. Deployment and migration execution are separate from this plan.
 
@@ -243,7 +250,7 @@ npm run build
 git diff --check
 ```
 
-New test/helper filenames above are planned, not existing files. Extend existing source-location assertions if extraction moves legitimate code; keep their behavioral intent. Do not preserve brittle source placement by duplicating dead code. Browser QA must identify actual-component fixtures versus authenticated application coverage. Current recorded full-suite failures are only a historical reference until rerun.
+The helper and component tests now exist. The obsolete Open-button source-location assertion was replaced by actual-component coverage; server locking/uniqueness assertions remain. Browser QA distinguishes sample component fixtures from authenticated application reads. The implementation full-suite run passes 213 files / 2,292 tests.
 
 ## 9. Exclusions, rollback and completion
 
@@ -251,4 +258,4 @@ No general expenses, arbitrary cash withdrawals, cash drops, financial-custody t
 
 Rollback is presentation-only: restore the old cash-section routing/count layout and this task's scoped styles using a reviewed task-specific diff. Do not reset unrelated work in the dirty tree. There is no planned schema or financial-record rollback because neither is changed.
 
-Implementation is done only when the UI is integrated against actual existing data, financial/permission contracts and draft behavior survive, all history remains accessible, relevant checks pass or documented pre-existing blockers are explained, browser evidence is honest, and the reviewed proposal's hierarchy is reflected in the application. This plan itself does not satisfy those completion conditions.
+The local integration satisfies the functional scope. See the linked QA report for passing checks, actual-component screenshots and authenticated Front Desk read-only verification. Live Accounting mutations, physical touch/Safari and browser 200% zoom remain unverified. No deployment or financial-record write was performed.

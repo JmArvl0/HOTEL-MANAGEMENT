@@ -1,0 +1,128 @@
+{
+  "database": "cash_data_qa_940fd77f7c8c43e79a1879fa68e9564e",
+  "host": "127.0.0.1",
+  "port": 55441,
+  "replayCount": 117,
+  "checks": [
+    {
+      "name": "cash payment without drawer leaves no payment or receipt",
+      "result": "PASS"
+    },
+    {
+      "name": "open saves opener, float, default location and audit",
+      "result": "PASS"
+    },
+    {
+      "name": "second drawer and unauthorized opening are rejected",
+      "result": "PASS"
+    },
+    {
+      "name": "cash collection saves payment linked to drawer, folio and receipt",
+      "result": "PASS"
+    },
+    {
+      "name": "same payment retry creates exactly one payment and receipt",
+      "result": "PASS"
+    },
+    {
+      "name": "noncash collection is saved but excluded from the drawer",
+      "result": "PASS"
+    },
+    {
+      "name": "receipt failure rolls back payment and folio together without orphan data",
+      "result": "PASS"
+    },
+    {
+      "name": "handover saves cash source and receiver; acknowledgement and resolution persist",
+      "result": "PASS"
+    },
+    {
+      "name": "invalid-source and cross-department handovers create no orphan row",
+      "result": "PASS"
+    },
+    {
+      "name": "refund persists to refund/payment/attempt/audit tables; drawer-link gap reproduced",
+      "result": "PASS"
+    },
+    {
+      "name": "other cashier and unexplained shortage cannot close or alter payments",
+      "result": "PASS"
+    },
+    {
+      "name": "close persists recorded count, expected, shortage, notes, retry key and audit",
+      "result": "PASS"
+    },
+    {
+      "name": "same close retry does not duplicate its audit or change the original count",
+      "result": "PASS"
+    },
+    {
+      "name": "reconcile enforces role and explanation then saves reviewer without erasing shortage",
+      "result": "PASS"
+    },
+    {
+      "name": "cash-shift reconciliation does not create statement reconciliation or edit guest payments",
+      "result": "PASS"
+    },
+    {
+      "name": "new server connection reads committed drawer, handover and receipt",
+      "result": "PASS"
+    },
+    {
+      "name": "all recorded cash/payment/handover audit destinations exist",
+      "result": "PASS"
+    }
+  ],
+  "findings": [
+    {
+      "id": "CASH-DATA-01",
+      "severity": "high",
+      "summary": "Normal refund processing writes manual_refund with null cash_shift_id; Cash out/refund rows in the drawer do not receive that refund. Actual cash payout from the drawer cannot be classified by the current refund form."
+    }
+  ],
+  "readBack": {
+    "drawer": {
+      "id": "981415ef-0718-4cdb-8c15-a1b06b3bfab2",
+      "location": "Front Desk",
+      "opening_amount": "1000.00",
+      "status": "reconciled",
+      "expected_cash": "3000.00",
+      "actual_cash": "2750.00",
+      "variance": "-250.00",
+      "close_notes": "QA independent count; refund not drawer-linked",
+      "reconciliation_notes": "QA reviewed original shortage"
+    },
+    "payment": {
+      "id": "412b3257-5fc8-480a-bf31-a19f295ef084",
+      "invoice_id": "CASH-QA-aeea0811-I",
+      "reservation_id": "CASH-QA-aeea0811",
+      "cash_shift_id": "981415ef-0718-4cdb-8c15-a1b06b3bfab2",
+      "amount": "2000.00",
+      "status": "paid",
+      "method": "cash",
+      "purpose": "stay_payment"
+    },
+    "refund": {
+      "amount": "250.00",
+      "method": "manual_refund",
+      "purpose": "refund",
+      "status": "paid",
+      "cash_shift_id": null
+    },
+    "handover": {
+      "source_type": "cash_shift",
+      "source_id": "981415ef-0718-4cdb-8c15-a1b06b3bfab2",
+      "summary": "Review drawer count after close",
+      "resolution": "QA count reviewed",
+      "version": 3
+    }
+  },
+  "fixture": {
+    "shift": "981415ef-0718-4cdb-8c15-a1b06b3bfab2",
+    "reservation": "CASH-QA-aeea0811",
+    "invoice": "CASH-QA-aeea0811-I",
+    "handover": "85d60efa-fece-471a-8b0f-3a6e51b2c17e",
+    "paymentId": "412b3257-5fc8-480a-bf31-a19f295ef084"
+  },
+  "generatedAt": "2026-11-04T10:08:13.578Z"
+}

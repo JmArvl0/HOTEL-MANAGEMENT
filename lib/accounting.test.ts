@@ -227,10 +227,8 @@ describe("single open cash shift (20261024090000)", () => {
     expect(shiftRoute).toContain("A cash shift is already open. Close it before opening another.");
   });
 
-  it("disables the Open button while any shift is open", () => {
-    expect(dashboard).toContain("disabled={ledger.metrics.openCashShifts > 0}");
-    expect(dashboard).toContain("only one stays open at a time");
-  });
+  // Open-action visibility is exercised against CashShiftsWorkspace in its component tests.
+  // The property-wide locking and uniqueness assertions above remain the server backstop.
 
   it("logs the raw RPC failure and maps unmapped database errors to operator messages", () => {
     // Diagnosis (2026-10-03): a 409 with the bare fallback hid the real RPC

@@ -41,6 +41,24 @@ migrations remain unapplied; do not blindly push the root migration directory.
 See `docs/HMS-WORKFLOW-IMPLEMENTATION-2026-11-03.md` for exact versions, scope,
 test evidence and the signed-in/browser/application-deployment limitations.
 
+**Cash & Shifts UI (2026-11-04, local):** The existing shared drawer now has a
+dedicated workspace with independently entered count review, connected
+expected/count/variance, paid-linked cash-in/refund-out, complete paged history
+and shift details. Closed values remain recorded truth; reconciliation retains
+the original difference. The source-linked handover summary reads plural
+`/api/staff/handovers` and opens its existing follow-up record. Count drafts and
+retry keys survive same-drawer refresh; drawer/operator/role changes reset them.
+Failed refresh labels the cached ledger. Accounting reconciliation uses an
+explicit dialog whose Cancel sends no request, including balanced shifts.
+Existing cash roles, routes, locking and financial RPCs are unchanged. No schema
+change or deployment accompanies this UI work. See
+`docs/qa/cash-shifts-ui-implementation-2026-11-04.md` for verification limits.
+Data-flow QA subsequently verified local SQL persistence and identified a gap:
+normal `process_refund` writes `manual_refund` without `cash_shift_id`; a refund
+actually paid from the drawer cannot yet be classified/linked through that form
+(KI-021). Unsubmitted count drafts are component memory, not durable autosave.
+See `docs/qa/cash-shifts-data-flow-qa-2026-11-04.md` for field destinations.
+
 A **single-property hotel operations system** for a ~48-room boutique property (brand: **Haven
 Makati**). One Next.js deployment serves four surfaces:
 

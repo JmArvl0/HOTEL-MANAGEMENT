@@ -1,5 +1,18 @@
 # Known Issues
 
+## KI-021 — Normal refund workflow cannot link a physical cash payout to a drawer
+
+Status: Open (2026-11-04), high operational risk. Real isolated PostgreSQL QA
+reproduces `process_refund` saving a paid `manual_refund` payment with NULL
+`cash_shift_id`. Refund request/attempt/payment/folio/audit records persist,
+but Cash & Shifts cash-out includes only paid refunds linked to that drawer.
+If staff actually pay from the drawer, the payout cannot currently be expressed
+and may appear as a shortage. Noncash refunds should remain excluded.
+Do not auto-attach every refund or rewrite history. Correction needs an explicit
+payout method and atomic authorized cash-drawer link. No migration/fix in this QA.
+See `docs/qa/cash-shifts-data-flow-qa-2026-11-04.md`, CASH-DATA-01, and
+[[2026-11-04 - Cash Shifts Data Flow QA]].
+
 ## KI-018 — Physical stock count draft silently rebases on refresh
 
 Status: Resolved (2026-11-03). Count draft now retains its original version through

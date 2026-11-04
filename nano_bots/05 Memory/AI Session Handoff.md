@@ -1,5 +1,16 @@
 # AI Session Handoff
 
+## Current - Cash & Shifts commit/push verification (2026-11-04)
+
+User authorized committing/pushing all26 cash implementation/QA files. Rebased
+onto origin/main `d707824`, preserving incoming room-rack refresh and both status
+notes. Combined typecheck/build pass; dashboard lint0errors/5existing warnings.
+Full suite2,313pass/2fail. Both failures (PO surface contract, reservation-history
+refresh after folio mutation) reproduce on pristine `d707824` (41pass/2fail).
+No baseline fixes or DB push bundled. Temporary checkout removed; generated
+build-type paths restored. Prior cash QA counts below are pre-sync checkpoints;
+KI-021 remains open. Details in cash data-flow QA report, Publish sync paragraph.
+
 ## Current - enterprise architecture implementation plan (2026-11-04)
 
 Created `docs/plans/2026-11-04-enterprise-architecture-10-of-10.md`: 25 tasks,
@@ -162,10 +173,26 @@ touch/Safari remain unverified. Generated build type paths removed; no deploymen
 or DB write. See [[2026-11-04 - Shared Payment Details]]; earlier reference/sizing
 sessions retain the implementation history.
 
-## Cash & Shifts plan (2026-11-04)
+## Cash & Shifts implementation (2026-11-04 — latest local)
 
-Implementation plan and portable proposed UI references are in
-`docs/plans/2026-11-04-cash-shifts-ui-implementation-plan.md`.
-Plan only; UI integration and suggested rename await approval. Preserves the
-concurrent ledger-width fix and plural source-linked handover contract.
-No app/DB/deployment changes. See [[2026-11-04 - Cash Drawer UI Implementation Plan]].
+User approved implementation. Dedicated current-drawer/count comparison,
+shared Modal review, complete movement/history/details, existing-role
+reconciliation and plural source-linked handover summary/focus are integrated.
+Name retained. Same-drawer drafts/retry keys survive refresh/filter/cancel;
+identity changes reset. Failed refresh labels cached values; balanced
+reconciliation Cancel no longer submits. No schema, hosted write or deployment.
+
+Follow-up data-flow QA: 17 actual PostgreSQL checks pass, including committed
+second-connection read-back and forced receipt failure rollback. New current
+checks: 159 targeted tests, 214 files / 2,303 full-suite tests, typecheck and QA
+file lint pass. Earlier implementation build passed; no runtime changes in QA.
+Confirmed KI-021: normal refunds persist as manual_refund without drawer link;
+physical drawer cash payout cannot yet be expressed and may look like shortage.
+Drafts persist only while mounted, not through leaving/reload (new test proves).
+User requested QA/report; gap documented, financial behavior not changed.
+Local test cluster stopped; no hosted write/deploy. Live Accounting/write browser
+E2E, zoom/touch/Safari remain unverified. See
+`docs/qa/cash-shifts-data-flow-qa-2026-11-04.md` and
+[[2026-11-04 - Cash Shifts Data Flow QA]]; implementation screenshot report stays
+in `docs/qa/cash-shifts-ui-implementation-2026-11-04.md`. Earlier counts above are
+prior-checkout checkpoints.

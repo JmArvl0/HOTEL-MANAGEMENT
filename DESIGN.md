@@ -34,8 +34,14 @@ retain their existing full-width borders.
 
 **Approved HMS workflows (2026-11-03):** `app/hms-workflows.css` follows
 `staff-theme.css` and precedes the final shared sidebar layer. Inventory uses
-the approved table/history plus adjacent issue/count form; cash uses a visible
-physical-count/variance form beside the ledger. Operational Handover has a
+the approved table/history plus adjacent issue/count form. Cash now uses the
+approved Cash & Shifts workspace (2026-11-04): connected expected/count/difference,
+independent count review in the shared Modal, handover/reconciliation rail, and
+full-width movements/history. `cash-shifts-workspace.css` owns its ivory/forest
+light palette, equivalent dark palette and mobile row recomposition. Financial
+comparison precedes supporting cash basis in both DOM and visual order. Count
+drafts remain owned by `CashCountPanel`; filters and same-drawer refresh preserve
+them. Unavailable counts never imply agreement. Operational Handover has a
 standalone source/owner form and filterable follow-up log. Guest and uploaded-ID
 forms preserve the existing portal/arrival shell. Labels, draft preservation,
 stable retry keys, truthful status/error feedback and keyboard focus are part of

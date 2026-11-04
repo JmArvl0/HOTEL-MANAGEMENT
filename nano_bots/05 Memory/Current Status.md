@@ -1,5 +1,45 @@
 # Current Status
 
+## Commit/push sync verification (2026-11-04)
+
+- Cash implementation/QA rebased onto origin/main `d707824` at user's request.
+  Preserved incoming room-rack refresh and all scope/status records. Combined
+  typecheck/build pass; dashboard lint0errors/5existing warnings. Full tests:
+  2,313pass/2fail; both failures independently reproduced on pristine origin/main
+  (PO surface contract and reservation-history refresh). Earlier cash counts are
+  pre-sync checkpoints. KI-021 remains open; no migration/deployment bundled.
+
+## Cash & Shifts data-flow QA (2026-11-04 — latest)
+
+- Permanent save/read-back verified for drawer, payment/receipt/folio,
+  close/count/notes, Accounting review, handover and audits in a new local-only
+  PostgreSQL DB. 17 SQL checks, 159 targeted tests and 214 files / 2,303 full-suite
+  tests pass; typecheck and touched QA-file lint pass. Test cluster stopped.
+- **Open KI-021:** normal refunds save with no drawer link; actual physical
+  cash refund cannot yet feed drawer Cash out and can appear as shortage.
+  Unsent count drafts are mounted component memory; leaving/reload clears them.
+- Field destinations and user-facing explanation documented in
+  `docs/qa/cash-shifts-data-flow-qa-2026-11-04.md`.
+  [[2026-11-04 - Cash Shifts Data Flow QA]]. No runtime financial changes,
+  hosted business writes, deployment or commit. Browser financial-write E2E
+  remains unverified; actual SQL persistence is now verified locally.
+
+## Cash & Shifts implementation (2026-11-04 — latest local)
+
+- Approved workspace integrated with live ledger, independent count comparison,
+  Modal review, complete movement/history/details, Accounting reconciliation
+  and authorized source-linked handover summary/navigation. Existing label,
+  shared-drawer roles, server locking and financial contracts retained.
+- Draft/retry preservation and explicit unavailable/stale values; reconciliation
+  Cancel never writes. 117 targeted tests pass; full implementation checkpoint
+  213 files / 2,292 tests supersedes the earlier local-audit count below. Final
+  typecheck/build pass; touched lint 0 errors / 3 baseline dashboard warnings.
+- Chrome live Front Desk read-only review and responsive light/dark component
+  fixtures completed. Live Accounting/write E2E, browser 200% zoom and physical
+  touch/Safari remain unverified. No schema, hosted write, commit or deployment.
+  [[2026-11-04 - Cash Shifts UI Implementation]]; implementation evidence in
+  `docs/qa/cash-shifts-ui-implementation-2026-11-04.md`.
+
 ## Scope and acceptance continuation (2026-11-04, local unreleased)
 
 - Local fixes cover legacy occupant updates, solo-register completion, vendor-optional
