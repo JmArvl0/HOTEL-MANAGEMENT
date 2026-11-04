@@ -671,6 +671,9 @@ Self-service actions and their constraints:
   frozen policy snapshot* (Asia/Manila day count) against settled `reservation_deposit` payments,
   cancels atomically, releases the assignment via trigger, and inserts exactly one
   `refund_requests` row when eligible > 0 (retry on cancelled returns existing state — idempotent).
+  Migration `20261103160000` records the unused obligation release and named cancellation fee;
+  the refund is the resulting folio credit, capped by settled funds. Independent transportation
+  charges retain their existing Accounting-only reversal rule.
   Website cancels are subject to the snapshot. Success fires a shared ToastStack confirmation and
   a persistent `reservation_cancelled` bell entry (migration `20261008010000`, per-reservation
   dedupe index; never fails the response). The cancelled detail page shows a REFUND section
@@ -771,7 +774,7 @@ pending/confirmed ── no-show ─────────> no_show           
 
 **Refunds have two paths, and only the exception path involves the Manager** (D-006: Accounting owns
 routine financial operations). `cancel_reservation` computes the entitlement from the reservation's
-frozen policy snapshot (basis points × settled deposit) and inserts the `refund_requests` row with
+frozen policy snapshot. New cancellations release the unused reservation obligation through an explicit credit adjustment and post a `cancellation_fee` equal to the settled deposit less its policy refund. The remaining folio credit (including other advance payments, less independently posted transportation charges) creates the `refund_requests` row with
 `exception_approval_id NULL` — that policy computation **is** the authorization, so Accounting settles
 it directly (`process_refund`) with no Manager step. Only when the requested refund departs from the
 policy amount does the refund_exception approval engine run (§7.8): Manager approves the exception
@@ -779,6 +782,24 @@ amount (validated ≤ settled deposit − already refunded; the approved amount 
 `eligible_amount` with `normal_policy_amount` as baseline), and Accounting then executes exactly that
 approved amount. The refund queue badges each row "Within policy" vs "Approved exception" so the
 distinction is visible at settlement time.
+
+**Explicit cancellation/no-show settlements (local implementation, migration `20261103160000`).**
+No-show fees equal settled reservation deposits after the frozen local cutoff. Pending proofs
+create neither charges nor refundable funds. Both transitions release the unused booking
+obligation, preserve independently posted transportation, post a named policy fee, and
+recompute paid/balance/credit. New refunds are capped by folio credit and settled receipts.
+Accounting execution of an approved refund exception posts a linked fee reversal before payout.
+`invoices.terminal_settlement` and charge `fee_snapshot` retain the original amount, exact fee,
+policy snapshot and timing; issued folio documents include that settlement. Daily close metrics
+show cancellation/no-show fees separately, net of posted fee reversals. Tax treatment continues
+using the reservation snapshot; this change does not define a new tax rule or GL journal.
+Historical closed reservations and issued documents are not backfilled. The statement
+viewer displays the original reservation obligation for new terminal settlements;
+reservation summaries distinguish booked totals from current balances and never
+assume a missing balance means settled. Closure refreshes both the room board and
+its full reservation history while retaining the selected view. Residual independent
+service balances on newly settled terminal reservations remain collectible through staff payment
+collection. Production continues the prior workflow until this migration and app release deploy.
 
 Staff operations (each a named RPC with row locks + audit, §10):
 
@@ -817,6 +838,14 @@ Task types: `checkout_cleaning`, `stayover_cleaning`, `inspection`, `maintenance
 `guest_request`, legacy free-text. Statuses: `pending → assigned → in_progress → (inspection) →
 completed`, with `deferred` and `cancelled`; rooms carry `housekeeping ∈ {dirty, cleaning, clean,
 inspection, reclean_required}`.
+
+**Local unreleased service instructions** (migration `20261103200000`): an active DND belongs to
+one in-house reservation, is audited on set/clear, and is cleared with history at checkout. It
+follows the reservation's active room assignment and blocks starting routine stayover cleaning.
+Front Desk can set/clear it; Housekeeping can set it only from an active room-care task. A recorded
+guest decline defers the task with a structured outcome; late service raises priority and records
+an immediate due time. Neither outcome changes room cleanliness. These service actions are not
+deployed until the migration and matching application release are applied.
 
 Assign → start (advisory lock on the room; task-type/room-state compatibility) → **complete** (next
 room state from the policy's `housekeepingInspectionRequired` and whether an open work order blocks
@@ -1479,7 +1508,7 @@ visibility is never the gate) serves a **read-only** workforce snapshot derived 
 - **Demo mode.** Without Supabase env the snapshot is served from the demo store (assignee names
   matched by name; no cash shifts in demo data).
 
-### 7.15 Inventory replenishment (roadmap Phase 7 — draft-only)
+### 7.15 Inventory replenishment and local purchase-order workflow
 
 The inventory demand forecast (§7.13) closes its loop into purchasing — as a **suggestion, never an
 order**. `GET /api/inventory/purchase-orders` (Manager/Owner/Admin) returns the same
@@ -1492,16 +1521,26 @@ stock, reorder point, predicted 3-day need, shortage, suggested quantity, estima
 (default = the suggested quantity). `POST` to the same route creates a row in the existing
 `purchase_orders` table:
 
-- **Draft means draft.** The route writes `status: 'draft'` (via `lib/purchase-orders.ts`
-  `buildDraftPurchaseOrder`, whose `status` type is the literal `"draft"`) and can write no other
-  status — there is no update/submit/send path of any kind, and nothing is ever transmitted to a
-  vendor. Existing drafts render read-only beneath the strip ("Draft only — review before any
-  order").
+- **Draft creation stays separate from approval.** The collection route creates or edits
+  `draft` rows using `buildDraftPurchaseOrder`; it does not submit them. Separate submit,
+  review, receive and cancel routes implement `draft → approved/pending_approval →
+  received/cancelled`. Submission recomputes costs; totals at/below the policy threshold
+  auto-approve, and higher totals require Owner/Admin review. Receiving an approved order
+  updates stock and records inventory movements in one transaction. These are local workflow
+  actions, not supplier communications. See migration `20261014010000` and
+  `app/api/inventory/purchase-orders/`.
 - **Server-side truth.** Unit cost is re-read from the `inventory` rows (never trusted from the
   client), the vendor must be active or absent, the total is recomputed server-side, and an
   `audit_logs` row (`inventory_draft_purchase_order`, `after_data.submittedToVendor: false`)
-  records the creation. Submitting/receiving against a real vendor remains a human, out-of-system
-  act — `purchase_orders` is still the future supply-chain interface table (§9).
+  records the creation. Supplier transmission, sourcing and enterprise procurement integration
+  remain outside the application. Any future SCM handoff must preserve existing local approvals,
+  stock receipts and history; the proposed ownership boundaries are in
+  `docs/ENTERPRISE_BOUNDARIES.md`, pending agreement with the other system teams.
+- **Local acceptance fixes (2026-11-04, unreleased):** the draft form accepts an
+  unassigned vendor, and existing orders remain visible after all shortages are
+  resolved. Migration `20261104020000` updates received stock's `healthy`/`low`/`out`
+  status in the same atomic receipt transaction, using the existing stock-movement
+  thresholds. Supplier transmission is still absent.
 
 ### 7.16 Hotel operations implementation candidate (2026-11-03)
 
@@ -1534,11 +1573,11 @@ staff walkthrough that preceded it.
   timestamp/version; the existing final check-in RPC remains authoritative. Staff
   reads use `/api/staff/reservations/[id]/readiness` and accept a candidate room.
 - **Staying guests** use `reservation_guests`, separate from booking/login ownership.
-  Front Desk can maintain companions within the reservation/type capacity using
-  versioned idempotent updates; Manager/Owner have read access. The primary remains
-  anchored to the reservation's registered guest. Existing rows are backfilled only
-  where guest ID/name agrees, and unmatched legacy identities require resolution.
-  Companion profile history is separate from booked stays and financial responsibility.
+  The preceding deployment supports versioned parties and keeps companion history separate
+  from booked stays and financial responsibility. The local unreleased extension adds
+  named companions without mandatory CRM profiles, arrival/departure presence, ID-age evidence,
+  an emergency occupancy list, and explicitly activated register/age rules; it preserves unknown
+  historical age rather than inferring DOB. See §7.16.1.
 - **Room diary** uses newly recorded effective assignment segments, half-open date
   boundaries and the same reservation reference through moves. In-house moves check
   remaining nights. Existing unknown assignment boundaries remain visibly unknown;
@@ -1575,15 +1614,56 @@ staff walkthrough that preceded it.
   existing reservation charge route. The existing `folio_charges` ledger freezes
   catalog code/name/price/quantity/tax evidence. Catalog changes cannot reprice old
   charges. Generic authorized charges remain; retries bind actor/reservation/payload.
-- **Identity review** is Manager/Owner-only: conservative exact normalized email or
-  shared-account evidence, masked identifiers and retained review decisions. Shared
-  names/phones alone do not create candidates. No guest/login merge is provided:
-  the read-only live aggregate found zero candidate groups for either criterion.
+- **Identity review at the preceding cutover** was Manager/Owner-only and read-only, with exact
+  normalized email or shared-account evidence. The local unreleased extension adds exact-phone
+  evidence and a reviewed merge workflow; names remain search evidence, never an automatic match.
+  Login-linked and loyalty-bearing records remain ineligible for merge.
 
 Future scheduled room moves, special shortened-stay repricing, borrowed-item tracking,
 active-cleaning timers, security collateral, day-use and extra tax rules remain conditional
 non-adoptions until a property need/policy exists. Existing extensions, DND, checkout,
 requests and financial controls remain the applicable workflows.
+
+### 7.16.1 Unreleased occupant, guest-control and housekeeping extensions (2026-11-03)
+
+These are local source changes only. The linked ledger and dry run were checked on 2026-11-04;
+the app/schema extension has not been deployed. Local additions are migrations `20261103170000`
+through `20261103210000`, followed by compatibility fix `20261104010000`. Do not describe this
+schema as deployed until release is complete.
+
+- **Occupants and age evidence:** evolve `reservation_guests` in place with stable occupant IDs,
+  nullable CRM links, names, type, DOB/nationality snapshots, ID-age evidence and presence history.
+  A companion can be recorded without creating a permanent guest profile. Capacity and the
+  primary-guest rule remain server enforced. DOB is captured only when Front Desk records that it
+  was checked against official ID; an adult label is not age evidence. Register and age enforcement
+  use separate audited effective dates and remain off until explicit Admin/Owner activation.
+  Emergency occupancy reads are restricted to Front Desk and Management.
+  Front Desk can edit and confirm an existing list, including a one-person stay,
+  without adding a companion. Guest-ID-only update callers resolve an existing
+  active occupant on that same stay; names never establish identity, and removed
+  occupants are not silently revived (`20261104010000`).
+- **Room discrepancies:** Housekeeping records the observed occupancy and system snapshot; the
+  database opens a linked Front Desk handover. Front Desk investigates and resolves against a
+  fresh room snapshot. An unresolved mismatch blocks a new arrival or assignment and never
+  silently checks out a guest or changes room cleanliness.
+- **Guest controls and profile merges:** Manager/Owner manage VIP, Do Not Rent, security,
+  accessibility and special-handling flags; restricted notes are redacted for Front Desk.
+  DNR overrides are reservation-, purpose-, flag-version- and expiry-bound and audited. Guest
+  merge preview is read-only and fingerprints profiles, flags and linked records. Commit requires
+  explicit survivor/field choices and a reason; it retains source rows and historical FKs, adds
+  search-only aliases, preserves DNR across canonical aliases, and refuses login-linked or
+  loyalty-bearing profiles. Aliases do not grant account access or reservation ownership.
+- **Housekeeping service conditions:** DND is stay-scoped, follows room moves, and clears with
+  checkout history. Declined and late service are structured task outcomes; existing task and room
+  cleanliness states remain authoritative. Child/extra-person pricing, turndown and lost-property
+  workflows remain deferred until property pricing, service and custody rules are approved.
+- **Verification continuation (2026-11-04):** Node 22.22.2 full Vitest passed 204 files /
+  2,217 tests; the obsolete cancellation/change-dialog assertion is corrected. The local
+  chronological replay includes 120 migrations, and an isolated backup upgrade from 108
+  to 120 migrations passed. Linked dry run lists eight pending migrations without applying
+  them. Fresh gate results and personal browser journeys are recorded in
+  `docs/qa/hotel-scope-integration-and-manual-acceptance-2026-11-04.md`. Hosted deployment
+  and policy activation remain separate release steps.
 
 ## 8. Business policies & configuration
 
@@ -1631,7 +1711,7 @@ Grouped by domain:
 | Transportation | `transportation_requests`, `transport_vehicle_types` | Requests: service type, text locations, pickup/return date-time, passengers, status machine, driver, `fare_amount`/`fare_posted_at`, `version`; **one active request per reservation** (partial unique index) + stay-window trigger. Vehicle types: seats, base fare, per-km/per-minute, booking fee. (The earlier `transport_services` price-list table was **dropped** in favor of vehicle types.) |
 | Money | `invoices`, `folio_charges`, `payments`, `financial_adjustments`, `refund_requests`, `refund_attempts`, `cash_shifts`, `payment_reconciliations`, `financial_documents` | Folio truth is **derived** (`sync_invoice_financials`); settled payments are immutable; manual deposit payments retain private proof-storage metadata for Accounting review; documents are generated snapshots |
 | Manager/owner | `manager_approval_requests`, `manager_notes`, **`front_desk_reports`** | Exception engine with `version`, `execution_status`, `authority_level` manager/owner; reports = immutable daily snapshots (`snapshot` jsonb, `supersedes` lineage, one live per date) |
-| Retail/back-office | `inventory`, `vendors`, `purchase_orders` | From the initial schema (inventory is a live stock grid; usage tracking is movements-based, §7.13). `purchase_orders` now receives **draft-only** rows from the replenishment flow (§7.15) — no status other than `draft` is writable and nothing is ever sent to a vendor; the tables remain the future supply-chain interface (the unused `reviews` table was dropped 2026-09-14) |
+| Retail/back-office | `inventory`, `vendors`, `purchase_orders` | Live stock grid and movements-based usage (§7.13), with existing issue/count operations. Purchase-order creation/editing produces drafts; separate local submit, approval, receive and cancel actions manage the lifecycle (§7.15). Supplier transmission and external SCM integration are absent (the unused `reviews` table was dropped 2026-09-14) |
 | Guest communication | `notifications`, `guest_reminder_deliveries` | Immutable guest-facing event content with per-user scope, timestamp, link, and optional `read_at`; the email copy is best-effort and not the source of truth. Deliveries: one row per reservation+reminder kind (`pre_arrival`/`pre_departure`, unique index = idempotency), status/error/sent-at for audit |
 | Innovation layer | `analytics_model_runs`, `analytics_predictions`, `ai_interactions`, `inventory_movements`, `qr_tokens`, `qr_scan_events` | §7.13. Analytics run/prediction snapshots (predictions indexed by type+date); AI interaction audit rows (no prompt/response bodies — also the durable rate-limit counter); append-only consumption/restock/adjustment movements feeding the inventory forecast; hashed QR tokens (unique `token_hash`, active-per-resource partial index) + scan events. Same RLS/no-policies/service-role-only trust model as every other table |
 | Audit | `audit_logs` | Append-only event trail (`protect_audit_history`), `before_data`/`after_data` jsonb |
@@ -1671,7 +1751,7 @@ availability/room-state counts, and write `audit_logs` rows. Grouped by workflow
 | Maintenance | `maintenance_create_work_order`, `maintenance_assign_work_order`, `maintenance_start_work_order`, `maintenance_record_diagnosis`, `maintenance_defer_work_order`, `maintenance_add_progress`, `maintenance_resolve_work_order`, `maintenance_close_work_order`, `maintenance_cancel_work_order`, `maintenance_room_is_blocked`, `maintenance_restore_room_state` |
 | Transportation | `customer_submit_transportation_request` (idempotent; hotel-side route from policy), `customer_cancel_transportation_request` (reason + version), `staff_transition_transportation_request` (one version-guarded RPC for review/schedule/assign/start/complete/cancel/reject; fare posting at assign), `enforce_transportation_stay_window` (trigger fn) |
 | Cancellation/refunds | `cancel_reservation` (snapshot-timezone refund basis points; opens `refund_requests`), `process_refund` (idempotent `purpose='refund'` payment; refund attempts; `REFUND_EXCEEDS_RECEIVED`), `accounting_fail_refund`, `reverse_reservation_transport` (+ cancel trigger) |
-| No-show | `mark_reservation_no_show` (local-time cutoff gate) |
+| No-show | `mark_reservation_no_show` (local-time cutoff gate; explicit settled-deposit fee, idempotent terminal settlement) |
 | Accounting | `sync_invoice_financials` (single folio recompute; internal-only, revoked even from service_role), `accounting_reject_deposit`, `accounting_reverse_charge`, `accounting_record_adjustment`, `accounting_open/close_cash_shift`, `accounting_reconcile_cash_shift`, `accounting_reconcile_payments`, `accounting_generate_document`; immutability triggers `protect_settled_payment` (economic fields **and status**), `protect_audit_history` |
 | Manager & Owner | `request_manager_approval` (reason-code validation + server-stamped `financials` for room-type changes; `stayExtension` snapshot for stay extensions), `review_manager_approval` (feasibility re-check + version), `validate_room_type_exception_request`, `validate_room_type_exception_approval`, `validate_room_type_exception_check_in` (exact-ID validation triggers), `room_type_change_responsibility` (reason→payer helper; internal), `record_room_type_change_acceptance` (guest acceptance + idempotent folio posting), `front_desk_execute_manager_approval` (stay_extension branch performs `front_desk_extend_stay` after an optional validated same-type room move), `accounting_execute_manager_financial_approval`, `manager_prioritize_housekeeping`, `manager_escalate_maintenance`, `escalate_manager_approval_to_owner`, `review_owner_exception`, `protect_owner_exception_review`, `sync_manager_financial_execution` |
 | Front-desk reports | `submit_front_desk_report` (front-desk-guarded; future-date + supersedes validation; one live per day), `review_front_desk_report` (manager-guarded; version-guarded; note required on return) |
@@ -1973,8 +2053,9 @@ Honest inventory of what is **not** wired up yet (not prescriptions). Full split
   sends best-effort transactional copies for selected payment, request, and transportation events;
   durable in-app notifications remain authoritative. Email verification is off, and booking expiry
   still has no external reminder service.
-- **Minimum-age (18) has no data source** — the hotel cannot yet verify a guest's date of birth
-  against government ID through the app.
+- **Minimum-age enforcement is not deployed.** The local unreleased occupant register now supports
+  Front Desk DOB or exact-age evidence recorded from official ID, without inferring unknown ages;
+  active enforcement still requires the matching migration/app release and explicit policy dates.
 - **Transportation is deliberately local.** Locations are free text, fares are flat per vehicle
   type, and there is no external mapping/routing — the TomTom-priced variant was removed.
   `docs/TRANSPORTATION_FUTURE_ENHANCEMENTS.md` records the deliberately deferred work (route
@@ -2014,10 +2095,11 @@ Honest inventory of what is **not** wired up yet (not prescriptions). Full split
   type's. `admin_create_room` copies `base_rate` in only to satisfy the NOT NULL, so the copy goes
   stale once a type's rate is approved upward. Dropping both columns is a separate cleanup.
 - Demo-mode portals and `DataTable.tsx` are partially scaffolded rather than fully surfaced. Hotel
-  inventory usage tracking is movements-based (§7.13) and replenishment is **draft-only** (§7.15):
-  `purchase_orders` can hold `draft` rows for human review, but submitting, receiving, and any
-  vendor-side integration stay out-of-system; `vendors`/`purchase_orders` remain the interface
-  tables for that future phase (the unused `reviews` table was dropped).
+  inventory usage tracking is movements-based (§7.13). Replenishment has a local draft,
+  approval and receiving lifecycle (§7.15); supplier transmission and external procurement
+  integration are absent. `vendors`/`purchase_orders` retain local history and potential future
+  mappings; their presence does not establish a live SCM connection (the unused `reviews`
+  table was dropped).
 - **Innovation layer limitations (§7.13, honest by design).** The dataset is young (system created
   2026-08-26), so occupancy pickup estimates and labor-hour figures start at "Limited" data
   quality and are always labeled with their observation basis rather than faked confidence.

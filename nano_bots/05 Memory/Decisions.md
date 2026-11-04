@@ -1427,3 +1427,14 @@ a11y model (role=menu, menuitemcheckbox, focus trap) and one stylesheet.
 
 Related: [[2026-10-21 - Unified Profile Popover]], components/ui/ProfilePopover.tsx,
 components/ui/profile-popover.css, app/staff-theme.css.
+
+
+## D-034 — Cancellation/no-show fees are explicit folio settlements
+
+Approved by the user on 2026-11-03. Preserve frozen deposit refund tiers and
+settled-deposit no-show forfeiture. Release unused booking obligations through
+credits, post named policy fees, and derive refund requests from remaining folio
+credit. Independently posted transportation retains its Accounting reversal rule.
+Approved refund exceptions create linked fee reversals at Accounting execution.
+No historical backfill or new tax treatment. Implemented locally in migration
+`20261103160000`; deployment pending. See [[2026-11-03 - Cancellation Folio Settlement]].

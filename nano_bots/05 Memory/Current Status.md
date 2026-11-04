@@ -1,5 +1,55 @@
 # Current Status
 
+## Scope and acceptance continuation (2026-11-04, local unreleased)
+
+- Local fixes cover legacy occupant updates, solo-register completion, vendor-optional
+  drafts, persistent PO history and correct received-stock status. Source docs now
+  reflect procurement's existing lifecycle and proposed enterprise boundaries.
+- Node22 full suite2,217/typecheck/build pass; SQL and isolated restored upgrade to
+  120 migrations pass. Linked ledger112/dry run lists eight pending migrations;
+  none applied. Personal browser coverage and remaining limits are in
+  `docs/qa/hotel-scope-integration-and-manual-acceptance-2026-11-04.md`.
+- Restaurant connection remains dependent on agreed partner API/auth/sandbox.
+  No production release or register/age policy activation. See
+  [[2026-11-04 - Hotel Scope and Manual Acceptance]].
+
+## Occupants, guest controls and housekeeping (2026-11-04, local unreleased)
+
+- Local source/migrations cover a name-only occupant register with verified age
+  evidence and emergency occupancy, room-discrepancy investigations, VIP/DNR and
+  other operational flags with audited overrides, reviewed CRM merging, and
+  stay-scoped DND plus declined/late service outcomes.
+- Local synthetic browser QA verified Front Desk roster save/check-in, Manager DNR
+  override, Front Desk DND, emergency occupancy and room-discrepancy report →
+  investigate → resolve. Browser retest found and fixed the roster payload sending
+  server-only fields; its regression test passes. Housekeeping task-outcome UI,
+  reviewed merge, Owner/disabled-staff and mobile browser flows remain unverified.
+- Clean chronological PostgreSQL 18 replay passed; SQL suites passed 24 backend,
+  13 occupant/guest-controls and 27 housekeeping checks. Focused Vitest passed
+  157/157; full Vitest passed 2,213/2,214, with the one failure isolated to the
+  unrelated cancellation/change-flow assertion in `lib/change-request-redesign.test.ts`.
+  Typecheck/build passed; touched-file ESLint exited 0 with warnings only. The
+  earlier full suite ran under Node 26.6.0; the follow-up roster regression,
+  typecheck and lint ran with Node 22.22.2.
+- Restored/hosted-order replay, live-ledger verification and deployment remain
+  incomplete. Supabase CLI has no access token; migration
+  timestamps remain provisional. No hosted change or policy activation occurred.
+- Pricing, turndown and lost property remain deferred pending property policy.
+  Details: [[2026-11-03 - Occupants Guest Controls Housekeeping]]; verification:
+  [[2026-11-04 - Occupants Guest Controls Verification]].
+
+## Cancellation/no-show folio settlements (2026-11-03, local)
+
+- Explicit policy fees, unused-obligation credits, resulting refund credit, approved
+  fee waivers, guest preview/activity, issued-document snapshots and daily fee totals
+  implemented. Independent transportation remains collectible.
+- Additive migration `20261103160000` is pending; production is unchanged.
+- Local browser QA passed Guest/Front Desk/Accounting/Manager flows, mobile/desktop,
+  approved waiver and daily fee reporting. Six QA display/refresh/navigation issues
+  fixed and retested. Final 204 files/2213 tests, typecheck/build pass; lint 0 errors/4
+  existing warnings. Report: `docs/qa/cancellation-folio-browser-qa-2026-11-03.md`.
+- Verification and release notes: [[2026-11-03 - Cancellation Folio Settlement]].
+
 ## Production cutover (2026-11-03)
 
 - Authorized sequence executed and verified: maintenance gate → backup

@@ -2,7 +2,71 @@
 
 Current execution state. Concise — detail lives in linked session notes.
 
-## Latest: Production cutover complete (2026-11-03)
+## Latest: Scope and manual acceptance continuation (2026-11-04, local)
+
+- Executed ready plan tasks; fixed ID-only occupant updates, solo-register editing,
+  optional-vendor drafts, PO history visibility and receipt stock status. Two local
+  additive migrations `20261104010000`/`20261104020000`; existing work preserved.
+- Node22: 2,217 tests, typecheck/build pass; lint 0 errors/3 existing warnings.
+  SQL suites pass; clean replay120 and isolated backup upgrade108→120 pass.
+  Linked ledger112 and dry run verified: eight pending files, none pushed.
+- Personal synthetic browser QA completed for the exercised flows, including
+  remaining Housekeeping/merge/access/mobile work, split payments, close and PO receipt.
+  See the precise coverage/limits in
+  `docs/qa/hotel-scope-integration-and-manual-acceptance-2026-11-04.md`.
+- Proposed POS contract written; runtime/outbox awaits partner API/auth/sandbox.
+  No production write, deployment or policy activation. Session:
+  [[2026-11-04 - Hotel Scope and Manual Acceptance]]. Earlier entries below are history.
+
+## Latest implementation: Occupants, guest controls and housekeeping (2026-11-04 verification)
+
+- User requested implementation of Batches A–E in
+  `docs/plans/2026-11-03-occupants-guest-controls-housekeeping.md`: occupant
+  roster/age evidence/emergency list, room discrepancies, guest flags/DNR,
+  restricted reviewed CRM merge and housekeeping DND/service outcomes.
+- Local source, five additive migrations and operations docs are written; no
+  production migration, policy activation, real guest merge or deployment.
+- Synthetic local browser QA passed Front Desk roster save/check-in, Manager DNR
+  override, Front Desk DND, emergency occupancy and room-discrepancy report →
+  investigate → resolve. Fixed the roster save payload to whitelist writable
+  fields; the focused regression test passes. Housekeeping had no tasks, so its
+  task-level outcomes and reporter path could not be exercised in the browser.
+- Reviewed merge, Owner/disabled-staff browser access and mobile browser coverage
+  remain open. Juan's age group remained `unknown` because staff did not select
+  occupant type; the age check does not infer that separate field.
+- Clean chronological PostgreSQL 18 replay passed; SQL suites passed 24 backend,
+  13 occupant/guest-controls and 27 housekeeping checks. Focused Vitest passed
+  157/157; final full suite passed 2,213/2,214. The lone failure is the unrelated
+  `lib/change-request-redesign.test.ts` cancellation/change-flow source assertion.
+  The follow-up roster regression passed 5/5 under Node 22.22.2; typecheck/build
+  passed and touched-file ESLint exited 0 with warnings only. The full suite above
+  ran under Node 26.6.0, outside the supported Node 22 range.
+- Restored/hosted-order replay remains outstanding. Supabase CLI has no access
+  token; local timestamps `20261103170000`–`20261103210000` are
+  provisional. Conditional pricing, turndown and lost-property work remains deferred.
+- Verification continuation: [[2026-11-04 - Occupants Guest Controls Verification]].
+- See [[2026-11-03 - Occupants Guest Controls Housekeeping]]. Existing
+  cancellation/folio work remains separate and untouched.
+
+## Latest: Explicit cancellation/no-show folio settlement (2026-11-03, local)
+
+- User approved implementation. Migration `20261103160000` posts named deposit-based
+  policy fees, credits unused booking obligations, preserves independent transport,
+  derives refund credit and posts approved fee waivers during Accounting execution.
+- Customer preview/folio, document snapshots and daily close fee totals updated.
+  No historical backfill or new tax rule. Fixed posting-stamp OLD.status access on
+  financial adjustments, reproduced through real SQL.
+- Linked ledger verified at 112 migrations; dry-run lists only this new file.
+  No production writes, db push or deployment. Final Node22 suite 204 files/2213 tests;
+  SQL clean/upgrade replay, typecheck and build pass; QA-touched lint 0 errors/4 existing
+  warnings. Browser QA complete locally (Guest/Front Desk/Accounting/Manager, mobile
+  390px + desktop1366px): closures, refunds, approved fee waiver, statement and daily
+  totals verified. Fixed stale rack history, statement original-amount display, zero
+  preview copy, Accounting shortcut, unknown-balance labels and keyboard dialog bubbling.
+  Report: `docs/qa/cancellation-folio-browser-qa-2026-11-03.md`. Owned QA services stopped;
+  hosted configuration unchanged. See [[2026-11-03 - Cancellation Folio Settlement]].
+
+## Earlier: Production cutover complete (2026-11-03)
 
 - Authorized sequence executed: gate → verified backup (`pg_dump
   --role=postgres`) → local restore rehearsal passed (108 migrations/38
