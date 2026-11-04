@@ -49,9 +49,9 @@ describe("cancelled folio never shows Awaiting Verification", () => {
     expect(sql).toContain("refund_requests");
   });
 
-  it("profile PATCH no longer uses maybeSingle on guest lookups (duplicate-row 500)", () => {
+  it("profile PATCH uses the atomic canonical-link operation instead of selecting an arbitrary duplicate", () => {
     const route = read("app/api/account/profile/route.ts");
     expect(route).not.toContain("maybeSingle");
-    expect(route).toContain('order("created_at"');
+    expect(route).toContain('rpc("hms_save_guest_profile"');
   });
 });

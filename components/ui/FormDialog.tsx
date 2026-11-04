@@ -9,7 +9,7 @@ import { RoomTypeBadge } from "./RoomTypeBadge";
 export interface FormField {
   key: string;
   label: string;
-  type: "text" | "number" | "email" | "tel" | "password" | "date" | "select" | "textarea" | "radio" | "checkbox";
+  type: "text" | "number" | "email" | "tel" | "password" | "date" | "datetime-local" | "select" | "textarea" | "radio" | "checkbox";
   required?: boolean;
   placeholder?: string;
   defaultValue?: string | number | boolean;

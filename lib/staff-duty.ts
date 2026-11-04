@@ -5,13 +5,11 @@ import type { Role } from "@/lib/types";
 /**
  * STAFF & DUTY — a read-only operational supervision view.
  *
- * HAVEN has no general shift/clock-in model, and login state is explicitly NOT
- * a duty signal. Duty here is derived from the only authoritative operational
- * records that exist: housekeeping tasks, maintenance work orders, and open
- * cash shifts. "Working" means an in_progress task/order or an open cash
- * shift; "Assigned" means open work not yet started. No shift times, breaks,
- * or off-duty rosters are invented. If a staff_shifts table is ever added, it
- * becomes the duty authority and this module joins onto it.
+ * Planned rosters and login state do not establish attendance. This view
+ * derives activity from housekeeping tasks, maintenance orders and open cash
+ * drawers. "Working" means an in_progress task/order or an open cash drawer;
+ * "Assigned" means open work not yet started. No breaks or physical presence
+ * are inferred from the separate Schedule & Handover workspace.
  */
 
 export type StaffDutyStatus = "working" | "assigned" | "no_active_work";
@@ -71,7 +69,7 @@ export interface StaffDutySnapshot {
 }
 
 export const STAFF_DUTY_BASIS_NOTE =
-  "Duty status is derived from live operational records — in-progress housekeeping tasks, maintenance work orders, and open cash shifts. Login activity is never used, and HAVEN keeps no shift schedule, so staff without active work are shown exactly as that.";
+  "Duty status is derived from live operational records — in-progress housekeeping tasks, maintenance work orders, and open cash shifts. Login activity is never used, and planned roster assignments do not confirm physical presence; staff without active work are shown exactly as that.";
 
 // The operational departments this view supervises. Owner/Admin are governance
 // roles (their account administration lives in the Admin/Owner portals), and

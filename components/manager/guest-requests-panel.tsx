@@ -19,13 +19,13 @@ import type { Role } from "@/lib/types";
 // context — stock edits stay with Housekeeping/Maintenance.
 type StaffRequest = {
   id: string; reservation_id: string; guest_id: string | null; request: string; request_type: string | null;
-  batch_id: string; approval_status: "pending" | "approved" | "rejected"; approval_note: string | null;
+  batch_id: string; approval_status: "pending" | "approved" | "rejected" | "withdrawn"; approval_note: string | null;
   approved_at: string | null; department: string; priority: string; status: string; created_at: string;
   escalation_status?: string | null;
   reservation?: { confirmation_number: string | null; guest_name: string | null; room_type: string | null; room_number: string | null } | null;
 };
 type InventoryItem = { id: string; name: string; category: string; quantity: number; reorder_point: number; unit: string; status: string };
-type Batch = { key: string; items: StaffRequest[]; approval: "pending" | "approved" | "rejected" };
+type Batch = { key: string; items: StaffRequest[]; approval: "pending" | "approved" | "rejected" | "withdrawn" };
 
 const label = (value: unknown) => String(value ?? "—").replaceAll("_", " ");
 const OVERDUE_MS = 2 * 60 * 60 * 1000;
@@ -38,7 +38,7 @@ const ageLabel = (createdAt: string) => {
   return hrs < 24 ? `${hrs}h ago` : `${Math.floor(hrs / 24)}d ago`;
 };
 const isOverdue = (batch: Batch) => batch.approval === "pending" && Date.now() - new Date(batch.items[0].created_at).getTime() > OVERDUE_MS;
-const APPROVAL_LABELS: Record<Batch["approval"], string> = { pending: "Awaiting approval", approved: "Approved", rejected: "Declined" };
+const APPROVAL_LABELS: Record<Batch["approval"], string> = { pending: "Awaiting approval", approved: "Approved", rejected: "Declined", withdrawn: "Withdrawn" };
 const QUEUES: [string, string][] = [["all", "All"], ["pending", "Awaiting approval"], ["approved", "Approved"], ["rejected", "Declined"], ["open", "Open work"]];
 
 function groupBatches(requests: StaffRequest[]): Batch[] {
@@ -51,7 +51,7 @@ function groupBatches(requests: StaffRequest[]): Batch[] {
   return Array.from(groups.values()).map((items): Batch => ({
     key: String(items[0].batch_id ?? items[0].id),
     items,
-    approval: items.every((item) => item.approval_status === "pending") ? "pending" : items.some((item) => item.approval_status === "rejected") ? "rejected" : "approved",
+    approval: items.every((item) => item.approval_status === "withdrawn") ? "withdrawn" : items.filter(item => item.approval_status !== "withdrawn").every((item) => item.approval_status === "pending") ? "pending" : items.some((item) => item.approval_status === "rejected") ? "rejected" : "approved",
   })).sort((a, b) => b.items[0].created_at.localeCompare(a.items[0].created_at));
 }
 

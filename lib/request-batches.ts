@@ -24,7 +24,7 @@ export type RequestBatchItem = {
 export type RequestBatch<T extends RequestBatchItem = RequestBatchItem> = {
   key: string;
   items: T[];
-  approval: "pending" | "approved" | "rejected";
+  approval: "pending" | "approved" | "rejected" | "withdrawn";
 };
 
 export function groupRequestBatches<T extends RequestBatchItem>(requests: T[]): RequestBatch<T>[] {
@@ -42,7 +42,7 @@ export function groupRequestBatches<T extends RequestBatchItem>(requests: T[]): 
       return {
         key: String(sorted[0].batch_id ?? sorted[0].id),
         items: sorted,
-        approval: sorted.every((item) => item.approval_status === "pending")
+        approval: sorted.every((item) => item.approval_status === "withdrawn") ? "withdrawn" : sorted.filter(item => item.approval_status !== "withdrawn").every((item) => item.approval_status === "pending")
           ? "pending"
           : sorted.some((item) => item.approval_status === "rejected")
             ? "rejected"

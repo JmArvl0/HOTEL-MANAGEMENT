@@ -1,0 +1,89 @@
+/* Shared navigation metrics: staff (all roles) and guest accounts.
+   Keep the rail's padding + target width within its 80px border box. */
+/* Hide scroll chrome only; retain each container's native overflow behavior.
+   Both staff scroll containers are covered, including narrow collapsed rails. */
+.app-shell .sidebar,
+.app-shell .sidebar nav,
+.customer-shell .customer-sidebar,
+.customer-shell .customer-sidebar nav,
+.saas-shell .saas-sidebar,
+.saas-shell .saas-sidebar nav,
+.sidebar .sidebar-nav{
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+}
+.app-shell .sidebar::-webkit-scrollbar,
+.app-shell .sidebar nav::-webkit-scrollbar,
+.customer-shell .customer-sidebar::-webkit-scrollbar,
+.customer-shell .customer-sidebar nav::-webkit-scrollbar,
+.saas-shell .saas-sidebar::-webkit-scrollbar,
+.saas-shell .saas-sidebar nav::-webkit-scrollbar,
+.sidebar .sidebar-nav::-webkit-scrollbar{
+  display:none;
+  width:0;
+  height:0;
+}
+.haven-logo-tile.haven-logo-mark{padding:0;background:transparent;border-radius:0}
+.haven-logo-tile.haven-logo-mark img{border-radius:0;object-fit:contain}
+html:not(.theme-light) .haven-logo-mark img{filter:brightness(0) invert(1)}
+.app-shell .sidebar .brand>.brand-mark,
+.theme-light .app-shell .sidebar .brand>.brand-mark,
+.customer-shell .customer-brand .brand-mark{width:48px;height:52px;flex:0 0 48px;padding:0;border:0;background:transparent;box-shadow:none;border-radius:8px}
+.app-shell .sidebar .brand>.brand-mark:hover,
+.customer-shell .customer-brand .brand-mark:hover{background:transparent;transform:none}
+.app-shell .sidebar .sidebar-top{padding:12px 4px;min-height:78px;flex-shrink:0;margin:0 1px}
+.app-shell .sidebar .brand{overflow:visible;gap:10px}
+.app-shell .sidebar .brand small{font-size:9px;letter-spacing:.6px}
+html:not(.theme-light) .app-shell .sidebar .brand small{color:#a4b0c2}
+.app-shell .sidebar nav{padding:14px 0;flex:1}
+.app-shell .sidebar nav .nav-group-items>button{min-height:48px;padding:0 12px;gap:12px;position:relative}
+.app-shell .sidebar nav .nav-group-items>button>svg{width:22px;height:22px;min-width:22px;flex:0 0 22px}
+.app-shell .sidebar .nav-group-wrap+.nav-group-wrap{margin-top:20px}
+.app-shell .sidebar nav .nav-group-header{width:100%;margin-left:0;margin-right:0}
+.customer-shell .customer-sidebar{padding:18px 14px;overflow-y:auto}
+.customer-shell .customer-sidebar-top{min-height:78px;padding:12px 4px;margin-bottom:14px;flex-shrink:0;border-bottom:1px solid var(--cp-line)}
+.customer-shell .customer-brand{overflow:visible;gap:10px}
+.customer-shell .customer-sidebar.collapsed .customer-brand{width:100%}
+.customer-shell .customer-brand-copy{min-width:0;font-size:15px;letter-spacing:1px}
+.customer-shell .customer-brand-copy small{font-size:8px;letter-spacing:.5px}
+.customer-shell .customer-sidebar nav a,
+.customer-shell .customer-bottom-link{min-height:48px;gap:12px;font-size:13px}
+.customer-shell .customer-sidebar nav a>svg,
+.customer-shell .customer-bottom-link>svg{width:22px;height:22px;min-width:22px;flex:0 0 22px}
+@media(min-width:1001px){
+  .app-shell{--haven-toast-offset:280px}
+  .app-shell .sidebar{width:280px;padding:18px 13px}
+  .app-shell.sidebar-collapsed{--haven-toast-offset:80px;grid-template-columns:80px minmax(0,1fr)}
+  .app-shell.sidebar-collapsed .sidebar{width:80px;padding:18px 15px}
+  .app-shell .sidebar.collapsed .sidebar-top{margin:0;padding:12px 0;justify-content:center}
+  .app-shell .sidebar.collapsed .brand{justify-content:center}
+  .app-shell .sidebar.collapsed nav{padding:14px 0;overflow-x:hidden}
+  .app-shell .sidebar.collapsed nav .nav-group-items>button{width:48px;min-width:48px;padding:0;gap:0;justify-content:center}
+  .app-shell .sidebar.collapsed nav .nav-group-items>button>svg{width:24px;height:24px;min-width:24px;flex:0 0 24px}
+  .app-shell .sidebar.collapsed nav .nav-group-items>button:has(.nav-badge)::after{content:"";position:absolute;top:8px;right:8px;width:6px;height:6px;background:var(--haven-gold-500,#d97706);border-radius:50%}
+}
+/* A saved desktop collapse preference must not shrink the mobile drawer. */
+@media(max-width:1000px){
+  .app-shell,.app-shell.sidebar-collapsed{display:block;--haven-toast-offset:0px}
+  .app-shell .sidebar,.app-shell.sidebar-collapsed .sidebar{width:min(280px,calc(100vw - 32px));padding:18px 13px}
+  .app-shell .sidebar{position:fixed;inset:0 auto 0 0}
+  .app-shell.sidebar-collapsed .sidebar .brand-copy{display:flex!important}
+  .app-shell.sidebar-collapsed .sidebar .nav-label{display:block!important}
+  .app-shell.sidebar-collapsed .sidebar .nav-group-header{display:flex!important}
+  .app-shell.sidebar-collapsed .sidebar .nav-badge{display:inline-flex!important}
+  .app-shell .sidebar.collapsed .sidebar-top{padding:12px 4px}
+  .app-shell.sidebar-collapsed .sidebar nav .nav-group-items>button{justify-content:flex-start;padding:0 12px}
+}
+@media(min-width:901px){
+  .customer-shell{grid-template-columns:280px minmax(0,1fr)}
+  .customer-shell.customer-collapsed{grid-template-columns:80px minmax(0,1fr)}
+  .customer-shell .customer-sidebar.collapsed{padding:18px 15px}
+  .customer-shell .customer-sidebar.collapsed .customer-sidebar-top{padding:12px 0}
+  .customer-shell .customer-sidebar.collapsed nav a,
+  .customer-shell .customer-sidebar.collapsed .customer-bottom-link{width:48px;padding:0;gap:0;justify-content:center}
+  .customer-shell .customer-sidebar.collapsed nav a>svg,
+  .customer-shell .customer-sidebar.collapsed .customer-bottom-link>svg{width:24px;height:24px;min-width:24px;flex:0 0 24px}
+}
+@media(max-width:900px){
+  .customer-shell .customer-sidebar,.customer-shell .customer-sidebar.collapsed{width:min(280px,calc(100vw - 32px));padding:18px 14px}
+}

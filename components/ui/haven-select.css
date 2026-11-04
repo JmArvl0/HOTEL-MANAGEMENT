@@ -38,7 +38,7 @@
   --select-ring: rgba(17, 24, 39, 0.12);
 }
 
-.app-shell:not(.theme-light),
+html:not(.theme-light) .app-shell,
 .dark,
 .dark .app-shell,
 .dark .customer-shell,

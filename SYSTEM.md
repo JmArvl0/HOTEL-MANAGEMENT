@@ -22,6 +22,25 @@ tests, deployment).
 
 ## 1. What this is
 
+**Focused HMS update (2026-11-03):** The approved workflow prototype is implemented
+in the current local application. The configured database now includes scoped
+versions `20261103010000`, `20261103030000`, `20261103070000`,
+`20261103080000`, `20261103090000`, `20261103100000`, `20261103110000`, and
+`20261103120000`. Stock changes and
+mapped request fulfillment are atomic and retry-safe; new supply corrections use
+`hms_stock_movement`, with generic quantity PATCH blocked. Guest profile/account
+save and uploaded-ID review use protected atomic RPCs. Payment collection creates
+its receipt in the same transaction; shared drawer counts retain explained
+variance. Pending department work is created after approval; withdrawal serializes
+with approval/assignment. Physical stock-count drafts retain their original item
+version through refresh until an explicit clear/recount; cash-count draft state
+resets when drawer/operator identity changes, and blank counts cannot submit.
+Standalone operational handover replaces the roster
+screen in shared staff navigation. Held HR/procurement/assets/Lost & Found
+migrations remain unapplied; do not blindly push the root migration directory.
+See `docs/HMS-WORKFLOW-IMPLEMENTATION-2026-11-03.md` for exact versions, scope,
+test evidence and the signed-in/browser/application-deployment limitations.
+
 A **single-property hotel operations system** for a ~48-room boutique property (brand: **Haven
 Makati**). One Next.js deployment serves four surfaces:
 
@@ -213,7 +232,7 @@ Key properties:
   nights already past), measured from reservation stay dates. The live figure in
   `metrics.occupancy`/`roomMix` is the room rack (`rooms.status`), which Front Desk updates
   independently — so the two can legitimately differ, and every surface that shows both labels which
-  is which (Reports, Overview, Owner Executive). The Owner executive trend
+  is which (Reports, Dashboard, Owner Executive). The Owner executive trend
   (`/api/owner/data`) is computed by the same helper, never a second copy.
 - **Promise-based dialog bridge.** All three dashboards run their confirm/prompt/form dialogs
   through `components/ui/action-dialogs.tsx` (`useActionDialogs`) — no ad-hoc dialog state.
@@ -830,6 +849,17 @@ Staff operations (each a named RPC with row locks + audit, §10):
   reservation, posts any legacy transport lines as folio charges (deterministic idempotency keys),
   and files the booking's transportation preference as a live request (§7.11). `accounting_reject_deposit`
   returns a proof with a reason.
+- **Payment Details** uses one shared `PaymentDetailsDialog` receipt for deposit
+  and stay-payment records, including pending review. The selected payment supplies the
+  amount, guest/stay, method/reference, status, proof metadata and Manila timestamp;
+  existing signed proof previews remain available. The fluid receipt keeps its
+  header and X close control visible above a keyboard-accessible scrolling record;
+  there is no duplicate bottom Close button. Escape also dismisses the modal.
+  Purpose identifies the payment type; only deposits include the expected amount
+  and over/under comparison. Only pending records with Accounting review capability
+  expose the existing Verify/Reject callbacks in a persistent footer. PayMongo
+  payments never expose manual confirmation; authorized rejection remains. The
+  existing endpoints, signed proof access and server-side authorization are unchanged.
 - **Housekeeping owns the dirty→ready leg** (§7.5); **Maintenance owns serviceability** (§7.6).
 
 ### 7.5 Housekeeping workflow
@@ -1052,11 +1082,36 @@ are unchanged. Workspaces offered per role:
 
 | Role | Sections offered |
 |---|---|
-| Manager | Overview (risk command centre), reservations, rooms (+ **Manage rooms** roster, §6), guests, guest requests, **Transportation**, **Room Types & Photos**, **Transfer Vehicles**, housekeeping, maintenance, inventory, **Approvals & Escalations**, **Reports** (performance center + daily-report review, §7.12) |
-| Front Desk | Overview (arrivals/departures/in-house/rooms ready), reservations, rooms, guests, guest requests, **Transportation**, housekeeping, billing, Deposit verification (queue view — verification itself is Accounting's), **Transactions · Guest folios · Cash & shifts · Financial documents**, Approvals, **Reports** (daily operations report, §7.12) |
-| Housekeeping | Overview, rooms, guest requests, housekeeping tasks, inventory, Approvals |
-| Maintenance | Overview, rooms, guest requests, maintenance orders, inventory, Approvals |
-| Accounting | Overview, reservations, billing, **Deposit verification** (the only role that can act on it), Refunds, **Transactions · Folios · Cash & shifts · Reconciliation · Documents**, Reports, Approvals |
+| Manager | Dashboard (risk command centre), reservations, rooms (+ **Manage rooms** roster, §6), guests, guest requests, **Transportation**, **Room Types & Photos**, **Transfer Vehicles**, housekeeping, maintenance, inventory, **Approvals & Escalations**, **Reports** (performance center + daily-report review, §7.12) |
+| Front Desk | Dashboard (arrivals/departures/in-house/rooms ready), reservations, rooms, guests, guest requests, **Transportation**, housekeeping, billing, Deposit verification (queue view — verification itself is Accounting's), **Transactions · Guest folios · Cash & shifts · Financial documents**, Approvals, **Reports** (daily operations report, §7.12) |
+| Housekeeping | Dashboard, rooms, guest requests, housekeeping tasks, inventory, Approvals |
+| Maintenance | Dashboard, rooms, guest requests, maintenance orders, inventory, Approvals |
+| Accounting | Dashboard, reservations, billing, **Deposit verification** (the only role that can act on it), Refunds, **Transactions · Folios · Cash & shifts · Reconciliation · Documents**, Reports, Approvals |
+
+**Front Office modules (2026-11-04).** Staff navigation separates Room Management
+(`room_rack`), Reservations (`reservations`), and Guest Management (`guests`).
+Front Desk Room Management uses `FrontOfficeRack` in rooms mode, defaulting to a
+seven-day calendar (Cards remains available). Rooms run down the left and dates
+across the top; guest names span assigned nights with checkout day excluded.
+Recorded room-move segments determine each room's allocation; overlapping records
+remain visible in separate lanes and unassigned stays are listed separately.
+Clicking a stay opens existing reservation details; clicking a room opens its
+existing dossier/actions. Only catalog-authorized roles see Manage rooms.
+Front Desk Reservations uses the same shared workspace in ledger mode, while
+Manager/Accounting retain their existing role-specific reservation surfaces.
+Guest Management retains existing profiles and history; no new CRUD or RBAC is
+implied by the label. Clickable summaries route to today's arrivals,
+today's in-house departures, all current in-house stays, or clean/available rooms
+in the selected board window. List queues distinguish arrivals, upcoming, in-house,
+departures and closed outcomes (completed/cancelled/no-show). An explicit selected
+window/full-history control governs dates; arrival/departure queues still mean
+hotel-local today. The Front Desk resource read paginates reservations, invoice
+balances and guest-phone joins; missing balances remain unknown. History refreshes
+independently every 30 seconds and on browser focus, with visible failures/retry
+instead of partial window fallback. The reservation ledger's Needs attention rail previews today/overdue issues
+without authorizing actions. Contextual actions reuse the existing arrival and
+reservation-detail workflows; server readiness/RBAC are unchanged. Room history
+is a disclosure in reservation details, replacing the module-wide assignment diary.
 
 **Consolidated guest profile (roadmap Phase 2).** The Guests module is more than a raw grid: every
 row opens a read-only dossier (`GET /api/staff/guests/[id]`, gated on `canViewGuestContact` —
@@ -1135,7 +1190,7 @@ health, and governance records are not repurposed as notifications.
 
 Refresh architecture: no Supabase Realtime exists anywhere (the browser never talks to Supabase —
 service-role-only, §13 — and realtime would require anon-key policies). Instead the operational
-client polls `/api/manager_dashboard` every 30 s even on non-Overview sections (a dedicated
+client polls `/api/manager_dashboard` every 30 s even on non-Dashboard sections (a dedicated
    `refreshAlerts` interval) so badges, bell, and toasts stay live everywhere — the same cadence as the
    section-data poll, never faster. Contract tests: `lib/staff-notification-badges.test.ts` (count
    definitions, role gating, silent seed, id dedup); history tests: `lib/notification-history.test.ts`
@@ -1156,6 +1211,17 @@ Both governance clients use the same collapsible category sidebar as the operati
 Executive · Governance · Catalog. The active module's category is always expanded and each client
 persists its own open/closed choices (`localStorage["haven-admin-sidebar-groups"]` /
 `["haven-owner-sidebar-groups"]`). Grouping is presentational — every module stays reachable.
+
+All account sidebars share navigation metrics through `app/sidebar-navigation.css`
+(last root stylesheet): 280px expanded / 80px collapsed on desktop, 48px logo and
+click targets, 22px expanded / 24px collapsed module icons. Manager and operational
+roles, Admin, Owner, and the separate Guest shell all use these metrics. Staff
+shells no longer repeat the brand in a property pill. Small logo marks use a cropped
+transparent asset with a white silhouette in dark mode. Mobile drawers retain
+labels regardless of the saved desktop collapse preference.
+Shared account sidebars hide scrollbar tracks/thumbs while preserving their native
+overflow behavior, mouse/trackpad scrolling and keyboard access (including expanded,
+collapsed and mobile views); rules live in `app/sidebar-navigation.css`.
 
 - **System Administrator** (internal role `admin`, displayed as "System Administrator" /
   "System Administration" in the UI; `AdminDashboardClient`, `/api/admin/*`): HAVEN's
@@ -1471,7 +1537,7 @@ and **per-room operations QR** (persistent placard token, printable at `/qr-plac
 rotatable by Manager; the same QR resolves role-aware: guest with an active in-room stay → guest
 request entry; housekeeping → room task context; maintenance → room work orders; front
 desk/manager/owner/admin → room summary; anyone else → generic refusal). The scanner is a
-dashboard modal (opened from Overview and Reservations): camera via jsQR (works in iPhone Safari)
+dashboard modal (opened from Dashboard and Reservations): camera via jsQR (works in iPhone Safari)
 with a manual token-entry fallback (camera failures differentiate blocked / unavailable / unsupported),
 and explicit
 invalid/expired/revoked/unauthorized states. All manual workflows remain fully intact.
@@ -1486,12 +1552,12 @@ visibility is never the gate) serves a **read-only** workforce snapshot derived 
   accounts, role changes, password recovery, and account governance stay exclusively with the
   Admin/Owner portals (§7.10); `canViewStaffDuty` grants no write path of any kind. Department
   staff have no access to it at all — a hotel-wide workforce view is Manager supervision scope.
-- **Authoritative "on duty" definition.** HAVEN has no shift/schedule model, and **login is never a
+- **Operational activity definition.** Planned schedules (§7.16) are separate, and **login is never a
   duty signal** — authentication state is deliberately excluded. Duty is *derived*: **working** =
   an `in_progress` housekeeping task, an `in_progress` maintenance order, or an open cash shift;
   **assigned** = open (not-yet-started) task/order; **no active work** = neither. No shift times,
-  break states, or off-duty rosters are invented — if a `staff_shifts` table is ever added, it
-  becomes the duty authority and this module joins onto it.
+  break states or attendance are inferred. The planned roster never overrides these activity
+  signals or proves that somebody is physically present.
 - **Data sources.** One batched parallel query set (no per-member queries): active `user_accounts`
   (name + role only — no contact, credential, or account-security columns), open + completed-today
   `housekeeping_tasks`, open + resolved-today `maintenance_orders`, and open `cash_shifts`.
@@ -1508,18 +1574,13 @@ visibility is never the gate) serves a **read-only** workforce snapshot derived 
 - **Demo mode.** Without Supabase env the snapshot is served from the demo store (assignee names
   matched by name; no cash shifts in demo data).
 
-### 7.15 Inventory replenishment and local purchase-order workflow
+### 7.15 Inventory replenishment, receiving, and local purchase-order workflow
 
-The inventory demand forecast (§7.13) closes its loop into purchasing — as a **suggestion, never an
-order**. `GET /api/inventory/purchase-orders` (Manager/Owner/Admin) returns the same
-`forecastInventory` output the Predictive Insights panel uses, filtered to projected shortages (plus
-`current-low-stock` items without movement history — facts, not guesses), with a suggested reorder
-quantity (forecast's `recommendedReorder`, else the reorder point) and the live unit cost. The
-Manager dashboard's Inventory section renders a **"Replenishment suggestions"** strip (each card:
-stock, reorder point, predicted 3-day need, shortage, suggested quantity, estimated total) with a
-**"Create draft PO"** button opening a dialog where **quantity and vendor are staff-editable**
-(default = the suggested quantity). `POST` to the same route creates a row in the existing
-`purchase_orders` table:
+The live workflow supports draft → submit → threshold approval → receive/cancel
+(migration 20261014010000; live receive function inspected 2026-11-03). Earlier draft-only wording
+was stale. Manager/Owner/Admin create drafts using server-read inventory costs; submission does
+not transmit an order to a vendor. Above-threshold approval remains with Owner/Admin.
+Forecast suggestions remain advisory, never automatic orders.
 
 - **Draft creation stays separate from approval.** The collection route creates or edits
   `draft` rows using `buildDraftPurchaseOrder`; it does not submit them. Separate submit,
@@ -1541,6 +1602,12 @@ stock, reorder point, predicted 3-day need, shortage, suggested quantity, estima
   resolved. Migration `20261104020000` updates received stock's `healthy`/`low`/`out`
   status in the same atomic receipt transaction, using the existing stock-movement
   thresholds. Supplier transmission is still absent.
+
+Local improvements (2026-11-03; remote deployment pending): explicit integer delivery quantities,
+atomic cumulative receipts/stock movements, partial status, receipt history, and an approved-
+deliveries-only Housekeeping queue. Omitted lines are not assumed delivered. Retry identity is
+the PO/version plus actor and payload. Partially received orders cannot be cancelled or edited
+into different orders. Completed orders remain immutable; historical quantities are not inferred.
 
 ### 7.16 Hotel operations implementation candidate (2026-11-03)
 
@@ -1664,6 +1731,38 @@ schema as deployed until release is complete.
   them. Fresh gate results and personal browser journeys are recorded in
   `docs/qa/hotel-scope-integration-and-manual-acceptance-2026-11-04.md`. Hosted deployment
   and policy activation remain separate release steps.
+
+### 7.17 Operational continuity additions (local; deployment pending)
+
+User authorized implementation of role-improvement Phases 0–5 on 2026-11-03. Migrations
+20261103010000–20261103070000 are locally implemented; this is not a statement that they are
+applied remotely. See `docs/ROLE-IMPROVEMENT-IMPLEMENTATION.md` for deployment and QA state.
+
+- **Shared cash drawer:** correct the deployed `hashtextended` typo to `hashtextextended`,
+  serialize drawer transitions and payments, restore close UI and retire the cash bypass.
+  New paid cash requires an open drawer. Only the opener or Accounting closes; Accounting
+  reconciles. Sign-out does not close shared drawers. Historical unattributed cash has an
+  Accounting-only investigation queue; notes never rewrite payments or assign arbitrary drawers.
+- **Guest requests:** guests withdraw their own pending/unassigned individual lines using a
+  version check and audit history. Withdrawal sets cancelled/withdrawn; batch review skips it.
+  Existing department work prevents withdrawal; new work is serialized against it.
+- **Reviews:** public testimonials come from real records, with an honest empty/unavailable
+  state. Production fallback never supplies sample reviews.
+- **Schedule & Handover:** all five operational roles have a navigation entry. Manager schedules
+  active operational staff with overlap protection and Manila times. Staff read only their own
+  roster. Scheduling does not grant account-governance powers or prove attendance. Department
+  handovers retain source references, follow-up ownership, acknowledgement and resolution.
+- **Preventive work:** Manager assigns maintenance technicians; technicians assign themselves.
+  An asset has at most one unfinished linked occurrence. Existing work-order lifecycle applies;
+  completed work and an actual service date are required before updating the linked schedule.
+  Due dates alone do not block rooms.
+- **Lost & Found:** Housekeeping records/secures; Front Desk records claims; Manager authorizes
+  release or declines claims; Front Desk verifies identity before release. Custody changes are
+  acknowledged and audited. Manager disposition requires explicit policy confirmation/reason;
+  no retention period or automated disposal is invented. Claim notes are hidden from Housekeeping.
+
+OTA, group/corporate, linen/laundry, formal night audit and full accounting remain separately
+scoped evaluations under Phase 5; no integrations are claimed.
 
 ## 8. Business policies & configuration
 
@@ -1870,7 +1969,7 @@ day's report). All return `{ data: null, message }` degradation, never 5xx, when
 **QR operations** (`/api/qr`, §7.13): `POST /resolve` (token → role-aware resolution with current
 resource-state re-check + scan audit); `GET /reservation/[id]` (guest-owner or staff; **confirmed
 reservations only** — token rotates on each fetch); `GET /room/[roomId]` (staff placard data) and
-`POST /room/[roomId]/rotate` (manager/owner/admin). Scanner: dashboard modal opened from Overview
+`POST /room/[roomId]/rotate` (manager/owner/admin). Scanner: dashboard modal opened from Dashboard
 and Reservations; pages: `/qr-placard/[roomId]`
 (printable placard).
 

@@ -4,6 +4,20 @@ Lightweight decision log. Each entry records a choice that constrains future dev
 Trivial implementation details do not belong here. Historical sessions never override the
 current system or `SYSTEM.md` — see [[AI Session Handoff]] for the authority order.
 
+## D-035 — Separate Front Office modules; default room board to a guest calendar
+
+Date: 2026-11-04
+Status: User-approved; implemented locally
+
+The user requested distinct Room Management, Reservations and Guest Management
+modules and selected a seven-day calendar with guest names. Rooms are rows, dates
+are columns, and names span their recorded assigned nights; checkout day belongs
+to the next stay. Keep Cards as an alternate view. Preserve recorded room-move
+segments, show unassigned stays separately, and reuse existing protected workflows
+and role authority. A module label does not grant new write permissions.
+
+See [[2026-11-04 - Room Calendar and Front Office Modules]].
+
 ## D-034 — Operational-date direction follows existing Accounting authority
 
 Date: 2026-11-03

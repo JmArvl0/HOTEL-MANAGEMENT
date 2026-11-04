@@ -50,6 +50,68 @@
   existing warnings. Report: `docs/qa/cancellation-folio-browser-qa-2026-11-03.md`.
 - Verification and release notes: [[2026-11-03 - Cancellation Folio Settlement]].
 
+## Final local audit (2026-11-04)
+
+- Reviewed the complete uncommitted set and committed each logical group: Front
+  Office/payment workflow, staff light theme, Windows test fixtures, lint scope,
+  Cash & Shifts proposal, and audit/session records. No conflict markers found.
+- Final verification: 211 test files / 2,272 tests pass; typecheck, production
+  build, and lint pass (0 errors; 86 repo-wide warnings, with seven baseline
+  warnings on touched TSX files). `git diff --check` passes.
+- Chrome light-mode review covered Room Management, Reservations, Guest
+  Management, Guest Requests, Shift handover, Operational Handover, and Cash &
+  Shifts. Earlier per-feature test counts below are checkpoints; this final run
+  supersedes their recorded Windows assertion failures.
+- No database write or deployment.
+
+## Shared Payment Details (2026-11-04 — local)
+
+- Deposit and stay-payment details/reviews share one receipt component with the actual
+  HAVEN Hotel & Residences name and shared HAVEN logo (Garden Twin is a room type);
+  live payment/proof data, deposit comparison and existing review callbacks preserved.
+  Pending review actions require Accounting capability; provider-settled payments
+  cannot be manually confirmed.
+- Responsive sizing replaces the initial screenshot geometry: 560px desktop/laptop,
+  520px tablet cap, 12px mobile margins, readable fluid type, scrolling record with
+  persistent header/X. Duplicate bottom Close removed at the user's request.
+  Desktop/tablet/mobile/dark and short-window QA completed.
+- 69 focused tests passed at the feature checkpoint. The final cross-change run
+  passes 211 files / 2,272 tests, typecheck, and production build; full lint has
+  0 errors / 86 repo-wide warnings. Seven touched-TSX warnings match baseline.
+  Live payment E2E remains unverified. The receipt-test type error is corrected.
+- No database or deployment change. [[2026-11-04 - Shared Payment Details]].
+
+## Staff light-theme contrast audit (2026-11-04 — local)
+
+- Corrected shared light surfaces/borders, data-toolbar tokens, active navigation,
+  pagination controls and system-health accents after auditing `--ds2` / `--dl`
+  consumers and the root theme selector scope.
+- Live browser review covered all manager navigation modules, including the
+  populated Guest Management pager and Finance tables. Also fixed Cash & Shifts:
+  the ledger now uses full width while the drawer stays beside the header.
+  `git diff --check` and `npm run typecheck` pass.
+- No database or deployment changes. See [[2026-11-04 - Staff Light Theme Contrast Audit]].
+
+## Front Office modules and room calendar (2026-11-04 — local)
+
+- User-selected seven-day guest calendar is now Room Management's default;
+  Reservations and Guest Management have separate staff navigation entries.
+- Final cross-change run passes 211 files / 2,272 tests, typecheck, and production
+  build. Component-fixture QA and read-only Chrome module review completed;
+  authenticated live action E2E remains unverified.
+  No deployment or DB changes. D-035;
+  [[2026-11-04 - Room Calendar and Front Office Modules]].
+
+## Room Reservations workflow (2026-11-04 — local)
+
+- Approved prototype integrated: two views, actionable summaries, attention queue,
+  contextual reservation rows, explicit scope/history retry, and room-history disclosure.
+- 75 targeted tests passed at the feature checkpoint. Final cross-change run
+  passes 211 files / 2,272 tests, typecheck, and production build. Component-fixture
+  QA completed; authenticated live action E2E remains unverified. No deployment
+  or database changes.
+- [[2026-11-04 - Room Reservations Workflow Integration]].
+
 ## Production cutover (2026-11-03)
 
 - Authorized sequence executed and verified: maintenance gate → backup
@@ -146,6 +208,52 @@
   `20261102010000_backend_audit_remediation.sql` is the sole dry-run pending item.
   Coordinated app/database rollout remains pending; no commit/deployment/DB push.
   Existing unfinished frontend work is preserved. [[KI-016]] tracks rollout.
+
+## Local approved HMS/UI work retained by merge
+
+## Focused HMS workflow release (2026-11-03 — current)
+
+- Follow-up QA defects KI-014–016 fixed: stock baseline, drawer draft identity
+  and cash grid. Six form tests, typecheck/build/lint pass; full suite 2,102 pass /
+  existing KI-012 failure. Cash layout verified signed in at desktop/mobile.
+  Broader browser write-path QA remains partial; see workflow QA report.
+- Approved prototype implemented locally; eight scoped migrations applied through
+  `20261103120000` (exact allowlist in implementation report).
+- Stock/history, cash/folio/receipt, guest profile/ID and request/handover repaired.
+  No roster dependency; HR/procurement/assets/Lost & Found held.
+- Fresh PostgreSQL: 108 scoped migrations + 19 acceptance scenarios pass; live
+  rollback-only smoke passed. Typecheck/build pass; full suite 2,100 pass /
+  one existing Windows SQL text assertion. New workflow ESLint clean.
+- Full signed-in write-path walkthrough and hosted app deployment remain pending. No Git
+  push. See [[2026-11-03 - Approved HMS Workflow Implementation]] and
+  `docs/HMS-WORKFLOW-IMPLEMENTATION-2026-11-03.md`.
+
+## Earlier broad role improvements (2026-11-03 — historical checkpoint)
+
+- Authorized Phases 0–5 implemented in source: cash controls, partial receiving,
+  guest withdrawal/review honesty, roster/handover, linked preventive work,
+  Lost & Found and historical cash investigation. Seven migrations were pending
+  then; the focused release above supersedes that rollout status.
+- Local SQL acceptance 11 pass; HTTP scope tests 16 pass; full suite 2087 pass /
+  existing CRLF assertion failure. Build blocked fetching Google Fonts.
+- Remote ledger/function baseline checked; deployed cash-open typo reproduced.
+  Remote migration verification/application and signed-in role QA remain pending.
+- See [[2026-11-03 - Role Improvement Implementation]] and
+  `docs/ROLE-IMPROVEMENT-IMPLEMENTATION.md`.
+
+## Shared Account Sidebar (2026-11-03)
+
+- Approved navigation refinement implemented across all staff shells and Guest:
+  property pills removed, larger box-free logo, fixed-size icons, consistent
+  expanded/collapsed metrics and mobile drawer labels.
+- Approved hidden-scrollbar refinement is also implemented across staff, Guest,
+  and reusable sidebar navigation. Native overflow remains scrollable. Latest
+  navigation checks: typecheck + 37 targeted tests pass; full suite 2068 pass /
+  same unrelated SQL assertion failure; build still blocked fetching Google Fonts.
+- Typecheck and 54 targeted tests pass. Full suite 2068 pass / 1 unrelated Windows
+  SQL line-ending assertion failure; build blocked on Google Fonts connection.
+  Visual verification used production-CSS fixtures; signed-in QA remains manual.
+- See [[2026-11-03 - Shared Account Sidebar]].
 
 ## Guest Rewards & Loyalty Module Redesign (2026-10-06)
 

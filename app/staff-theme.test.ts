@@ -28,10 +28,10 @@ describe("staff theme layer", () => {
     expect(css).toMatch(/\.theme-light/);
   });
 
-  it("is the last stylesheet import in app/layout.tsx so it wins the cascade", () => {
+  it("loads staff styling before the final shared sidebar metrics", () => {
     const layout = readFileSync(join(process.cwd(), "app/layout.tsx"), "utf8");
     const imports = [...layout.matchAll(/import\s+["']([^"']+\.css)["']/g)].map((m) => m[1]);
-    expect(imports[imports.length - 1]).toMatch(/staff-theme\.css/);
+    expect(imports.slice(-3)).toEqual(["./staff-theme.css", "./hms-workflows.css", "./sidebar-navigation.css"]);
   });
 
   it("introduces no legacy coastal/teal hexes itself", () => {

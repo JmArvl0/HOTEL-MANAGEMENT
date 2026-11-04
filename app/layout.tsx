@@ -15,8 +15,11 @@ import "./customer-portal.css";
 import "@/components/auth/session-expiry.css";
 import "@/components/ui/command-palette.css";
 import "@/components/ui/haven-account-modal.css";
+import "./operations-workspace.css";
 import "@/components/ui/profile-popover.css";
 import "./staff-theme.css";
+import "./hms-workflows.css";
+import "./sidebar-navigation.css";
 
 const inter = localFont({ src: "./fonts/Inter-Variable.ttf", weight: "100 900", display: "swap", variable: "--font-sans", adjustFontFallback: "Arial" });
 const playfair = localFont({ src: "./fonts/PlayfairDisplay-Variable.ttf", weight: "400 900", display: "swap", variable: "--font-display", adjustFontFallback: "Times New Roman" });

@@ -7,6 +7,8 @@
 // and its friendly gate errors are surfaced inline on the final step.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BedDouble, Check, CheckCircle2, ChevronLeft, ChevronRight, ClipboardCheck, KeyRound, RefreshCw, ShieldCheck, Wallet } from "lucide-react";
+import PaymentCollectionDialog from "@/components/manager/payment-collection-dialog";
+import UploadedIdReview from "@/components/manager/uploaded-id-review";
 import { Modal } from "@/components/ui/Modal";
 import ReservationReadinessPanel from "./reservation-readiness-panel";
 import ReservationPartyPanel from "./reservation-party-panel";
@@ -38,7 +40,7 @@ const STEPS = [
 // the server re-validates everything on room-step entry and at check-in.
 export type ArrivalProgress = { step: number; selected: string; exceptionMode: string | null };
 
-export default function FrontDeskArrivalDialog({ reservationId, guestName, exceptionType, askForm, resume, onProgress, onClose, onCheckedIn }: {
+export default function FrontDeskArrivalDialog({ reservationId, guestName, exceptionType, resume, onProgress, onClose, onCheckedIn }: {
   reservationId: string;
   guestName: string;
   exceptionType?: string | null;
@@ -57,6 +59,7 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
   const [selected, setSelected] = useState<string>("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [paymentOpen, setPaymentOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   // Alternative-assignment exception state: every option comes from the server's
   // eligible-inventory endpoint — never free text, never client-side availability.
@@ -260,31 +263,7 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
     } finally { setBusy(false); }
   };
 
-  const doCollect = async () => {
-    const data = await askForm({
-      title: "Collect payment",
-      description: "Record a payment against this guest's folio. The remaining balance must be settled before check-in.",
-      fields: [
-        { key: "amount", label: "Payment amount (PHP)", type: "number", required: true, min: 0.01, step: 0.01, validation: (v: string | number | boolean) => { const s = String(v ?? "").trim(); const n = Number(s); return s !== "" && Number.isFinite(n) && n > 0 ? null : "Enter a payment amount greater than zero."; } },
-        { key: "method", label: "Method", type: "select", required: true, defaultValue: "cash", options: ["cash", "card", "bank_transfer", "gcash"].map((value) => ({ value, label: human(value) })), validation: () => null },
-        { key: "reference", label: "Transaction reference", type: "text", required: true, dependsOn: "method", showWhen: (v: string | number | boolean) => String(v) !== "cash", validation: (v: string | number | boolean) => (String(v ?? "").trim() ? null : "Enter the payment reference.") },
-      ],
-      submitText: "Record payment",
-    });
-    if (!data) return;
-    const method = String(data.method);
-    setBusy(true); setError("");
-    try {
-      const res = await fetch(`/api/front-desk/reservations/${reservationId}/payment`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amount: Number(data.amount), method, reference: method === "cash" ? null : String(data.reference), idempotencyKey: crypto.randomUUID(), allowOverpayment: false }) });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) { setError(body.error ?? "Unable to record payment."); return; }
-      const ref = String(body.data?.reference ?? "");
-      setNotice(Number(body.data?.folio_credit ?? 0) > 0
-        ? `Payment recorded${ref ? ` · ${ref}` : ""}. Folio credit: ${moneyExact(body.data.folio_credit)}.`
-        : `Payment recorded in the folio${ref ? ` · ${ref}` : ""}.`);
-      await fetchDetail();
-    } finally { setBusy(false); }
-  };
+  const doCollect = async () => { setPaymentOpen(true); };
 
   const sendExceptionRequest = async () => {
     const alternative = alternatives.find((type) => type.roomTypeId === targetTypeId);
@@ -391,6 +370,8 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
   );
 
   return (
+    <>
+    {paymentOpen && reservation && <PaymentCollectionDialog reservation={reservation} role="front_desk" onClose={() => setPaymentOpen(false)} onSaved={() => { void fetchDetail(); }} />}
     <Modal
       isOpen
       onClose={guardedClose}
@@ -435,6 +416,7 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
 
           {step === 0 && (
             <section className="arrival-section">
+              <UploadedIdReview reservationId={reservationId} onVerified={() => void fetchDetail()} />
               <h3>Guest identity</h3>
               <p className="arrival-section-copy">Confirm the guest&apos;s valid ID before this arrival can be assigned and checked in.</p>
               <div className="arrival-facts">
@@ -442,7 +424,7 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
                 <div><dt>Policy requirement</dt><dd>{idRequired ? "Valid ID required" : "Valid ID not required by policy"}</dd></div>
               </div>
               <div className="arrival-actions">
-                {String(reservation.identity_status) !== "verified" && <button className="btn btn-soft" onClick={doVerify} disabled={busy}><KeyRound size={15} /> Verify guest ID</button>}
+                {String(reservation.identity_status) !== "verified" && <button className="btn btn-soft" onClick={doVerify} disabled={busy}><KeyRound size={15} /> Verify ID checked on site</button>}
               </div>
               <ReservationPartyPanel reservationId={reservationId} editable />
             </section>
@@ -598,5 +580,6 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
           )}
         </div>
     </Modal>
+    </>
   );
 }

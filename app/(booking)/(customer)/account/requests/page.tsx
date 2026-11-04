@@ -1,10 +1,11 @@
+import { WithdrawRequestButton } from "@/components/customer/withdraw-request-button";
 import{BookOpenText,ChevronDown}from"lucide-react";import{requireCustomerSession}from"@/lib/customer-auth";import{getGuestReservations}from"@/lib/booking";import{friendlyStatus,getCustomerRequests}from"@/lib/customer";import{portalCatalogOptions}from"@/lib/request-catalog";import{GuestRequestForm}from"@/components/customer/guest-request-form";import{StatusBadge}from"@/components/ui";import{requestLabel}from"@/lib/request-options";import{groupRequestBatches,requestCode}from"@/lib/request-batches";
 // One submission = one collapsible card. Items share a batch_id (portal
 // submissions file the client idempotency key; one checkout files
 // md5(reservation||'|checkout')) — grouping never falls back to guest,
 // reservation, or timestamp, so two submissions made at the same instant stay
 // two cards. The request number is derived from the batch id, not stored.
-const APPROVAL_LABELS={pending:"Pending review",approved:"Approved",rejected:"Declined"}as const;
+const APPROVAL_LABELS={pending:"Pending review",approved:"Approved",rejected:"Declined",withdrawn:"Withdrawn"}as const;
 const when=(value:string)=>new Date(value).toLocaleString("en-PH",{dateStyle:"medium",timeStyle:"short"});
 export default async function RequestsPage(){const session=await requireCustomerSession();const[requests,reservations,options]=await Promise.all([getCustomerRequests(session.user.id),getGuestReservations(session.user.id),portalCatalogOptions()]);const eligible=reservations.filter((item)=>["confirmed","checked_in"].includes(String(item.status))).map((item)=>({id:item.id,confirmation_number:item.confirmation_number,room_type:item.room_type}));
  const batches=groupRequestBatches(requests);
@@ -29,6 +30,6 @@ export default async function RequestsPage(){const session=await requireCustomer
       {item.approval_status==="rejected"&&item.approval_note&&<small className="cgr-approval-note">Front Desk: {item.approval_note}</small>}
       {item.approved_at&&item.approval_status==="approved"&&<small className="cgr-item-updated">Updated {when(item.approved_at)}</small>}
      </div>
-     <StatusBadge status={item.status} size="sm"/>
+     <StatusBadge status={item.status} size="sm"/>{item.status === "open" && item.approval_status === "pending" && <WithdrawRequestButton id={item.id} version={item.version} />}
     </li>);})}</ul>
   </details>);})}</div>}</div>}

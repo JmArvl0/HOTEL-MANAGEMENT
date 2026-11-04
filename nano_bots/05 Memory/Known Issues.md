@@ -1,5 +1,33 @@
 # Known Issues
 
+## KI-018 — Physical stock count draft silently rebases on refresh
+
+Status: Resolved (2026-11-03). Count draft now retains its original version through
+refresh; explicit clear/recount resets baseline. Normal regression test passes.
+Original P1: `stock-integrity-panel.tsx` retains physical count
+but substitutes the refreshed item timestamp, allowing the stale count to pass
+the server's version guard. Isolated actual-component reproduction in
+`hms-qa-regressions.test.tsx` originally used `it.fails`; now asserts the fix.
+See `docs/HMS-WORKFLOW-QA-2026-11-03.md`, QA-01 and follow-up.
+
+## KI-019 — Cash count draft survives active drawer replacement
+
+Status: Resolved (2026-11-03). Form is keyed by drawer/actor/role and rejects blank
+counts. Same-drawer preservation/new-drawer reset regression passes.
+Original P1: `cash-count-panel.tsx` retains the old drawer's
+count/note when refreshed props select a new drawer; submission uses the new ID.
+Existing authorization still applies. Isolated component reproduction is marked
+`it.fails` originally; now a normal passing test. See QA report QA-02 and follow-up.
+
+## KI-020 — Cash split layout fragments the ledger
+
+Status: Resolved (2026-11-03). Ledger wrapped as one grid child; signed-in browser
+confirms adjacent desktop columns and mobile stacking without page overflow.
+Original P2: AccountingView fragment siblings become separate
+children of `.hms-accounting-split`, squeezing the table and placing cash count
+far below it. Verified signed in as Front Desk at 1280px. Wrap ledger output as
+one grid child; see QA report QA-03 and ignored browser screenshot evidence.
+
 Unresolved bugs, risks, limitations, and technical debt. Resolved issues stay here with
 `Status: Resolved` until the next archive pass (move to `04 Archive/Memory/` when navigation
 gets cluttered — do not archive aggressively).

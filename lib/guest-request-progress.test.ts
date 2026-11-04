@@ -87,8 +87,10 @@ describe("guest request fulfillment presentation", () => {
     expect(badge).toContain('"open", "in_progress"');
     expect(badge).not.toContain('"completed"');
   });
-  it("leaves inventory consumption inside the fulfillment transaction", () => {
+  it("keeps inventory consumption on task completion only", () => {
     expect(completeRoute).not.toContain("logGuestRequestConsumption");
+    expect(readFileSync("supabase/migrations/20261103080000_hms_integrity.sql", "utf8")).toContain("hms_request_stock_completion before update of status");
+    expect(migration).not.toContain("inventory_movements");
     expect(completeRoute).not.toContain('.from("inventory")');
   });
 });

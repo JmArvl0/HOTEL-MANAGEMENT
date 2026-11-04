@@ -4,11 +4,11 @@ import { useMemo, useState } from "react";
 export type PoLine = { itemId: string; name: string; quantity: number; unit: string; unitCost?: number };
 export type PoOrder = {
   id: string; status: string; total: number; items: PoLine[];
-  created_at?: string; version?: number; vendor_id?: string | null;
+  purchase_order_receipts?: { id: string; items: {itemId:string; quantity:number}[]; created_at:string }[]; received_quantities?: Record<string, number>; created_at?: string; version?: number; vendor_id?: string | null;
 };
 export type PoVendor = { id: string; name: string };
 
-const FILTERS = ["all", "draft", "pending_approval", "approved", "received", "cancelled"] as const;
+const FILTERS = ["all", "draft", "pending_approval", "approved", "partially_received", "received", "cancelled"] as const;
 
 function peso(n: number) {
   return `₱${Number(n ?? 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -17,8 +17,8 @@ function peso(n: number) {
 // Purchase-order workspace: tabbed status filter + per-order lifecycle actions.
 // Suggestion cards stay in the dashboard's existing strip above; this owns the
 // order queue. Server RPCs remain the authority — buttons only call them.
-export default function PurchaseOrderList({ orders, vendors, onSubmit, onReceive, onCancel }: {
-  orders: PoOrder[]; vendors: PoVendor[];
+export default function PurchaseOrderList({ orders, vendors, onSubmit, onReceive, onCancel, receivingOnly = false }: {
+  receivingOnly?: boolean; orders: PoOrder[]; vendors: PoVendor[];
   onSubmit: (o: PoOrder) => void; onReceive: (o: PoOrder) => void; onCancel: (o: PoOrder) => void;
 }) {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
@@ -52,18 +52,18 @@ export default function PurchaseOrderList({ orders, vendors, onSubmit, onReceive
               <span className={`badge badge-${o.status}`}>{String(o.status).replace(/_/g, " ")}</span>
             </header>
             <p className="hk-queue-service">
-              <strong>{(o.items ?? []).map((l) => `${l.name} × ${l.quantity}`).join(", ")}</strong>
+              <strong>{(o.items ?? []).map((l) => o.status === "received" && !Object.keys(o.received_quantities ?? {}).length ? `${l.name}: ${l.quantity} ordered · historical receipt details unavailable` : `${l.name}: ${Number(o.received_quantities?.[l.itemId] ?? 0)} / ${l.quantity} received`).join(", ")}</strong>
             </p>
             <small>
               {o.vendor_id ? `${vendorName.get(o.vendor_id) ?? "Vendor"} · ` : ""}
-              Total {peso(o.total)}
+              {!receivingOnly && <>Total {peso(o.total)}</>}
               {o.created_at ? ` · ${String(o.created_at).slice(0, 10)}` : ""}
             </small>
           </div>
           <div className="hk-queue-actions">
-            {o.status === "draft" && <button className="table-action action-primary" onClick={() => onSubmit(o)}>Submit</button>}
-            {o.status === "approved" && <button className="table-action action-primary" onClick={() => onReceive(o)}>Confirm stock restock</button>}
-            {(o.status === "draft" || o.status === "pending_approval" || o.status === "approved") && (
+            {!receivingOnly && o.status === "draft" && <button className="table-action action-primary" onClick={() => onSubmit(o)}>Submit</button>}
+            {["approved", "partially_received"].includes(o.status) && <button className="table-action action-primary" onClick={() => onReceive(o)}>Receive delivery</button>}
+            {!receivingOnly && (o.status === "draft" || o.status === "pending_approval" || o.status === "approved") && (
               <button className="table-action" onClick={() => onCancel(o)}>Cancel</button>
             )}
             {o.status === "pending_approval" && <span>Awaiting Owner/Admin approval</span>}

@@ -1,0 +1,22 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Role } from "@/lib/types";
+const state = vi.hoisted(() => ({ role: "guest" as Role, disabled: false, rpc: vi.fn(), reads: [] as string[] }));
+vi.mock("next-auth", () => ({ getServerSession: async () => ({ user: { id: "123e4567-e89b-42d3-a456-426614174000", role: state.role, disabled: state.disabled } }) }));
+vi.mock("@/lib/auth", () => ({ authOptions: {} }));
+vi.mock("@/lib/supabase", () => ({ supabase: { rpc: state.rpc, from(table: string) { state.reads.push(table); const query = { select: () => query, eq: () => query, in: () => query, order: () => query, limit: () => query, then: (resolve: (r: unknown) => unknown) => Promise.resolve({ data: [], error: null }).then(resolve) }; return query; } } }));
+import { POST as stockPOST } from "@/app/api/inventory/movements/route";
+import { POST as handoverPOST, GET as handoverGET } from "@/app/api/staff/handovers/route";
+import { PATCH as profilePATCH } from "@/app/api/account/profile/route";
+import { POST as reviewPOST } from "@/app/api/staff/reservations/[id]/verify-id/route";
+const request = (body: unknown) => new Request("http://localhost/api/test", { method: "POST", body: JSON.stringify(body) });
+const key = "123e4567-e89b-42d3-a456-426614174001";
+beforeEach(() => { state.role = "guest"; state.disabled = false; state.rpc.mockReset(); state.reads.length = 0; });
+describe("focused HMS boundaries", () => {
+ it.each<Role>(["guest", "front_desk", "accounting", "manager", "owner", "admin"])("denies %s direct stock issues", async role => { state.role = role; expect((await stockPOST(request({}))).status).toBe(403); expect(state.rpc).not.toHaveBeenCalled(); });
+ it("uses the complete stock operation and returns a useful shortage", async () => { state.role = "housekeeping"; state.rpc.mockResolvedValue({ error: { message: "STOCK_INSUFFICIENT" } }); const res = await stockPOST(request({ idempotencyKey: key, itemId: "ITM-1", kind: "issue", quantity: 2, expectedUpdated: null, reason: "Guest supplies", reference: "Room 204" })); expect(res.status).toBe(409); expect(state.rpc).toHaveBeenCalledWith("hms_stock_movement", expect.objectContaining({ p_key: key, p_actor: "123e4567-e89b-42d3-a456-426614174000" })); expect((await res.json()).error).toContain("Nothing was deducted"); });
+ it("loads handovers without querying roster", async () => { state.role = "front_desk"; expect((await handoverGET()).status).toBe(200); expect(state.reads).toEqual(["shift_handovers", "user_accounts"]); });
+ it("rejects scheduling even for Manager at the focused endpoint", async () => { state.role = "manager"; expect((await handoverPOST(request({ action: "schedule", id: key, staffId: key, startsAt: "2026-11-04T08:00:00+08:00", endsAt: "2026-11-04T16:00:00+08:00" }))).status).toBe(403); expect(state.rpc).not.toHaveBeenCalled(); });
+ it("profile changes use one canonical RPC and surface link review", async () => { state.rpc.mockResolvedValue({ error: { message: "PROFILE_LINK_REVIEW_REQUIRED" } }); const res = await profilePATCH(request({ name: "Guest name" })); expect(res.status).toBe(409); expect(state.rpc).toHaveBeenCalledWith("hms_save_guest_profile", expect.any(Object)); expect(state.reads).toEqual([]); });
+ it("requires the exact reviewed document", async () => { state.role = "front_desk"; const params = { params: Promise.resolve({ id: "RSV-1" }) }; expect((await reviewPOST(request({}), params)).status).toBe(400); state.rpc.mockResolvedValue({ error: { message: "DOCUMENT_STALE" } }); expect((await reviewPOST(request({ documentId: key }), params)).status).toBe(409); expect(state.rpc).toHaveBeenCalledWith("hms_verify_uploaded_id", expect.objectContaining({ p_document: key })); });
+ it("disabled actors cannot submit any focused write", async () => { state.disabled = true; expect((await profilePATCH(request({}))).status).toBe(401); expect((await stockPOST(request({}))).status).toBe(401); expect((await handoverPOST(request({}))).status).toBe(401); expect(state.rpc).not.toHaveBeenCalled(); });
+});

@@ -1,0 +1,3129 @@
+<!doctype html>
+<html lang="en" data-visualize-standalone>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com https://persistent.oaistatic.com/plugins/visualize/; style-src 'unsafe-inline' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Haven Cash &amp; Shifts - Design Proposal</title>
+<style>:root{color-scheme:light dark;background:light-dark(rgb(255 255 255), rgb(24 24 24))}html,body{margin:0}body{box-sizing:border-box;padding:1rem;background:inherit}iframe{display:block;width:100%;height:calc(100vh - 2rem);margin:0 auto;border:0}</style>
+
+</head>
+<body>
+<iframe id="codex-visualization" sandbox="allow-scripts" referrerpolicy="no-referrer" title="Haven Cash &amp; Shifts - Design Proposal" data-srcdoc="&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot; data-visualize-standalone&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;meta name=&quot;referrer&quot; content=&quot;no-referrer&quot;&gt;
+&lt;meta http-equiv=&quot;Content-Security-Policy&quot; content=&quot;default-src &#x27;none&#x27;; script-src &#x27;unsafe-inline&#x27; &#x27;unsafe-eval&#x27; &#x27;wasm-unsafe-eval&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com https://persistent.oaistatic.com/plugins/visualize/; style-src &#x27;unsafe-inline&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src &#x27;none&#x27;; object-src &#x27;none&#x27;; base-uri &#x27;none&#x27;; form-action &#x27;none&#x27;&quot;&gt;
+&lt;title&gt;Haven Cash &amp;amp; Shifts - Design Proposal&lt;/title&gt;
+&lt;style&gt;:root {
+  color-scheme: light dark;
+  background-color: var(
+    --background,
+    var(--color-background-primary, light-dark(rgb(255 255 255), rgb(24 24 24)))
+  ) !important;
+
+  /* Agent-facing contract; keep in sync with SKILL.md. */
+  --background: var(
+    --color-background-primary,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --card: color-mix(in oklab, var(--foreground) 5%, var(--background));
+  --card-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --popover: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255), rgb(45 45 45))
+  );
+  --popover-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --primary: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --primary-foreground: var(
+    --color-text-inverse,
+    light-dark(rgb(255 255 255), rgb(13 13 13))
+  );
+  --secondary: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255 / 96%), rgb(54 54 54 / 96%))
+  );
+  --secondary-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --muted: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --muted-foreground: var(
+    --color-text-secondary,
+    light-dark(rgb(26 28 31 / 49.4%), rgb(255 255 255 / 49.8%))
+  );
+  --accent: var(
+    --color-background-info,
+    light-dark(rgb(229 242 255), rgb(13 39 63))
+  );
+  --accent-foreground: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --destructive: var(
+    --color-text-warning,
+    light-dark(rgb(226 85 7), rgb(255 133 73))
+  );
+  --border: var(
+    --color-border-secondary,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
+  --input: var(
+    --color-border-primary,
+    light-dark(
+      rgb(26 28 31 / 11.8%),
+      color-mix(in oklab, rgb(0 0 0) 10%, transparent)
+    )
+  );
+  --ring: var(
+    --color-ring-primary,
+    light-dark(rgb(51 156 255), rgb(131 195 255 / 76%))
+  );
+  --font-size-base: var(--font-text-md-size, 16px);
+  --blue: light-dark(rgb(51 156 255), rgb(51 156 255));
+  --orange: light-dark(rgb(226 85 7), rgb(251 106 34));
+  --green: light-dark(rgb(0 162 64), rgb(64 201 119));
+  --red: light-dark(rgb(224 46 42), rgb(255 103 100));
+  --purple: light-dark(rgb(146 79 247), rgb(173 123 249));
+  --yellow: light-dark(rgb(255 195 0), rgb(255 210 64));
+  --viz-series-1: var(--primary);
+  --viz-series-2: light-dark(rgb(243 136 59), rgb(245 154 86));
+  --viz-series-3: light-dark(rgb(93 201 119), rgb(116 213 139));
+  --viz-series-4: light-dark(rgb(235 119 177), rgb(240 143 192));
+  --viz-series-5: light-dark(rgb(155 121 236), rgb(170 145 239));
+  --viz-series-6: light-dark(rgb(58 185 177), rgb(90 203 194));
+
+  /* Internal implementation variables; not part of the agent contract. */
+  --font-sans:
+    -apple-system-body, ui-sans-serif, -apple-system, system-ui, &quot;Segoe UI&quot;,
+    Helvetica, &quot;Apple Color Emoji&quot;, Arial, sans-serif, &quot;Segoe UI Emoji&quot;,
+    &quot;Segoe UI Symbol&quot;;
+  --font-mono:
+    ui-monospace, SFMono-Regular, &quot;SF Mono&quot;, Menlo, Consolas, &quot;Liberation Mono&quot;,
+    monospace;
+  --font-size-normal: max(11px, var(--font-size-base));
+  --font-size-tooltip: calc(var(--font-size-base) - 1px);
+  --font-size-small: max(11px, calc(var(--font-size-base) - 2px));
+  --font-size-h1: calc(var(--font-size-normal) * 1.7142857143);
+  --font-size-h2: calc(var(--font-size-normal) * 1.4285714286);
+  --font-size-h3: calc(var(--font-size-normal) * 1.2857142857);
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --icon-size: 16px;
+  --line-height-normal: calc(var(--font-size-normal) * 1.5);
+  --line-height-tooltip: calc(var(--font-size-tooltip) * 1.4285714286);
+  --line-height-small: calc(var(--font-size-small) + 4px);
+  --corner-shape: round;
+  --radius: var(--border-radius-lg, 8px);
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.75);
+  --radius-lg: var(--radius);
+  --radius-2xl: calc(var(--radius) * 2);
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px -1px rgb(0 0 0 / 8%);
+  --checkmark-image: url(&quot;data:image/svg+xml,%3Csvg xmlns=&#x27;http://www.w3.org/2000/svg&#x27; viewBox=&#x27;0 0 17 17&#x27;%3E%3Cpath d=&#x27;M12.8961 3.64101C13.1297 3.41418 13.4984 3.37523 13.7779 3.56581C14.0571 3.75635 14.1554 4.11331 14.0299 4.41347L13.9615 4.53847L7.71151 13.7045C7.59411 13.8767 7.4063 13.9877 7.19881 14.0072C6.99136 14.0267 6.78564 13.9533 6.63826 13.806L2.88826 10.056L2.79842 9.9457C2.6192 9.67407 2.64927 9.30496 2.88826 9.06581C3.12738 8.82669 3.49647 8.79676 3.76815 8.97597L3.8785 9.06581L7.03084 12.2182L12.8053 3.74941L12.8961 3.64101Z&#x27;/%3E%3C/svg%3E&quot;);
+
+  /* Legacy aliases; not part of the current agent contract. */
+  --viz-bg: transparent;
+  --viz-panel: var(--card);
+  --viz-border: var(--border);
+  --viz-text: var(--foreground);
+  --viz-muted: var(--muted-foreground);
+  --viz-accent: var(--primary);
+  --viz-accent-text: var(--primary-foreground);
+  --viz-accent-bg: var(--accent);
+  --viz-font-size: var(--font-size-base);
+  --viz-warning: var(--destructive);
+}
+
+:root[data-theme=&quot;light&quot;] {
+  color-scheme: light;
+}
+
+:root[data-theme=&quot;dark&quot;] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html &gt; body {
+  /* Preserve MCP aliases for older inline renderers without creating :root cycles. */
+  --color-background-primary: var(
+    --background,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --color-text-primary: var(
+    --foreground,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --color-border-secondary: var(
+    --border,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
+
+  margin: 0;
+  padding: var(--visualize-paint-gutter, 0px);
+  color: var(--foreground);
+  background: transparent !important;
+  font-family: var(--font-sans) !important;
+  -webkit-font-smoothing: antialiased;
+  font-size: var(--font-size-base);
+  line-height: calc(var(--font-size-base) * 1.625);
+  font-weight: var(--font-weight-normal);
+}
+
+.cursor-interaction {
+  cursor: var(--cursor-interaction, pointer);
+}
+
+a {
+  color: color-mix(in srgb, var(--viz-accent) 80%, var(--viz-text) 20%);
+  cursor: var(--cursor-interaction, pointer);
+  text-decoration: none;
+  text-underline-offset: 2px;
+  font-weight: inherit;
+}
+
+a:is(:hover, :focus-visible) {
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: 0.5px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin-block: 0;
+}
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+li,
+.table {
+  font-family: var(--font-sans);
+}
+
+h1 {
+  font-size: calc(var(--font-size-base) * 1.5);
+  line-height: 1.3333333333;
+}
+
+h2 {
+  font-size: calc(var(--font-size-base) * 1.25);
+  line-height: 1.4;
+}
+h3 {
+  font-size: calc(var(--font-size-base) * 1.125);
+  line-height: 1.5555555556;
+}
+h4 {
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+}
+h5,
+h6 {
+  font-size: var(--font-size-base);
+  line-height: calc(var(--font-size-base) * 1.625);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+b,
+strong,
+th {
+  font-weight: 600;
+}
+
+code:not(pre code) {
+  display: inline;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  corner-shape: var(--corner-shape);
+  background: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  word-break: break-word;
+}
+pre,
+pre code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.table {
+  width: 100%;
+  color: var(--foreground);
+  font: inherit;
+  text-align: start;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: calc(var(--font-size-base) * 0.875);
+  line-height: calc(var(--font-size-base) * 1.625);
+  font-family: var(--font-sans);
+}
+
+.table :is(th, td) {
+  padding-block: 10px;
+  padding-inline: 0 24px;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--border);
+  text-align: start;
+  vertical-align: top;
+  border-bottom-color: color-mix(in srgb, var(--foreground) 5%, transparent);
+}
+.table :is(th, td):not(:last-child) {
+  padding-inline-end: calc(var(--font-size-base) * 1.5);
+}
+
+.table-responsive &gt; .table :is(th, td) {
+  overflow-wrap: break-word;
+}
+
+.table :is(th, td):last-child {
+  padding-inline-end: 0;
+}
+
+.table :is(caption, thead th) {
+  font-weight: 600;
+}
+
+.table thead :is(th, td) {
+  border-bottom-color: var(--border-strong, var(--input));
+  padding-block: calc(var(--font-size-base) / 2);
+  line-height: var(--font-size-base);
+}
+
+.table tbody tr:last-child :is(th, td) {
+  border-bottom: 0;
+}
+.table tbody :is(th, td) {
+  padding-block: calc(var(--font-size-base) * 0.625);
+}
+
+.table.table-sm :is(th, td) {
+  padding-block: 8px;
+}
+
+.table.table-sm :is(th, td):not(:last-child) {
+  padding-inline-end: 16px;
+}
+
+.table :is(.text-end, [align=&quot;right&quot;]) {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.table :is(.text-center, [align=&quot;center&quot;]) {
+  text-align: center;
+}
+
+.table .text-nowrap {
+  white-space: nowrap;
+}
+
+#widget {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  background: transparent !important;
+}
+
+.card {
+  min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  border-radius: var(--radius-2xl);
+  corner-shape: var(--corner-shape);
+  color: var(--card-foreground);
+  background: var(--card);
+}
+
+.widget {
+  min-width: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-lg);
+  corner-shape: var(--corner-shape);
+  box-shadow: 0 0 0 0.5px var(--border-strong, var(--border));
+  color: var(--foreground);
+  background: var(--background);
+}
+
+#widget &gt; :not(.card, .widget, .progress) {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  width: max-content;
+  max-width: min(
+    20rem,
+    var(--tooltip-available-width, calc(100vw - 10px)),
+    calc(100vw - 10px)
+  );
+  max-height: min(
+    var(--tooltip-available-height, calc(100vh - 10px)),
+    calc(100vh - 10px)
+  );
+  border: 1px solid var(--border);
+  corner-shape: var(--corner-shape);
+  overflow-wrap: break-word;
+  white-space: normal;
+  pointer-events: none;
+  user-select: none;
+  font-family: var(--font-sans);
+  padding: 5px 12px;
+  border-color: color-mix(
+    in oklab,
+    light-dark(var(--primary-foreground), var(--foreground)) 5%,
+    transparent
+  );
+  border-radius: var(--radius-2xl);
+  color: light-dark(var(--primary-foreground), var(--foreground));
+  background: light-dark(var(--foreground), var(--popover));
+  box-shadow: 0 8px 18px rgb(15 23 42 / 20%);
+  letter-spacing: -0.15px;
+  font-size: calc(var(--font-size-base) * 14 / 16);
+  font-size: round(nearest, calc(var(--font-size-base) * 14 / 16), 1px);
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+}
+
+.viz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(max(180px, 24%), 1fr));
+  gap: 10px;
+}
+
+.viz-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.viz-stat-value {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+.viz-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+hr {
+  width: 100%;
+  height: 1px;
+  margin-block: 6px;
+  border: 0;
+  background: var(--border);
+}
+
+.nav {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+}
+
+.progress {
+  display: flex;
+  height: 8px;
+  margin-block: calc((var(--line-height-normal, 1.5em) - 8px) / 2);
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+}
+
+.progress-bar:only-child {
+  border-radius: var(--radius-full);
+}
+
+.progress-bar {
+  height: 100%;
+  flex-shrink: 0;
+  border: 0;
+  background: var(--viz-series-1);
+}
+
+.viz-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  color: color-mix(in srgb, var(--foreground) 40%, var(--muted-foreground));
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+  font-family: var(--font-sans);
+  font-size: calc(var(--font-size-base) * 14 / 16);
+  font-size: round(nearest, calc(var(--font-size-base) * 14 / 16), 1px);
+  font-weight: var(--font-weight-normal);
+  line-height: 1;
+}
+
+small,
+.text-small {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-small);
+}
+
+.text-muted {
+  color: var(--muted-foreground);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.viz-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.viz-controls &gt; .form-label {
+  display: grid;
+  min-width: min(100%, 260px);
+  flex: 1 1 280px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-bottom: 0;
+}
+
+.viz-controls &gt; .form-label &gt; :is(.form-control, .form-range, .form-select) {
+  grid-column: 1 / -1;
+}
+
+.btn,
+.nav-link,
+.form-check-input,
+.form-control,
+.form-range,
+.form-select {
+  font: inherit;
+}
+
+/* Match inline alignment without overriding a containing flex or grid layout. */
+.btn,
+.nav-link,
+.form-control,
+.form-select,
+.form-range,
+.form-check {
+  vertical-align: middle;
+}
+
+.btn,
+.nav-link {
+  --btn-size: calc(12px + 2 * var(--control-spacing, 12px));
+  appearance: button;
+  display: inline-flex;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0 8px;
+  -webkit-app-region: no-drag;
+  border: 1px solid var(--input);
+  corner-shape: var(--corner-shape);
+  cursor: var(--cursor-interaction, pointer);
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-font-smoothing: inherit;
+  font-family: var(--font-sans);
+  height: fit-content;
+  min-height: var(--btn-size);
+  padding-inline: var(--control-spacing, 12px);
+  border-color: transparent;
+  border-radius: var(--radius-full);
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+  font-size: calc(var(--font-size-base) * 14 / 16);
+  font-size: round(nearest, calc(var(--font-size-base) * 14 / 16), 1px);
+  font-weight: var(--font-weight-normal);
+  line-height: 18px;
+}
+
+.btn {
+  border-color: var(--border);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+}
+
+/* Codex Button size=&quot;compact&quot;; appearance stays with the button variant. */
+.btn-sm {
+  --btn-size: 24px;
+  padding-inline: 8px;
+  font-size: calc(var(--font-size-base) * 12 / 16);
+  font-size: round(nearest, calc(var(--font-size-base) * 12 / 16), 1px);
+  line-height: 16px;
+}
+
+.btn:is(.btn-block, .viz-tile) {
+  inline-size: 100%;
+}
+
+.btn.viz-tile {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+a.btn {
+  cursor: var(--cursor-interaction, pointer);
+  text-decoration: none;
+}
+
+.btn:not(:disabled):hover {
+  background: light-dark(
+    color-mix(in srgb, var(--foreground) 5.5%, transparent),
+    color-mix(in srgb, var(--foreground) 8%, transparent)
+  );
+}
+
+.nav-link:not(:disabled):not([aria-disabled=&quot;true&quot;]):hover {
+  background: color-mix(in srgb, var(--foreground) 10%, transparent);
+}
+
+.btn-primary {
+  border-color: var(--border);
+  color: var(--primary-foreground);
+  background: var(--foreground);
+  background-clip: border-box;
+}
+
+.btn-primary .text-muted {
+  color: color-mix(in srgb, var(--primary-foreground) 50%, transparent);
+}
+
+.btn-primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 80%, transparent);
+  background-clip: border-box;
+}
+
+.btn-ghost {
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.btn-ghost:not(:disabled):hover {
+  color: var(--muted-foreground);
+  background: light-dark(
+    color-mix(in srgb, var(--foreground) 5.5%, transparent),
+    color-mix(in srgb, var(--foreground) 8%, transparent)
+  );
+}
+
+.nav-pills .nav-link {
+  min-width: 0;
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.nav-justified .nav-link {
+  flex: 1 1 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.nav-pills .nav-link.active {
+  color: var(--foreground);
+  background: var(--muted);
+}
+
+/* Shared preview chrome; product styles stay inside each variant. */
+.viz-dotted-background {
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--foreground) 14%, transparent) 0.8px,
+    transparent 0.8px
+  );
+  background-position: center;
+  background-size: 16px 16px;
+}
+
+.viz-carousel {
+  position: relative;
+  min-width: 0;
+}
+
+.viz-carousel:has(&gt; .viz-carousel-controls) {
+  min-height: calc(60px + var(--viz-carousel-picker-height, 0px));
+  padding-bottom: 60px;
+}
+
+.viz-carousel &gt; [data-variant][hidden] {
+  display: none !important;
+}
+
+.viz-carousel &gt; [data-variant] {
+  isolation: isolate;
+}
+
+.viz-carousel-controls {
+  --viz-carousel-hover: light-dark(
+    color-mix(in srgb, var(--foreground) 5.4%, transparent),
+    color-mix(in srgb, var(--foreground) 7.8%, transparent)
+  );
+  position: absolute;
+  z-index: 2;
+  bottom: 8px;
+  left: 50%;
+  display: flex;
+  width: max-content;
+  /* Leave room for the host&#x27;s design-controls launcher at the trailing edge. */
+  max-width: calc(100% - 96px);
+  align-items: center;
+  gap: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-sans);
+  /* Match the settings dropdown chrome independently of the content font size. */
+  font-size: 13px;
+  font-weight: var(--font-weight-normal);
+  line-height: 18px;
+  transform: translateX(-50%);
+  user-select: none;
+}
+
+/* Keep authored mockup button styles out of the shared carousel chrome. */
+.viz-carousel-controls button,
+.viz-carousel-picker &gt; summary {
+  display: flex !important;
+  height: auto !important;
+  min-height: 30px;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px;
+  padding: 0 6px !important;
+  -webkit-app-region: no-drag;
+  border: 0 !important;
+  border-radius: 14px !important;
+  color: inherit !important;
+  background: transparent !important;
+  font: inherit !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.viz-carousel-controls &gt; button,
+.viz-carousel-picker &gt; summary {
+  position: relative;
+  isolation: isolate;
+}
+
+.viz-carousel-controls &gt; button {
+  --icon-size: 16px;
+  width: 30px !important;
+  padding: 0 !important;
+}
+
+.viz-carousel-picker &gt; summary {
+  padding-inline: 12px !important;
+}
+
+.viz-carousel-controls .viz-carousel-caret {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  margin: 0;
+  color: inherit;
+  transform: rotate(180deg);
+}
+
+.viz-carousel-controls &gt; button &gt; svg,
+.viz-carousel-controls .viz-carousel-caret,
+.viz-carousel-count {
+  opacity: 0.5;
+}
+
+.viz-carousel-controls &gt; button::before,
+.viz-carousel-picker &gt; summary::before {
+  position: absolute;
+  z-index: -1;
+  inset: 3px;
+  border-radius: 12px;
+  content: &quot;&quot;;
+  pointer-events: none;
+}
+
+.viz-carousel-controls &gt; button:hover::before,
+.viz-carousel-picker &gt; summary:hover::before {
+  background: var(--viz-carousel-hover);
+}
+
+.viz-carousel-controls &gt; button,
+.viz-carousel-controls [data-lucide],
+.viz-carousel-controls .lucide {
+  flex-shrink: 0;
+}
+
+.viz-carousel-picker {
+  min-width: 0;
+}
+
+.viz-carousel-picker &gt; summary {
+  min-width: 0;
+  list-style: none;
+}
+
+.viz-carousel-picker &gt; summary::-webkit-details-marker {
+  display: none;
+}
+
+.viz-carousel-count {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.viz-carousel-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.viz-carousel-options {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 4px);
+  left: 0;
+  display: flex;
+  max-height: 240px;
+  flex-direction: column;
+  gap: 2px;
+  overflow: auto;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--background);
+  box-shadow: 0 4px 12px light-dark(rgb(0 0 0 / 6%), rgb(0 0 0 / 25%));
+}
+
+.viz-carousel-options &gt; button {
+  border-radius: max(0px, calc(var(--radius-lg) - 5px)) !important;
+  width: 100% !important;
+  min-height: 28px;
+  justify-content: flex-start !important;
+  padding: 4px 8px !important;
+  font-size: var(--font-size-small) !important;
+  text-align: start;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.viz-carousel-options &gt; [aria-current=&quot;true&quot;],
+.viz-carousel-options &gt; button:hover {
+  background: var(--viz-carousel-hover) !important;
+}
+
+.btn:disabled,
+.nav-link:disabled,
+.nav-link[aria-disabled=&quot;true&quot;] {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+[data-lucide] {
+  stroke-width: 1.6;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--foreground);
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  padding: 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  corner-shape: var(--corner-shape);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  height: calc(12px + 2 * var(--control-spacing, 12px));
+  min-height: calc(12px + 2 * var(--control-spacing, 12px));
+  padding-inline: calc(4px + var(--control-spacing, 12px) / 2);
+  border-color: var(--input);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--popover) 96%, transparent);
+  font-size: calc(var(--font-size-base) * 14 / 16);
+  font-size: round(nearest, calc(var(--font-size-base) * 14 / 16), 1px);
+  font-weight: var(--font-weight-normal);
+  line-height: 1.4285714286;
+}
+.form-control:is(
+  [type=&quot;file&quot;],
+  [type=&quot;date&quot;],
+  [type=&quot;datetime-local&quot;],
+  [type=&quot;month&quot;],
+  [type=&quot;week&quot;],
+  [type=&quot;color&quot;]
+) {
+  height: calc(12px + 2 * var(--control-spacing, 12px));
+  min-height: calc(12px + 2 * var(--control-spacing, 12px));
+  line-height: 18px;
+}
+.form-control:is(
+  [type=&quot;date&quot;],
+  [type=&quot;datetime-local&quot;],
+  [type=&quot;month&quot;],
+  [type=&quot;week&quot;]
+) {
+  padding-inline: var(--control-spacing, 12px);
+}
+
+.form-control::placeholder {
+  color: var(--muted-foreground);
+}
+
+.form-control[type=&quot;file&quot;] {
+  overflow: hidden;
+  cursor: var(--cursor-interaction, pointer);
+  padding: 0;
+}
+
+.form-control[type=&quot;file&quot;]::file-selector-button {
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid var(--input);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: inherit;
+  font: inherit;
+  min-height: calc(10px + 2 * var(--control-spacing, 12px));
+  padding-inline: var(--control-spacing, 12px);
+  margin-inline-end: var(--control-spacing, 12px);
+}
+
+.form-control[type=&quot;file&quot;]:not(:disabled):hover::file-selector-button {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-control-color[type=&quot;color&quot;] {
+  width: 40px;
+  height: calc(12px + 2 * var(--control-spacing, 12px));
+  padding: 3px;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch {
+  border: 0;
+  border-radius: calc(var(--radius-lg) - 4px);
+  corner-shape: var(--corner-shape);
+}
+
+textarea.form-control {
+  height: auto;
+  resize: vertical;
+  min-height: 96px;
+  padding: 8px 10px;
+}
+
+.form-control:focus-visible {
+  border-color: var(--ring);
+  box-shadow: none;
+}
+.form-control:disabled {
+  color: var(--muted-foreground);
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+  opacity: 1;
+}
+.form-control[aria-invalid=&quot;true&quot;] {
+  border-color: var(--red);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--red) 20%, transparent);
+}
+
+.form-control:disabled,
+.form-select:disabled {
+  cursor: not-allowed;
+}
+
+.form-select {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: fit-content;
+  min-height: calc(12px + 2 * var(--control-spacing, 12px));
+  margin: 0;
+  /* The secondary icon role is 14px at compact density and 16px at web density. */
+  --icon-size: calc(10px + var(--control-spacing, 12px) / 2);
+  /* Settings dropdowns retain a 12px inset and a 4px text-to-chevron gap. */
+  padding: 0 calc(16px + var(--icon-size)) 0 12px;
+  outline: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  corner-shape: var(--corner-shape);
+  color: var(--foreground);
+  background-color: var(--secondary);
+  background-image:
+    linear-gradient(
+      45deg,
+      transparent calc(50% - 0.6px),
+      var(--muted-foreground) calc(50% - 0.6px) calc(50% + 0.6px),
+      transparent calc(50% + 0.6px)
+    ),
+    linear-gradient(
+      135deg,
+      transparent calc(50% - 0.6px),
+      var(--muted-foreground) calc(50% - 0.6px) calc(50% + 0.6px),
+      transparent calc(50% + 0.6px)
+    );
+  background-position:
+    calc(100% - 12px - var(--icon-size) / 2) 50%,
+    calc(100% - 12px - var(--icon-size) * 0.18) 50%;
+  background-repeat: no-repeat;
+  background-size: calc(var(--icon-size) * 0.32) calc(var(--icon-size) * 0.32);
+  cursor: var(--cursor-interaction, default);
+  font-size: calc(var(--font-size-base) * 14 / 16);
+  font-size: round(nearest, calc(var(--font-size-base) * 14 / 16), 1px);
+  font-weight: var(--font-weight-normal);
+  line-height: 18px;
+}
+
+.form-select :is(option, optgroup) {
+  color: var(--popover-foreground);
+  background-color: var(--popover);
+}
+
+.form-select :is(option, optgroup):disabled {
+  color: var(--muted-foreground);
+}
+
+.form-select:not(:disabled):hover {
+  background-color: light-dark(
+    color-mix(in srgb, var(--foreground) 5.5%, transparent),
+    color-mix(in srgb, var(--foreground) 8%, transparent)
+  );
+}
+
+.form-select:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+.form-select:disabled {
+  opacity: 0.4;
+}
+
+.form-check {
+  display: flex;
+  min-height: calc(12px + 2 * var(--control-spacing, 12px));
+  align-items: center;
+  gap: 6px;
+}
+
+.form-check-input {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  border: 1px solid var(--input);
+  color: var(--primary-foreground);
+  background-color: transparent;
+  cursor: var(--cursor-interaction, default);
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;] {
+  corner-shape: round;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  width: calc(10px + var(--control-spacing, 12px) / 2);
+  height: calc(10px + var(--control-spacing, 12px) / 2);
+  border-color: var(--border-strong, var(--input));
+  border-radius: calc(var(--radius-sm) / 2);
+  background-color: transparent;
+  color: var(--foreground);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input:not(:disabled):not(:checked):hover {
+  background-color: var(--card);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input[type=&quot;checkbox&quot;]:is(:checked, :indeterminate) {
+  border-color: var(--border-strong, var(--input));
+  background-color: color-mix(in srgb, var(--popover) 96%, transparent);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input[type=&quot;checkbox&quot;]:checked::before {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--primary-foreground);
+  content: &quot;&quot;;
+  mask: var(--checkmark-image) center / 12px 12px no-repeat;
+  background-color: var(--foreground);
+}
+.form-check:not(.form-switch)
+  .form-check-input[type=&quot;checkbox&quot;]:indeterminate::before {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 65%;
+  height: 6.65%;
+  margin: auto;
+  border-radius: var(--radius-full);
+  background: var(--foreground);
+  mask: none;
+  content: &quot;&quot;;
+}
+
+.form-check-input[type=&quot;radio&quot;] {
+  border-radius: var(--radius-full);
+  width: 16px;
+  height: 16px;
+  border: 0;
+  box-shadow: inset 0 0 0 1px var(--input);
+}
+
+.form-check-input[type=&quot;radio&quot;]:checked {
+  border: 0;
+  background: radial-gradient(
+    circle,
+    var(--primary-foreground) 0 3px,
+    var(--foreground) 3px
+  );
+  box-shadow: none;
+}
+
+.form-check:not(.form-switch) .form-check-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;]:focus-visible {
+  border-color: var(--ring);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+}
+.form-check:not(.form-switch) .form-check-input[type=&quot;radio&quot;]:disabled,
+.form-check:not(.form-switch)
+  .form-check-input[type=&quot;radio&quot;]:disabled
+  + .form-check-label {
+  opacity: 0.5;
+}
+
+.form-switch .form-check-input:disabled,
+.form-switch .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.form-check-label {
+  color: var(--foreground);
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-switch .form-check-input {
+  position: relative;
+  width: 32px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+  box-shadow: none;
+  transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1px solid light-dark(var(--primary-foreground), var(--foreground));
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
+  content: &quot;&quot;;
+  transform: translate(2px, -50%);
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+  border-color: #fff;
+  background: #fff;
+}
+
+.form-switch .form-check-input:checked {
+  background: var(--blue);
+}
+
+.form-switch .form-check-input:checked::before {
+  transform: translate(14px, -50%);
+}
+
+.form-switch .form-check-input:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+  outline: none;
+}
+
+.form-range {
+  appearance: none;
+  display: block;
+  width: 100%;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  accent-color: var(--primary);
+  height: calc(12px + 2 * var(--control-spacing, 12px));
+  min-height: calc(12px + 2 * var(--control-spacing, 12px));
+  outline: none;
+  border-radius: var(--radius-full);
+  color: var(--foreground);
+  background: transparent;
+}
+
+.form-range::-webkit-slider-runnable-track {
+  background: var(--form-range-track, var(--border));
+  height: 2px;
+  border-radius: var(--radius-full);
+}
+
+.form-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  margin-top: -9px;
+  border-color: transparent;
+  background: currentColor;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Outline the native track and thumb, preserving the larger input hit area. */
+.form-range:focus-visible::-webkit-slider-runnable-track {
+  outline: 2px auto Highlight;
+  outline-color: -webkit-focus-ring-color;
+}
+
+.form-range::-moz-range-track {
+  background: var(--form-range-track, var(--border));
+  height: 2px;
+  border-radius: var(--radius-full);
+}
+
+.form-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  border-color: transparent;
+  background: currentColor;
+  box-shadow: var(--shadow-sm);
+}
+
+.form-range:focus-visible::-moz-range-thumb {
+  outline: 2px solid Highlight;
+  outline-offset: 2px;
+}
+
+.form-range:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.btn:not(.btn-primary, .viz-tile):is(
+  [aria-pressed=&quot;true&quot;],
+  [aria-selected=&quot;true&quot;],
+  .is-selected
+) {
+  border-color: transparent;
+  color: var(--primary-foreground);
+  background: var(--blue);
+}
+
+.btn.viz-tile:is([aria-pressed=&quot;true&quot;], [aria-selected=&quot;true&quot;], .is-selected) {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.btn:focus-visible,
+.nav-link:focus-visible {
+  outline-offset: 2px;
+  outline: none;
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.viz-carousel-controls :is(button, summary):focus-visible {
+  outline: 2px solid var(--ring) !important;
+  outline-offset: 2px !important;
+}
+
+/* Web recipes are the default, including on renderers without inline style queries. */
+@supports (border-radius: if(style(--corner-shape: round): 1px; else: 2px)) {
+  /* Match the host&#x27;s proportional text-sm scale at every text preference. */
+  .tooltip,
+  .viz-badge,
+  .btn,
+  .nav-link,
+  .form-control,
+  .form-select {
+    font-size: if(
+      style(--corner-shape: round): round(
+          nearest,
+          calc(var(--font-size-base) * 14 / 16),
+          1px
+        );
+        else: round(nearest, calc(var(--font-size-base) * 13 / 14), 1px)
+    );
+  }
+
+  .btn-sm {
+    font-size: if(
+      style(--corner-shape: round): round(
+          nearest,
+          calc(var(--font-size-base) * 12 / 16),
+          1px
+        );
+        else: round(nearest, calc(var(--font-size-base) * 12 / 14), 1px)
+    );
+  }
+
+  .btn,
+  .nav-link,
+  .form-select {
+    border-radius: if(
+      style(--corner-shape: round): var(--radius-full); else: var(--radius-lg)
+    );
+  }
+
+  .form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;] {
+    border-radius: if(
+      style(--corner-shape: round): calc(var(--radius-sm) / 2);
+        else: calc(var(--radius-lg) * 0.4)
+    );
+  }
+
+  .tooltip {
+    font-weight: if(
+      style(--corner-shape: round): 600; else: var(--font-weight-normal)
+    );
+  }
+}
+
+@media (pointer: coarse) {
+  .viz-carousel:has(&gt; .viz-carousel-controls) {
+    min-height: calc(76px + var(--viz-carousel-picker-height, 0px));
+    padding-bottom: 76px;
+  }
+
+  .btn,
+  .nav-link,
+  .viz-carousel-controls button,
+  .viz-carousel-picker &gt; summary,
+  .form-control,
+  .form-select {
+    --btn-size: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Keep small-screen WebKit from zooming when a text field receives focus. */
+  .form-control,
+  .form-select {
+    font-size: max(16px, calc(var(--font-size-base) * 14 / 16));
+    font-size: max(
+      16px,
+      round(nearest, calc(var(--font-size-base) * 14 / 16), 1px)
+    );
+  }
+  .form-control:is(
+    [type=&quot;file&quot;],
+    [type=&quot;date&quot;],
+    [type=&quot;datetime-local&quot;],
+    [type=&quot;month&quot;],
+    [type=&quot;week&quot;],
+    [type=&quot;time&quot;],
+    [type=&quot;color&quot;]
+  ) {
+    height: 44px;
+    min-height: 44px;
+    font-size: max(16px, calc(var(--font-size-base) * 14 / 16));
+    font-size: max(
+      16px,
+      round(nearest, calc(var(--font-size-base) * 14 / 16), 1px)
+    );
+  }
+
+  .form-control[type=&quot;file&quot;]::file-selector-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .form-control-color[type=&quot;color&quot;] {
+    width: 44px;
+    height: 44px;
+  }
+
+  .form-control:is(
+    [type=&quot;date&quot;],
+    [type=&quot;datetime-local&quot;],
+    [type=&quot;month&quot;],
+    [type=&quot;time&quot;],
+    [type=&quot;week&quot;]
+  ) {
+    min-width: 0;
+    max-width: 100%;
+    padding-block: 8px;
+  }
+
+  .form-check {
+    min-height: 44px;
+    padding-inline: 15px;
+  }
+
+  .form-check-input {
+    position: relative;
+  }
+
+  .form-check-input::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    content: &quot;&quot;;
+    transform: translate(-50%, -50%);
+  }
+
+  .form-check-label {
+    display: inline-flex;
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+  }
+
+  .form-range {
+    height: 44px;
+    touch-action: pan-y;
+  }
+}
+
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+#widget &gt; svg {
+  width: 100%;
+}
+
+/* Model-authored chart rules can otherwise stretch icons after these styles load. */
+svg.lucide {
+  display: block;
+  width: var(--icon-size) !important;
+  height: var(--icon-size) !important;
+  flex: none;
+  margin: 0 !important;
+  stroke-width: 1.6;
+}
+
+.text-warning,
+.text-destructive {
+  color: var(--destructive);
+}
+
+html&gt;body{padding:0}&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;script type=&quot;application/json&quot; id=&quot;codex-visualization-widget-state&quot;&gt;__CODEX_VISUALIZATION_WIDGET_STATE__&lt;/script&gt;
+&lt;script&gt;(() =&gt; {
+  const root = document.documentElement;
+  const mediaQuery = globalThis.matchMedia(&quot;(prefers-color-scheme: dark)&quot;);
+  const apply = Reflect.apply;
+  const isArray = Array.isArray;
+  const hasOwn = Object.hasOwn;
+  const parentWindow = globalThis.parent;
+  const stringify = JSON.stringify;
+  const parse = JSON.parse;
+  const encode = TextEncoder.prototype.encode.bind(new TextEncoder());
+  const initialStateElement = document.getElementById(
+    &quot;codex-visualization-widget-state&quot;,
+  );
+  const initialGlobals = parse(initialStateElement?.textContent ?? &quot;{}&quot;);
+  initialStateElement?.remove();
+  /** @type {Record&lt;string, unknown&gt; | null} */
+  let state = initialGlobals.widgetState ?? null;
+  const statePersistence = initialGlobals.statePersistence ?? &quot;none&quot;;
+  let nextStateRequestId = 0;
+  /** @type {Map&lt;number, { resolve: () =&gt; void; reject: (error: Error) =&gt; void; timeout: ReturnType&lt;typeof globalThis.setTimeout&gt;; serializedState: string }&gt;} */
+  const pendingStateWrites = new Map();
+  const persistenceError = () =&gt;
+    Object.assign(
+      new Error(&quot;The host could not persist the widget state update&quot;),
+      {
+        code: -32000,
+        data: { code: &quot;widget_state_persistence_failed&quot;, retryable: false },
+      },
+    );
+  /**
+   * @param {object} prototype
+   * @param {string} property
+   */
+  const getPrototypeGetter = (prototype, property) =&gt; {
+    // oxlint-disable-next-line typescript/unbound-method -- invoked through captured Reflect.apply
+    const getter = Object.getOwnPropertyDescriptor(prototype, property)?.get;
+    if (getter == null) {
+      throw new Error(`Missing ${property} getter`);
+    }
+    return getter;
+  };
+  const getMessageData = getPrototypeGetter(MessageEvent.prototype, &quot;data&quot;);
+  const getMessagePorts = getPrototypeGetter(MessageEvent.prototype, &quot;ports&quot;);
+  const getMessageSource = getPrototypeGetter(MessageEvent.prototype, &quot;source&quot;);
+  // oxlint-disable-next-line typescript/unbound-method -- captured before the untrusted fragment runs
+  const addHostMessageListener = MessagePort.prototype.addEventListener;
+  // oxlint-disable-next-line typescript/unbound-method -- captured before the untrusted fragment runs
+  const postHostMessage = MessagePort.prototype.postMessage;
+  // oxlint-disable-next-line typescript/unbound-method -- captured before the untrusted fragment runs
+  const startHostPort = MessagePort.prototype.start;
+  // oxlint-disable-next-line typescript/unbound-method -- captured before the untrusted fragment runs
+  const stopMessagePropagation = Event.prototype.stopImmediatePropagation;
+  /** @type {MessagePort | null} */
+  let hostPort = null;
+  const postToHost = (type, payload) =&gt; {
+    if (hostPort != null) {
+      apply(postHostMessage, hostPort, [{ type, ...payload }]);
+    }
+  };
+  const openExternal = ({ href }) =&gt; {
+    if (globalThis.navigator.userActivation?.isActive === true) {
+      postToHost(&quot;open-external&quot;, { href });
+    }
+  };
+  const sendFollowUpMessage = ({ context, prompt, title }) =&gt; {
+    if (globalThis.navigator.userActivation?.isActive === true) {
+      postToHost(&quot;follow-up&quot;, { context, prompt, title });
+    }
+    return Promise.resolve();
+  };
+  /**
+   * @param {Record&lt;string, unknown&gt; | ((previous: Record&lt;string, unknown&gt; | null) =&gt; Record&lt;string, unknown&gt;)} next
+   * @returns {Promise&lt;void&gt;}
+   */
+  const setWidgetState = async (next) =&gt; {
+    const nextState = typeof next === &quot;function&quot; ? next(state) : next;
+    if (
+      nextState == null ||
+      typeof nextState !== &quot;object&quot; ||
+      isArray(nextState)
+    ) {
+      throw new TypeError(&quot;Widget state must be a JSON object&quot;);
+    }
+    const inputState = stringify(
+      nextState,
+      (_key, /** @type {unknown} */ value) =&gt; {
+        if (
+          typeof value === &quot;undefined&quot; ||
+          typeof value === &quot;function&quot; ||
+          typeof value === &quot;symbol&quot; ||
+          (typeof value === &quot;number&quot; &amp;&amp; !Number.isFinite(value))
+        ) {
+          throw new TypeError(&quot;Widget state must be a JSON object&quot;);
+        }
+        return value;
+      },
+    );
+    const parsedState = parse(inputState);
+    if (
+      parsedState == null ||
+      typeof parsedState !== &quot;object&quot; ||
+      isArray(parsedState)
+    ) {
+      throw new TypeError(&quot;Widget state must be a JSON object&quot;);
+    }
+    const storedState = {
+      modelContent: null,
+      privateContent: null,
+      ...parsedState,
+    };
+    const serializedState = stringify(storedState);
+    if (encode(serializedState).length &gt; 16 * 1024) {
+      throw new TypeError(
+        &quot;Widget state must be a JSON object of at most 16 KiB&quot;,
+      );
+    }
+    if (
+      hasOwn(storedState, &quot;imageIds&quot;) &amp;&amp;
+      (!isArray(storedState.imageIds) ||
+        storedState.imageIds.some(
+          (/** @type {unknown} */ id) =&gt; typeof id !== &quot;string&quot;,
+        ))
+    ) {
+      throw new TypeError(&quot;Widget state imageIds must be an array of strings&quot;);
+    }
+    if (storedState.imageIds?.length &gt; 0) {
+      throw Object.assign(
+        new TypeError(&quot;Visualization state does not support image attachments&quot;),
+        { code: -32602, data: { code: &quot;images_unsupported&quot; } },
+      );
+    }
+    state = storedState;
+    globalThis.openai.widgetState = state;
+    globalThis.dispatchEvent(
+      new CustomEvent(&quot;openai:set_globals&quot;, {
+        detail: { globals: { widgetState: state } },
+      }),
+    );
+    if (statePersistence === &quot;none&quot;) {
+      throw persistenceError();
+    }
+    const id = ++nextStateRequestId;
+    return new Promise((resolve, reject) =&gt; {
+      const timeout = globalThis.setTimeout(() =&gt; {
+        pendingStateWrites.delete(id);
+        reject(persistenceError());
+      }, 30_000);
+      pendingStateWrites.set(id, { resolve, reject, timeout, serializedState });
+      postToHost(&quot;widget-state-write&quot;, { id, state: serializedState });
+    });
+  };
+  const syncTheme = () =&gt; {
+    const theme = mediaQuery.matches ? &quot;dark&quot; : &quot;light&quot;;
+    root.dataset.theme = theme;
+    globalThis.openai = {
+      ...globalThis.openai,
+      openExternal,
+      sendFollowUpMessage,
+      setWidgetState,
+      theme,
+      visualizationStyleVariables: {},
+      visualizationTheme: theme,
+      widgetState: state,
+      statePersistence,
+      stateModelContext: &quot;none&quot;,
+    };
+    globalThis.dispatchEvent(
+      new CustomEvent(&quot;openai:set_globals&quot;, {
+        detail: { globals: globalThis.openai },
+      }),
+    );
+  };
+  const sendHeight = () =&gt; {
+    postToHost(&quot;height&quot;, {
+      height: Math.ceil(
+        Math.max(
+          document.body.scrollHeight,
+          document.body.getBoundingClientRect().height,
+        ),
+      ),
+    });
+  };
+
+  globalThis.addEventListener(
+    &quot;message&quot;,
+    (event) =&gt; {
+      const data = apply(getMessageData, event, []);
+      const ports = apply(getMessagePorts, event, []);
+      const source = apply(getMessageSource, event, []);
+      if (
+        hostPort != null ||
+        source !== parentWindow ||
+        typeof data !== &quot;object&quot; ||
+        data?.type !== &quot;codex-visualization-initialize&quot; ||
+        !isArray(ports) ||
+        ports.length !== 1
+      ) {
+        return;
+      }
+      apply(stopMessagePropagation, event, []);
+      const nextHostPort = ports[0];
+      try {
+        apply(addHostMessageListener, nextHostPort, [
+          &quot;message&quot;,
+          (event) =&gt; {
+            const data = apply(getMessageData, event, []);
+            if (typeof data === &quot;object&quot; &amp;&amp; data?.type === &quot;measure&quot;) {
+              sendHeight();
+            } else if (
+              typeof data === &quot;object&quot; &amp;&amp;
+              data?.type === &quot;widget-state-result&quot;
+            ) {
+              /** @type {unknown} */
+              const id = data.id;
+              if (typeof id !== &quot;number&quot;) {
+                return;
+              }
+              const pending = pendingStateWrites.get(id);
+              if (pending != null) {
+                pendingStateWrites.delete(id);
+                globalThis.clearTimeout(pending.timeout);
+                if (data.ok === true) {
+                  pending.resolve();
+                } else {
+                  pending.reject(persistenceError());
+                }
+              }
+            }
+          },
+        ]);
+        apply(startHostPort, nextHostPort, []);
+      } catch {
+        return;
+      }
+      hostPort = nextHostPort;
+      for (const [id, { serializedState }] of pendingStateWrites) {
+        postToHost(&quot;widget-state-write&quot;, { id, state: serializedState });
+      }
+      sendHeight();
+    },
+    { capture: true },
+  );
+  document.currentScript?.remove();
+  mediaQuery.addEventListener(&quot;change&quot;, syncTheme);
+  globalThis.addEventListener(&quot;click&quot;, (event) =&gt; {
+    if (event.defaultPrevented) {
+      return;
+    }
+    let element = null;
+    if (event.target instanceof globalThis.Element) {
+      element = event.target;
+    } else if (event.target instanceof globalThis.Node) {
+      element = event.target.parentElement;
+    }
+    const link = element?.closest(&quot;a[href]&quot;);
+    const href = link?.getAttribute(&quot;href&quot;);
+    if (href == null) {
+      return;
+    }
+    if (href.startsWith(&quot;#&quot;)) {
+      let id;
+      try {
+        id = decodeURIComponent(href.slice(1));
+      } catch {
+        return;
+      }
+      const target = id.length === 0 ? root : document.getElementById(id);
+      if (
+        target == null ||
+        globalThis.navigator.userActivation?.isActive !== true
+      ) {
+        return;
+      }
+      event.preventDefault();
+      postToHost(&quot;scroll-to&quot;, {
+        top: target.getBoundingClientRect().top + globalThis.scrollY,
+      });
+      return;
+    }
+    event.preventDefault();
+    openExternal({ href });
+  });
+  new ResizeObserver(sendHeight).observe(document.body);
+  syncTheme();
+})();
+&lt;/script&gt;
+&lt;style&gt;
+@import url(&#x27;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Playfair+Display:wght@500;600&amp;display=swap&#x27;);
+#haven-cash-review{--hc-paper:#f5f4ef;--hc-surface:#fffefa;--hc-soft:#eeeee7;--hc-ink:#28302c;--hc-muted:#62675e;--hc-line:#dedfd5;--hc-control:#8a9086;--hc-forest:#224b3d;--hc-sage:#e8efe6;--hc-success:#315b3d;--hc-amber:#785016;--hc-amber-bg:#f6eedb;--hc-red:#963c36;--hc-red-bg:#f9ebe6;--hc-brass:#8a7445;font:14px/1.5 Inter,Arial,sans-serif;color:var(--hc-ink);color-scheme:light;width:100%}
+#haven-cash-review *{box-sizing:border-box}
+#haven-cash-review [hidden]{display:none!important}
+#haven-cash-review button,#haven-cash-review input,#haven-cash-review textarea,#haven-cash-review select{font:inherit;color:inherit}
+#haven-cash-review button{cursor:pointer}
+#haven-cash-review button:disabled{cursor:default;color:var(--hc-muted);background:var(--hc-soft)}
+#haven-cash-review :is(button,input,textarea,select,a,summary):focus-visible{outline:3px solid var(--hc-forest);outline-offset:3px}
+#haven-cash-review ::selection{background:#d7e7d7;color:#1d3428}
+#haven-cash-review h1,#haven-cash-review h2,#haven-cash-review h3,#haven-cash-review p{margin:0}
+#haven-cash-review .hc-review-bar{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:8px 0 16px}
+#haven-cash-review .hc-review-title{font-size:14px;font-weight:600}
+#haven-cash-review .hc-review-note{font-size:12px;color:var(--hc-muted);margin-top:2px}
+#haven-cash-review .hc-review-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#haven-cash-review .hc-review-controls label{display:flex;gap:6px;align-items:center;font-size:12px}
+#haven-cash-review .hc-review-controls select{max-width:230px;min-height:36px;border:1px solid var(--hc-control);border-radius:6px;background:var(--hc-surface);padding:6px 8px;font-size:12px}
+#haven-cash-review .hc-stage{container-type:inline-size;container-name:haven-cash;margin:0 auto;max-width:100%;transition:max-width .18s ease}
+#haven-cash-review .hc-stage[data-device=tablet]{max-width:768px}
+#haven-cash-review .hc-stage[data-device=mobile]{max-width:390px}
+#haven-cash-review .hc-product{display:grid;grid-template-columns:280px minmax(0,1fr);background:var(--hc-paper);border:1px solid var(--hc-line);border-radius:12px;overflow:clip;position:relative}
+#haven-cash-review .hc-sidebar{background:var(--hc-surface);border-right:1px solid var(--hc-line);padding:24px 14px;display:flex;flex-direction:column;gap:25px}
+#haven-cash-review .hc-brand{display:flex;align-items:center;gap:10px;padding:0 10px 8px}
+#haven-cash-review .hc-brand img{width:45px;height:45px;object-fit:contain}
+#haven-cash-review .hc-brand b{font-size:20px;letter-spacing:.04em;font-weight:600}
+#haven-cash-review .hc-brand small{display:block;font-size:11px;color:var(--hc-muted);letter-spacing:.02em}
+#haven-cash-review .hc-navgroup{display:grid;gap:4px}
+#haven-cash-review .hc-navgroup&gt;p{padding:0 14px 7px;color:var(--hc-muted);font-size:12px}
+#haven-cash-review .hc-navitem{padding:11px 14px;display:flex;align-items:center;gap:12px;min-height:48px;border-radius:8px;white-space:nowrap}
+#haven-cash-review .hc-navitem i{width:20px;height:20px;flex-shrink:0}
+#haven-cash-review .hc-navitem[data-active]{background:var(--hc-soft);font-weight:600}
+#haven-cash-review .hc-sidebar-footer{margin-top:auto;padding:20px 14px 0;color:var(--hc-muted);font-size:12px}
+#haven-cash-review .hc-main{min-width:0}
+#haven-cash-review .hc-topbar{background:var(--hc-surface);height:64px;padding:0 28px;display:flex;gap:12px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--hc-line)}
+#haven-cash-review .hc-topbar-left{display:flex;align-items:center;gap:10px}
+#haven-cash-review .hc-topbar small{color:var(--hc-muted);font-size:12px}
+#haven-cash-review .hc-topbar-right{display:flex;align-items:center;gap:12px}
+#haven-cash-review .hc-avatar{width:34px;height:34px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--hc-soft);font-weight:500;font-size:12px;flex-shrink:0}
+#haven-cash-review .hc-menu{display:none;border:0;background:transparent;min-height:44px;min-width:44px;padding:8px}
+#haven-cash-review .hc-content{padding:24px 28px 28px;display:grid;grid-template-columns:minmax(0,1fr);gap:20px;min-width:0}
+#haven-cash-review .hc-content&gt;*{min-width:0}
+/* At 1440: 280 sidebar + 2 border + 56 gutters + 1102 canvas = 1440. Active row: 782 + 20 gap + 300 rail = 1102. */
+#haven-cash-review .hc-pagehead{display:flex;align-items:center;justify-content:space-between;gap:16px}
+#haven-cash-review h1{font:500 28px/1.2 &#x27;Playfair Display&#x27;,Georgia,serif;letter-spacing:-.02em}
+#haven-cash-review .hc-pagehead p{margin-top:6px;color:var(--hc-muted);font-size:13px}
+#haven-cash-review .hc-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;border:1px solid var(--hc-control);border-radius:7px;padding:8px 14px;background:var(--hc-surface);font-size:13px;font-weight:500;white-space:normal;text-align:center}
+#haven-cash-review .hc-button:hover{background:var(--hc-soft)}
+#haven-cash-review .hc-button-primary{background:var(--hc-forest);color:#fffefa;border-color:var(--hc-forest)}
+#haven-cash-review .hc-button-primary:hover{background:#163c2e}
+#haven-cash-review .hc-button i{width:16px;height:16px}
+#haven-cash-review .hc-link{border:0;background:transparent;text-decoration:underline;text-underline-offset:3px;padding:6px 0;min-height:36px;font-weight:500;font-size:12px}
+#haven-cash-review .hc-link:hover{color:var(--hc-forest)}
+#haven-cash-review .hc-badge{font-size:12px;display:inline-flex;gap:6px;align-items:center;padding:3px 9px;border-radius:5px;white-space:nowrap;align-self:center;font-weight:500;max-width:100%}
+#haven-cash-review .hc-badge i{width:13px;height:13px}
+#haven-cash-review .hc-good{background:var(--hc-sage);color:var(--hc-success)}
+#haven-cash-review .hc-warn{background:var(--hc-amber-bg);color:var(--hc-amber)}
+#haven-cash-review .hc-neutral{background:var(--hc-soft);color:var(--hc-muted)}
+#haven-cash-review .hc-attention{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--hc-amber-bg);color:var(--hc-amber);padding:12px 16px;border-radius:7px;font-size:13px}
+#haven-cash-review .hc-attention i{width:17px;height:17px;flex:none}
+#haven-cash-review .hc-attention&gt;span{flex:1;min-width:180px}
+#haven-cash-review .hc-attention .hc-link{min-height:24px;padding:0}
+#haven-cash-review .hc-active-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}
+#haven-cash-review .hc-panel{background:var(--hc-surface);border:1px solid var(--hc-line);border-radius:10px;min-width:0}
+#haven-cash-review .hc-shift{padding:18px}
+#haven-cash-review .hc-sectionhead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+#haven-cash-review h2{font:600 16px/1.4 Inter,Arial,sans-serif}
+#haven-cash-review h3{font:600 14px/1.5 Inter,Arial,sans-serif}
+#haven-cash-review .hc-shift-person{display:flex;align-items:center;gap:10px;margin-top:10px}
+#haven-cash-review .hc-shift-person .hc-avatar{width:38px;height:38px;background:var(--hc-sage);color:var(--hc-forest)}
+#haven-cash-review .hc-person-name{font-size:16px;font-weight:600}
+#haven-cash-review .hc-person-meta{font-size:12px;color:var(--hc-muted)}
+#haven-cash-review .hc-shift-meta{display:flex;gap:7px 16px;flex-wrap:wrap;font-size:12px;color:var(--hc-muted);margin-top:6px}
+#haven-cash-review .hc-shift-meta span{display:flex;gap:5px;align-items:center}
+#haven-cash-review .hc-shift-meta i{width:13px;height:13px}
+#haven-cash-review .hc-cash-equation{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:12px;padding:9px 0;border-top:1px solid var(--hc-line);border-bottom:1px solid var(--hc-line);gap:14px}
+#haven-cash-review .hc-cash-equation dt{font-size:12px;color:var(--hc-muted)}
+#haven-cash-review .hc-cash-equation dd{font-size:16px;font-weight:500;margin:4px 0 0;font-variant-numeric:tabular-nums;white-space:nowrap}
+#haven-cash-review dl{margin:0}
+#haven-cash-review .hc-reconcile{display:grid;grid-template-columns:1.16fr 1.1fr .8fr;gap:12px;padding:14px 0 10px}
+#haven-cash-review .hc-reconcile dt{font-size:12px;color:var(--hc-muted)}
+#haven-cash-review .hc-reconcile dd{font-size:24px;line-height:1.4;font-weight:500;letter-spacing:-.025em;font-variant-numeric:tabular-nums;margin:4px 0 0;white-space:nowrap}
+#haven-cash-review .hc-reconcile .hc-expected dd{font-size:30px;font-weight:600}
+#haven-cash-review .hc-reconcile small{font-size:11px;color:var(--hc-muted);display:block;margin-top:2px}
+#haven-cash-review .hc-reconcile .hc-variance{background:var(--hc-amber-bg);color:var(--hc-amber);border-radius:6px;padding:8px 10px;align-self:start;margin-top:-8px}
+#haven-cash-review .hc-reconcile .hc-variance dt,#haven-cash-review .hc-reconcile .hc-variance small{color:inherit}
+#haven-cash-review .hc-variance[data-balanced=true]{background:var(--hc-sage);color:var(--hc-success)}
+#haven-cash-review .hc-draftline{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;color:var(--hc-muted);font-size:12px;padding-bottom:8px}
+#haven-cash-review .hc-lifecycle{padding-top:13px;border-top:1px solid var(--hc-line)}
+#haven-cash-review .hc-lifecycle ol{padding:0;margin:0;display:flex;list-style:none;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-size:11px;color:var(--hc-muted)}
+#haven-cash-review .hc-lifecycle li{display:flex;gap:5px;align-items:center;white-space:nowrap}
+#haven-cash-review .hc-lifecycle i{width:12px;height:12px}
+#haven-cash-review .hc-lifecycle li[aria-current=step]{color:var(--hc-forest);font-weight:600}
+#haven-cash-review .hc-lifecycle .hc-step-dot{width:6px;height:6px;border-radius:50%;background:var(--hc-control);display:inline-block}
+#haven-cash-review .hc-lifecycle .hc-done .hc-step-dot,#haven-cash-review .hc-lifecycle [aria-current] .hc-step-dot{background:var(--hc-forest)}
+#haven-cash-review .hc-rail{display:grid;gap:12px;align-items:start}
+#haven-cash-review .hc-handover{padding:16px}
+#haven-cash-review .hc-handover .hc-sectionhead{align-items:flex-start}
+#haven-cash-review .hc-handover-path{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:16px;font-size:13px;font-weight:500}
+#haven-cash-review .hc-handover-path i{width:16px;height:16px;color:var(--hc-brass)}
+#haven-cash-review .hc-handover p{font-size:12px;margin-top:10px;color:var(--hc-muted)}
+#haven-cash-review .hc-handover .hc-handover-summary{font-size:13px;color:var(--hc-ink);margin-top:12px}
+#haven-cash-review .hc-handover .hc-link{margin-top:6px}
+#haven-cash-review .hc-rule-note{padding:0 2px;display:flex;align-items:flex-start;gap:9px;color:var(--hc-muted);font-size:12px}
+#haven-cash-review .hc-rule-note i{width:16px;height:16px;flex-shrink:0;margin-top:2px;color:var(--hc-brass)}
+#haven-cash-review .hc-reconciliation-state{padding:12px 16px;background:var(--hc-soft);border-radius:8px}
+#haven-cash-review .hc-reconciliation-state p{margin-top:5px;color:var(--hc-muted);font-size:12px}
+#haven-cash-review .hc-reconciliation-state h3{display:flex;gap:6px;align-items:center}
+#haven-cash-review .hc-reconciliation-state i{height:16px;width:16px}
+#haven-cash-review .hc-panel-heading{padding:16px 20px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+#haven-cash-review .hc-panel-heading p{font-size:12px;margin-top:3px;color:var(--hc-muted)}
+#haven-cash-review table{width:100%;border-collapse:collapse;font-size:12px;table-layout:auto}
+#haven-cash-review th{font-weight:400;color:var(--hc-muted);text-align:left;padding:7px 20px 10px;white-space:nowrap}
+#haven-cash-review td{padding:8px 20px;border-top:1px solid var(--hc-line);vertical-align:middle}
+#haven-cash-review td small{display:block;color:var(--hc-muted);font-size:11px;margin-top:2px}
+#haven-cash-review .hc-num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+#haven-cash-review .hc-movement-desc{font-weight:500}
+#haven-cash-review .hc-table-caption{font-size:11px;color:var(--hc-muted);padding:10px 20px;border-top:1px solid var(--hc-line)}
+#haven-cash-review .hc-history{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;min-width:0}
+#haven-cash-review .hc-history&gt;*{min-width:0}
+#haven-cash-review .hc-history-top{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+#haven-cash-review .hc-history-top p{font-size:12px;color:var(--hc-muted);margin-top:3px}
+#haven-cash-review .hc-history-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#haven-cash-review .hc-history-controls input,#haven-cash-review .hc-history-controls select{min-height:36px;background:var(--hc-surface);border:1px solid var(--hc-control);border-radius:6px;padding:7px 10px;font-size:12px;min-width:0}
+#haven-cash-review .hc-history-controls input{width:160px}
+#haven-cash-review .hc-history-controls select{max-width:200px}
+#haven-cash-review .hc-history td{padding-top:12px;padding-bottom:12px}
+#haven-cash-review .hc-history .hc-button{font-size:12px;min-height:34px;padding:4px 9px}
+#haven-cash-review .hc-history-foot{color:var(--hc-muted);font-size:11px;display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap}
+#haven-cash-review .hc-short{color:var(--hc-red)}
+#haven-cash-review .hc-mobile-label{display:none}
+#haven-cash-review .hc-closed{padding:24px;display:grid;gap:12px}
+#haven-cash-review .hc-closed h2{font:500 24px/1.3 &#x27;Playfair Display&#x27;,Georgia,serif}
+#haven-cash-review .hc-closed p{font-size:13px;color:var(--hc-muted);max-width:65ch}
+#haven-cash-review .hc-closed .hc-button{justify-self:start}
+#haven-cash-review .hc-empty{padding:24px 20px;font-size:13px;color:var(--hc-muted)}
+#haven-cash-review .hc-modal-region{position:absolute;inset:0;z-index:20;background:#26312766;display:flex;align-items:flex-start;justify-content:center;padding:100px 20px 20px}
+#haven-cash-review .hc-modal{width:470px;max-width:100%;background:var(--hc-surface);border-radius:12px;padding:24px;box-shadow:0 10px 30px #16241c29;max-height:calc(100% - 20px);overflow:auto}
+#haven-cash-review .hc-modal h2{font:500 23px/1.3 &#x27;Playfair Display&#x27;,Georgia,serif}
+#haven-cash-review .hc-modal p{font-size:13px;color:var(--hc-muted);margin-top:10px}
+#haven-cash-review .hc-modal label{display:grid;gap:7px;font-size:13px;font-weight:500;margin-top:18px}
+#haven-cash-review .hc-modal input,#haven-cash-review .hc-modal textarea{width:100%;padding:10px 12px;border:1px solid var(--hc-control);border-radius:6px;background:var(--hc-surface);font-size:16px}
+#haven-cash-review .hc-modal textarea{resize:vertical;min-height:80px}
+#haven-cash-review .hc-modal-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:20px}
+#haven-cash-review .hc-modal-summary{margin-top:16px;padding:14px;background:var(--hc-soft);display:grid;gap:7px;font-size:13px;border-radius:7px}
+#haven-cash-review .hc-modal-summary&gt;div{display:flex;gap:10px;justify-content:space-between}
+#haven-cash-review .hc-modal-summary b{font-variant-numeric:tabular-nums}
+#haven-cash-review .hc-modal .hc-error{color:var(--hc-red);margin-top:10px}
+#haven-cash-review .hc-feedback{padding:10px 16px;background:var(--hc-sage);color:var(--hc-success);font-size:13px;border-radius:7px}
+#haven-cash-review .hc-footer{font-size:11px;color:var(--hc-muted);display:flex;gap:12px;justify-content:space-between;flex-wrap:wrap}
+@container haven-cash (max-width:1250px){
+ #haven-cash-review .hc-product{grid-template-columns:80px minmax(0,1fr)}
+ #haven-cash-review .hc-sidebar{padding:18px 10px}
+ #haven-cash-review .hc-brand{padding:0 5px}
+ #haven-cash-review .hc-brand&gt;div,#haven-cash-review .hc-navitem span,#haven-cash-review .hc-navgroup&gt;p,#haven-cash-review .hc-sidebar-footer{display:none}
+ #haven-cash-review .hc-navitem{justify-content:center;padding:12px}
+ #haven-cash-review .hc-active-grid{grid-template-columns:minmax(0,1fr) 270px}
+ #haven-cash-review .hc-content{padding:22px;gap:18px}
+ #haven-cash-review .hc-topbar{padding-inline:22px}
+ #haven-cash-review .hc-reconcile dd{font-size:22px}
+ #haven-cash-review .hc-reconcile .hc-expected dd{font-size:28px}
+}
+@container haven-cash (max-width:900px){
+ #haven-cash-review .hc-product{grid-template-columns:minmax(0,1fr)}
+ #haven-cash-review .hc-sidebar{display:none}
+ #haven-cash-review .hc-menu{display:inline-flex;align-items:center;justify-content:center}
+ #haven-cash-review .hc-menu i{width:20px;height:20px}
+ #haven-cash-review .hc-topbar{height:56px;padding-inline:14px}
+ #haven-cash-review .hc-active-grid{grid-template-columns:minmax(0,1fr)}
+ #haven-cash-review .hc-rail{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+ #haven-cash-review .hc-rule-note{grid-column:1/-1}
+ #haven-cash-review th,#haven-cash-review td{padding-inline:14px}
+ #haven-cash-review .hc-reconcile .hc-expected dd{font-size:30px}
+ #haven-cash-review .hc-reconcile dd{font-size:24px}
+ #haven-cash-review .hc-modal-region{padding-top:90px}
+}
+@container haven-cash (max-width:600px){
+ #haven-cash-review .hc-content{padding:18px 16px;gap:18px}
+ #haven-cash-review .hc-topbar-left&gt;div&gt;div{font-size:13px}
+ #haven-cash-review .hc-topbar small{font-size:11px}
+ #haven-cash-review .hc-topbar-right&gt;span:not(.hc-avatar){display:none}
+ #haven-cash-review h1{font-size:25px}
+ #haven-cash-review .hc-pagehead{display:block}
+ #haven-cash-review .hc-pagehead p{font-size:12px;margin-top:5px}
+ #haven-cash-review .hc-pagehead&gt;.hc-button{display:none}
+ #haven-cash-review .hc-attention{font-size:12px;padding:10px 12px}
+ #haven-cash-review .hc-attention .hc-link{display:none}
+ #haven-cash-review .hc-shift{padding:16px;display:flex;flex-direction:column}
+ #haven-cash-review .hc-shift&gt;.hc-sectionhead{order:0}
+ #haven-cash-review .hc-shift&gt;.hc-shift-person{order:1}
+ #haven-cash-review .hc-shift&gt;.hc-shift-meta{order:2}
+ #haven-cash-review .hc-shift&gt;.hc-reconcile{order:3}
+ #haven-cash-review .hc-shift&gt;.hc-draftline{order:4}
+ #haven-cash-review .hc-shift&gt;.hc-mobile-cta{order:5}
+ #haven-cash-review .hc-shift&gt;.hc-cash-equation{order:6;margin-top:0;margin-bottom:12px}
+ #haven-cash-review .hc-shift&gt;.hc-lifecycle{order:7}
+ #haven-cash-review .hc-shift-person{margin-top:12px}
+ #haven-cash-review .hc-shift-meta{gap:6px 10px}
+ #haven-cash-review .hc-cash-equation{gap:8px;margin-top:14px;padding:12px 0}
+ #haven-cash-review .hc-cash-equation dt{font-size:11px}
+ #haven-cash-review .hc-cash-equation dd{font-size:14px}
+ #haven-cash-review .hc-reconcile{grid-template-columns:1fr 1fr;gap:12px;padding-top:16px}
+ #haven-cash-review .hc-reconcile .hc-expected dd{font-size:28px}
+ #haven-cash-review .hc-reconcile dd{font-size:25px}
+ #haven-cash-review .hc-reconcile .hc-variance{grid-column:1/-1;margin:0;display:grid;grid-template-columns:1fr auto;column-gap:10px;padding:10px 12px;align-items:center}
+ #haven-cash-review .hc-variance small{grid-column:1/-1;font-size:12px;margin-top:0}
+ #haven-cash-review .hc-variance dd{margin:0;font-size:23px}
+ #haven-cash-review .hc-draftline{padding-bottom:12px;font-size:11px}
+ #haven-cash-review .hc-mobile-label{display:inline}
+ #haven-cash-review .hc-mobile-cta{width:100%;margin:0 0 14px;min-height:44px}
+ #haven-cash-review .hc-lifecycle ol{gap:8px 10px;justify-content:flex-start}
+ #haven-cash-review .hc-lifecycle li{font-size:11px}
+ #haven-cash-review .hc-active-grid{display:contents}
+ #haven-cash-review .hc-rail{display:contents}
+ #haven-cash-review .hc-shift,#haven-cash-review .hc-closed{order:2}
+ #haven-cash-review .hc-reconciliation-state{order:3}
+ #haven-cash-review .hc-movements{order:4}
+ #haven-cash-review .hc-handover{order:5}
+ #haven-cash-review .hc-rule-note{order:6}
+ #haven-cash-review .hc-history{order:7}
+ #haven-cash-review .hc-footer{order:8}
+ #haven-cash-review .hc-movements thead{display:none}
+ #haven-cash-review .hc-movements table,#haven-cash-review .hc-movements tbody{display:block}
+ #haven-cash-review .hc-movements tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 8px;padding:12px 16px;border-top:1px solid var(--hc-line)}
+ #haven-cash-review .hc-movements td{border:0;padding:0;font-size:12px}
+ #haven-cash-review .hc-movements td:nth-child(1){grid-column:1;grid-row:2;color:var(--hc-muted)}
+ #haven-cash-review .hc-movements td:nth-child(2){grid-column:1;grid-row:1;max-width:100%}
+ #haven-cash-review .hc-movements td:nth-child(3){grid-column:1;grid-row:3;color:var(--hc-muted)}
+ #haven-cash-review .hc-movements td:nth-child(4){grid-column:2;grid-row:1;font-size:14px;font-weight:500}
+ #haven-cash-review .hc-movements td:nth-child(5){grid-column:2;grid-row:2;text-align:right}
+ #haven-cash-review .hc-movements td:nth-child(6){grid-column:2;grid-row:3;text-align:right;color:var(--hc-muted)}
+ #haven-cash-review .hc-movements td:nth-child(3) small{display:inline;overflow-wrap:anywhere}
+ #haven-cash-review .hc-table-caption{padding-inline:16px}
+ #haven-cash-review .hc-panel-heading{padding:14px 16px 10px}
+ #haven-cash-review .hc-panel-heading .hc-link{font-size:12px}
+ #haven-cash-review .hc-history-top{gap:12px}
+ #haven-cash-review .hc-history-controls{width:100%;flex-wrap:nowrap}
+ #haven-cash-review .hc-history-controls input{flex:1;width:90px;font-size:16px;min-height:44px}
+ #haven-cash-review .hc-history-controls select{max-width:160px;font-size:13px;min-height:44px}
+ #haven-cash-review .hc-history thead{display:none}
+ #haven-cash-review .hc-history table,#haven-cash-review .hc-history tbody{display:block}
+ #haven-cash-review .hc-history tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 10px;border-top:1px solid var(--hc-line);padding:14px 16px}
+ #haven-cash-review .hc-history tr:first-child{border-top:0}
+ #haven-cash-review .hc-history td{padding:0;border:0}
+ #haven-cash-review .hc-history td:nth-child(1){grid-column:1;grid-row:1}
+ #haven-cash-review .hc-history td:nth-child(2){grid-column:1;grid-row:2;text-align:left;font-size:12px}
+ #haven-cash-review .hc-history td:nth-child(3){grid-column:2;grid-row:2}
+ #haven-cash-review .hc-history td:nth-child(4){grid-column:2;grid-row:1;text-align:right}
+ #haven-cash-review .hc-history td:nth-child(5){grid-column:1/-1;grid-row:3}
+ #haven-cash-review .hc-history td:nth-child(5) .hc-button{width:100%;min-height:44px}
+ #haven-cash-review .hc-modal-region{padding:75px 12px 20px}
+ #haven-cash-review .hc-modal{padding:20px}
+ #haven-cash-review .hc-button,#haven-cash-review .hc-link{min-height:44px}
+}
+@container haven-cash (min-width:601px){#haven-cash-review .hc-mobile-cta{display:none}}
+@container haven-cash (max-width:340px){
+ #haven-cash-review .hc-reconcile{grid-template-columns:1fr}
+ #haven-cash-review .hc-reconcile .hc-variance{grid-column:auto}
+ #haven-cash-review .hc-cash-equation{grid-template-columns:1fr}
+ #haven-cash-review .hc-cash-equation&gt;div{display:flex;align-items:center;justify-content:space-between;gap:8px}
+ #haven-cash-review .hc-cash-equation dd{margin:0}
+ #haven-cash-review .hc-modal-region{padding-inline:8px}
+ #haven-cash-review .hc-history tr{display:flex;flex-direction:column;gap:8px}
+ #haven-cash-review .hc-history td{width:100%;text-align:left!important}
+ #haven-cash-review .hc-history-controls{flex-direction:column;align-items:stretch}
+ #haven-cash-review .hc-history-controls input,#haven-cash-review .hc-history-controls select{max-width:none;width:100%}
+}
+@media(max-width:550px){#haven-cash-review .hc-review-controls{width:100%}#haven-cash-review .hc-review-controls label{flex:1}#haven-cash-review .hc-review-controls select{max-width:100%;width:100%}#haven-cash-review .hc-review-controls label{display:grid;gap:3px}#haven-cash-review .hc-review-title{font-size:13px}}
+@media(prefers-reduced-motion:reduce){#haven-cash-review .hc-stage{transition:none}}
+&lt;/style&gt;
+&lt;div id=&quot;haven-cash-review&quot; aria-label=&quot;Proposed Haven Cash and Shifts design review&quot;&gt;
+ &lt;div class=&quot;hc-review-bar&quot;&gt;
+  &lt;div&gt;&lt;div class=&quot;hc-review-title&quot;&gt;PROPOSED — Cash &amp;amp; Shifts&lt;/div&gt;&lt;div class=&quot;hc-review-note&quot;&gt;Illustrative records · Local preview only&lt;/div&gt;&lt;/div&gt;
+  &lt;div class=&quot;hc-review-controls&quot;&gt;
+   &lt;label&gt;Screen&lt;select id=&quot;hc-device&quot;&gt;&lt;option value=&quot;desktop&quot;&gt;Desktop&lt;/option&gt;&lt;option value=&quot;tablet&quot;&gt;Tablet · 768px&lt;/option&gt;&lt;option value=&quot;mobile&quot;&gt;Mobile · 390px&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;
+   &lt;label&gt;Shift state&lt;select id=&quot;hc-scenario&quot;&gt;&lt;option value=&quot;open&quot;&gt;Open · count draft&lt;/option&gt;&lt;option value=&quot;closed&quot;&gt;Closed · needs review&lt;/option&gt;&lt;option value=&quot;reconciled&quot;&gt;Reconciled · shortage retained&lt;/option&gt;&lt;option value=&quot;none&quot;&gt;No open drawer&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;
+   &lt;label&gt;View as&lt;select id=&quot;hc-role&quot;&gt;&lt;option value=&quot;opener&quot;&gt;Front Desk · opener&lt;/option&gt;&lt;option value=&quot;other&quot;&gt;Front Desk · colleague&lt;/option&gt;&lt;option value=&quot;accounting&quot;&gt;Accounting&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;
+  &lt;/div&gt;
+ &lt;/div&gt;
+ &lt;div class=&quot;hc-stage&quot; id=&quot;hc-stage&quot; data-device=&quot;desktop&quot;&gt;
+  &lt;div class=&quot;hc-product&quot; data-ui&gt;
+   &lt;aside class=&quot;hc-sidebar&quot; aria-label=&quot;Haven navigation context&quot;&gt;
+    &lt;div class=&quot;hc-brand&quot;&gt;&lt;img src=&quot;data:image/png;base64,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&quot; alt=&quot;Haven hotel logo&quot;&gt;&lt;div&gt;&lt;b&gt;HAVEN&lt;/b&gt;&lt;small&gt;Hotel Management&lt;/small&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;div class=&quot;hc-navgroup&quot;&gt;&lt;p&gt;Workspace&lt;/p&gt;&lt;div class=&quot;hc-navitem&quot;&gt;&lt;i data-lucide=&quot;layout-dashboard&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;Dashboard&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;div class=&quot;hc-navgroup&quot;&gt;&lt;p&gt;Front office&lt;/p&gt;&lt;div class=&quot;hc-navitem&quot;&gt;&lt;i data-lucide=&quot;bed-double&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;Room Management&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;hc-navitem&quot;&gt;&lt;i data-lucide=&quot;calendar-days&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;Reservations&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;hc-navitem&quot;&gt;&lt;i data-lucide=&quot;users&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;Guest Management&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;div class=&quot;hc-navgroup&quot;&gt;&lt;p&gt;Operations&lt;/p&gt;&lt;div class=&quot;hc-navitem&quot;&gt;&lt;i data-lucide=&quot;clipboard-check&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;Hotel Operations&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;hc-navitem&quot;&gt;&lt;i data-lucide=&quot;messages-square&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;Operational Handover&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;div class=&quot;hc-navgroup&quot;&gt;&lt;p&gt;Finance&lt;/p&gt;&lt;div class=&quot;hc-navitem&quot;&gt;&lt;i data-lucide=&quot;receipt-text&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;Billing&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;hc-navitem&quot;&gt;&lt;i data-lucide=&quot;activity&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;Transactions&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;hc-navitem&quot;&gt;&lt;i data-lucide=&quot;file-text&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;Guest Folios&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;hc-navitem&quot; data-active aria-current=&quot;page&quot;&gt;&lt;i data-lucide=&quot;wallet&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;Cash &amp;amp; Shifts&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;hc-navitem&quot;&gt;&lt;i data-lucide=&quot;landmark&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;Financial Documents&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;div class=&quot;hc-sidebar-footer&quot;&gt;Haven Hotel &amp;amp; Residences&lt;br&gt;Asia/Manila&lt;/div&gt;
+   &lt;/aside&gt;
+   &lt;main class=&quot;hc-main&quot;&gt;
+    &lt;div class=&quot;hc-topbar&quot;&gt;&lt;div class=&quot;hc-topbar-left&quot;&gt;&lt;button class=&quot;hc-menu&quot; type=&quot;button&quot; aria-label=&quot;Preview navigation&quot; data-action=&quot;nav&quot;&gt;&lt;i data-lucide=&quot;menu&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;&lt;div&gt;&lt;div&gt;Cash &amp;amp; Shifts&lt;/div&gt;&lt;small&gt;Wed, 4 Nov 2026 · Manila&lt;/small&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;hc-topbar-right&quot;&gt;&lt;span id=&quot;hc-top-state&quot; class=&quot;hc-badge hc-good&quot;&gt;Open drawer&lt;/span&gt;&lt;span id=&quot;hc-viewer-name&quot;&gt;Maria Santos&lt;/span&gt;&lt;span class=&quot;hc-avatar&quot; id=&quot;hc-viewer-initials&quot;&gt;MS&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;div class=&quot;hc-content&quot;&gt;
+     &lt;header class=&quot;hc-pagehead&quot;&gt;&lt;div&gt;&lt;h1&gt;Cash &amp;amp; Shifts&lt;/h1&gt;&lt;p&gt;One shared drawer. A clear count. An accountable close.&lt;/p&gt;&lt;/div&gt;&lt;button type=&quot;button&quot; class=&quot;hc-button hc-button-primary&quot; data-action=&quot;primary&quot; id=&quot;hc-primary&quot;&gt;Review count &amp;amp; close &lt;i data-lucide=&quot;arrow-right&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;&lt;/header&gt;
+     &lt;div class=&quot;hc-feedback&quot; id=&quot;hc-feedback&quot; role=&quot;status&quot; hidden&gt;&lt;/div&gt;
+     &lt;div class=&quot;hc-attention&quot; id=&quot;hc-attention&quot;&gt;&lt;i data-lucide=&quot;triangle-alert&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span id=&quot;hc-attention-copy&quot;&gt;Draft count is ₱70.00 short. Add an explanation before closing.&lt;/span&gt;&lt;button type=&quot;button&quot; class=&quot;hc-link&quot; data-action=&quot;primary&quot; id=&quot;hc-attention-action&quot;&gt;Review count&lt;/button&gt;&lt;/div&gt;
+     &lt;div class=&quot;hc-active-grid&quot;&gt;
+      &lt;section class=&quot;hc-panel hc-shift&quot; id=&quot;hc-shift&quot; aria-labelledby=&quot;hc-shift-title&quot;&gt;
+       &lt;div class=&quot;hc-sectionhead&quot;&gt;&lt;h2 id=&quot;hc-shift-title&quot;&gt;Current shift&lt;/h2&gt;&lt;span class=&quot;hc-badge hc-good&quot; id=&quot;hc-shift-status&quot;&gt;&lt;i data-lucide=&quot;circle-dot&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt; Open&lt;/span&gt;&lt;/div&gt;
+       &lt;div class=&quot;hc-shift-person&quot;&gt;&lt;span class=&quot;hc-avatar&quot;&gt;MS&lt;/span&gt;&lt;div&gt;&lt;div class=&quot;hc-person-name&quot;&gt;Maria Santos&lt;/div&gt;&lt;div class=&quot;hc-person-meta&quot;&gt;Opened by · Front Desk shared drawer&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+       &lt;div class=&quot;hc-shift-meta&quot;&gt;&lt;span id=&quot;hc-shift-id&quot;&gt;Shift #7f3c8a21&lt;/span&gt;&lt;span&gt;&lt;i data-lucide=&quot;clock-3&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt; Opened 7:00 AM&lt;/span&gt;&lt;span id=&quot;hc-duration&quot;&gt;Running 3h 30m&lt;/span&gt;&lt;/div&gt;
+       &lt;dl class=&quot;hc-cash-equation&quot;&gt;&lt;div&gt;&lt;dt&gt;Opening cash&lt;/dt&gt;&lt;dd id=&quot;hc-opening&quot;&gt;₱10,000.00&lt;/dd&gt;&lt;/div&gt;&lt;div&gt;&lt;dt&gt;Cash in&lt;/dt&gt;&lt;dd id=&quot;hc-cash-in&quot;&gt;+₱28,420.00&lt;/dd&gt;&lt;/div&gt;&lt;div&gt;&lt;dt&gt;Cash out · refunds&lt;/dt&gt;&lt;dd id=&quot;hc-cash-out&quot;&gt;−₱3,500.00&lt;/dd&gt;&lt;/div&gt;&lt;/dl&gt;
+       &lt;dl class=&quot;hc-reconcile&quot; aria-label=&quot;Cash count comparison&quot;&gt;&lt;div class=&quot;hc-expected&quot;&gt;&lt;dt&gt;Expected cash&lt;/dt&gt;&lt;dd id=&quot;hc-expected&quot;&gt;₱34,920.00&lt;/dd&gt;&lt;small id=&quot;hc-expected-detail&quot;&gt;Float + cash in − refunds&lt;/small&gt;&lt;/div&gt;&lt;div&gt;&lt;dt&gt;Counted cash&lt;/dt&gt;&lt;dd id=&quot;hc-counted&quot;&gt;₱34,850.00&lt;/dd&gt;&lt;small id=&quot;hc-count-context&quot;&gt;Independent count · draft&lt;/small&gt;&lt;/div&gt;&lt;div class=&quot;hc-variance&quot; id=&quot;hc-variance-box&quot;&gt;&lt;dt id=&quot;hc-variance-label&quot;&gt;Short by&lt;/dt&gt;&lt;dd id=&quot;hc-variance-value&quot;&gt;₱70.00&lt;/dd&gt;&lt;small id=&quot;hc-variance-context&quot;&gt;Needs explanation&lt;/small&gt;&lt;/div&gt;&lt;/dl&gt;
+       &lt;div class=&quot;hc-draftline&quot;&gt;&lt;span id=&quot;hc-draft-status&quot;&gt;Count draft · Not submitted&lt;/span&gt;&lt;button type=&quot;button&quot; class=&quot;hc-link&quot; data-action=&quot;count&quot; id=&quot;hc-edit-count&quot;&gt;Edit physical count&lt;/button&gt;&lt;/div&gt;
+       &lt;button type=&quot;button&quot; class=&quot;hc-button hc-button-primary hc-mobile-cta&quot; data-action=&quot;primary&quot; id=&quot;hc-mobile-primary&quot;&gt;Review count &amp;amp; close&lt;/button&gt;
+       &lt;nav class=&quot;hc-lifecycle&quot; aria-label=&quot;Cash shift lifecycle&quot;&gt;&lt;ol id=&quot;hc-steps&quot;&gt;&lt;/ol&gt;&lt;/nav&gt;
+      &lt;/section&gt;
+      &lt;section class=&quot;hc-panel hc-closed&quot; id=&quot;hc-no-shift&quot; hidden&gt;&lt;span class=&quot;hc-badge hc-neutral&quot;&gt;Drawer closed&lt;/span&gt;&lt;h2&gt;No drawer is open&lt;/h2&gt;&lt;p&gt;Count the opening float before starting a new shift. Cash payments require an open drawer.&lt;/p&gt;&lt;button type=&quot;button&quot; class=&quot;hc-button&quot; data-action=&quot;primary&quot;&gt;Open cash shift&lt;/button&gt;&lt;p&gt;Past shifts and unresolved follow-up remain available below.&lt;/p&gt;&lt;/section&gt;
+      &lt;aside class=&quot;hc-rail&quot;&gt;
+       &lt;section class=&quot;hc-panel hc-handover&quot; aria-labelledby=&quot;hc-handover-title&quot;&gt;&lt;div class=&quot;hc-sectionhead&quot;&gt;&lt;h2 id=&quot;hc-handover-title&quot;&gt;Handover&lt;/h2&gt;&lt;span class=&quot;hc-badge hc-warn&quot; id=&quot;hc-handover-status&quot;&gt;1 awaiting acknowledgement&lt;/span&gt;&lt;/div&gt;&lt;div id=&quot;hc-handover-visible&quot;&gt;&lt;div class=&quot;hc-handover-path&quot;&gt;&lt;span&gt;John Cruz&lt;/span&gt;&lt;i data-lucide=&quot;arrow-right&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;Maria Santos&lt;/span&gt;&lt;/div&gt;&lt;p&gt;Submitted 7:02 AM · 4 Nov&lt;/p&gt;&lt;p class=&quot;hc-handover-summary&quot;&gt;Follow up the previous drawer’s shortage with Accounting.&lt;/p&gt;&lt;p&gt;Source: cash shift #b194fc6a&lt;br&gt;Follow-up owner: Maria Santos&lt;/p&gt;&lt;button type=&quot;button&quot; class=&quot;hc-link&quot; data-action=&quot;handover&quot;&gt;View operational handover&lt;/button&gt;&lt;/div&gt;&lt;p id=&quot;hc-handover-unavailable&quot; hidden&gt;No linked handover is visible to this role.&lt;/p&gt;&lt;/section&gt;
+       &lt;section class=&quot;hc-reconciliation-state&quot;&gt;&lt;h3&gt;&lt;i data-lucide=&quot;clipboard-check&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span id=&quot;hc-reconciliation-title&quot;&gt;Reconciliation pending close&lt;/span&gt;&lt;/h3&gt;&lt;p id=&quot;hc-reconciliation-copy&quot;&gt;Accounting reviews the recorded result after this drawer is closed.&lt;/p&gt;&lt;/section&gt;
+       &lt;div class=&quot;hc-rule-note&quot;&gt;&lt;i data-lucide=&quot;shield-check&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;p&gt;Only the opener or Accounting can close. Handover acknowledgement records follow-up, not a cash transfer.&lt;/p&gt;&lt;/div&gt;
+      &lt;/aside&gt;
+     &lt;/div&gt;
+     &lt;section class=&quot;hc-panel hc-movements&quot; aria-labelledby=&quot;hc-movements-title&quot;&gt;&lt;div class=&quot;hc-panel-heading&quot;&gt;&lt;div&gt;&lt;h2 id=&quot;hc-movements-title&quot;&gt;Cash movements&lt;/h2&gt;&lt;p id=&quot;hc-movement-subtitle&quot;&gt;This shift · 4 recorded payments · All times Manila&lt;/p&gt;&lt;/div&gt;&lt;button type=&quot;button&quot; class=&quot;hc-link&quot; data-action=&quot;movements&quot;&gt;View movement details&lt;/button&gt;&lt;/div&gt;&lt;table aria-label=&quot;Cash movements for the selected shift&quot;&gt;&lt;thead&gt;&lt;tr&gt;&lt;th scope=&quot;col&quot;&gt;Time&lt;/th&gt;&lt;th scope=&quot;col&quot;&gt;Type / description&lt;/th&gt;&lt;th scope=&quot;col&quot;&gt;Reference&lt;/th&gt;&lt;th scope=&quot;col&quot; class=&quot;hc-num&quot;&gt;Amount&lt;/th&gt;&lt;th scope=&quot;col&quot;&gt;Status&lt;/th&gt;&lt;th scope=&quot;col&quot;&gt;Staff&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody id=&quot;hc-movement-rows&quot;&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;div class=&quot;hc-table-caption&quot; id=&quot;hc-movement-caption&quot;&gt;Staff attribution is not supplied by the current ledger. Cash out includes recorded refunds only.&lt;/div&gt;&lt;/section&gt;
+     &lt;section class=&quot;hc-history&quot; aria-labelledby=&quot;hc-history-title&quot;&gt;&lt;div class=&quot;hc-history-top&quot;&gt;&lt;div&gt;&lt;h2 id=&quot;hc-history-title&quot;&gt;Recent shifts&lt;/h2&gt;&lt;p id=&quot;hc-history-scope&quot;&gt;Closed history · 3 shifts · All dates&lt;/p&gt;&lt;/div&gt;&lt;div class=&quot;hc-history-controls&quot;&gt;&lt;input type=&quot;search&quot; id=&quot;hc-history-search&quot; aria-label=&quot;Search shift history&quot; placeholder=&quot;Cashier or shift ID&quot;&gt;&lt;select id=&quot;hc-history-filter&quot; aria-label=&quot;Filter shift history&quot;&gt;&lt;option value=&quot;all&quot;&gt;All closed shifts&lt;/option&gt;&lt;option value=&quot;closed&quot;&gt;Needs reconciliation&lt;/option&gt;&lt;option value=&quot;reconciled&quot;&gt;Reconciled&lt;/option&gt;&lt;/select&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;hc-panel&quot;&gt;&lt;table aria-label=&quot;Shift history&quot;&gt;&lt;thead&gt;&lt;tr&gt;&lt;th scope=&quot;col&quot;&gt;Shift / cashier&lt;/th&gt;&lt;th scope=&quot;col&quot; class=&quot;hc-num&quot;&gt;Expected / counted&lt;/th&gt;&lt;th scope=&quot;col&quot; class=&quot;hc-num&quot;&gt;Difference&lt;/th&gt;&lt;th scope=&quot;col&quot;&gt;Reconciliation&lt;/th&gt;&lt;th scope=&quot;col&quot;&gt;Action&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody id=&quot;hc-history-rows&quot;&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;div class=&quot;hc-empty&quot; id=&quot;hc-history-empty&quot; hidden&gt;No shifts match. Clear the search or change the status filter.&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;hc-history-foot&quot;&gt;&lt;span id=&quot;hc-history-result&quot;&gt;Showing 3 of 3 shifts&lt;/span&gt;&lt;span&gt;Reconciled records retain their original variance.&lt;/span&gt;&lt;/div&gt;&lt;/section&gt;
+     &lt;footer class=&quot;hc-footer&quot;&gt;&lt;span&gt;Sample snapshot · 4 Nov 2026, 10:30 AM Manila&lt;/span&gt;&lt;span&gt;Presentation proposal · No hotel records changed&lt;/span&gt;&lt;/footer&gt;
+    &lt;/div&gt;
+   &lt;/main&gt;
+   &lt;div class=&quot;hc-modal-region&quot; id=&quot;hc-modal-region&quot; hidden&gt;&lt;section class=&quot;hc-modal&quot; role=&quot;dialog&quot; aria-modal=&quot;true&quot; aria-labelledby=&quot;hc-modal-title&quot; id=&quot;hc-modal&quot;&gt;&lt;/section&gt;&lt;/div&gt;
+  &lt;/div&gt;
+ &lt;/div&gt;
+&lt;/div&gt;
+&lt;script&gt;
+(()=&gt;{
+ const root=document.getElementById(&#x27;haven-cash-review&#x27;);
+ const q=id=&gt;root.querySelector(&#x27;#&#x27;+id);
+ const mobileParts={content:root.querySelector(&#x27;.hc-content&#x27;),rail:root.querySelector(&#x27;.hc-rail&#x27;),handover:root.querySelector(&#x27;.hc-handover&#x27;),reconciliation:root.querySelector(&#x27;.hc-reconciliation-state&#x27;),rule:root.querySelector(&#x27;.hc-rule-note&#x27;),movements:root.querySelector(&#x27;.hc-movements&#x27;),history:root.querySelector(&#x27;.hc-history&#x27;)};
+ function arrangeReadingOrder(){
+  if(q(&#x27;hc-stage&#x27;).getBoundingClientRect().width&lt;=600){
+   if(mobileParts.reconciliation.parentElement!==mobileParts.content){mobileParts.content.insertBefore(mobileParts.reconciliation,mobileParts.movements);mobileParts.content.insertBefore(mobileParts.handover,mobileParts.history);mobileParts.content.insertBefore(mobileParts.rule,mobileParts.history);}
+  }else if(mobileParts.handover.parentElement!==mobileParts.rail){mobileParts.rail.append(mobileParts.handover,mobileParts.reconciliation,mobileParts.rule);}
+ }
+ const money=n=&gt;new Intl.NumberFormat(&#x27;en-PH&#x27;,{style:&#x27;currency&#x27;,currency:&#x27;PHP&#x27;}).format(n/100);
+ const movements=[
+  {time:&#x27;9:08 AM&#x27;,type:&#x27;Stay payment&#x27;,description:&#x27;Reservation HVN-26-0412&#x27;,ref:&#x27;CASH-261104-C72A19&#x27;,amount:1200000,status:&#x27;Paid&#x27;},
+  {time:&#x27;8:40 AM&#x27;,type:&#x27;Refund&#x27;,description:&#x27;Reservation HVN-26-0387&#x27;,ref:&#x27;REF-261104-0387&#x27;,amount:-350000,status:&#x27;Paid&#x27;},
+  {time:&#x27;8:14 AM&#x27;,type:&#x27;Stay payment&#x27;,description:&#x27;Reservation HVN-26-0408&#x27;,ref:&#x27;CASH-261104-A21C36&#x27;,amount:842000,status:&#x27;Paid&#x27;},
+  {time:&#x27;7:48 AM&#x27;,type:&#x27;Stay payment&#x27;,description:&#x27;Reservation HVN-26-0401&#x27;,ref:&#x27;CASH-261104-D94B12&#x27;,amount:800000,status:&#x27;Paid&#x27;}
+ ];
+ const opening=1000000,cashIn=movements.filter(x=&gt;x.amount&gt;0).reduce((a,x)=&gt;a+x.amount,0),cashOut=-movements.filter(x=&gt;x.amount&lt;0).reduce((a,x)=&gt;a+x.amount,0),expected=opening+cashIn-cashOut;
+ const history=[
+  {id:&#x27;b194fc6a&#x27;,name:&#x27;John Cruz&#x27;,date:&#x27;3 Nov · 3:00 PM&#x27;,opening:500000,net:1492000,expected:1992000,counted:1987000,status:&#x27;closed&#x27;,note:&#x27;₱50 shortage recorded at close.&#x27;},
+  {id:&#x27;a82de729&#x27;,name:&#x27;Maria Santos&#x27;,date:&#x27;3 Nov · 7:00 AM&#x27;,opening:500000,net:2140000,expected:2640000,counted:2640000,status:&#x27;reconciled&#x27;,note:&#x27;Count and recorded cash agree.&#x27;},
+  {id:&#x27;c913ee52&#x27;,name:&#x27;John Cruz&#x27;,date:&#x27;2 Nov · 3:00 PM&#x27;,opening:500000,net:2080000,expected:2580000,counted:2570000,status:&#x27;reconciled&#x27;,note:&#x27;₱100 shortage explained; original variance retained.&#x27;}
+ ];
+ let state={scenario:&#x27;open&#x27;,role:&#x27;opener&#x27;,device:&#x27;desktop&#x27;,counted:3485000,note:&#x27;&#x27;,acknowledged:false};
+ let previousFocus=null;
+ const isAccount=()=&gt;state.role===&#x27;accounting&#x27;;
+ const mayClose=()=&gt;state.role!==&#x27;other&#x27;;
+ const variance=()=&gt;state.counted===null?null:state.counted-expected;
+ const escape=s=&gt;String(s).replace(/[&amp;&lt;&gt;&quot;&#x27;]/g,c=&gt;({&#x27;&amp;&#x27;:&#x27;&amp;amp;&#x27;,&#x27;&lt;&#x27;:&#x27;&amp;lt;&#x27;,&#x27;&gt;&#x27;:&#x27;&amp;gt;&#x27;,&#x27;&quot;&#x27;:&#x27;&amp;quot;&#x27;,&quot;&#x27;&quot;:&#x27;&amp;#39;&#x27;}[c]));
+ const feedback=text=&gt;{q(&#x27;hc-feedback&#x27;).hidden=false;q(&#x27;hc-feedback&#x27;).textContent=text;};
+ const save=()=&gt;{if(window.openai&amp;&amp;window.openai.setWidgetState)window.openai.setWidgetState({modelContent:{scenario:state.scenario,role:state.role,device:state.device},privateContent:{counted:state.counted,note:state.note,acknowledged:state.acknowledged}}).catch(()=&gt;{});};
+ function restore(snapshot){const a=snapshot?.modelContent||{},b=snapshot?.privateContent||{};if([&#x27;open&#x27;,&#x27;closed&#x27;,&#x27;reconciled&#x27;,&#x27;none&#x27;].includes(a.scenario))state.scenario=a.scenario;if([&#x27;opener&#x27;,&#x27;other&#x27;,&#x27;accounting&#x27;].includes(a.role))state.role=a.role;if([&#x27;desktop&#x27;,&#x27;tablet&#x27;,&#x27;mobile&#x27;].includes(a.device))state.device=a.device;if(b.counted===null||Number.isInteger(b.counted)&amp;&amp;b.counted&gt;=0&amp;&amp;b.counted&lt;=1000000000)state.counted=b.counted;if(typeof b.note===&#x27;string&#x27;)state.note=b.note.slice(0,400);if(typeof b.acknowledged===&#x27;boolean&#x27;)state.acknowledged=b.acknowledged;}
+ function primaryLabel(){return state.scenario===&#x27;none&#x27;?&#x27;Open cash shift&#x27;:state.scenario===&#x27;open&#x27;?(mayClose()?&#x27;Review count &amp; close&#x27;:&#x27;View drawer details&#x27;):state.scenario===&#x27;closed&#x27;?(isAccount()?&#x27;Reconcile shift&#x27;:&#x27;Awaiting Accounting review&#x27;):&#x27;View reconciliation&#x27;;}
+ function renderHistory(){
+  const term=q(&#x27;hc-history-search&#x27;).value.toLowerCase().trim(),filter=q(&#x27;hc-history-filter&#x27;).value;
+  const rows=history.filter(r=&gt;(filter===&#x27;all&#x27;||r.status===filter)&amp;&amp;(!term||(r.id+&#x27; &#x27;+r.name+&#x27; &#x27;+r.date).toLowerCase().includes(term)));
+  q(&#x27;hc-history-rows&#x27;).innerHTML=rows.map(r=&gt;{const v=r.counted-r.expected;return `&lt;tr&gt;&lt;td&gt;&lt;span&gt;${escape(r.name)}&lt;/span&gt;&lt;small&gt;${escape(r.date)} · #${r.id}&lt;/small&gt;&lt;/td&gt;&lt;td class=&quot;hc-num&quot;&gt;${money(r.expected)}&lt;small&gt;Counted ${money(r.counted)}&lt;/small&gt;&lt;/td&gt;&lt;td class=&quot;hc-num ${v?&#x27;hc-short&#x27;:&#x27;&#x27;}&quot;&gt;${v===0?&#x27;₱0.00&#x27;:(v&lt;0?&#x27;−&#x27;:&#x27;+&#x27;)+money(Math.abs(v))}&lt;small&gt;${v===0?&#x27;Balanced&#x27;:v&lt;0?&#x27;Short&#x27;:&#x27;Over&#x27;}&lt;/small&gt;&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;hc-badge ${r.status===&#x27;closed&#x27;?&#x27;hc-warn&#x27;:&#x27;hc-neutral&#x27;}&quot;&gt;${r.status===&#x27;closed&#x27;?&#x27;Needs review&#x27;:&#x27;Reconciled&#x27;}&lt;/span&gt;&lt;/td&gt;&lt;td&gt;&lt;button type=&quot;button&quot; class=&quot;hc-button&quot; data-action=&quot;history&quot; data-id=&quot;${r.id}&quot;&gt;View details&lt;/button&gt;&lt;/td&gt;&lt;/tr&gt;`;}).join(&#x27;&#x27;);
+  q(&#x27;hc-history-result&#x27;).textContent=`Showing ${rows.length} of ${history.length} shifts`;
+  q(&#x27;hc-history-empty&#x27;).hidden=rows.length!==0;
+ }
+ function render(){
+  q(&#x27;hc-device&#x27;).value=state.device;q(&#x27;hc-scenario&#x27;).value=state.scenario;q(&#x27;hc-role&#x27;).value=state.role;q(&#x27;hc-stage&#x27;).dataset.device=state.device;
+  const open=state.scenario===&#x27;open&#x27;,none=state.scenario===&#x27;none&#x27;,reconciled=state.scenario===&#x27;reconciled&#x27;,v=variance();
+  q(&#x27;hc-shift&#x27;).hidden=none;q(&#x27;hc-no-shift&#x27;).hidden=!none;
+  q(&#x27;hc-viewer-name&#x27;).textContent=isAccount()?&#x27;Sara Reyes&#x27;:state.role===&#x27;other&#x27;?&#x27;John Cruz&#x27;:&#x27;Maria Santos&#x27;;q(&#x27;hc-viewer-initials&#x27;).textContent=isAccount()?&#x27;SR&#x27;:state.role===&#x27;other&#x27;?&#x27;JC&#x27;:&#x27;MS&#x27;;
+  q(&#x27;hc-top-state&#x27;).textContent=open?&#x27;Open drawer&#x27;:&#x27;Drawer closed&#x27;;q(&#x27;hc-top-state&#x27;).className=&#x27;hc-badge &#x27;+(open?&#x27;hc-good&#x27;:&#x27;hc-neutral&#x27;);
+  q(&#x27;hc-shift-title&#x27;).textContent=open?&#x27;Current shift&#x27;:&#x27;Latest shift&#x27;;
+  q(&#x27;hc-shift-status&#x27;).innerHTML=`&lt;i data-lucide=&quot;${open?&#x27;circle-dot&#x27;:&#x27;lock-keyhole&#x27;}&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt; ${open?&#x27;Open&#x27;:&#x27;Closed&#x27;}`;q(&#x27;hc-shift-status&#x27;).className=&#x27;hc-badge &#x27;+(open?&#x27;hc-good&#x27;:&#x27;hc-neutral&#x27;);
+  q(&#x27;hc-duration&#x27;).textContent=open?&#x27;Running 3h 30m&#x27;:&#x27;Closed 10:30 AM · 3h 30m&#x27;;
+  q(&#x27;hc-opening&#x27;).textContent=money(opening);q(&#x27;hc-cash-in&#x27;).textContent=&#x27;+&#x27;+money(cashIn);q(&#x27;hc-cash-out&#x27;).textContent=&#x27;−&#x27;+money(cashOut);q(&#x27;hc-expected&#x27;).textContent=money(expected);q(&#x27;hc-counted&#x27;).textContent=state.counted===null?&#x27;—&#x27;:money(state.counted);
+  q(&#x27;hc-count-context&#x27;).textContent=state.counted===null?&#x27;No physical count entered&#x27;:open?&#x27;Independent count · draft&#x27;:&#x27;Recorded at close&#x27;;q(&#x27;hc-expected-detail&#x27;).textContent=open?&#x27;Float + cash in − refunds&#x27;:&#x27;Server-calculated at close&#x27;;
+  if(open&amp;&amp;!mayClose()){q(&#x27;hc-counted&#x27;).textContent=&#x27;—&#x27;;q(&#x27;hc-count-context&#x27;).textContent=&#x27;Independent count required&#x27;;}
+  q(&#x27;hc-variance-label&#x27;).textContent=v===null?&#x27;Difference&#x27;:v===0?&#x27;Balanced&#x27;:v&lt;0?&#x27;Short by&#x27;:&#x27;Over by&#x27;;q(&#x27;hc-variance-value&#x27;).textContent=v===null?&#x27;—&#x27;:money(Math.abs(v));q(&#x27;hc-variance-context&#x27;).textContent=v===null?&#x27;Enter physical count&#x27;:v===0?(reconciled?&#x27;Review complete&#x27;:&#x27;No cash difference&#x27;):reconciled?&#x27;Variance retained&#x27;:open?&#x27;Needs explanation&#x27;:&#x27;Review required&#x27;;q(&#x27;hc-variance-box&#x27;).dataset.balanced=v===0?&#x27;true&#x27;:&#x27;false&#x27;;
+  if(open&amp;&amp;!mayClose()){q(&#x27;hc-variance-label&#x27;).textContent=&#x27;Difference&#x27;;q(&#x27;hc-variance-value&#x27;).textContent=&#x27;—&#x27;;q(&#x27;hc-variance-context&#x27;).textContent=&#x27;Count not available&#x27;;}
+  q(&#x27;hc-draft-status&#x27;).textContent=open?(mayClose()?&#x27;Count draft · Not submitted&#x27;:&#x27;Only opener or Accounting can close&#x27;):reconciled?&#x27;Reconciled 10:45 AM by Accounting&#x27;:&#x27;Closed · Awaiting Accounting review&#x27;;q(&#x27;hc-edit-count&#x27;).hidden=!open||!mayClose();
+  const action=primaryLabel();q(&#x27;hc-primary&#x27;).textContent=action;q(&#x27;hc-mobile-primary&#x27;).textContent=action;
+  q(&#x27;hc-reconciliation-title&#x27;).textContent=none?&#x27;1 older shift needs review&#x27;:open?&#x27;Reconciliation pending close&#x27;:reconciled?&#x27;Reconciled · difference retained&#x27;:&#x27;Awaiting Accounting review&#x27;;
+  q(&#x27;hc-reconciliation-copy&#x27;).textContent=none?&#x27;John Cruz’s 3 Nov shift is closed with a ₱50.00 shortage.&#x27;:open?&#x27;Accounting reviews the recorded result after this drawer is closed.&#x27;:reconciled?&#x27;Review is complete. The original shortage stays in the audit record.&#x27;:&#x27;The count is final. Accounting can document the difference and reconcile.&#x27;;
+  q(&#x27;hc-attention&#x27;).hidden=false;
+  q(&#x27;hc-attention-copy&#x27;).textContent=none?&#x27;No drawer is open. 1 older shift awaits Accounting review.&#x27;:open?(!mayClose()?&#x27;Maria Santos owns this drawer. The opener or Accounting must close it.&#x27;:v===null?&#x27;Enter a fresh physical count before closing.&#x27;:v===0?&#x27;Count agrees with expected cash. Review before closing.&#x27;:`Draft count is ${money(Math.abs(v))} ${v&lt;0?&#x27;short&#x27;:&#x27;over&#x27;}. Add an explanation before closing.`):reconciled?&#x27;Reconciliation is complete. A recorded shortage remains on this shift.&#x27;:`Drawer closed ${v===0?&#x27;balanced&#x27;:money(Math.abs(v||0))+&#x27; &#x27;+(v&lt;0?&#x27;short&#x27;:&#x27;over&#x27;)}. Accounting review is next.`;
+  if(state.role===&#x27;opener&#x27;&amp;&amp;!state.acknowledged)q(&#x27;hc-attention-copy&#x27;).textContent+=&#x27; 1 handover awaits your acknowledgement.&#x27;;
+  q(&#x27;hc-attention-action&#x27;).textContent=none?&#x27;Review history&#x27;:open?&#x27;Review count&#x27;:reconciled?&#x27;View record&#x27;:isAccount()?&#x27;Reconcile&#x27;:&#x27;View close record&#x27;;
+  q(&#x27;hc-handover-visible&#x27;).hidden=isAccount();q(&#x27;hc-handover-unavailable&#x27;).hidden=!isAccount();q(&#x27;hc-handover-status&#x27;).hidden=isAccount();q(&#x27;hc-handover-status&#x27;).textContent=state.acknowledged?&#x27;Acknowledged&#x27;:&#x27;1 awaiting acknowledgement&#x27;;q(&#x27;hc-handover-status&#x27;).className=&#x27;hc-badge &#x27;+(state.acknowledged?&#x27;hc-good&#x27;:&#x27;hc-warn&#x27;);
+  const labels=[&#x27;Opened&#x27;,&#x27;Cash activity&#x27;,&#x27;Count&#x27;,&#x27;Close&#x27;,&#x27;Reconcile&#x27;],current=open?2:reconciled?5:4;
+  q(&#x27;hc-steps&#x27;).innerHTML=labels.map((label,i)=&gt;`&lt;li ${i===current?&#x27;aria-current=&quot;step&quot;&#x27;:i&lt;current?&#x27;class=&quot;hc-done&quot;&#x27;:&#x27;&#x27;}&gt;&lt;span class=&quot;hc-step-dot&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;${label}${i&lt;labels.length-1?&#x27;&lt;i data-lucide=&quot;chevron-right&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&#x27;:&#x27;&#x27;}&lt;/li&gt;`).join(&#x27;&#x27;);
+  q(&#x27;hc-movement-subtitle&#x27;).textContent=none?&#x27;No active drawer · Open a shift to begin&#x27;:&#x27;This shift · 4 recorded payments · All times Manila&#x27;;
+  q(&#x27;hc-movement-rows&#x27;).innerHTML=none?&#x27;&lt;tr&gt;&lt;td colspan=&quot;6&quot;&gt;No current-shift cash movements.&lt;/td&gt;&lt;/tr&gt;&#x27;:movements.map(r=&gt;`&lt;tr&gt;&lt;td&gt;${r.time}&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;hc-movement-desc&quot;&gt;${r.type}&lt;/span&gt;&lt;small&gt;${r.description}&lt;/small&gt;&lt;/td&gt;&lt;td&gt;&lt;small&gt;${r.ref}&lt;/small&gt;&lt;/td&gt;&lt;td class=&quot;hc-num&quot;&gt;${r.amount&lt;0?&#x27;−&#x27;:&#x27;+&#x27;}${money(Math.abs(r.amount))}&lt;/td&gt;&lt;td&gt;${r.status}&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;hc-mobile-label&quot;&gt;Staff &lt;/span&gt;&lt;span aria-label=&quot;Staff attribution not supplied&quot;&gt;—&lt;/span&gt;&lt;/td&gt;&lt;/tr&gt;`).join(&#x27;&#x27;);
+  q(&#x27;hc-movement-caption&#x27;).hidden=none;
+  renderHistory();arrangeReadingOrder();if(window.lucide)window.lucide.createIcons();
+ }
+ function modal(title,body,buttons=&#x27;&#x27;){
+  previousFocus=document.activeElement;
+  q(&#x27;hc-modal&#x27;).innerHTML=`&lt;h2 id=&quot;hc-modal-title&quot;&gt;${title}&lt;/h2&gt;${body}&lt;div class=&quot;hc-modal-actions&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;hc-button&quot; data-action=&quot;dismiss&quot;&gt;Cancel&lt;/button&gt;${buttons}&lt;/div&gt;`;
+  q(&#x27;hc-modal-region&#x27;).hidden=false;
+  const focus=q(&#x27;hc-modal&#x27;).querySelector(&#x27;input,textarea,button&#x27;);if(focus)focus.focus();
+ }
+ function dismiss(){q(&#x27;hc-modal-region&#x27;).hidden=true;q(&#x27;hc-modal&#x27;).innerHTML=&#x27;&#x27;;if(previousFocus?.isConnected)previousFocus.focus();}
+ function countModal(){if(!mayClose()){modal(&#x27;Shared drawer&#x27;,`&lt;p&gt;Maria Santos opened this drawer at 7:00 AM. Only the opener or Accounting can count and close it.&lt;/p&gt;&lt;div class=&quot;hc-modal-summary&quot;&gt;&lt;div&gt;Expected cash &lt;b&gt;${money(expected)}&lt;/b&gt;&lt;/div&gt;&lt;div&gt;Drawer status &lt;b&gt;Open&lt;/b&gt;&lt;/div&gt;&lt;/div&gt;`);return;}
+  modal(&#x27;Review count &amp; close&#x27;,`&lt;p&gt;Count physical cash independently. Closing records the count and stops cash collection in this drawer.&lt;/p&gt;&lt;label&gt;Physical cash counted (PHP)&lt;input type=&quot;number&quot; id=&quot;hc-count-input&quot; min=&quot;0&quot; max=&quot;10000000&quot; step=&quot;0.01&quot; value=&quot;${state.counted===null?&#x27;&#x27;:(state.counted/100).toFixed(2)}&quot;&gt;&lt;/label&gt;&lt;div class=&quot;hc-modal-summary&quot;&gt;&lt;div&gt;Expected cash &lt;b&gt;${money(expected)}&lt;/b&gt;&lt;/div&gt;&lt;div&gt;&lt;span id=&quot;hc-modal-variance-label&quot;&gt;Difference&lt;/span&gt;&lt;b id=&quot;hc-modal-variance&quot;&gt;${variance()===null?&#x27;Enter count&#x27;:money(variance())}&lt;/b&gt;&lt;/div&gt;&lt;/div&gt;&lt;label&gt;Count note / variance explanation&lt;textarea id=&quot;hc-count-note&quot; maxlength=&quot;400&quot;&gt;${escape(state.note)}&lt;/textarea&gt;&lt;/label&gt;&lt;p id=&quot;hc-count-helper&quot;&gt;An explanation is required when counted cash differs.&lt;/p&gt;&lt;p class=&quot;hc-error&quot; role=&quot;alert&quot; id=&quot;hc-count-error&quot; hidden&gt;&lt;/p&gt;&lt;p&gt;The server recalculates expected cash at close. The result may change if another payment arrives.&lt;/p&gt;`,`&lt;button type=&quot;button&quot; class=&quot;hc-button&quot; data-action=&quot;save-count&quot;&gt;Keep count draft&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;hc-button hc-button-primary&quot; data-action=&quot;submit-close&quot;&gt;Close shared drawer&lt;/button&gt;`);
+  q(&#x27;hc-count-input&#x27;).setAttribute(&#x27;aria-describedby&#x27;,&#x27;hc-count-helper&#x27;);q(&#x27;hc-count-note&#x27;).setAttribute(&#x27;aria-describedby&#x27;,&#x27;hc-count-helper&#x27;);
+  q(&#x27;hc-count-input&#x27;).addEventListener(&#x27;input&#x27;,()=&gt;{const raw=q(&#x27;hc-count-input&#x27;).value;const value=Math.round(Number(raw)*100);const valid=raw!==&#x27;&#x27;&amp;&amp;Number.isFinite(value)&amp;&amp;value&gt;=0;const v=value-expected;q(&#x27;hc-modal-variance&#x27;).textContent=valid?(v&lt;0?&#x27;−&#x27;:v&gt;0?&#x27;+&#x27;:&#x27;&#x27;)+money(Math.abs(v)):&#x27;Enter count&#x27;;q(&#x27;hc-modal-variance-label&#x27;).textContent=valid?(v===0?&#x27;Balanced&#x27;:v&lt;0?&#x27;Short by&#x27;:&#x27;Over by&#x27;):&#x27;Difference&#x27;;});
+ }
+ function handlePrimary(){if(state.scenario===&#x27;none&#x27;){modal(&#x27;Open cash shift&#x27;,&#x27;&lt;p&gt;Count the opening float. One drawer can be open for the property at a time.&lt;/p&gt;&lt;label&gt;Opening cash float (PHP)&lt;input id=&quot;hc-open-input&quot; type=&quot;number&quot; min=&quot;0&quot; max=&quot;10000000&quot; step=&quot;0.01&quot; value=&quot;10000&quot;&gt;&lt;/label&gt;&lt;label&gt;Cash point / location (optional)&lt;input value=&quot;Front Desk&quot; readonly&gt;&lt;/label&gt;&lt;p&gt;Design preview: the sample uses a ₱10,000.00 float.&lt;/p&gt;&#x27;,&#x27;&lt;button type=&quot;button&quot; class=&quot;hc-button hc-button-primary&quot; data-action=&quot;submit-open&quot;&gt;Preview open shift&lt;/button&gt;&#x27;);return;}
+  if(state.scenario===&#x27;open&#x27;){countModal();return;}
+  if(state.scenario===&#x27;closed&#x27;&amp;&amp;isAccount()){modal(&#x27;Reconcile cash shift&#x27;,`&lt;p&gt;The shift is already closed. Record the review without changing the payment or original variance.&lt;/p&gt;&lt;div class=&quot;hc-modal-summary&quot;&gt;&lt;div&gt;Expected &lt;b&gt;${money(expected)}&lt;/b&gt;&lt;/div&gt;&lt;div&gt;Counted &lt;b&gt;${money(state.counted||0)}&lt;/b&gt;&lt;/div&gt;&lt;div&gt;Difference &lt;b&gt;${money(variance()||0)}&lt;/b&gt;&lt;/div&gt;&lt;/div&gt;&lt;label&gt;Reconciliation note${variance()!==0?&#x27; (required)&#x27;:&#x27; (optional)&#x27;}&lt;textarea id=&quot;hc-reconcile-note&quot; maxlength=&quot;400&quot;&gt;&lt;/textarea&gt;&lt;/label&gt;&lt;p id=&quot;hc-reconcile-error&quot; class=&quot;hc-error&quot; role=&quot;alert&quot; hidden&gt;&lt;/p&gt;`,&#x27;&lt;button type=&quot;button&quot; class=&quot;hc-button hc-button-primary&quot; data-action=&quot;submit-reconcile&quot;&gt;Record reconciliation&lt;/button&gt;&#x27;);return;}
+  modal(state.scenario===&#x27;reconciled&#x27;?&#x27;Reconciliation record&#x27;:&#x27;Closed shift&#x27;,`&lt;div class=&quot;hc-modal-summary&quot;&gt;&lt;div&gt;Expected &lt;b&gt;${money(expected)}&lt;/b&gt;&lt;/div&gt;&lt;div&gt;Counted &lt;b&gt;${money(state.counted||0)}&lt;/b&gt;&lt;/div&gt;&lt;div&gt;Difference &lt;b&gt;${money(variance()||0)}&lt;/b&gt;&lt;/div&gt;&lt;/div&gt;&lt;p&gt;${state.scenario===&#x27;reconciled&#x27;?&#x27;Reconciled by Accounting. The original difference remains recorded.&#x27;:&#x27;Awaiting Accounting review. Front Desk cannot reconcile a closed shift.&#x27;}&lt;/p&gt;`);
+ }
+ root.addEventListener(&#x27;click&#x27;,e=&gt;{const button=e.target.closest(&#x27;button[data-action]&#x27;);if(!button)return;const action=button.dataset.action;
+  if(action===&#x27;dismiss&#x27;){dismiss();return;}
+  if(action===&#x27;primary&#x27;){if(state.scenario===&#x27;none&#x27;&amp;&amp;button.id===&#x27;hc-attention-action&#x27;){q(&#x27;hc-history-title&#x27;).scrollIntoView({block:&#x27;center&#x27;,behavior:&#x27;instant&#x27;});return;}handlePrimary();}
+  else if(action===&#x27;count&#x27;)countModal();
+  else if(action===&#x27;save-count&#x27;||action===&#x27;submit-close&#x27;){
+   const raw=q(&#x27;hc-count-input&#x27;).value,value=Math.round(Number(raw)*100),note=q(&#x27;hc-count-note&#x27;).value.trim(),error=q(&#x27;hc-count-error&#x27;);
+   if(!raw.trim()||!Number.isFinite(value)||value&lt;0||value&gt;1000000000){error.textContent=&#x27;Enter a physical count between ₱0.00 and ₱10,000,000.00.&#x27;;error.hidden=false;return;}
+   if(action===&#x27;submit-close&#x27;&amp;&amp;value!==expected&amp;&amp;note.length&lt;3){error.textContent=&#x27;Explain the cash difference before closing the drawer.&#x27;;error.hidden=false;q(&#x27;hc-count-note&#x27;).focus();return;}
+   state.counted=value;state.note=note;if(action===&#x27;submit-close&#x27;)state.scenario=&#x27;closed&#x27;;dismiss();render();feedback(action===&#x27;submit-close&#x27;?&#x27;Preview: drawer closed. Accounting review is now available.&#x27;:&#x27;Preview: count draft kept locally. Drawer remains open.&#x27;);save();
+  }
+  else if(action===&#x27;submit-reconcile&#x27;){
+   const note=q(&#x27;hc-reconcile-note&#x27;).value.trim();if(variance()!==0&amp;&amp;note.length&lt;3){q(&#x27;hc-reconcile-error&#x27;).textContent=&#x27;A variance explanation is required.&#x27;;q(&#x27;hc-reconcile-error&#x27;).hidden=false;return;}state.scenario=&#x27;reconciled&#x27;;dismiss();render();feedback(&#x27;Preview: reconciliation recorded. Original variance retained.&#x27;);save();
+  }
+  else if(action===&#x27;submit-open&#x27;){
+   if(Number(q(&#x27;hc-open-input&#x27;).value)!==10000){feedback(&#x27;This design scenario uses a ₱10,000.00 opening float.&#x27;);dismiss();return;}
+   state.scenario=&#x27;open&#x27;;state.counted=null;state.note=&#x27;&#x27;;dismiss();render();feedback(&#x27;Preview: drawer open. Enter a fresh physical count before close.&#x27;);save();
+  }
+  else if(action===&#x27;handover&#x27;)modal(&#x27;Operational handover&#x27;,`&lt;p&gt;John Cruz → Maria Santos · Submitted 4 Nov, 7:02 AM Manila&lt;/p&gt;&lt;div class=&quot;hc-modal-summary&quot;&gt;&lt;div&gt;Source &lt;b&gt;Cash shift #b194fc6a&lt;/b&gt;&lt;/div&gt;&lt;div&gt;Status &lt;b&gt;${state.acknowledged?&#x27;Acknowledged&#x27;:&#x27;Awaiting acknowledgement&#x27;}&lt;/b&gt;&lt;/div&gt;&lt;/div&gt;&lt;p&gt;Follow up the previous drawer’s shortage with Accounting.&lt;/p&gt;&lt;p&gt;Acknowledgement records receipt of follow-up responsibility. This record has no cash-transfer amount or acceptance of financial custody.&lt;/p&gt;`,state.role===&#x27;opener&#x27;&amp;&amp;!state.acknowledged?&#x27;&lt;button type=&quot;button&quot; class=&quot;hc-button hc-button-primary&quot; data-action=&quot;acknowledge&quot;&gt;Preview acknowledgement&lt;/button&gt;&#x27;:&#x27;&#x27;);
+  else if(action===&#x27;acknowledge&#x27;){state.acknowledged=true;dismiss();render();feedback(&#x27;Preview: operational handover acknowledged. Cash records are unchanged.&#x27;);save();}
+  else if(action===&#x27;history&#x27;){const r=history.find(x=&gt;x.id===button.dataset.id);if(r)modal(&#x27;Shift #&#x27;+r.id,`&lt;p&gt;${r.name} · Opened ${r.date} Manila&lt;/p&gt;&lt;div class=&quot;hc-modal-summary&quot;&gt;&lt;div&gt;Opening float &lt;b&gt;${money(r.opening)}&lt;/b&gt;&lt;/div&gt;&lt;div&gt;Net cash collected &lt;b&gt;${money(r.net)}&lt;/b&gt;&lt;/div&gt;&lt;div&gt;Expected cash &lt;b&gt;${money(r.expected)}&lt;/b&gt;&lt;/div&gt;&lt;div&gt;Counted cash &lt;b&gt;${money(r.counted)}&lt;/b&gt;&lt;/div&gt;&lt;div&gt;Variance &lt;b&gt;${money(r.counted-r.expected)}&lt;/b&gt;&lt;/div&gt;&lt;div&gt;Reconciliation &lt;b&gt;${r.status===&#x27;closed&#x27;?&#x27;Pending review&#x27;:&#x27;Reconciled&#x27;}&lt;/b&gt;&lt;/div&gt;&lt;/div&gt;&lt;p&gt;${r.note}&lt;/p&gt;&lt;p&gt;Full history retains opening, closure, reconciliation timestamps and notes.&lt;/p&gt;`);}
+  else if(action===&#x27;movements&#x27;)modal(&#x27;Cash movement details&#x27;,&#x27;&lt;p&gt;The proposed list uses payments already linked to this shift. Amounts, payment status, timestamps, purpose and references are available in the ledger.&lt;/p&gt;&lt;p&gt;Movement staff is shown as unavailable because the current ledger does not select the receiving staff member. The drawer opener is not substituted.&lt;/p&gt;&lt;p&gt;There is no general cash withdrawal or expense action in this proposal.&lt;/p&gt;&#x27;);
+  else if(action===&#x27;nav&#x27;)modal(&#x27;Haven navigation&#x27;,&#x27;&lt;p&gt;The existing role-based navigation is retained. This preview focuses on Cash &amp;amp; Shifts.&lt;/p&gt;&lt;p&gt;Dashboard · Room Management · Reservations · Guest Management · Operational Handover · Finance&lt;/p&gt;&#x27;);
+ });
+ q(&#x27;hc-scenario&#x27;).addEventListener(&#x27;change&#x27;,e=&gt;{state.scenario=e.target.value;if(state.scenario!==&#x27;none&#x27;){state.counted=3485000;state.note=&#x27;&#x27;;}q(&#x27;hc-feedback&#x27;).hidden=true;render();save();});
+ q(&#x27;hc-role&#x27;).addEventListener(&#x27;change&#x27;,e=&gt;{state.role=e.target.value;if(state.scenario===&#x27;open&#x27;){state.counted=null;state.note=&#x27;&#x27;;}q(&#x27;hc-feedback&#x27;).hidden=true;render();save();});
+ q(&#x27;hc-device&#x27;).addEventListener(&#x27;change&#x27;,e=&gt;{state.device=e.target.value;render();save();});
+ q(&#x27;hc-history-search&#x27;).addEventListener(&#x27;input&#x27;,renderHistory);q(&#x27;hc-history-filter&#x27;).addEventListener(&#x27;change&#x27;,renderHistory);
+ root.addEventListener(&#x27;keydown&#x27;,e=&gt;{if(q(&#x27;hc-modal-region&#x27;).hidden)return;if(e.key===&#x27;Escape&#x27;){dismiss();return;}if(e.key===&#x27;Tab&#x27;){const nodes=[...q(&#x27;hc-modal&#x27;).querySelectorAll(&#x27;button,input,textarea,select,a[href]&#x27;)].filter(x=&gt;!x.disabled);if(!nodes.length)return;const first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&amp;&amp;document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&amp;&amp;document.activeElement===last){e.preventDefault();first.focus();}}});
+ q(&#x27;hc-modal-region&#x27;).addEventListener(&#x27;click&#x27;,e=&gt;{if(e.target===q(&#x27;hc-modal-region&#x27;))dismiss();});
+ if(window.openai?.widgetState)restore(window.openai.widgetState);
+ window.addEventListener(&#x27;openai:set_globals&#x27;,e=&gt;{if(e.detail?.globals?.widgetState){restore(e.detail.globals.widgetState);render();}});
+ console.assert(cashIn===2842000&amp;&amp;cashOut===350000&amp;&amp;expected===3492000,&#x27;Sample cash totals must agree&#x27;);
+ console.assert(history.every(r=&gt;r.opening+r.net===r.expected),&#x27;History totals must agree&#x27;);
+ new ResizeObserver(arrangeReadingOrder).observe(q(&#x27;hc-stage&#x27;));
+ render();
+})();
+&lt;/script&gt;
+
+&lt;script src=&quot;https://unpkg.com/@floating-ui/core@1.7.3/dist/floating-ui.core.umd.min.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;https://unpkg.com/@floating-ui/dom@1.7.4/dist/floating-ui.dom.umd.min.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  if (window.FloatingUIDOM == null) {
+    return;
+  }
+  const { autoUpdate, computePosition, flip, offset, shift, size } =
+    window.FloatingUIDOM;
+  const tooltipPlacements = new Set([&quot;top&quot;, &quot;right&quot;, &quot;bottom&quot;, &quot;left&quot;]);
+  const tooltipId = `codex-visualization-tooltip-${
+    window.crypto?.randomUUID?.() ?? Date.now().toString(36)
+  }`;
+  const tooltipGap = 5;
+  const hoverDelay = 700;
+  const skipDelay = 300;
+  let activeTrigger = null;
+  let pendingTrigger = null;
+  let tooltip = null;
+  let openTimeout = null;
+  let autoUpdateCleanup = null;
+  let positionRequest = 0;
+  let skipDelayUntil = 0;
+  let lastPointerWasTouch = false;
+  let pinnedByTouch = false;
+
+  const getTrigger = (event) =&gt; {
+    for (const target of event.composedPath()) {
+      if (target?.nodeType === Node.ELEMENT_NODE) {
+        const trigger = target.closest(&quot;[data-tooltip]&quot;);
+        if (trigger) return trigger;
+      }
+    }
+    return null;
+  };
+  const containsTarget = (trigger, target) =&gt;
+    target?.nodeType != null &amp;&amp; trigger.contains(target);
+  const getContent = (trigger) =&gt;
+    trigger.getAttribute(&quot;data-tooltip&quot;)?.trim() ?? &quot;&quot;;
+  const getPlacement = (trigger) =&gt; {
+    const placement = trigger.getAttribute(&quot;data-tooltip-placement&quot;);
+    return tooltipPlacements.has(placement) ? placement : &quot;top&quot;;
+  };
+  const getTooltip = () =&gt; {
+    if (tooltip == null) {
+      tooltip = document.createElement(&quot;div&quot;);
+      tooltip.id = tooltipId;
+      tooltip.className = &quot;tooltip&quot;;
+      tooltip.setAttribute(&quot;role&quot;, &quot;tooltip&quot;);
+    }
+    return tooltip;
+  };
+  const setDescribedBy = (trigger, described) =&gt; {
+    const ids = new Set(
+      (trigger.getAttribute(&quot;aria-describedby&quot;) ?? &quot;&quot;)
+        .split(/\s+/)
+        .filter(Boolean),
+    );
+    if (described) {
+      ids.add(tooltipId);
+    } else {
+      ids.delete(tooltipId);
+    }
+    if (ids.size === 0) {
+      trigger.removeAttribute(&quot;aria-describedby&quot;);
+    } else {
+      trigger.setAttribute(&quot;aria-describedby&quot;, [...ids].join(&quot; &quot;));
+    }
+  };
+  const clearOpenTimeout = () =&gt; {
+    if (openTimeout != null) {
+      window.clearTimeout(openTimeout);
+      openTimeout = null;
+    }
+    pendingTrigger = null;
+  };
+  const closeTooltip = (activateSkipDelay = true) =&gt; {
+    clearOpenTimeout();
+    pinnedByTouch = false;
+    positionRequest += 1;
+    autoUpdateCleanup?.();
+    autoUpdateCleanup = null;
+    if (activeTrigger == null) {
+      return;
+    }
+    setDescribedBy(activeTrigger, false);
+    activeTrigger = null;
+    tooltip?.remove();
+    if (activateSkipDelay) {
+      skipDelayUntil = Date.now() + skipDelay;
+    }
+  };
+  const updatePosition = (trigger, floating) =&gt; {
+    const request = ++positionRequest;
+    void computePosition(trigger, floating, {
+      middleware: [
+        offset(tooltipGap),
+        flip({ padding: tooltipGap }),
+        shift({ padding: tooltipGap }),
+        size({
+          padding: tooltipGap,
+          apply({ availableHeight, availableWidth, elements }) {
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-width&quot;,
+              `${Math.max(0, availableWidth)}px`,
+            );
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-height&quot;,
+              `${Math.max(0, availableHeight)}px`,
+            );
+          },
+        }),
+      ],
+      placement: getPlacement(trigger),
+      strategy: &quot;fixed&quot;,
+    })
+      .then(({ x, y }) =&gt; {
+        if (activeTrigger !== trigger || request !== positionRequest) {
+          return;
+        }
+        const scale = window.devicePixelRatio || 1;
+        floating.style.transform = `translate(${Math.round(x * scale) / scale}px, ${Math.round(y * scale) / scale}px)`;
+        floating.style.visibility = &quot;visible&quot;;
+      })
+      .catch(() =&gt; {
+        if (activeTrigger === trigger &amp;&amp; request === positionRequest) {
+          closeTooltip(false);
+        }
+      });
+  };
+  const openTooltip = (trigger) =&gt; {
+    const content = getContent(trigger);
+    if (!trigger.isConnected || content.length === 0) {
+      return;
+    }
+    clearOpenTimeout();
+    if (activeTrigger === trigger) {
+      return;
+    }
+    closeTooltip();
+    const floating = getTooltip();
+    floating.textContent = content;
+    floating.style.visibility = &quot;hidden&quot;;
+    floating.style.transform = &quot;translate(0, 0)&quot;;
+    document.body.appendChild(floating);
+    activeTrigger = trigger;
+    setDescribedBy(trigger, true);
+    autoUpdateCleanup = autoUpdate(trigger, floating, () =&gt; {
+      updatePosition(trigger, floating);
+    });
+  };
+  const requestOpen = (trigger, immediate = false) =&gt; {
+    if (
+      getContent(trigger).length === 0 ||
+      activeTrigger === trigger ||
+      pendingTrigger === trigger
+    ) {
+      return;
+    }
+    clearOpenTimeout();
+    pendingTrigger = trigger;
+    const delay =
+      immediate || activeTrigger != null || Date.now() &lt; skipDelayUntil
+        ? 0
+        : hoverDelay;
+    if (delay === 0) {
+      openTooltip(trigger);
+      return;
+    }
+    openTimeout = window.setTimeout(() =&gt; {
+      openTimeout = null;
+      pendingTrigger = null;
+      openTooltip(trigger);
+    }, delay);
+  };
+  const handlePointerOpen = (event) =&gt; {
+    if (event.pointerType === &quot;touch&quot;) {
+      return;
+    }
+    const trigger = getTrigger(event);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    requestOpen(trigger);
+  };
+  const handlePointer = (event) =&gt; {
+    lastPointerWasTouch =
+      event.type === &quot;pointerdown&quot; &amp;&amp; event.pointerType === &quot;touch&quot;;
+  };
+  const handleTouchClick = (event) =&gt; {
+    const isTouch = event.pointerType === &quot;touch&quot; || lastPointerWasTouch;
+    lastPointerWasTouch = false;
+    if (!isTouch || event.detail === 0) {
+      return;
+    }
+    const trigger = getTrigger(event);
+    if (
+      trigger == null ||
+      !trigger.isConnected ||
+      getContent(trigger).length === 0 ||
+      (pinnedByTouch &amp;&amp; activeTrigger === trigger)
+    ) {
+      if (pinnedByTouch) {
+        closeTooltip();
+      }
+      return;
+    }
+    openTooltip(trigger);
+    pinnedByTouch = activeTrigger === trigger;
+    window.setTimeout(() =&gt; {
+      if (activeTrigger === trigger &amp;&amp; !trigger.isConnected) {
+        closeTooltip(false);
+      }
+    }, 0);
+  };
+  const handleLeave = (event) =&gt; {
+    if (pinnedByTouch) {
+      return;
+    }
+    const trigger = getTrigger(event);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const handleFocusIn = (event) =&gt; {
+    const trigger = getTrigger(event);
+    if (trigger?.matches(&quot;:focus-visible&quot;)) {
+      requestOpen(trigger, true);
+    }
+  };
+  const handleKeyDown = (event) =&gt; {
+    if (event.key === &quot;Escape&quot;) {
+      closeTooltip();
+    }
+  };
+  const handleContextMenu = (event) =&gt; {
+    lastPointerWasTouch = false;
+    const trigger = getTrigger(event);
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const handlers = {
+    pointerover: handlePointerOpen,
+    pointerdown: handlePointer,
+    pointercancel: handlePointer,
+    click: handleTouchClick,
+    pointerout: handleLeave,
+    focusin: handleFocusIn,
+    focusout: handleLeave,
+    keydown: handleKeyDown,
+    contextmenu: handleContextMenu,
+  };
+  const roots = new Map();
+  const handledEvents = new WeakSet();
+  const handleEvent = (event) =&gt; {
+    if (handledEvents.has(event)) return;
+    handledEvents.add(event);
+    handlers[event.type](event);
+  };
+  const discoverRoots = (node) =&gt; {
+    if (node.shadowRoot) listen(node.shadowRoot);
+    for (const element of node.querySelectorAll(&quot;*&quot;)) {
+      if (element.shadowRoot) listen(element.shadowRoot);
+    }
+  };
+  const listen = (root) =&gt; {
+    if (roots.has(root)) return;
+    for (const type of Object.keys(handlers)) root.addEventListener(type, handleEvent);
+    const observer = new window.MutationObserver((records) =&gt; {
+      for (const { addedNodes } of records) {
+        for (const node of addedNodes) {
+          if (node.nodeType === Node.ELEMENT_NODE) discoverRoots(node);
+        }
+      }
+      for (const [root, cleanup] of roots) {
+        if (root.host &amp;&amp; !root.host.isConnected) {
+          cleanup();
+          roots.delete(root);
+        }
+      }
+      if (activeTrigger &amp;&amp; !activeTrigger.isConnected) closeTooltip(false);
+    });
+    observer.observe(root, { childList: true, subtree: true });
+    roots.set(root, () =&gt; {
+      observer.disconnect();
+      for (const type of Object.keys(handlers)) root.removeEventListener(type, handleEvent);
+    });
+    discoverRoots(root);
+  };
+  const destroy = () =&gt; {
+    closeTooltip(false);
+    lastPointerWasTouch = false;
+    for (const cleanup of roots.values()) cleanup();
+    roots.clear();
+    tooltip = null;
+  };
+
+  // Events between children of one shadow root never reach the document.
+  listen(document);
+  window.addEventListener(&quot;pagehide&quot;, destroy, { once: true });
+})();
+&lt;/script&gt;
+&lt;script id=&quot;codex-visualization-tabs&quot;&gt;
+(() =&gt; {
+  const selector = &#x27;.nav[role=&quot;tablist&quot;] [role=&quot;tab&quot;]&#x27;;
+  const disabled = &#x27;:disabled,[aria-disabled=&quot;true&quot;]&#x27;;
+  const selectTab = (selected) =&gt; {
+    const panelId = selected.getAttribute(&quot;aria-controls&quot;);
+    for (const tab of selected.closest(&#x27;[role=&quot;tablist&quot;]&#x27;).querySelectorAll(&#x27;[role=&quot;tab&quot;]&#x27;)) {
+      const active = tab === selected;
+      tab.classList.toggle(&quot;active&quot;, active);
+      tab.setAttribute(&quot;aria-selected&quot;, String(active));
+      const id = tab.getAttribute(&quot;aria-controls&quot;);
+      const panel = id &amp;&amp; document.getElementById(id);
+      if (panel != null) {
+        panel.hidden = id !== panelId;
+        if (!panel.hidden &amp;&amp; selected.id) {
+          panel.setAttribute(&quot;aria-labelledby&quot;, selected.id);
+        }
+      }
+    }
+  };
+  const interact = (event) =&gt; {
+    const tab = event.target?.closest?.(selector);
+    if (event.defaultPrevented || tab == null || tab.matches(disabled)) {
+      return;
+    }
+    if (event.type === &quot;click&quot;) {
+      selectTab(tab);
+      return;
+    }
+    const tabs = Array.from(
+      tab.closest(&#x27;[role=&quot;tablist&quot;]&#x27;).querySelectorAll(&#x27;[role=&quot;tab&quot;]&#x27;),
+    ).filter((candidate) =&gt; !candidate.matches(disabled));
+    const current = tabs.indexOf(tab);
+    let next;
+    if (event.key === &quot;ArrowRight&quot; || event.key === &quot;ArrowDown&quot;) {
+      next = (current + 1) % tabs.length;
+    } else if (event.key === &quot;ArrowLeft&quot; || event.key === &quot;ArrowUp&quot;) {
+      next = (current + tabs.length - 1) % tabs.length;
+    } else if (event.key === &quot;Home&quot;) {
+      next = 0;
+    } else if (event.key === &quot;End&quot;) {
+      next = tabs.length - 1;
+    } else {
+      return;
+    }
+    event.preventDefault();
+    tabs[next].focus();
+    selectTab(tabs[next]);
+  };
+
+  for (const list of document.querySelectorAll(&#x27;.nav[role=&quot;tablist&quot;]&#x27;)) {
+    const selected =
+      list.querySelector(&#x27;[role=&quot;tab&quot;][aria-selected=&quot;true&quot;]&#x27;) ??
+      list.querySelector(&#x27;[role=&quot;tab&quot;].active&#x27;) ??
+      list.querySelector(&#x27;[role=&quot;tab&quot;]&#x27;);
+    if (selected != null) {
+      selectTab(selected);
+    }
+  }
+  document.addEventListener(&quot;click&quot;, interact);
+  document.addEventListener(&quot;keydown&quot;, interact);
+  window.addEventListener(&quot;pagehide&quot;, () =&gt; {
+    document.removeEventListener(&quot;click&quot;, interact);
+    document.removeEventListener(&quot;keydown&quot;, interact);
+  }, { once: true });
+})();
+&lt;/script&gt;
+&lt;script id=&quot;codex-visualization-carousel&quot;&gt;
+  (() =&gt; {
+    for (const root of document.querySelectorAll(&quot;.viz-carousel&quot;)) {
+      const panels = Array.from(
+        root.querySelectorAll(&quot;:scope &gt; [data-variant]&quot;),
+      );
+      if (panels.length === 0) {
+        continue;
+      }
+      root.setAttribute(&quot;role&quot;, &quot;group&quot;);
+      panels.forEach((panel, index) =&gt; {
+        panel.hidden = index !== 0;
+        panel.setAttribute(&quot;role&quot;, &quot;group&quot;);
+        if (!panel.hasAttribute(&quot;aria-label&quot;)) {
+          panel.setAttribute(&quot;aria-label&quot;, panel.dataset.variant);
+        }
+      });
+      root.dataset.activeVariant = panels[0].dataset.variant;
+      if (panels.length === 1) {
+        continue;
+      }
+
+      const controls = document.createElement(&quot;div&quot;);
+      controls.className = &quot;viz-carousel-controls&quot;;
+      // Portable copy of the settings dropdown&#x27;s legacy glyph; no 14px icon-package preset matches it.
+      // https://github.com/openai/openai/blob/master/codex/codex-apps/webview/src/icons/chevron.svg
+      controls.innerHTML = `
+      &lt;button type=&quot;button&quot; class=&quot;viz-carousel-previous cursor-interaction&quot;&gt;&lt;i data-lucide=&quot;chevron-left&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;
+      &lt;details class=&quot;viz-carousel-picker&quot;&gt;
+        &lt;summary class=&quot;cursor-interaction&quot;&gt;
+          &lt;span class=&quot;viz-carousel-count tabular-nums&quot;&gt;&lt;/span&gt;
+          &lt;span class=&quot;viz-carousel-name&quot;&gt;&lt;/span&gt;
+          &lt;svg class=&quot;viz-carousel-caret&quot; width=&quot;14&quot; height=&quot;14&quot; viewBox=&quot;0 0 20 21&quot; fill=&quot;none&quot; aria-hidden=&quot;true&quot; focusable=&quot;false&quot;&gt;
+            &lt;path d=&quot;M15.2793 7.71101C15.539 7.45131 15.961 7.45131 16.2207 7.71101C16.4804 7.97071 16.4804 8.39272 16.2207 8.65242L10.4707 14.4024C10.211 14.6621 9.78902 14.6621 9.52932 14.4024L3.77932 8.65242L3.69436 8.54792C3.52385 8.28979 3.55205 7.93828 3.77932 7.71101C4.00659 7.48374 4.3581 7.45554 4.61623 7.62605L4.72073 7.71101L10 12.9903L15.2793 7.71101Z&quot; fill=&quot;currentColor&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;0.6&quot; /&gt;
+          &lt;/svg&gt;
+        &lt;/summary&gt;
+        &lt;div class=&quot;viz-carousel-options&quot;&gt;&lt;/div&gt;
+      &lt;/details&gt;
+      &lt;button type=&quot;button&quot; class=&quot;viz-carousel-next cursor-interaction&quot;&gt;&lt;i data-lucide=&quot;chevron-right&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;`;
+      const previous = controls.querySelector(&quot;.viz-carousel-previous&quot;);
+      const next = controls.querySelector(&quot;.viz-carousel-next&quot;);
+      const picker = controls.querySelector(&quot;.viz-carousel-picker&quot;);
+      const summary = picker.querySelector(&quot;summary&quot;);
+      const count = controls.querySelector(&quot;.viz-carousel-count&quot;);
+      const name = controls.querySelector(&quot;.viz-carousel-name&quot;);
+      const options = controls.querySelector(&quot;.viz-carousel-options&quot;);
+      const status = document.createElement(&quot;span&quot;);
+      status.className = &quot;sr-only&quot;;
+      status.setAttribute(&quot;role&quot;, &quot;status&quot;);
+      status.setAttribute(&quot;aria-live&quot;, &quot;polite&quot;);
+      status.setAttribute(&quot;aria-atomic&quot;, &quot;true&quot;);
+      previous.setAttribute(
+        &quot;aria-label&quot;,
+        root.dataset.previousLabel ?? &quot;Previous variant&quot;,
+      );
+      next.setAttribute(&quot;aria-label&quot;, root.dataset.nextLabel ?? &quot;Next variant&quot;);
+
+      let active = 0;
+      let mousePointerId = null;
+      let summaryPointerHandled = false;
+      summary.addEventListener(&quot;pointerdown&quot;, (event) =&gt; {
+        summaryPointerHandled =
+          event.pointerType === &quot;mouse&quot; &amp;&amp; event.button === 0 &amp;&amp; !event.ctrlKey;
+        if (!summaryPointerHandled) {
+          return;
+        }
+        event.preventDefault();
+        summary.focus({ preventScroll: true });
+        picker.open = !picker.open;
+        mousePointerId = picker.open ? event.pointerId : null;
+      });
+      summary.addEventListener(&quot;click&quot;, (event) =&gt; {
+        if (summaryPointerHandled &amp;&amp; event.detail &gt; 0) {
+          event.preventDefault();
+        }
+      });
+      const choices = panels.map((panel, index) =&gt; {
+        const choice = document.createElement(&quot;button&quot;);
+        choice.type = &quot;button&quot;;
+        choice.className = &quot;cursor-interaction&quot;;
+        choice.textContent = panel.dataset.variant;
+        choice.addEventListener(&quot;click&quot;, () =&gt; {
+          select(index);
+          summary.focus();
+        });
+        choice.addEventListener(&quot;pointerup&quot;, (event) =&gt; {
+          if (
+            picker.open &amp;&amp;
+            event.pointerType === &quot;mouse&quot; &amp;&amp;
+            event.button === 0 &amp;&amp;
+            event.pointerId === mousePointerId
+          ) {
+            choice.click();
+          }
+        });
+        options.appendChild(choice);
+        return choice;
+      });
+      const select = (index) =&gt; {
+        const changed = active !== index;
+        active = index;
+        panels.forEach((panel, position) =&gt; {
+          panel.hidden = position !== active;
+          choices[position].setAttribute(
+            &quot;aria-current&quot;,
+            String(position === active),
+          );
+        });
+        root.dataset.activeVariant = panels[active].dataset.variant;
+        count.textContent = `${active + 1} / ${panels.length}`;
+        name.textContent = panels[active].dataset.variant;
+        picker.open = false;
+        mousePointerId = null;
+        if (changed) {
+          status.textContent = `${count.textContent}: ${name.textContent}`;
+        }
+      };
+      previous.addEventListener(&quot;click&quot;, () =&gt;
+        select((active + panels.length - 1) % panels.length),
+      );
+      next.addEventListener(&quot;click&quot;, () =&gt;
+        select((active + 1) % panels.length),
+      );
+      picker.addEventListener(&quot;keydown&quot;, (event) =&gt; {
+        if (event.key === &quot;Escape&quot; &amp;&amp; picker.open) {
+          event.preventDefault();
+          picker.open = false;
+          mousePointerId = null;
+          summary.focus();
+          return;
+        }
+        if (event.altKey || event.ctrlKey || event.metaKey) {
+          return;
+        }
+        const index = choices.indexOf(document.activeElement);
+        let nextIndex;
+        if (event.key === &quot;ArrowDown&quot;) {
+          nextIndex = index &lt; 0 ? active : (index + 1) % choices.length;
+        } else if (event.key === &quot;ArrowUp&quot;) {
+          nextIndex = index &lt; 0 ? active : (index + choices.length - 1) % choices.length;
+        } else if (picker.open &amp;&amp; event.key === &quot;Home&quot;) {
+          nextIndex = 0;
+        } else if (picker.open &amp;&amp; event.key === &quot;End&quot;) {
+          nextIndex = choices.length - 1;
+        } else {
+          return;
+        }
+        event.preventDefault();
+        picker.open = true;
+        choices[nextIndex].focus();
+      });
+      picker.addEventListener(&quot;focusout&quot;, (event) =&gt; {
+        if (!picker.contains(event.relatedTarget)) {
+          picker.open = false;
+          mousePointerId = null;
+        }
+      });
+      const dismiss = (event) =&gt; {
+        if (!summary.contains(event.target)) {
+          mousePointerId = null;
+        }
+        if (!picker.contains(event.target)) {
+          picker.open = false;
+        }
+      };
+      const endPointerSelection = () =&gt; {
+        mousePointerId = null;
+      };
+      const sizePicker = () =&gt; {
+        root.style.setProperty(
+          &quot;--viz-carousel-picker-height&quot;,
+          `${picker.open ? options.offsetHeight : 0}px`,
+        );
+      };
+      picker.addEventListener(&quot;toggle&quot;, sizePicker);
+      window.addEventListener(&quot;resize&quot;, sizePicker);
+      document.addEventListener(&quot;pointerdown&quot;, dismiss);
+      document.addEventListener(&quot;pointerup&quot;, endPointerSelection);
+      document.addEventListener(&quot;pointercancel&quot;, endPointerSelection);
+      window.addEventListener(&quot;blur&quot;, endPointerSelection);
+      window.addEventListener(
+        &quot;pagehide&quot;,
+        () =&gt; {
+          document.removeEventListener(&quot;pointerdown&quot;, dismiss);
+          document.removeEventListener(&quot;pointerup&quot;, endPointerSelection);
+          document.removeEventListener(&quot;pointercancel&quot;, endPointerSelection);
+          window.removeEventListener(&quot;blur&quot;, endPointerSelection);
+          window.removeEventListener(&quot;resize&quot;, sizePicker);
+        },
+        { once: true },
+      );
+      root.append(controls, status);
+      select(0);
+    }
+  })();
+&lt;/script&gt;
+&lt;script id=&quot;codex-visualization-lucide&quot; async src=&quot;https://unpkg.com/lucide@1.17.0/dist/umd/lucide.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  const initialize = () =&gt; {
+    globalThis.lucide?.createIcons({ attrs: { width: 16, height: 16 } });
+  };
+  if (globalThis.lucide != null) {
+    initialize();
+    return;
+  }
+  document
+    .getElementById(&quot;codex-visualization-lucide&quot;)
+    ?.addEventListener(&quot;load&quot;, initialize, { once: true });
+})();
+&lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+"></iframe>
+
+<script>(() => {
+  const frame = document.getElementById("codex-visualization");
+  if (!(frame instanceof HTMLIFrameElement)) {
+    return;
+  }
+  const isShare = document.documentElement.classList.contains(
+    "visualization-share-root",
+  );
+  let viewportHeight = globalThis.innerHeight;
+  let sizeFingerprint = null;
+  let sizeWriteTimeout;
+  let lastSize = null;
+  let pendingSize = null;
+  const storageKey = `codex:visualization-widget-state-v2:${JSON.stringify([
+    globalThis.location.pathname,
+    globalThis.location.search,
+  ])}`;
+  const sizeStorageKey = `${storageKey}:share-size-v1`;
+  const parseState = (serializedState) => {
+    if (
+      typeof serializedState !== "string" ||
+      new TextEncoder().encode(serializedState).length > 16 * 1024
+    ) {
+      throw new TypeError(
+        "Widget state must be a JSON object of at most 16 KiB",
+      );
+    }
+    /** @type {unknown} */
+    const state = JSON.parse(serializedState);
+    if (
+      state == null ||
+      typeof state !== "object" ||
+      Array.isArray(state) ||
+      ("imageIds" in state &&
+        (!Array.isArray(state.imageIds) || state.imageIds.length > 0))
+    ) {
+      throw new TypeError("Widget state must be a JSON object");
+    }
+    const storedState = { modelContent: null, privateContent: null, ...state };
+    const canonicalState = JSON.stringify(
+      storedState,
+      (_key, /** @type {unknown} */ value) => {
+        if (typeof value === "number" && !Number.isFinite(value)) {
+          throw new TypeError("Widget state must contain finite numbers");
+        }
+        return value;
+      },
+    );
+    if (new TextEncoder().encode(canonicalState).length > 16 * 1024) {
+      throw new TypeError(
+        "Widget state must be a JSON object of at most 16 KiB",
+      );
+    }
+    return storedState;
+  };
+  let storage = null;
+  let state = null;
+  try {
+    const localStorage = globalThis.localStorage;
+    const probeKey = `${storageKey}:probe`;
+    localStorage.setItem(probeKey, "1");
+    localStorage.removeItem(probeKey);
+    storage = localStorage;
+    const savedState = storage.getItem(storageKey);
+    if (savedState != null) {
+      try {
+        state = parseState(savedState);
+      } catch {
+        // Invalid saved state does not disable future writes.
+      }
+    }
+  } catch {
+    storage = null;
+  }
+  const persistSize = () => {
+    globalThis.clearTimeout(sizeWriteTimeout);
+    if (pendingSize == null) {
+      return;
+    }
+    try {
+      storage?.setItem(sizeStorageKey, pendingSize);
+    } catch {
+      // A denied or full cache must not affect the visualization.
+    }
+    pendingSize = null;
+  };
+  if (isShare) {
+    globalThis.addEventListener("pagehide", persistSize);
+  }
+  const initialGlobals = {
+    widgetState: state,
+    statePersistence: storage == null ? "none" : "local",
+  };
+
+  const channel = new MessageChannel();
+  channel.port1.addEventListener("message", (event) => {
+    const data = event.data;
+    if (typeof data !== "object" || data == null) {
+      return;
+    }
+    if (data.type === "widget-state-write") {
+      if (!Number.isSafeInteger(data.id) || data.id <= 0) {
+        return;
+      }
+      let ok = false;
+      try {
+        if (storage != null) {
+          const state = parseState(data.state);
+          storage.setItem(storageKey, JSON.stringify(state));
+          ok = true;
+        }
+      } catch {
+        // Storage denial, quota limits, and invalid state return a failed receipt.
+      }
+      channel.port1.postMessage({
+        type: "widget-state-result",
+        id: data.id,
+        ok,
+      });
+      return;
+    }
+    if (data.type === "height") {
+      const height = data.height;
+      if (
+        typeof height !== "number" ||
+        !Number.isFinite(height) ||
+        height < 0
+      ) {
+        return;
+      }
+      if (height <= 10_000) {
+        const width = isShare && storage != null ? frame.clientWidth : null;
+        frame.style.height = Math.ceil(height) + "px";
+        if (isShare && storage != null) {
+          const size = JSON.stringify({
+            fingerprint: sizeFingerprint,
+            width,
+            viewportHeight: globalThis.innerHeight,
+            dark: globalThis.matchMedia("(prefers-color-scheme: dark)").matches,
+            scale: globalThis.devicePixelRatio,
+            height: Math.ceil(height),
+          });
+          if (size !== lastSize) {
+            lastSize = size;
+            pendingSize = size;
+            globalThis.clearTimeout(sizeWriteTimeout);
+            sizeWriteTimeout = globalThis.setTimeout(persistSize, 100);
+          }
+        }
+      }
+      if (isShare) {
+        // Keep unusually tall content accessible without accepting an unbounded height.
+        if (height > 10_000 && Number.parseFloat(frame.style.height) === 0) {
+          frame.style.removeProperty("height");
+        }
+        frame.scrolling = height > 10_000 ? "auto" : "no";
+        document.documentElement.classList.add("visualization-share-ready");
+      }
+      return;
+    }
+    if (data.type === "scroll-to") {
+      const top = data.top;
+      if (
+        typeof top === "number" &&
+        Number.isFinite(top) &&
+        top >= 0 &&
+        globalThis.navigator.userActivation?.isActive === true
+      ) {
+        globalThis.scrollTo({
+          top: Math.ceil(
+            globalThis.scrollY + frame.getBoundingClientRect().top + top,
+          ),
+        });
+      }
+      return;
+    }
+    if (data.type === "open-external") {
+      const rawHref = data.href;
+      if (typeof rawHref !== "string") {
+        return;
+      }
+      let href;
+      try {
+        const url = new URL(rawHref, document.baseURI);
+        if (url.protocol !== "https:") {
+          return;
+        }
+        href = url.href;
+      } catch {
+        return;
+      }
+      if (globalThis.navigator.userActivation?.isActive === true) {
+        const anchor = document.createElement("a");
+        anchor.href = href;
+        anchor.rel = "noopener noreferrer";
+        anchor.target = "_blank";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+      }
+      return;
+    }
+    if (data.type === "follow-up") {
+      const prompt = data.prompt;
+      if (
+        typeof prompt !== "string" ||
+        globalThis.navigator.userActivation?.isActive !== true
+      ) {
+        return;
+      }
+      const title = data.title;
+      globalThis.prompt(typeof title === "string" ? title : prompt, prompt);
+    }
+  });
+  channel.port1.start();
+  const srcdoc = frame.dataset.srcdoc;
+  if (srcdoc == null) {
+    return;
+  }
+  globalThis.addEventListener("resize", () => {
+    const height = Number.parseFloat(frame.style.height);
+    if (!isShare && (!Number.isFinite(height) || height <= viewportHeight)) {
+      frame.style.removeProperty("height");
+    }
+    viewportHeight = globalThis.innerHeight;
+    channel.port1.postMessage({ type: "measure" });
+  });
+  frame.addEventListener(
+    "load",
+    () => {
+      frame.contentWindow?.postMessage(
+        { type: "codex-visualization-initialize" },
+        "*",
+        [channel.port2],
+      );
+    },
+    { once: true },
+  );
+  // Match the trusted bootstrap element, not the same text in an authored title.
+  const frameHtml = srcdoc.replace(
+    '<script type="application/json" id="codex-visualization-widget-state">__CODEX_VISUALIZATION_WIDGET_STATE__<\/script>',
+    () =>
+      '<script type="application/json" id="codex-visualization-widget-state">' +
+      JSON.stringify(initialGlobals).replaceAll("<", "\\u003c") +
+      "<\/script>",
+  );
+  if (isShare && storage != null) {
+    // Fingerprint the rendered document, including restored widget state, without
+    // storing its content. This is a layout cache, not a security identity.
+    let hash = 5381;
+    for (let index = 0; index < frameHtml.length; index += 1) {
+      hash = (hash * 33 + frameHtml.charCodeAt(index)) % 4_294_967_296;
+    }
+    sizeFingerprint = hash.toString(36);
+    try {
+      const size = JSON.parse(storage.getItem(sizeStorageKey) ?? "null");
+      if (
+        size?.fingerprint === sizeFingerprint &&
+        size.width === frame.clientWidth &&
+        size.viewportHeight === globalThis.innerHeight &&
+        size.dark ===
+          globalThis.matchMedia("(prefers-color-scheme: dark)").matches &&
+        size.scale === globalThis.devicePixelRatio &&
+        typeof size.height === "number" &&
+        Number.isFinite(size.height) &&
+        size.height >= 0 &&
+        size.height <= 10_000
+      ) {
+        frame.style.height = size.height + "px";
+      }
+    } catch {
+      // Ignore missing or invalid cache entries and measure the live frame.
+    }
+  }
+  frame.srcdoc = frameHtml;
+  delete frame.dataset.srcdoc;
+})();
+</script>
+</body>
+</html>

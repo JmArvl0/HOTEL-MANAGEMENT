@@ -27,6 +27,7 @@ const input = z.object({
 });
 
 const messages: Record<string, string> = {
+  SERVICE_WORK_NOT_COMPLETED: "Complete the linked work order, then use Record linked service in Preventive work.",
   ASSET_NOT_FOUND: "This asset is no longer in the registry.",
   ASSET_INACTIVE: "This asset has been deactivated.",
   INVALID_SERVICE_DATE: "The service date cannot be in the future.",

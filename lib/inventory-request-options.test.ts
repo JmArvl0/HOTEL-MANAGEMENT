@@ -128,4 +128,5 @@ describe("getPreArrivalOptions", () => {
   });
 });
 
+// Consumption/rollback/concurrency are exercised against real PostgreSQL in scripts/test-hms-integrity.mjs.
 // Transactional fulfillment/legacy/concurrency coverage lives in scripts/backend-remediation-db-test.mjs.

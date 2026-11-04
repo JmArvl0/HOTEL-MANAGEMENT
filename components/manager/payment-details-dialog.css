@@ -1,0 +1,195 @@
+/* Reference receipt palette, with fluid sizing independent of the source image. */
+html:has(.payment-receipt) { scrollbar-gutter: auto; }
+
+.dialog.payment-receipt {
+  --spr-paper: #faf3ec;
+  --spr-ink: #332c27;
+  --spr-muted: #726357;
+  --spr-rule: rgb(111 91 74 / 20%);
+  --spr-gutter: clamp(12px, 3vw, 32px);
+  --spr-inset: clamp(20px, 3vw, 32px);
+  --spr-brand-height: clamp(72px, 6vw, 84px);
+  --spr-label-size: clamp(10px, .8vw, 12px);
+  --spr-value-size: clamp(13px, 1vw, 15px);
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  padding: var(--spr-gutter);
+  padding-top: max(var(--spr-gutter), env(safe-area-inset-top, 0px));
+  padding-bottom: max(var(--spr-gutter), env(safe-area-inset-bottom, 0px));
+  padding-left: max(var(--spr-gutter), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--spr-gutter), env(safe-area-inset-right, 0px));
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  animation: none;
+}
+
+.dialog.payment-receipt .modal-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 0 1 auto;
+  width: min(560px, 100%);
+  max-width: 90vw;
+  min-height: 0;
+  height: auto;
+  max-height: min(88vh, 720px, calc(100vh - 2 * var(--spr-gutter) - 6px));
+  max-height: min(88dvh, 720px, calc(100dvh - max(var(--spr-gutter), env(safe-area-inset-top, 0px)) - max(var(--spr-gutter), env(safe-area-inset-bottom, 0px)) - 6px));
+  border: 0;
+  border-radius: 20px 20px 16px 16px;
+  background: var(--spr-paper);
+  box-shadow: 0 8px 20px rgb(70 51 35 / 12%), 0 2px 5px rgb(70 51 35 / 8%);
+  color: var(--spr-ink);
+  color-scheme: light;
+  overflow: visible;
+  font-family: Georgia, "Times New Roman", serif;
+  animation: none;
+}
+
+.dialog.payment-receipt .modal-content::after {
+  content: "";
+  position: absolute;
+  inset: auto 14px -6px;
+  height: 8px;
+  background: radial-gradient(circle at 50% 100%, transparent 5px, var(--spr-paper) 5.5px) 0 0 / 17px 8px repeat-x;
+  pointer-events: none;
+}
+
+.dialog.payment-receipt .modal-header {
+  position: relative;
+  display: block;
+  flex: none;
+  padding: calc(var(--spr-brand-height) + clamp(16px, 1.2vw, 20px)) var(--spr-inset) 0;
+  border: 0;
+  background: transparent;
+}
+
+.dialog.payment-receipt .modal-header-text {
+  gap: clamp(5px, .5vw, 8px);
+  padding-bottom: clamp(12px, 1.1vw, 18px);
+  border-bottom: 1px dashed var(--spr-rule);
+}
+
+.dialog.payment-receipt .modal-title {
+  margin: 0;
+  color: #293528;
+  font: 500 clamp(26px, 2.1vw, 34px)/1.15 Georgia, "Times New Roman", serif;
+  letter-spacing: -.02em;
+  text-align: left;
+}
+
+.dialog.payment-receipt .modal-description {
+  margin: 0;
+  color: #584c40;
+  font: 400 clamp(12px, .95vw, 14px)/1.45 Georgia, "Times New Roman", serif;
+}
+
+.dialog.payment-receipt .modal-close {
+  position: absolute;
+  z-index: 2;
+  top: calc((var(--spr-brand-height) - 44px) / 2);
+  right: clamp(16px, 2vw, 24px);
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #f7efe4;
+  color: #776555;
+  box-shadow: none;
+}
+
+.dialog.payment-receipt .modal-close svg { width: 18px; height: 18px; }
+.dialog.payment-receipt .modal-close:hover { background: #eae0d1; }
+.dialog.payment-receipt .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0 var(--spr-inset);
+  border-radius: 0 0 16px 16px;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #bca78c var(--spr-paper);
+}
+
+.payment-receipt .spr-brand {
+  position: absolute;
+  inset: 0 0 auto;
+  height: var(--spr-brand-height);
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 1.2vw, 18px);
+  padding: 0 var(--spr-inset);
+  border-radius: 20px 20px 0 0;
+  overflow: hidden;
+  background: linear-gradient(110deg, #515e47, #3e4d3e);
+  color: #f2ebdd;
+}
+
+.payment-receipt .spr-logo { display: grid; place-items: center; flex: none; width: 44px; height: 44px; }
+.payment-receipt .spr-logo .haven-logo-tile { display: block; padding: 0; background: transparent; border: 0; box-shadow: none; }
+.payment-receipt .spr-logo img { width: 100%; height: 100%; object-fit: contain; filter: brightness(0) invert(1); }
+.payment-receipt .spr-wordmark { position: relative; z-index: 1; font: 500 clamp(16px, 1.4vw, 20px)/1.3 Georgia, serif; letter-spacing: .22em; white-space: nowrap; }
+.payment-receipt .spr-wordmark small { display: block; padding-left: .6em; color: inherit; font: 500 clamp(7px, .6vw, 9px)/1.5 var(--font-sans, Arial, sans-serif); letter-spacing: .3em; }
+.payment-receipt .spr-botanical { position: absolute; top: 0; right: 40px; width: clamp(125px, 13vw, 170px); height: var(--spr-brand-height); color: #c6be8a; opacity: .28; }
+
+.payment-receipt .spr-details { margin: 0; padding: 4px 0 clamp(14px, 1.2vw, 20px); }
+.payment-receipt .spr-row { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: center; column-gap: clamp(8px, 1vw, 14px); min-height: clamp(30px, 2.1vw, 32px); padding-block: 5px; border-bottom: 1px dotted var(--spr-rule); }
+.payment-receipt .spr-row:last-child { border-bottom: 0; }
+.payment-receipt .spr-row dt { margin: 0; color: #62554b; font: 650 var(--spr-label-size)/1.45 var(--font-sans, Arial, sans-serif); text-transform: uppercase; letter-spacing: .12em; }
+.payment-receipt .spr-row dd { min-width: 0; margin: 0; color: var(--spr-ink); font: 400 var(--spr-value-size)/1.45 Georgia, "Times New Roman", serif; text-align: right; overflow-wrap: anywhere; }
+.payment-receipt .spr-stay { display: inline-flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 4px; }
+.payment-receipt .spr-stay-status { font-weight: 400; }
+.payment-receipt .spr-cancelled { padding: 2px 9px; border-radius: 999px; background: #f4ded2; color: #a0543e; font-size: clamp(12px, .9vw, 14px); line-height: 1.4; }
+.payment-receipt .spr-status { display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 3px 10px; border-radius: 999px; background: #eae0d1; font-size: var(--spr-value-size); font-weight: 400; line-height: 1.4; }
+.payment-receipt .spr-paid { min-width: 68px; border: 1px solid #bdd6aa; background: #dcecd0; color: #41633a; }
+.payment-receipt .spr-paid svg { width: 13px; height: 13px; }
+.payment-receipt .spr-pending { background: #f5e7c9; color: #7c5c22; }
+.payment-receipt .spr-rejected { background: #f4ded2; color: #a0543e; }
+
+.payment-receipt .spr-verification { margin: 0; padding: clamp(8px, .8vw, 12px) clamp(10px, 1vw, 14px); border-top: 1px dashed var(--spr-rule); border-radius: 10px; background: #f7ebdd; }
+.payment-receipt .spr-verification .spr-row { grid-template-columns: 16px minmax(0, 1fr) minmax(0, 1.25fr); min-height: clamp(34px, 2.4vw, 38px); column-gap: clamp(8px, .8vw, 12px); }
+.payment-receipt .spr-verification .spr-row > svg { width: 16px; height: 16px; color: #a67a3f; stroke-width: 1.25; }
+.payment-receipt .spr-verification dt { letter-spacing: .09em; }
+.payment-receipt .spr-verification .spr-proof-row dd { color: var(--spr-muted); font-weight: 400; }
+.payment-receipt .spr-verification strong { color: #28221e; font-size: clamp(16px, 1.3vw, 20px); font-weight: 700; font-variant-numeric: lining-nums tabular-nums; }
+.payment-receipt .spr-variance { display: block; color: var(--spr-muted); font-size: 12px; line-height: 1.5; }
+.payment-receipt .spr-proof-preview { margin-block: 14px; }
+.payment-receipt .spr-proof-preview .deposit-proof { margin: 0; }
+.payment-receipt .spr-total { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 14px; min-height: clamp(54px, 4.4vw, 64px); margin-top: clamp(12px, 1vw, 16px); padding: 10px clamp(14px, 1.5vw, 22px); border-radius: 10px; background: #eae0d1; }
+.payment-receipt .spr-total span { color: #4c5543; font: italic 400 clamp(18px, 1.4vw, 22px)/1.3 Georgia, serif; }
+.payment-receipt .spr-total strong { margin-left: auto; color: #3f573d; font: 700 clamp(22px, 1.8vw, 28px)/1.25 Georgia, serif; font-variant-numeric: lining-nums tabular-nums; overflow-wrap: anywhere; text-align: right; }
+
+.payment-receipt .spr-record { padding-bottom: clamp(20px, 2vw, 28px); }
+.payment-receipt .spr-review-note { margin: 14px 0; color: #584c40; font: 400 13px/1.5 Georgia, serif; }
+.dialog.payment-receipt .modal-footer { display: block; flex: none; padding: 0 var(--spr-inset) clamp(16px, 1.5vw, 24px); border: 0; border-radius: 0 0 16px 16px; background: var(--spr-paper); }
+.payment-receipt .spr-review-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.payment-receipt .spr-review-button { flex: 1 1 140px; min-height: 44px; padding: 10px 16px; border: 0; border-radius: 999px; cursor: pointer; font: 600 13px/1.4 var(--font-sans, Arial, sans-serif); }
+.payment-receipt .spr-review-reject { background: #f4ded2; color: #8c432f; }
+.payment-receipt .spr-review-confirm { background: linear-gradient(#c69a58, #ae7f40 55%, #a57438); color: #fff8ed; }
+.payment-receipt .spr-review-button:hover:not(:disabled) { filter: brightness(1.06); }
+.payment-receipt .spr-review-button:disabled { opacity: .55; cursor: not-allowed; }
+.dialog.payment-receipt button:focus-visible { outline: 2px solid #77603d; outline-offset: 3px; }
+.payment-receipt .spr-record:focus-visible { outline: 2px solid #77603d; outline-offset: -2px; }
+.payment-receipt ::selection { background: #d5e3ca; color: #293528; }
+
+@media (max-width: 900px) {
+  .dialog.payment-receipt .modal-content { width: min(520px, 90vw, 100%); }
+}
+
+@media (max-width: 680px) {
+  .dialog.payment-receipt { --spr-gutter: 12px; }
+  .dialog.payment-receipt .modal-content { width: calc(100vw - 24px); max-width: none; }
+}
+
+/* Short landscape windows prioritize access to the scrollable record. */
+@media (max-height: 500px) {
+  .dialog.payment-receipt { --spr-brand-height: 60px; }
+  .dialog.payment-receipt .modal-content { max-height: calc(100dvh - 2 * var(--spr-gutter) - 6px); }
+  .dialog.payment-receipt .modal-header { padding-top: calc(var(--spr-brand-height) + 10px); }
+  .dialog.payment-receipt .modal-header-text { padding-bottom: 10px; }
+}

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeAll, afterEach, describe, expect, it } from "vitest";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { cleanup, render, screen, fireEvent, act } from "@testing-library/react";
 import { Modal } from "./Modal";
 
@@ -30,7 +30,26 @@ function Host() {
   );
 }
 
+function InitialFocusHost() {
+  const firstInput = useRef<HTMLInputElement>(null);
+  return (
+    <Modal isOpen onClose={() => {}} title="Add physical room" initialFocusRef={firstInput}>
+      <label htmlFor="wing">Wing</label>
+      <input id="wing" ref={firstInput} />
+    </Modal>
+  );
+}
+
 describe("Modal input focus", () => {
+  it("focuses the requested initial control when the modal opens", async () => {
+    render(<InitialFocusHost />);
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(document.activeElement).toBe(screen.getByLabelText("Wing"));
+  });
+
   it("keeps focus on the input across keystrokes while the parent re-renders", async () => {
     render(<Host />);
     // Flush the modal-open setTimeout so we start from the settled state.

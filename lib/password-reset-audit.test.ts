@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { sniffProofKind } from "@/lib/payment-proof";
 import { buildPasswordResetOtpEmail, buildRecoveryLinkEmail, maskEmail } from "@/lib/otp-email";
 
-const migration = readFileSync("supabase/migrations/20261022010000_password_reset_audit.sql", "utf8");
+const migration = readFileSync("supabase/migrations/20261022010000_password_reset_audit.sql", "utf8").replace(/\r\n/g, "\n");
 const recoverRoute = readFileSync("app/api/recover/[token]/route.ts", "utf8");
 const selfieRoute = readFileSync("app/api/recover/[token]/selfie/route.ts", "utf8");
 const requestRoute = readFileSync("app/api/password-reset/request/route.ts", "utf8");

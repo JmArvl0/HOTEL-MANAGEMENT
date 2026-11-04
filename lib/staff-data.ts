@@ -3,6 +3,7 @@ import { demoStore } from "@/lib/demo-store";
 import { canAccess, canViewGuestContact, canViewReservationFinancials, canViewTransportation } from "@/lib/permissions";
 import { supabase } from "@/lib/supabase";
 import type { RecordItem, Resource, Role } from "@/lib/types";
+import { readAllRows } from "@/lib/read-all-rows";
 
 export const operationalReservationFields = "id,confirmation_number,guest_id,guest_name,guest_email,room_id,room_number,room_type,check_in,check_out,guests,status,source,total,deposit,deposit_required,payment_status,payment_method,special_requests,request_options,expected_arrival,cancellation_reason,identity_status,identity_verified_at,operational_policy_snapshot,created_at";
 export const accountingReservationFields = "id,confirmation_number,guest_name,room_type,check_in,check_out,status,source,total,deposit,deposit_required,payment_status,payment_method,cancellation_reason,created_at";
@@ -22,6 +23,16 @@ export async function listForRole(resource: Resource, role: Role): Promise<Recor
     return records;
   }
   if (resource === "reservations") {
+    if (role === "front_desk") {
+      const [reservations, invoices, guests] = await Promise.all([
+        readAllRows(() => supabase!.from("reservations").select(`${operationalReservationFields},checked_in_at,checked_out_at`).order("created_at", { ascending: false })),
+        readAllRows(() => supabase!.from("invoices").select("id,reservation_id,balance")),
+        readAllRows(() => supabase!.from("guests").select("id,phone")),
+      ]);
+      const balances = new Map(invoices.map(invoice => [invoice.reservation_id, invoice.balance]));
+      const phones = new Map(guests.map(guest => [guest.id, guest.phone]));
+      return reservations.map(item => ({ ...item, folio_balance: balances.get(item.id) ?? null, guest_phone: phones.get(item.guest_id) ?? null })) as RecordItem[];
+    }
     if (role === "accounting") {
       const { data, error } = await supabase.from("reservations").select("id,confirmation_number,guest_name,room_type,check_in,check_out,status,source,total,deposit,deposit_required,payment_status,payment_method,cancellation_reason,created_at").order("created_at", { ascending: false });
       if (error) throw error;
