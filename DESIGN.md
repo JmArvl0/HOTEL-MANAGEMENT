@@ -47,6 +47,24 @@ forms preserve the existing portal/arrival shell. Labels, draft preservation,
 stable retry keys, truthful status/error feedback and keyboard focus are part of
 the workflow; no prototype/sample records are wired into production screens.
 
+**Cash safeguards (2026-11-05, local):** Count review distinguishes unsaved edits,
+an explicitly saved server draft, resume/fresh count and final Close. Changed
+cash activity requires recounting; stale versions and unconfirmed close responses
+retain recoverable input. Refund payout uses the existing Modal and native
+method/drawer selectors, with an explicit completed-payout confirmation. Closed
+drawers show scoped handover and report status/actions within the current drawer
+stack and history detail. Handover prefill and report-date navigation never submit
+automatically. Existing light/dark tokens, mobile stacking and 44px label/action
+targets are retained; the payout checkbox remains 20px inside its larger label.
+
+**Verified cash UI gaps (2026-11-06):** Actual-app light/dark QA confirms the
+cash workspace reflows at 320/390/768/1024/1440px, but the shared header clips
+controls at 320/390/1024px. Modal actions measure 36px high and refund selectors
+40px, short of the 44px target above; the checkbox's larger label is intentional.
+Report currency display drops centavos and a closed drawer's own handover can say
+“Other cash shift.” These remain findings, not implemented design changes.
+Evidence: `docs/qa/cash-delivery-ui-qa-2026-11-06.md` (CD-02–05).
+
 - **Companions:** `DESIGN-STATUS.md` (what is off / what got fixed), `SYSTEM.md` (behavior).
 - **Snapshot:** working tree on `main`, 2026-10-06 staff-layer rewrite fold
   (see `DESIGN-STATUS.md` and `.impeccable/surfaces/app-booking-search.md`).

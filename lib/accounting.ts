@@ -55,7 +55,7 @@ export interface AccountingLedger {
 
 // Least privilege: no guest email, phone, identity documents, password hashes, session material or
 // payment credentials are selected anywhere in the Accounting ledger.
-const PAYMENT_FIELDS = "id,reservation_id,invoice_id,purpose,method,reference,amount,currency,status,submitted_at,verified_at,reviewed_at,decision_reason,cash_shift_id,created_at";
+const PAYMENT_FIELDS = "id,reservation_id,invoice_id,purpose,method,reference,amount,currency,status,submitted_at,verified_at,reviewed_at,decision_reason,cash_shift_id,received_by,created_at";
 const INVOICE_FIELDS = "id,reservation_id,guest_name,currency,amount,paid,balance,credit_balance,status,method,corporate_account,due_date,created_at";
 const CHARGE_FIELDS = "id,invoice_id,reservation_id,description,category,amount,status,source,source_record_id,created_at";
 const ADJUSTMENT_FIELDS = "id,invoice_id,reservation_id,transaction_type,direction,amount,reason,source_charge_id,created_at";
@@ -84,7 +84,7 @@ export async function getAccountingLedger(role: Role): Promise<AccountingLedger 
     take("refund_requests", REFUND_FIELDS, "created_at"), take("refund_attempts", ATTEMPT_FIELDS, "attempted_at"),
     take("payment_reconciliations", RECONCILIATION_FIELDS, "reconciled_at")
   ]) : [[] as Row[], [] as Row[], [] as Row[]];
-  const staffIds = [...new Set(cashShifts.map((shift) => String(shift.staff_user_id)).filter(Boolean))];
+  const staffIds = [...new Set([...cashShifts.map(shift => shift.staff_user_id), ...transactions.map(payment => payment.received_by)].filter(Boolean).map(String))];
   const staff = staffIds.length ? await readAllRows(() => client.from("user_accounts").select("id,name").in("id", staffIds)) : [];
   const nameById = new Map(staff.map((person) => [String(person.id), String(person.name)]));
   // Per-shift cash collected, derived from the payments linked to each shift (in − refunds out)
@@ -114,7 +114,7 @@ export async function getAccountingLedger(role: Role): Promise<AccountingLedger 
     openReconciliationVariance: sum(reconciliations.filter((row) => row.status === "variance"), "variance")
   };
   return {
-    metrics, transactions, invoices, charges, adjustments, refunds, refundAttempts, reconciliations, documents,
+    metrics, transactions: transactions.map(payment => ({ ...payment, received_by_name: nameById.get(String(payment.received_by)) ?? null })), invoices, charges, adjustments, refunds, refundAttempts, reconciliations, documents,
     cashShifts: cashShifts.map((shift) => ({ ...shift, staff_name: nameById.get(String(shift.staff_user_id)) ?? "Unknown", collected: fromCentavos(collectedByShift.get(String(shift.id)) ?? 0) }))
   };
 }

@@ -1,5 +1,42 @@
 # Current Status
 
+## Guest Management compatibility fix (2026-11-06)
+
+- Fixed shared guest list/profile reads against the deployed pre-merge/removal
+  schema; upgraded aliases/canonical history/removal filters remain supported.
+  KI-027 fixed locally. New5regressions and targeted59pass; latest full2348pass /
+  2recorded failures. Browser confirmation stopped by Computer Use URL guard.
+- User authorized commit/push of all current changes. Cash QA findings and hosted
+  migration requirements remain; no hosted migration/business write performed.
+  `docs/qa/guest-management-load-fix-2026-11-06.md` and
+  [[2026-11-06 - Guest Loading Fix and Publication]].
+
+## Cash delivery and frontend QA (2026-11-06, local)
+
+- Actual Next.js/auth/PostgREST/DB flow:25checks,23pass/2fail. Draft/refund/close/
+  review/handover/report persistence passes; daily collections add refunds (KI-022)
+  and shared header controls clip (KI-023). Centavo display/caption/touch targets
+  are KI-024–026. Release acceptance withheld; findings not repaired in QA.
+- Fresh126-migration replay/SQL12/targeted156pass; typecheck/build pass;
+  lint0errors/6existing warnings; full2343pass/2recorded failures.
+  Linked ledger112remote/126local; new cash migration absent. No hosted write,
+  push or deployment. Actual local financial-write E2E now verified within the
+  report's scope; password/OTP/hosted E2E remain unverified.
+- `docs/qa/cash-delivery-ui-qa-2026-11-06.md` and
+  [[2026-11-06 - Cash Delivery and UI QA]].
+
+## Cash findings fixes (2026-11-05, local; release pending)
+
+- Approved explicit cash-refund/drawer linkage, durable operator count drafts and
+  guided post-close handover/report actions implemented. KI-021 fixed locally;
+  migration `20261105010000` not pushed. Accounting/submission boundaries retained.
+- Fresh126-migration replay and12real SQL checks pass, including competing payouts
+  and close;179scoped tests/typecheck/build pass. Full2343pass/2recorded failures;
+  touched lint0errors/6existing warnings. Sample-component browser QA passes;
+  authenticated financial-write E2E remains unverified. No hosted write/deploy.
+- See `docs/qa/cash-findings-implementation-2026-11-05.md` and
+  [[2026-11-05 - Cash Findings Implementation]].
+
 ## Commit/push sync verification (2026-11-04)
 
 - Cash implementation/QA rebased onto origin/main `d707824` at user's request.

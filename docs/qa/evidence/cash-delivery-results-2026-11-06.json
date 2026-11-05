@@ -1,0 +1,954 @@
+{
+  "date": "2026-11-05T17:14:33.398Z",
+  "database": "cash_delivery_3999063783464e7bbdf0667cc833e175",
+  "checks": [
+    {
+      "name": "Open in browser persists float/location/opener in cash_shifts",
+      "result": "PASS",
+      "evidence": {
+        "shiftId": "cf991620-c0fc-49b3-ab26-181476535659"
+      }
+    },
+    {
+      "name": "Cash payment HTTP saves drawer/folio/receipt and appears in cash movements",
+      "result": "PASS",
+      "evidence": {
+        "paymentId": "e2ed51fd-c942-4601-848c-9ac24d85e73d",
+        "paymentRef": "CASH-261106-F276DC",
+        "receiptNumber": "RCP-261106-C97B4B"
+      }
+    },
+    {
+      "name": "Save failure preserves input; explicit save writes only cash_count_drafts",
+      "result": "PASS"
+    },
+    {
+      "name": "Saved draft resumes after module change, page reload and a new browser session",
+      "result": "PASS"
+    },
+    {
+      "name": "Different cashier cannot read the saved count or execute refunds",
+      "result": "PASS"
+    },
+    {
+      "name": "Mobile count review supports large amounts, keyboard trap and focus return",
+      "result": "PASS"
+    },
+    {
+      "name": "Refunds opened directly loads live drawer, blocks read errors and pays exactly once",
+      "result": "PASS",
+      "evidence": {
+        "refundId": "9dd797d6-61dc-4193-866f-3329c6768b96",
+        "payoutId": "f16ed5e0-3f74-4418-9ac4-42e4b3875f43"
+      }
+    },
+    {
+      "name": "Refund/payment/receipt reach Transactions, Folios, Financial Documents and Owner Audit",
+      "result": "PASS"
+    },
+    {
+      "name": "Noncash payout is saved without a drawer and never changes expected cash",
+      "result": "PASS"
+    },
+    {
+      "name": "Stale saved count is blocked after refund; actual expected cash becomes 2750",
+      "result": "PASS"
+    },
+    {
+      "name": "Lost close response retries stored key; close records 2750 with zero false shortage",
+      "result": "PASS"
+    },
+    {
+      "name": "Accounting reconciliation saves reviewer/timestamp without altering the close",
+      "result": "PASS"
+    },
+    {
+      "name": "Closed next steps route to prefilled handover, explicit receiver and persisted follow-up",
+      "result": "PASS",
+      "evidence": {
+        "handoverId": "66beff26-b891-46d4-bddc-afe166118140"
+      }
+    },
+    {
+      "name": "Post-close report link selects actual hotel date; only explicit Submit stores snapshot",
+      "result": "PASS",
+      "evidence": {
+        "reportId": "e94af0d1-c865-46fe-800c-6869dbc290f1",
+        "reportDate": "2026-11-06"
+      }
+    },
+    {
+      "name": "Daily report Cash received excludes refund payouts",
+      "result": "FAIL",
+      "error": "Cash received must be 2000; the 250 refund is outgoing\n\n2250 !== 2000\n"
+    },
+    {
+      "name": "Manager sees and acknowledges the stored snapshot without rewriting it",
+      "result": "PASS"
+    },
+    {
+      "name": "Receiving cashier acknowledges and resolves the linked handover explicitly",
+      "result": "PASS"
+    },
+    {
+      "name": "Cash workspace arrangement light/dark at 1440px",
+      "result": "PASS"
+    },
+    {
+      "name": "Cash workspace arrangement light/dark at 1024px",
+      "result": "PASS"
+    },
+    {
+      "name": "Cash workspace arrangement light/dark at 768px",
+      "result": "PASS"
+    },
+    {
+      "name": "Cash workspace arrangement light/dark at 390px",
+      "result": "PASS"
+    },
+    {
+      "name": "Cash workspace arrangement light/dark at 320px",
+      "result": "PASS"
+    },
+    {
+      "name": "Header controls remain inside the viewport across tested widths",
+      "result": "FAIL",
+      "error": "Global header contains clipped controls\n+ actual - expected\n\n+ [\n+   {\n+     clippedControls: [\n+       {\n+         name: 'Account menu',\n+         right: 1055.59375,\n+         width: 1024,\n+         x: 916.375\n+       }\n+     ],\n+     label: 'header-1024'\n+   },\n+   {\n+     clippedControls: [\n+       {\n+         name: 'Notifications',\n+         right: 414.90625,\n+         width: 390,\n+         x: 376.90625\n+       },\n+       {\n+         name: 'Account menu',\n+         right: 456.90625,\n+         width: 390,\n+         x: 420.90625\n+       }\n+     ],\n+     label: 'header-390'\n+   },\n+   {\n+     clippedControls: [\n+       {\n+         name: 'Switch to dark mode',\n+         right: 370.90625,\n+         width: 320,\n+         x: 332.90625\n+       },\n+       {\n+         name: 'Notifications',\n+         right: 414.90625,\n+         width: 320,\n+         x: 376.90625\n+       },\n+       {\n+         name: 'Account menu',\n+         right: 456.90625,\n+         width: 320,\n+         x: 420.90625\n+       }\n+     ],\n+     label: 'header-320'\n+   }\n+ ]\n- []\n"
+    },
+    {
+      "name": "A separate shortage preserves count explanation and original variance after reconciliation",
+      "result": "PASS",
+      "evidence": {
+        "shiftId": "bba6e284-cc0e-49f6-af33-786fab7ce34e",
+        "variance": "-10.00"
+      }
+    },
+    {
+      "name": "Independent connection reads committed final destinations",
+      "result": "PASS"
+    }
+  ],
+  "issues": [
+    {
+      "severity": "P2",
+      "name": "Header controls clipped",
+      "viewport": 1024,
+      "controls": [
+        {
+          "name": "Account menu",
+          "x": 916.375,
+          "right": 1055.59375,
+          "width": 1024
+        }
+      ]
+    },
+    {
+      "severity": "P2",
+      "name": "Header controls clipped",
+      "viewport": 390,
+      "controls": [
+        {
+          "name": "Notifications",
+          "x": 376.90625,
+          "right": 414.90625,
+          "width": 390
+        },
+        {
+          "name": "Account menu",
+          "x": 420.90625,
+          "right": 456.90625,
+          "width": 390
+        }
+      ]
+    },
+    {
+      "severity": "P2",
+      "name": "Header controls clipped",
+      "viewport": 320,
+      "controls": [
+        {
+          "name": "Switch to dark mode",
+          "x": 332.90625,
+          "right": 370.90625,
+          "width": 320
+        },
+        {
+          "name": "Notifications",
+          "x": 376.90625,
+          "right": 414.90625,
+          "width": 320
+        },
+        {
+          "name": "Account menu",
+          "x": 420.90625,
+          "right": 456.90625,
+          "width": 320
+        }
+      ]
+    }
+  ],
+  "ui": [
+    {
+      "label": "mobile-large-count-light",
+      "width": 320,
+      "height": 844,
+      "pageOverflow": false,
+      "smallTargets": [
+        {
+          "name": "Refresh cash ledger",
+          "tag": "BUTTON",
+          "width": 40,
+          "height": 44,
+          "type": "submit"
+        },
+        {
+          "name": "Close dialog",
+          "tag": "BUTTON",
+          "width": 36,
+          "height": 36,
+          "type": "button"
+        },
+        {
+          "name": "Reload saved draft",
+          "tag": "BUTTON",
+          "width": 149,
+          "height": 36,
+          "type": "button"
+        },
+        {
+          "name": "Return without saving",
+          "tag": "BUTTON",
+          "width": 168,
+          "height": 36,
+          "type": "button"
+        },
+        {
+          "name": "Save draft & return",
+          "tag": "BUTTON",
+          "width": 149,
+          "height": 36,
+          "type": "button"
+        },
+        {
+          "name": "Close shared drawer",
+          "tag": "BUTTON",
+          "width": 161,
+          "height": 36,
+          "type": "submit"
+        }
+      ],
+      "unlabeled": [],
+      "headings": [
+        "Cash & Shifts",
+        "Current shift",
+        "Reconciliation pending close",
+        "Cash movements",
+        "Handover",
+        "Shift history"
+      ]
+    },
+    {
+      "label": "mobile-large-count-dark",
+      "width": 320,
+      "height": 844,
+      "pageOverflow": false,
+      "smallTargets": [
+        {
+          "name": "Refresh cash ledger",
+          "tag": "BUTTON",
+          "width": 40,
+          "height": 44,
+          "type": "submit"
+        },
+        {
+          "name": "Close dialog",
+          "tag": "BUTTON",
+          "width": 36,
+          "height": 36,
+          "type": "button"
+        },
+        {
+          "name": "Reload saved draft",
+          "tag": "BUTTON",
+          "width": 149,
+          "height": 36,
+          "type": "button"
+        },
+        {
+          "name": "Return without saving",
+          "tag": "BUTTON",
+          "width": 168,
+          "height": 36,
+          "type": "button"
+        },
+        {
+          "name": "Save draft & return",
+          "tag": "BUTTON",
+          "width": 149,
+          "height": 36,
+          "type": "button"
+        },
+        {
+          "name": "Close shared drawer",
+          "tag": "BUTTON",
+          "width": 161,
+          "height": 36,
+          "type": "submit"
+        }
+      ],
+      "unlabeled": [],
+      "headings": [
+        "Cash & Shifts",
+        "Current shift",
+        "Reconciliation pending close",
+        "Cash movements",
+        "Handover",
+        "Shift history"
+      ]
+    },
+    {
+      "label": "desktop-cash-refund",
+      "width": 1440,
+      "height": 1000,
+      "pageOverflow": false,
+      "smallTargets": [
+        {
+          "name": "Close dialog",
+          "tag": "BUTTON",
+          "width": 36,
+          "height": 36,
+          "type": "button"
+        },
+        {
+          "name": "Choose the actual payout methodCash from drawerBank transferGCashCard reversal (completed externally)",
+          "tag": "SELECT",
+          "width": 510,
+          "height": 40,
+          "type": "select-one"
+        },
+        {
+          "name": "Confirm the drawer usedQA delivery drawer · QA Delivery fd · #cf991620",
+          "tag": "SELECT",
+          "width": 510,
+          "height": 40,
+          "type": "select-one"
+        },
+        {
+          "name": "I confirm this refund has actually been paid using the method and reference above.",
+          "tag": "INPUT",
+          "width": 20,
+          "height": 20,
+          "type": "checkbox"
+        },
+        {
+          "name": "Cancel",
+          "tag": "BUTTON",
+          "width": 77,
+          "height": 36,
+          "type": "button"
+        },
+        {
+          "name": "Record completed refund",
+          "tag": "BUTTON",
+          "width": 190,
+          "height": 36,
+          "type": "submit"
+        }
+      ],
+      "unlabeled": [],
+      "headings": []
+    },
+    {
+      "label": "mobile-cash-refund",
+      "width": 320,
+      "height": 844,
+      "pageOverflow": false,
+      "smallTargets": [
+        {
+          "name": "Close dialog",
+          "tag": "BUTTON",
+          "width": 36,
+          "height": 36,
+          "type": "button"
+        },
+        {
+          "name": "Choose the actual payout methodCash from drawerBank transferGCashCard reversal (completed externally)",
+          "tag": "SELECT",
+          "width": 246,
+          "height": 40,
+          "type": "select-one"
+        },
+        {
+          "name": "Confirm the drawer usedQA delivery drawer · QA Delivery fd · #cf991620",
+          "tag": "SELECT",
+          "width": 246,
+          "height": 40,
+          "type": "select-one"
+        },
+        {
+          "name": "I confirm this refund has actually been paid using the method and reference above.",
+          "tag": "INPUT",
+          "width": 20,
+          "height": 20,
+          "type": "checkbox"
+        },
+        {
+          "name": "Cancel",
+          "tag": "BUTTON",
+          "width": 77,
+          "height": 36,
+          "type": "button"
+        },
+        {
+          "name": "Record completed refund",
+          "tag": "BUTTON",
+          "width": 190,
+          "height": 36,
+          "type": "submit"
+        }
+      ],
+      "unlabeled": [],
+      "headings": []
+    },
+    {
+      "label": "header-1440",
+      "clippedControls": []
+    },
+    {
+      "label": "light-1440",
+      "width": 1440,
+      "height": 900,
+      "pageOverflow": false,
+      "smallTargets": [],
+      "unlabeled": [],
+      "headings": []
+    },
+    {
+      "label": "dark-1440",
+      "width": 1440,
+      "height": 900,
+      "pageOverflow": false,
+      "smallTargets": [
+        {
+          "name": "Refresh cash ledger",
+          "tag": "BUTTON",
+          "width": 40,
+          "height": 40,
+          "type": "submit"
+        },
+        {
+          "name": "Open cash shift",
+          "tag": "BUTTON",
+          "width": 156,
+          "height": 40,
+          "type": "submit"
+        },
+        {
+          "name": "View shift record",
+          "tag": "BUTTON",
+          "width": 96,
+          "height": 32,
+          "type": "submit"
+        },
+        {
+          "name": "Refresh next steps",
+          "tag": "BUTTON",
+          "width": 123,
+          "height": 32,
+          "type": "submit"
+        },
+        {
+          "name": "Open operational handover",
+          "tag": "BUTTON",
+          "width": 51,
+          "height": 32,
+          "type": "submit"
+        },
+        {
+          "name": "View shift cf991620-c0fc-49b3-ab26-181476535659",
+          "tag": "BUTTON",
+          "width": 88,
+          "height": 34,
+          "type": "submit"
+        }
+      ],
+      "unlabeled": [],
+      "headings": [
+        "Cash & Shifts",
+        "No drawer is open",
+        "Latest closed shift",
+        "Drawer closed — next steps",
+        "Latest shift reconciled",
+        "Cash movements",
+        "Handover",
+        "Shift history"
+      ]
+    },
+    {
+      "label": "header-1024",
+      "clippedControls": [
+        {
+          "name": "Account menu",
+          "x": 916.375,
+          "right": 1055.59375,
+          "width": 1024
+        }
+      ]
+    },
+    {
+      "label": "light-1024",
+      "width": 1024,
+      "height": 900,
+      "pageOverflow": false,
+      "smallTargets": [
+        {
+          "name": "Refresh cash ledger",
+          "tag": "BUTTON",
+          "width": 40,
+          "height": 40,
+          "type": "submit"
+        },
+        {
+          "name": "Open cash shift",
+          "tag": "BUTTON",
+          "width": 156,
+          "height": 40,
+          "type": "submit"
+        },
+        {
+          "name": "View shift record",
+          "tag": "BUTTON",
+          "width": 96,
+          "height": 32,
+          "type": "submit"
+        },
+        {
+          "name": "Refresh next steps",
+          "tag": "BUTTON",
+          "width": 123,
+          "height": 32,
+          "type": "submit"
+        },
+        {
+          "name": "Add a concern",
+          "tag": "BUTTON",
+          "width": 125,
+          "height": 40,
+          "type": "submit"
+        },
+        {
+          "name": "View handovers",
+          "tag": "BUTTON",
+          "width": 106,
+          "height": 32,
+          "type": "submit"
+        },
+        {
+          "name": "Open daily report",
+          "tag": "BUTTON",
+          "width": 143,
+          "height": 40,
+          "type": "submit"
+        },
+        {
+          "name": "Open operational handover",
+          "tag": "BUTTON",
+          "width": 51,
+          "height": 32,
+          "type": "submit"
+        }
+      ],
+      "unlabeled": [],
+      "headings": [
+        "Cash & Shifts",
+        "No drawer is open",
+        "Latest closed shift",
+        "Drawer closed — next steps",
+        "Latest shift reconciled",
+        "Cash movements",
+        "Handover",
+        "Shift history"
+      ]
+    },
+    {
+      "label": "dark-1024",
+      "width": 1024,
+      "height": 900,
+      "pageOverflow": false,
+      "smallTargets": [
+        {
+          "name": "Refresh cash ledger",
+          "tag": "BUTTON",
+          "width": 40,
+          "height": 40,
+          "type": "submit"
+        },
+        {
+          "name": "Open cash shift",
+          "tag": "BUTTON",
+          "width": 156,
+          "height": 40,
+          "type": "submit"
+        },
+        {
+          "name": "View shift record",
+          "tag": "BUTTON",
+          "width": 96,
+          "height": 32,
+          "type": "submit"
+        },
+        {
+          "name": "Refresh next steps",
+          "tag": "BUTTON",
+          "width": 123,
+          "height": 32,
+          "type": "submit"
+        },
+        {
+          "name": "Add a concern",
+          "tag": "BUTTON",
+          "width": 125,
+          "height": 40,
+          "type": "submit"
+        },
+        {
+          "name": "View handovers",
+          "tag": "BUTTON",
+          "width": 106,
+          "height": 32,
+          "type": "submit"
+        },
+        {
+          "name": "Open daily report",
+          "tag": "BUTTON",
+          "width": 143,
+          "height": 40,
+          "type": "submit"
+        },
+        {
+          "name": "Open operational handover",
+          "tag": "BUTTON",
+          "width": 51,
+          "height": 32,
+          "type": "submit"
+        }
+      ],
+      "unlabeled": [],
+      "headings": [
+        "Cash & Shifts",
+        "No drawer is open",
+        "Latest closed shift",
+        "Drawer closed — next steps",
+        "Latest shift reconciled",
+        "Cash movements",
+        "Handover",
+        "Shift history"
+      ]
+    },
+    {
+      "label": "header-768",
+      "clippedControls": []
+    },
+    {
+      "label": "light-768",
+      "width": 768,
+      "height": 900,
+      "pageOverflow": false,
+      "smallTargets": [
+        {
+          "name": "Refresh cash ledger",
+          "tag": "BUTTON",
+          "width": 40,
+          "height": 40,
+          "type": "submit"
+        },
+        {
+          "name": "Open cash shift",
+          "tag": "BUTTON",
+          "width": 156,
+          "height": 40,
+          "type": "submit"
+        },
+        {
+          "name": "View shift record",
+          "tag": "BUTTON",
+          "width": 96,
+          "height": 32,
+          "type": "submit"
+        },
+        {
+          "name": "Refresh next steps",
+          "tag": "BUTTON",
+          "width": 123,
+          "height": 32,
+          "type": "submit"
+        },
+        {
+          "name": "Add a concern",
+          "tag": "BUTTON",
+          "width": 125,
+          "height": 40,
+          "type": "submit"
+        },
+        {
+          "name": "View handovers",
+          "tag": "BUTTON",
+          "width": 106,
+          "height": 32,
+          "type": "submit"
+        },
+        {
+          "name": "Open daily report",
+          "tag": "BUTTON",
+          "width": 143,
+          "height": 40,
+          "type": "submit"
+        },
+        {
+          "name": "Open operational handover",
+          "tag": "BUTTON",
+          "width": 51,
+          "height": 32,
+          "type": "submit"
+        }
+      ],
+      "unlabeled": [],
+      "headings": [
+        "Cash & Shifts",
+        "No drawer is open",
+        "Latest closed shift",
+        "Drawer closed — next steps",
+        "Latest shift reconciled",
+        "Cash movements",
+        "Handover",
+        "Shift history"
+      ]
+    },
+    {
+      "label": "dark-768",
+      "width": 768,
+      "height": 900,
+      "pageOverflow": false,
+      "smallTargets": [
+        {
+          "name": "Refresh cash ledger",
+          "tag": "BUTTON",
+          "width": 40,
+          "height": 40,
+          "type": "submit"
+        },
+        {
+          "name": "Open cash shift",
+          "tag": "BUTTON",
+          "width": 156,
+          "height": 40,
+          "type": "submit"
+        },
+        {
+          "name": "View shift record",
+          "tag": "BUTTON",
+          "width": 96,
+          "height": 32,
+          "type": "submit"
+        },
+        {
+          "name": "Refresh next steps",
+          "tag": "BUTTON",
+          "width": 123,
+          "height": 32,
+          "type": "submit"
+        },
+        {
+          "name": "Add a concern",
+          "tag": "BUTTON",
+          "width": 125,
+          "height": 40,
+          "type": "submit"
+        },
+        {
+          "name": "View handovers",
+          "tag": "BUTTON",
+          "width": 106,
+          "height": 32,
+          "type": "submit"
+        },
+        {
+          "name": "Open daily report",
+          "tag": "BUTTON",
+          "width": 143,
+          "height": 40,
+          "type": "submit"
+        },
+        {
+          "name": "Open operational handover",
+          "tag": "BUTTON",
+          "width": 51,
+          "height": 32,
+          "type": "submit"
+        },
+        {
+          "name": "View shift cf991620-c0fc-49b3-ab26-181476535659",
+          "tag": "BUTTON",
+          "width": 88,
+          "height": 34,
+          "type": "submit"
+        }
+      ],
+      "unlabeled": [],
+      "headings": [
+        "Cash & Shifts",
+        "No drawer is open",
+        "Latest closed shift",
+        "Drawer closed — next steps",
+        "Latest shift reconciled",
+        "Cash movements",
+        "Handover",
+        "Shift history"
+      ]
+    },
+    {
+      "label": "header-390",
+      "clippedControls": [
+        {
+          "name": "Notifications",
+          "x": 376.90625,
+          "right": 414.90625,
+          "width": 390
+        },
+        {
+          "name": "Account menu",
+          "x": 420.90625,
+          "right": 456.90625,
+          "width": 390
+        }
+      ]
+    },
+    {
+      "label": "light-390",
+      "width": 390,
+      "height": 844,
+      "pageOverflow": false,
+      "smallTargets": [
+        {
+          "name": "Refresh cash ledger",
+          "tag": "BUTTON",
+          "width": 40,
+          "height": 44,
+          "type": "submit"
+        }
+      ],
+      "unlabeled": [],
+      "headings": [
+        "Cash & Shifts",
+        "No drawer is open",
+        "Latest closed shift",
+        "Drawer closed — next steps",
+        "Latest shift reconciled",
+        "Cash movements",
+        "Handover",
+        "Shift history"
+      ]
+    },
+    {
+      "label": "dark-390",
+      "width": 390,
+      "height": 844,
+      "pageOverflow": false,
+      "smallTargets": [
+        {
+          "name": "Refresh cash ledger",
+          "tag": "BUTTON",
+          "width": 40,
+          "height": 44,
+          "type": "submit"
+        }
+      ],
+      "unlabeled": [],
+      "headings": [
+        "Cash & Shifts",
+        "No drawer is open",
+        "Latest closed shift",
+        "Drawer closed — next steps",
+        "Latest shift reconciled",
+        "Cash movements",
+        "Handover",
+        "Shift history"
+      ]
+    },
+    {
+      "label": "header-320",
+      "clippedControls": [
+        {
+          "name": "Switch to dark mode",
+          "x": 332.90625,
+          "right": 370.90625,
+          "width": 320
+        },
+        {
+          "name": "Notifications",
+          "x": 376.90625,
+          "right": 414.90625,
+          "width": 320
+        },
+        {
+          "name": "Account menu",
+          "x": 420.90625,
+          "right": 456.90625,
+          "width": 320
+        }
+      ]
+    },
+    {
+      "label": "light-320",
+      "width": 320,
+      "height": 844,
+      "pageOverflow": false,
+      "smallTargets": [
+        {
+          "name": "Refresh cash ledger",
+          "tag": "BUTTON",
+          "width": 40,
+          "height": 44,
+          "type": "submit"
+        }
+      ],
+      "unlabeled": [],
+      "headings": [
+        "Cash & Shifts",
+        "No drawer is open",
+        "Latest closed shift",
+        "Drawer closed — next steps",
+        "Latest shift reconciled",
+        "Cash movements",
+        "Handover",
+        "Shift history"
+      ]
+    },
+    {
+      "label": "dark-320",
+      "width": 320,
+      "height": 844,
+      "pageOverflow": false,
+      "smallTargets": [
+        {
+          "name": "Refresh cash ledger",
+          "tag": "BUTTON",
+          "width": 40,
+          "height": 44,
+          "type": "submit"
+        }
+      ],
+      "unlabeled": [],
+      "headings": [
+        "Cash & Shifts",
+        "No drawer is open",
+        "Latest closed shift",
+        "Drawer closed — next steps",
+        "Latest shift reconciled",
+        "Cash movements",
+        "Handover",
+        "Shift history"
+      ]
+    }
+  ]
+}

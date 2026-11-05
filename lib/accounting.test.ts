@@ -202,7 +202,7 @@ describe("accounting dashboard", () => {
   it("routes every financial action to an accounting or front-desk endpoint", () => { for (const url of ["/api/accounting/adjustments", "/api/accounting/reconciliations", "/api/accounting/cash-shifts", "/api/accounting/documents"]) expect(dashboard).toContain(url); });
   it("keeps operational charge posting behind the operational capability", () => expect(dashboard).toContain("canManage&&inHouse&&<button className=\"btn btn-soft\" onClick={()=>postCharge(reservation)}"));
   it("reports no hard-coded operational metric", () => { expect(dashboard).not.toContain("<h2>92%</h2>"); expect(dashboard).not.toContain("8.2%"); });
-  it("offers a refund retry only through the server-validated refund endpoint", () => { expect(dashboard).toContain("isRefundActionable(String(item.status))"); expect(dashboard).toContain("/process"); });
+  it("offers a refund retry only through the server-validated refund endpoint", () => { expect(dashboard).toContain("isRefundActionable(String(item.status))"); expect(read("components/manager/refund-payout-dialog.tsx")).toContain("/process"); });
 });
 
 describe("single open cash shift (20261024090000)", () => {
@@ -298,8 +298,8 @@ describe("restored shared cash-shift controls", () => {
   });
   it("retains authorized close and reconciliation RPC paths", () => {
     expect(patchRoute).not.toContain("Shift closing is temporarily suspended");
-    expect(patchRoute).toContain("accounting_close_cash_shift");
+    expect(patchRoute).toContain("close_cash_count_draft");
     expect(patchRoute).toContain("accounting_reconcile_cash_shift");
-    expect(patchRoute).toContain("CASH_SHIFT_NOT_OPEN:\"That cash shift is already closed.\"");
+    expect(patchRoute).toContain("That drawer is already closed.");
   });
 });

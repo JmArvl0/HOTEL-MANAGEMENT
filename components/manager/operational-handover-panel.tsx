@@ -2,10 +2,11 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import type { OperationalStaff, ShiftHandover } from "@/lib/operations";
 import type { Role } from "@/lib/types";
-export default function OperationalHandoverPanel({ role, actorId, onOpenSource, focusId }: { role: Role; actorId: string; onOpenSource?: (type: string, id: string) => void; focusId?: string }) {
+export type HandoverSource = { type: "cash_shift"; id: string; summary: string };
+export default function OperationalHandoverPanel({ role, actorId, onOpenSource, focusId, initialSource }: { role: Role; actorId: string; onOpenSource?: (type: string, id: string) => void; focusId?: string; initialSource?: HandoverSource }) {
  const [data, setData] = useState<{ staff: OperationalStaff[]; handovers: ShiftHandover[] } | null>(null);
  const [error, setError] = useState(""); const [message, setMessage] = useState(""); const [busy, setBusy] = useState(false);
- const [filter, setFilter] = useState(focusId ? "all" : "open"); const [sourceType, setSourceType] = useState("guest_request"); const [sourceId, setSourceId] = useState(""); const [owner, setOwner] = useState(""); const [summary, setSummary] = useState(""); const [resolving, setResolving] = useState(""); const [resolution, setResolution] = useState("");
+ const [filter, setFilter] = useState(focusId ? "all" : "open"); const [sourceType, setSourceType] = useState(initialSource?.type ?? "guest_request"); const [sourceId, setSourceId] = useState(initialSource?.id ?? ""); const [owner, setOwner] = useState(""); const [summary, setSummary] = useState(initialSource?.summary ?? ""); const [resolving, setResolving] = useState(""); const [resolution, setResolution] = useState("");
  const focused = useRef<string | null>(null);
  const retry = useRef<{ signature: string; id: string } | null>(null);
  const load = useCallback(async (signal?: AbortSignal) => { try { const res = await fetch("/api/staff/handovers", { cache: "no-store", signal }); const body = await res.json(); if (!res.ok) throw new Error(body.error); setData(body.data); setError(""); } catch (e) { if (!signal?.aborted) setError(e instanceof Error ? e.message : "Unable to load handovers. Retry."); } }, []);

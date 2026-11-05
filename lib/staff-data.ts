@@ -9,6 +9,10 @@ export const operationalReservationFields = "id,confirmation_number,guest_id,gue
 export const accountingReservationFields = "id,confirmation_number,guest_name,room_type,check_in,check_out,status,source,total,deposit,deposit_required,payment_status,payment_method,cancellation_reason,created_at";
 export const departmentRequestFields = "id,reservation_id,request,department,priority,severity,due_at,escalation_status,escalated_at,status,created_at";
 
+function isMissingColumn(error: { code?: string; message?: string } | null, column: string) {
+  return error?.code === "42703" && Boolean(error.message?.includes(column));
+}
+
 export async function listForRole(resource: Resource, role: Role): Promise<RecordItem[]> {
   if (!supabase) {
     const records = demoStore[resource];
@@ -125,7 +129,9 @@ export async function listForRole(resource: Resource, role: Role): Promise<Recor
     const activeGuests=(data??[]).filter(item=>!item.merged_into_guest_id) as RecordItem[];
     const ids=activeGuests.map(item=>String(item.id));
     let aliasRows:{survivor_guest_id:string;alias_type:string;display_value:string}[]=[];
-    if(ids.length){const aliases=await supabase.from("guest_aliases").select("survivor_guest_id,alias_type,display_value").in("survivor_guest_id",ids);if(aliases.error)throw aliases.error;aliasRows=aliases.data??[];}
+    // Merge support is a pending migration on older databases. select("*")
+    // includes its marker column only after that schema has been installed.
+    if(ids.length&&activeGuests.some(guest=>"merged_into_guest_id" in guest)){const aliases=await supabase.from("guest_aliases").select("survivor_guest_id,alias_type,display_value").in("survivor_guest_id",ids);if(aliases.error)throw aliases.error;aliasRows=aliases.data??[];}
     return activeGuests.map(guest=>({...guest,merge_alias_search:aliasRows.filter(alias=>alias.survivor_guest_id===guest.id).map(alias=>alias.display_value).join(" ")})) as RecordItem[];
   }
   // Rooms carry only the type NAME — attach its badge color key so the room-card
@@ -309,10 +315,11 @@ export async function getStaffGuestProfile(id: string, role: Role) {
     };
   }
   const requestedGuest=await supabase.from("guests").select("id,merged_into_guest_id").eq("id",id).maybeSingle();
-  if(requestedGuest.error)throw requestedGuest.error;
-  if(!requestedGuest.data)return null;
-  const canonicalId=requestedGuest.data.merged_into_guest_id??id;
-  const aliasesResult=await supabase.from("guest_aliases").select("source_guest_id,alias_type,display_value").eq("survivor_guest_id",canonicalId).order("created_at",{ascending:false});
+  const mergeAvailable=!isMissingColumn(requestedGuest.error,"merged_into_guest_id");
+  if(requestedGuest.error&&mergeAvailable)throw requestedGuest.error;
+  if(mergeAvailable&&!requestedGuest.data)return null;
+  const canonicalId=requestedGuest.data?.merged_into_guest_id??id;
+  const aliasesResult=mergeAvailable?await supabase.from("guest_aliases").select("source_guest_id,alias_type,display_value").eq("survivor_guest_id",canonicalId).order("created_at",{ascending:false}):{data:[],error:null};
   if(aliasesResult.error)throw aliasesResult.error;
   const mergedGuestIds=Array.from(new Set([canonicalId,...(aliasesResult.data??[]).map(alias=>alias.source_guest_id)]));
   const guestResult = await supabase.from("guests").select("id,name,email,phone,loyalty_tier,loyalty_points,lifetime_spend,stays,preferences,special_requests,nationality,address,created_at").eq("id", canonicalId).maybeSingle();
@@ -325,12 +332,17 @@ export async function getStaffGuestProfile(id: string, role: Role) {
   let partyHistory: RecordItem[] = [];
   if (["front_desk", "manager", "owner"].includes(role)) {
     const memberships = await supabase.from("reservation_guests").select("reservation_id,role,removed_at").in("guest_id", mergedGuestIds).is("removed_at", null);
-    if (memberships.error) throw memberships.error;
-    const partyIds = Array.from(new Set((memberships.data ?? []).map(row => row.reservation_id).filter(value => !stays.some(stay => stay.id === value))));
+    // Legacy memberships have no soft-removal field. Only that exact missing
+    // column permits the older read; other database failures must still surface.
+    const membershipResult = isMissingColumn(memberships.error, "removed_at")
+      ? await supabase.from("reservation_guests").select("reservation_id,role").in("guest_id", mergedGuestIds)
+      : memberships;
+    if (membershipResult.error) throw membershipResult.error;
+    const partyIds = Array.from(new Set((membershipResult.data ?? []).map(row => row.reservation_id).filter(value => !stays.some(stay => stay.id === value))));
     if (partyIds.length) {
       const history = await supabase.from("reservations").select("id,confirmation_number,room_type,check_in,check_out,status").in("id", partyIds).order("check_in", { ascending: false });
       if (history.error) throw history.error;
-      partyHistory = (history.data ?? []).map(row => ({ ...row, party_role: memberships.data!.find(member => member.reservation_id === row.id)?.role })) as RecordItem[];
+      partyHistory = (history.data ?? []).map(row => ({ ...row, party_role: membershipResult.data!.find(member => member.reservation_id === row.id)?.role })) as RecordItem[];
     }
   }
   const ids = stays.map((stay) => String(stay.id));

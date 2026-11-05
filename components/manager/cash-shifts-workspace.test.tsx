@@ -16,19 +16,24 @@ function ledger(shifts: CashRecord[] = [active, closed]): AccountingLedger {
 }
 const emptyHandovers = { data: { staff: [], handovers: [] } };
 const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
-const props = () => ({ ledger: ledger(), actorId: "maria", role: "front_desk" as const, search: "", setSearch: vi.fn(), onOpen: vi.fn(), onRefresh: vi.fn(), onOpenHandovers: vi.fn() });
-function stubReads() { const fetch = vi.fn(async () => reply(emptyHandovers)); vi.stubGlobal("fetch", fetch); return fetch; }
+const props = () => ({ ledger: ledger(), actorId: "maria", role: "front_desk" as const, search: "", setSearch: vi.fn(), onOpen: vi.fn(), onRefresh: vi.fn(), onOpenHandovers: vi.fn(), onCreateHandover: vi.fn(), onOpenReport: vi.fn() });
+function readReply(url: string) {
+  if (url.endsWith("/follow-up")) return { data: { handovers: [], reportDate: "2026-11-03", report: null, includesClose: null } };
+  if (url.startsWith("/api/accounting/cash-shifts/")) return { data: { status: "open", basis: "a".repeat(32), expectedCash: 34920, draft: null } };
+  return emptyHandovers;
+}
+function stubReads() { const fetch = vi.fn(async (url: string) => reply(readReply(url))); vi.stubGlobal("fetch", fetch); return fetch; }
 function review() { fireEvent.click(screen.getAllByRole("button", { name: "Review count & close" })[0]); return screen.getByRole("dialog", { name: "Review count & close" }); }
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe("Cash & Shifts workspace", () => {
   it("keeps an unsubmitted draft only while mounted and sends no write when leaving the module", async () => {
     const writes = vi.fn();
-    vi.stubGlobal("fetch", vi.fn(async (_url: string, init?: RequestInit) => { if (init?.method) writes(); return reply(emptyHandovers); }));
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => { if (init?.method) writes(); return reply(readReply(url)); }));
     const p = props(); const first = render(<CashShiftsWorkspace {...p} />);
     await screen.findByText(/No unresolved cash follow-up appears/);
     review(); fireEvent.change(screen.getByLabelText("Physical cash counted (PHP)"), { target: { value: "34850" } });
-    fireEvent.click(screen.getByRole("button", { name: "Keep draft & return" }));
+    fireEvent.click(screen.getByRole("button", { name: "Return without saving" }));
     first.unmount(); render(<CashShiftsWorkspace {...p} />);
     await screen.findByText(/No unresolved cash follow-up appears/);
     review(); expect((screen.getByLabelText("Physical cash counted (PHP)") as HTMLInputElement).value).toBe("");
@@ -49,7 +54,7 @@ describe("Cash & Shifts workspace", () => {
     await screen.findByText(/No unresolved cash follow-up appears/);
     review(); fireEvent.change(screen.getByLabelText("Physical cash counted (PHP)"), { target: { value: "34850" } });
     fireEvent.change(screen.getByLabelText("Count note / variance explanation"), { target: { value: "Independent count" } });
-    fireEvent.click(screen.getByRole("button", { name: "Keep draft & return" }));
+    fireEvent.click(screen.getByRole("button", { name: "Return without saving" }));
     fireEvent.change(screen.getByLabelText("Shift status"), { target: { value: "reconciled" } });
     rerender(<CashShiftsWorkspace {...p} ledger={ledger([{ ...active, collected: 25020 }, closed])} />);
     review(); expect((screen.getByLabelText("Physical cash counted (PHP)") as HTMLInputElement).value).toBe("34850");
@@ -69,7 +74,7 @@ describe("Cash & Shifts workspace", () => {
     stubReads(); const p = props(); const { rerender } = render(<CashShiftsWorkspace {...p} />);
     await screen.findByText(/No unresolved cash follow-up appears/);
     review(); fireEvent.change(screen.getByLabelText("Physical cash counted (PHP)"), { target: { value: "34920" } });
-    fireEvent.click(screen.getByRole("button", { name: "Keep draft & return" }));
+    fireEvent.click(screen.getByRole("button", { name: "Return without saving" }));
     rerender(<CashShiftsWorkspace {...p} role="accounting" actorId="sara" />);
     review(); expect((screen.getByLabelText("Physical cash counted (PHP)") as HTMLInputElement).value).toBe("");
   });
@@ -77,15 +82,16 @@ describe("Cash & Shifts workspace", () => {
     stubReads(); const p = props(); const { rerender } = render(<CashShiftsWorkspace {...p} />);
     await screen.findByText(/No unresolved cash follow-up appears/);
     review(); fireEvent.change(screen.getByLabelText("Physical cash counted (PHP)"), { target: { value: "34920" } });
-    fireEvent.click(screen.getByRole("button", { name: "Keep draft & return" }));
+    fireEvent.click(screen.getByRole("button", { name: "Return without saving" }));
     rerender(<CashShiftsWorkspace {...p} refreshError="Network unavailable" />);
     expect(screen.getByText(/Values below are from the last successful ledger read/)).toBeTruthy();
     review(); expect((screen.getByLabelText("Physical cash counted (PHP)") as HTMLInputElement).value).toBe("34920");
   });
   it("retains failed-close input and idempotency key, then reports the server's final values", async () => {
     const writes: Record<string, unknown>[] = [];
-    vi.stubGlobal("fetch", vi.fn(async (_url: string, init?: RequestInit) => {
-      if (!init?.method) return reply(emptyHandovers);
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+      if (!init?.method) return reply(readReply(url));
+      if (init.method === "PUT") { const count = JSON.parse(String(init.body)); return reply({ data: { ...count, version: 1, closeKey: "11111111-1111-4111-8111-111111111111", updatedAt: "2026-11-05T04:00:00Z" } }); }
       writes.push(JSON.parse(String(init.body)));
       return writes.length === 1 ? reply({ error: "Temporary close failure" }, 503) : reply({ data: { expectedCash: 35000, actualCash: 34850, variance: -150 } });
     }));
@@ -95,10 +101,10 @@ describe("Cash & Shifts workspace", () => {
     fireEvent.submit(screen.getByRole("button", { name: "Close shared drawer" }).closest("form")!);
     await screen.findByText("Temporary close failure");
     expect((screen.getByLabelText("Physical cash counted (PHP)") as HTMLInputElement).value).toBe("34850");
-    fireEvent.submit(screen.getByRole("button", { name: "Close shared drawer" }).closest("form")!);
+    fireEvent.submit(screen.getByRole("button", { name: "Retry closing drawer" }).closest("form")!);
     await screen.findByText(/Drawer closed. Expected ₱35,000.00; counted ₱34,850.00; variance -₱150.00/);
     expect(writes).toHaveLength(2); expect(writes[0].idempotencyKey).toBe(writes[1].idempotencyKey);
-    expect(writes[0].actualCash).toBe(34850);
+    expect(writes[0].draftVersion).toBe(1);
   });
   it("cancels balanced reconciliation without a request and lets Accounting explicitly submit blank optional notes", async () => {
     const writes: { url: string; body: Record<string, unknown> }[] = [];

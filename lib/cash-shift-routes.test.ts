@@ -7,6 +7,7 @@ vi.mock("@/lib/auth", () => ({ authOptions: {} }));
 vi.mock("@/lib/supabase", () => ({ supabase: { rpc: state.rpc } }));
 import { POST } from "@/app/api/accounting/cash-shifts/route";
 import { PATCH } from "@/app/api/accounting/cash-shifts/[id]/route";
+import * as countActions from "@/app/api/accounting/cash-shifts/[id]/route";
 
 const actor = "11111111-1111-4111-8111-111111111111";
 const key = "22222222-2222-4222-8222-222222222222";
@@ -20,10 +21,10 @@ describe("cash action HTTP destinations", () => {
     expect(res.status).toBe(200);
     expect(state.rpc).toHaveBeenCalledExactlyOnceWith("accounting_open_cash_shift", { p_staff_user_id: actor, p_location: "Front Desk", p_opening_amount: 1000 });
   });
-  it("sends count/note/key to the selected shift, excluding client-supplied expected cash", async () => {
+  it("closes only the saved count version, excluding client-supplied financial values", async () => {
     state.rpc.mockResolvedValue({ data: { status: "closed", expectedCash: 3000, actualCash: 2750, variance: -250 }, error: null });
-    const res = await PATCH(request({ action: "close", actualCash: 2750, notes: "Independent count", idempotencyKey: key, expectedCash: 0, variance: 0 }), params);
-    expect(state.rpc).toHaveBeenCalledExactlyOnceWith("accounting_close_cash_shift", { p_shift_id: "33333333-3333-4333-8333-333333333333", p_actual_cash: 2750, p_notes: "Independent count", p_idempotency_key: key, p_staff_user_id: actor });
+    const res = await PATCH(request({ action: "close", draftVersion: 2, actualCash: 2750, notes: "Forged count", idempotencyKey: key, expectedCash: 0, variance: 0 }), params);
+    expect(state.rpc).toHaveBeenCalledExactlyOnceWith("close_cash_count_draft", { p_shift_id: "33333333-3333-4333-8333-333333333333", p_version: 2, p_idempotency_key: key, p_staff_user_id: actor });
     expect(await res.json()).toEqual({ data: { status: "closed", expectedCash: 3000, actualCash: 2750, variance: -250 } });
   });
   it("sends Accounting review to cash reconciliation rather than statement reconciliation", async () => {
@@ -45,7 +46,28 @@ describe("cash action HTTP destinations", () => {
   it("rejects disabled sessions for open and close", async () => {
     state.disabled = true;
     expect((await POST(request({ openingAmount: 1000 }))).status).toBe(401);
-    expect((await PATCH(request({ action: "close", actualCash: 1000, idempotencyKey: key }), params)).status).toBe(401);
+    expect((await PATCH(request({ action: "close", draftVersion: 1, idempotencyKey: key }), params)).status).toBe(401);
     expect(state.rpc).not.toHaveBeenCalled();
+  });
+});
+
+describe("durable count draft API", () => {
+  it("reads only the authenticated operator's count context", async () => {
+    expect((await countActions.GET(request(null), params)).status).toBe(200);
+    expect(state.rpc).toHaveBeenCalledExactlyOnceWith("cash_count_context", { p_shift_id: "33333333-3333-4333-8333-333333333333", p_staff_user_id: actor });
+  });
+  it("persists an explicit count and version without client actor or expected balance", async () => {
+    expect((await countActions.PUT(request({ actualCash: 2750, notes: " draft ", basis: "a".repeat(32), version: 1, actorId: "forged", expectedCash: 1 }), params)).status).toBe(200);
+    expect(state.rpc).toHaveBeenCalledExactlyOnceWith("save_cash_count_draft", { p_shift_id: "33333333-3333-4333-8333-333333333333", p_staff_user_id: actor, p_actual_cash: 2750, p_notes: "draft", p_basis: "a".repeat(32), p_version: 1 });
+  });
+  it("does not coerce a blank physical count to zero", async () => {
+    expect((await countActions.PUT(request({ actualCash: "", basis: "a".repeat(32), version: 0 }), params)).status).toBe(400);
+    expect(state.rpc).not.toHaveBeenCalled();
+  });
+  it("returns a conflict when cash activity changed", async () => {
+    state.rpc.mockResolvedValue({ error: { message: "CASH_ACTIVITY_CHANGED" } });
+    const result = await countActions.PUT(request({ actualCash: 10, basis: "a".repeat(32), version: 0 }), params);
+    expect(result.status).toBe(409);
+    expect((await result.json()).error).toMatch(/fresh physical count/i);
   });
 });

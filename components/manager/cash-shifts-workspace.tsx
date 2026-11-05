@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRight, Check, Circle, Clock3, RefreshCw, ShieldCheck, TriangleAlert } from "lucide-react";
 import CashCountPanel, { type CashCountPresentation } from "./cash-count-panel";
+import CashCloseNextSteps from "./cash-close-next-steps";
 import { Modal } from "@/components/ui/Modal";
 import { TablePagination, useTablePagination } from "@/components/ui/table-pagination";
 import { canOperateCashShift, canReconcileFinancials } from "@/lib/permissions";
@@ -17,6 +18,8 @@ type Props = {
   search: string; setSearch: (value: string) => void;
   onOpen: () => void; onRefresh: () => void;
   onOpenHandovers: (id?: string) => void;
+  onCreateHandover: (shift: CashRecord) => void;
+  onOpenReport: (date: string) => void;
   refreshError?: string;
 };
 const text = (value: unknown, fallback = "Not supplied") => typeof value === "string" && value.trim() ? value.replaceAll("_", " ") : fallback;
@@ -46,12 +49,12 @@ function CashMovements({ shift, ledger, onCurrent }: { shift: CashRecord; ledger
   const page = useTablePagination(rows);
   return <section className="cash-surface cash-movements" aria-labelledby="cash-movements-heading">
     <header className="cash-panel-heading"><div><h2 id="cash-movements-heading">Cash movements</h2><p>{shift.status === "open" ? "Current drawer" : "Historical drawer"} · #{shortId(shift)} · {rows.length} linked payment records · Manila times</p></div>{onCurrent && <button className="cash-text-action" onClick={onCurrent}>Return to current drawer</button>}</header>
-    {rows.length ? <div className="cash-table-frame"><table aria-label="Shift cash movements"><thead><tr><th scope="col">Time</th><th scope="col">Type / description</th><th scope="col">Reference</th><th scope="col" className="cash-num">Amount</th><th scope="col">Status</th><th scope="col">Staff</th></tr></thead>
+    {rows.length ? <div className="cash-table-frame"><table aria-label="Shift cash movements"><thead><tr><th scope="col">Time</th><th scope="col">Type / description</th><th scope="col">Reference / method</th><th scope="col" className="cash-num">Amount</th><th scope="col">Status</th><th scope="col">Recorded by</th></tr></thead>
       <tbody>{page.rows.map(row => {
         const amount = cashNumber(row.amount);
-        return <tr key={String(row.id)}><td data-label="Time">{cashDate(row.created_at)}</td><td data-label="Type"><strong>{row.purpose === "refund" ? "Refund" : text(row.purpose)}</strong><small>Reservation {text(row.reservation_id)}</small></td><td data-label="Reference">{text(row.reference)}</td><td data-label="Amount" className="cash-num">{amount === null ? "—" : `${row.purpose === "refund" ? "−" : "+"}${cashMoney(amount)}`}</td><td data-label="Status">{text(row.status)}<small>{row.status === "paid" ? "Included in cash basis" : "Not included in cash basis"}</small></td><td data-label="Staff">Not supplied</td></tr>;
+        return <tr key={String(row.id)}><td data-label="Time">{cashDate(row.created_at)}</td><td data-label="Type"><strong>{row.purpose === "refund" ? "Refund" : text(row.purpose)}</strong><small>Reservation {text(row.reservation_id)}</small></td><td data-label="Reference">{text(row.reference)}<small>{text(row.method)}</small></td><td data-label="Amount" className="cash-num">{amount === null ? "—" : `${row.purpose === "refund" ? "−" : "+"}${cashMoney(amount)}`}</td><td data-label="Status">{text(row.status)}<small>{row.status === "paid" ? "Included in cash basis" : "Not included in cash basis"}</small></td><td data-label="Recorded by">{text(row.received_by_name)}</td></tr>;
       })}</tbody></table></div> : <p className="cash-empty">No payment records are linked to this drawer in the ledger.</p>}
-    <p className="cash-table-note">Cash out includes paid refunds only. Receiving-staff attribution is not supplied by this ledger.</p>
+    <p className="cash-table-note">Cash out includes paid refunds linked to this drawer. Recorded by identifies the staff member who entered the payment or payout.</p>
     <TablePagination {...page} onPageChange={page.setPage} noun="cash movements" note="Only paid, linked records enter the cash basis." />
   </section>;
 }
@@ -81,7 +84,7 @@ function ReconciliationDialog({ shift, onClose, onRefresh, onSaved }: { shift: C
   </Modal>;
 }
 
-export default function CashShiftsWorkspace({ ledger, actorId, role, search, setSearch, onOpen, onRefresh, onOpenHandovers, refreshError = "" }: Props) {
+export default function CashShiftsWorkspace({ ledger, actorId, role, search, setSearch, onOpen, onRefresh, onOpenHandovers, onCreateHandover, onOpenReport, refreshError = "" }: Props) {
   const [status, setStatus] = useState("all");
   const [detailId, setDetailId] = useState<string | null>(null);
   const [movementId, setMovementId] = useState<string | null>(null);
@@ -164,7 +167,9 @@ export default function CashShiftsWorkspace({ ledger, actorId, role, search, set
               <button className="cash-button cash-primary cash-mobile-action" onClick={primary.action} disabled={count.busy}>{primary.label}</button>
               <dl className="cash-basis"><div><dt>Opening cash</dt><dd>{cashMoney(current.opening_amount)}</dd></div><div><dt>Cash in</dt><dd>{cashMoney(basis?.incoming)}</dd></div><div><dt>Cash out · refunds</dt><dd>{cashMoney(basis?.outgoing)}</dd></div></dl>
               <Lifecycle shift={current} counted={cashNumber(counted)} />
+              {active && count.mayClose && <p className="cash-draft-state" role="status">{count.draftStatus}</p>}
             </section>}
+            {latestClosed && !detail && <CashCloseNextSteps key={String(latestClosed.id)} shift={latestClosed} role={role} onCreateHandover={onCreateHandover} onOpenHandovers={onOpenHandovers} onOpenReport={onOpenReport} />}
           </div>
           <aside className="cash-reconciliation"><h2>{active ? "Reconciliation pending close" : latestClosed?.status === "closed" ? "Awaiting Accounting review" : latestClosed ? "Latest shift reconciled" : "Reconciliation"}</h2><p>{active ? "Accounting reviews the recorded result after this drawer closes." : latestClosed?.status === "reconciled" ? "Review is complete. Any recorded difference remains in the audit history." : "Closed shifts retain their physical count and variance for Accounting review."}</p>{pending.length > 0 && <button className="cash-text-action" onClick={openHistory}>{pending.length} closed shift{pending.length === 1 ? "" : "s"} awaiting review</button>}</aside>
         </div>
@@ -192,8 +197,9 @@ export default function CashShiftsWorkspace({ ledger, actorId, role, search, set
     </section>
 
     <Modal isOpen={Boolean(detail)} onClose={() => setDetailId(null)} title={detail ? `Cash shift #${shortId(detail)}` : "Cash shift"} className="cash-count-dialog" size="lg">
-      {detail && <><p>{text(detail.staff_name)} · {text(detail.location)} · {stateLabel(detail)}</p><dl className="cash-detail-list">{[["Full shift ID", detail.id], ["Opened", cashDate(detail.opened_at)], ["Closed", detail.closed_at ? cashDate(detail.closed_at) : "Not closed"], ["Reconciled", detail.reconciled_at ? cashDate(detail.reconciled_at) : "Not reconciled"], ["Opening float", cashMoney(detail.opening_amount)], ["Net collected", cashMoney(detail.collected)], ["Expected cash", cashMoney(detail.status === "open" ? shiftCashBasis(detail, ledger.transactions).expected : detail.expected_cash)], ["Counted cash", detail.status === "open" ? "Not recorded" : cashMoney(detail.actual_cash)], ["Recorded variance", detail.status === "open" ? "Not recorded" : cashMoney(detail.variance)], ["Close notes", text(detail.close_notes, "No close note supplied")], ["Reconciliation notes", text(detail.reconciliation_notes, "No reconciliation note supplied")]].map(([label, value]) => <div key={String(label)}><dt>{String(label)}</dt><dd>{String(value)}</dd></div>)}</dl><div className="btn-row"><button className="cash-button" onClick={() => { setMovementId(String(detail.id)); setDetailId(null); }}>View cash movements</button>{detail.status === "closed" && mayReconcile && <button className="cash-button cash-primary" onClick={() => openReconcile(detail)}>Reconcile shift</button>}</div></>}
+      {detail && <><p>{text(detail.staff_name)} · {text(detail.location)} · {stateLabel(detail)}</p><dl className="cash-detail-list">{[["Full shift ID", detail.id], ["Opened", cashDate(detail.opened_at)], ["Closed", detail.closed_at ? cashDate(detail.closed_at) : "Not closed"], ["Reconciled", detail.reconciled_at ? cashDate(detail.reconciled_at) : "Not reconciled"], ["Opening float", cashMoney(detail.opening_amount)], ["Net collected", cashMoney(detail.collected)], ["Expected cash", cashMoney(detail.status === "open" ? shiftCashBasis(detail, ledger.transactions).expected : detail.expected_cash)], ["Counted cash", detail.status === "open" ? "Not recorded" : cashMoney(detail.actual_cash)], ["Recorded variance", detail.status === "open" ? "Not recorded" : cashMoney(detail.variance)], ["Close notes", text(detail.close_notes, "No close note supplied")], ["Reconciliation notes", text(detail.reconciliation_notes, "No reconciliation note supplied")]].map(([label, value]) => <div key={String(label)}><dt>{String(label)}</dt><dd>{String(value)}</dd></div>)}</dl>{detail.status !== "open" && <CashCloseNextSteps shift={detail} role={role} onCreateHandover={onCreateHandover} onOpenHandovers={onOpenHandovers} onOpenReport={onOpenReport} />}<div className="btn-row"><button className="cash-button" onClick={() => { setMovementId(String(detail.id)); setDetailId(null); }}>View cash movements</button>{detail.status === "closed" && mayReconcile && <button className="cash-button cash-primary" onClick={() => openReconcile(detail)}>Reconcile shift</button>}</div></>}
     </Modal>
+
     {reconcile && mayReconcile && <ReconciliationDialog key={`reconcile:${String(reconcile.id)}`} shift={reconcile} onClose={() => setReconcileId(null)} onRefresh={onRefresh} onSaved={setMessage} />}
   </div>;
 }

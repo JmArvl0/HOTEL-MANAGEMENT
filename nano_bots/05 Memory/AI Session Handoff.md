@@ -1,5 +1,53 @@
 # AI Session Handoff
 
+## Current - Guest loading fix and combined publication (2026-11-06)
+
+User requested commit/push of all current changes, including cash implementation,
+QA evidence, shared room-count/footer UI changes and the guest-loading fix.
+Guest read failure came from undeployed merge/removal schema; shared list/dossier
+now support deployed and upgraded schemas, with specific error guards. New5tests
+and targeted59pass; latest full2348pass/2recorded PO/room-rack failures.
+Browser check stopped by Computer Use URL-confidence guard; visual confirmation
+is unverified. No hosted business write, migration push or manual deployment.
+Cash QA findings KI-022–026 remain open. Source publication does not resolve the
+pending cash migration/release requirements. Final combined checks are in
+[[2026-11-06 - Guest Loading Fix and Publication]]; guest evidence in
+`docs/qa/guest-management-load-fix-2026-11-06.md`.
+
+## Current - Cash delivery and frontend QA (2026-11-06)
+
+User requested data-destination and frontend QA. Added a real local app browser
+runner with seeded NextAuth sessions, PostgREST and fresh PostgreSQL fixtures.
+Final25checks:23pass/2fail (report adds refunds into collections; shared header
+clips controls). Core draft/refund/drawer/close/review/handover/report destinations
+pass; separate explained shortage retained through reconciliation. Added KI-022–026
+for report classification, header, centavos, caption and touch targets; no fixes
+bundled. Fresh SQL12/targeted156pass, full2343pass/2recorded baseline failures;
+lint0errors/6existing warnings; final Node22 typecheck/build pass. Hosted ledger
+112/126, cash migration absent. Owned test cluster stopped; fixtures retained.
+No hosted business writes, migration push, deployment or commit. Local actual-app
+financial-write E2E now verified in scope; password/OTP and hosted E2E unverified.
+Read `docs/qa/cash-delivery-ui-qa-2026-11-06.md` and
+[[2026-11-06 - Cash Delivery and UI QA]] for final build/typecheck and evidence.
+Preserve concurrent room-rack/data-control work and pre-existing next-env changes.
+
+## Previous - Approved cash findings implemented locally (2026-11-05)
+
+User approved the recommendation and implementation. Explicit refund methods and
+atomic cash-drawer payouts, server-saved versioned count drafts/retry recovery,
+and guided source-linked handover/report actions are implemented. Accounting
+authority, manual submissions and original historical records are retained.
+Migration `20261105010000` is local only; linked ledger read before numbering.
+Fresh replay126 / SQL12 / scoped179 pass; Node22 typecheck/build pass; touched
+lint0errors/6existing warnings. Full suite2343pass/2recorded baseline failures.
+Sample-component Chrome QA passes light/dark at320/390/1280px; authenticated
+application financial-write browser E2E remains unverified. No hosted business
+write, migration push, deployment or commit. Preserve unrelated concurrent
+room-rack/data-control edits and pre-existing next-env paths. Release must review
+pending cancellation-settlement prerequisite and remaining ledger gaps.
+See `docs/qa/cash-findings-implementation-2026-11-05.md` and
+[[2026-11-05 - Cash Findings Implementation]].
+
 ## Current - Cash & Shifts commit/push verification (2026-11-04)
 
 User authorized committing/pushing all26 cash implementation/QA files. Rebased

@@ -214,3 +214,11 @@
  .app-shell .cash-history .cash-status{max-width:100%}
 }
 .app-shell .cash-workspace .cash-comparison dd.cash-long-money,.app-shell .cash-count-dialog .cash-comparison dd.cash-long-money{font-size:20px}
+.cash-next-steps-body { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; padding: 20px; }
+.cash-next-steps-body > p { grid-column: 1 / -1; }
+.cash-next-steps-body h3 { margin: 0 0 8px; }
+.app-shell .cash-workspace .cash-draft-state { padding-top: 12px; color: var(--cash-muted); font-size: 13px; }
+.cash-next-steps-body p { overflow-wrap: anywhere; }
+.app-shell .hms-cash-count label.cash-payout-confirm { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; }
+.app-shell .hms-cash-count .cash-payout-confirm input[type="checkbox"] { width: 20px; height: 20px; min-height: 20px; flex: 0 0 20px; margin: 2px 0 0; }
+@media (max-width: 680px) { .cash-next-steps-body { grid-template-columns: minmax(0, 1fr); padding: 16px; } }

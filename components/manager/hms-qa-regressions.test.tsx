@@ -44,9 +44,13 @@ describe("HMS QA regressions", () => {
  });
  it("QA-02: a drawer switch must not submit the previous drawer's physical count to the new drawer", async () => {
   const calls: { url: string; body: Record<string, unknown> }[] = [];
-  vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => { calls.push({ url, body: JSON.parse(String(init?.body)) }); return response({ error: "QA endpoint: no drawer closed" }, 409); }));
+  vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+   if (!init?.method) return response({ data: { status: "open", basis: "a".repeat(32), expectedCash: url.includes("QA-NEW-SHIFT") ? 500 : 1000, draft: null } });
+   calls.push({ url, body: JSON.parse(String(init.body)) }); return response({ error: "QA endpoint: no drawer closed" }, 409);
+  }));
   const ledger = (id: string, opening: number) => ({ cashShifts: [{ id, status: "open", staff_user_id: "qa-actor", opening_amount: opening, collected: 0 }] }) as unknown as AccountingLedger;
   const { rerender } = render(<CashCountPanel ledger={ledger("QA-OLD-SHIFT", 1000)} actorId="qa-actor" role="front_desk" onSaved={() => {}} />);
+  await waitFor(() => expect((screen.getByLabelText("Physical cash counted (PHP)") as HTMLInputElement).disabled).toBe(false));
   fireEvent.change(screen.getByLabelText("Physical cash counted (PHP)"), { target: { value: "1000" } });
   fireEvent.change(screen.getByLabelText("Count note / variance explanation"), { target: { value: "Counted the previous drawer" } });
   // An ordinary refresh of the same drawer preserves the count.
@@ -55,6 +59,7 @@ describe("HMS QA regressions", () => {
   // The parent polls the shared ledger. A colleague closes the old drawer and
   // opens another before this cashier submits the existing draft.
   rerender(<CashCountPanel ledger={ledger("QA-NEW-SHIFT", 500)} actorId="qa-actor" role="front_desk" onSaved={() => {}} />);
+  await waitFor(() => expect((screen.getByLabelText("Physical cash counted (PHP)") as HTMLInputElement).disabled).toBe(false));
   fireEvent.submit(screen.getByRole("button", { name: "Close shared drawer" }).closest("form")!);
   expect((screen.getByLabelText("Physical cash counted (PHP)") as HTMLInputElement).value).toBe("");
   expect((screen.getByLabelText("Count note / variance explanation") as HTMLTextAreaElement).value).toBe("");

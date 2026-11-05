@@ -53,11 +53,47 @@ explicit dialog whose Cancel sends no request, including balanced shifts.
 Existing cash roles, routes, locking and financial RPCs are unchanged. No schema
 change or deployment accompanies this UI work. See
 `docs/qa/cash-shifts-ui-implementation-2026-11-04.md` for verification limits.
-Data-flow QA subsequently verified local SQL persistence and identified a gap:
-normal `process_refund` writes `manual_refund` without `cash_shift_id`; a refund
-actually paid from the drawer cannot yet be classified/linked through that form
-(KI-021). Unsubmitted count drafts are component memory, not durable autosave.
-See `docs/qa/cash-shifts-data-flow-qa-2026-11-04.md` for field destinations.
+Data-flow QA on 4 November verified local SQL persistence and identified KI-021:
+normal refunds lacked a payout method/drawer link, and unsaved counts existed
+only in component memory. That historical evidence remains in
+`docs/qa/cash-shifts-data-flow-qa-2026-11-04.md`.
+
+**Cash safeguards (2026-11-05, local; migration pending hosted release):**
+`20261105010000_cash_refunds_and_count_drafts.sql` adds explicit Accounting-recorded
+refund payout methods. Cash requires the selected open drawer and sufficient
+recorded cash; noncash cannot link to a drawer. The shared transaction preserves
+folio caps, approved-exception fee reversals, audit and retry protection. Payouts
+serialize with collection/close. Existing paid records and recorded variances are
+not reclassified. The payout dialog loads the current drawer directly, including
+when Refunds opens before any Accounting ledger view. This records an actual
+manual payout; it does not send a provider refund or introduce a separate
+Accounting-authorization/Front-Desk-disbursement workflow.
+
+Cash counts now support explicit **Save draft & return** through separate
+`cash_count_drafts`, scoped to drawer/user/role. Saved counts survive module leave,
+reload and authorized same-user device changes; typing alone is not autosave.
+Version checks prevent stale draft overwrites. An ordered paid-movement fingerprint
+detects activity changes even when the net amount is unchanged. Close consumes
+the saved version/key and checks the basis again under the shared drawer lock;
+successful close invalidates drafts while preserving retry recovery. Drafts never
+populate final shift counts or affect financial totals before Close. The direct
+legacy close/refund RPC entry points are revoked from the service role.
+
+Closed drawers expose explicit handover/report next steps. Follow-up reads cover
+the selected drawer's complete unresolved department scope; daily report status
+and its Manila close date are exposed only to authorized Front Desk. Handover
+prefill is separate from an existing follow-up ID. Close still creates neither
+a handover nor a daily report, and report snapshots remain immutable. Verification
+and hosted-release limits: `docs/qa/cash-findings-implementation-2026-11-05.md`.
+
+**Cash delivery QA (2026-11-06):** Actual local Next.js/PostgREST/PostgreSQL
+browser flows verify refund/drawer linkage, durable count drafts, close/review,
+handover receipt/resolution and explicit report submission. Release acceptance
+remains open: daily-report collections incorrectly add outgoing refunds (KI-022),
+and smaller-screen header controls clip (KI-023); report centavos, a handover
+caption and modal touch targets also need correction. The linked ledger still
+omits `20261105010000` (126 local / 112 remote). No hosted write or release.
+See `docs/qa/cash-delivery-ui-qa-2026-11-06.md` for evidence and exact limits.
 
 A **single-property hotel operations system** for a ~48-room boutique property (brand: **Haven
 Makati**). One Next.js deployment serves four surfaces:
@@ -1118,7 +1154,13 @@ existing dossier/actions. Only catalog-authorized roles see Manage rooms.
 Front Desk Reservations uses the same shared workspace in ledger mode, while
 Manager/Accounting retain their existing role-specific reservation surfaces.
 Guest Management retains existing profiles and history; no new CRUD or RBAC is
-implied by the label. Clickable summaries route to today's arrivals,
+implied by the label. Its shared list/profile reads support the deployed schema
+before the reviewed-merge and soft-removal migrations: absent merge markers skip
+alias enrichment; only the exact missing merge/removal column permits the legacy
+profile/membership read. Upgraded alias/canonical history and removal filtering
+remain intact; other database errors still surface. See
+`docs/qa/guest-management-load-fix-2026-11-06.md` for verification limits.
+Clickable summaries route to today's arrivals,
 today's in-house departures, all current in-house stays, or clean/available rooms
 in the selected board window. List queues distinguish arrivals, upcoming, in-house,
 departures and closed outcomes (completed/cancelled/no-show). An explicit selected
@@ -1826,7 +1868,7 @@ Grouped by domain:
 | Maintenance | `maintenance_orders`, `maintenance_order_events`, `maintenance_order_assignments`, **`maintenance_assets`** | Work orders + serviceability model + append-only event log; the asset registry (§7.6) has a derived `next_service_date` generated column, starts empty (real assets only, deactivated never deleted) |
 | Guest requests | `guest_requests`, `guest_request_catalog` | Structured batched requests plus the Manager-maintained active type/department catalogue used by future guest forms and routing; historical rows keep their text type even if a catalogue item is retired |
 | Transportation | `transportation_requests`, `transport_vehicle_types` | Requests: service type, text locations, pickup/return date-time, passengers, status machine, driver, `fare_amount`/`fare_posted_at`, `version`; **one active request per reservation** (partial unique index) + stay-window trigger. Vehicle types: seats, base fare, per-km/per-minute, booking fee. (The earlier `transport_services` price-list table was **dropped** in favor of vehicle types.) |
-| Money | `invoices`, `folio_charges`, `payments`, `financial_adjustments`, `refund_requests`, `refund_attempts`, `cash_shifts`, `payment_reconciliations`, `financial_documents` | Folio truth is **derived** (`sync_invoice_financials`); settled payments are immutable; manual deposit payments retain private proof-storage metadata for Accounting review; documents are generated snapshots |
+| Money | `invoices`, `folio_charges`, `payments`, `financial_adjustments`, `refund_requests`, `refund_attempts`, `cash_shifts`, `cash_count_drafts`, `payment_reconciliations`, `financial_documents` | Folio truth is **derived** (`sync_invoice_financials`); settled payments are immutable; manual deposit payments retain private proof-storage metadata for Accounting review; documents are generated snapshots |
 | Manager/owner | `manager_approval_requests`, `manager_notes`, **`front_desk_reports`** | Exception engine with `version`, `execution_status`, `authority_level` manager/owner; reports = immutable daily snapshots (`snapshot` jsonb, `supersedes` lineage, one live per date) |
 | Retail/back-office | `inventory`, `vendors`, `purchase_orders` | Live stock grid and movements-based usage (§7.13), with existing issue/count operations. Purchase-order creation/editing produces drafts; separate local submit, approval, receive and cancel actions manage the lifecycle (§7.15). Supplier transmission and external SCM integration are absent (the unused `reviews` table was dropped 2026-09-14) |
 | Guest communication | `notifications`, `guest_reminder_deliveries` | Immutable guest-facing event content with per-user scope, timestamp, link, and optional `read_at`; the email copy is best-effort and not the source of truth. Deliveries: one row per reservation+reminder kind (`pre_arrival`/`pre_departure`, unique index = idempotency), status/error/sent-at for audit |
@@ -1949,7 +1991,9 @@ financial-execute | escalate-owner`, `POST housekeeping/[id]/prioritize`,
 `POST maintenance/[id]/escalate`.
 
 **Accounting** (`/api/accounting`): `GET ledger`; `POST payments/[id]/verify | reject`;
-`POST refunds/[id]/process | fail`; `POST cash-shifts` / `PATCH cash-shifts/[id]`;
+`POST refunds/[id]/process | fail`; `POST cash-shifts`; `GET/PUT cash-shifts/[id]`
+(authorized count context / explicit draft save); `PATCH cash-shifts/[id]`
+(close saved version / reconcile); `GET cash-shifts/[id]/follow-up`;
 `POST reconciliations`; `POST adjustments`; `POST charges/[id]/reverse`; `POST documents`.
 
 **Admin** (`/api/admin`): `POST users`, `POST users/[id]/action`, `PATCH policy`,

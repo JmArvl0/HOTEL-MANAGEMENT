@@ -1,0 +1,114 @@
+{
+  "shift": {
+    "id": "cf991620-c0fc-49b3-ab26-181476535659",
+    "staff_user_id": "ba0b9c3e-12b6-4186-acd7-52736ad6d168",
+    "location": "QA delivery drawer",
+    "opening_amount": "1000.00",
+    "status": "reconciled",
+    "opened_at": "2026-11-05T17:13:58.870Z",
+    "closed_at": "2026-11-05T17:14:17.547Z",
+    "expected_cash": "2750.00",
+    "actual_cash": "2750.00",
+    "variance": "0.00",
+    "close_notes": null,
+    "close_idempotency_key": "2848b8b8-57c8-4a1a-9749-36bd1193998f",
+    "reconciled_by": "c29c8d99-60b4-49de-8b28-a613ac4a6f3e",
+    "reconciled_at": "2026-11-05T17:14:18.516Z",
+    "reconciliation_notes": "QA delivery reviewed cash refund"
+  },
+  "draft": {
+    "cash_shift_id": "cf991620-c0fc-49b3-ab26-181476535659",
+    "actor_id": "ba0b9c3e-12b6-4186-acd7-52736ad6d168",
+    "actor_role": "front_desk",
+    "actual_cash": "2750.00",
+    "notes": "",
+    "basis": "3dfdfaad4d01fdd102e184b21691416f",
+    "version": 2,
+    "close_key": "2848b8b8-57c8-4a1a-9749-36bd1193998f",
+    "updated_at": "2026-11-05T17:14:17.357Z",
+    "invalidated_at": "2026-11-05T17:14:17.547Z"
+  },
+  "refund": {
+    "method": "cash",
+    "cash_shift_id": "cf991620-c0fc-49b3-ab26-181476535659",
+    "received_by": "c29c8d99-60b4-49de-8b28-a613ac4a6f3e",
+    "amount": "250.00",
+    "reference": "QA-DELIVERY-CASH-250"
+  },
+  "receipt": {
+    "document_number": "RCP-261106-C97B4B",
+    "payment_id": "e2ed51fd-c942-4601-848c-9ac24d85e73d",
+    "reservation_id": "QA-DELIVERY-d7da47ea"
+  },
+  "handovers": [
+    {
+      "id": "66beff26-b891-46d4-bddc-afe166118140",
+      "department": "front_desk",
+      "summary": "QA delivery follow-up: review the recorded cash payout with next cashier",
+      "source_type": "cash_shift",
+      "source_id": "cf991620-c0fc-49b3-ab26-181476535659",
+      "follow_up_user_id": "c67b3b26-a4a0-4841-a8a8-94f8ed79b43d",
+      "submitted_by": "ba0b9c3e-12b6-4186-acd7-52736ad6d168",
+      "submitted_at": "2026-11-05T17:14:19.559Z",
+      "acknowledged_by": "c67b3b26-a4a0-4841-a8a8-94f8ed79b43d",
+      "acknowledged_at": "2026-11-05T17:14:27.442Z",
+      "resolved_at": "2026-11-05T17:14:27.614Z",
+      "resolution": "QA delivery resolved with the next cashier",
+      "version": 3
+    }
+  ],
+  "reports": [
+    {
+      "id": "e94af0d1-c865-46fe-800c-6869dbc290f1",
+      "report_date": "2026-11-05T16:00:00.000Z",
+      "submitted_by": "ba0b9c3e-12b6-4186-acd7-52736ad6d168",
+      "status": "acknowledged",
+      "snapshot": {
+        "rooms": {},
+        "approvals": {},
+        "cashShifts": {
+          "closed": 1,
+          "counted": 2750,
+          "expected": 2750,
+          "variance": 0
+        },
+        "reportDate": "2026-11-06",
+        "collections": {
+          "count": 3,
+          "total": 2350.25,
+          "byMethod": {
+            "cash": 2250,
+            "gcash": 100.25
+          },
+          "byPurpose": {
+            "refund": 2,
+            "stay_payment": 1
+          }
+        },
+        "generatedAt": "2026-11-05T17:14:20.962Z",
+        "housekeeping": {
+          "byType": {},
+          "tasksCompleted": 0,
+          "awaitingInspection": 0,
+          "avgTurnaroundMinutes": null
+        },
+        "reservations": {
+          "noShow": 0,
+          "created": 1,
+          "arrivals": 0,
+          "bySource": {
+            "Direct": 1
+          },
+          "cancelled": 0,
+          "departures": 0
+        },
+        "guestRequests": {
+          "opened": 0,
+          "escalated": 0,
+          "openByDepartment": {}
+        },
+        "transportation": {}
+      }
+    }
+  ]
+}

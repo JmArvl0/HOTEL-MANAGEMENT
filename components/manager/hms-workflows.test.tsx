@@ -30,10 +30,12 @@ describe("HMS workflow forms", () => {
   await screen.findByText("Hand towels");
   expect(screen.queryByRole("button", { name: "Save movement" })).toBeNull();
  });
- it("starts physical cash count blank and requires a variance explanation", () => {
+ it("starts physical cash count blank and requires a variance explanation", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () => response({ data: { status: "open", basis: "a".repeat(32), expectedCash: 3000, draft: null } })));
   const ledger = { cashShifts: [{ id: "shift-1", status: "open", staff_user_id: "actor", opening_amount: 1000, collected: 2000 }] } as unknown as AccountingLedger;
   render(<CashCountPanel ledger={ledger} actorId="actor" role="front_desk" onSaved={() => {}} />);
   const count = screen.getByLabelText("Physical cash counted (PHP)") as HTMLInputElement;
+  await waitFor(() => expect(count.disabled).toBe(false));
   expect(count.value).toBe("");
   fireEvent.change(count, { target: { value: "2990" } });
   expect((screen.getByLabelText("Count note / variance explanation") as HTMLTextAreaElement).required).toBe(true);

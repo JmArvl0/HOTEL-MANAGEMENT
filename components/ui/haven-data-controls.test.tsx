@@ -169,6 +169,31 @@ describe("HavenDataToolbar", () => {
     expect(input).toMatch(/border-radius:/);
   });
 
+  it("places the result-count footer at the bottom of the toolbar in DOM order", () => {
+    const { container } = render(
+      <HavenDataToolbar
+        search={<HavenSearchInput value="" onValueChange={() => {}} label="Search" placeholder="Search…" />}
+        resultCount={5}
+        resultNoun="rooms"
+      />,
+    );
+    const toolbar = container.querySelector(".haven-data-toolbar")!;
+    const footer = toolbar.querySelector(".haven-toolbar-footer")!;
+    expect(footer).toBe(toolbar.lastElementChild);
+    expect(footer.textContent).toContain("Showing 5 rooms");
+  });
+
+  it("keeps the footer anchored to the last grid row in inline and compact layouts", () => {
+    const css = readFileSync(join(process.cwd(), "components/ui/haven-data-controls.css"), "utf8");
+    const inlineFooter = css.match(/\.haven-data-toolbar\.filters-inline\s*\.haven-toolbar-footer\s*\{[^}]*\}/)![0];
+    const compactFooter = css.match(/\.haven-data-toolbar\.filters-compact\s*\.haven-toolbar-footer\s*\{[^}]*\}/)![0];
+    expect(inlineFooter).toMatch(/grid-row:\s*3/);
+    expect(compactFooter).toMatch(/grid-row:\s*2/);
+    // Search stays on row 1 so the footer stacks below it.
+    const inlineSearch = css.match(/\.haven-data-toolbar\.filters-inline\s*\.haven-toolbar-search\s*\{[^}]*\}/)![0];
+    expect(inlineSearch).toMatch(/grid-row:\s*1/);
+  });
+
   it("gives the light staff search input a solid surface distinct from the page floor", () => {
     const css = readFileSync(join(process.cwd(), "components/ui/haven-data-controls.css"), "utf8");
     // Canonical staff mapping is the only place staff search tokens are set.

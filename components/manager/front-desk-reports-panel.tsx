@@ -118,8 +118,8 @@ function ExecutiveDigestCard({ reportDate }: { reportDate: string }) {
   );
 }
 
-export default function FrontDeskReportsPanel({ role }: { role: Role }) {
-  const [date, setDate] = useState(() => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date()));
+export default function FrontDeskReportsPanel({ role, initialDate }: { role: Role; initialDate?: string }) {
+  const [date, setDate] = useState(() => initialDate ?? new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date()));
   const [preview, setPreview] = useState<DailyReportSnapshot | null>(null);
   const [viewing, setViewing] = useState<ReportRow | null>(null);
   const [rows, setRows] = useState<ReportRow[]>([]);

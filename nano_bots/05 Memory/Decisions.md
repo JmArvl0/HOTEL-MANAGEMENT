@@ -4,6 +4,20 @@ Lightweight decision log. Each entry records a choice that constrains future dev
 Trivial implementation details do not belong here. Historical sessions never override the
 current system or `SYSTEM.md` — see [[AI Session Handoff]] for the authority order.
 
+## D-036 — Explicit refund cash source, saved counts and separate submissions
+
+Date: 2026-11-05. Status: User-approved; implemented locally, release pending.
+
+Accounting records the actual refund payout method; cash links to its open drawer
+and cannot exceed recorded available cash. Refunds serialize with close and retain
+policy/exception authority and historical records. Explicit count drafts persist
+separately with operator/role/version/activity guards, without posting final cash
+figures. Close guides staff to handover and reporting; neither submits automatically.
+This keeps drawer cash accountable and saved work recoverable without inventing
+cash custody transfers or premature hotel-day snapshots. See the approved
+`docs/plans/2026-11-05-cash-shifts-findings-recommendations.md` and
+[[2026-11-05 - Cash Findings Implementation]].
+
 ## D-035 — Separate Front Office modules; default room board to a guest calendar
 
 Date: 2026-11-04

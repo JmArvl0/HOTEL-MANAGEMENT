@@ -436,13 +436,18 @@ export default function FrontOfficeRack({
               </>}
               {(view === "board" || scope === "window") && <div className="haven-filter"><BoardDateRange from={from} days={days} notify={message => say(message, "warning")} onRange={(nextFrom, nextDays) => { setFrom(nextFrom); setDays(nextDays); }} /></div>}
             </>}
-            resultCount={view === "board" ? visibleRooms.length : undefined}
-            resultNoun="rooms"
             onClearFilters={() => { setQuery(""); setTypeFilter("all"); setStatusFilter("all"); setFloorFilter("all"); setTab("all"); setClosedStatus("all"); if (view !== "board") setView("all"); setScope("window"); }}
             hasActiveFilters={view === "board" ? hasActiveFilters : Boolean(query.trim() || tab !== "all" || scope !== "window" || closedStatus !== "all")}
           />
           <p className="board-window-note" aria-live="polite">{view !== "board" && scope === "history" ? "Full reservation history · All dates" : `${fullDay(from)} – ${fullDay(addDays(from, days - 1))} · ${view === "board" ? "Room status is current; linked stays follow this window" : "Stays overlapping selected dates"}`}</p>
           {view === "board" ? boardFormat === "calendar" ? (snapshot?.from !== from || snapshot?.days !== days) ? <p role="status">{loading ? "Loading assignments for selected dates…" : "Room allocations unavailable for selected dates. Retry the room board."}</p> : <RoomCalendar rooms={visibleRooms} reservations={reservations} assignments={snapshot?.assignments} from={from} days={days} today={today} blockedRoomIds={blockedIds} onSelectRoom={openRoom} onOpenReservation={onOpenFolio} /> : <RoomBoard rooms={visibleRooms} reservations={reservations} today={today} blockedRoomIds={blockedIds} selectedRoomId={activeRoom?.id ?? null} onSelectRoom={openRoom} /> : historyError ? <div className="rack-error" role="alert"><p>{historyError}</p><button type="button" disabled={historyLoading} onClick={retryHistory}>Retry history</button></div> : historyLoading && !history ? <div className="rack-skeleton" role="status" aria-label="Loading reservation history"><HavenSkeleton /></div> : <BoardReservationTabs reservations={listRows} today={today} tab={tab} onOpenFolio={onOpenFolio} onCheckIn={onCheckIn} canOperate={canAssign} search={query} rooms={rooms} blockedRoomIds={blockedIds} closedStatus={closedStatus} />}
+          {view === "board" && (
+            <div className="haven-toolbar-footer">
+              <span className="haven-result-count" aria-live="polite">
+                Showing {visibleRooms.length} rooms
+              </span>
+            </div>
+          )}
         </div>
         {workspace !== "rooms" && <RoomBoardOps reservations={dailyRows} rooms={rooms} blockedRoomIds={blockedIds} today={today} onOpenFolio={onOpenFolio} error={historyError} loading={historyLoading} onRetry={retryHistory} />}
       </div>
