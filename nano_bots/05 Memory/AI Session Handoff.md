@@ -1,5 +1,45 @@
 # AI Session Handoff
 
+## Current - Location, nearby places and directions implementation (2026-11-06)
+
+User approved implementation after premium photo/map review. Haven remains a
+fictional placeholder: all location/copy/nearby/routes/media are configurable.
+Added How to Go/Nearby after reviews and kept existing landing/contact/FAQ/footer.
+Shared Admin Configuration / Owner Catalog editor, guarded audited CRUD,
+publication/order/featured, location-revision re-review, private validated images.
+Live Google iframe with native gestures; no custom arrow overlay or paid API.
+Seed is explicitly labeled Rizal Park/AI-photo/manual-distance demo, not a hotel.
+
+Migration20261106010000 **applied** via isolated Supabase CLI push after a one-file
+dry run; hosted ledger112 →113, all17 unrelated pending files excluded. No hosted application
+deployment. Local production3008 now renders published demo/map/cards; API200,
+21 HTTP assertions, private bucket and9 Maps links verified. Clean replay130
+and SQL15, isolated applied-baseline upgrade113 and SQL15 pass. Full2425/227,
+typecheck/build, feature lint0 and HTTP22 pass. Owner shell's4 old lint warnings
+remain. Browser control still reports disabled despite user's intent to enable;
+final integrated responsive/authenticated Storage/admin QA pending. Earlier
+preview screenshots are not implementation QA. Next: finish browser/authenticated
+Storage QA and supported-Node release checks before hosted application release. See
+[[2026-11-06 - Location Content Implementation]] and
+`docs/qa/location-content-implementation-2026-11-06.md`.
+
+User requested a location-only commit. Reviewed47 files with partial shared-file
+staging;107 unrelated dirty files unchanged. Isolated staged snapshot full2366/222,
+typecheck/default Turbopack build and touched lint0 errors/4 old Owner warnings pass. No push.
+
+Historical audit/previews: [[2026-11-06 - Location Nearby Directions UI Proposal]],
+[[2026-11-06 - Location UI Premium Comparison]],
+[[2026-11-06 - Location Demo Photos and Map]]. Original live-map design remains
+at loopback8769. Local-view follow-up: production app now running3008
+(session69166, temporary NEXTAUTH_URL set to that origin); actual-source component
+preview running3009 (session42930, temporary in-memory sample data, not DB writes).
+Port3000 is an older Documents/Codex project copy started by “Test localhost checkout
+flow”; its /api/location is404. Use current workspace3008/#how-to-go or /#nearby.
+Browser control in this chat still denies access despite enabled plugin/user-reported
+Browse permission; a disabled user toggle is not an established diagnosis. No setting
+changed by agent.3009 remains a temporary component preview, not the integrated app.
+
+
 ## Current - Guest loading fix and combined publication (2026-11-06)
 
 User requested commit/push of all current changes, including cash implementation,

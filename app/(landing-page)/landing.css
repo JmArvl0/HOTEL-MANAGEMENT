@@ -1,4 +1,6 @@
 /* Coastal HAVEN: public landing stays light, independently of portal theme. */
+/* Seven public section shortcuts use the existing drawer before they crowd booking/account actions. */
+@media(min-width:901px) and (max-width:1080px){.coastal-landing .landing-nav .nav-links{display:none}.coastal-landing .landing-nav .landing-menu-btn{display:grid}}
 .coastal-landing {
   --ink:#111827; --forest:#111827; --green:#047857; --accent:#111827;
   --cream:#f3f3f3; --paper:#fff; --line:#d1d5db; --muted:#5b6472;

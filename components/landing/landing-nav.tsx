@@ -10,6 +10,8 @@ const drawerLinks = [
   { href: "#amenities", label: "Amenities" },
   { href: "#gallery", label: "Gallery" },
   { href: "#about", label: "About" },
+  { href: "#how-to-go", label: "How to Go" },
+  { href: "#nearby", label: "Nearby" },
   { href: "#faq", label: "FAQ" },
   { href: "#book", label: "Check availability" },
 ];
@@ -77,7 +79,7 @@ export function LandingNav({ active, rootLinks = false }: { active?: string; roo
         </Link>
 
         <div className="nav-links">
-          {drawerLinks.slice(0, 5).map((l) => (
+          {drawerLinks.slice(0, 7).map((l) => (
             <a key={l.href} href={rootLinks ? `/${l.href}` : l.href} aria-current={active === l.label ? "page" : undefined}>
               {l.label}
             </a>

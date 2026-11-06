@@ -95,8 +95,14 @@ caption and modal touch targets also need correction. The linked ledger still
 omits `20261105010000` (126 local / 112 remote). No hosted write or release.
 See `docs/qa/cash-delivery-ui-qa-2026-11-06.md` for evidence and exact limits.
 
-A **single-property hotel operations system** for a ~48-room boutique property (brand: **Haven
-Makati**). One Next.js deployment serves four surfaces:
+A **single-property hotel operations system** with a ~48-room sample property model
+(working brand: **Haven**). The user confirmed on 2026-11-06 that Haven is fictional
+and no client hotel has been selected. Existing Makati labels, contact details,
+stock imagery and seeded transport coordinates do not establish a real hotel
+location. Public hotel location, nearby-place and route content must be editable
+for a future client; the implemented content guide is documented in
+`docs/plans/2026-11-06-location-nearby-directions-proposal.md`. One Next.js deployment
+serves four surfaces:
 
 | Surface | Where | Auth | Purpose |
 |---|---|---|---|
@@ -581,6 +587,48 @@ dummy fallback while no real review exists. The `#smarter` teaser tiles delibera
 safe public facts (room count, amenity count, one connected account) — never live operations data.
 
 ### 7.2 Guest booking flow (`/booking/*`)
+
+**Location and nearby guide (2026-11-06, schema applied; hosted application release pending).**
+The approved additions follow reviews and precede the existing `#location`
+contact block: `#how-to-go` and `#nearby`. Public navigation adds both anchors;
+booking/catalog/contact/FAQ/footer retain their existing ownership. The
+server-rendered published projection comes from `website_location_public()` via
+`lib/location-content-server.ts`; category/search/route selection live in the
+separate landing client. Retrieval failure is local to the guide, with retry;
+no location means no invented map/destination. Google Share/Embed uses an
+allowlisted HTTPS iframe, lazy loading, native gesture controls/fullscreen and a
+directions fallback. No paid Maps API, geocoding or travel-time estimates.
+
+`website_hotel_location`, `website_place_categories`, `website_nearby_places`,
+`website_route_guides` and `website_location_images` are introduced by
+migration `20261106010000_website_location_content.sql`, applied through an isolated
+Supabase CLI push on November 6 (ledger112 →113; 17 unrelated pending files excluded).
+The local production app on3008 now renders the published demo; hosted application
+deployment and authenticated/browser QA remain pending. All tables have RLS and no
+browser-role privileges; protected, audited writes recheck active/recovered
+Owner/Admin and expected versions. Service role cannot directly write these
+tables. Hotel pin/address/place-ID/embed/demo-mode changes increment the location
+revision and draft all existing nearby claims/routes for review. Featured is a
+unique flag on an existing place. In-use categories/images cannot be deleted.
+
+Admin Configuration and Owner Catalog expose the same **Location & Places**
+editor, independently of operational workflows. `/api/admin/location` GET/POST/
+DELETE and `/api/admin/location/images` POST/DELETE use `guardAdmin`, excluding
+Manager/catalog and operational roles. The private `location-images` bucket has
+no public storage policy. JPEG/PNG/WebP uploads must match magic bytes and decode
+as single-frame images, ≤5 MB / 6000 px / 24 MP, then are re-encoded with existing
+Sharp (now explicitly required) into owned WebP objects. Draft previews require
+admin authority. `/api/location/images/[id]` checks current publication on every
+non-cacheable public read; removal tombstones prevent attachment/cleanup races.
+Cached/downloaded copies already held by a visitor cannot be revoked.
+
+The explicitly requested initial demo uses Rizal Park, Manila, generic AI
+concept images and clearly labeled manual sample distances; it is not a real
+Haven property. Client mode requires verified coordinates/source/date and
+rejects sample images/category searches on publication. Route navigation uses
+each record's own origin and the centrally configured hotel destination. Public
+JSON-LD is emitted only for a verified, published, non-demo hotel. Verification
+and release limits: `docs/qa/location-content-implementation-2026-11-06.md`.
 
 A signed-in **guest** books online. Flow: **Search → Dates/Guest details → Review → Payment link →
 Confirmation**, wired through search-params → a server-issued **hold token** → reservation id.

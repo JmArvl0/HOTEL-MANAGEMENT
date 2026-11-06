@@ -1,0 +1,54 @@
+{
+  "tool": "built-in image_gen.imagegen",
+  "purpose": "Approved AI concept photographs for the fictional hotel demo. Not photographs of actual nearby businesses, NAIA, Manila City Hall or Rizal Park.",
+  "assets": [
+    {
+      "name": "cafe",
+      "file": "public/location-samples/cafe.webp",
+      "width": 540,
+      "height": 304,
+      "bytes": 32382,
+      "prompt": "Use case: photorealistic-natural. Asset type: landscape concept photo for a premium hotel website design preview. This is a fictional sample, not documentation of a real business or landmark. Natural editorial photography, believable materials, restrained warm-neutral and leafy-green palette, clean daylight, elegant composition, landscape framing. No readable text, signage, branding, logos, watermarks, identifiable faces or fake UI. Primary request: A small contemporary Philippine city café, warm timber counter, pale stone surfaces, a couple of quiet café tables, floor-to-ceiling window with tropical greenery, coffee cups as subtle detail. Photograph from an inviting wide interior viewpoint."
+    },
+    {
+      "name": "shopping",
+      "file": "public/location-samples/shopping.webp",
+      "width": 540,
+      "height": 304,
+      "bytes": 36182,
+      "prompt": "Use case: photorealistic-natural. Asset type: landscape concept photo for a premium hotel website design preview. This is a fictional sample, not documentation of a real business or landmark. Natural editorial photography, believable materials, restrained warm-neutral and leafy-green palette, clean daylight, elegant composition, landscape framing. No readable text, signage, branding, logos, watermarks, identifiable faces or fake UI. Primary request: A refined open-air urban shopping arcade in a tropical Philippine city, pale limestone walkway, modern glass shopfronts, mature trees and planters, tasteful architecture. No brands or legible store names. Architectural editorial photograph."
+    },
+    {
+      "name": "garden",
+      "file": "public/location-samples/garden.webp",
+      "width": 760,
+      "height": 428,
+      "bytes": 79276,
+      "prompt": "Use case: photorealistic-natural. Asset type: landscape concept photo for a premium hotel website design preview. This is a fictional sample, not documentation of a real business or landmark. Natural editorial photography, believable materials, restrained warm-neutral and leafy-green palette, clean daylight, elegant composition, landscape framing. No readable text, signage, branding, logos, watermarks, identifiable faces or fake UI. Primary request: A peaceful tropical urban garden promenade with a broad stone footpath, lawn, mature shade trees, palms and a small reflective water feature. Soft sunny afternoon. A welcoming architectural landscape photograph. Do not depict any named monument or claim a specific park."
+    },
+    {
+      "name": "transport",
+      "file": "public/location-samples/transport.webp",
+      "width": 540,
+      "height": 304,
+      "bytes": 29042,
+      "prompt": "Use case: photorealistic-natural. Asset type: landscape concept photo for a premium hotel website design preview. This is a fictional sample, not documentation of a real business or landmark. Natural editorial photography, believable materials, restrained warm-neutral and leafy-green palette, clean daylight, elegant composition, landscape framing. No readable text, signage, branding, logos, watermarks, identifiable faces or fake UI. Primary request: A contemporary elevated urban rail platform in a tropical Philippine city, clean covered walkway, neutral unbranded train, distant city buildings and trees. Calm daytime architectural travel photograph. No signage, route numbers, readable destination boards or people close to camera."
+    },
+    {
+      "name": "airport",
+      "file": "public/location-samples/airport.webp",
+      "width": 540,
+      "height": 304,
+      "bytes": 26724,
+      "prompt": "Use case: photorealistic-natural. Asset type: landscape concept photo for a premium hotel website design preview. This is a fictional sample, not documentation of a real business or landmark. Natural editorial photography, believable materials, restrained warm-neutral and leafy-green palette, clean daylight, elegant composition, landscape framing. No readable text, signage, branding, logos, watermarks, identifiable faces or fake UI. Primary request: An airport arrivals forecourt at a contemporary tropical city terminal, broad covered drop-off road, modern glass terminal facade, a distant unbranded aircraft visible beyond the terminal. Bright natural daytime travel photography. No signage or real airport identification."
+    },
+    {
+      "name": "city",
+      "file": "public/location-samples/city.webp",
+      "width": 540,
+      "height": 304,
+      "bytes": 38320,
+      "prompt": "Use case: photorealistic-natural. Asset type: landscape concept photo for a premium hotel website design preview. This is a fictional sample, not documentation of a real business or landmark. Natural editorial photography, believable materials, restrained warm-neutral and leafy-green palette, clean daylight, elegant composition, landscape framing. No readable text, signage, branding, logos, watermarks, identifiable faces or fake UI. Primary request: A calm contemporary Philippine city avenue with a pedestrian crossing, roadside tropical trees, a single generic unbranded jeepney at a distance and mid-rise urban buildings. Warm clear daytime travel editorial photograph, realistic street texture. No readable signs or plates, no close-up people."
+    }
+  ]
+}

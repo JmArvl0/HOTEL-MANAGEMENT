@@ -1,6 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, BedDouble, Waves, UtensilsCrossed, Wifi, Car, Dumbbell, ConciergeBell, ParkingCircle, Shirt, MapPin, Phone, Mail, QrCode, Check } from "lucide-react";
+import { Suspense } from "react";
+import { ArrowRight, BedDouble, Waves, UtensilsCrossed, Wifi, Car, Dumbbell, ConciergeBell, ParkingCircle, Shirt, Phone, Mail, QrCode, Check } from "lucide-react";
+import { WebsiteLocation, HotelContactMapLink } from "@/components/landing/website-location";
+import { LocationLoading } from "@/components/landing/location-sections";
 import { BookingIntentProvider, FeaturedStays, HeroBookingForm } from "@/components/landing/booking-intent";
 import { LandingNav } from "@/components/landing/landing-nav";
 import { LandingMotion } from "@/components/landing/landing-motion";
@@ -102,7 +105,9 @@ export default async function LandingPage() {
       <p className="coast-caption">Stayed with us? Leave your review from your reservation after checkout.</p>
     </section>
 
-    <section className="coast-section coast-contact" id="location" aria-labelledby="contact-title"><div><p className="coast-eyebrow">Find us</p><h2 id="contact-title">Your next chapter<br />starts here.</h2><p>Haven Hotel &amp; Residences<br />A quieter pace, a warmer welcome.</p><nav aria-label="Contact the hotel"><a href="tel:+63324001234"><Phone size={17} />+63 32 400 1234</a><a href="mailto:hello@haven-hotel.ph"><Mail size={17} />hello@haven-hotel.ph</a><a href="https://www.google.com/maps/search/?api=1&query=Haven+Hotel" target="_blank" rel="noreferrer"><MapPin size={17} />Open in Maps <ArrowRight size={14} /></a></nav></div><div className="coast-contact-photo"><Image src={SCENES.afternoon} alt="Hotel pool ready for a relaxing afternoon" fill sizes="(max-width: 800px) 100vw, 50vw" /><div><h3>Let’s plan your<br />time away.</h3><a href="#book" className="coast-button coast-button-light">Find your stay <ArrowRight size={16} /></a></div></div></section>
+    <Suspense fallback={<LocationLoading />}><WebsiteLocation /></Suspense>
+
+    <section className="coast-section coast-contact" id="location" aria-labelledby="contact-title"><div><p className="coast-eyebrow">Find us</p><h2 id="contact-title">Your next chapter<br />starts here.</h2><p>Haven Hotel &amp; Residences<br />A quieter pace, a warmer welcome.</p><nav aria-label="Contact the hotel"><a href="tel:+63324001234"><Phone size={17} />+63 32 400 1234</a><a href="mailto:hello@haven-hotel.ph"><Mail size={17} />hello@haven-hotel.ph</a><Suspense fallback={null}><HotelContactMapLink /></Suspense></nav></div><div className="coast-contact-photo"><Image src={SCENES.afternoon} alt="Hotel pool ready for a relaxing afternoon" fill sizes="(max-width: 800px) 100vw, 50vw" /><div><h3>Let’s plan your<br />time away.</h3><a href="#book" className="coast-button coast-button-light">Find your stay <ArrowRight size={16} /></a></div></div></section>
 
     <section className="coast-section coast-faq" id="faq" aria-labelledby="faq-title"><div><p className="coast-eyebrow">A few things to know</p><h2 id="faq-title">Before you arrive.</h2><p>More questions? Our Front Desk is here to help.</p><a className="coast-button" href="tel:+63324001234">Let’s talk <Phone size={16} /></a></div><div>{faqs.map(([question, answer]) => <details key={question}><summary>{question}<span aria-hidden="true">+</span></summary><p>{answer}</p></details>)}</div></section>
 

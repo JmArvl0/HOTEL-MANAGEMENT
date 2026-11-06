@@ -1,5 +1,20 @@
 # Current Status
 
+## Location and nearby content (2026-11-06)
+
+- Approved premium landing additions and shared Admin/Owner content editor are
+  implemented locally, with live Google map, dynamic locations/routes/photos,
+  publication/order and private validated media. Demo is explicitly fictional.
+- Migration20261106010000 applied with isolated CLI dry run/push; hosted ledger
+  112 →113, all17 unrelated pending files excluded. Local production3008 now
+  renders published demo content, map and cards; API200 +21 HTTP assertions,
+  private bucket and9 Maps links verified. No hosted application deployment.
+  Earlier full2425/227, typecheck/build, feature lint0,
+  clean replay130 + SQL15 and isolated baseline upgrade113 + SQL15, HTTP22 pass.
+- Integrated browser/mobile and live hosted Storage/admin QA pending because
+  local browser control remains disabled. See [[2026-11-06 - Location Content Implementation]].
+
+
 ## Guest Management compatibility fix (2026-11-06)
 
 - Fixed shared guest list/profile reads against the deployed pre-merge/removal

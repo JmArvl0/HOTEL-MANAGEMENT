@@ -14,14 +14,14 @@ describe("owner/admin sidebar category grouping", () => {
     expect(all).toHaveLength(new Set(all).size);
     expect([...all].sort()).toEqual(["admins", "audit", "departments", "exceptions", "financial",
       "operations", "overview", "payments", "policy", "reports", "roles", "room_types", "security",
-      "transport_services", "transportation"]);
+      "transport_services", "transportation", "website_location"]);
   });
   it("covers every Admin module exactly once", () => {
     const all = ADMIN_GROUPS.flatMap((group) => group.sections);
     for (const group of ADMIN_GROUPS) expect(group.sections.length).toBeGreaterThan(0);
     expect(all).toHaveLength(new Set(all).size);
     expect([...all].sort()).toEqual(["audit", "overview", "password_resets", "policy", "reports", "roles",
-      "room_types", "rooms", "security", "security_config", "system", "transport_services", "users"]);
+      "room_types", "rooms", "security", "security_config", "system", "transport_services", "users", "website_location"]);
   });
 });
 

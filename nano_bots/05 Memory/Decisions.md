@@ -4,6 +4,18 @@ Lightweight decision log. Each entry records a choice that constrains future dev
 Trivial implementation details do not belong here. Historical sessions never override the
 current system or `SYSTEM.md` — see [[AI Session Handoff]] for the authority order.
 
+## D-037 — Configurable public location guide with an explicit fictional demo
+
+2026-11-06 user approved the premium photo sections and live map, then said
+“okay implement it.” Add How to Go/Nearby to the existing landing page; preserve
+all other sections and hotel operations. Haven is a placeholder, so address,
+pin, nearby catalog, routes, photos and copy must be admin-managed. User
+explicitly allowed a temporary public-landmark pin/sample images/distances.
+Keep these labeled as demo; real client publication requires verification.
+Use existing Owner/Admin authority and separate content data, not transportation
+fare settings. No paid Google API. See [[2026-11-06 - Location Content Implementation]].
+
+
 ## D-036 — Explicit refund cash source, saved counts and separate submissions
 
 Date: 2026-11-05. Status: User-approved; implemented locally, release pending.
