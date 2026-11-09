@@ -12,21 +12,45 @@
 .rack-notice{margin:0;padding:10px 12px;border:1px solid var(--dl);border-radius:8px;background:var(--ds2);color:var(--dt);font-size:12px;line-height:1.5}
 .board-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,260px);gap:16px;align-items:start}
 .board-main{display:grid;gap:16px;min-width:0}
-.board-groups{display:grid;gap:0;border:1px solid var(--dl);border-radius:12px;background:var(--ds);box-shadow:var(--st-shadow-xs,0 1px 2px rgba(0,0,0,.05));overflow:hidden}
-.board-group{display:grid;grid-template-columns:132px minmax(0,1fr);border-top:1px solid var(--dl)}
+
+/* ---------- Room Management: cards dashboard ---------- */
+.board-groups{display:grid;gap:16px;border:1px solid var(--dl);border-radius:12px;background:var(--ds);box-shadow:var(--st-shadow-xs,0 1px 2px rgba(0,0,0,.05));overflow:hidden}
+.board-group{display:contents;border-top:1px solid var(--dl)}
 .board-group:first-child{border-top:0}
-.board-group-head{display:grid;gap:2px;align-content:start;justify-items:start;padding:12px;border-right:1px solid var(--dl);background:var(--ds2)}
-.board-group-count{color:var(--dt);font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
-.board-group-sub{color:var(--dm);font-size:11px;font-weight:600}
-.board-group-type{margin-top:4px}
-.board-group-breakdown{margin:6px 0 0;padding-left:16px;display:grid;gap:2px;color:var(--dt);font-size:12px;font-weight:700;line-height:1.5;list-style:disc}
-.board-group-breakdown li::marker{color:var(--dm)}
-.board-group-breakdown .breakdown-available::marker{color:#10b981}
-.board-group-breakdown .breakdown-occupied::marker{color:#3b82f6}
-.board-group-breakdown .breakdown-dirty::marker{color:#f59e0b}
-.board-group-breakdown .breakdown-reserved::marker{color:var(--dm)}
-.board-group-breakdown .breakdown-out_of_service::marker{color:#9aa4b5}
-.board-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;padding:12px;align-content:start}
+.board-group-head{display:grid;grid-template-columns:auto auto 1fr;gap:10px 16px;align-items:center;padding:12px 14px;border-right:0;background:var(--ds2)}
+.board-group-title{display:flex;align-items:center;gap:8px;min-width:0}
+.board-group-name{color:var(--dt);font-size:15px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.board-group-count{color:#6b7280;font-size:12px;font-weight:600;white-space:nowrap}
+.board-group-breakdown{display:flex;flex-wrap:wrap;gap:6px 10px;padding:0;margin:0;list-style:none;color:#6b7280;font-size:11px;font-weight:600}
+.board-group-breakdown li{display:flex;align-items:center;gap:4px}
+.board-group-breakdown li::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#9ca3af}
+.board-group-breakdown .breakdown-available li::before{background:#10b981}
+.board-group-breakdown .breakdown-occupied li::before{background:#3b82f6}
+.board-group-breakdown .breakdown-dirty li::before{background:#f59e0b}
+.board-group-breakdown .breakdown-reserved li::before{background:#9ca3af}
+.board-group-breakdown .breakdown-out_of_service li::before{background:#9aa4b5}
+.board-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;padding:12px;align-content:start}
+
+/* Room card — redesigned per room reference */
+.room-card{display:flex;flex-direction:column;gap:8px;min-height:260px;padding:14px;border:1px solid var(--dl);border-radius:12px;background:var(--ds);color:var(--dt);font-family:inherit;cursor:pointer;transition:border-color .15s ease,box-shadow .15s ease,background .15s ease}
+.room-card:hover{border-color:var(--dg);box-shadow:0 4px 12px rgba(0,0,0,.06);background:color-mix(in srgb,var(--dt) 3%,transparent)}
+.room-card.selected{border-color:var(--dg);box-shadow:0 0 0 2px color-mix(in srgb,var(--dg) 35%,transparent)}
+.room-card:focus-visible{outline:2px solid var(--dg);outline-offset:2px}
+.room-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.room-card-menu{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;border:1px solid var(--dl);border-radius:8px;background:transparent;color:var(--dm);cursor:pointer;padding:0}
+.room-card-menu:hover{background:var(--ds2);border-color:var(--dg);color:var(--dt)}
+.room-card-body{display:flex;flex-direction:column;gap:6px;min-height:0}
+.room-card-number{font-size:26px;font-weight:700;letter-spacing:-0.5px}
+.room-card-badges{display:flex;gap:6px;flex-wrap:wrap}
+.room-card-floor{color:#6b7280;font-size:12px}
+.room-card-stay{display:flex;align-items:center;gap:10px;margin-top:2px}
+.room-card-avatar{width:32px;height:32px;border-radius:50%;background:#e5e7eb;object-fit:cover;flex-shrink:0}
+.room-card-stay-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.room-card-guest{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.room-card-range{color:#6b7280;font-size:11.5px;font-variant-numeric:tabular-nums}
+.room-card-empty{color:#9ca3af;font-size:12.5px;font-weight:500;text-align:center;padding-top:6px}
+
+/* Legacy board-card classes retained for any external references */
 .board-card{display:grid;gap:4px;min-height:120px;padding:12px;text-align:left;border:1px solid var(--dl);border-radius:10px;background:transparent;color:var(--dt);font-family:inherit;cursor:pointer}
 .board-card-top{display:flex;align-items:center;justify-content:space-between;gap:6px}
 .board-card-top b{font-size:16px;font-weight:650}
@@ -51,6 +75,8 @@
 .theme-light .app-shell .room-rack .badge.board-state-occupied{color:#1d4ed8}
 .theme-light .app-shell .room-rack .badge.board-state-dirty{color:#b45309}
 .theme-light .app-shell .room-rack .badge.board-state-out_of_service{color:#5b6472}
+
+/* ---------- Date range picker ---------- */
 .board-range{position:relative;display:inline-flex}
 .board-range-trigger{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:10px 12px;border:1px solid var(--dl);border-radius:12px;background:transparent;color:var(--dt);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap}
 .board-range-trigger:hover{border-color:var(--dg)}
@@ -64,6 +90,15 @@
 .theme-light .app-shell .board-date-input{color-scheme:light}
 .board-date-input:hover{border-color:var(--dg)}
 .board-date-input:focus-visible{outline:2px solid var(--dg);outline-offset:2px}
+
+/* ---------- Calendar date navigation ---------- */
+.board-date-nav{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--dl);margin-bottom:4px}
+.board-nav-btn{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;border:1px solid var(--dl);border-radius:8px;background:transparent;color:var(--dt);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer}
+.board-nav-btn:hover{border-color:var(--dg);background:var(--ds2)}
+.board-nav-btn.board-nav-btn-today{border-color:var(--dg);background:color-mix(in srgb,var(--dg) 10%,transparent);color:var(--dt)}
+.board-nav-btn:focus-visible{outline:2px solid var(--dg);outline-offset:2px}
+
+/* ---------- Actions ---------- */
 .board-actions{display:grid;gap:8px}
 .modal-content .board-actions{gap:8px}
 .modal-content .board-action{background:#fff;border-color:#d1d5db;color:#111827;font-size:14px;line-height:1.5;padding:12px 14px}
@@ -74,6 +109,8 @@
 .board-action span b{display:block}
 .board-action span small{display:block;color:var(--dm);font-size:12px}
 .board-action:hover{border-color:var(--dg);background:var(--ds2)}
+
+/* ---------- Ops panel (Needs attention) ---------- */
 .board-ops{display:grid;gap:12px;min-width:0;align-content:start;position:sticky;top:12px;max-height:calc(100vh - 24px);overflow-y:auto}
 .room-rack .board-ops,.room-rack .board-ops .ops-panel ul{scrollbar-width:none}
 .room-rack .board-ops::-webkit-scrollbar,.room-rack .board-ops .ops-panel ul::-webkit-scrollbar{display:none;width:0;height:0}
@@ -91,9 +128,9 @@
 .theme-light .room-rack .board-groups,.theme-light .room-rack .ops-panel{background:#fff}
 .theme-light .room-rack .board-group-head{background:#f3f3f3}
 @media(max-width:1100px){.room-rack .board-layout{grid-template-columns:1fr}.room-rack .board-ops{grid-template-columns:repeat(auto-fit,minmax(240px,1fr));position:static;max-height:none;overflow:visible}}
-@media(max-width:640px){.room-rack .board-group{grid-template-columns:80px minmax(0,1fr)}.room-rack .board-cards{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}}
+@media(max-width:640px){.room-rack .board-group-head{grid-template-columns:1fr}.room-rack .board-cards{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}}
 
-/* Reservation workspace: task queues, contextual actions, and honest history. */
+/* ---------- Reservation workspace: calendar ---------- */
 .room-rack .board-main{display:grid;gap:14px;align-content:start;min-width:0}
 .room-rack .haven-filter-badges{--hc-surface-soft:var(--hc-surface)}
 .app-shell .reservation-workspace{min-width:0;display:grid;gap:18px}
@@ -114,7 +151,7 @@
 @media(max-width:760px){.room-rack .board-ops{grid-row:1;grid-template-columns:1fr}.room-rack .ops-panel ul{grid-template-columns:repeat(auto-fit,minmax(180px,1fr));max-height:220px;overflow:auto}.room-rack .board-tabs .table-scroll{max-width:100%;overflow-x:auto}}
 @media(max-width:600px){.app-shell .reservation-workspace .mod-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.app-shell .reservation-workspace .page-header-actions{width:100%;justify-content:flex-start}.app-shell .reservation-workspace .page-header-actions .btn{min-height:44px}}
 
-/* Dated allocations keep future guests separate from current room condition. */
+/* ---------- Booking calendar ---------- */
 .room-rack .board-layout.room-calendar-layout{grid-template-columns:minmax(0,1fr)}
 .room-rack .room-calendar{min-width:0}
 .room-rack .room-calendar-note{font-size:12px;color:var(--dm);margin:0 0 12px;line-height:1.6}
@@ -131,17 +168,18 @@
 .room-rack .room-calendar-group th>span:last-child{margin-left:8px}
 .room-rack .room-calendar-room{display:grid;justify-items:start;gap:5px;width:100%;min-height:100%;padding:12px;border:0;background:transparent;color:var(--dt);font:inherit;text-align:left;cursor:pointer}
 .room-rack .room-calendar-room small{font-size:12px;color:var(--dm)}
-.room-rack .room-calendar-track{display:grid;position:relative;min-height:86px;border-bottom:1px solid var(--dl)}
-.room-rack .room-calendar-day{border-right:1px solid var(--dl);min-height:86px;pointer-events:none}
+.room-rack .room-calendar-track{display:grid;position:relative;min-height:72px;border-bottom:1px solid var(--dl)}
+.room-rack .room-calendar-day{border-right:1px solid var(--dl);min-height:72px;pointer-events:none}
 .room-rack .room-calendar-day.is-today{background:color-mix(in srgb,var(--dg) 5%,transparent)}
-.room-rack .room-calendar-stay{position:relative;z-index:1;display:grid;gap:3px;align-content:start;min-width:0;margin:8px 4px;padding:10px;text-align:left;background:var(--ops-info-tint);color:var(--dt);border:1px solid var(--dl);border-radius:8px;font:inherit;font-size:13px;cursor:pointer;overflow-wrap:anywhere}
-.room-rack .room-calendar-stay.is-in-house{background:var(--ops-success-tint)}
-.room-rack .room-calendar-stay:hover{border-color:var(--dg)}
+.room-rack .room-calendar-stay{position:relative;z-index:1;display:flex;flex-direction:column;gap:4px;align-content:start;min-width:0;margin:8px 6px;padding:8px 10px;text-align:left;background:color-mix(in srgb,#3b82f6 12%,transparent);color:var(--dt);border:1px solid color-mix(in srgb,#3b82f6 45%,transparent);border-radius:8px;font:inherit;font-size:12.5px;cursor:pointer;overflow-wrap:anywhere;transition:border-color .15s ease,background .15s ease,box-shadow .15s ease}
+.room-rack .room-calendar-stay.is-in-house{background:color-mix(in srgb,#10b981 12%,transparent);border-color:color-mix(in srgb,#10b981 45%,transparent)}
+.room-rack .room-calendar-stay:hover{border-color:var(--dg);box-shadow:0 2px 8px rgba(0,0,0,.08)}
 .room-rack .room-calendar-stay:focus-visible,.room-rack .room-calendar-room:focus-visible{outline:2px solid var(--dg);outline-offset:-2px}
-.room-rack .room-calendar-stay small{font-size:11px;color:var(--dt);font-variant-numeric:tabular-nums}
-.room-rack .room-calendar-vacant{align-self:center;padding:12px;color:var(--dm);font-size:12px;pointer-events:none}
+.room-rack .room-calendar-stay-guest{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.room-rack .room-calendar-stay-meta{display:flex;align-items:center;gap:6px;font-size:10.5px;color:#6b7280;font-variant-numeric:tabular-nums}
+.room-rack .room-calendar-stay-meta span{white-space:nowrap}
+.room-rack .room-calendar-vacant{align-self:center;padding:10px;color:var(--dm);font-size:12px;pointer-events:none}
 .room-rack .room-calendar-unassigned{margin-top:14px;color:var(--dt);font-size:13px}
 .room-rack .room-calendar-unassigned summary{min-height:44px;padding:10px 0;cursor:pointer}
 .room-rack .room-calendar-unassigned ul{padding:0;list-style:none;margin:0}
 .room-rack .room-calendar-unassigned li{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--dl)}
-

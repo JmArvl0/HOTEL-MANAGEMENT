@@ -24,9 +24,9 @@ export default function BoardReservationTabs({ reservations, today, tab, onOpenF
       && `${r.guest_name ?? ""} ${r.confirmation_number ?? ""} ${r.room_number ?? ""} ${r.id}`.toLowerCase().includes(needle));
   }, [reservations, tab, today, closedStatus, search]);
   const page = useTablePagination(visible);
-  return <section className="data-panel board-tabs" aria-label="Reservations">
-    {!visible.length ? <HavenEmptyState icon={<CalendarDays size={22} aria-hidden="true" />} title="No reservations match" body="Try clearing the search, choosing another queue, or changing the date scope." /> : <div className="table-scroll">
-      <table aria-label="Reservation list"><thead><tr><th>Guest / reference</th><th>Room / stay</th><th>Payment</th><th>Status / readiness</th><th>Next action</th></tr></thead>
+  return <section className="data-panel board-tabs" aria-label="Bookings">
+    {!visible.length ? <HavenEmptyState icon={<CalendarDays size={22} aria-hidden="true" />} title="No bookings match" body="Try clearing the search, choosing another queue, or changing the date scope." /> : <div className="table-scroll">
+      <table aria-label="Booking list"><thead><tr><th>Guest / reference</th><th>Room / stay</th><th>Payment</th><th>Status / readiness</th><th>Next action</th></tr></thead>
         <tbody>{page.rows.map(r => {
           const issues = reservationPreview(r, rooms, blockedRoomIds, today);
           const action = reservationNextAction(r, canOperate, today);
@@ -42,6 +42,6 @@ export default function BoardReservationTabs({ reservations, today, tab, onOpenF
         })}</tbody>
       </table>
     </div>}
-    <TablePagination {...page} onPageChange={page.setPage} noun="reservations" note="Readiness is an advisory preview. The protected workflow checks again before saving." />
+    <TablePagination {...page} onPageChange={page.setPage} noun="bookings" note="Readiness is an advisory preview. The protected workflow checks again before saving." />
   </section>;
 }

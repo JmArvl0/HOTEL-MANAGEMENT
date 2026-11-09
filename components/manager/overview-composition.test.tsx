@@ -90,7 +90,7 @@ describe("Overview role composition", () => {
     show("housekeeping", ["overview", "rooms", "housekeeping_tasks", "guest_requests"]);
     expect(screen.getByText("Priority tasks this shift")).toBeTruthy();
     expect(screen.queryByText("Booked occupancy this week")).toBeNull();
-    expect(screen.queryByText("Recent reservations")).toBeNull();
+    expect(screen.queryByText("Recent bookings")).toBeNull();
   });
 
   it("maintenance gets a work-order panel, no chart, and no room creation", () => {

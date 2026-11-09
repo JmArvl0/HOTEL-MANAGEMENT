@@ -17,9 +17,9 @@ export default function RoomBoardOps({ reservations, rooms, blockedRoomIds, toda
     <section className="data-panel ops-panel">
       <h2><ClipboardCheck size={16} aria-hidden="true" /> Needs attention</h2>
       <p className="ops-attention-note">Today and overdue stays · {today}</p>
-      {error ? <div role="alert"><p>{error}</p><button type="button" className="btn btn-soft" onClick={onRetry} disabled={loading}>Retry reservations</button></div> : loading ? <p role="status">Updating reservations…</p> : !attention.length ? <HavenEmptyState icon={<ClipboardCheck size={20} aria-hidden="true" />} title="No flagged stays" body="Final readiness remains available inside each reservation." /> : <>
+      {error ? <div role="alert"><p>{error}</p><button type="button" className="btn btn-soft" onClick={onRetry} disabled={loading}>Retry bookings</button></div> : loading ? <p role="status">Updating bookings…</p> : !attention.length ? <HavenEmptyState icon={<ClipboardCheck size={20} aria-hidden="true" />} title="No flagged stays" body="Final readiness remains available inside each booking." /> : <>
         <ul>{attention.slice(0, 5).map(({ r, issues }) => <li key={r.id} className="ops-attention-item"><StatusBadge status="pending" label={issues[0]} size="sm" /><b>{r.guest_name ?? r.confirmation_number ?? r.id}</b><small>{r.confirmation_number ?? r.id}{r.room_number ? ` · Room ${r.room_number}` : ""}</small>{issues.length > 1 && <small>{issues.slice(1).join(" · ")}</small>}<button type="button" onClick={() => onOpenFolio(r.id)}>{r.status === "checked_in" ? "Review departure" : "Review arrival"}</button></li>)}</ul>
-        {attention.length > 5 && <p className="ops-attention-note">Showing 5 of {attention.length} flagged stays. Review the reservation list for more.</p>}
+        {attention.length > 5 && <p className="ops-attention-note">Showing 5 of {attention.length} flagged stays. Review the booking list for more.</p>}
       </>}
     </section>
   </aside>;

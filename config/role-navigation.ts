@@ -32,7 +32,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", section: "overview", group: "workspace" },
   { label: "Hotel Operations", section: "hotel_operations", roles: ["front_desk","manager","housekeeping","maintenance","accounting"], group: "operations" },
   { label: "Room Management", section: "room_rack", roles: ["front_desk", "manager", "owner"], group: "front_office" },
-  { label: "Reservations", section: "reservations", group: "front_office" },
+  { label: "Bookings", section: "reservations", group: "front_office" },
   // The legacy rooms route remains available for existing links; the room
   // calendar and authorized configuration entry live under Room Management.
   { label: "Rooms", section: "rooms", group: "front_office", hidden: true },

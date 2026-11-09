@@ -39,11 +39,11 @@ describe("room assignment calendar", () => {
     expect(screen.getByRole("button", { name: /Aileen Tan.*room 101/ }).style.gridRow).toBe("2");
   });
 
-  it("keeps unassigned reservations out of physical room lanes and exposes their review action", () => {
+  it("keeps unassigned bookings out of physical room lanes and exposes their review action", () => {
     const open = vi.fn();
     render(<RoomCalendar {...base} onOpenReservation={open} reservations={[{ ...stay, status: "confirmed", room_id: null }]} />);
     expect(screen.queryByRole("button", { name: /Mariel Santos.*room 101/ })).toBeNull();
-    fireEvent.click(screen.getByText(/reservations awaiting room assignment/));
+    fireEvent.click(screen.getByText(/bookings awaiting room assignment/));
     fireEvent.click(screen.getByRole("button", { name: "Review H-041" }));
     expect(open).toHaveBeenCalledWith("current");
   });

@@ -36,7 +36,7 @@ describe("fused room rack style contract", () => {
     expect(css).toContain(".board-range-pop");
     expect(css).toContain(".app-shell .reservation-workspace .page-header-actions");
     expect(css).toContain(".room-rack .board-tabs .table-scroll");
-    expect(css).not.toContain(".board-date-nav");
+    expect(css).toContain(".board-date-nav");
     expect(css).not.toContain(".board-date-field");
     expect(css).not.toContain(".board-tabs-search{");
   });
@@ -55,9 +55,9 @@ describe("fused room rack style contract", () => {
   });
 
   it("renders the breakdown as a bold bulleted list", () => {
-    expect(css).toMatch(/\.board-group-breakdown\{[^}]*font-weight:\s*700/);
-    expect(css).toMatch(/\.board-group-breakdown\{[^}]*list-style:\s*disc/);
-    expect(css).toContain(".breakdown-occupied::marker");
+    expect(css).toMatch(/\.board-group-breakdown\{[^}]*font-weight:\s*600/);
+    expect(css).toMatch(/\.board-group-breakdown\{[^}]*list-style:\s*none/);
+    expect(css).toContain(".breakdown-occupied li::before");
     const board = readFileSync(new URL("./room-board.tsx", import.meta.url), "utf8");
     expect(board).toContain("board-group-breakdown");
     expect(board).toContain("<ul");
