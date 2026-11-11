@@ -6,16 +6,21 @@ import TeamOperationsPanel from "@/components/manager/operational-handover-panel
 import PaymentCollectionDialog from "@/components/manager/payment-collection-dialog";
 import RefundPayoutDialog from "./refund-payout-dialog";
 import CashShiftsWorkspace from "@/components/manager/cash-shifts-workspace";
+import StaffHeaderClock from "./staff-header-clock";
+import StaffBillingWorkspace from "./staff-billing-workspace";
+import { canCollectPayment, canViewGuestContact } from "@/lib/permissions";
 import StockIntegrityPanel from "@/components/manager/stock-integrity-panel";
 import LostFoundPanel from "@/components/manager/lost-found-panel";
- import { useCallback, useEffect, useMemo, useRef, useState } from "react"; import { signOut } from "next-auth/react"; import Link from "next/link"; import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis } from "recharts"; import { Activity, AlertTriangle, BedDouble, Bell, Boxes, Building2, CalendarCheck, CalendarDays, CarTaxiFront, CheckCircle2, ChevronDown, ChevronRight, CircleDollarSign, ClipboardCheck, Clock, DoorClosed, Eye, FileText, Gauge, Landmark, LayoutGrid, ListChecks, LogIn, LogOut, PanelLeftClose, Plus, QrCode, ReceiptText, Scale, Search, Settings, Sparkles, TrendingUp, Users, Wallet, Wrench } from "lucide-react"; import { approvalKind, compareApprovalUrgency, formatDetail, waitingSince } from "@/lib/approval-display"; import { ROOM_TYPE_CHANGE_REASONS, roomTypeChangeReasonLabel, financialDifference, type RoomTypeChangeFinancials } from "@/lib/room-type-change-reasons"; import { requestLabel } from "@/lib/request-options"; import { parseFrozenRates } from "@/lib/rate-plans"; import { depositAgeBand, depositAgeMinutes, formatDepositAge, DEFAULT_DEPOSIT_SLA_HOURS } from "@/lib/deposit-sla"; import { formatPaymentSubmittedAt } from "@/lib/payment-display"; import { filterStaffItems } from "@/lib/staff-search"; import { ASSET_DUE_WINDOWS, assetDueWindow, daysUntil, type MaintenanceAsset } from "@/lib/maintenance-assets"; import { ThemeToggle } from "@/components/theme-toggle"; import { NotificationHistoryModal } from "@/components/customer/notification-history-modal"; import { Modal } from "@/components/ui/Modal"; import { HavenActionItem } from "@/components/ui/haven-action-item"; import { QrScannerModal } from "@/components/qr/qr-scanner"; import { SettingsDialog } from "@/components/ui/SettingsDialog"; import { useNotificationSound } from "@/components/ui/sound-toggle"; import { isRefundActionable, ratePercent } from "@/lib/accounting"; import type { AccountingLedger } from "@/lib/accounting"; import { CHART_GRID, CHART_OCCUPANCY } from "@/lib/chart-tokens"; import type { AccountingSection, DashboardData, ManagerSection, RecordItem, Resource, Role } from "@/lib/types"; import { useActionDialogs } from "@/components/ui/action-dialogs"; import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination"; import RoomCatalogPanel from "@/components/catalog/room-catalog-panel"; import TransportServicesPanel from "@/components/catalog/transport-vehicle-types-panel"; import RequestTypesPanel from "@/components/catalog/request-types-panel"; import TransportationPanel from "@/components/manager/transportation-panel"; import FrontDeskReportsPanel from "@/components/manager/front-desk-reports-panel"; import Reports from "@/components/manager/performance-reports"; import GuestRequestsPanel from "@/components/manager/guest-requests-panel"; import RoomDetailModal from "@/components/manager/room-detail-modal"; import RoomRosterPanel from "@/components/manager/room-roster-panel"; import HousekeepingQueuePanel from "@/components/manager/housekeeping-queue-panel"; import type { AssignmentSuggestion } from "@/lib/housekeeping-suggestions"; import FrontDeskArrivalDialog, { type ArrivalProgress } from "@/components/manager/front-desk-arrival-dialog"; import FrontOfficeRack from "@/components/front-desk/fused-room-rack-panel"; import WalkInDialog from "@/components/manager/walk-in-dialog"; import ExtendStayDialog from "@/components/manager/extend-stay-dialog"; import PredictiveInsightsPanel from "@/components/manager/predictive-insights-panel"; import HavenAiPanel from "@/components/manager/haven-ai-panel"; import StaffDutyPanel from "@/components/manager/staff-duty-panel"; import { ManagerReservationsPanel } from "@/components/manager/manager-reservations-panel"; import { ModuleSummaryCards, type ModuleSummaryCard } from "@/components/manager/module-summary-cards"; import { ToastStack, useToasts } from "@/components/ui/toast-stack"; import { HavenSelect } from "@/components/ui/haven-select"; import { ALL_LOYALTY_TIERS, loyaltyTierOptions, matchesLoyaltyTier } from "@/lib/guest-loyalty"; import { HavenDataToolbar, HavenFilterBadges, HavenSearchInput } from "@/components/ui/haven-data-controls";
+ import { useCallback, useEffect, useMemo, useRef, useState } from "react"; import { signOut } from "next-auth/react"; import Link from "next/link"; import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis } from "recharts"; import { Activity, AlertTriangle, BedDouble, Bell, Boxes, Building2, CalendarCheck, CalendarDays, CarTaxiFront, CheckCircle2, ChevronDown, ChevronRight, CircleDollarSign, ClipboardCheck, Clock, DoorClosed, Eye, FileText, Gauge, Landmark, LayoutGrid, ListChecks, LogIn, LogOut, PanelLeftClose, Plus, QrCode, ReceiptText, Scale, Search, Settings, Sparkles, TrendingUp, Users, Wallet, Wrench } from "lucide-react"; import { ROOM_TYPE_CHANGE_REASONS } from "@/lib/room-type-change-reasons"; import { requestLabel } from "@/lib/request-options"; import { parseFrozenRates } from "@/lib/rate-plans"; import { depositAgeBand, depositAgeMinutes, formatDepositAge, DEFAULT_DEPOSIT_SLA_HOURS } from "@/lib/deposit-sla"; import { formatPaymentSubmittedAt } from "@/lib/payment-display"; import { filterStaffItems } from "@/lib/staff-search"; import { ASSET_DUE_WINDOWS, assetDueWindow, daysUntil, type MaintenanceAsset } from "@/lib/maintenance-assets"; import { ThemeToggle } from "@/components/theme-toggle"; import { NotificationHistoryModal } from "@/components/customer/notification-history-modal"; import { Modal } from "@/components/ui/Modal"; import { HavenActionItem } from "@/components/ui/haven-action-item"; import { QrScannerModal } from "@/components/qr/qr-scanner"; import { SettingsDialog } from "@/components/ui/SettingsDialog"; import { useNotificationSound } from "@/components/ui/sound-toggle"; import { isRefundActionable, ratePercent } from "@/lib/accounting"; import type { AccountingLedger } from "@/lib/accounting"; import { CHART_GRID, CHART_OCCUPANCY } from "@/lib/chart-tokens"; import type { AccountingSection, DashboardData, ManagerSection, RecordItem, Resource, Role } from "@/lib/types"; import { useActionDialogs } from "@/components/ui/action-dialogs"; import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination"; import RoomCatalogPanel from "@/components/catalog/room-catalog-panel"; import TransportServicesPanel from "@/components/catalog/transport-vehicle-types-panel"; import RequestTypesPanel from "@/components/catalog/request-types-panel"; import TransportationPanel from "@/components/manager/transportation-panel"; import FrontDeskReportsPanel from "@/components/manager/front-desk-reports-panel"; import Reports from "@/components/manager/performance-reports"; import GuestRequestsPanel from "@/components/manager/guest-requests-panel"; import RoomDetailModal from "@/components/manager/room-detail-modal"; import RoomRosterPanel from "@/components/manager/room-roster-panel"; import HousekeepingQueuePanel from "@/components/manager/housekeeping-queue-panel"; import type { AssignmentSuggestion } from "@/lib/housekeeping-suggestions"; import FrontDeskArrivalDialog, { type ArrivalProgress } from "@/components/manager/front-desk-arrival-dialog"; import FrontOfficeRack from "@/components/front-desk/fused-room-rack-panel"; import WalkInDialog from "@/components/manager/walk-in-dialog"; import ExtendStayDialog from "@/components/manager/extend-stay-dialog"; import PredictiveInsightsPanel from "@/components/manager/predictive-insights-panel"; import HavenAiPanel from "@/components/manager/haven-ai-panel"; import StaffDutyPanel from "@/components/manager/staff-duty-panel"; import { ManagerReservationsPanel } from "@/components/manager/manager-reservations-panel"; import { ModuleSummaryCards, type ModuleSummaryCard } from "@/components/manager/module-summary-cards"; import { ToastStack, useToasts } from "@/components/ui/toast-stack"; import { ManagerApprovalView } from "@/components/manager/approvals-workspace"; import { HavenSelect } from "@/components/ui/haven-select"; import { ALL_LOYALTY_TIERS, loyaltyTierOptions, matchesLoyaltyTier } from "@/lib/guest-loyalty"; import { HavenDataToolbar, HavenFilterBadges, HavenSearchInput } from "@/components/ui/haven-data-controls";
 import HotelOperationsPanel, { OperatingDateBanner } from "@/components/manager/hotel-operations-panel";
 import ReservationPartyPanel from "@/components/manager/reservation-party-panel";
 import ReservationReadinessPanel from "@/components/manager/reservation-readiness-panel";
-import GuestFlagsPanel, {ReservationDnrOverridePanel} from "@/components/manager/guest-flags-panel";
+import { ReservationDnrOverridePanel } from "@/components/manager/guest-flags-panel";
+import GuestManagementWorkspace from "./guest-management-workspace";
+import { GuestProfileModal, type GuestProfile } from "./guest-profile";
 import HotelFeePicker from "@/components/manager/hotel-fee-picker";
 import UnifiedRoomMatrix from "@/components/shared/unified-room-matrix";
-import { NAV_GROUPS, NAV_ITEMS, canOpenSection, groupedNav as buildGroupedNav, type NavGroupId } from "@/config/role-navigation"; type ReservationDetail = { reservation: RecordItem; guest: RecordItem | null; invoice: RecordItem | null; payments: RecordItem[]; charges: RecordItem[]; adjustments: RecordItem[]; refunds: RecordItem[]; refundAttempts: RecordItem[]; documents: RecordItem[]; changeRequests: RecordItem[]; assignments: RecordItem[]; requests: RecordItem[]; room: RecordItem | null; maintenance: RecordItem[]; transportation?: RecordItem[]; approvals?: RecordItem[]; turnover?: RecordItem | null; }; // Read-only consolidated guest profile (GET /api/staff/guests/[id]) — identity,
+import { NAV_GROUPS, NAV_ITEMS, canOpenSection, groupedNav as buildGroupedNav, type NavGroupId } from "@/config/role-navigation"; type ReservationDetail = { reservation: RecordItem; guest: RecordItem | null; invoice: RecordItem | null; payments: RecordItem[]; charges: RecordItem[]; adjustments: RecordItem[]; refunds: RecordItem[]; refundAttempts: RecordItem[]; documents: RecordItem[]; changeRequests: RecordItem[]; assignments: RecordItem[]; requests: RecordItem[]; room: RecordItem | null; maintenance: RecordItem[]; transportation?: RecordItem[]; approvals?: RecordItem[]; turnover?: RecordItem | null; };
 import { HavenNotificationPopover } from "@/components/ui/haven-notifications";
 import { HavenNotificationBell, ProfilePopover } from "@/components/ui";
 import { PageHeader } from "@/components/ui/Navigation";
@@ -24,9 +29,7 @@ import { HavenLogo } from "@/components/ui/haven-logo";
 import { CommandPalette, type CommandItem } from "@/components/ui/command-palette";
 import { SessionExpiryGuard } from "@/components/auth/session-expiry-guard";
 import PurchaseOrderList, { type PoOrder } from "@/components/manager/inventory-replenishment-panel";
-// stay history, service history, explicit preferences, and a financial summary
-// that only roles allowed to see reservation financials ever receive.
-type GuestProfile = { partyHistory?: RecordItem[]; mergedAliases?: RecordItem[]; guest: RecordItem; stays: RecordItem[]; stayCounts: { current: number; upcoming: number; completed: number; cancelled: number; noShow: number; }; requests: RecordItem[]; transportation: RecordItem[]; assignments: RecordItem[]; approvals: RecordItem[]; invoices: RecordItem[]; financial: { billed: number; paid: number; outstanding: number; } | null; requestOptions: string[]; financialVisible: boolean; }; type User = { id: string; name?: string | null; email?: string | null; role: Role; }; // Roadmap Phase 7 — forecast shortage suggestion (GET /api/inventory/purchase-orders).
+type User = { id: string; name?: string | null; email?: string | null; role: Role; }; // Roadmap Phase 7 — forecast shortage suggestion (GET /api/inventory/purchase-orders).
 type ReplenishmentSuggestion = { itemId: string; name: string; unit: string; currentStock: number; reorderPoint: number; predictedConsumption: number | null; projectedShortage: number | null; suggestedQuantity: number; unitCost: number; riskBasis: string; risk: string; }; type Section = "overview" | "room_rack" | Resource | "reports" | AccountingSection | ManagerSection; const accountingSections: AccountingSection[] = ["transactions", "folios", "cash_shifts", "reconciliation", "documents"]; const isAccountingSection = (value: Section): value is AccountingSection => (accountingSections as string[]).includes(value); const isResourceSection = (value: Section): value is Resource => value !== "overview" && value !== "reports" && value !== "approvals" && value !== "room_rack" && value !== "hotel_operations" && !isAccountingSection(value); // Sidebar categories — presentation only. RBAC (the access map + per-item roles)
 // is untouched; groupedNav simply drops a category whose items were all filtered out.
 const NAV_ICONS: Record<Section, React.ElementType> = { hotel_operations: ClipboardCheck, overview: Gauge, room_rack: LayoutGrid, reservations: CalendarDays, rooms: BedDouble, guests: Users, guest_requests: Bell, transportation: CarTaxiFront, approvals: ClipboardCheck, housekeeping_tasks: ClipboardCheck, maintenance_orders: Wrench, inventory: Boxes, reports: Activity, invoices: ReceiptText, transactions: Activity, folios: FileText, payments: CircleDollarSign, refunds: CircleDollarSign, cash_shifts: Wallet, reconciliation: Scale, documents: Landmark, staff_duty: Users, team_operations: Users, lost_found: Boxes, room_types: Building2, transport_services: CarTaxiFront, request_types: ListChecks, insights: TrendingUp, ai: Sparkles, staff: Users }; export const nav: { label: string; section: Section; icon: React.ElementType; roles?: Role[]; group: NavGroupId; hidden?: boolean; }[] = NAV_ITEMS.map((item) => ({ ...item, icon: NAV_ICONS[item.section] })); export { NAV_GROUPS }; export const groupedNav = (items: typeof nav) => buildGroupedNav(items); // Exported for the pure grouping tests (manager-sidebar-nav.test.tsx).
@@ -104,7 +107,7 @@ export function moduleSummary(resource: Resource, items: RecordItem[], today: st
     { label: "Arrivals needing prep", value: count(item => String(item.check_in) === today && String(item.status) === "confirmed" && (!item.room_number || String(item.identity_status) !== "verified" || Number(item.folio_balance || 0) > 0)), hint: "ID, room or balance pending", icon: LogIn, tone: "attention" }]; case "maintenance_orders": return [{ label: "Unclaimed", value: count(item => ["open", "assigned"].includes(String(item.status))), hint: "Open or assigned", icon: Wrench, tone: "attention" }, { label: "In progress", value: byStatus("in_progress"), hint: "Active repairs", icon: Wrench, tone: "today" }, { label: "Waiting parts / deferred", value: count(item => ["waiting_parts", "deferred"].includes(String(item.status))), hint: "Held work orders", icon: Wrench }, { label: "Blocked rooms", value: count(item => String(item.serviceability_impact) === "blocked"), hint: "Unsellable from diagnosis", icon: BedDouble, tone: "attention" }, { label: "Urgent or critical", value: count(item => ["high", "critical"].includes(String(item.severity))), hint: "High-severity orders", icon: Wrench, tone: "attention" }]; case "rooms": return [{ label: "Available", value: byStatus("available"), hint: "Ready to assign", icon: BedDouble, tone: "done" }, { label: "Dirty", value: byStatus("dirty"), hint: "Awaiting housekeeping", icon: BedDouble, tone: "attention" }, { label: "Maintenance", value: byStatus("maintenance"), hint: "Blocked from sale", icon: Wrench, tone: "attention" }, { label: "Occupied", value: byStatus("occupied"), hint: "Guests in house", icon: Users, tone: "today" }, { label: "Reserved", value: byStatus("reserved"), hint: "Held for arrivals", icon: CalendarDays }]; case "inventory": return [{ label: "Healthy", value: byStatus("healthy"), hint: "Stock above reorder point", icon: Boxes, tone: "done" }, { label: "Low", value: byStatus("low"), hint: "At or near reorder point", icon: Boxes, tone: "attention" }, { label: "Out of stock", value: byStatus("out"), hint: "Needs replenishment", icon: Boxes, tone: "attention" }]; case "payments": return [{ label: "Pending verification", value: byStatus("pending_verification"), hint: "Deposits & stay payments", icon: CircleDollarSign, tone: "attention" }, { label: "Past SLA", value: count(item => item.status === "pending_verification" && depositAgeBand(item.submitted_at, depositSlaHours) === "breach"), hint: depositSlaHours > 0 ? `Waiting over ${depositSlaHours}h` : "SLA tracking off", icon: Clock, tone: "attention" }, { label: "Failed or rejected", value: count(item => ["failed", "rejected"].includes(String(item.status))), hint: "Needs resubmission", icon: CircleDollarSign }]; case "refunds": return [{ label: "Within policy, to settle", value: count(item => item.status !== "processed" && !item.exception_approval_id), hint: "Accounting settles directly", icon: CircleDollarSign, tone: "attention" }, { label: "Awaiting Manager approval", value: count(item => item.status !== "processed" && Boolean(item.exception_approval_id) && item.approval_status === "pending"), hint: "Exception amounts", icon: ClipboardCheck, tone: "attention" }, { label: "Processed", value: byStatus("processed"), hint: "Settled refunds", icon: CheckCircle2, tone: "done" }, { label: "Failed", value: byStatus("failed"), hint: "Retryable", icon: CircleDollarSign, tone: "attention" }]; case "invoices": return [{ label: "Unpaid", value: byStatus("unpaid"), hint: "No payment recorded", icon: ReceiptText, tone: "attention" }, { label: "Partial", value: byStatus("partial"), hint: "Balance remaining", icon: ReceiptText, tone: "attention" }, { label: "Paid", value: byStatus("paid"), hint: "Settled folios", icon: CheckCircle2, tone: "done" }, { label: "Outstanding balance", value: peso(items.reduce((sum, item) => sum + Number(item.balance || 0), 0)), hint: "Across all folios", icon: ReceiptText, tone: "today" }]; case "guest_requests": return [{ label: "Open", value: byStatus("open"), hint: "Awaiting the department", icon: Bell, tone: "attention" }, { label: "In progress", value: byStatus("in_progress"), hint: "Being handled", icon: Bell, tone: "today" }, { label: "Completed", value: byStatus("completed"), hint: "Resolved requests", icon: CheckCircle2, tone: "done" }, { label: "Escalated", value: count(item => String(item.escalation_status) === "escalated"), hint: "Raised to Manager", icon: Bell, tone: "attention" }]; default: return [];
   }
 } // Real request_type categories from the backend — the only groups the type filter offers.
-const approvalTypeGroups: [string, string[]][] = [["Operational", ["room_upgrade", "room_type_exception", "reservation_modification", "early_check_in", "late_checkout", "stay_extension"]], ["Financial", ["guest_compensation", "refund_exception", "checkout_exception"]], ["Escalation", ["guest_escalation"]]]; const access: Record<Role, Section[]> = { owner: [], admin: [], manager: ["hotel_operations", "team_operations", "lost_found", "overview", "reservations", "rooms", "guests", "guest_requests", "transportation", "room_types", "transport_services", "request_types", "staff_duty", "housekeeping_tasks", "maintenance_orders", "inventory", "approvals", "reports", "insights", "ai"], front_desk: ["hotel_operations", "team_operations", "lost_found", "overview", "reservations", "rooms", "guests", "guest_requests", "transportation", "housekeeping_tasks", "invoices", "payments", "transactions", "folios", "cash_shifts", "documents", "approvals", "reports"], housekeeping: ["hotel_operations", "team_operations", "lost_found", "overview", "rooms", "guest_requests", "housekeeping_tasks", "inventory", "approvals"], maintenance: ["hotel_operations", "team_operations", "overview", "rooms", "guest_requests", "maintenance_orders", "inventory", "approvals"], accounting: ["hotel_operations", "team_operations", "overview", "reservations", "invoices", "payments", "refunds", "reports", "transactions", "folios", "cash_shifts", "reconciliation", "documents", "approvals"], guest: ["overview", "reservations", "invoices"] }; // Validators + option builders shared by the in-app dialog forms. FormDialog is
+const access: Record<Role, Section[]> = { owner: [], admin: [], manager: ["hotel_operations", "team_operations", "lost_found", "overview", "reservations", "rooms", "guests", "guest_requests", "transportation", "room_types", "transport_services", "request_types", "staff_duty", "housekeeping_tasks", "maintenance_orders", "inventory", "approvals", "reports", "insights", "ai"], front_desk: ["hotel_operations", "team_operations", "lost_found", "overview", "reservations", "rooms", "guests", "guest_requests", "transportation", "housekeeping_tasks", "invoices", "payments", "transactions", "folios", "cash_shifts", "documents", "approvals", "reports"], housekeeping: ["hotel_operations", "team_operations", "lost_found", "overview", "rooms", "guest_requests", "housekeeping_tasks", "inventory", "approvals"], maintenance: ["hotel_operations", "team_operations", "overview", "rooms", "guest_requests", "maintenance_orders", "inventory", "approvals"], accounting: ["hotel_operations", "team_operations", "overview", "reservations", "invoices", "payments", "refunds", "reports", "transactions", "folios", "cash_shifts", "reconciliation", "documents", "approvals"], guest: ["overview", "reservations", "invoices"] }; // Validators + option builders shared by the in-app dialog forms. FormDialog is
 // noValidate and only validates fields that carry an explicit .validation callback,
 // so every "required" field in these forms must supply one (see FormDialog.tsx).
 const required = (message = "This field is required.") => (v: string | number | boolean) => String(v ?? "").trim() ? null : message; const positive = (message = "Amount must be greater than zero.") => (v: string | number | boolean) => { const s = String(v ?? "").trim(); const n = Number(s); return s !== "" && Number.isFinite(n) && n > 0 ? null : message; }; const nonNegative = (message = "Amount cannot be negative.") => (v: string | number | boolean) => { const s = String(v ?? "").trim(); const n = Number(s); return s !== "" && Number.isFinite(n) && n >= 0 ? null : message; }; const dateField = (message = "Enter a valid date (YYYY-MM-DD).") => (v: string | number | boolean) => /^\d{4}-\d{2}-\d{2}$/.test(String(v ?? "").trim()) ? null : message; const options = (...values: string[]) => values.map(value => ({ value, label: label(value) })); export default function ManagerDashboardClient({ user, sessionExpiresAt }: { user: User; sessionExpiresAt?: string | null; }) {
@@ -112,6 +115,7 @@ const required = (message = "This field is required.") => (v: string | number | 
   const [cashHandoverSource, setCashHandoverSource] = useState<{ type: "cash_shift"; id: string; summary: string } | undefined>();
   const [cashReportDate, setCashReportDate] = useState<string | undefined>();
   const [paymentTarget, setPaymentTarget] = useState<RecordItem | null>(null);
+  const [billingRefreshVersion, setBillingRefreshVersion] = useState(0);
   const [cashRefreshError, setCashRefreshError] = useState("");
   const [cashHandoverFocus, setCashHandoverFocus] = useState<string | undefined>();
   const [section, setSection] = useState<Section>("overview"); const [rackRefreshVersion, setRackRefreshVersion] = useState(0); const [dashboard, setDashboard] = useState<DashboardData | null>(null); const [ledger, setLedger] = useState<AccountingLedger | null>(null); const [items, setItems] = useState<RecordItem[]>([]); const [mode, setMode] = useState("demo"); const [loading, setLoading] = useState(true); const [loadError, setLoadError] = useState(""); const [searchBySection, setSearchBySection] = useState<Record<string, string>>({}); const search = searchBySection[section] ?? ""; const sectionRef = useRef<Section>(section); useEffect(() => { sectionRef.current = section; }, [section]); const setSearch = useCallback((value: string) => { const target = sectionRef.current; setSearchBySection(previous => ({ ...previous, [target]: value })); }, []); const setSearchForSection = useCallback((target: Section, value: string) => { setSearchBySection(previous => ({ ...previous, [target]: value })); }, []); const [modal, setModal] = useState(false); const [menu, setMenu] = useState(false); // Transient toast stack — one controller for both surfaces: new-alert toasts
@@ -202,7 +206,7 @@ const required = (message = "This field is required.") => (v: string | number | 
   const financialAuthority = ["accounting"].includes(user.role); const cashHandling = ["front_desk", "accounting"].includes(user.role); const operational = ["front_desk"].includes(user.role); // Mirror of canManageCatalog in lib/admin-route (server-only module, so not
   // importable here). guardCatalog re-checks it and admin_create_room /
   // admin_update_room_metadata gate on it again.
-  const catalogAuthority = ["owner", "admin", "manager"].includes(user.role); const load = useCallback(async (quiet = false) => { if (!quiet) { setLoading(true); setLoadError(""); } if (section === "room_rack") { setRackRefreshVersion(value => value + 1); if (!quiet) setLoading(false); return; } if (section === "hotel_operations" || section === "inventory" || section === "team_operations" || section === "lost_found" || section === "room_types" || section === "reservations" && user.role === "front_desk" || section === "transport_services" || section === "request_types" || section === "transportation" || section === "insights" || section === "ai" || section === "staff_duty" || section === "guest_requests" && ["front_desk", "manager", "housekeeping"].includes(user.role)) { if (!quiet) setLoading(false); return; } const accounting = isAccountingSection(section), approvals = section === "approvals"; const url = section === "overview" || section === "reports" ? "/api/manager_dashboard" : accounting ? "/api/accounting/ledger" : approvals ? "/api/manager/approvals" : `/api/resources/${section}`; try { const res = await fetch(url, { cache: "no-store" }); const body = await res.json().catch(() => ({})); if (!res.ok) throw new Error(body.error ?? "Unable to load this module."); if (accounting) { setLedger(body.data); if (section === "cash_shifts") setCashRefreshError(""); } else if (section === "overview" || section === "reports") { setDashboard(body.data); setMode(body.mode || "demo"); } else setItems(body.data); setLoadError(""); } catch (cause) { if (quiet && section === "cash_shifts") setCashRefreshError(cause instanceof Error ? cause.message : "Unable to refresh cash ledger."); if (!quiet) setLoadError(cause instanceof Error && cause.message !== "Failed to fetch" ? cause.message : "Unable to reach the hotel service. Check your connection and try again."); } finally { if (!quiet) setLoading(false); } }, [section, user.role]); // Header pill: the shared drawer state (one open shift property-wide), polled
+  const catalogAuthority = ["owner", "admin", "manager"].includes(user.role); const load = useCallback(async (quiet = false) => { if (section === "guests" && canViewGuestContact(user.role)) return; if (section === "invoices" && canCollectPayment(user.role)) { if (quiet) setBillingRefreshVersion(value => value + 1); return; } if (!quiet) { setLoading(true); setLoadError(""); } if (section === "room_rack") { setRackRefreshVersion(value => value + 1); if (!quiet) setLoading(false); return; } if (section === "hotel_operations" || section === "inventory" || section === "team_operations" || section === "lost_found" || section === "room_types" || section === "reservations" && user.role === "front_desk" || section === "transport_services" || section === "request_types" || section === "transportation" || section === "insights" || section === "ai" || section === "staff_duty" || section === "guest_requests" && ["front_desk", "manager", "housekeeping"].includes(user.role)) { if (!quiet) setLoading(false); return; } const accounting = isAccountingSection(section), approvals = section === "approvals"; const url = section === "overview" || section === "reports" ? "/api/manager_dashboard" : accounting ? "/api/accounting/ledger" : approvals ? "/api/manager/approvals" : `/api/resources/${section}`; try { const res = await fetch(url, { cache: "no-store" }); const body = await res.json().catch(() => ({})); if (!res.ok) throw new Error(body.error ?? "Unable to load this module."); if (accounting) { setLedger(body.data); if (section === "cash_shifts") setCashRefreshError(""); } else if (section === "overview" || section === "reports") { setDashboard(body.data); setMode(body.mode || "demo"); } else setItems(body.data); setLoadError(""); } catch (cause) { if (quiet && section === "cash_shifts") setCashRefreshError(cause instanceof Error ? cause.message : "Unable to refresh cash ledger."); if (!quiet) setLoadError(cause instanceof Error && cause.message !== "Failed to fetch" ? cause.message : "Unable to reach the hotel service. Check your connection and try again."); } finally { if (!quiet) setLoading(false); } }, [section, user.role]); // Header pill: the shared drawer state (one open shift property-wide), polled
   // like the section data and refreshed immediately after open/close below.
   // `mine` tells whether the signed-in cashier opened it; non-openers see who did.
   const refreshShiftStatus = useCallback(async () => { try { const response = await fetch("/api/accounting/cash-shifts", { cache: "no-store" }); const body = await response.json(); if (response.ok && body.data) setMyShift({ open: Boolean(body.data.open), mine: Boolean(body.data.mine), location: body.data.shift?.location ?? null, opened_at: body.data.shift?.opened_at ?? null, staff_name: body.data.shift?.staff_name ?? null, staff_user_id: body.data.shift?.staff_user_id ?? null }); } catch { } }, []); useEffect(() => { if (!cashHandling) return; const initial = window.setTimeout(() => refreshShiftStatus(), 0); const timer = window.setInterval(refreshShiftStatus, 30000); return () => { window.clearTimeout(initial); window.clearInterval(timer); }; }, [cashHandling, refreshShiftStatus]); useEffect(() => { const initial = window.setTimeout(() => load(), 0); const timer = window.setInterval(() => load(true), 30000); return () => { window.clearTimeout(initial); window.clearInterval(timer); }; }, [load]); // Alert/badge refresh: sections other than Overview/Reports don't load the
@@ -225,7 +229,7 @@ const required = (message = "This field is required.") => (v: string | number | 
   // in-app RoomSelectDialog (touch-friendly) - null means the operator cancelled.
   async function chooseEligibleRoom(item: RecordItem, promptText: string, includeUpgrades = false): Promise<string | null> { const response = await fetch(`/api/front-desk/reservations/${item.id}/eligible-rooms${includeUpgrades ? "?mode=change" : ""}`, { cache: "no-store" }); const body = await response.json(); if (!response.ok) { notify(body.error ?? "Unable to load eligible rooms."); return null; } const rooms = (body.data ?? []) as RecordItem[]; if (!rooms.length) { notify("No clean, serviceable, conflict-free room of this type is currently eligible."); return null; } return dialogs.askRoom({ title: "Select Room", message: `${promptText}\nEligible rooms: ${rooms.map(r => `${r.number} (${r.type})`).join(", ")}`, rooms: rooms.map(r => ({ number: String(r.number), type: String(r.type), id: String(r.id), colorKey: r.badgeColorKey as string | null ?? null })), currentRoom: String(item.room_number ?? rooms[0].number) }); } // Guided arrival → room assignment → check-in. The wizard drives the same
   // server-authoritative gates as the one-shot flow it replaces.
-  async function openArrival(item: RecordItem, exceptionType?: string | null) { setDetail(null); setArrival({ item, exceptionType: exceptionType ?? null }); } async function handleCheckedIn() { setArrival(null); setArrivalResume(prev => { if (!arrival) return prev; const key = String(arrival.item.id) + ":" + String(arrival.exceptionType ?? ""); if (!(key in prev)) return prev; const next = { ...prev }; delete next[key]; return next; }); notify("Guest checked in and the active room assignment was recorded."); await load(); } const arrivalKey = arrival ? String(arrival.item.id) + ":" + String(arrival.exceptionType ?? "") : ""; // Progress reported by the wizard, keyed to the open reservation. The shallow-equality
+  async function openArrival(item: RecordItem, exceptionType?: string | null) { setDetail(null); setArrival({ item, exceptionType: exceptionType ?? null }); } async function handleCheckedIn() { setArrival(null); setArrivalResume(prev => { if (!arrival) return prev; const key = String(arrival.item.id) + ":" + String(arrival.exceptionType ?? ""); if (!(key in prev)) return prev; const next = { ...prev }; delete next[key]; return next; }); notify("Guest checked in and the active room assignment was recorded."); await load(section === "approvals"); } const arrivalKey = arrival ? String(arrival.item.id) + ":" + String(arrival.exceptionType ?? "") : ""; // Progress reported by the wizard, keyed to the open reservation. The shallow-equality
   // bail-out keeps unchanged reports from re-rendering the dashboard.
   const handleArrivalProgress = useCallback((p: ArrivalProgress) => { setArrivalResume(prev => { const old = prev[arrivalKey]; return old && old.step === p.step && old.selected === p.selected && old.exceptionMode === p.exceptionMode ? prev : { ...prev, [arrivalKey]: p }; }); }, [arrivalKey]); // Walk-in guest at the desk: staged dialog → POST /api/front-desk/reservations with
   // source fixed to "Walk-In" (server-authoritative, atomic RPC) → hand the created
@@ -239,7 +243,7 @@ const required = (message = "This field is required.") => (v: string | number | 
   function extendStay(item: RecordItem) { setExtendStayOpen({ reservation: item, transportation: detail?.transportation }); } async function updateGuest(item: RecordItem) { const data = await dialogs.askForm({ title: "Update guest details", description: "Operational contact and stay notes for this reservation.", fields: [{ key: "phone", label: "Guest phone (leave blank to keep current)", type: "tel", defaultValue: String(item.guest_phone ?? "") }, { key: "expectedArrival", label: "Expected arrival / operational arrival note", type: "text", defaultValue: String(item.expected_arrival ?? "") }, { key: "notes", label: "Operational guest notes / requests", type: "textarea", rows: 4, defaultValue: String(item.special_requests ?? "") }], submitText: "Save details" }); if (!data) return; const phone = String(data.phone); const expectedArrival = String(data.expectedArrival); const notes = String(data.notes); if (!phone && !expectedArrival && !notes) return; const res = await fetch(`/api/front-desk/reservations/${item.id}/guest`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone: phone || undefined, expectedArrival: expectedArrival || undefined, notes: notes || undefined }) }); const body = await res.json(); if (!res.ok) { notify(body.error ?? "Unable to update guest information."); return; } notify("Guest operational information updated and audited."); await viewReservation(item); } async function routeRequest(item: RecordItem) { const data = await dialogs.askForm({ title: "Route guest request", description: "Log and route a guest need to the responsible hotel team.", fields: [{ key: "department", label: "Route to", type: "select", required: true, defaultValue: "front_desk", options: options("front_desk", "housekeeping", "maintenance"), validation: required("Choose a department.") }, { key: "description", label: "Describe the guest request", type: "textarea", required: true, validation: required("Describe the guest request.") }, { key: "priority", label: "Priority", type: "select", required: true, defaultValue: "normal", options: options("normal", "high", "urgent"), validation: required("Choose a priority.") }], submitText: "Route request" }); if (!data) return; const department = String(data.department); const description = String(data.description); const priority = String(data.priority); const res = await fetch(`/api/front-desk/reservations/${item.id}/requests`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ department, description, priority }) }); const body = await res.json(); if (!res.ok) { notify(body.error ?? "Unable to route request."); return; } notify(`Request routed to ${label(department)}.`); await viewReservation(item); } // Verify opens a preview modal (PaymentRecordDialog) so Accounting can
   // cross-reference the submitted proof against the reservation before
   // deciding — it never approves straight from the table row.
-  function verifyDeposit(item: RecordItem) { setVerifying(false); setVerifyPayment(item); } async function confirmVerifyDeposit(item: RecordItem) { const stayPayment = item.purpose === "stay_payment"; setVerifying(true); const res = await fetch(stayPayment ? `/api/accounting/payments/${item.id}/verify` : `/api/front-desk/deposits/${item.id}/verify`, stayPayment ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision: "approve" }) } : { method: "POST" }); const body = await res.json(); setVerifying(false); if (!res.ok) { notify(body.error ?? "Unable to verify payment."); return; } setVerifyPayment(null); notify(stayPayment ? "Stay payment verified and applied to the folio." : "Reservation deposit verified and booking confirmed."); await load(); } async function collectPayment(item: RecordItem) { setPaymentTarget(item); } async function postCharge(item: RecordItem) { const data = await dialogs.askForm({ title: "Post folio charge", description: "Add a charge to the guest folio. Folio corrections belong to Accounting adjustments, not charges.", fields: [{ key: "description", label: "Charge description", type: "text", required: true, validation: required("Describe the charge.") }, { key: "category", label: "Category", type: "select", required: true, defaultValue: "incidental", options: options("incidental", "room_service", "laundry", "minibar", "extension"), validation: required("Choose a supported folio category.") }, { key: "amount", label: "Charge amount (PHP)", type: "number", required: true, min: 0.01, step: 0.01, validation: positive("Enter a charge amount greater than zero.") }], submitText: "Post charge" }); if (!data) return; const description = String(data.description); const category = String(data.category); const amount = Number(data.amount); const res = await fetch(`/api/front-desk/reservations/${item.id}/charge`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ description, category, amount, idempotencyKey: crypto.randomUUID() }) }); const body = await res.json(); if (!res.ok) { notify(body.error ?? "Unable to post charge."); return; } notify("Charge posted to the folio."); await viewReservation(item); await load(true); } async function checkOut(item: RecordItem) { const ok = await dialogs.askConfirm({ title: "Check out guest", message: "Check out this guest? The room will be marked dirty and a turnover task will be created.", confirmText: "Check out", variant: "danger" }); if (!ok) return; const res = await fetch(`/api/front-desk/reservations/${item.id}/checkout`, { method: "POST" }); const body = await res.json(); if (!res.ok) { notify(body.error ?? "Unable to complete checkout."); return; } setDetail(null); notify("Guest checked out; room turnover was created."); await load(); } const post = async (url: string, payload: unknown, method = "POST") => { const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }); return { ok: res.ok, body: await res.json() }; }; function processRefund(item: RecordItem) { setRefundPayout(item); } async function failRefund(item: RecordItem) { const reason = await dialogs.askPrompt({ title: "Record refund failure", message: "Why did this refund attempt fail? The request stays retryable.", label: "Reason", multiline: true, rows: 3, required: true, validation: required("Explain why the attempt failed.") }); if (!reason) return; const { ok, body } = await post(`/api/accounting/refunds/${item.id}/fail`, { reason }); if (!ok) { notify(body.error ?? "Unable to record this refund failure."); return; } notify(`Failed attempt recorded. Attempts: ${body.data?.attempts ?? 1}.`); await load(); } async function rejectDeposit(item: RecordItem) { const stayPayment = item.purpose === "stay_payment"; const reason = await dialogs.askPrompt({ title: stayPayment ? "Reject stay payment" : "Reject deposit", message: `Why is this ${stayPayment ? "stay payment" : "deposit"} being rejected? The submitted payment record is kept, never deleted.`, label: "Reason", multiline: true, rows: 3, required: true, validation: required("Explain the rejection.") }); if (!reason) return; const { ok, body } = await post(stayPayment ? `/api/accounting/payments/${item.id}/verify` : `/api/accounting/payments/${item.id}/reject`, stayPayment ? { decision: "reject", reason } : { reason }); if (!ok) { notify(body.error ?? "Unable to reject this payment."); return; } notify(stayPayment ? "Stay payment proof rejected and preserved for audit." : "Deposit rejected. The submission was preserved and the reservation released."); await load(); } async function reverseCharge(item: RecordItem) { const data = await dialogs.askForm({ title: "Reverse folio charge", description: `The original charge stays on record; this reversal nets it out. Leaving the amount blank reverses the whole remaining ${pesoExact(item.amount)}.`, fields: [{ key: "amount", label: "Reversal amount (PHP) - blank reverses the full amount", type: "number", min: 0.01, step: 0.01, validation: (v: string | number | boolean) => { const s = String(v ?? "").trim(); return s === "" ? null : Number.isFinite(Number(s)) && Number(s) > 0 ? null : "Enter a positive amount or leave it blank."; } }, { key: "reason", label: "Required reason for this reversal", type: "textarea", required: true, validation: required("A reason is required for the reversal.") }], submitText: "Reverse charge" }); if (!data) return; const amount = String(data.amount).trim() ? Number(data.amount) : undefined; const reason = String(data.reason); const { ok, body } = await post(`/api/accounting/charges/${item.id}/reverse`, { amount, reason, idempotencyKey: crypto.randomUUID() }); if (!ok) { notify(body.error ?? "Unable to reverse this charge."); return; } notify(`Charge reversed by ${pesoExact(body.data?.amount)}; the original charge was preserved.`); await load(true); if (detail) await viewReservation(detail.reservation); } async function recordAdjustment(reservationId: string) { const data = await dialogs.askForm({ title: "Adjust folio", description: "Financial corrections are recorded as new entries - nothing is overwritten.", fields: [{ key: "transactionType", label: "Type", type: "select", required: true, defaultValue: "adjustment", options: options("adjustment", "credit", "write_off"), validation: required("Choose adjustment, credit, or write_off.") }, { key: "direction", label: "Direction (debit increases the folio, credit reduces it)", type: "select", required: true, defaultValue: "credit", options: options("debit", "credit"), dependsOn: "transactionType", showWhen: (v: string | number | boolean) => v === "adjustment", validation: required("Choose debit or credit.") }, { key: "amount", label: "Amount (PHP)", type: "number", required: true, min: 0.01, step: 0.01, validation: positive("Enter an amount greater than zero.") }, { key: "reason", label: "Required reason for this adjustment", type: "textarea", required: true, validation: required("A reason is required.") }], submitText: "Record adjustment" }); if (!data) return; const transactionType = String(data.transactionType); const direction = String(data.direction); const amount = Number(data.amount); const reason = String(data.reason); const { ok, body } = await post("/api/accounting/adjustments", { reservationId, transactionType, direction, amount, reason, idempotencyKey: crypto.randomUUID() }); if (!ok) { notify(body.error ?? "Unable to record this adjustment."); return; } notify(`${label(transactionType)} recorded. Folio balance: ${pesoExact(body.data?.balance)}.`); await load(true); if (detail) await viewReservation(detail.reservation); } async function openCashShift() { const data = await dialogs.askForm({ title: "Open cash shift", fields: [{ key: "openingAmount", label: "Opening cash float (PHP)", type: "number", required: true, defaultValue: 0, min: 0, step: 0.01, validation: nonNegative("The opening float cannot be negative.") }, { key: "location", label: "Cash point / location (optional)", type: "text" }], submitText: "Open shift" }); if (!data) return; const openingAmount = Number(data.openingAmount); const location = String(data.location).trim(); const { ok, body } = await post("/api/accounting/cash-shifts", { openingAmount, location: location || undefined }); if (!ok) { notify(body.error ?? "Unable to open a cash shift."); return; } notify("Cash shift opened."); await load(true); await refreshShiftStatus(); } async function recordReconciliation() { const data = await dialogs.askForm({ title: "Record reconciliation", description: "Compare recorded collections against an external statement figure. Variance is recorded - never used to edit a guest payment.", fields: [{ key: "periodStart", label: "Period start (YYYY-MM-DD)", type: "date", required: true, validation: dateField() }, { key: "periodEnd", label: "Period end (YYYY-MM-DD)", type: "date", required: true, validation: dateField() }, { key: "method", label: "Payment method as recorded", type: "select", required: true, defaultValue: "cash", options: options("cash", "card", "bank_transfer", "gcash"), validation: required("Choose the payment method.") }, { key: "settledAmount", label: "Settled amount from the external statement (PHP)", type: "number", required: true, min: 0, step: 0.01, validation: nonNegative("Enter the settled amount from the statement.") }, { key: "notes", label: "Variance explanation / notes", type: "textarea", rows: 3 }], submitText: "Record reconciliation" }); if (!data) return; const periodStart = String(data.periodStart); const periodEnd = String(data.periodEnd); const method = String(data.method); const settledAmount = Number(data.settledAmount); const notes = String(data.notes).trim(); const { ok, body } = await post("/api/accounting/reconciliations", { periodStart, periodEnd, method, settledAmount, notes: notes || undefined, idempotencyKey: crypto.randomUUID() }); if (!ok) { notify(body.error ?? "Unable to record this reconciliation."); return; } notify(`Reconciliation ${label(body.data?.status)}: recorded ${pesoExact(body.data?.expectedAmount)} against ${pesoExact(settledAmount)}.`); await load(true); } async function generateDocument(payload: { documentType: "receipt"; paymentId: string; } | { documentType: "folio"; reservationId: string; }) { const { ok, body } = await post("/api/accounting/documents", { ...payload, idempotencyKey: crypto.randomUUID() }); if (!ok) { notify(body.error ?? "Unable to generate this document."); return; } notify(`${payload.documentType === "receipt" ? "Receipt" : "Folio statement"} ${label(body.data?.documentNumber)} issued.`); await load(true); } async function requestManagerApproval(item: RecordItem) { // Upgrade targets come from the live rooms list (distinct types). Roles without
+  function verifyDeposit(item: RecordItem) { setVerifying(false); setVerifyPayment(item); } async function confirmVerifyDeposit(item: RecordItem) { const stayPayment = item.purpose === "stay_payment"; setVerifying(true); const res = await fetch(stayPayment ? `/api/accounting/payments/${item.id}/verify` : `/api/front-desk/deposits/${item.id}/verify`, stayPayment ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision: "approve" }) } : { method: "POST" }); const body = await res.json(); setVerifying(false); if (!res.ok) { notify(body.error ?? "Unable to verify payment."); return; } setVerifyPayment(null); notify(stayPayment ? "Stay payment verified and applied to the folio." : "Reservation deposit verified and booking confirmed."); await load(section === "invoices"); } async function collectPayment(item: RecordItem) { setPaymentTarget(item); } async function postCharge(item: RecordItem) { const data = await dialogs.askForm({ title: "Post folio charge", description: "Add a charge to the guest folio. Folio corrections belong to Accounting adjustments, not charges.", fields: [{ key: "description", label: "Charge description", type: "text", required: true, validation: required("Describe the charge.") }, { key: "category", label: "Category", type: "select", required: true, defaultValue: "incidental", options: options("incidental", "room_service", "laundry", "minibar", "extension"), validation: required("Choose a supported folio category.") }, { key: "amount", label: "Charge amount (PHP)", type: "number", required: true, min: 0.01, step: 0.01, validation: positive("Enter a charge amount greater than zero.") }], submitText: "Post charge" }); if (!data) return; const description = String(data.description); const category = String(data.category); const amount = Number(data.amount); const res = await fetch(`/api/front-desk/reservations/${item.id}/charge`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ description, category, amount, idempotencyKey: crypto.randomUUID() }) }); const body = await res.json(); if (!res.ok) { notify(body.error ?? "Unable to post charge."); return; } notify("Charge posted to the folio."); await viewReservation(item); await load(true); } async function checkOut(item: RecordItem) { const ok = await dialogs.askConfirm({ title: "Check out guest", message: "Check out this guest? The room will be marked dirty and a turnover task will be created.", confirmText: "Check out", variant: "danger" }); if (!ok) return; const res = await fetch(`/api/front-desk/reservations/${item.id}/checkout`, { method: "POST" }); const body = await res.json(); if (!res.ok) { notify(body.error ?? "Unable to complete checkout."); return; } setDetail(null); notify("Guest checked out; room turnover was created."); await load(); } const post = async (url: string, payload: unknown, method = "POST") => { const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }); return { ok: res.ok, body: await res.json() }; }; function processRefund(item: RecordItem) { setRefundPayout(item); } async function failRefund(item: RecordItem) { const reason = await dialogs.askPrompt({ title: "Record refund failure", message: "Why did this refund attempt fail? The request stays retryable.", label: "Reason", multiline: true, rows: 3, required: true, validation: required("Explain why the attempt failed.") }); if (!reason) return; const { ok, body } = await post(`/api/accounting/refunds/${item.id}/fail`, { reason }); if (!ok) { notify(body.error ?? "Unable to record this refund failure."); return; } notify(`Failed attempt recorded. Attempts: ${body.data?.attempts ?? 1}.`); await load(); } async function rejectDeposit(item: RecordItem) { const stayPayment = item.purpose === "stay_payment"; const reason = await dialogs.askPrompt({ title: stayPayment ? "Reject stay payment" : "Reject deposit", message: `Why is this ${stayPayment ? "stay payment" : "deposit"} being rejected? The submitted payment record is kept, never deleted.`, label: "Reason", multiline: true, rows: 3, required: true, validation: required("Explain the rejection.") }); if (!reason) return; const { ok, body } = await post(stayPayment ? `/api/accounting/payments/${item.id}/verify` : `/api/accounting/payments/${item.id}/reject`, stayPayment ? { decision: "reject", reason } : { reason }); if (!ok) { notify(body.error ?? "Unable to reject this payment."); return; } notify(stayPayment ? "Stay payment proof rejected and preserved for audit." : "Deposit rejected. The submission was preserved and the reservation released."); await load(section === "invoices"); } async function reverseCharge(item: RecordItem) { const data = await dialogs.askForm({ title: "Reverse folio charge", description: `The original charge stays on record; this reversal nets it out. Leaving the amount blank reverses the whole remaining ${pesoExact(item.amount)}.`, fields: [{ key: "amount", label: "Reversal amount (PHP) - blank reverses the full amount", type: "number", min: 0.01, step: 0.01, validation: (v: string | number | boolean) => { const s = String(v ?? "").trim(); return s === "" ? null : Number.isFinite(Number(s)) && Number(s) > 0 ? null : "Enter a positive amount or leave it blank."; } }, { key: "reason", label: "Required reason for this reversal", type: "textarea", required: true, validation: required("A reason is required for the reversal.") }], submitText: "Reverse charge" }); if (!data) return; const amount = String(data.amount).trim() ? Number(data.amount) : undefined; const reason = String(data.reason); const { ok, body } = await post(`/api/accounting/charges/${item.id}/reverse`, { amount, reason, idempotencyKey: crypto.randomUUID() }); if (!ok) { notify(body.error ?? "Unable to reverse this charge."); return; } notify(`Charge reversed by ${pesoExact(body.data?.amount)}; the original charge was preserved.`); await load(true); if (detail) await viewReservation(detail.reservation); } async function recordAdjustment(reservationId: string) { const data = await dialogs.askForm({ title: "Adjust folio", description: "Financial corrections are recorded as new entries - nothing is overwritten.", fields: [{ key: "transactionType", label: "Type", type: "select", required: true, defaultValue: "adjustment", options: options("adjustment", "credit", "write_off"), validation: required("Choose adjustment, credit, or write_off.") }, { key: "direction", label: "Direction (debit increases the folio, credit reduces it)", type: "select", required: true, defaultValue: "credit", options: options("debit", "credit"), dependsOn: "transactionType", showWhen: (v: string | number | boolean) => v === "adjustment", validation: required("Choose debit or credit.") }, { key: "amount", label: "Amount (PHP)", type: "number", required: true, min: 0.01, step: 0.01, validation: positive("Enter an amount greater than zero.") }, { key: "reason", label: "Required reason for this adjustment", type: "textarea", required: true, validation: required("A reason is required.") }], submitText: "Record adjustment" }); if (!data) return; const transactionType = String(data.transactionType); const direction = String(data.direction); const amount = Number(data.amount); const reason = String(data.reason); const { ok, body } = await post("/api/accounting/adjustments", { reservationId, transactionType, direction, amount, reason, idempotencyKey: crypto.randomUUID() }); if (!ok) { notify(body.error ?? "Unable to record this adjustment."); return; } notify(`${label(transactionType)} recorded. Folio balance: ${pesoExact(body.data?.balance)}.`); await load(true); if (detail) await viewReservation(detail.reservation); } async function openCashShift() { const data = await dialogs.askForm({ title: "Open cash shift", fields: [{ key: "openingAmount", label: "Opening cash float (PHP)", type: "number", required: true, defaultValue: 0, min: 0, step: 0.01, validation: nonNegative("The opening float cannot be negative.") }, { key: "location", label: "Cash point / location (optional)", type: "text" }], submitText: "Open shift" }); if (!data) return; const openingAmount = Number(data.openingAmount); const location = String(data.location).trim(); const { ok, body } = await post("/api/accounting/cash-shifts", { openingAmount, location: location || undefined }); if (!ok) { notify(body.error ?? "Unable to open a cash shift."); return; } notify("Cash shift opened."); await load(true); await refreshShiftStatus(); } async function recordReconciliation() { const data = await dialogs.askForm({ title: "Record reconciliation", description: "Compare recorded collections against an external statement figure. Variance is recorded - never used to edit a guest payment.", fields: [{ key: "periodStart", label: "Period start (YYYY-MM-DD)", type: "date", required: true, validation: dateField() }, { key: "periodEnd", label: "Period end (YYYY-MM-DD)", type: "date", required: true, validation: dateField() }, { key: "method", label: "Payment method as recorded", type: "select", required: true, defaultValue: "cash", options: options("cash", "card", "bank_transfer", "gcash"), validation: required("Choose the payment method.") }, { key: "settledAmount", label: "Settled amount from the external statement (PHP)", type: "number", required: true, min: 0, step: 0.01, validation: nonNegative("Enter the settled amount from the statement.") }, { key: "notes", label: "Variance explanation / notes", type: "textarea", rows: 3 }], submitText: "Record reconciliation" }); if (!data) return; const periodStart = String(data.periodStart); const periodEnd = String(data.periodEnd); const method = String(data.method); const settledAmount = Number(data.settledAmount); const notes = String(data.notes).trim(); const { ok, body } = await post("/api/accounting/reconciliations", { periodStart, periodEnd, method, settledAmount, notes: notes || undefined, idempotencyKey: crypto.randomUUID() }); if (!ok) { notify(body.error ?? "Unable to record this reconciliation."); return; } notify(`Reconciliation ${label(body.data?.status)}: recorded ${pesoExact(body.data?.expectedAmount)} against ${pesoExact(settledAmount)}.`); await load(true); } async function generateDocument(payload: { documentType: "receipt"; paymentId: string; } | { documentType: "folio"; reservationId: string; }) { const { ok, body } = await post("/api/accounting/documents", { ...payload, idempotencyKey: crypto.randomUUID() }); if (!ok) { notify(body.error ?? "Unable to generate this document."); return; } notify(`${payload.documentType === "receipt" ? "Receipt" : "Folio statement"} ${label(body.data?.documentNumber)} issued.`); await load(true); } async function requestManagerApproval(item: RecordItem) { // Upgrade targets come from the live rooms list (distinct types). Roles without
     // rooms access (e.g. Accounting) fall back to free text — the RPC still validates
     // the type and derives every financial figure server-side.
     const typesRes = await fetch("/api/resources/rooms", { cache: "no-store" }).catch(() => null); const typesBody = typesRes && typesRes.ok ? await typesRes.json().catch(() => ({})) : {}; const upgradeTypes = Array.from(new Set(((typesBody.data ?? []) as RecordItem[]).map(room => String(room.type || "")).filter(Boolean))).sort(); const roomTypeField = upgradeTypes.length ? { key: "requestedRoomType", label: "Requested upgrade room type", type: "select" as const, dependsOn: "type", showWhen: (v: string | number | boolean) => v === "room_upgrade", required: true, options: upgradeTypes.map(value => ({ value, label: label(value) })), validation: required("Choose the requested upgrade room type.") } : { key: "requestedRoomType", label: "Requested upgrade room type", type: "text" as const, dependsOn: "type", showWhen: (v: string | number | boolean) => v === "room_upgrade", required: true, validation: required("Enter the requested upgrade room type.") }; // Dropdown labels name the business case — "late checkout" and "stay
@@ -261,7 +265,41 @@ const required = (message = "This field is required.") => (v: string | number | 
   // server re-reads unit cost and recomputes the total. Draft means draft:
   // nothing is submitted or sent to any vendor, and the draft stays editable
   // for Manager review.
-  async function createDraftPo(suggestion: ReplenishmentSuggestion) { const vendorOptions = [{ value: "", label: "No vendor yet" }, ...(replenishment?.vendors ?? []).map(vendor => ({ value: vendor.id, label: vendor.name }))]; const data = await dialogs.askForm({ title: "Create draft purchase order", description: `${suggestion.name} — current stock ${suggestion.currentStock} ${suggestion.unit}, predicted 3-day need ${suggestion.predictedConsumption ?? "—"} ${suggestion.unit}. The draft is created for Manager review; nothing is ordered or sent automatically.`, fields: [{ key: "quantity", label: `Quantity (${suggestion.unit})`, type: "number", required: true, defaultValue: suggestion.suggestedQuantity, validation: positive("Enter a quantity greater than zero.") }, { key: "vendorId", label: "Vendor", type: "select", defaultValue: "", options: vendorOptions }, { key: "note", label: "Note for the reviewer (optional)", type: "textarea" }], submitText: "Create draft PO" }); if (!data) return; const { ok, body } = await post("/api/inventory/purchase-orders", { items: [{ itemId: suggestion.itemId, name: suggestion.name, quantity: Number(data.quantity), unit: suggestion.unit }], vendorId: String(data.vendorId) || null, note: String(data.note ?? "") || undefined }); if (!ok) { notify(body.error ?? "Unable to create the draft purchase order."); return; } notify(`Draft purchase order created (₱${Number(body.data?.total ?? 0).toLocaleString("en-PH")}) — awaiting Manager review. Nothing was ordered.`); await refreshReplenishment(); } async function submitPo(order: RecordItem) { const ok = await dialogs.askConfirm({ title: "Submit purchase order", message: `Submit PO ${String(order.id).slice(0, 8)} (${peso(order.total)})? At or below the threshold it auto-approves; above routes to Owner/Admin approval.`, confirmText: "Submit PO" }); if (!ok) return; const { ok: sent, body } = await post(`/api/inventory/purchase-orders/${order.id}/submit`, { version: order.version ?? 1 }); if (!sent) { notify(body.error ?? "Unable to submit the purchase order."); return; } notify(body.data?.status === "approved" ? "Purchase order auto-approved — ready to receive on delivery." : "Purchase order submitted for Owner/Admin approval."); await refreshReplenishment(); } async function receivePo(order: RecordItem) { const lines = (Array.isArray(order.items) ? order.items : []) as { itemId: string; name: string; quantity: number; unit: string; }[]; const fields = lines.map((line, i) => ({ key: `q${i}`, label: `Received — ${line.name} (ordered ${line.quantity} ${line.unit || ""})`, type: "number" as const, required: true, defaultValue: line.quantity, min: 0, max: line.quantity })); const data = await dialogs.askForm({ title: `Receive PO ${String(order.id).slice(0, 8)}`, description: "Verify received quantities against ordered quantities. Confirming restocks inventory atomically and the order becomes immutable.", fields, submitText: "Confirm stock restock" }); if (!data) return; const items = lines.map((line, i) => ({ itemId: line.itemId, quantity: Number((data as Record<string, unknown>)[`q${i}`]) })); const { ok, body } = await post(`/api/inventory/purchase-orders/${order.id}/receive`, { version: order.version ?? 1, items }); if (!ok) { notify(body.error ?? "Unable to receive the purchase order."); return; } notify("Stock restocked — inventory counts and the movement ledger are updated."); await refreshReplenishment(); await load(true); } async function cancelPo(order: RecordItem) { const reason = await dialogs.askPrompt({ title: `Cancel PO ${String(order.id).slice(0, 8)}`, message: "Why is this order cancelled? Received orders can never be cancelled.", label: "Reason", multiline: true, rows: 3, required: true, validation: required("A cancellation reason is required.") }); if (!reason) return; const { ok, body } = await post(`/api/inventory/purchase-orders/${order.id}/cancel`, { version: order.version ?? 1, reason }); if (!ok) { notify(body.error ?? "Unable to cancel the purchase order."); return; } notify("Purchase order cancelled."); await refreshReplenishment(); } // Roadmap Phase 8 — register a REAL asset the hotel owns (nothing is seeded).
+  async function createDraftPo(suggestion: ReplenishmentSuggestion) { const vendorOptions = [{ value: "", label: "No vendor yet" }, ...(replenishment?.vendors ?? []).map(vendor => ({ value: vendor.id, label: vendor.name }))]; const data = await dialogs.askForm({ title: "Create draft purchase order", description: `${suggestion.name} — current stock ${suggestion.currentStock} ${suggestion.unit}, predicted 3-day need ${suggestion.predictedConsumption ?? "—"} ${suggestion.unit}. The draft is created for Manager review; nothing is ordered or sent automatically.`, fields: [{ key: "quantity", label: `Quantity (${suggestion.unit})`, type: "number", required: true, defaultValue: suggestion.suggestedQuantity, validation: positive("Enter a quantity greater than zero.") }, { key: "vendorId", label: "Vendor", type: "select", defaultValue: "", options: vendorOptions }, { key: "note", label: "Note for the reviewer (optional)", type: "textarea" }], submitText: "Create draft PO" }); if (!data) return; const { ok, body } = await post("/api/inventory/purchase-orders", { items: [{ itemId: suggestion.itemId, name: suggestion.name, quantity: Number(data.quantity), unit: suggestion.unit }], vendorId: String(data.vendorId) || null, note: String(data.note ?? "") || undefined }); if (!ok) { notify(body.error ?? "Unable to create the draft purchase order."); return; } notify(`Draft purchase order created (₱${Number(body.data?.total ?? 0).toLocaleString("en-PH")}) — awaiting Manager review. Nothing was ordered.`); await refreshReplenishment(); } async function submitPo(order: RecordItem) { const ok = await dialogs.askConfirm({ title: "Submit purchase order", message: `Submit PO ${String(order.id).slice(0, 8)} (${peso(order.total)})? At or below the threshold it auto-approves; above routes to Owner/Admin approval.`, confirmText: "Submit PO" }); if (!ok) return; const { ok: sent, body } = await post(`/api/inventory/purchase-orders/${order.id}/submit`, { version: order.version ?? 1 }); if (!sent) { notify(body.error ?? "Unable to submit the purchase order."); return; } notify(body.data?.status === "approved" ? "Purchase order auto-approved — ready to receive on delivery." : "Purchase order submitted for Owner/Admin approval."); await refreshReplenishment(); } async function receivePo(order: RecordItem) {
+    const ordered = Array.isArray(order.items) ? order.items as { itemId: string; name: string; quantity: number; unit: string }[] : [];
+    const received = order.received_quantities as unknown as Record<string, number> | undefined;
+    const outstanding = ordered.map(line => ({ ...line, remaining: line.quantity - Number(received?.[line.itemId] ?? 0) }))
+      .filter(line => line.remaining > 0);
+    if (!outstanding.length) {
+      notify("This order has no outstanding quantities.");
+      return;
+    }
+    const fields = outstanding.map((line, index) => ({
+      key: "q" + index, label: "Received — " + line.name + " (" + line.remaining + " " + line.unit + " remaining)",
+      type: "number" as const, required: true, defaultValue: 0, min: 0, max: line.remaining, step: 1,
+      validation: (value: string | number | boolean) => Number.isInteger(Number(value)) ? null : "Enter a whole number.",
+    }));
+    const data = await dialogs.askForm({
+      title: "Receive PO " + String(order.id).slice(0, 8),
+      description: "Enter only the quantities delivered today. Outstanding quantities stay open for the next delivery.",
+      fields, submitText: "Confirm stock restock",
+    });
+    if (!data) return;
+    const items = outstanding.map((line, index) => ({ itemId: line.itemId, quantity: Number(data["q" + index]) }))
+      .filter(item => item.quantity > 0);
+    if (!items.length) {
+      notify("Enter a received quantity for at least one item.");
+      return;
+    }
+    const { ok, body } = await post("/api/inventory/purchase-orders/" + order.id + "/receive", { version: order.version ?? 1, items });
+    if (!ok) {
+      notify(body.error ?? "Unable to receive the purchase order.");
+      return;
+    }
+    notify(body.data?.status === "partially_received" ? "Delivery recorded. Outstanding quantities are still open." : "Delivery recorded and order completed.");
+    await refreshReplenishment();
+    await load(true);
+  } async function cancelPo(order: RecordItem) { const reason = await dialogs.askPrompt({ title: `Cancel PO ${String(order.id).slice(0, 8)}`, message: "Why is this order cancelled? Received orders can never be cancelled.", label: "Reason", multiline: true, rows: 3, required: true, validation: required("A cancellation reason is required.") }); if (!reason) return; const { ok, body } = await post(`/api/inventory/purchase-orders/${order.id}/cancel`, { version: order.version ?? 1, reason }); if (!ok) { notify(body.error ?? "Unable to cancel the purchase order."); return; } notify("Purchase order cancelled."); await refreshReplenishment(); } // Roadmap Phase 8 — register a REAL asset the hotel owns (nothing is seeded).
   // The due schedule is derived server-side from the last service + interval.
   async function registerAsset() { const data = await dialogs.askForm({ title: "Register a maintenance asset", description: "Register real equipment the hotel actually maintains. The next service date is derived from the recorded last service plus the interval — no sample assets.", fields: [{ key: "name", label: "Asset name", type: "text", required: true, placeholder: "e.g. Aircon — Room 204", validation: required("Enter the asset name.") }, { key: "category", label: "Category", type: "text", required: true, placeholder: "e.g. HVAC, Plumbing, Elevator", validation: required("Enter a category.") }, { key: "roomId", label: "Room (optional)", type: "text", placeholder: "Room number, for in-room equipment" }, { key: "location", label: "Location (optional)", type: "text", placeholder: "e.g. Rooftop, Lobby" }, { key: "lastServicedAt", label: "Last serviced (optional)", type: "date", helpText: "Leave blank until the first service is recorded." }, { key: "serviceIntervalDays", label: "Service interval (days)", type: "number", required: true, defaultValue: 90, min: 1, validation: positive("Enter an interval of 1 or more days.") }, { key: "notes", label: "Notes (optional)", type: "textarea" }], submitText: "Register asset" }); if (!data) return; const { ok, body } = await post("/api/maintenance/assets", { name: String(data.name), category: String(data.category), roomId: String(data.roomId ?? "").trim() || null, location: String(data.location ?? "").trim() || null, lastServicedAt: String(data.lastServicedAt ?? "") || null, serviceIntervalDays: Number(data.serviceIntervalDays), notes: String(data.notes ?? "").trim() || null }); if (!ok) { notify(body.error ?? "Unable to register this asset."); return; } notify("Asset registered."); await refreshAssets(); } // Record a service, update registry fields, or retire an asset — each runs
   // through its audited RPC; none of them ever touches a room.
@@ -292,7 +330,7 @@ const required = (message = "This field is required.") => (v: string | number | 
       <ManagerSidebarNav items={visibleNav} section={section} onSelect={target => { setSection(target); setMenu(false); }} badges={badges} />
     </aside>{" "}
     <main className="workspace">
-      <header className="app-header">
+      <header className="app-header staff-app-header">
         <button className="menu-btn brand-menu-btn" onClick={() => setMenu(true)} aria-label="Open navigation" title="Open navigation">
           <span className="brand-mark">
             <HavenLogo size={31} small />
@@ -302,9 +340,7 @@ const required = (message = "This field is required.") => (v: string | number | 
           <p>
         {section === "hotel_operations" ? "Hotel Operations" : section === "team_operations" ? "Operational Handover" : section === "lost_found" ? "Lost & Found" : section === "overview" ? "Dashboard" : section === "reports" ? user.role === "front_desk" ? "Daily operations report" : "Performance center" : section === "approvals" ? "Approvals & Escalations" : section === "room_types" ? "Room Types & Photos" : section === "transport_services" ? "Transfer Vehicles" : section === "request_types" ? "Request Types" : section === "transportation" ? "Transportation" : section === "insights" ? "Predictive Insights" : section === "ai" ? "HAVEN AI" : section === "staff_duty" ? "Staff & Duty" : section === "room_rack" ? "Room Management" : isResourceSection(section) ? config[section].title : accountingViews[section].title}
           </p>
-          <small suppressHydrationWarning>
-            {new Intl.DateTimeFormat("en-PH", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "Asia/Manila" }).format(new Date())}
-          </small>
+          <StaffHeaderClock />
         </div>
         <div className="header-actions">
           <button
@@ -358,17 +394,17 @@ const required = (message = "This field is required.") => (v: string | number | 
           </div>
         </div>
       </header>
-      <OperatingDateBanner />
+      {section !== "hotel_operations" && <OperatingDateBanner />}
       {historyOpen && <NotificationHistoryModal open onClose={() => setHistoryOpen(false)} density="internal" items={(dashboard?.notifications ?? []).map((notice) => ({ id: String(notice.id), title: notice.title, detail: notice.detail, createdAt: typeof notice.createdAt === "string" ? notice.createdAt : "", readAt: staffReadIds.has(String(notice.id)) ? "read" : null, type: String(notice.section) }))} onOpenItem={(item) => { markStaffRead([item.id]); const target = (dashboard?.notifications ?? []).find((entry) => String(entry.id) === item.id); setHistoryOpen(false); if (target) { setSection(target.section); setMenu(false); } }} onMarkAllRead={(ids) => markStaffRead(ids)} returnFocusRef={staffBellBtn} />}
       {paymentTarget && <PaymentCollectionDialog reservation={paymentTarget} role={user.role} onClose={() => setPaymentTarget(null)} onSaved={() => { void load(true); void refreshShiftStatus(); if(detail) void viewReservation(detail.reservation); }} />}
       <ToastStack controller={toastController} />
       <div className="workspace-body">
         {section === "reconciliation" && financialAuthority && <CashExceptionsPanel />}
 
-        {section === "inventory" ? <StockIntegrityPanel role={user.role} /> : section === "team_operations" ? <TeamOperationsPanel role={user.role} actorId={user.id} focusId={cashHandoverFocus} initialSource={cashHandoverSource} onOpenSource={(kind, id) => { const target = ({ reservation: "reservations", guest_request: "guest_requests", housekeeping: "housekeeping_tasks", maintenance: "maintenance_orders", cash_shift: "cash_shifts" } as Record<string, Section>)[kind]; if (target && access[user.role].includes(target)) { setSearchForSection(target, id); setSection(target); } else { notify("Source record retained. Ask the responsible department for details."); } }} /> : section === "lost_found" ? <LostFoundPanel role={user.role} /> : section === "room_types" ? <RoomCatalogPanel role={user.role} /> : section === "transport_services" ? <TransportServicesPanel /> : section === "request_types" ? <RequestTypesPanel /> : section === "transportation" ? <TransportationPanel role={user.role} /> : section === "insights" ? <PredictiveInsightsPanel /> : section === "ai" ? <HavenAiPanel userName={user.name} onOpenQueue={(queue) => setSection(queue)} /> : section === "staff_duty" ? <StaffDutyPanel /> : section === "guest_requests" && ["front_desk", "manager", "housekeeping"].includes(user.role) ? <GuestRequestsPanel role={user.role} onEscalate={user.role === "housekeeping" ? request => escalateGuestRequest(request as unknown as RecordItem) : undefined} /> : loading ? <Loading /> : loadError ? <LoadFailure message={loadError} retry={() => void load()} /> : section === "overview" ? <Overview data={dashboard!} setSection={setSection} allowed={access[user.role]} role={user.role} onScan={() => setScanOpen(true)} onOpenRack={(view, tab) => { setRackEntry({ view, tab }); setSection(view === "board" ? "room_rack" : "reservations"); }} onNewReservation={() => void createReservation()} /> : section === "reports" ? user.role === "front_desk" ? <FrontDeskReportsPanel key={cashReportDate ?? "default"} role={user.role} initialDate={cashReportDate} /> : user.role === "accounting" ? <Reports data={dashboard!} role={user.role} /> : <>
+        {section === "inventory" ? <StockIntegrityPanel role={user.role} /> : section === "team_operations" ? <TeamOperationsPanel role={user.role} actorId={user.id} focusId={cashHandoverFocus} initialSource={cashHandoverSource} onOpenSource={(kind, id) => { const target = ({ reservation: "reservations", guest_request: "guest_requests", housekeeping: "housekeeping_tasks", maintenance: "maintenance_orders", cash_shift: "cash_shifts" } as Record<string, Section>)[kind]; if (target && access[user.role].includes(target)) { setSearchForSection(target, id); setSection(target); } else { notify("Source record retained. Ask the responsible department for details."); } }} /> : section === "lost_found" ? <LostFoundPanel role={user.role} /> : section === "room_types" ? <RoomCatalogPanel role={user.role} /> : section === "transport_services" ? <TransportServicesPanel /> : section === "request_types" ? <RequestTypesPanel /> : section === "transportation" ? <TransportationPanel role={user.role} /> : section === "insights" ? <PredictiveInsightsPanel /> : section === "ai" ? <HavenAiPanel userName={user.name} onOpenQueue={(queue) => setSection(queue)} /> : section === "staff_duty" ? <StaffDutyPanel /> : section === "guest_requests" && ["front_desk", "manager", "housekeeping"].includes(user.role) ? <GuestRequestsPanel role={user.role} onEscalate={user.role === "housekeeping" ? request => escalateGuestRequest(request as unknown as RecordItem) : undefined} /> : section === "invoices" && cashHandling ? <StaffBillingWorkspace role={user.role} refreshVersion={billingRefreshVersion} search={search} onSearch={setSearch} onCollect={collectPayment} onReviewDeposit={verifyDeposit} onOpenReservation={viewReservation} /> : section === "guests" && canViewGuestContact(user.role) ? <GuestManagementWorkspace role={user.role} search={search} setSearch={setSearch} onViewReservation={id => void viewReservation({ id })} /> : loading ? <Loading /> : loadError ? <LoadFailure message={loadError} retry={() => void load()} /> : section === "overview" ? <Overview data={dashboard!} setSection={setSection} allowed={access[user.role]} role={user.role} onScan={() => setScanOpen(true)} onOpenRack={(view, tab) => { setRackEntry({ view, tab }); setSection(view === "board" ? "room_rack" : "reservations"); }} onNewReservation={() => void createReservation()} /> : section === "reports" ? user.role === "front_desk" ? <FrontDeskReportsPanel key={cashReportDate ?? "default"} role={user.role} initialDate={cashReportDate} /> : user.role === "accounting" ? <Reports data={dashboard!} role={user.role} /> : <>
           <Reports data={dashboard!} role={user.role} />
           <FrontDeskReportsPanel key={cashReportDate ?? "default"} role={user.role} initialDate={cashReportDate} />
-        </> : section === "hotel_operations" ? <HotelOperationsPanel role={user.role} onRoom={["front_desk","manager","housekeeping","maintenance"].includes(user.role) ? id => setRoomDetail({id,number:id}) : undefined} onGuest={["front_desk","manager"].includes(user.role) ? id => void viewGuestProfile(id) : undefined} onReservation={["front_desk","manager","accounting"].includes(user.role) ? id => void viewReservation({ id }) : undefined} onTasks={["front_desk","manager","housekeeping"].includes(user.role) ? () => setSection("housekeeping_tasks") : undefined} /> : section === "room_rack" || section === "reservations" && user.role === "front_desk" ? <FrontOfficeRack key={section} refreshVersion={rackRefreshVersion} workspace={section === "room_rack" ? "rooms" : "reservations"} onNavigateReservations={queue => { setRackEntry({ view: queue, tab: queue }); setSection("reservations"); }} onNavigateRooms={() => { setRackEntry({ view: "board", tab: "all", roomStatus: "available" }); setSection("room_rack"); }} onManageRooms={catalogAuthority ? () => setRoster(true) : undefined} role={user.role} onOpenFolio={id => viewReservation({ id })} onCheckIn={id => openArrival({ id })} onViewRoom={(item, actions) => { setRoomDetail(item); setRoomDetailActions(actions ?? []); }} initialView={rackEntry?.view} initialTab={rackEntry?.tab} initialRoomStatus={rackEntry?.roomStatus} onNewReservation={() => void createReservation()} onCheckOut={item => void checkOut(item)} onScan={() => setScanOpen(true)} notify={(message, tone) => toastController.push({ title: message, tone: tone ?? "info", duration: 20000 })} /> : section === "approvals" ? <ManagerApprovalView items={filtered} search={search} setSearch={setSearch} review={reviewManagerApproval} execute={executeManagerApproval} financialExecute={executeManagerFinancialApproval} escalateOwner={escalateOwner} executeException={executeException} canReview={user.role === "manager"} canExecute={operational} canFinancialExecute={financialAuthority} actorId={user.id} /> : section === "cash_shifts" ? <CashShiftsWorkspace refreshError={cashRefreshError} ledger={ledger} role={user.role} actorId={user.id} search={search} setSearch={setSearch} onOpen={openCashShift} onRefresh={() => { void load(true); void refreshShiftStatus(); }} onOpenHandovers={id => { setCashHandoverSource(undefined); setCashHandoverFocus(id); setSection("team_operations"); }} onCreateHandover={shift => { setCashHandoverFocus(undefined); setCashHandoverSource({ type: "cash_shift", id: String(shift.id), summary: "Drawer #" + String(shift.id).slice(0, 8) + " closed with recorded variance " + pesoExact(shift.variance) + ". Concern: " }); setSection("team_operations"); }} onOpenReport={date => { setCashReportDate(date); setSection("reports"); }} /> : isAccountingSection(section) ? <AccountingView section={section} ledger={ledger} search={search} setSearch={setSearch} rejectDeposit={rejectDeposit} reverseCharge={reverseCharge} recordAdjustment={recordAdjustment} recordReconciliation={recordReconciliation} generateDocument={generateDocument} canVerify={financialAuthority} canAdjust={financialAuthority} canReconcile={financialAuthority} canIssueDocument={cashHandling} /> : section === "housekeeping_tasks" ? <HousekeepingQueuePanel role={user.role} userId={user.id} items={filtered} allItems={items} search={search} setSearch={setSearch} housekeepingAction={operateHousekeeping} coordinate={coordinateHousekeeping} applySuggestion={applySuggestion} suggestions={suggestions} onViewMaintenance={() => setSection("maintenance_orders")} onViewRoom={item => setRoomDetail({ id: String(item.room_id), number: item.room_number, type: item.room_type, floor: null, status: item.room_status, housekeeping: item.room_housekeeping })} guestRequestOpen={user.role === "housekeeping" ? dashboard?.metrics?.departmentRequests ?? 0 : 0} onOpenGuestRequests={() => setSection("guest_requests")} /> : section === "reservations" && user.role === "manager" ? <ManagerReservationsPanel items={filtered} search={search} setSearch={setSearch} viewReservation={viewReservation} onReviewException={reviewReservationException} onScan={() => setScanOpen(true)} /> : <ResourceView key={section} resource={section} items={filtered} allItems={items} depositSlaHours={dashboard?.metrics?.depositSlaHours ?? DEFAULT_DEPOSIT_SLA_HOURS} replenishment={replenishmentRoles ? replenishment : null} createDraftPo={createDraftPo} submitPo={submitPo} receivePo={receivePo} cancelPo={cancelPo} assets={assetRoles ? maintenanceAssets : null} registerAsset={registerAsset} assetAction={assetAction} search={search} setSearch={setSearch} open={section === "maintenance_orders" ? createMaintenance : () => setModal(true)} advance={advance} checkIn={openArrival} verifyDeposit={verifyDeposit} rejectDeposit={rejectDeposit} viewReservation={viewReservation} viewRoom={item => setRoomDetail(item)} viewGuest={item => viewGuestProfile(String(item.id))} processRefund={processRefund} failRefund={failRefund} canProcessRefund={financialAuthority} canVerify={financialAuthority} canCheckIn={operational} requestApproval={requestManagerApproval} escalateGuestRequest={escalateGuestRequest} progressGuestRequest={progressGuestRequest} canProgressGuestRequest={canProgressGuestRequest} coordinateHousekeeping={coordinateHousekeeping} coordinateMaintenance={coordinateMaintenance} housekeepingAction={operateHousekeeping} maintenanceAction={operateMaintenance} createReservation={createReservation} openWalkIn={openWalkInDialog} canMaintain={user.role === "maintenance"} canAssignOthers={false} canHousekeep={user.role === "housekeeping"} canCoordinate={user.role === "manager"} canRequestApproval={user.role === "front_desk" || user.role === "housekeeping" || user.role === "maintenance" || user.role === "accounting"} manageRooms={catalogAuthority ? () => setRoster(true) : null} onScan={section === "reservations" ? () => setScanOpen(true) : null} canCreate={section !== "rooms" && section !== "maintenance_orders" && user.role !== "accounting" && user.role !== "manager" && !(user.role === "front_desk" && ["rooms", "guests", "housekeeping_tasks", "invoices", "payments"].includes(section))} canAdvance={section !== "rooms" && section !== "maintenance_orders" && user.role !== "manager" && !(user.role === "front_desk" && ["rooms", "housekeeping_tasks", "invoices"].includes(section))} />}
+        </> : section === "hotel_operations" ? <HotelOperationsPanel role={user.role} onRoom={["front_desk","manager","housekeeping","maintenance"].includes(user.role) ? id => setRoomDetail({id,number:id}) : undefined} onGuest={["front_desk","manager"].includes(user.role) ? id => void viewGuestProfile(id) : undefined} onReservation={["front_desk","manager","accounting"].includes(user.role) ? id => void viewReservation({ id }) : undefined} onTasks={["front_desk","manager","housekeeping"].includes(user.role) ? () => setSection("housekeeping_tasks") : undefined} /> : section === "room_rack" || section === "reservations" && user.role === "front_desk" ? <FrontOfficeRack key={section} refreshVersion={rackRefreshVersion} workspace={section === "room_rack" ? "rooms" : "reservations"} onNavigateReservations={queue => { setRackEntry({ view: queue, tab: queue }); setSection("reservations"); }} onNavigateRooms={() => { setRackEntry({ view: "board", tab: "all", roomStatus: "available" }); setSection("room_rack"); }} onManageRooms={catalogAuthority ? () => setRoster(true) : undefined} role={user.role} onOpenFolio={id => viewReservation({ id })} onCheckIn={id => openArrival({ id })} onViewRoom={(item, actions) => { setRoomDetail(item); setRoomDetailActions(actions ?? []); }} initialView={rackEntry?.view} initialTab={rackEntry?.tab} initialRoomStatus={rackEntry?.roomStatus} onNewReservation={() => void createReservation()} onCheckOut={item => void checkOut(item)} onScan={() => setScanOpen(true)} notify={(message, tone) => toastController.push({ title: message, tone: tone ?? "info", duration: 20000 })} /> : section === "approvals" ? <ManagerApprovalView items={items} openRefunds={() => setSection("refunds")} search={search} setSearch={setSearch} review={reviewManagerApproval} execute={executeManagerApproval} financialExecute={executeManagerFinancialApproval} escalateOwner={escalateOwner} executeException={executeException} canReview={user.role === "manager"} canExecute={operational} canFinancialExecute={financialAuthority} actorId={user.id} /> : section === "cash_shifts" ? <CashShiftsWorkspace refreshError={cashRefreshError} ledger={ledger} role={user.role} actorId={user.id} search={search} setSearch={setSearch} onOpen={openCashShift} onRefresh={() => { void load(true); void refreshShiftStatus(); }} onOpenHandovers={id => { setCashHandoverSource(undefined); setCashHandoverFocus(id); setSection("team_operations"); }} onCreateHandover={shift => { setCashHandoverFocus(undefined); setCashHandoverSource({ type: "cash_shift", id: String(shift.id), summary: "Drawer #" + String(shift.id).slice(0, 8) + " closed with recorded variance " + pesoExact(shift.variance) + ". Concern: " }); setSection("team_operations"); }} onOpenReport={date => { setCashReportDate(date); setSection("reports"); }} /> : isAccountingSection(section) ? <AccountingView section={section} ledger={ledger} search={search} setSearch={setSearch} rejectDeposit={rejectDeposit} reverseCharge={reverseCharge} recordAdjustment={recordAdjustment} recordReconciliation={recordReconciliation} generateDocument={generateDocument} canVerify={financialAuthority} canAdjust={financialAuthority} canReconcile={financialAuthority} canIssueDocument={cashHandling} /> : section === "housekeeping_tasks" ? <HousekeepingQueuePanel role={user.role} userId={user.id} items={filtered} allItems={items} search={search} setSearch={setSearch} housekeepingAction={operateHousekeeping} coordinate={coordinateHousekeeping} applySuggestion={applySuggestion} suggestions={suggestions} onViewMaintenance={() => setSection("maintenance_orders")} onViewRoom={item => setRoomDetail({ id: String(item.room_id), number: item.room_number, type: item.room_type, floor: null, status: item.room_status, housekeeping: item.room_housekeeping })} guestRequestOpen={user.role === "housekeeping" ? dashboard?.metrics?.departmentRequests ?? 0 : 0} onOpenGuestRequests={() => setSection("guest_requests")} /> : section === "reservations" && user.role === "manager" ? <ManagerReservationsPanel items={filtered} search={search} setSearch={setSearch} viewReservation={viewReservation} onReviewException={reviewReservationException} onScan={() => setScanOpen(true)} /> : <ResourceView key={section} resource={section} items={filtered} allItems={items} depositSlaHours={dashboard?.metrics?.depositSlaHours ?? DEFAULT_DEPOSIT_SLA_HOURS} replenishment={replenishmentRoles ? replenishment : null} createDraftPo={createDraftPo} submitPo={submitPo} receivePo={receivePo} cancelPo={cancelPo} assets={assetRoles ? maintenanceAssets : null} registerAsset={registerAsset} assetAction={assetAction} search={search} setSearch={setSearch} open={section === "maintenance_orders" ? createMaintenance : () => setModal(true)} advance={advance} checkIn={openArrival} verifyDeposit={verifyDeposit} rejectDeposit={rejectDeposit} viewReservation={viewReservation} viewRoom={item => setRoomDetail(item)} viewGuest={item => viewGuestProfile(String(item.id))} processRefund={processRefund} failRefund={failRefund} canProcessRefund={financialAuthority} canVerify={financialAuthority} canCheckIn={operational} requestApproval={requestManagerApproval} escalateGuestRequest={escalateGuestRequest} progressGuestRequest={progressGuestRequest} canProgressGuestRequest={canProgressGuestRequest} coordinateHousekeeping={coordinateHousekeeping} coordinateMaintenance={coordinateMaintenance} housekeepingAction={operateHousekeeping} maintenanceAction={operateMaintenance} createReservation={createReservation} openWalkIn={openWalkInDialog} canMaintain={user.role === "maintenance"} canAssignOthers={false} canHousekeep={user.role === "housekeeping"} canCoordinate={user.role === "manager"} canRequestApproval={user.role === "front_desk" || user.role === "housekeeping" || user.role === "maintenance" || user.role === "accounting"} manageRooms={catalogAuthority ? () => setRoster(true) : null} onScan={section === "reservations" ? () => setScanOpen(true) : null} canCreate={section !== "rooms" && section !== "maintenance_orders" && user.role !== "accounting" && user.role !== "manager" && !(user.role === "front_desk" && ["rooms", "guests", "housekeeping_tasks", "invoices", "payments"].includes(section))} canAdvance={section !== "rooms" && section !== "maintenance_orders" && user.role !== "manager" && !(user.role === "front_desk" && ["rooms", "housekeeping_tasks", "invoices"].includes(section))} />}
       </div>
     </main>
     {modal && isResourceSection(section) && <CreateModal resource={section} close={() => setModal(false)} submit={add} />}
@@ -1388,388 +1424,7 @@ function ReservationLifecycle({ detail }: { detail: ReservationDetail; }) {
   </Modal>;
 } // Exported for the jsdom render test (approvals-view.test.tsx); the dashboard
 // itself uses it internally.
-export function ManagerApprovalView({ items, search, setSearch, review, execute, executeException, financialExecute, escalateOwner, canReview, canExecute, canFinancialExecute, actorId }: { items: RecordItem[]; search: string; setSearch: (value: string) => void; review: (item: RecordItem, decision: "approve" | "reject") => Promise<boolean>; execute: (item: RecordItem) => Promise<boolean>; executeException: (item: RecordItem) => Promise<boolean>; financialExecute: (item: RecordItem) => Promise<boolean>; escalateOwner: (item: RecordItem) => Promise<boolean>; canReview: boolean; canExecute: boolean; canFinancialExecute: boolean; actorId?: string; }) {
-  const [status, setStatus] = useState("all"); const [scope, setScope] = useState(canReview ? "all" : "mine"); const [type, setType] = useState("all"); const [severity, setSeverity] = useState("all"); const [department, setDepartment] = useState("all"); const [reviewing, setReviewing] = useState<RecordItem | null>(null); const types = Array.from(new Set(items.map(item => String(item.request_type)))); const departments = Array.from(new Set(items.map(item => String(item.department)))); const visible = items.filter(item => (scope === "all" || !actorId || String(item.requested_by) === actorId) && (status === "all" || item.status === status) && (type === "all" || item.request_type === type) && (severity === "all" || item.severity === severity) && (department === "all" || item.department === department) && JSON.stringify(item).toLowerCase().includes(search.toLowerCase())); // Pending queue reads severity-first, longest-waiting next; decision history keeps the API's newest-first order.
-  const allQueue = status === "pending" ? [...visible].sort(compareApprovalUrgency) : visible; const page = useTablePagination(allQueue); const queue = page.rows; const pending = items.filter(item => item.status === "pending"); const highPending = pending.filter(item => ["high", "critical"].includes(String(item.severity))).length; const openEscalations = pending.filter(item => approvalKind(item.request_type) === "escalation").length; const awaitingAccounting = items.filter(item => item.status === "approved" && item.execution_status === "awaiting_execution" && ["guest_compensation", "refund_exception"].includes(String(item.request_type))).length; const oldestWaiting = pending.length ? waitingSince(pending.map(item => String(item.requested_at ?? "")).filter(Boolean).sort()[0]) : "—"; const hasFilters = type !== "all" || severity !== "all" || department !== "all" || search.trim() !== ""; const clearFilters = () => { setType("all"); setSeverity("all"); setDepartment("all"); setSearch(""); }; return <>
-    <PageHeader variant="band" eyebrow="Management control" title="Approvals & Escalations" subtitle="Review exceptions against current operations and policy. Approval authorizes the responsible department; it does not perform their work." />
-    <ModuleSummaryCards cards={[{ label: "Pending", value: pending.length, hint: "Awaiting a decision", icon: ClipboardCheck, tone: "attention", queue: "pending" }, { label: "High priority", value: highPending, hint: "High or critical severity", icon: AlertTriangle, tone: "attention" }, { label: "Escalations", value: openEscalations, hint: "Guest issues raised to Manager", icon: Bell, tone: "today" }, { label: "Awaiting Accounting", value: awaitingAccounting, hint: "Approved, not yet executed", icon: CircleDollarSign, tone: "active" }, { label: "Oldest waiting", value: oldestWaiting, hint: "Longest pending request", icon: Activity, tone: "today" }]} activeQueue={status === "pending" || status === "approved" || status === "rejected" ? status : undefined} onSelect={target => setStatus(target)} ariaLabel="Approvals queue summary" />
-    <div className="reservation-filters approval-toolbar">
-      <div className="table-tools approval-search-row">
-        <HavenSearchInput value={search} onValueChange={setSearch} label="Search approvals" placeholder="Search reservation, guest, reason, type, or requester..." />
-      </div>
-      <div className="approval-pills" role="group" aria-label="Filter by status">
-        {["all", "pending", "approved", "rejected"].map(value => <button key={value} className={status === value ? "active" : ""} aria-pressed={status === value} onClick={() => setStatus(value)}>
-          {value === "all" ? "All" : label(value)}
-        </button>)}
-      </div>
-      {!canReview && <div className="approval-pills" role="group" aria-label="Filter by requester">
-        {[["mine", "My requests"], ["all", "All requests"]].map(([value, text]) => <button key={value} className={scope === value ? "active" : ""} aria-pressed={scope === value} onClick={() => setScope(value)}>
-          {text}
-        </button>)}
-      </div>}
-      <div className="approval-filters">
-        <div className="haven-filter">
-          <HavenSelect value={type} onChange={setType} ariaLabel="Filter by approval type" groups={[{ label: "All", options: [{ value: "all", label: "All types" }] }, ...approvalTypeGroups.map(([group, values]) => ({ label: group, options: values.filter(value => types.includes(value)).map(value => ({ value, label: label(value) })) }))]} />
-        </div>
-        <div className="haven-filter">
-          <HavenSelect value={department} onChange={setDepartment} ariaLabel="Filter by department" options={[{ value: "all", label: "All departments" }, ...departments.map(value => ({ value, label: label(value) }))]} />
-        </div>
-        <div className="haven-filter">
-          <HavenSelect value={severity} onChange={setSeverity} ariaLabel="Filter by severity" options={[{ value: "all", label: "All severities" }, { value: "normal", label: "Normal" }, { value: "high", label: "High" }, { value: "critical", label: "Critical" }]} />
-        </div>
-      </div>
-    </div>
-    <div className="data-panel approval-queue">
-      <div className="table-scroll approval-table-wrap">
-        <table aria-label="Approvals and escalations">
-          <thead>
-            <tr>
-              <th>Requested</th>
-              <th>Type</th>
-              <th>Reservation / guest</th>
-              <th>Department</th>
-              <th>Request</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {queue.map(item => <tr key={item.id}>
-              <td>
-                <div className="cell-stack">
-                  <b>{fmtStamp(item.requested_at)}</b>
-                  {item.status === "pending" && <small className="approval-waiting">
-                    Waiting {waitingSince(item.requested_at)}
-                  </small>}
-                </div>
-              </td>
-              <td>
-                <div className="cell-stack">
-                  <span className={`approval-kind ${approvalKind(item.request_type)}`}>
-                    {approvalKind(item.request_type) === "escalation" ? "Escalation" : "Approval"}
-                  </span>
-                  <b>{label(item.request_type)}</b>
-                  <StatusBadge status={String(item.severity)} label={label(item.severity)} />
-                </div>
-              </td>
-              <td>
-                <div className="cell-stack">
-                  <b>
-                    {label(item.reservation_reference || item.related_entity_id)}
-                  </b>
-                  <small>
-                    {label(item.guest_name || "Operational issue")}
-                  </small>
-                  {item.stay_dates && <small>{label(item.stay_dates)}</small>}
-                </div>
-              </td>
-              <td>{label(item.department)}</td>
-              <td>
-                <div className="approval-request-cell">
-                  <p>{label(item.reason)}</p>
-                  {formatDetail(item.requested_action) && <small>{formatDetail(item.requested_action)}</small>}
-                </div>
-              </td>
-              <td>
-                <div className="cell-stack">
-                  <StatusBadge status={String(item.status)} label={label(item.status)} />
-                  {item.status === "approved" && item.execution_status && <small>{label(item.execution_status)}</small>}
-                </div>
-              </td>
-              <td>
-                <button className="table-action action-primary" onClick={() => setReviewing(item)}>
-                  <Eye size={13} /> Review
-                </button>
-              </td>
-            </tr>)}
-          </tbody>
-        </table>
-      </div>
-      {visible.length > 0 && <div className="approval-card-list" aria-label="Approvals and escalations">
-        {queue.map(item => <article key={item.id} className="approval-card">
-          <header>
-            <span className={`approval-kind ${approvalKind(item.request_type)}`}>
-              {approvalKind(item.request_type) === "escalation" ? "Escalation" : "Approval"}
-            </span>
-            <StatusBadge status={String(item.severity)} label={label(item.severity)} />
-          </header>
-          <div className="approval-card-lead">
-            <b>
-              {label(item.reservation_reference || item.related_entity_id)}
-            </b>
-            <small>{label(item.guest_name || "Operational issue")}</small>
-          </div>
-          <span className="approval-card-meta">
-            {label(item.department)} · {label(item.request_type)}
-          </span>
-          <p>{label(item.reason)}</p>
-          <footer>
-            <small>
-              {item.status === "pending" ? `Waiting ${waitingSince(item.requested_at)}` : fmtStamp(item.requested_at)}
-            </small>
-            <StatusBadge status={String(item.status)} label={label(item.status)} />
-            <button className="table-action action-primary" onClick={() => setReviewing(item)}>
-              Review
-            </button>
-          </footer>
-        </article>)}
-      </div>}
-      {visible.length === 0 && <div className="empty approval-empty">
-        {!hasFilters && status === "pending" ? <>
-          <CheckCircle2 />
-          <h3>No approvals need attention</h3>
-          <p>You&apos;re all caught up.</p>
-        </> : !hasFilters ? <>
-          <ClipboardCheck />
-          <h3>Nothing decided yet</h3>
-          <p>
-            Approved and rejected requests will appear here as they are
-            reviewed.
-          </p>
-        </> : <>
-          <Search />
-          <h3>No requests match these filters</h3>
-          <p>Try clearing the filters to see the full queue.</p>
-          <button className="table-action" onClick={clearFilters}>
-            Clear filters
-          </button>
-        </>}
-      </div>}
-      <TablePagination {...page} onPageChange={page.setPage} noun="requests" allTotal={items.length} note="Urgent pending decisions stay severity-first; history stays newest-first." />
-    </div>
-    {reviewing && <ApprovalReviewModal key={String(reviewing.id)} item={reviewing} close={() => setReviewing(null)} review={review} execute={execute} executeException={executeException} financialExecute={financialExecute} escalateOwner={escalateOwner} canReview={canReview} canExecute={canExecute} canFinancialExecute={canFinancialExecute} />}
-  </>;
-} // Full decision context for one request. Footer actions call the same handlers the
-// old inline row buttons used — authority, reason requirement, versioning and the
-// audit trail all stay server-side, unchanged.
-function ApprovalReviewModal({ item, close, review, execute, executeException, financialExecute, escalateOwner, canReview, canExecute, canFinancialExecute }: { item: RecordItem; close: () => void; review: (item: RecordItem, decision: "approve" | "reject") => Promise<boolean>; execute: (item: RecordItem) => Promise<boolean>; executeException: (item: RecordItem) => Promise<boolean>; financialExecute: (item: RecordItem) => Promise<boolean>; escalateOwner: (item: RecordItem) => Promise<boolean>; canReview: boolean; canExecute: boolean; canFinancialExecute: boolean; }) {
-  const kind = approvalKind(item.request_type); const pending = item.status === "pending"; const actionable = pending && canReview && item.authority_level !== "owner"; const canExecuteNow = canExecute && item.status === "approved" && item.execution_status === "awaiting_execution" && ["room_upgrade", "room_type_exception", "reservation_modification", "early_check_in", "late_checkout", "checkout_exception", "stay_extension"].includes(String(item.request_type)); const canApplyFinancial = canFinancialExecute && item.status === "approved" && item.execution_status === "awaiting_execution" && item.request_type === "guest_compensation"; const action = formatDetail(item.requested_action); const policy = formatDetail(item.normal_policy_result); // Server-stamped financial snapshot for room-type changes: the reason code decides
-  // who pays; the reviewer never sees (or sets) a manual payer control.
-  const isRoomTypeChange = ["room_type_exception", "room_upgrade"].includes(String(item.request_type)); const fin = (isRoomTypeChange ? (item.requested_action as Record<string, unknown> | null | undefined)?.financials : null) as RoomTypeChangeFinancials | null; const finDiff = fin ? financialDifference(fin) : 0; // Server-stamped stay-extension snapshot: nights, rate, and totals were computed
-  // at request time by the RPC — the reviewer decides, never re-derives.
-  const isStayExtension = String(item.request_type) === "stay_extension"; const stayExt = (isStayExtension ? (item.requested_action as Record<string, unknown> | null | undefined)?.stayExtension : null) as { currentCheckOut: string; requestedCheckOut: string; nights: number; rate: number | null; nightlyRates?: { date: string; rate: number; }[]; additionalAmount: number; projectedTotal: number; roomConflict: boolean; roomNumber: string; roomType: string; } | null; const decide = async (decision: "approve" | "reject") => { if (await review(item, decision)) close(); }; const run = async (fn: (item: RecordItem) => Promise<boolean>) => { if (await fn(item)) close(); }; return <Modal isOpen onClose={close} title={kind === "escalation" ? "Review escalation" : "Review request"} description={`${label(item.request_type)} · ${label(item.severity)} priority · ${label(item.status)}`} size="lg" headerVariant="branded" className="approval-review-modal" footer={<div className="reservation-detail-actions">
-    {actionable ? <>
-      <button className="btn btn-soft danger-action" onClick={() => decide("reject")}>
-        Reject
-      </button>
-      <button className="btn btn-accent" onClick={() => decide("approve")}>
-        Approve
-      </button>
-      {["high", "critical"].includes(String(item.severity)) && <button className="btn btn-soft" onClick={() => run(escalateOwner)}>
-        Escalate to Owner
-      </button>}
-    </> : canExecuteNow ? <button className="btn btn-accent" onClick={() => run(item.request_type === "room_type_exception" ? executeException : execute)}>
-      Execute as Front Desk
-    </button> : canApplyFinancial ? <button className="btn btn-accent" onClick={() => run(financialExecute)}>
-      Apply as Accounting
-    </button> : <button className="btn btn-soft" onClick={close}>
-      Close
-    </button>}
-  </div>}>
-    <div className="approval-review-grid">
-      <section>
-        <h3>Request</h3>
-        <dl>
-          <div>
-            <dt>
-              {kind === "escalation" ? "Escalation type" : "Request type"}
-            </dt>
-            <dd>{label(item.request_type)}</dd>
-          </div>
-          <div>
-            <dt>Requested by</dt>
-            <dd>
-              {label(item.requester_name)} · {label(item.department)}
-            </dd>
-          </div>
-          <div>
-            <dt>Requested</dt>
-            <dd>{fmtStamp(item.requested_at)}</dd>
-          </div>
-          {pending && <div>
-            <dt>Waiting</dt>
-            <dd>{waitingSince(item.requested_at)}</dd>
-          </div>}
-          <div>
-            <dt>Severity</dt>
-            <dd>
-              <StatusBadge status={String(item.severity)} label={label(item.severity)} />
-            </dd>
-          </div>
-        </dl>
-      </section>
-      {(item.reservation_reference || item.guest_name) && <section>
-        <h3>Reservation / guest</h3>
-        <dl>
-          <div>
-            <dt>Reservation</dt>
-            <dd>
-              {label(item.reservation_reference || item.related_entity_id)}
-            </dd>
-          </div>
-          {item.guest_name && <div>
-            <dt>Guest</dt>
-            <dd>{label(item.guest_name)}</dd>
-          </div>}
-          {item.stay_dates && <div>
-            <dt>Stay dates</dt>
-            <dd>{label(item.stay_dates)}</dd>
-          </div>}
-          {item.reservation_status && <div>
-            <dt>Current status</dt>
-            <dd>
-              <StatusBadge status={String(item.reservation_status)} label={label(item.reservation_status)} />
-            </dd>
-          </div>}
-        </dl>
-      </section>}
-    </div>
-    <section className="approval-review-section">
-      <h3>Requested action</h3>
-      <p>{action || "Manager coordination requested."}</p>
-    </section>
-    {isRoomTypeChange && fin && <section className="approval-review-section">
-      <h3>Financial responsibility</h3>
-      <dl>
-        <div>
-          <dt>Reason</dt>
-          <dd>{roomTypeChangeReasonLabel(String(fin.reasonCode ?? ""))}</dd>
-        </div>
-        <div>
-          <dt>Payer</dt>
-          <dd>
-            <b>
-              {fin.responsibility === "hotel" ? "Hotel absorbs the difference" : "Guest pays the difference"}
-            </b>
-          </dd>
-        </div>
-        <div>
-          <dt>Original total</dt>
-          <dd>{pesoExact(fin.originalTotal)}</dd>
-        </div>
-        <div>
-          <dt>Target stay total</dt>
-          <dd>
-            {pesoExact(fin.targetTotal)}
-            {fin.targetRate != null ? ` (${pesoExact(fin.targetRate)} × ${label(fin.nights)} night${Number(fin.nights) === 1 ? "" : "s"})` : ""}
-          </dd>
-        </div>
-        <div>
-          <dt>Difference</dt>
-          <dd>{pesoExact(fin.difference)}</dd>
-        </div>
-      </dl>
-      {finDiff < 0 && <p className="approval-review-note">
-        Rate difference is negative — no automatic refund applies; review
-        before approving.
-      </p>}
-    </section>}
-    {isRoomTypeChange && !fin && <section className="approval-review-section">
-      <h3>Financial responsibility</h3>
-      <p className="muted">
-        This request predates reason-coded financial responsibility and
-        cannot be approved — reject it and ask for a new request with a
-        chosen reason.
-      </p>
-    </section>}
-    {isStayExtension && stayExt && <section className="approval-review-section">
-      <h3>Stay extension</h3>
-      <dl>
-        <div>
-          <dt>Current checkout</dt>
-          <dd>{label(stayExt.currentCheckOut)}</dd>
-        </div>
-        <div>
-          <dt>Requested checkout</dt>
-          <dd>
-            <b>{label(stayExt.requestedCheckOut)}</b> · {stayExt.nights}{" "}
-            added night{stayExt.nights !== 1 ? "s" : ""}
-          </dd>
-        </div>
-        <div>
-          <dt>Room</dt>
-          <dd>
-            Room {label(stayExt.roomNumber)} · {label(stayExt.roomType)}
-          </dd>
-        </div>
-        <div>
-          <dt>Room availability</dt>
-          <dd>
-            <StatusBadge status={stayExt.roomConflict ? "cancelled" : "paid"} label={stayExt.roomConflict ? "Conflict during added nights" : "Available through new checkout"} />
-          </dd>
-        </div>
-        <div>
-          <dt>Additional lodging</dt>
-          <dd>
-            {stayExt.rate != null ? `${pesoExact(stayExt.rate)} × ${stayExt.nights} = ` : ""}
-            <b>{pesoExact(stayExt.additionalAmount)}</b>
-            {stayExt.rate == null && stayExt.nightlyRates?.length ? ` (${stayExt.nightlyRates.map(night => pesoExact(night.rate)).join(" · ")})` : ""}
-          </dd>
-        </div>
-        <div>
-          <dt>Projected folio total</dt>
-          <dd>{pesoExact(stayExt.projectedTotal)}</dd>
-        </div>
-      </dl>
-      {stayExt.roomConflict && <p className="approval-review-note">
-        Room {label(stayExt.roomNumber)} is taken during the added nights
-        — approving authorizes the plan; Front Desk chooses a same-type
-        room (or extends in place if the conflict cleared) at execution.
-        An overlap is never created.
-      </p>}
-    </section>}
-    {isStayExtension && !stayExt && <section className="approval-review-section">
-      <h3>Stay extension</h3>
-      <p className="muted">
-        This request has no server-stamped extension snapshot and cannot be
-        approved — reject it and request it again from the Extend stay
-        dialog.
-      </p>
-    </section>}
-    <section className="approval-review-section">
-      <h3>Reason</h3>
-      <p>{label(item.reason)}</p>
-    </section>
-    {(policy || item.reservation_status) && <section className="approval-review-section">
-      <h3>Policy / current state</h3>
-      {policy && <p>{policy}</p>}
-      <p className="muted">
-        Reservation status: {label(item.reservation_status || "—")}
-      </p>
-    </section>}
-    {item.status !== "pending" && <section className="approval-review-section">
-      <h3>Decision</h3>
-      <dl>
-        <div>
-          <dt>Decision</dt>
-          <dd>
-            <StatusBadge status={String(item.status)} label={label(item.status)} />
-          </dd>
-        </div>
-        {item.reviewer_name && <div>
-          <dt>Decided by</dt>
-          <dd>{label(item.reviewer_name)}</dd>
-        </div>}
-        {item.reviewed_at && <div>
-          <dt>Decided at</dt>
-          <dd>{fmtStamp(item.reviewed_at)}</dd>
-        </div>}
-        {item.decision_reason && <div>
-          <dt>Decision reason</dt>
-          <dd>{label(item.decision_reason)}</dd>
-        </div>}
-        {item.execution_status && <div>
-          <dt>Execution</dt>
-          <dd>{label(item.execution_status)}</dd>
-        </div>}
-      </dl>
-    </section>}
-    {actionable && <p className="approval-review-note">
-      Approving authorizes the responsible department to execute. It does
-      not perform their work.
-    </p>}
-  </Modal>;
-} function AccountingDetailTable({ title, subtitle, ariaLabel, headers, rows, renderRow }: { title: string; subtitle: string; ariaLabel: string; headers: string[]; rows: Record<string, unknown>[]; renderRow: (row: Record<string, unknown>) => React.ReactNode; }) {
+function AccountingDetailTable({ title, subtitle, ariaLabel, headers, rows, renderRow }: { title: string; subtitle: string; ariaLabel: string; headers: string[]; rows: Record<string, unknown>[]; renderRow: (row: Record<string, unknown>) => React.ReactNode; }) {
   const page = useTablePagination(rows); return <article className="panel">
     <div className="panel-heading">
       <div>
@@ -2040,195 +1695,7 @@ function DocumentViewerModal({ item, close }: { item: RecordItem; close: () => v
 } // Consolidated guest dossier: everything comes from authoritative records — no
 // inferred preferences, no invented tiers. The financial summary renders only
 // when the server attached one (roles allowed to see reservation financials).
-function GuestProfileModal({ profile, role, close, onViewReservation }: { profile: GuestProfile; role:Role; close: () => void; onViewReservation: (id: string) => void; }) {
-  const guest = profile.guest; const counts = profile.stayCounts; const identity = profile.stays.find(stay => stay.identity_status)?.identity_status; const active = profile.stays.filter(stay => ["pending", "confirmed", "checked_in"].includes(String(stay.status))); const past = profile.stays.filter(stay => !["pending", "confirmed", "checked_in"].includes(String(stay.status))).slice(0, 10); return <Modal isOpen onClose={close} title={label(guest.name)} description={`Guest profile · ${label(guest.loyalty_tier)} member · ${Number(guest.loyalty_points ?? 0).toLocaleString("en-PH")} pts`} size="lg" headerVariant="branded" className="approval-review-modal" footer={<button className="btn btn-soft" onClick={close}>
-    Close
-  </button>}>
-    <div className="approval-review-grid">
-      <section>
-        <h3>Identity</h3>
-        <dl>
-          <div>
-            <dt>Guest ID</dt>
-            <dd>{label(guest.id)}</dd>
-          </div>
-          <div>
-            <dt>Email</dt>
-            <dd>{label(guest.email)}</dd>
-          </div>
-          <div>
-            <dt>Phone</dt>
-            <dd>{label(guest.phone)}</dd>
-          </div>
-          <div>
-            <dt>Nationality</dt>
-            <dd>{label(guest.nationality || "Not provided")}</dd>
-          </div>
-          <div>
-            <dt>Address</dt>
-            <dd>{label(guest.address || "Not provided")}</dd>
-          </div>
-          <div>
-            <dt>ID verification</dt>
-            <dd>
-              <StatusBadge status={String(identity ?? "unverified")} label={label(identity ?? "unverified")} />
-            </dd>
-          </div>
-          <div>
-            <dt>Loyalty tier</dt>
-            <dd>
-              <span className={`badge badge-loyalty-${String(guest.loyalty_tier ?? "silver").toLowerCase()}`}>
-                {label(guest.loyalty_tier)} · {Number(guest.loyalty_points ?? 0).toLocaleString("en-PH")} pts
-              </span>
-            </dd>
-          </div>
-          <div>
-            <dt>Guest since</dt>
-            <dd>{label(guest.created_at)}</dd>
-          </div>
-        </dl>
-      </section>
-      {(profile.mergedAliases?.length??0)>0&&<section className="hotel-ops" aria-label="Historical guest profile aliases"><h3>Historical search aliases</h3><p>These identifiers help locate earlier records. They do not grant account access or transfer booking ownership.</p><ul className="hotel-ops-list">{profile.mergedAliases!.map((alias,index)=><li key={`${alias.id}-${alias.type}-${index}`}><strong>{label(alias.type)}</strong><span>{label(alias.value)}</span></li>)}</ul></section>}
-      <section>
-        <h3>Stay history</h3>
-        {(profile.partyHistory?.length ?? 0) > 0 && <section className="hotel-ops"><h4>Accompanying stays</h4><p>These memberships do not transfer booking ownership or financial responsibility.</p><ul className="hotel-ops-list">{profile.partyHistory!.map(stay => <li key={stay.id}><button className="btn btn-soft" onClick={() => onViewReservation(stay.id)}>{String(stay.confirmation_number ?? stay.id)}</button><span>{String(stay.check_in)} → {String(stay.check_out)} · {String(stay.party_role)}</span></li>)}</ul></section>}
-        <dl>
-          <div>
-            <dt>Current stay</dt>
-            <dd>{counts.current}</dd>
-          </div>
-          <div>
-            <dt>Upcoming</dt>
-            <dd>{counts.upcoming}</dd>
-          </div>
-          <div>
-            <dt>Completed stays</dt>
-            <dd>{counts.completed}</dd>
-          </div>
-          <div>
-            <dt>Cancelled</dt>
-            <dd>{counts.cancelled}</dd>
-          </div>
-          <div>
-            <dt>No-shows</dt>
-            <dd>{counts.noShow}</dd>
-          </div>
-          <div>
-            <dt>Loyalty points</dt>
-            <dd>{label(guest.loyalty_points)}</dd>
-          </div>
-        </dl>
-      </section>
-    </div>
-    {active.length > 0 && <section className="approval-review-section">
-      <h3>Current &amp; upcoming stays</h3>
-      {active.map(stay => <p key={String(stay.id)}>
-        <span>
-          <b>{label(stay.confirmation_number || stay.id)}</b> ·{" "}
-          {label(stay.room_type)} · {label(stay.check_in)} →{" "}
-          {label(stay.check_out)} · {label(stay.guests)} guest
-          {Number(stay.guests) !== 1 ? "s" : ""}
-          {stay.room_number ? ` · Room ${label(stay.room_number)}` : ""}
-        </span>
-        <StatusBadge status={String(stay.status)} label={label(stay.status)} />
-        <button className="table-action action-neutral" onClick={() => onViewReservation(String(stay.id))}>
-          <Eye size={13} /> Open
-        </button>
-      </p>)}
-    </section>}
-    {past.length > 0 && <section className="approval-review-section">
-      <h3>Past stays</h3>
-      {past.map(stay => <p key={String(stay.id)}>
-        <span>
-          {label(stay.confirmation_number || stay.id)} ·{" "}
-          {label(stay.room_type)} · {label(stay.check_in)} →{" "}
-          {label(stay.check_out)}
-        </span>
-        <StatusBadge status={String(stay.status)} label={label(stay.status)} />
-      </p>)}
-    </section>}
-    <section className="approval-review-section">
-      <h3>Preferences</h3>
-      {guest.preferences || guest.special_requests || profile.requestOptions.length > 0 ? <>
-        <dl>
-          {guest.preferences && <div>
-            <dt>Saved preferences</dt>
-            <dd>{label(guest.preferences)}</dd>
-          </div>}
-          {guest.special_requests && <div>
-            <dt>Saved special requests</dt>
-            <dd>{label(guest.special_requests)}</dd>
-          </div>}
-        </dl>
-        {profile.requestOptions.length > 0 && <div className="detail-request-chips">
-          <b>Requested across bookings:</b>
-          <ul className="chip-row">
-            {profile.requestOptions.map(option => <li key={option}>{requestLabel(option)}</li>)}
-          </ul>
-        </div>}
-      </> : <p className="muted">No explicit preferences on record.</p>}
-      <p className="muted">
-        Only what guests explicitly saved or requested — nothing is inferred.
-      </p>
-    </section>
-    {profile.requests.length > 0 && <section className="approval-review-section">
-      <h3>Service history</h3>
-      {profile.requests.slice(0, 12).map(request => <p key={String(request.id)}>
-        <span>
-          Request · {label(request.department)} · {label(request.request)}
-        </span>
-        <StatusBadge status={String(request.status)} label={label(request.status)} />
-      </p>)}
-      {profile.transportation.map(trip => <p key={String(trip.id)}>
-        <span>
-          Transport · {label(trip.service_type)} ·{" "}
-          {label(trip.pickup_date)}
-          {trip.pickup_time ? ` ${label(trip.pickup_time)}` : ""}
-        </span>
-        <StatusBadge status={String(trip.status).toLowerCase()} label={label(trip.status)} />
-      </p>)}
-      {profile.assignments.filter(entry => entry.released_at || String(entry.status) !== "active").slice(0, 8).map(entry => <p key={String(entry.id)}>
-        <span>
-          Room change · {label(entry.reason || "Room assignment")} ·{" "}
-          {label(entry.check_in)} → {label(entry.check_out)}
-          {entry.is_upgrade ? " · upgrade" : ""}
-        </span>
-        <StatusBadge status={String(entry.status)} label={label(entry.status)} />
-      </p>)}
-      {profile.approvals.slice(0, 8).map(request => <p key={String(request.id)}>
-        <span>
-          Approval · {label(request.request_type)} ·{" "}
-          {label(request.reason)}
-        </span>
-        <StatusBadge status={String(request.status)} label={label(request.status)} />
-      </p>)}
-    </section>}
-    {(["front_desk","manager","owner"].includes(role))&&<GuestFlagsPanel guestId={String(guest.id)} role={role}/>}
-    {profile.financialVisible && profile.financial && <section className="approval-review-section">
-      <h3>Financial summary</h3>
-      <dl>
-        <div>
-          <dt>Total billed</dt>
-          <dd>{pesoExact(profile.financial.billed)}</dd>
-        </div>
-        <div>
-          <dt>Total paid</dt>
-          <dd>{pesoExact(profile.financial.paid)}</dd>
-        </div>
-        <div>
-          <dt>Outstanding balance</dt>
-          <dd>
-            <b>{pesoExact(profile.financial.outstanding)}</b>
-          </dd>
-        </div>
-      </dl>
-      <p className="muted">
-        Across all stays of this guest — visible to roles authorized for
-        reservation financials only.
-      </p>
-    </section>}
-  </Modal>;
-} function CreateModal({ resource, close, submit }: { resource: Resource; close: () => void; submit: (p: Record<string, string | number>) => void; }) {
+function CreateModal({ resource, close, submit }: { resource: Resource; close: () => void; submit: (p: Record<string, string | number>) => void; }) {
   const c = config[resource]; const [form, setForm] = useState<Record<string, string | number>>(() => Object.fromEntries(c.fields.map(f => [f.key, f.value ?? ""]))); return <Modal isOpen onClose={close} title={`Add to ${c.title.toLowerCase()}`} description="Create a new record — saved through the standard resource endpoint." size="md" headerVariant="branded">
     <form onSubmit={e => { e.preventDefault(); submit(form); }} className="form-dialog">
       <div className="form-grid">

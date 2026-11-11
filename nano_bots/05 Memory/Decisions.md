@@ -4,6 +4,14 @@ Lightweight decision log. Each entry records a choice that constrains future dev
 Trivial implementation details do not belong here. Historical sessions never override the
 current system or `SYSTEM.md` — see [[AI Session Handoff]] for the authority order.
 
+## D-038 — Room cards in Room Management and the calendar in Bookings
+
+2026-11-09 user asked to apply the two staff references. Room Management owns
+the status cards and operational focus. Front Desk Bookings owns the dated
+room calendar and attention reviews, with the booking ledger reachable from
+that workspace. This supersedes the calendar placement in D-035. See
+[[2026-11-09 - Front Office Reference Implementation]].
+
 ## D-037 — Configurable public location guide with an explicit fictional demo
 
 2026-11-06 user approved the premium photo sections and live map, then said

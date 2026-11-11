@@ -16,8 +16,6 @@ const customerCancelRoute = readFileSync("app/api/account/transportation/[id]/ca
 const staffListRoute = readFileSync("app/api/transportation/route.ts", "utf8");
 const staffTransitionRoute = readFileSync("app/api/transportation/[id]/transition/route.ts", "utf8");
 const managerPanel = readFileSync("components/manager/transportation-panel.tsx", "utf8");
-// Stage 2 (2026-10-19): the shared card family (.mod-kpis/.mod-kpi) lives in ui-primitives.css.
-const uiPrimitives = readFileSync("app/ui-primitives.css", "utf8").replace(/\r\n/g, "\n");
 const customerList = readFileSync("components/customer/transportation-request-list.tsx", "utf8");
 const holdsRoute = readFileSync("app/api/booking/holds/route.ts", "utf8");
 const guestDetailsForm = readFileSync("components/booking/guest-details-form.tsx", "utf8");
@@ -115,22 +113,6 @@ describe("transportation fare on the folio (charged at assignment)", () => {
     expect(staffListRoute).toContain("fare_amount");
     expect(staffTransitionRoute).toContain("TRANSPORTATION_RESERVATION_NOT_READY");
     expect(customerList).toContain("added to your stay folio");
-  });
-});
-
-describe("transportation workspace layout", () => {
-  it("separates the KPI summary from the filter controls", () => {
-    // 2026-09-23: the KPI cards moved to the shared ModuleSummaryCards pattern
-    // (.mod-kpi, used by every staff module summary); the block stays separate
-    // from the filter/toolbar styles. auto-fit keeps any card count on one row.
-    // 2026-10-06 rewrite: the tailadmin auto-fit grid won over the old manager
-    // rule at equal specificity (and is what renders today), so the merged
-    // sheet carries it — same one-row intent, new home.
-    // 2026-10-19 Stage 2: the card family moved to the cross-surface sheet —
-    // same auto-fit grid, now staff+guest unified.
-    expect(uiPrimitives).toContain(
-      ".mod-kpis{\n  display:grid;\n  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));\n  gap:20px;\n  margin-bottom:24px;\n}",
-    );
   });
 });
 

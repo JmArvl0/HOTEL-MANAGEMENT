@@ -1054,11 +1054,11 @@ Chosen at booking (`request_options`) and auto-filed when a website reservation 
 live by a guest (`customer_submit_guest_requests`, up to 12 picks per submission, each submission a
 batch). A single router `guest_request_route(type)` maps every type to a department — front desk,
 housekeeping, maintenance, … — and auto-creates the matching housekeeping task / maintenance order.
-Requests carry priority/severity and can be escalated to a Manager. Filed rows stamp
-`inventory_item_id` when their catalog type links an inventory item, and fulfillment
-consumes that exact item (legacy rows without the FK keep name-matching); nothing is
-reserved or decremented at request time. The `fulfilled_request_stock` trigger performs the
-conditional decrement and one movement in the same transaction as task or direct request
+Requests carry priority/severity and can be escalated to a Manager. Portal and booking
+submissions stamp `inventory_item_id` from the active request catalog. Fulfillment consumes
+the recorded item. Older stock-backed requests without a link require an explicit inventory
+review. The stock trigger performs the decrement and records one movement in the same
+transaction as task or direct request
 completion. Insufficient stock rolls back fulfillment; concurrent requests cannot overwrite
 each other's decrements. Staff quantity changes use the locked `adjust_inventory_stock` RPC.
 
@@ -1066,8 +1066,13 @@ each other's decrements. Staff quantity changes use the locked `adjust_inventory
 rejected}` (+ `approved_by/at/note`). A customer submission (or a booking's auto-filed batch) starts
 `pending`; **Front Desk reviews the batch as one decision**
 (`front_desk_review_guest_request_batch` — approve or reject the whole batch; rejection requires a
-note). Only approved requests enter the departmental lane. Live staff routing from the Front Desk
-uses the same lane (`components/manager/guest-requests-panel.tsx`).
+note). Withdrawn items are excluded from the decision. Only approved requests
+enter the departmental lane. The staff workspace groups the live queue into
+awaiting approval, open work and history. It opens one selected submission
+beside the queue or in a separate phone view. Front Desk reviews submissions,
+the assigned department works individual approved items, and Manager sees
+the queue read-only. The Housekeeping view shows its own routed work and
+history. The supply disclosure uses the authorized inventory read.
 
 ### 7.8 Manager approvals & exceptions
 
@@ -1089,6 +1094,13 @@ exception, accounting executes the financial one (`accounting_execute_manager_fi
 guest compensation as a credit). High/critical exceptions can be **escalated to Owner**
 (`escalate_manager_approval_to_owner`), after which only an Owner re-read as `owner` can review them
 (`review_owner_exception` → delegates to `review_manager_approval` then stamps the owner review).
+
+The staff **Approvals & Escalations** workspace groups cases into **Needs decision**, **With
+Owner**, **Awaiting execution**, and **History**. Managers see the queue. Front Desk, Accounting,
+Housekeeping, and Maintenance see the requests they filed. The selected case shows the normal
+policy beside the requested action, recorded financial figures, activity, and the next action
+available to the signed-in role. Owner decisions use **Owner Exceptions**. Accounting settles
+approved refund exceptions in **Refunds**.
 
 **Room-type exceptions are guided, never free-typed.** When check-in Step 3 finds no eligible room of
 the reserved type, the arrival dialog offers a **Target room type** dropdown populated only from
@@ -1190,19 +1202,33 @@ are unchanged. Workspaces offered per role:
 | Maintenance | Dashboard, rooms, guest requests, maintenance orders, inventory, Approvals |
 | Accounting | Dashboard, reservations, billing, **Deposit verification** (the only role that can act on it), Refunds, **Transactions · Folios · Cash & shifts · Reconciliation · Documents**, Reports, Approvals |
 
-**Front Office modules (2026-11-04).** Staff navigation separates Room Management
-(`room_rack`), Reservations (`reservations`), and Guest Management (`guests`).
-Front Desk Room Management uses `FrontOfficeRack` in rooms mode, defaulting to a
-seven-day calendar (Cards remains available). Rooms run down the left and dates
-across the top; guest names span assigned nights with checkout day excluded.
-Recorded room-move segments determine each room's allocation; overlapping records
-remain visible in separate lanes and unassigned stays are listed separately.
-Clicking a stay opens existing reservation details; clicking a room opens its
-existing dossier/actions. Only catalog-authorized roles see Manage rooms.
-Front Desk Reservations uses the same shared workspace in ledger mode, while
-Manager/Accounting retain their existing role-specific reservation surfaces.
-Guest Management retains existing profiles and history; no new CRUD or RBAC is
-implied by the label. Its shared list/profile reads support the deployed schema
+**Front Office modules (2026-11-09).** Staff navigation separates Room Management
+(`room_rack`), Front Desk Bookings (`reservations`), and Guest Management (`guests`).
+Room Management shows cards in collapsible room-type groups with separate room
+and housekeeping labels. Room counts, filters, and Quick insights share the
+same current board state. Today's focus filters dirty, ready, and out-of-service
+rooms or opens the Front Desk list for today's arrivals and unassigned arrivals.
+Clicking a card opens the existing room dossier and authorized actions. Only
+catalog-authorized roles see Manage rooms.
+
+Front Desk Bookings opens a seven-day room calendar. Rooms run down the left and
+dates across the top. Names span assigned nights with checkout day excluded.
+Recorded room moves and overlaps retain their own segments and lanes. Unassigned
+stays appear separately. Booking bars and Needs attention reviews open existing
+reservation details. The Booking list action opens a full-width ledger within
+Front Desk with search, full history, and booking actions, even when the calendar
+read fails. Back to calendar returns to the previous calendar dates and room
+filters. Manager and Accounting retain their role-specific reservation surfaces.
+On desktop, Today's focus and Needs attention fill the space below the staff
+header. Each panel frame and heading stays in place as its contents or the main
+workspace scroll. Room Management hides the scroll indicators for its inner panes.
+The Bookings header uses the same panel surface as Room Management.
+Guest Management pairs a searchable directory with an inline profile. Quick
+filters cover in-house guests, Manila-day arrivals and VIPs. The loyalty filter
+uses recorded tiers. Desktop frames fill the remaining workspace. On narrow
+screens, Back to directory restores the current search, filters and page.
+The directory uses a read-only staff summary. The profile reuses authorized
+booking, history and flag workflows. Its list/profile reads support the deployed schema
 before the reviewed-merge and soft-removal migrations: absent merge markers skip
 alias enrichment; only the exact missing merge/removal column permits the legacy
 profile/membership read. Upgraded alias/canonical history and removal filtering
@@ -1216,22 +1242,29 @@ window/full-history control governs dates; arrival/departure queues still mean
 hotel-local today. The Front Desk resource read paginates reservations, invoice
 balances and guest-phone joins; missing balances remain unknown. History refreshes
 independently every 30 seconds and on browser focus, with visible failures/retry
-instead of partial window fallback. The reservation ledger's Needs attention rail previews today/overdue issues
-without authorizing actions. Contextual actions reuse the existing arrival and
+instead of partial window fallback. The Bookings calendar's Needs attention rail
+previews today and overdue issues plus payment and identity reviews through the
+selected window. Daily queues use the hotel day even when checkout falls outside
+the occupied nights. Contextual actions reuse the existing arrival and
 reservation-detail workflows; server readiness/RBAC are unchanged. Room history
 is a disclosure in reservation details, replacing the module-wide assignment diary.
 
-**Consolidated guest profile (roadmap Phase 2).** The Guests module is more than a raw grid: every
-row opens a read-only dossier (`GET /api/staff/guests/[id]`, gated on `canViewGuestContact` —
-owner/manager/front desk; `getStaffGuestProfile` in `lib/staff-data.ts`). It consolidates, in one
+**Consolidated guest profile.** The directory uses `GET /api/staff/guests`
+for contact search, loyalty, stay summaries and active flag labels. Selecting
+a guest loads `GET /api/staff/guests/[id]` into the profile panel. Both reads
+use the `canViewGuestContact` permission for Owner, Manager and Front Desk.
+The profile consolidates, in one
 batched query set, the guest identity (contact, nationality, address, loyalty tier, ID-verification
 status from their stays), the full stay history grouped current/upcoming/completed/cancelled/
 no-show, service history (guest requests, transportation, room changes, and — manager/owner only —
 the manager-approval trail), preferences **strictly from explicitly saved records** (stored guest
 preferences, special requests, and request options chosen across bookings — nothing inferred, no
 invented tiers or auto-VIP), and a financial summary across the guest's folios. Payment-proof
-images and identity documents are never selected. The same modal opens from a reservation's detail
-footer ("Guest profile") for one-click context during a stay. Tests: `lib/guest-profile.test.ts`.
+images and identity documents are never selected. Overview, Stays and Guest flags
+organize the same information in the directory panel and the modal opened from
+reservation details. Flags retain their existing role-specific read and write
+rules. The VIP filter is omitted when the flag table is unavailable on legacy
+schemas. See `lib/guest-profile.test.ts` and `lib/guest-schema-compat.test.ts`.
 
 The **accounting workspace is ledger-readonly**: every action posts to an accounting route that calls
 a definer RPC — corrections are reversals/adjustments, settled payments are never edited (§13). The
@@ -1467,18 +1500,13 @@ Departures / In-house clickable onto the queue filters; manager oversight panel:
 Required — the authoritative `needsAttention` definition from `lib/manager-attention.ts` —
 plus Arrivals / Departures / In-house, all clickable), the seven status modules
 (Maintenance, Rooms, Inventory, Deposit Verification, Refunds, Billing, and the
-Housekeeping/Maintenance view of Guest Requests — informational, via one shared
+generic Maintenance view of Guest Requests — informational, via one shared
 `moduleSummary` helper in the generic `ResourceView`; Deposit Verification's cards include
-**Past SLA** — pending payments waiting past the policy's `depositSlaHours`), **Transportation** (its KPI cards
-migrated onto the shared component, still queue-clickable), the **Accounting**
+**Past SLA** — pending payments waiting past the policy's `depositSlaHours`), the **Accounting**
 sections (Transactions/Folios/Cash/Reconciliation/Documents, informational),
-**Approvals & Escalations** (Pending — clickable onto the status pills — plus High priority,
-Escalations, Awaiting Accounting, and Oldest waiting as an age value; replaced the old
-`arrival-lane approval-summary` chip strip), **Housekeeping** (five cards from the same
+**Housekeeping** (five cards from the same
 `groupQueueTask` grouping the queue renders: Needs attention / In progress / Waiting for
-inspection / Blocked by Maintenance / Completed today), the **Guest Requests panel** for
-front desk/manager (Awaiting approval / Open work / Approved / Declined, all clickable onto
-the submission queue filters), and the **Front Desk Reports history** (Submitted /
+inspection / Blocked by Maintenance / Completed today), and the **Front Desk Reports history** (Submitted /
 Acknowledged / Returned clickable onto the status chips, plus On record). The **admin
 governance modules** follow the same pattern: Users & Staff (Active / Suspended /
 Recovery required clickable onto the selects), Room Configuration (Administratively
@@ -1519,10 +1547,15 @@ deliberately removed; `docs/TRANSPORTATION_FUTURE_ENHANCEMENTS.md` records what 
   cancel/reject does **not** auto-reverse a posted fare — the correction goes through Accounting's
   existing charge-reversal/adjustment flow (separation of duties: the role that cancels the trip
   must not also rewrite the folio). The vehicle-type catalogue is manager-maintained (§7.1).
-- **Guard rails.** A trigger (`enforce_transportation_stay_window`) keeps pickup/return inside the
-  reservation's stay window; the staff workspace (`components/manager/transportation-panel.tsx`)
-  offers queue filters (needs review / today / active / completed / closed), service-type and search
-  filters, and auto-refreshes every 30 s.
+- **Dispatch workspace.** The shared staff panel (`components/manager/transportation-panel.tsx`)
+  opens on Today in Manila time. Today includes outbound or scheduled return legs due that day
+  and counts each trip once. Upcoming sorts by the next future leg, Needs planning covers trips
+  before assignment, and History holds terminal trips. Search and service type scope the rows
+  and filter counts. The selected trip shows both legs, progress, notes, driver, vehicle and the
+  posted fare. A 30-second refresh keeps the queue current. A transition conflict reloads the
+  trip and leaves the decision to retry with staff.
+- **Guard rails.** The `enforce_transportation_stay_window` trigger keeps pickup and return
+  inside the reservation's stay window.
 
 ### 7.12 Daily Front Desk Operations Report
 
@@ -1716,6 +1749,9 @@ atomic cumulative receipts/stock movements, partial status, receipt history, and
 deliveries-only Housekeeping queue. Omitted lines are not assumed delivered. Retry identity is
 the PO/version plus actor and payload. Partially received orders cannot be cancelled or edited
 into different orders. Completed orders remain immutable; historical quantities are not inferred.
+Migration `20261111020000` combines cumulative receipts and replay handling with the stock-status
+update. The Manager receipt dialog asks for the quantities delivered and shows the outstanding
+quantity for each line.
 
 ### 7.16 Hotel operations implementation candidate (2026-11-03)
 
@@ -1738,11 +1774,14 @@ local migration files, combined with the hotel files above, and pushed with
 staff walkthrough that preceded it.
 
 - **Hotel Operations** is available to Front Desk, Housekeeping, Maintenance,
-  Accounting, Manager and Owner through existing role shells. Handover records have
-  department/person ownership, due time, scoped room/reservation/guest/task links,
-  versioned edits and audit history. Resolving and archiving are separate actions;
-  reopen/restore preserves history. Guest links stay with Front Desk/Management.
-  Refresh is polling, with no new reminder-delivery promise.
+  Accounting, Manager and Owner through existing role shells. The shift briefing
+  shows the operating date and separates close blockers from carry-forward
+  work for roles with night-audit access. Housekeeping and Maintenance see a
+  summary of their scoped handovers. The department sheet expands notes inline,
+  including ownership, Manila due time, scoped room/reservation/guest/task links
+  and versioned history. Resolving and archiving are separate actions.
+  Reopen and restore preserve history. Guest links stay with Front Desk and
+  Management. Refresh uses polling, and due times are recorded for review.
 - **Reservation readiness** names current identity, money, arrival-time, room and
   inspection blockers near the existing arrival flow. It is an assessment, with a
   timestamp/version; the existing final check-in RPC remains authoritative. Staff

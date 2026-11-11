@@ -1,0 +1,125 @@
+.staff-billing {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  container: staff-billing / inline-size;
+}
+.app-shell .staff-billing .page-header { margin: 0; }
+.app-shell .staff-billing .mod-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; }
+.app-shell .staff-billing .mod-kpi > b { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.billing-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(290px, 1fr);
+  align-items: start;
+  gap: 16px;
+}
+.app-shell .staff-billing :is(.billing-ledger, .billing-folio, .billing-loading, .billing-load-error) {
+  min-width: 0;
+  border: 1px solid var(--dl);
+  border-radius: 14px;
+  background: var(--ds);
+  color: var(--dt);
+}
+.app-shell .staff-billing .billing-ledger { padding: 0; }
+.billing-ledger > header { padding: 16px 16px 0; }
+.staff-billing :is(h2,h3,p,dl,dd) { margin: 0; }
+.staff-billing h2 { color: var(--dt); font-size: 18px; line-height: 1.25; font-weight: 700; }
+.staff-billing h3 { color: var(--dt); font-size: 14px; font-weight: 700; }
+.billing-ledger > header p, .billing-muted, .billing-identity p { color: var(--dm); font-size: 13px; }
+.billing-ledger > header p { margin-top: 4px; }
+.billing-ledger .haven-data-toolbar { margin: 12px 16px 14px; }
+.billing-ledger .haven-toolbar-label { display: none; }
+.billing-ledger .haven-toolbar-section { min-width: 0; }
+.billing-ledger .haven-filter-badges { flex-wrap: wrap; }
+.app-shell .billing-ledger .table-scroll { margin: 0; border: 0; border-radius: 0; overflow-x: auto; }
+.app-shell .billing-ledger table { width: 100%; min-width: 0; border-collapse: collapse; }
+.app-shell .billing-ledger :is(th,td) { padding: 9px 8px; border-bottom: 1px solid var(--dl); }
+.app-shell .billing-ledger :is(th,td):first-child { padding-inline-start: 16px; }
+.app-shell .billing-ledger :is(th,td):last-child { padding-inline-end: 16px; text-align: right; white-space: nowrap; }
+.app-shell .billing-ledger th { background: var(--ds2); border-top: 1px solid var(--dl); color: var(--dm); }
+.app-shell .billing-ledger td:first-child { padding-block: 2px; }
+.app-shell .billing-ledger td:last-child { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.billing-ledger tr[data-selected] > td { background: color-mix(in srgb, var(--st-accent, #4685e8) 12%, var(--ds)); }
+.billing-select-folio {
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  width: 100%;
+  min-height: 48px;
+  padding: 5px 0;
+  border: 0;
+  background: transparent;
+  color: var(--dt);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.billing-select-folio strong { font-size: 14px; overflow-wrap: anywhere; }
+.billing-select-folio small, .billing-folio small { color: var(--dm); font-size: 12px; overflow-wrap: anywhere; }
+.billing-select-folio:hover strong { text-decoration: underline; }
+.billing-select-folio:focus-visible { outline: 2px solid var(--dg); outline-offset: 2px; }
+.billing-ledger .table-pagination { padding: 10px 16px; }
+.app-shell .staff-billing .billing-folio { display: grid; gap: 14px; padding: 16px; scroll-margin-top: 92px; }
+.billing-folio-heading, .billing-identity { display: flex; align-items: center; gap: 9px; }
+.billing-folio-heading { justify-content: space-between; align-items: baseline; flex-wrap: wrap; }
+.billing-identity > span {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--st-accent, #4685e8) 15%, var(--ds));
+  color: var(--dt);
+  font-weight: 700;
+}
+.billing-identity > div { min-width: 0; overflow-wrap: anywhere; }
+.billing-balances { display: grid; gap: 7px; padding: 10px 0; border-block: 1px solid var(--dl); }
+.billing-balances > div { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.billing-balances dt { font-size: 13px; color: var(--dm); }
+.billing-balances dd { font-weight: 650; text-align: end; font-variant-numeric: tabular-nums; }
+.billing-balances .billing-due { border-top: 1px solid var(--dl); padding-top: 8px; }
+.billing-due dt { color: var(--dt); font-weight: 700; }
+.billing-due dd { font-size: 21px; letter-spacing: -.02em; }
+.billing-actions, .billing-deposit { display: grid; gap: 8px; }
+.billing-actions .btn { justify-content: center; min-height: 40px; }
+.billing-context {
+  --billing-tone: var(--st-accent, #4685e8);
+  padding: 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--billing-tone) 14%, var(--ds));
+  color: var(--dt);
+  font-size: 13px;
+}
+.billing-context[data-tone="checkout"] { --billing-tone: #e7a13f; }
+.billing-context[data-tone="review"] { --billing-tone: #9271dc; }
+.billing-context[data-tone="settled"] { --billing-tone: #23a47b; }
+.billing-context p { margin-top: 2px; }
+.billing-activity { display: grid; gap: 8px; border-top: 1px solid var(--dl); padding-top: 12px; }
+.billing-activity ul { display: grid; gap: 8px; list-style: none; padding: 0; margin: 0; }
+.billing-activity li { display: flex; align-items: start; justify-content: space-between; gap: 8px; }
+.billing-activity li + li { border-top: 1px solid var(--dl); padding-top: 8px; }
+.billing-activity li > div { display: grid; gap: 3px; min-width: 0; }
+.billing-activity li > div:last-child { justify-items: end; text-align: right; }
+.billing-activity b { font-variant-numeric: tabular-nums; }
+.billing-load-error { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: space-between; }
+.billing-loading { display: grid; gap: 12px; }
+@container staff-billing (max-width: 690px) {
+  .billing-layout { grid-template-columns: minmax(0, 1fr); }
+}
+@container staff-billing (max-width: 520px) {
+  .app-shell .staff-billing .mod-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .app-shell .staff-billing .mod-kpi:first-child { grid-column: 1 / -1; }
+  .app-shell .staff-billing .mod-kpi:last-child { grid-column: auto; }
+  .app-shell .staff-billing .mod-kpi > b { font-size: 21px; }
+  .app-shell .staff-billing .billing-ledger .haven-filter-badges {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .app-shell .staff-billing .billing-ledger .haven-filter-badge { width: auto; min-width: 0; justify-content: center; }
+  .app-shell .billing-ledger :is(th,td) { padding-inline: 6px; }
+  .app-shell .billing-ledger :is(th,td):first-child { padding-inline-start: 10px; }
+  .app-shell .billing-ledger :is(th,td):last-child { padding-inline-end: 10px; }
+  .billing-actions .btn { min-height: 44px; }
+}

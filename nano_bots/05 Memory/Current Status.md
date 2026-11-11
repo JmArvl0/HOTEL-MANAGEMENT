@@ -1,5 +1,64 @@
 # Current Status
 
+## Staff redesign data QA (2026-11-11, local)
+
+- Fourteen workflow checks passed through the real app and a fresh PostgreSQL
+  migration replay. The checks verified reservation, inventory, folio,
+  department, and operating-day destinations.
+- Local fixes cover portal stock links, the close response, partial deliveries,
+  and Billing toolbar spacing. See [[2026-11-11 - Staff Redesign Data QA]].
+
+## Approvals & Escalations redesign (2026-11-11, local)
+
+- The workspace separates Manager decisions, Owner review, department execution,
+  and history. Case details show policy beside the requested action, stamped
+  financial figures, recorded activity, and the next action for the signed-in role.
+- Front Desk continues authorized check-ins and Accounting opens the existing
+  credit and refund workflows. Other departments track requests they filed.
+  See [[2026-11-11 - Approvals and Escalations Implementation]].
+
+## Hotel Operations redesign (2026-11-11, local)
+
+- The shift briefing separates close blockers from carry-forward work. Notes
+  group by department and expand inline for links, history and actions.
+- Signed-in roles determine the view. Housekeeping and Maintenance stay in
+  scoped handovers, while Accounting controls activation and close.
+  See [[2026-11-11 - Hotel Operations Implementation]].
+
+## Transportation redesign (2026-11-10, local)
+
+- Manila Today includes return legs and counts each trip once. The dispatch
+  queue and selected itinerary fill the desktop workspace. On phones, Back
+  to queue restores search, filters, page and row focus.
+- Front Desk operates trips, Manager handles cancellation and rejection,
+  and Owner has read-only access. See [[2026-11-10 - Transportation Implementation]].
+
+## Guest Requests redesign (2026-11-10, local)
+
+- Pending approvals show oldest first. The full-height detail pane presents
+  guest notes, per-item fulfillment, activity and the supply disclosure.
+- Front Desk reviews batches, Housekeeping works routed items, and Manager
+  has a read-only queue. See [[2026-11-10 - Guest Requests Implementation]].
+
+## Guest Management redesign (2026-11-10, local)
+
+- The desktop directory and profile fill the workspace side by side. Phones
+  retain search, filters and page on return. The existing stay, identity,
+  financial and flag rules still govern profile data.
+- Build and 73 focused tests passed. Chromium checked 320–1,920 px in both
+  themes. See [[2026-11-10 - Guest Management Implementation]].
+
+## Front Office reference layout (2026-11-09, local)
+
+- Room Management uses grouped room cards, Today's focus, and Quick insights.
+  Front Desk Bookings uses the room calendar with Needs attention and a Booking
+  list entry for history. Existing room and reservation workflows are reused.
+  Both desktop rails fill the available height and stay fixed while their
+  contents and main work areas scroll.
+- Node 22 build, typecheck, touched lint, and 64 focused tests passed. Full suite
+  2,402 passed with one known purchase-order assertion. Sample-data layouts
+  checked from 320 to 1,672 px. See [[2026-11-09 - Front Office Reference Implementation]].
+
 ## Location and nearby content (2026-11-06)
 
 - Approved premium landing additions and shared Admin/Owner content editor are

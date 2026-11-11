@@ -5,18 +5,18 @@ import type {Role} from "@/lib/types";
 import type {GuestOperationalFlags,GuestOperationalFlag} from "@/lib/guest-flags";
 
 const flagLabels={vip:"VIP",do_not_rent:"Do Not Rent",security_alert:"Security alert",accessibility:"Accessibility",special_handling:"Special handling"};
-export default function GuestFlagsPanel({guestId,role}:{guestId:string;role:Role}){
+export default function GuestFlagsPanel({guestId,role,onChanged}:{guestId:string;role:Role;onChanged?:()=>void}){
  const{data,error,loading,refresh}=useHotelResource<GuestOperationalFlags>(`/api/staff/guests/${encodeURIComponent(guestId)}/flags`);
  const[flagType,setFlagType]=useState<GuestOperationalFlag["flagType"]>("vip"),[instructions,setInstructions]=useState(""),[restricted,setRestricted]=useState(""),[expiry,setExpiry]=useState(""),[reason,setReason]=useState(""),[revokeReason,setRevokeReason]=useState(""),[selected,setSelected]=useState<string|null>(null),[busy,setBusy]=useState(false),[failure,setFailure]=useState(""),[notice,setNotice]=useState("");
  const canManage=role==="manager"||role==="owner";
  async function create(event:React.FormEvent){event.preventDefault();setBusy(true);setFailure("");setNotice("");
   try{await hotelRequest(`/api/staff/guests/${encodeURIComponent(guestId)}/flags`,{flagType,instructions:instructions.trim()||null,restrictedNote:restricted.trim()||null,expiresAt:expiry?new Date(expiry).toISOString():null,reason:reason.trim()});
-   setInstructions("");setRestricted("");setExpiry("");setReason("");setNotice("Guest flag recorded.");await refresh();
+   setInstructions("");setRestricted("");setExpiry("");setReason("");setNotice("Guest flag recorded.");onChanged?.();await refresh();
   }catch(e){setFailure(e instanceof Error?e.message:"Unable to record guest flag.");}finally{setBusy(false);}
  }
  async function revoke(flag:GuestOperationalFlag){setBusy(true);setFailure("");setNotice("");
   try{await hotelRequest(`/api/staff/guests/${encodeURIComponent(guestId)}/flags`,{flagId:flag.id,version:flag.version,reason:revokeReason.trim()},"PATCH");
-   setSelected(null);setRevokeReason("");setNotice("Guest flag revoked and logged.");await refresh();
+   setSelected(null);setRevokeReason("");setNotice("Guest flag revoked and logged.");onChanged?.();await refresh();
   }catch(e){setFailure(e instanceof Error?e.message:"Unable to revoke guest flag.");}finally{setBusy(false);}
  }
  return <section className="hotel-ops guest-flags" aria-label="Guest operational flags">

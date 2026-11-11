@@ -14,12 +14,14 @@ vi.mock("@/lib/supabase", async () => {
       if (schema.failure?.table === table) return response(schema.failure, 500);
       if (!schema.modern && table === "guests" && selected.includes("merged_into_guest_id")) return response({ code: "42703", message: "column guests.merged_into_guest_id does not exist" }, 400);
       if (!schema.modern && table === "guest_aliases") return response({ code: "PGRST205", message: "Could not find the table 'public.guest_aliases' in the schema cache" }, 404);
+      if (!schema.modern && table === "guest_operational_flags") return response({ code: "PGRST205", message: "Could not find the table 'public.guest_operational_flags' in the schema cache" }, 404);
       if (!schema.modern && table === "reservation_guests" && (selected.includes("removed_at") || url.searchParams.has("removed_at"))) return response({ code: "42703", message: "column reservation_guests.removed_at does not exist" }, 400);
       const guests = [{ id: "G-A", name: "Fictional guest A" }, { id: "G-B", name: "Fictional guest B" }];
       const tables: Record<string, Record<string, unknown>[]> = {
         guests: schema.modern ? [...guests.map(row => ({ ...row, merged_into_guest_id: null })), { id: "G-OLD", name: "Old alias", merged_into_guest_id: "G-A" }] : guests,
         guest_aliases: [{ source_guest_id: "G-OLD", survivor_guest_id: "G-A", alias_type: "guest_id", display_value: "Old reference" }],
-        reservations: [{ id: "R-A", guest_id: "G-A", status: "checked_out" }, { id: "R-OLD", guest_id: "G-OLD", status: "checked_out" }, { id: "R-B", guest_id: "G-B", status: "confirmed" }, { id: "R-REMOVED", guest_id: "G-B", status: "checked_out" }],
+        reservations: [{ id: "R-A", guest_id: "G-A", status: "checked_out", check_out: "2026-10-01" }, { id: "R-OLD", guest_id: "G-OLD", status: "checked_out", check_out: "2026-11-01" }, { id: "R-B", guest_id: "G-B", status: "confirmed", check_in: "2026-11-10" }, { id: "R-REMOVED", guest_id: "G-B", status: "checked_out" }],
+        guest_operational_flags: [{ id: "flag-1", guest_id: "G-A", flag_type: "vip" }, { id: "flag-2", guest_id: "G-B", flag_type: "do_not_rent", expires_at: "2020-01-01" }],
         reservation_guests: [{ reservation_id: "R-B", guest_id: "G-A", role: "accompanying", removed_at: null }, ...(schema.modern ? [{ reservation_id: "R-REMOVED", guest_id: "G-A", role: "accompanying", removed_at: "2026-11-01" }] : [])],
         invoices: [{ reservation_id: "R-A", amount: 100, paid: 100, balance: 0 }, { reservation_id: "R-OLD", amount: 50, paid: 50, balance: 0 }, { reservation_id: "R-B", amount: 999, paid: 0, balance: 999 }],
       };
@@ -29,16 +31,35 @@ vi.mock("@/lib/supabase", async () => {
         if (filter.startsWith("in.(")) rows = rows.filter(row => filter.slice(4, -1).split(",").includes(String(row[field])));
         if (filter === "is.null") rows = rows.filter(row => row[field] == null);
       }
-      return response(rows);
+      const offset = Number(url.searchParams.get("offset") ?? 0);
+      const limit = Number(url.searchParams.get("limit") ?? rows.length);
+      return response(rows.slice(offset, offset + limit));
     } },
   }) };
 });
 
-import { getStaffGuestProfile, listForRole } from "@/lib/staff-data";
+import { getStaffGuestDirectory, getStaffGuestProfile, listForRole } from "@/lib/staff-data";
 
 beforeEach(() => { schema.modern = false; schema.failure = null; });
 
 describe("Guest Management across the deployed and upgraded schemas", () => {
+  it("summarizes canonical stays and active flag types with a legacy fallback for the flag table", async () => {
+    const legacy = await getStaffGuestDirectory("2026-11-10");
+    expect(legacy.flagsAvailable).toBe(false);
+    expect(legacy.rows[0]).toMatchObject({ guest: { id: "G-A" }, lastCheckout: "2026-10-01" });
+
+    schema.modern = true;
+    const upgraded = await getStaffGuestDirectory("2026-11-10");
+    expect(upgraded.flagsAvailable).toBe(true);
+    expect(upgraded.rows).toMatchObject([
+      { guest: { id: "G-A", merge_alias_search: "Old reference" }, lastCheckout: "2026-11-01", flags: ["vip"] },
+      { guest: { id: "G-B" }, arrivingToday: true, flags: [] },
+    ]);
+
+    schema.failure = { table: "guest_operational_flags", code: "42501", message: "Permission denied" };
+    await expect(getStaffGuestDirectory("2026-11-10")).rejects.toMatchObject({ code: "42501" });
+  });
+
   it("loads legacy guest records when merge tables have not been deployed", async () => {
     const guests = await listForRole("guests", "front_desk");
     expect(guests.map(row => row.id)).toEqual(["G-A", "G-B"]);

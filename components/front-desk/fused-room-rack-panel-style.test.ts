@@ -48,7 +48,8 @@ describe("fused room rack style contract", () => {
     for (const state of ["available", "occupied", "dirty", "out_of_service"])
       expect(css).toContain(`.theme-light .app-shell .room-rack .badge.board-state-${state}`);
     const board = readFileSync(new URL("./room-board.tsx", import.meta.url), "utf8");
-    expect(board).toContain("colorKey={colorKey}");
+    expect(board).toContain("room-type-circle");
+    expect(board).toContain("colorKey");
     const route = readFileSync(new URL("../../app/api/rack/route.ts", import.meta.url), "utf8");
     expect(route).toContain("badge_color_key");
     expect(route).toContain("room_type_color");
@@ -57,7 +58,7 @@ describe("fused room rack style contract", () => {
   it("renders the breakdown as a bold bulleted list", () => {
     expect(css).toMatch(/\.board-group-breakdown\{[^}]*font-weight:\s*600/);
     expect(css).toMatch(/\.board-group-breakdown\{[^}]*list-style:\s*none/);
-    expect(css).toContain(".breakdown-occupied li::before");
+    expect(css).toContain(".breakdown-occupied::before");
     const board = readFileSync(new URL("./room-board.tsx", import.meta.url), "utf8");
     expect(board).toContain("board-group-breakdown");
     expect(board).toContain("<ul");

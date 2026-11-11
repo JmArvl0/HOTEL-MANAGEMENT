@@ -4,6 +4,7 @@ import { canAccess, canViewGuestContact, canViewReservationFinancials, canViewTr
 import { supabase } from "@/lib/supabase";
 import type { RecordItem, Resource, Role } from "@/lib/types";
 import { readAllRows } from "@/lib/read-all-rows";
+import { guestStayContext, type GuestDirectory } from "@/lib/guest-directory";
 
 export const operationalReservationFields = "id,confirmation_number,guest_id,guest_name,guest_email,room_id,room_number,room_type,check_in,check_out,guests,status,source,total,deposit,deposit_required,payment_status,payment_method,special_requests,request_options,expected_arrival,cancellation_reason,identity_status,identity_verified_at,operational_policy_snapshot,created_at";
 export const accountingReservationFields = "id,confirmation_number,guest_name,room_type,check_in,check_out,status,source,total,deposit,deposit_required,payment_status,payment_method,cancellation_reason,created_at";
@@ -366,5 +367,72 @@ export async function getStaffGuestProfile(id: string, role: Role) {
     // Explicit saved request options across bookings — display only, never inferred.
     requestOptions: Array.from(new Set(stays.flatMap((stay) => Array.isArray(stay.request_options) ? stay.request_options.map((option) => String(option)) : []))),
     financialVisible,
+  };
+}
+
+export async function getStaffGuestDirectory(today: string): Promise<GuestDirectory> {
+  const client = supabase;
+  const guestFields = "id,name,email,phone,loyalty_tier";
+  const [guests, stays, flags] = client ? await Promise.all([
+    readAllRows(() => client.from("guests").select(`${guestFields},merged_into_guest_id`).order("created_at", { ascending: false }))
+      .catch((error: { code?: string; message?: string }) => {
+        if (isMissingColumn(error, "merged_into_guest_id")) {
+          return readAllRows(() => client.from("guests").select(guestFields).order("created_at", { ascending: false }));
+        }
+        throw error;
+      }),
+    readAllRows(() => client.from("reservations").select("id,guest_id,status,room_number,check_in,check_out,checked_out_at")
+      .in("status", ["pending", "confirmed", "checked_in", "checked_out"])),
+    readAllRows(() => client.from("guest_operational_flags").select("id,guest_id,flag_type,expires_at").is("revoked_at", null))
+      .catch((error: { code?: string; message?: string }) => {
+        if (error?.code === "PGRST205" && error.message?.includes("guest_operational_flags")) return null;
+        throw error;
+      }),
+  ]) : [demoStore.guests, demoStore.reservations, null];
+  const records = guests as RecordItem[];
+  const aliases = client && records.some(guest => "merged_into_guest_id" in guest)
+    ? await readAllRows(() => client.from("guest_aliases").select("id,survivor_guest_id,display_value"))
+    : [];
+  const searchByGuest = new Map<string, string[]>();
+  for (const alias of aliases) {
+    const values = searchByGuest.get(alias.survivor_guest_id) ?? [];
+    values.push(alias.display_value);
+    searchByGuest.set(alias.survivor_guest_id, values);
+  }
+  const canonicalIds = new Map(records.map(guest => [guest.id, String(guest.merged_into_guest_id ?? guest.id)]));
+  const demoGuestIds = new Map(client ? [] : records.map(guest => [String(guest.name), guest.id]));
+  const staysByGuest = new Map<string, RecordItem[]>();
+  for (const stay of stays as RecordItem[]) {
+    const guestId = canonicalIds.get(String(stay.guest_id)) ?? demoGuestIds.get(String(stay.guest_name));
+    if (!guestId) continue;
+    const linked = staysByGuest.get(guestId) ?? [];
+    linked.push(stay);
+    staysByGuest.set(guestId, linked);
+  }
+  const flagsByGuest = new Map<string, Set<string>>();
+  const now = Date.now();
+  for (const flag of flags ?? []) {
+    if (flag.expires_at && Date.parse(flag.expires_at) <= now) continue;
+    const types = flagsByGuest.get(flag.guest_id) ?? new Set<string>();
+    types.add(flag.flag_type);
+    flagsByGuest.set(flag.guest_id, types);
+  }
+  return {
+    today,
+    flagsAvailable: flags !== null,
+    rows: records.filter(guest => !guest.merged_into_guest_id).map(({ id, name, email, phone, loyalty_tier }) => {
+      const { current, next, lastCheckout } = guestStayContext(staysByGuest.get(id) ?? [], today);
+      const nextArrival = next ? String(next.check_in).slice(0, 10) : null;
+      return {
+        guest: { id, name, email, phone, loyalty_tier, merge_alias_search: searchByGuest.get(id)?.join(" ") ?? "" },
+        inHouse: Boolean(current),
+        currentRoom: current?.room_number ? String(current.room_number) : null,
+        arrivingToday: nextArrival === today,
+        nextArrival,
+        nextRoom: next?.room_number ? String(next.room_number) : null,
+        lastCheckout,
+        flags: Array.from(flagsByGuest.get(id) ?? []),
+      };
+    }),
   };
 }

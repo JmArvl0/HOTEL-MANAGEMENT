@@ -62,7 +62,7 @@ const numberFormat = new Intl.NumberFormat("en-PH");
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // Machine identifiers submitted alongside the human-readable fields (rooms use
 // RM-XXXXXXXX ids) — never display data for the approval queue. `financials` and
-// `stayExtension` are server-stamped snapshots; ApprovalReviewModal renders each as
+// `stayExtension` are server-stamped snapshots; the approval dossier renders each as
 // its own section instead.
 const hiddenKeys = new Set(["requestedRoomId", "requestedRoomTypeId", "originalRoomTypeId", "financials", "stayExtension"]);
 

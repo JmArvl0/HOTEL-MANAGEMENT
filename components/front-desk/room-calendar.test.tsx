@@ -43,7 +43,7 @@ describe("room assignment calendar", () => {
     const open = vi.fn();
     render(<RoomCalendar {...base} onOpenReservation={open} reservations={[{ ...stay, status: "confirmed", room_id: null }]} />);
     expect(screen.queryByRole("button", { name: /Mariel Santos.*room 101/ })).toBeNull();
-    fireEvent.click(screen.getByText(/bookings awaiting room assignment/));
+    fireEvent.click(screen.getByText(/booking awaiting room assignment/));
     fireEvent.click(screen.getByRole("button", { name: "Review H-041" }));
     expect(open).toHaveBeenCalledWith("current");
   });

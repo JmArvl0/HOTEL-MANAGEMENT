@@ -1,8 +1,8 @@
 import type { RackReservation, RackRoom } from "@/lib/room-rack";
 
-export type ReservationQueue = "all" | "arrivals" | "upcoming" | "in_house" | "departures" | "closed";
+export type ReservationQueue = "all" | "arrivals" | "unassigned" | "upcoming" | "in_house" | "departures" | "closed";
 export const reservationQueues: { value: ReservationQueue; label: string }[] = [
-  { value: "all", label: "All" }, { value: "arrivals", label: "Arrivals today" },
+  { value: "all", label: "All" }, { value: "arrivals", label: "Arrivals today" }, { value: "unassigned", label: "Unassigned today" },
   { value: "upcoming", label: "Upcoming" }, { value: "in_house", label: "In-house" },
   { value: "departures", label: "Departures today" }, { value: "closed", label: "Closed" },
 ];
@@ -14,6 +14,7 @@ export function reservationOverlapsWindow(r: RackReservation, from: string, thro
 export function inReservationQueue(r: RackReservation, queue: ReservationQueue, today: string) {
   const arrival = r.status === "pending" || r.status === "confirmed";
   if (queue === "arrivals") return arrival && r.check_in.slice(0, 10) === today;
+  if (queue === "unassigned") return arrival && !r.room_id && r.check_in.slice(0, 10) === today;
   if (queue === "upcoming") return arrival && r.check_in.slice(0, 10) > today;
   if (queue === "in_house") return r.status === "checked_in";
   if (queue === "departures") return r.status === "checked_in" && r.check_out.slice(0, 10) === today;

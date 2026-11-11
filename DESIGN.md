@@ -4,21 +4,58 @@ The source-of-truth reference for the shipped UI. **Do not apply
 `design-system/haven-hotel/MASTER.md`** — it is superseded (see `DESIGN-STATUS.md` F2).
 This doc and `app/ui-primitives.css` are the current system.
 
-**Front Office workspaces (2026-11-04):** Separate Room Management, Reservations
-and Guest Management navigation entries. Room Management defaults to a full-width
-seven-day room/guest calendar, with Cards as an alternate format. Its room column
-and date header stay visible inside a horizontally scrollable frame; named stay
-bars carry status/reference/dates, with distinct lanes for overlapping allocations.
-Reservations opens the ledger directly, with four clickable shared summary cards
-and an actionable Needs attention rail. Summary links navigate between modules.
-List order is search → queue filters → scope/date controls → results. Dates stay
-visible in both views when the selected-window scope applies; full history is
-explicit. Rows expose stay dates/nights, payment/balance, advisory readiness and
-the next authorized action. Room history lives in a collapsed details disclosure.
-At ≤600px summaries use two columns and header actions wrap; at ≤760px the
-attention rail leads with a bounded scrollable queue and the table scrolls inside
-its frame. All styling is scoped to the reservation workspace; shared controls
-and live business workflows retain their ownership.
+**Hotel Operations (2026-11-11).** The shift briefing places the operating
+date, close blockers and carry-forward work above one department handover
+sheet. Notes expand inline for ownership, linked records and history. The
+layout uses existing staff surface, ink and semantic status tokens in both
+themes. Department roles see their handover scope, and close review and
+financial controls follow the signed-in role.
+
+**Transportation (2026-11-10).** The dispatch queue leads with leg time in
+Manila and labels returns due today. One counted filter set and search control
+the queue. The selected itinerary shows connected route stops, progress,
+driver, vehicle and folio fare. Wide layouts fill the workspace with a shared
+bottom edge and independent scrolling. Narrow layouts open the itinerary
+separately and return to the same queue, filters, page and focused row.
+
+**Guest Requests (2026-11-10).** A counted queue groups submissions awaiting
+approval, open work and history. The oldest pending submission appears first.
+The selected submission shows the booking and room, guest note, item states
+and recorded activity. Wide desktop frames share a bottom edge and scroll
+independently beneath the queue controls and detail heading. On phones, Back
+to queue preserves the search, filters and row focus. Supply quantities are
+available in a disclosure in the details pane.
+
+**Guest Management (2026-11-10).** The directory and selected guest profile
+share a warm ivory or forest surface. The directory keeps search, quick filters,
+loyalty and pagination together. The profile shows the current or next stay,
+preferences and identity in Overview, with separate Stays and Guest flags tabs.
+On desktop both frames fill the workspace to the same bottom edge. The table
+and profile content scroll independently while their controls and headings
+stay visible. Narrow layouts open the profile separately and return focus
+to the guest row when Back to directory is used.
+
+**Front Office workspaces (2026-11-09):** Room Management pairs four shared
+summary cards and collapsible room groups with a Today's focus and Quick insights
+rail. Room cards show separate room and housekeeping conditions and open the
+room dossier. Ready, dirty, and out-of-service focus rows apply room filters.
+Arrivals and unassigned arrivals open the matching Front Desk queue.
+
+Bookings opens the room calendar with previous, Today, next, range, and filters.
+Named stay bars show references and dates where space permits. The room column
+and date header remain pinned within the scrollable table. Needs attention uses
+dated issue cards with Review actions. Booking list opens a full-width view with
+its own heading, search, and history controls. Back to calendar restores the
+calendar dates and room filters. Room history remains a disclosure in booking details.
+Both page headers use the same themed panel surface. Above 1,100px and from
+600px tall, the desktop rails fill the available height. The main work area
+and the rail contents scroll independently of the rail frames and headings.
+Room Management hides the inner scrollbars. Today's focus rows and Quick
+insights expand into available height and scroll within the panel on short screens.
+The rails stack below their workspaces at 1,100px. On phones, filters and header
+actions wrap, and horizontal scrolling stays inside the calendar.
+The shared staff header shows the current Manila date and time beneath the
+section title. The Bookings subtitle describes the workspace.
 
 **Front Desk dashboard spacing (2026-11-03):** Approved metric cards use
 top-right icons and aligned values/helper text. Direct panel headings in
@@ -310,7 +347,7 @@ hint, 13–14px padding — dense enough to read as a snapshot above a table.
   `active`, `done`) tint only the icon chip background; the card surface stays neutral.
 - **Clickable where a filter exists.** A card with a `queue` renders as `<button
   aria-pressed>` and drives the module's existing filter state (Reservations queues,
-  Transportation queues, Approvals status pills, Guest Requests submission queues, Front
+  Guest Requests submission queues, Front
   Desk Reports status chips) — one control surface, never a parallel filter. Cards without a
   matching filter (e.g. Reservations "Active" or "Arrivals needing prep") are informational
   `<article>`s. Selected state = ring/border via `aria-pressed`, not color flips.

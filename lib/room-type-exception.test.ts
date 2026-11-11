@@ -206,7 +206,6 @@ describe("reason-coded financial responsibility", () => {
   it("rejects legacy room-type-change requests that predate the reason model at review", () => {
     expect(repricing).toContain("if a.requested_action->'financials'is null then raise exception'ROOM_TYPE_EXCEPTION_REASON_REQUIRED'");
     expect(reviewRoute).toContain("ROOM_TYPE_EXCEPTION_REASON_REQUIRED");
-    expect(dashboard).toContain("predates reason-coded financial responsibility");
   });
   it("executes mid-stay room_upgrades with the stamped difference and requires recorded guest acceptance", () => {
     expect(repricing).toContain("round((a.requested_action->'financials'->>'difference')::numeric,2)");

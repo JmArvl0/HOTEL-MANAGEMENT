@@ -98,11 +98,9 @@ describe("domain-separation surface contracts", () => {
     expect(read("components/manager/manager-dashboard-client.tsx")).toContain("other roles see status only");
   });
 
-  it("filer approvals default to filed-by-me scope with an explicit toggle", () => {
-    const client = read("components/manager/manager-dashboard-client.tsx");
-    expect(client).toContain('useState(canReview ? "all" : "mine")');
-    expect(client).toContain("My requests");
-    expect(client).toContain("actorId={user.id}");
+  it("limits approval filers to their own requests at the server", () => {
+    expect(read("lib/manager.ts")).toMatch(/if\s*\(!canReviewManagerApprovals\(role\)\)\s*query\s*=\s*query\.eq\("requested_by",\s*userId\)/);
+    expect(read("components/manager/manager-dashboard-client.tsx")).toContain("actorId={user.id}");
   });
 
   it("billing and folio state their distinct purposes", () => {

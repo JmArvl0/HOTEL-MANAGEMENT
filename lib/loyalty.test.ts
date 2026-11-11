@@ -143,8 +143,8 @@ describe("loyalty surface contracts", () => {
     const panel = read("components/customer/loyalty-card-panel.tsx");
     expect(panel).toContain("progressbar");
     expect(panel).toContain("/api/account/loyalty");
-    const dossier = read("components/manager/manager-dashboard-client.tsx");
-    expect(dossier).toContain("badge-loyalty-");
+    const dossier = read("components/manager/guest-profile.tsx");
+    expect(dossier).toContain("guestLoyaltyKey(guest)");
     const widget = read("components/booking/loyalty-redemption-selector.tsx");
     expect(widget).toContain("/api/account/loyalty/redeem");
     // The rate comes from the shared constant, not a prose literal, so a change

@@ -1,5 +1,91 @@
 # AI Session Handoff
 
+## Staff redesign data QA (2026-11-11)
+
+Chrome and the actual API verified 14 workflows with committed readback in
+local PostgreSQL. Fixed portal supply links, the open-day close response,
+partial purchase receipts, and Billing toolbar spacing. All 2,419 tests,
+production build, and typecheck passed. The two migrations are local.
+See [[2026-11-11 - Staff Redesign Data QA]].
+
+## Approvals & Escalations implementation (2026-11-11)
+
+The staff page uses four stages and shows the selected case inline. Review,
+escalation, and execution use the existing role checks and action dialogs.
+Room-type exceptions continue through Front Desk check-in. Accounting applies
+credits from the case and settles refunds in Refunds.
+See [[2026-11-11 - Approvals and Escalations Implementation]].
+
+## Hotel Operations implementation (2026-11-11)
+
+Hotel Operations opens on a shift briefing and full-width department sheet.
+Handover details expand inline. Staff roles see their authorized tabs and
+controls. The layout uses Haven’s staff palette in both themes.
+See [[2026-11-11 - Hotel Operations Implementation]].
+
+## Transportation implementation (2026-11-10)
+
+The staff Transportation panel opens on Manila Today and includes return
+legs due that day. The full-height itinerary shows progress, notes and
+posted fare. Phone return preserves the queue context. Existing transition
+permissions and folio posting govern the actions.
+See [[2026-11-10 - Transportation Implementation]].
+
+## Guest Requests implementation (2026-11-10)
+
+Guest Requests now opens a compact queue beside the selected submission. The
+existing Front Desk and department actions carry over. Phone return preserves
+the queue context. Build, typecheck, 58 focused tests and demo browser checks
+passed. Full suite 2,411 passed with two existing assertions.
+See [[2026-11-10 - Guest Requests Implementation]].
+
+## Guest Management implementation (2026-11-10)
+
+Guest Management now uses the approved directory and full-height profile.
+Narrow layouts preserve directory context on return. The local production
+build and 73 focused tests passed. Full suite 2,409 passed with two unrelated
+purchase-order and Billing toolbar assertions. Browser layout and demo
+endpoint checks are recorded in [[2026-11-10 - Guest Management Implementation]].
+
+## Staff Billing prototype (2026-11-10)
+
+Delivered a sample-data Billing preview with checkout balances, a searchable
+folio list, inline collection, and Accounting deposit review. Edge checks
+passed at 320–1,056 px in both themes. See [[2026-11-10 - Staff Billing Prototype]].
+
+## Front Office reference implementation (2026-11-09)
+
+Room Management now follows the card and focus reference. Front Desk Bookings
+follows the calendar and attention reference, with the ledger available even
+when the calendar read fails. Existing actions remain protected. Node 22 build,
+typecheck, touched lint and 64 focused tests pass. Full suite 2,402 pass with one
+known purchase-order assertion. Sample-data layout checks passed from 320 to
+1,672 px. See [[2026-11-09 - Front Office Reference Implementation]].
+Follow-up fixed both desktop rail frames and headings, enlarged their text,
+and matched the Bookings header panel. Typecheck, touched lint, 62 focused
+tests, and browser scrolling checks passed.
+The shared staff header now shows live Manila date and time. The Bookings
+subtitle contains only the description.
+Booking List now has a full-width view and independent search and dates. Room
+Management hides its inner scrollbars and expands the focus content into available
+height. Typecheck, touched lint, 62 focused tests, and sample-data browser checks
+at 320–1,920 px passed.
+
+## Booking search efficiency prototype (2026-11-09)
+
+Inspected public browse and dated search in the local browser. The first
+mobile Select room began around 1,436 px down. The preview puts estimated
+stay totals and selection above the fold, with one editable stay summary,
+stale quote protection and accurate hold timing. Browser checks passed at
+1056, 390 and 320 px. See [[2026-11-09 - Booking Search Efficiency Prototype]].
+
+## Room Management calendar prototype (2026-11-09)
+
+Delivered a sample-data preview of one seven-day calendar with current room
+condition, date and filter controls, room/stay details, pinned mobile room
+column, and a demo assignment queue above the grid. Ten Edge checks passed.
+Prototype review only. See [[2026-11-09 - Single Room Calendar Prototype]].
+
 ## Current - Location, nearby places and directions implementation (2026-11-06)
 
 User approved implementation after premium photo/map review. Haven remains a

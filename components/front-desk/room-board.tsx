@@ -1,10 +1,11 @@
 "use client";
 
-import { MoreHorizontal } from "lucide-react";
+import { useState } from "react";
+import { BedDouble, CalendarDays, CheckCircle2, ChevronDown, ClipboardCheck, MoreHorizontal, Wrench } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
-import { RoomTypeBadge } from "@/components/ui/RoomTypeBadge";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { groupRoomsByType, roomBoardState, type RackReservation, type RackRoom } from "@/lib/room-rack";
+import { HavenEmptyState } from "@/components/ui";
+import { groupRoomsByType, roomBoardState, type RackBoardState, type RackReservation, type RackRoom } from "@/lib/room-rack";
 
 export type BoardAction = { label: string; hint?: string; onSelect: () => void };
 
@@ -25,20 +26,16 @@ function outOfServiceReason(room: RackRoom, blocked = false): string {
   return "Cleanup pending";
 }
 
-function occupancyStatus(state: string, blocked: boolean): { label: string; status: string } {
-  if (blocked || roomOutOfService(state)) return { label: "Out of service", status: "out_of_service" };
-  switch (state) {
-    case "available": return { label: "Available", status: "available" };
-    case "occupied": return { label: "Occupied", status: "occupied" };
-    case "dirty": return { label: "Dirty", status: "dirty" };
-    case "reserved": return { label: "Reserved", status: "reserved" };
-    default: return { label: state.charAt(0).toUpperCase() + state.slice(1), status: state };
-  }
-}
-
-function roomOutOfService(state: string): boolean {
-  return state === "out_of_service";
-}
+const STATE_LABEL: Record<RackBoardState, string> = {
+  available: "Available", occupied: "Occupied", dirty: "Dirty", reserved: "Reserved", out_of_service: "Out of service",
+};
+const ROOM_DETAIL: Record<RackBoardState, { label: string; icon: typeof BedDouble }> = {
+  available: { label: "Ready for check-in", icon: CheckCircle2 },
+  occupied: { label: "Guest in house", icon: BedDouble },
+  reserved: { label: "Review room assignment", icon: CalendarDays },
+  dirty: { label: "Cleaning required", icon: ClipboardCheck },
+  out_of_service: { label: "Unavailable for assignment", icon: Wrench },
+};
 
 function housekeepingStatus(room: RackRoom): { label: string; status: string } {
   const key = String(room.housekeeping);
@@ -62,51 +59,32 @@ function RoomCard({
   room: RackRoom;
   stay: RackReservation | null;
   upcoming: RackReservation | null;
-  state: string;
+  state: RackBoardState;
   blocked?: boolean;
   selected: boolean;
   onSelect: () => void;
 }) {
-  const occupancy = occupancyStatus(state, !!blocked);
   const housekeeping = housekeepingStatus(room);
   const guest = stay?.guest_name ?? upcoming?.guest_name ?? null;
   const range = stay ? stayRange(stay) : upcoming ? stayRange(upcoming) : null;
-  const hasStay = Boolean(stay ?? upcoming);
+  const { label, icon: DetailIcon } = ROOM_DETAIL[state];
 
   return (
-      <div
-        role="button"
-        tabIndex={0}
-        className={`room-card is-${state}${selected ? " selected" : ""}`}
-        aria-pressed={selected}
-        aria-label={`Room ${room.number}, floor ${String(room.floor ?? "—")}, ${occupancy.label}, housekeeping ${housekeeping.label}${guest ? `, guest ${guest}` : ""}`}
-        onClick={onSelect}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(); } }}
-      >
-      <div className="room-card-head">
-        <RoomTypeBadge name={room.type} colorKey={room.room_type_color ?? null} />
-        <button type="button" className="room-card-menu" aria-label="More options" onClick={(e) => { e.stopPropagation(); }}><MoreHorizontal size={14} aria-hidden="true" /></button>
-      </div>
-      <div className="room-card-body">
-        <div className="room-card-number">Room {room.number}</div>
-        <div className="room-card-badges">
-          <StatusBadge status={occupancy.status} label={occupancy.label} size="sm" />
-          <StatusBadge status={housekeeping.status} label={housekeeping.label} size="sm" />
-        </div>
-        <div className="room-card-floor">Floor {String(room.floor ?? "—")}{state === "out_of_service" ? ` · ${outOfServiceReason(room, blocked)}` : ""}</div>
-        {hasStay ? (
-          <div className="room-card-stay">
-            {stay?.guest_name ? <img className="room-card-avatar" src={"https://ui-avatars.com/api/?name=" + encodeURIComponent(stay.guest_name) + "&background=random"} alt="" /> : null}
-            <div className="room-card-stay-text">
-              <div className="room-card-guest">{guest ? `Guest · ${guest}` : "—"}</div>
-              <div className="room-card-range">{range ?? "—"}</div>
-            </div>
-          </div>
-        ) : (
-          <div className="room-card-empty">Ready for check-in</div>
-        )}
-      </div>
-    </div>
+    <button type="button" className={`room-card is-${state}${selected ? " selected" : ""}`}
+      aria-haspopup="dialog"
+      aria-label={`Room ${room.number}, floor ${String(room.floor ?? "—")}, ${STATE_LABEL[state]}, housekeeping ${housekeeping.label}${guest ? `, guest ${guest}` : ""}`}
+      onClick={onSelect}>
+      <span className="room-card-head"><b className="room-card-number">Room {room.number}</b><span className="room-card-menu" aria-hidden="true"><MoreHorizontal size={14} /></span></span>
+      <span className="room-card-badges">
+          <StatusBadge status={state} label={STATE_LABEL[state]} size="sm" />
+          {housekeeping.label !== STATE_LABEL[state] && <StatusBadge status={housekeeping.status} label={housekeeping.label} size="sm" />}
+      </span>
+      <span className="room-card-floor">Floor {String(room.floor ?? "—")}{state === "out_of_service" || blocked ? ` · ${outOfServiceReason(room, blocked)}` : ""}</span>
+      <span className="room-card-stay"><DetailIcon size={15} aria-hidden="true" /><span className="room-card-stay-text">
+        <span className="room-card-guest">{guest ? `Guest · ${guest}` : label}</span>
+        {range && <span className="room-card-range">{range}</span>}
+      </span></span>
+    </button>
   );
 }
 
@@ -119,19 +97,18 @@ export function RoomActionSheet({
   onClose,
 }: {
   room: RackRoom;
-  state: string;
+  state: RackBoardState;
   stay: RackReservation | null;
   upcoming: RackReservation | null;
   actions: BoardAction[];
   onClose: () => void;
 }) {
-  const occupancy = occupancyStatus(state, false);
   const guest = stay?.guest_name ?? upcoming?.guest_name ?? null;
   return (
     <Modal
       isOpen
       onClose={onClose}
-      title={`Room ${room.number} — ${occupancy.label}`}
+      title={`Room ${room.number} — ${STATE_LABEL[state]}`}
       description={`${room.type} · Floor ${String(room.floor ?? "—")}${guest ? ` · ${guest}` : ""}`}
       size="md"
       headerVariant="branded"
@@ -172,6 +149,8 @@ export default function RoomBoard({
 }) {
   const blocked = blockedRoomIds instanceof Set ? blockedRoomIds : new Set(blockedRoomIds ?? []);
   const groups = groupRoomsByType(rooms);
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
+  if (!groups.length) return <HavenEmptyState icon={<BedDouble size={22} aria-hidden="true" />} title="No rooms match" body="Clear filters or try another room type or floor." />;
   return (
     <div className="board-groups" role="list" aria-label="Rooms by type">
       {groups.map((group) => {
@@ -184,14 +163,20 @@ export default function RoomBoard({
           out_of_service: states.filter((s) => s === "out_of_service").length,
         };
         const colorKey = group.rooms[0]?.room_type_color ?? null;
+        const open = !collapsed.has(group.type);
         return (
           <section key={group.type} className="board-group" role="listitem" aria-label={`${group.type}, ${group.rooms.length} rooms`}>
             <header className="board-group-head">
-              <div className="board-group-title">
-                <RoomTypeBadge name={group.type} colorKey={colorKey} />
+              <button type="button" className="board-group-title" aria-expanded={open} onClick={() => setCollapsed(current => {
+                const next = new Set(current);
+                if (next.has(group.type)) next.delete(group.type); else next.add(group.type);
+                return next;
+              })}>
+                <span className={`room-type-circle ${colorKey ? `rt-${colorKey}` : ""}`} aria-hidden="true" />
                 <span className="board-group-name">{group.type}</span>
-              </div>
-              <span className="board-group-count">{group.rooms.length}</span>
+                <span className="board-group-count">{group.rooms.length} {group.rooms.length === 1 ? "room" : "rooms"}</span>
+                <ChevronDown size={16} aria-hidden="true" />
+              </button>
               <ul className="board-group-breakdown" aria-label={`${group.type} condition`}>
                 {counts.available > 0 && <li className="breakdown-available">{counts.available} ready</li>}
                 {counts.occupied > 0 && <li className="breakdown-occupied">{counts.occupied} occupied</li>}
@@ -200,7 +185,7 @@ export default function RoomBoard({
                 {counts.out_of_service > 0 && <li className="breakdown-out_of_service">{counts.out_of_service} out of service</li>}
               </ul>
             </header>
-            <div className="board-cards">
+            {open && <div className="board-cards">
               {group.rooms.map((room) => {
                 const board = roomBoardState(room, reservations, today, blocked);
                 return (
@@ -216,7 +201,7 @@ export default function RoomBoard({
                   />
                 );
               })}
-            </div>
+            </div>}
           </section>
         );
       })}

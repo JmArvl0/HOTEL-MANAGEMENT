@@ -444,98 +444,6 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .theme-light .app-shell .room-card header .badge.maintenance{background:#ef444414;color:#fff1f0}
 .app-shell .btn-sm{font-size:11px;min-height:32px}
 .app-shell .property-pill small{font-size:10px}
-.app-shell .grp-layout{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:26px;align-items:start}
-.app-shell .grp-inventory{position:sticky;top:78px;border-radius:6px;padding:18px;background:var(--ds);border:1px solid var(--dl);box-shadow:0 14px 34px rgba(0,0,0,.24)}
-.app-shell .grp-inventory>header{display:flex;align-items:center;gap:10px;margin-bottom:2px;padding-bottom:12px;border-bottom:1px solid #0f141b}
-.app-shell .grp-inventory-icon{width:30px;height:30px;display:grid;place-items:center;border-radius:5px;background:#3b82f61f;color:#93c5fd}
-.app-shell .grp-inventory-icon svg{width:15px}
-.app-shell .grp-inventory header>div{flex:1;min-width:0}
-.app-shell .grp-inventory header b{display:block;color:#e8edf4;font-size:14px}
-.app-shell .grp-inventory header small{display:block;margin-top:2px;color:#93a0b4;font-size:12px}
-.app-shell .grp-inventory header .badge{margin-left:auto}
-.app-shell .grp-inventory ul{list-style:none;margin:0;padding:0}
-.app-shell .grp-inventory li{display:grid;gap:4px;padding:11px 0;border-bottom:1px solid #0f141b}
-.app-shell .grp-inventory li:last-child{border-bottom:0}
-.app-shell .grp-inv-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.app-shell .grp-inv-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e8edf4;font-size:13px;font-weight:600}
-.app-shell .grp-inv-qty{margin:0;display:flex;align-items:baseline;gap:5px;font-variant-numeric:tabular-nums}
-.app-shell .grp-inv-qty b{color:#e8edf4;font-weight:600;font-size:14px}
-.app-shell .grp-inv-target{color:#93a0b4;font-size:13px}
-.app-shell .grp-inv-unit{color:#93a0b4;font-size:12px}
-.app-shell .grp-inventory li.grp-low .grp-inv-qty b{color:#fcd34d}
-.app-shell .grp-inventory .grp-inventory-empty{display:block;padding:14px 0;color:#93a0b4;font-size:13px}
-.app-shell .grp-inventory-note{display:block;margin-top:10px;padding-top:11px;border-top:1px solid #0f141b;color:#93a0b4;font-size:13px;line-height:1.6}
-.app-shell .grp-batches{display:grid;gap:14px}
-.app-shell .grp-batch{background:var(--ds);border:1px solid var(--dl);border-radius:12px}
-.app-shell .grp-batch.grp-urgent{border-left:4px solid #f59e0b40}
-.app-shell .grp-batch>header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:16px 18px;border-bottom:1px solid #0f141b}
-.app-shell .grp-batch-title h3{margin:0;color:#6ee7b7;font-size:17px;font-weight:700;letter-spacing:-.01em}
-.app-shell .grp-batch>header strong{display:block;margin-top:4px;color:#e8edf4;font-size:13px;font-weight:600}
-.app-shell .grp-batch>header small{display:block;margin-top:4px;color:#93a0b4;font-size:13px;line-height:1.5}
-.app-shell .grp-batch-meta{display:flex;flex-direction:column;align-items:flex-end;gap:9px}
-.app-shell .grp-batch-badges{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}
-.app-shell .grp-room{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:6px 12px;border-radius:999px;background:#3b82f61f;color:#93c5fd;font-size:13px;font-weight:700;white-space:nowrap}
-.app-shell .grp-room.unassigned{background:#0f141b;color:#93a0b4}
-.app-shell .grp-batch ul{list-style:none;margin:0;padding:6px 18px 12px}
-.app-shell .grp-batch li{position:relative;display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 0 12px 20px;border-bottom:1px dashed #0f141b}
-.app-shell .grp-batch li:last-child{border-bottom:0}
-.app-shell .grp-batch li::before{content:"";position:absolute;left:2px;top:20px;width:8px;height:8px;border-radius:999px;background:#f59e0b1f}
-.app-shell .grp-batch li.grp-status-in-progress::before{background:#3b82f61f}
-.app-shell .grp-batch li.grp-status-completed::before{background:#10b9811f}
-.app-shell .grp-batch li.grp-status-cancelled::before{background:#ef44441f}
-.app-shell .grp-item-main b{display:block;color:#6ee7b7;font-size:14.5px;font-weight:600;line-height:1.5}
-.app-shell .grp-item-main small{display:block;margin-top:4px;color:#93a0b4;font-size:13px;line-height:1.5}
-.app-shell .grp-chip{display:inline-block;padding:2px 8px;border-radius:999px;background:#ffffff14;font-size:12px;font-weight:700;color:#e8edf4}
-.app-shell .grp-fulfillment{display:inline-flex;align-items:center;gap:8px;color:#93a0b4;font-size:13px;font-weight:600}
-.app-shell .grp-bar{display:inline-block;width:72px;height:6px;border-radius:999px;background:#ffffff1f;overflow:hidden}
-.app-shell .grp-bar>span{display:block;height:100%;background:#10b9811f;border-radius:999px}
-.app-shell .badge.grp-overdue{background:#f59e0b1f;color:#fcd34d;font-size:12.5px;padding:5px 10px}
-.app-shell .grp-batch .badge{font-size:13px;padding:5px 10px}
-.app-shell .grp-decide .table-action{min-height:44px;padding:10px 18px;font-size:14px}
-.app-shell .grp-item-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}
-.app-shell .grp-item-actions .table-action{min-height:40px;padding:8px 14px;font-size:13.5px}
-.app-shell .grp-note{color:#fca5a5}
-.app-shell .badge.grp-approval.pending{background:#f59e0b1f;color:#fcd34d}
-.app-shell .badge.grp-approval.approved{background:#10b9811f;color:#6ee7b7}
-.app-shell .badge.grp-approval.rejected{background:#ef44441f;color:#fca5a5}
-.theme-light .app-shell .grp-inventory{background:#fff;border-color:#f3f3f3;box-shadow:0 4px 18px rgba(30,52,41,.05)}
-.theme-light .app-shell .grp-inventory-icon{background:#3b82f614;color:#1d4ed8}
-.theme-light .app-shell .grp-inventory header b{color:#047857}
-.theme-light .app-shell .grp-inventory header small{color:#5b6472}
-.theme-light .app-shell .grp-inventory li{border-color:#f3f3f3}
-.theme-light .app-shell .grp-inventory>header{border-color:#f3f3f3}
-.theme-light .app-shell .grp-inv-name{color:#111827}
-.theme-light .app-shell .grp-inv-qty b{color:#111827}
-.theme-light .app-shell .grp-inv-target{color:#d1d5db}
-.theme-light .app-shell .grp-inv-unit{color:#5b6472}
-.theme-light .app-shell .grp-inventory li.grp-low .grp-inv-qty b{color:#b45309}
-.theme-light .app-shell .grp-inventory .grp-inventory-empty{color:#5b6472}
-.theme-light .app-shell .grp-inventory-note{border-color:#f3f3f3;color:#5b6472}
-.theme-light .app-shell .grp-batch{background:#fff;border-color:#f3f3f3}
-.theme-light .app-shell .grp-batch.grp-urgent{border-left:4px solid #f59e0b40}
-.theme-light .app-shell .grp-batch>header{border-color:#f3f3f3}
-.theme-light .app-shell .grp-batch-title h3{color:#047857}
-.theme-light .app-shell .grp-batch>header strong{color:#5b6472}
-.theme-light .app-shell .grp-batch>header small{color:#5b6472}
-.theme-light .app-shell .grp-batch li{border-color:#f3f3f3}
-.theme-light .app-shell .grp-item-main b{color:#047857}
-.theme-light .app-shell .grp-item-main small{color:#5b6472}
-.theme-light .app-shell .grp-chip{background:#f3f3f3;color:#5b6472}
-.theme-light .app-shell .grp-bar{background:#f3f3f3}
-.theme-light .app-shell .badge.grp-overdue{background:#f59e0b14;color:#b45309}
-.theme-light .app-shell .grp-room{background:#3b82f614;color:#1d4ed8}
-.theme-light .app-shell .grp-room.unassigned{background:#f3f3f3;color:#5b6472}
-.theme-light .app-shell .grp-note{color:#b91c1c}
-.theme-light .app-shell .badge.grp-approval.pending{background:#f59e0b14;color:#b45309}
-.theme-light .app-shell .badge.grp-approval.approved{background:#10b98114;color:#047857}
-.theme-light .app-shell .badge.grp-approval.rejected{background:#ef444414;color:#b91c1c}
-@media(max-width:1100px){.app-shell .grp-layout{grid-template-columns:minmax(0,1fr)}}
-@media(max-width:1100px){.app-shell .grp-inventory{position:static}}
-@media(max-width:680px){.app-shell .grp-batch>header{flex-direction:column;gap:10px}}
-@media(max-width:680px){.app-shell .grp-batch-meta{align-items:flex-start}}
-@media(max-width:680px){.app-shell .grp-batch-badges{justify-content:flex-start}}
-@media(max-width:680px){.app-shell .grp-batch li{align-items:flex-start}}
-@media(max-width:680px){.app-shell .grp-item-actions{justify-content:flex-start}}
 .app-shell .report-tools{display:flex;align-items:end;gap:10px}
 .app-shell .report-tools label{display:grid;gap:5px;color:#2a3442;font-size:9px;letter-spacing:1px;text-transform:uppercase}
 .app-shell .report-tools input{min-height:32px;padding:6px 9px;border:1px solid var(--dl);border-radius:4px;background:#0f141b;color:#e8edf4;font-size:10px}
@@ -714,56 +622,8 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 @media(max-width:680px){.room-roster-row .table-action{margin-left:0}}
 /* .mod-kpis/.mod-kpi moved to app/ui-primitives.css 2026-10-19 (Stage 2 C1).
    Only context spacing + print chrome remain here. */
-.app-shell .tp-toolbar{flex-wrap:wrap;margin-bottom:8px}
-.app-shell .tp-queues .chip-count{margin-left:5px;font-style:normal;font-size:9px;font-weight:700;color:inherit;opacity:.7}
-.app-shell .tp-search-row{margin-bottom:10px}
-.app-shell .tp-search-row>label{flex:1 1 auto;width:auto;min-width:min(100%,240px);max-width:480px}
-.app-shell .tp-note{margin:0 0 14px;padding:7px 10px;border:1px dashed var(--dl);border-radius:6px;color:var(--dm);font-size:9px;line-height:1.6}
-.app-shell .tp-table{min-width:980px;font-variant-numeric:tabular-nums}
-.app-shell .tp-table th{position:sticky;top:0;z-index:2}
-.app-shell .tp-table .tp-route b{white-space:normal;overflow-wrap:anywhere;font-weight:650}
-.app-shell .tp-table .tp-route small{color:var(--dm);font-size:9px}
-.app-shell .tp-when{display:grid;gap:3px;white-space:nowrap}
-.app-shell .tp-when b{color:#e8edf4;font-weight:650}
-.app-shell .tp-when small{color:var(--dm);font-size:9px}
-.app-shell .tp-when.today b{color:#6ee7b7}
-.app-shell .tp-when.today b::before{content:"";display:inline-block;width:6px;height:6px;margin-right:6px;border-radius:50%;background:#10b9811f;vertical-align:1px}
-.app-shell .tp-actions{text-align:right}
-.app-shell .tp-actions .reservation-actions{justify-content:flex-end}
 .app-shell .rt-actions{text-align:right}
 .app-shell .rt-actions .reservation-actions{justify-content:flex-end}
-.app-shell .tp-unassigned{color:#93a0b4}
-.app-shell .tp-view-only{color:var(--dm)}
-.app-shell .tp-table .badge.scheduled{background:#3b82f61f;color:#93c5fd}
-.app-shell .tp-cards .badge.scheduled{background:#3b82f61f;color:#93c5fd}
-.app-shell .tp-table .badge.in_progress{background:#10b9811f;color:#6ee7b7}
-.app-shell .tp-cards .badge.in_progress{background:#10b9811f;color:#6ee7b7}
-.app-shell .tp-cards{display:none;grid-template-columns:1fr;gap:10px;padding:12px}
-.app-shell .tp-card{display:grid;gap:8px;padding:14px;border:1px solid var(--dl);border-radius:8px;background:var(--ds2)}
-.app-shell .tp-card header{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.app-shell .tp-card header b{color:var(--dt);font-size:12px}
-.app-shell .tp-card-guest strong{display:block;color:var(--dt);font-size:12px}
-.app-shell .tp-card-guest small{display:block;margin-top:2px;color:var(--dm);font-size:9px}
-.app-shell .tp-card-route{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:0;color:var(--dt);font-size:11px;font-weight:650}
-.app-shell .tp-card-route i{font-style:normal;color:var(--dg)}
-.app-shell .tp-card-meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:var(--dm);font-size:10px}
-.app-shell .tp-card-return{margin:0;color:var(--dm);font-size:9px;line-height:1.5}
-.app-shell .tp-card-note{margin:0;color:var(--dm);font-size:9px;line-height:1.5}
-.app-shell .tp-card-driver{margin:0;color:var(--dt);font-size:10px}
-.app-shell .tp-card-driver.tp-unassigned{color:var(--dm)}
-.app-shell .tp-card-actions{display:flex;gap:6px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--dl)}
-.app-shell .tp-card-actions .reservation-actions{display:flex;gap:6px;flex-wrap:wrap;flex:1}
-.app-shell .tp-card-actions .table-action{flex:1;min-height:40px}
-.app-shell .tp-card-actions small{align-self:center;color:var(--dm);font-size:9px}
-@media(max-width:720px){.app-shell .tp-table-wrap{display:none}}
-@media(max-width:720px){.app-shell .tp-cards{display:grid}}
-.theme-light .app-shell .tp-when b{color:#111827}
-.theme-light .app-shell .tp-when.today b{color:#047857}
-.theme-light .app-shell .tp-unassigned{color:#5b6472}
-.theme-light .app-shell .tp-table .badge.scheduled{background:#3b82f614;color:#1d4ed8}
-.theme-light .app-shell .tp-cards .badge.scheduled{background:#3b82f614;color:#1d4ed8}
-.theme-light .app-shell .tp-table .badge.in_progress{background:#10b98114;color:#047857}
-.theme-light .app-shell .tp-cards .badge.in_progress{background:#10b98114;color:#047857}
 .hk-queue{display:grid;gap:14px;padding:14px}
 .hk-scope-note{margin:10px 2px 0;color:var(--cp-muted);font-size:10px;line-height:1.5}
 .hk-queue-group{display:grid;gap:6px}
@@ -807,7 +667,6 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .hk-flow li+li::before{content:"→";margin:0 8px;color:var(--cp-line)}
 .hk-flow li:last-child{color:var(--cp-accent)}
 .hk-group-primary .hk-queue-card{border-color:var(--cp-accent);box-shadow:0 0 0 1px var(--cp-accent)}
-.grp-fulfillment{color:var(--cp-muted);font-size:9px;font-weight:700}
 @media(prefers-reduced-motion:reduce){.hk-queue-card{transition:none}}
 @media(prefers-reduced-motion:reduce){.hk-queue-toggle h3 svg{transition:none}}
 @media(max-width:680px){.hk-queue-card{flex-direction:column;align-items:stretch;gap:8px}}
@@ -2507,6 +2366,17 @@ tbody tr:hover{background: var(--surface-hover)}
 .app-shell .app-header p{color: var(--st-text-primary);font-family: var(--font-sans);font-size: 15px;overflow: hidden;text-overflow: ellipsis;white-space: nowrap;margin: 0;font-weight: 700;line-height: 1.25}
 .app-shell .app-header small{color: var(--st-text-secondary);font-size: 12px;overflow: hidden;text-overflow: ellipsis;white-space: nowrap;margin-top: 2px}
 .app-shell .header-actions{flex: none;display: flex;align-items: center;gap: 10px;min-width: 0}
+.app-shell .staff-header-clock{display: flex;flex-wrap: wrap;column-gap: 8px;margin-top: 3px;color: var(--st-text-primary);font-size: 13px;font-weight: 600;line-height: 1.3;font-variant-numeric: tabular-nums}
+.app-shell .staff-header-clock span{display: inline-flex;align-items: center;gap: 5px;white-space: nowrap}
+.app-shell .staff-header-clock strong{font-weight: 750;white-space: nowrap}
+@media (max-width: 1200px){
+  .app-shell .staff-app-header .saas-header-search-btn{min-width: 38px;max-width: 38px;padding: 0;justify-content: center}
+  .app-shell .staff-app-header .saas-header-search-btn :is(span, .saas-kbd){display: none}
+}
+@media (max-width: 600px){
+  .app-shell .app-header.staff-app-header{height: auto;flex-wrap: wrap;padding-block: 8px}
+  .app-shell .staff-app-header .header-actions{flex: 0 0 100%;flex-wrap: wrap;justify-content: flex-end}
+}
 .app-shell .notification-popover{background:#0f141b;border-color:var(--dl);border-radius:10px;padding:6px;box-shadow:0 16px 40px #00000059;max-width: calc(100vw - 32px)}
 .app-shell .page-header:has(.new-reservation-menu){overflow: visible;z-index: var(--z-index-dropdown, 100)}
 .app-shell .new-reservation-menu{position:relative;z-index: 1}

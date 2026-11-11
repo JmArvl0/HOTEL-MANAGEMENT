@@ -7,6 +7,19 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import FrontOfficeRack from "./fused-room-rack-panel";
 import * as hook from "@/hooks/use-front-office-rack";
 
+if (!window.matchMedia) {
+  Object.assign(window, {
+    matchMedia: () => ({
+      matches: false,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }),
+  });
+}
+
 vi.mock("@/hooks/use-front-office-rack", () => ({
   useFrontOfficeRack: vi.fn(),
 }));
@@ -67,6 +80,70 @@ function renderRack(role = "front_desk") {
 }
 
 describe("FrontOfficeRack", () => {
+  it("uses current room conditions for the focus rail and only calls ready rooms ready", async () => {
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({ data: [{ ...reservations[0], check_in: today }] }) })));
+    const onNavigateReservations = vi.fn();
+    render(<FrontOfficeRack workspace="rooms" role="front_desk" onCheckIn={vi.fn()} onOpenFolio={vi.fn()} onNavigateReservations={onNavigateReservations} />);
+    const focus = screen.getByRole("complementary", { name: "Today's focus" });
+    const dirtyCard = screen.getByRole("button", { name: /Room 102, floor 1, Dirty/ });
+    expect(within(dirtyCard).queryByText("Ready for check-in")).toBeNull();
+    expect(within(dirtyCard).getByText("Cleaning required")).toBeTruthy();
+    fireEvent.click(within(focus).getByRole("button", { name: /Dirty rooms/ }));
+    expect(screen.queryByRole("button", { name: /Room 104, floor 1/ })).toBeNull();
+    const unassigned = await within(focus).findByRole("button", { name: /Unassigned arrivals.*1/ });
+    fireEvent.click(unassigned);
+    expect(onNavigateReservations).toHaveBeenCalledWith("unassigned");
+  });
+
+  it("lets staff collapse room groups and reach booking history from the calendar", async () => {
+    const view = render(<FrontOfficeRack workspace="rooms" role="front_desk" onCheckIn={vi.fn()} onOpenFolio={vi.fn()} />);
+    const group = screen.getByRole("button", { name: /Deluxe King/ });
+    fireEvent.click(group);
+    expect(screen.queryByRole("button", { name: /Room 104, floor 1/ })).toBeNull();
+    fireEvent.click(group);
+    expect(screen.getByRole("button", { name: /Room 104, floor 1/ })).toBeTruthy();
+    view.unmount();
+
+    const openFolio = vi.fn();
+    render(<FrontOfficeRack workspace="reservations" role="front_desk" onCheckIn={vi.fn()} onOpenFolio={openFolio} />);
+    expect(screen.getByText("Manage reservations, view room occupancy, and track guest stays.")).toBeTruthy();
+    expect(screen.getByRole("table", { name: /Assigned bookings per room/ })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Search rooms"), { target: { value: "101" } });
+    fireEvent.click(screen.getByRole("button", { name: "Booking list" }));
+    expect(screen.getByRole("heading", { name: "Booking List" })).toBeTruthy();
+    const list = await screen.findByRole("table", { name: "Booking list" });
+    expect(screen.queryByRole("table", { name: /Assigned bookings per room/ })).toBeNull();
+    const reyes = within(list).getByRole("row", { name: /Reyes/ });
+    fireEvent.click(within(reyes).getByRole("button", { name: /^View(?: reservation)?$/ }));
+    expect(openFolio).toHaveBeenCalledWith("RSV-A");
+    fireEvent.change(screen.getByLabelText("Search bookings"), { target: { value: "Cruz" } });
+    await waitFor(() => expect(within(list).queryByText("Reyes")).toBeNull());
+    fireEvent.click(screen.getByRole("button", { name: "Booking date scope" }));
+    fireEvent.click(screen.getByRole("option", { name: "Selected window" }));
+    fireEvent.click(screen.getByRole("button", { name: /Stay window, currently/ }));
+    const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
+    const endDate = screen.getByLabelText("To");
+    nativeSetter!.call(endDate, "2026-09-24");
+    fireEvent.input(endDate);
+    expect(screen.getByRole("button", { name: /Stay window, currently Sep 22 – Sep 24/ })).toBeTruthy();
+    expect(vi.mocked(hook.useFrontOfficeRack).mock.results.at(-1)?.value.setDays).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Back to calendar" }));
+    expect(screen.getByRole("table", { name: /Assigned bookings per room/ })).toBeTruthy();
+    expect((screen.getByLabelText("Search rooms") as HTMLInputElement).value).toBe("101");
+    expect(screen.getByRole("button", { name: /Stay window, currently Sep 22 – Sep 28/ })).toBeTruthy();
+  });
+
+  it("keeps booking history reachable if the calendar data fails", async () => {
+    vi.mocked(hook.useFrontOfficeRack).mockReturnValue({
+      ...hook.useFrontOfficeRack(), snapshot: null, loading: false, error: "Calendar unavailable",
+    });
+    render(<FrontOfficeRack workspace="reservations" role="front_desk" onCheckIn={vi.fn()} onOpenFolio={vi.fn()} />);
+    expect(screen.getByRole("alert").textContent).toContain("Calendar unavailable");
+    fireEvent.click(screen.getByRole("button", { name: "Booking list" }));
+    expect(await screen.findByRole("table", { name: "Booking list" })).toBeTruthy();
+  });
+
   it("refreshes full reservation history after a folio mutation without losing the selected view", async () => {
     let closed = false;
     vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({ data: [{ ...reservations[0], status: closed ? "no_show" : "confirmed" }] }) })));
@@ -213,13 +290,13 @@ describe("FrontOfficeRack", () => {
     expect(screen.getByText(/Front Desk operations/)).toBeTruthy();
   });
 
-  it("offers a single range control with no steppers, presets, or captions", () => {
+  it("keeps one date range alongside the calendar navigation", () => {
     render(<FrontOfficeRack role="front_desk" workspace="reservations" onOpenFolio={vi.fn()} onCheckIn={vi.fn()} onViewRoom={vi.fn()} onNewReservation={vi.fn()} />);
     const trigger = screen.getByRole("button", { name: /Stay window, currently/ });
-    expect(trigger.textContent).toContain("09/22");
+    expect(trigger.textContent).toContain("Sep 22");
     expect(screen.getByRole("button", { name: "Today" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Previous period" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Next period" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Previous dates" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Next dates" })).toBeTruthy();
     expect(screen.queryByText("Room Type")).toBeNull();
     expect(screen.queryByText("Start date")).toBeNull();
     fireEvent.click(trigger);
@@ -327,7 +404,7 @@ describe("FrontOfficeRack", () => {
     expect(screen.queryByRole("button", { name: "Booking List" })).toBeNull();
     expect(screen.getByText("Total rooms")).toBeTruthy();
     expect(screen.getByRole("button", { name: /^Occupied/ })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /^Ready/ })).toBeTruthy();
+    expect(within(screen.getByRole("group", { name: "Front office summary" })).getByRole("button", { name: /^Ready/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^Cleaning/ })).toBeTruthy();
   });
 
@@ -337,7 +414,7 @@ describe("FrontOfficeRack", () => {
     expect(screen.getByRole("heading", { name: "Bookings" })).toBeTruthy();
     expect(screen.getByRole("region", { name: "Booking calendar" })).toBeTruthy();
     expect(screen.queryByRole("group", { name: "Room board format" })).toBeNull();
-    fireEvent.click(within(screen.getByRole("group", { name: "Front office summary" })).getByRole("button", { name: /^Rooms ready/ }));
+    fireEvent.click(within(screen.getByRole("complementary", { name: "Needs attention" })).getByRole("button", { name: /^Rooms ready/ }));
     expect(navigate).toHaveBeenCalledTimes(1);
   });
 });
