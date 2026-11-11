@@ -59,7 +59,15 @@ export async function listForRole(resource: Resource, role: Role): Promise<Recor
     return (data ?? []).map(({ reservations, ...item }) => ({ ...item, reservation: ((reservations ?? null) as unknown as RecordItem | null) })) as RecordItem[];
   }
   if (resource === "housekeeping_tasks") {
-    const { data, error } = await supabase.from("housekeeping_tasks").select("id,room_id,room_number,task,task_type,assignee,assigned_user_id,priority,status,due,notes,reservation_id,guest_request_id,source_type,started_at,completed_at,deferred_at,deferred_reason,inspection_status,inspection_reason,service_outcome,service_outcome_note,service_outcome_at,service_due_at,version,created_at,updated_at").order("created_at", { ascending: false });
+    const coreFields = "id,room_id,room_number,task,task_type,assignee,assigned_user_id,priority,status,due,notes,reservation_id,guest_request_id,source_type,started_at,completed_at,deferred_at,deferred_reason,inspection_status,inspection_reason,version,created_at,updated_at";
+    const serviceFields = ["service_outcome", "service_outcome_note", "service_outcome_at", "service_due_at"];
+    let result = await supabase.from("housekeeping_tasks").select([coreFields, ...serviceFields].join(",")).order("created_at", { ascending: false }).returns<RecordItem[]>();
+    let serviceInstructionsAvailable = true;
+    if (serviceFields.some(column => isMissingColumn(result.error, column))) {
+      serviceInstructionsAvailable = false;
+      result = await supabase.from("housekeeping_tasks").select(coreFields).order("created_at", { ascending: false }).returns<RecordItem[]>();
+    }
+    const { data, error } = result;
     if (error) throw error;
     const roomIds=Array.from(new Set((data??[]).map(item=>item.room_id).filter(Boolean))) as string[];
     const userIds=Array.from(new Set((data??[]).map(item=>item.assigned_user_id).filter(Boolean))) as string[];
@@ -73,10 +81,13 @@ export async function listForRole(resource: Resource, role: Role): Promise<Recor
     const inHouseByRoom=new Map((inHouseResult.data??[]).map(stay=>[stay.room_id,stay.id]));
     const inHouseIds=new Set((inHouseResult.data??[]).map(stay=>stay.id));
     const currentStayIds=Array.from(new Set((data??[]).map(item=>item.reservation_id&&inHouseIds.has(item.reservation_id)?item.reservation_id:item.room_id?inHouseByRoom.get(item.room_id):null).filter(Boolean))) as string[];
-    const serviceConditionsResult=currentStayIds.length?await supabase.from("reservation_service_conditions").select("reservation_id").in("reservation_id",currentStayIds).eq("condition_type","dnd").eq("status","active"):null;
-    if(serviceConditionsResult?.error)throw serviceConditionsResult.error;
+    const serviceConditionsResult=serviceInstructionsAvailable&&currentStayIds.length?await supabase.from("reservation_service_conditions").select("reservation_id").in("reservation_id",currentStayIds).eq("condition_type","dnd").eq("status","active"):null;
+    if(serviceConditionsResult?.error){
+      if(serviceConditionsResult.error.code==="PGRST205"&&serviceConditionsResult.error.message.includes("reservation_service_conditions"))serviceInstructionsAvailable=false;
+      else throw serviceConditionsResult.error;
+    }
     const activeDndReservations=new Set((serviceConditionsResult?.data??[]).map(condition=>condition.reservation_id));
-    return (data??[]).map(item=>{const room=roomsResult.data?.find(value=>value.id===item.room_id);const blocks=maintenanceResult.data?.filter(value=>value.room_id===item.room_id)??[];const nextArrival=arrivalsResult.data?.find(value=>value.room_id===item.room_id);const assigned=usersResult.data?.find(value=>value.id===item.assigned_user_id);const activeReservationId=item.reservation_id&&inHouseIds.has(item.reservation_id)?item.reservation_id:item.room_id?inHouseByRoom.get(item.room_id)??null:null;return{...item,assigned_to:assigned?.name??item.assignee??"Unassigned",room_type:room?.type??null,room_status:room?.status??null,room_housekeeping:room?.housekeeping??null,maintenance_blocked:blocks.length>0,maintenance_priority:blocks[0]?.priority??null,next_arrival:nextArrival?.check_in??null,active_reservation_id:activeReservationId,dnd_active:Boolean(activeReservationId&&activeDndReservations.has(activeReservationId))}}) as RecordItem[];
+    return (data??[]).map(item=>{const room=roomsResult.data?.find(value=>value.id===item.room_id);const blocks=maintenanceResult.data?.filter(value=>value.room_id===item.room_id)??[];const nextArrival=arrivalsResult.data?.find(value=>value.room_id===item.room_id);const assigned=usersResult.data?.find(value=>value.id===item.assigned_user_id);const activeReservationId=item.reservation_id&&inHouseIds.has(item.reservation_id)?item.reservation_id:item.room_id?inHouseByRoom.get(item.room_id)??null:null;return{...item,assigned_to:assigned?.name??item.assignee??"Unassigned",room_type:room?.type??null,room_status:room?.status??null,room_housekeeping:room?.housekeeping??null,maintenance_blocked:blocks.length>0,maintenance_priority:blocks[0]?.priority??null,next_arrival:nextArrival?.check_in??null,active_reservation_id:activeReservationId,service_instructions_available:serviceInstructionsAvailable,dnd_active:Boolean(activeReservationId&&activeDndReservations.has(activeReservationId))}}) as RecordItem[];
   }
   if (resource === "payments") {
     const { data, error } = await supabase.from("payments").select("id,reservation_id,invoice_id,purpose,method,reference,amount,currency,status,submitted_at,verified_at,reviewed_at,decision_reason,proof_original_name,proof_size_bytes,proof_uploaded_at,created_at,reservations(guest_name,confirmation_number,room_type,check_in,check_out,deposit_required,deposit,total,status,user_id)").order("created_at", { ascending: false });

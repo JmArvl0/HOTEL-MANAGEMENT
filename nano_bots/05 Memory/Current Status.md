@@ -1,5 +1,11 @@
 # Current Status
 
+## Housekeeping load compatibility (2026-11-11, local)
+
+- The shared queue read supports the deployed core schema and the upgraded
+  service-instruction schema. Optional service controls depend on schema
+  availability. See [[2026-11-11 - Housekeeping Load Fix]].
+
 ## Staff redesign data QA (2026-11-11, local)
 
 - Fourteen workflow checks passed through the real app and a fresh PostgreSQL

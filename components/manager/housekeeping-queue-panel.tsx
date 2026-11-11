@@ -238,6 +238,7 @@ function QueueCard({ item, userId, canHousekeep, canCoordinate, housekeepingActi
   const assignedElsewhere = Boolean(item.assigned_user_id) && item.assigned_user_id !== userId;
   const canWork = canHousekeep && !assignedElsewhere;
   const dndActive = item.dnd_active === true;
+  const serviceInstructionsAvailable = item.service_instructions_available !== false;
   const stayServiceTask = ["stayover_cleaning", "guest_request"].includes(type);
   const isTurnover = type === "checkout_cleaning";
   const created = isTurnover ? `checked out ${when(item.created_at) ?? "recently"}` : `created ${time(item.created_at) ?? "recently"}`;
@@ -272,9 +273,9 @@ function QueueCard({ item, userId, canHousekeep, canCoordinate, housekeepingActi
       {canHousekeep && String(item.inspection_status) === "pending" && <button className="table-action" onClick={() => housekeepingAction(item, "inspect")}>Inspect</button>}
       {canWork && openTaskStatuses.includes(status) && type !== "inspection" && <button className="table-action action-primary" onClick={() => housekeepingAction(item, "assign")}>{item.assigned_user_id ? "Reassign" : "Claim"}</button>}
       {canWork && openTaskStatuses.includes(status) && type !== "inspection" && !(dndActive && type === "stayover_cleaning") && <button className="table-action action-primary" onClick={() => housekeepingAction(item, "start")}>Start cleaning</button>}
-      {canWork && stayServiceTask && openTaskStatuses.includes(status) && !dndActive && item.active_reservation_id && onSetDnd && <button className="table-action" onClick={() => onSetDnd(item)}>Set DND</button>}
-      {canWork && stayServiceTask && openTaskStatuses.includes(status) && !item.service_outcome && onServiceOutcome && <button className="table-action" onClick={() => onServiceOutcome(item, "service_declined")}>Guest declined</button>}
-      {canWork && stayServiceTask && openTaskStatuses.includes(status) && !item.service_outcome && onServiceOutcome && <button className="table-action" onClick={() => onServiceOutcome(item, "late_service")}>Mark late</button>}
+      {serviceInstructionsAvailable && canWork && stayServiceTask && openTaskStatuses.includes(status) && !dndActive && item.active_reservation_id && onSetDnd && <button className="table-action" onClick={() => onSetDnd(item)}>Set DND</button>}
+      {serviceInstructionsAvailable && canWork && stayServiceTask && openTaskStatuses.includes(status) && !item.service_outcome && onServiceOutcome && <button className="table-action" onClick={() => onServiceOutcome(item, "service_declined")}>Guest declined</button>}
+      {serviceInstructionsAvailable && canWork && stayServiceTask && openTaskStatuses.includes(status) && !item.service_outcome && onServiceOutcome && <button className="table-action" onClick={() => onServiceOutcome(item, "late_service")}>Mark late</button>}
       {canWork && status === "in_progress" && ["stayover_cleaning", "guest_request"].includes(type) && <button className="table-action" onClick={() => housekeepingAction(item, "defer")}>Defer</button>}
       {canHousekeep && status !== "cancelled" && <button className="table-action" onClick={() => housekeepingAction(item, "maintenance")}>Report Issue</button>}
       {item.maintenance_blocked === true && <button className="table-action" onClick={onViewMaintenance}>View work order</button>}

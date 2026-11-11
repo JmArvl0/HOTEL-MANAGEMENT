@@ -29,6 +29,19 @@ function renderPanel(items: RecordItem[], role: "housekeeping" | "manager" = "ho
 
 afterEach(cleanup);
 
+it("offers the core workflow when service instructions are unavailable", () => {
+  render(<HousekeepingQueuePanel
+    role="housekeeping" userId="u1"
+    items={[task({ task_type: "stayover_cleaning", active_reservation_id: "R-1", assigned_user_id: "u1", service_instructions_available: false })]}
+    search="" setSearch={noop} housekeepingAction={noop} coordinate={noop}
+    onViewMaintenance={noop} onViewRoom={noop} onSetDnd={vi.fn()} onServiceOutcome={vi.fn()}
+  />);
+  expect(screen.queryByRole("button", { name: "Set DND" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Guest declined" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Mark late" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Start cleaning" })).toBeTruthy();
+});
+
 describe("HousekeepingQueuePanel summary cards", () => {
   it("counts the five cards from the same grouping the queue renders", () => {
     const items = [

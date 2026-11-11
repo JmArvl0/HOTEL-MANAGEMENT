@@ -1,5 +1,12 @@
 # AI Session Handoff
 
+## Housekeeping load fix (2026-11-11)
+
+The queue supports the configured database before service-instruction fields
+are deployed. Exact missing-field and missing-table errors use the core task
+read and disable the optional controls. Read-only verification loaded six
+configured tasks. See [[2026-11-11 - Housekeeping Load Fix]].
+
 ## Staff redesign data QA (2026-11-11)
 
 Chrome and the actual API verified 14 workflows with committed readback in

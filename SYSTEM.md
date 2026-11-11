@@ -978,6 +978,9 @@ Front Desk can set/clear it; Housekeeping can set it only from an active room-ca
 guest decline defers the task with a structured outcome; late service raises priority and records
 an immediate due time. Neither outcome changes room cleanliness. These service actions are not
 deployed until the migration and matching application release are applied.
+The Housekeeping task read supports the deployed core schema while these fields
+are absent. Service-instruction controls become available when the service fields
+and condition table can be read. Other database failures still surface.
 
 Assign → start (advisory lock on the room; task-type/room-state compatibility) → **complete** (next
 room state from the policy's `housekeepingInspectionRequired` and whether an open work order blocks
