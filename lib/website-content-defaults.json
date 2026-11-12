@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "isDemo": true,
+  "clientInformationReviewed": false,
+  "identity": {
+    "name": "Haven Hotel & Residences",
+    "shortName": "HAVEN",
+    "city": "Manila",
+    "district": "Ermita",
+    "headline": "Your Haven in {city}.",
+    "heroLead": "Calm city stays, with room to make yourself at home.",
+    "introduction": "Settle into a thoughtfully furnished room in {district}, with space for a short city break, a work trip or a longer stay. Compare four room types, choose your dates and find the stay that suits you.",
+    "metaTitle": "{name} | {city}"
+  },
+  "contact": {
+    "phone": "+63 2 8000 0000",
+    "email": "hello@haven.example",
+    "frontDeskHours": "24 hours daily"
+  },
+  "location": {
+    "demoAddress": "18 Haven Lane, Ermita, Manila 1000, Philippines",
+    "entranceNotes": "Sample arrival guide: use the main lobby entrance and present your reservation details at Front Desk. Contact the hotel before arrival if you need assistance.",
+    "localGuide": "Use the Manila city guide to plan your visit. The map pin is a public landmark for this demo, not a real Haven property. Distances from the fictional hotel are not asserted."
+  },
+  "amenities": [
+    {
+      "id": "wifi",
+      "name": "Wi-Fi",
+      "description": "Complimentary Wi-Fi in guest rooms and shared areas.",
+      "enabled": true
+    },
+    {
+      "id": "parking",
+      "name": "Parking",
+      "description": "Complimentary self-parking for registered guests, subject to space. Parking is not reserved automatically.",
+      "enabled": true
+    },
+    {
+      "id": "pool",
+      "name": "Swimming pool",
+      "description": "Outdoor pool for registered guests, open 7:00 AM–9:00 PM. Children require adult supervision.",
+      "enabled": true
+    },
+    {
+      "id": "fitness",
+      "name": "Fitness room",
+      "description": "Fitness room for registered guests, open 6:00 AM–10:00 PM.",
+      "enabled": true
+    },
+    {
+      "id": "transfers",
+      "name": "Airport transfers",
+      "description": "Airport transfers on request. Fare, pickup time and vehicle are confirmed separately before travel.",
+      "enabled": true
+    },
+    {
+      "id": "laundry",
+      "name": "Laundry",
+      "description": "Laundry service on request. The itemised price and collection schedule are confirmed before service.",
+      "enabled": true
+    }
+  ],
+  "dining": {
+    "name": "The Haven Table",
+    "description": "A relaxed all-day dining space serving breakfast and simple comfort dishes.",
+    "breakfastIncluded": false,
+    "breakfastPrice": 450,
+    "breakfastStart": "06:30",
+    "breakfastEnd": "10:00",
+    "breakfastChargeBasis": "per person, per breakfast",
+    "roomRateBasis": "Room-only base rate; breakfast is charged separately unless the selected offer explicitly includes it."
+  },
+  "family": {
+    "summary": "Children are welcome and count toward the room’s stated maximum occupancy. Choose a room with enough sleeping space for everyone; no automatic child discount is applied in this demo.",
+    "extraBeds": "Extra beds are not offered in the sample room rates. Ask Front Desk about cot availability and any applicable charge before booking; requests do not increase room capacity."
+  },
+  "accessibility": {
+    "summary": "Sample facilities include a step-free lobby entrance and lift access to guest floors. Contact Front Desk to confirm bathroom layout, doorway clearance and any assistance required before choosing a room."
+  },
+  "media": {
+    "heroImageKey": "room",
+    "contactBackgroundImageKey": "rizal",
+    "gallery": [
+      {
+        "key": "room",
+        "label": "Room layouts",
+        "alt": "Illustrative Deluxe King room concept"
+      },
+      {
+        "key": "bathroom",
+        "label": "Bathrooms",
+        "alt": "Illustrative guest bathroom concept"
+      },
+      {
+        "key": "ocean",
+        "label": "Suite living spaces",
+        "alt": "Illustrative suite interior"
+      },
+      {
+        "key": "executive",
+        "label": "A closer look inside",
+        "alt": "Illustrative hotel room interior"
+      }
+    ]
+  },
+  "legal": {
+    "privacyDraft": "This fictional hotel preview illustrates the information a hotel may request for account access, reservations and guest support. It does not create accounts, send messages or collect payments. A real client must provide the approved data-handling notice, retention details and privacy contact before launch.",
+    "termsDraft": "These are sample booking terms for the fictional {name} property. Dates, occupancy, the selected room and applicable rate must be reviewed before submission. A room is held only after guest details are submitted. Confirmation follows verification of the required deposit. Special requests, transfers and early or late arrival arrangements require separate approval."
+  },
+  "customFaq": [
+    {
+      "question": "Can I ask for help before arrival?",
+      "answer": "Contact Front Desk with your reservation details and any arrival requirements."
+    }
+  ],
+  "pageVisibility": {
+    "introduction": true,
+    "gallery": true,
+    "amenities": true,
+    "nearby": true,
+    "faq": true
+  }
+}
