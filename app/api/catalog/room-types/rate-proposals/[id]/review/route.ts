@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { guardCatalog, adminGuardFailed, adminRpcFailure } from "@/lib/admin-route";
 import { canSetRoomTypeRate } from "@/lib/permissions";
@@ -22,5 +23,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     p_actor_user_id: c.actorId,
   });
   if (error) return adminRpcFailure(error, "Unable to review the rate proposal.");
+  if (v.decision === "approve") revalidatePath("/");
   return NextResponse.json({ data });
 }

@@ -95,6 +95,8 @@ export const transportationPreferencesSchema = z.object({
 export type TransportationPreferencesInput = z.infer<typeof transportationPreferencesSchema>;
 
 export const guestDetailsSchema = z.object({
+  roomId: z.string().min(1).max(100).optional(),
+  holdToken: z.string().uuid().optional(),
   roomType: z.string().min(1).max(100),
   checkIn: z.string().regex(datePattern),
   checkOut: z.string().regex(datePattern),

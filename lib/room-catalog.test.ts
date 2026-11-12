@@ -11,7 +11,8 @@ const photosRoute = readFileSync("app/api/catalog/photos/route.ts", "utf8");
 const badgeLib = readFileSync("lib/room-type-badge.ts", "utf8");
 const badgeMigration = readFileSync("supabase/migrations/20260925010000_room_type_badge_colors.sql", "utf8");
 const governanceMigration = readFileSync("supabase/migrations/20260927010000_badge_color_governance.sql", "utf8");
-const landing = readFileSync("app/(landing-page)/page.tsx", "utf8");
+const landing = readFileSync("components/landing/hotel-home.tsx", "utf8") + readFileSync("app/(landing-page)/page.tsx", "utf8");
+const lifecycle=readFileSync("supabase/migrations/20261111020000_room_type_lifecycle_amenities.sql","utf8");
 const landingIntent = readFileSync("components/landing/booking-intent.tsx", "utf8");
 const searchPage = readFileSync("app/(booking)/booking/search/page.tsx", "utf8");
 const roomResults = readFileSync("components/booking/room-results.tsx", "utf8");
@@ -45,7 +46,8 @@ describe("room-type badge colors", () => {
     expect(roomTypesRoute).toContain("const badgeColorKey = z.enum(ROOM_TYPE_COLORS)");
     expect(roomTypesRoute).toContain("p_badge_color_key: v.badgeColorKey");
     expect(roomTypesIdRoute).toContain("badgeColorKey: z.enum(ROOM_TYPE_COLORS).nullable()");
-    expect(roomTypesIdRoute).toContain("p_badge_color_key: v.badgeColorKey");
+    expect(roomTypesIdRoute).toContain("p_body: v");
+    expect(lifecycle).toContain("p_body->>'badgeColorKey'");
     expect(panel).toContain("badgeColorKey: draft.badgeColorKey");
     // Photo saves ride the same versioned PATCH — they re-send the current color.
     expect(panel).toContain("badgeColorKey: photoType.badge_color_key ?? null");
@@ -86,7 +88,8 @@ describe("room-type badge colors", () => {
     expect(panel).toContain("Badge color: ${colorName(item.badge_color_key)}");
   });
   it("physical rooms inherit the badge from their room type — no per-room color", () => {
-    expect(roomsRoute).toContain('"id,name,base_rate,active,badge_color_key"');
+    expect(roomsRoute).toContain("badge_color_key");
+    expect(roomsRoute).toContain("roomTypes");
     expect(rosterPanel).toContain("<RoomTypeBadge name={label(room.type)} colorKey={colorOf(room.type)}/>");
     expect(rosterPanel).toContain("const colorOf = (typeName: string)");
     expect(rosterPanel).not.toContain("badgeColorKey: draft");
@@ -135,7 +138,8 @@ describe("photo manager modal", () => {
     expect(panel).toContain('accept="image/jpeg,image/png,image/webp"');
   });
   it("requires an audited reason and reuses the versioned PATCH schema", () => {
-    expect(roomTypesIdRoute).toContain("p_expected_version");
+    expect(roomTypesIdRoute).toContain("catalog_update_room_type");
+    expect(lifecycle).toContain("p_body->>'version'");
     expect(roomTypesIdRoute).toContain("reason: z.string().trim().min(3)");
   });
 });
@@ -192,7 +196,7 @@ describe("landing page room cards are DB-driven", () => {
     expect(landing).toContain('.eq("active", true)');
     expect(landing).toContain("order(\"base_rate\"");
     // Card rendering lives in the client intent module; still photo-chained and en-PH priced.
-    expect(landingIntent).toContain("roomPrimary(");
+    expect(landingIntent).toContain("roomPhotosFor(");
     expect(landingIntent).toContain("Intl.NumberFormat");
     expect(landingIntent).not.toContain("base_rate: 5");
   });

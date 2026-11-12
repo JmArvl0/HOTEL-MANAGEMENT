@@ -51,8 +51,8 @@ export default async function FindRoomPage({ searchParams }: { searchParams: Pro
   if (focusRoomType) rooms = [...rooms.filter((room) => room.name === focusRoomType), ...rooms.filter((room) => room.name !== focusRoomType)];
   const availability = intent.mode === "availability" ? intent : undefined;
   const details = (roomType: string) => availability
-    ? `/booking/details?${new URLSearchParams({ roomType, checkIn: availability.checkIn, checkOut: availability.checkOut, guests: String(availability.guests) })}`
-    : "#book-form";
+    ? `/booking/rooms/${encodeURIComponent(roomType)}?${new URLSearchParams({ roomType, checkIn: availability.checkIn, checkOut: availability.checkOut, guests: String(availability.guests) })}`
+    : `/booking/rooms/${encodeURIComponent(roomType)}`;
   const formInitial = availability
     ? { ...availability, roomType: focusRoomType }
     : { guests: Math.min(8, Math.max(1, Number(raw.guests) || 2)), roomType: focusRoomType };

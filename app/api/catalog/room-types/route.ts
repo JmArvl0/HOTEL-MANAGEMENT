@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { guardCatalog, adminGuardFailed, adminRpcFailure } from "@/lib/admin-route";
 import { ROOM_TYPE_COLORS } from "@/lib/room-type-badge";
@@ -12,7 +13,7 @@ export async function GET() {
   const [typesResult, roomsResult] = await Promise.all([
     c.client
       .from("room_types")
-      .select(`id,name,description,max_guests,beds,size_sqm,amenities,base_rate,active,version,created_at,updated_at,photo_urls,badge_color_key,room_rate_proposals(${proposalColumns})`)
+      .select(`id,name,description,max_guests,beds,size_sqm,amenities,base_rate,active,archived_at,archive_reason,version,created_at,updated_at,photo_urls,badge_color_key,room_rate_proposals(${proposalColumns})`)
       .order("name", { ascending: true }),
     // One aggregate pass — physical-room counts per type (no per-type queries).
     c.client.from("rooms").select("type,administratively_active"),
@@ -65,5 +66,6 @@ export async function POST(request: Request) {
     p_badge_color_key: v.badgeColorKey,
   });
   if (error) return adminRpcFailure(error, "Unable to create the room type.");
+  revalidatePath("/");
   return NextResponse.json({ data }, { status: 201 });
 }

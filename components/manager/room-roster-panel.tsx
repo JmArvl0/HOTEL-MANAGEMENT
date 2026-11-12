@@ -4,6 +4,7 @@ import { DoorClosed, Loader2, Pencil, Plus } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { RoomTypeBadge } from "@/components/ui/RoomTypeBadge";
 import { HavenSkeletonCard, HavenErrorAlert } from "@/components/ui/haven-data-controls";
+import { normalizeAmenities, resolveRoomAmenities, hasConflictingAmenities, type RoomAmenitySet } from "@/lib/room-amenities";
 
 // Configuration-only roster for physical rooms. Occupancy, housekeeping, and
 // maintenance state belong to their own workflows and are shown read-only —
@@ -17,17 +18,21 @@ type Room = {
   deactivated_at: string | null; deactivation_reason: string | null;
   configuration_version: number;
   commitments: number;
+  amenity_additions: string[];
+  amenity_exclusions: string[];
+  amenityDetails: RoomAmenitySet;
 };
-type RoomType = { id: string; name: string; active: boolean; badge_color_key?: string | null };
-type Draft = { number: string; type: string; floor: string; wing: string; designation: string; active: boolean; reason: string };
+type RoomType = { id: string; name: string; active: boolean; archived_at?: string | null; amenities?: string[]; badge_color_key?: string | null };
+type Draft = { number: string; type: string; floor: string; wing: string; designation: string; active: boolean; reason: string; amenityAdditions: string; amenityExclusions: string[]; acknowledgeAmenities: boolean };
 
 const label = (value: unknown) => String(value ?? "").replaceAll("_", " ");
 const day = (value: string | null) => (value ? String(value).slice(0, 10) : "");
-const emptyDraft = (type: string): Draft => ({ number: "", type, floor: "", wing: "", designation: "", active: true, reason: "" });
+const emptyDraft = (type: string): Draft => ({ number: "", type, floor: "", wing: "", designation: "", active: true, reason: "", amenityAdditions: "", amenityExclusions: [], acknowledgeAmenities: false });
 const draftFrom = (room: Room): Draft => ({
   number: room.number, type: room.type, floor: String(room.floor ?? ""),
   wing: room.wing ?? "", designation: room.administrative_designation ?? "",
   active: room.administratively_active, reason: "",
+  amenityAdditions: normalizeAmenities(room.amenity_additions).join(", "), amenityExclusions: normalizeAmenities(room.amenity_exclusions), acknowledgeAmenities: false,
 });
 // Why the row reads the way it does: the administrative switch and the
 // operational picture are independent facts, so both are stated.
@@ -36,7 +41,7 @@ const adminLine = (room: Room) =>
     ? "Active"
     : `Inactive — retired ${day(room.deactivated_at) || "earlier"}${room.deactivation_reason ? `: ${room.deactivation_reason}` : ""}`;
 
-export default function RoomRosterPanel({ onClose }: { onClose: () => void }) {
+export default function RoomRosterPanel({ onClose, initialType }: { onClose: () => void; initialType?: string }) {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [types, setTypes] = useState<RoomType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,24 +53,30 @@ export default function RoomRosterPanel({ onClose }: { onClose: () => void }) {
 
   const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 3000); };
   const load = async () => {
+    setLoading(true);
+    try {
     const response = await fetch("/api/catalog/rooms", { cache: "no-store" });
     const body = await response.json();
     if (!response.ok) { setError(body.error ?? "Unable to load the physical room roster."); setLoading(false); return; }
     setRooms(body.data ?? []);
     setTypes(body.roomTypes ?? []);
     setError("");
+    } catch { setError("Unable to reach the room catalog. Check your connection and try again."); }
+    finally {
     setLoading(false);
+    }
   };
-  useEffect(() => { void load(); }, []);
+  useEffect(() => { const timer = window.setTimeout(() => void load(), 0); return () => window.clearTimeout(timer); }, []);
 
-  const selectable = types.filter((type) => type.active);
+  const selectable = types.filter((type) => !type.archived_at);
   // Physical rooms inherit the badge color from their room type (rooms.type is
   // the type name) — no per-room color anywhere.
   const colorOf = (typeName: string) => types.find((type) => type.name === typeName)?.badge_color_key ?? null;
   const openEditor = (room: Room) => { setEditing(room); setDraft(draftFrom(room)); };
-  const openCreate = () => { setEditing(null); setDraft(emptyDraft(selectable[0]?.name ?? "")); };
+  const openCreate = () => { setEditing(null); setDraft(emptyDraft(selectable.find(type => type.name === initialType)?.name ?? selectable[0]?.name ?? "")); };
   const closeEditor = () => { setEditing(null); setDraft(null); };
   const set = <K extends keyof Draft,>(key: K, value: Draft[K]) => setDraft((prev) => (prev ? { ...prev, [key]: value } : prev));
+  const amenityView = draft ? resolveRoomAmenities(types.find(type => type.name === draft.type)?.amenities, draft.amenityAdditions.split(",").filter(item => item.trim()), draft.amenityExclusions) : null;
 
   // Floors ascending, room number ascending inside a floor — the order someone
   // walking the building would use.
@@ -80,6 +91,7 @@ export default function RoomRosterPanel({ onClose }: { onClose: () => void }) {
     if (draft.type.trim() === "") { notify("Choose a room type."); return; }
     if (draft.floor.trim() === "" || Number(draft.floor) < 0) { notify("Enter a floor."); return; }
     if (!creating && draft.reason.trim().length < 3) { notify("Enter a reason for this change (at least 3 characters)."); return; }
+    if (hasConflictingAmenities(amenityView?.additions, draft.amenityExclusions)) { notify("An amenity cannot be both added and excluded."); return; }
     setBusy(true);
     try {
       const payload = {
@@ -89,6 +101,9 @@ export default function RoomRosterPanel({ onClose }: { onClose: () => void }) {
         wing: draft.wing.trim(),
         designation: draft.designation.trim(),
         active: draft.active,
+        amenityAdditions: amenityView?.additions ?? [],
+        amenityExclusions: draft.amenityExclusions,
+        acknowledgeAmenities: draft.acknowledgeAmenities,
         ...(editing ? { reason: draft.reason.trim(), version: editing.configuration_version } : {}),
       };
       const response = await fetch(creating ? "/api/catalog/rooms" : `/api/catalog/rooms/${editing!.id}`, {
@@ -129,6 +144,7 @@ export default function RoomRosterPanel({ onClose }: { onClose: () => void }) {
                       <b>{label(room.number)}</b>
                       <RoomTypeBadge name={label(room.type)} colorKey={colorOf(room.type)}/>
                       {room.administrative_designation && <small>{label(room.administrative_designation)}</small>}
+                      <small>{room.amenityDetails?.effective.length ?? 0} effective amenities{room.amenity_additions?.length || room.amenity_exclusions?.length ? " · room overrides" : " · inherited"}</small>
                     </div>
                     <div className="room-roster-state">
                       <span className={`badge ${room.administratively_active ? "active" : "inactive"}`}>{room.administratively_active ? "Active" : "Inactive"}</span>
@@ -166,7 +182,7 @@ export default function RoomRosterPanel({ onClose }: { onClose: () => void }) {
               <div className="form-field-wrapper">
                 <label htmlFor="pr-type" className="form-label">Room type <span className="required">*</span></label>
                 <select id="pr-type" className="form-input" value={draft.type} onChange={(event) => set("type", event.target.value)} disabled={!!editing && editing.commitments > 0}>
-                  {selectable.map((type) => <option key={type.id} value={type.name}>{type.name}</option>)}
+                  {selectable.map((type) => <option key={type.id} value={type.name}>{type.name}{type.active ? "" : " · Unpublished"}</option>)}
                   {editing && !selectable.some((type) => type.name === editing.type) && <option value={editing.type}>{editing.type}</option>}
                 </select>
                 {editing && editing.commitments > 0 && <small className="muted">{editing.commitments} upcoming reservation{editing.commitments !== 1 ? "s" : ""} — reassign to change type.</small>}
@@ -193,6 +209,21 @@ export default function RoomRosterPanel({ onClose }: { onClose: () => void }) {
               </label>
               <small className="muted">Clearing this retires the room from inventory. It is not a substitute for maintenance — report a work order for a room that is temporarily out of service.</small>
             </div>
+            <fieldset className="form-field">
+              <legend>Room amenities</legend>
+              <p className="muted">Standard amenities follow {draft.type}. Only this room receives these additions or exclusions.</p>
+              <div className="form-field-wrapper">
+                <label htmlFor="pr-amenity-additions" className="form-label">Additional amenities</label>
+                <input id="pr-amenity-additions" className="form-input" value={draft.amenityAdditions} onChange={event => set("amenityAdditions", event.target.value)} placeholder="Microwave, coffee machine" />
+                <small className="muted">Comma-separated additions that stay with this room when its type changes.</small>
+              </div>
+              <p className="form-label">Exclude inherited amenities from this room</p>
+              {amenityView?.standard.length ? amenityView.standard.map(item => <label key={item} className="checkbox-option"><input type="checkbox" checked={draft.amenityExclusions.some(value => value.toLowerCase() === item.toLowerCase())} onChange={event => set("amenityExclusions", event.target.checked ? [...draft.amenityExclusions, item] : draft.amenityExclusions.filter(value => value.toLowerCase() !== item.toLowerCase()))} /><span>{item}</span></label>) : <p className="muted">No standard amenities configured for this type.</p>}
+              {amenityView?.dormantExclusions.map(item => <p key={item} className="muted">{item}: not part of this type; exclusion currently has no effect. <button type="button" className="table-action" onClick={() => set("amenityExclusions", draft.amenityExclusions.filter(value => value !== item))}>Clear exclusion</button></p>)}
+              <p><strong>Effective amenities:</strong> {amenityView?.effective.join(" · ") || "None configured"}</p>
+              <button type="button" className="btn btn-soft" onClick={() => setDraft(value => value ? { ...value, amenityAdditions: "", amenityExclusions: [], acknowledgeAmenities: false } : value)}>Restore type amenities</button>
+              {editing && editing.commitments > 0 && <label className="checkbox-option"><input type="checkbox" checked={draft.acknowledgeAmenities} onChange={event => set("acknowledgeAmenities", event.target.checked)} /><span>I reviewed the effects on upcoming stays. Existing booked amenity snapshots stay unchanged.</span></label>}
+            </fieldset>
             {editing && (
               <p className="room-roster-ops-note">
                 Operational state: {label(editing.status)} · {label(editing.housekeeping)} — set by the Front Desk, Housekeeping, and Maintenance workflows. Not editable here.

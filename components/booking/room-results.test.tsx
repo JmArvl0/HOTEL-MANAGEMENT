@@ -50,13 +50,13 @@ describe("availability badges", () => {
     expect(chip.className).toContain("is-off");
     const action = screen.getByRole("button", { name: "Unavailable" });
     expect((action as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.queryByRole("link", { name: /Select room/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Choose this type/ })).toBeNull();
     expect(screen.getByRole("button", { name: "View details" })).toBeTruthy();
   });
 
-  it("offers Select room only when units remain", () => {
+  it("offers Choose this type only when units remain", () => {
     render(<RoomResults rooms={[priced(2)]} hrefFor={(roomType) => `/booking/details?roomType=${roomType}`} />);
-    expect(screen.getByRole("link", { name: /Select room/ }).getAttribute("href")).toContain("/booking/details");
+    expect(screen.getByRole("link", { name: /Choose this type/ }).getAttribute("href")).toContain("/booking/details");
   });
 
   it("shows Check dates guidance before any availability search", () => {
@@ -104,7 +104,7 @@ describe("Garden Twin premium card (shared pattern)", () => {
     expect(screen.getByText(`${formatPeso(11600)} estimated total`)).toBeTruthy();
     expect(screen.getByText("3 available")).toBeTruthy();
     expect(
-      screen.getByRole("link", { name: /Select room/ }).getAttribute("href")
+      screen.getByRole("link", { name: /Choose this type/ }).getAttribute("href")
     ).toContain("/booking/details?roomType=Garden Twin");
   });
 
@@ -121,7 +121,7 @@ describe("Garden Twin premium card (shared pattern)", () => {
     expect(screen.getByText("Check dates")).toBeTruthy();
     expect(screen.getByText(formatPeso(5800))).toBeTruthy();
     expect(screen.getByRole("link", { name: /Choose dates/ })).toBeTruthy();
-    expect(screen.queryByRole("link", { name: /Select room/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Choose this type/ })).toBeNull();
   });
 
   it("sold-out Garden Twin keeps View details with Select disabled", () => {
@@ -130,7 +130,7 @@ describe("Garden Twin premium card (shared pattern)", () => {
     expect(chip.textContent).toBe("Unavailable");
     expect(chip.className).toContain("is-off");
     expect((screen.getByRole("button", { name: "Unavailable" }) as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.queryByRole("link", { name: /Select room/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Choose this type/ })).toBeNull();
     expect(screen.getByRole("button", { name: "View details" })).toBeTruthy();
   });
 });

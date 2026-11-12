@@ -1,3 +1,4 @@
+import { AmenitySnapshot } from "@/components/booking/amenity-snapshot";
 import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
 import { CheckCircle2, Clock3 } from "lucide-react";
@@ -107,7 +108,7 @@ export default async function ConfirmationPage({
         <dl>
           <div>
             <dt>Room type</dt>
-            <dd>{reservation.room_type}</dd>
+            <dd>{reservation.room_type}{reservation.room_number ? ` · Room ${reservation.room_number}` : ""}</dd>
           </div>
           <div>
             <dt>Dates</dt>
@@ -183,7 +184,7 @@ export default async function ConfirmationPage({
         {confirmed && (
           <CheckInQr reservationId={reservation.id} confirmationNumber={reservation.confirmation_number} />
         )}
-        <ConfirmationActions reservationId={reservation.id} />
+        <AmenitySnapshot value={reservation.amenity_snapshot} /><ConfirmationActions reservationId={reservation.id} />
       </section>
     </BookingPageFrame>
   );

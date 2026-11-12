@@ -14,6 +14,7 @@ export type StayLine = { label: string; amount: number };
  *  Used by Guest Details, Review, Reservation Deposit (via depositDue +
  *  remainingBalance), and Confirmation. */
 export function BookingStaySummary({
+  roomNumber,
   roomType,
   checkIn,
   checkOut,
@@ -28,6 +29,7 @@ export function BookingStaySummary({
   remainingBalance,
   footnote,
 }: {
+  roomNumber?: string;
   roomType: string;
   checkIn: string;
   checkOut: string;
@@ -66,7 +68,7 @@ export function BookingStaySummary({
       </div>
       <div className="review-stay-body">
         <p className="review-stay-eyebrow">Your stay</p>
-        <h2 className="room-title">{roomType}</h2>
+        <h2 className="room-title">{roomType}</h2>{roomNumber&&<p><strong>Room {roomNumber}</strong></p>}
         <dl>
           <div>
             <dt>

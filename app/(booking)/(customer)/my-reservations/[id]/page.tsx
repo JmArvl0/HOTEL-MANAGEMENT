@@ -188,6 +188,7 @@ export default async function ReservationPage({ params }: { params: Promise<{ id
         id: reservation.id,
         confirmationNumber: String(reservation.confirmation_number ?? reservation.id),
         roomType: reservation.room_type,
+        amenitySnapshot: reservation.amenity_snapshot,
         checkIn: reservation.check_in,
         checkOut: reservation.check_out,
         nights: reservation.nights,

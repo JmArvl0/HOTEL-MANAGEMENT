@@ -103,11 +103,11 @@ describe("photo resolution (authoritative Find-a-Room chain)", () => {
     expect(container.querySelector(".review-stay-photo--fallback")).toBeNull();
   });
 
-  it("resolves each room type to its own stock photo", () => {
+  it("resolves each room type to its own illustrative photo, including generated room samples", () => {
     const deluxe = roomPhotosFor([], "Deluxe King")[0];
     const ocean = roomPhotosFor([], "Ocean Suite")[0];
     const gardenStock = roomPhotosFor([], "Garden Twin")[0];
-    expect(deluxe).toContain("images.unsplash.com");
+    expect(deluxe).toBe("/room-samples/deluxe-king-room.webp");
     expect(new Set([deluxe, ocean, gardenStock]).size).toBe(3);
     const { container } = render(
       <BookingStaySummary {...garden} roomType="Deluxe King" photos={[]} />,

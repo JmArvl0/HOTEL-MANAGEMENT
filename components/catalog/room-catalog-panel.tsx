@@ -14,6 +14,7 @@ import { ROOM_TYPE_COLORS } from "@/lib/room-type-badge";
 import { RoomTypeBadge } from "@/components/ui/RoomTypeBadge";
 import type { Role } from "@/lib/types";
 import type { AvailableRoomType } from "@/lib/booking";
+import RoomRosterPanel from "@/components/manager/room-roster-panel";
 
 type Proposal = { id: string; proposed_rate: number; reason: string; status: string; created_at: string };
 type PlanDraft = { name: string; startDate: string; endDate: string; days: string[]; nightlyRate: string; reason: string };
@@ -33,6 +34,8 @@ type RoomType = {
   amenities: unknown;
   base_rate: number;
   active: boolean;
+  archived_at?: string | null;
+  archive_reason?: string | null;
   version: number;
   photo_urls: string[];
   badge_color_key: string | null;
@@ -40,7 +43,7 @@ type RoomType = {
   activeRooms?: number;
   room_rate_proposals?: Proposal[] | null;
 };
-type Draft = { name: string; description: string; maxGuests: string; beds: string; sizeSqm: string; amenities: string; baseRate: string; active: boolean; badgeColorKey: string | null; reason: string };
+type Draft = { name: string; description: string; maxGuests: string; beds: string; sizeSqm: string; amenities: string; baseRate: string; active: boolean; badgeColorKey: string | null; reason: string; acknowledgeAmenities: boolean };
 
 const peso = (value: unknown) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 }).format(Number(value || 0));
 const label = (value: unknown) => String(value ?? "").replaceAll("_", " ");
@@ -71,9 +74,10 @@ function draftFrom(t: RoomType): Draft {
     active: t.active,
     badgeColorKey: t.badge_color_key ?? null,
     reason: "",
+    acknowledgeAmenities: false,
   };
 }
-const emptyDraft = (): Draft => ({ name: "", description: "", maxGuests: "2", beds: "", sizeSqm: "", amenities: "", baseRate: "", active: false, badgeColorKey: null, reason: "" });
+const emptyDraft = (): Draft => ({ name: "", description: "", maxGuests: "2", beds: "", sizeSqm: "", amenities: "", baseRate: "", active: false, badgeColorKey: null, reason: "", acknowledgeAmenities: false });
 // A color is claimable when no OTHER type in the reservation scope holds it:
 // active types and types with a pending rate proposal (a proposal is a type on
 // its way live). The type being edited keeps its own.
@@ -85,6 +89,8 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
   const dialogs = useActionDialogs();
   const canSetRate = canSetRoomTypeRate(role);
   const canPropose = canProposeRoomTypeRate(role);
+  const canArchive = role === "owner" || role === "admin";
+  const [rosterType, setRosterType] = useState<string | null>(null);
   const [items, setItems] = useState<RoomType[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -340,6 +346,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
         amenities: draft.amenities.split(",").map((x) => x.trim()).filter(Boolean),
         baseRate: Number(draft.baseRate || 0),
         active: draft.active,
+        acknowledgeAmenities: draft.acknowledgeAmenities,
         badgeColorKey: draft.badgeColorKey,
         reason: draft.reason.trim(),
         ...(!creating ? { version: editing!.version } : {}),
@@ -387,6 +394,17 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
     if (!response.ok) { notify(body.error ?? "Unable to submit the rate proposal."); return; }
     notify(`Rate proposal for ${item.name} sent for approval.`);
     await load();
+  };
+
+  const archiveType = async (item: RoomType) => {
+    const reason = await dialogs.askPrompt({ title: `Archive ${item.name}`, message: "This removes the type from future booking choices while preserving its history. Reassign or retire active physical rooms and resolve upcoming commitments first.", label: "Reason for archiving", required: true, inputType: "text", validation: reasonCheck });
+    if (!reason?.trim()) return;
+    try {
+      const response = await fetch(`/api/catalog/room-types/${item.id}/archive`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version: item.version, reason: reason.trim() }) });
+      const result = await response.json();
+      notify(response.ok ? `${item.name} archived. History has been retained.` : result.error ?? "Unable to archive this type.");
+      if (response.ok) await load();
+    } catch { notify("Unable to reach the room catalog. Try again."); }
   };
 
   const reviewProposal = async (item: RoomType, proposal: Proposal, decision: "approve" | "reject") => {
@@ -448,7 +466,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
                 <article className="catalog-card" key={item.id}>
                   <div className="catalog-card-media">
                     {primary ? <img src={primary} alt="" loading="lazy"/> : <span className="catalog-card-empty"><ImagePlus size={22}/></span>}
-                    <StatusBadge status={item.active ? "active" : "inactive"} label={item.active ? "Published" : "Unpublished"} />
+                    <StatusBadge status={item.active ? "active" : "inactive"} label={item.archived_at ? "Archived" : item.active ? "Published" : "Unpublished"} />
                   </div>
                   <div className="catalog-card-body">
                     <h3>{item.name} <RoomTypeBadge name={colorName(item.badge_color_key)} colorKey={item.badge_color_key}/></h3>
@@ -464,7 +482,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
                       <small>/ night{pending ? "" : " · base rate"}</small>
                       {pending && <small className="muted">→ {peso(pending.proposed_rate)} awaiting approval</small>}
                     </div>
-                    {!item.active && <p className="catalog-card-why">{publishHint(item)}</p>}
+                    {!item.active && <p className="catalog-card-why">{item.archived_at ? `Archived — ${item.archive_reason || "retained for history"}` : publishHint(item)}</p>}
                     <div className="btn-row catalog-card-actions">
                       {pending && canSetRate && (
                         <>
@@ -473,9 +491,13 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
                         </>
                       )}
                       <button className="table-action view-action" onClick={() => setPreview(item)} title="See this type as guests see it"><Eye size={14}/> Preview</button>
-                      <button className="table-action view-action" onClick={() => void openPlans(item)} title="Weekend, seasonal, and holiday rate overlays"><CalendarRange size={14}/> Rate plans</button>
-                      <button className="table-action view-action" onClick={() => openPhotos(item)}><Images size={14}/> Manage photos ({(item.photo_urls ?? []).length})</button>
-                      <button className="table-action view-action" onClick={() => openEditor(item)}><Pencil size={14}/> Edit</button>
+                      {!item.archived_at && <>
+                        <button className="table-action view-action" onClick={() => setRosterType(item.name)}><Building2 size={14}/> Rooms ({item.physicalRooms ?? 0})</button>
+                        <button className="table-action view-action" onClick={() => void openPlans(item)} title="Weekend, seasonal, and holiday rate overlays"><CalendarRange size={14}/> Rate plans</button>
+                        <button className="table-action view-action" onClick={() => openPhotos(item)}><Images size={14}/> Manage photos ({(item.photo_urls ?? []).length})</button>
+                        <button className="table-action view-action" onClick={() => openEditor(item)}><Pencil size={14}/> Edit</button>
+                        {canArchive && <button className="table-action danger-action" onClick={() => void archiveType(item)}><Trash2 size={14}/> Archive type</button>}
+                      </>}
                     </div>
                     <p className="catalog-card-version muted">v{item.version} · changes are audited</p>
                   </div>
@@ -488,6 +510,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
       )}
       {toast && <div className="toast" role="status"><Building2 size={18}/>{toast}</div>}
       {dialogs.view}
+      {rosterType !== null && <RoomRosterPanel initialType={rosterType} onClose={() => { setRosterType(null); void load(); }} />}
 
       {preview && (
         <Modal isOpen onClose={() => setPreview(null)} title={preview.name}
@@ -595,7 +618,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
 
       {photoType && photoDraft != null && (
         <Modal isOpen onClose={closePhotos} title={`Manage photos — ${photoType.name}`}
-          description="The first photo is the cover guests see. Reorder, set a new cover, add by URL or upload."
+          description="The first photo is the cover on the landing page and booking catalog. Add whole-room, alternate-angle, and bathroom photos; reorder them, add by URL, or upload."
           size="lg" headerVariant="branded">
           <div className="form-dialog">
             <div className="form-field">
@@ -614,7 +637,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
                       </div>
                     </div>
                   ))}
-                  {photoDraft.length === 0 && <p className="muted">No photos yet — guests will see the stock gallery until you add photos here.</p>}
+                  {photoDraft.length === 0 && <p className="muted">No photos yet — guests will see the illustrative sample gallery until you add photos here.</p>}
                 </div>
                 <div className="photo-tools">
                   <button type="button" className="btn btn-soft" onClick={addUrl}><Plus size={15}/> Add URL</button>
@@ -770,6 +793,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
             </div>
             <div className="form-field">
               <div className="form-field-wrapper">
+                {editing && draft.amenities !== amenityList(editing.amenities) && <label className="checkbox-option"><input type="checkbox" checked={draft.acknowledgeAmenities} onChange={event => set("acknowledgeAmenities", event.target.checked)} /><span>I reviewed this standard-amenity change for all assigned rooms and upcoming stays. Existing booking snapshots remain unchanged.</span></label>}
                 <label htmlFor="rt-reason" className="form-label">Reason for change <span className="required">*</span></label>
                 <input id="rt-reason" className="form-input" type="text" value={draft.reason} onChange={(e) => set("reason", e.target.value)} placeholder="Audited with every save"/>
               </div>

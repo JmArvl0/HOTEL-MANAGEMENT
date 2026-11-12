@@ -4,7 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, CalendarDays, Check, ChevronRight, Clock3, Headphones, ShieldCheck, Users, Waves } from "lucide-react";
 import { authOptions } from "@/lib/auth";
-import { LandingNav } from "@/components/landing/landing-nav";
+import { PublicWebsiteNav } from "@/components/landing/public-website-nav";
 import { BookingNoticeToast } from "@/components/booking/booking-notice-toast";
 import { BookingSearchForm } from "@/components/booking/booking-search-form";
 import { AvailabilityGuide } from "@/components/booking/availability-guide";
@@ -23,6 +23,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     const value = raw[key];
     if (typeof value === "string") forwarded.set(key, value);
   }
+  if (typeof raw.roomType === 'string') redirect(`/booking/rooms/${encodeURIComponent(raw.roomType)}?${forwarded}`);
   if (session?.user.role === "guest") redirect(`/account/find-room${forwarded.size ? `?${forwarded}` : ""}`);
 
   // Intent comes from the URL (see parseSearchIntent): valid dates → availability, otherwise browse.
@@ -65,6 +66,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   }
   if (focusRoomType) rooms = [...rooms.filter((room) => room.name === focusRoomType), ...rooms.filter((room) => room.name !== focusRoomType)];
 
+  const capacityCatalog = intent.mode === "browse" ? rooms : await Promise.resolve(getRoomCatalog()).catch(() => []);
+  const maxGuests = capacityCatalog?.length ? Math.min(8, Math.max(...capacityCatalog.map(room => room.maxGuests))) : 4;
   const availability = intent.mode === "availability" ? intent : undefined;
   const nights = availability ? (() => {
     const diff = Math.round((Date.parse(`${availability.checkOut}T00:00:00Z`) - Date.parse(`${availability.checkIn}T00:00:00Z`)) / 86_400_000);
@@ -75,8 +78,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const details = (roomType: string) => {
     if (!availability) return "#book-form";
     const query = new URLSearchParams({ roomType, checkIn: availability.checkIn, checkOut: availability.checkOut, guests: String(availability.guests) });
-    const path = `/booking/details?${query}`;
-    return session ? path : `/login?booking=1&callbackUrl=${encodeURIComponent(path)}`;
+    return `/booking/rooms/${encodeURIComponent(roomType)}?${query}`;
   };
   const formInitial = availability
     ? { ...availability, roomType: focusRoomType }
@@ -84,7 +86,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
 
   return (
     <main className="booking-page">
-      <LandingNav active="Rooms" rootLinks />
+      <PublicWebsiteNav bookingHref="#book-form" active="Rooms" rootLinks />
       <section className="booking-hero--search" aria-labelledby="search-title">
         <Image src={SCENES.story} alt="A calm, sunlit hotel interior" fill priority sizes="100vw" className="booking-search-hero-image" />
         <div className="booking-search-hero-shade" />
@@ -109,7 +111,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           </div>
         </div>
         <AvailabilityGuide id="book-form" className="booking-search-summary">
-          <BookingSearchForm compact initial={formInitial} />
+          <BookingSearchForm compact initial={formInitial} maxGuests={maxGuests} />
           {availability && <div className="booking-active-filters" aria-label="Current search filters">
             <span className="booking-filter-chip"><CalendarDays size={14} aria-hidden="true" /> {availability.checkIn} → {availability.checkOut} · {nights} night{nights !== 1 ? "s" : ""}</span>
             <span className="booking-filter-chip"><Users size={14} aria-hidden="true" /> {availability.guests} guest{availability.guests !== 1 ? "s" : ""}</span>
@@ -146,7 +148,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
               <h3>Booked with clarity</h3>
               <ul className="booking-sidebar__list">
                 <li><Check size={14} aria-hidden="true" /> Availability is calculated from live room inventory.</li>
-                <li><Check size={14} aria-hidden="true" /> Selecting a room starts a 15-minute hold.</li>
+                <li><Check size={14} aria-hidden="true" /> Your room hold begins after you submit guest details.</li>
                 <li><Check size={14} aria-hidden="true" /> Your required deposit and payment terms appear before submission.</li>
               </ul>
             </div>
@@ -154,7 +156,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
               <Headphones size={22} aria-hidden="true" />
               <h3>Need a hand choosing?</h3>
               <p>Review the booking questions or contact Front Desk for help with your stay.</p>
-              <Link href="/#faq" className="booking-sidebar__link">View booking questions <ArrowRight size={14} aria-hidden="true" /></Link>
+              <Link href="/booking-policy" className="booking-sidebar__link">Read deposit &amp; cancellation terms <ArrowRight size={14} aria-hidden="true" /></Link>
+              <Link href="/#contact" className="booking-sidebar__link">Contact Front Desk <ArrowRight size={14} aria-hidden="true" /></Link>
             </div>
             {availability ? (
               <div className="booking-sidebar__card">

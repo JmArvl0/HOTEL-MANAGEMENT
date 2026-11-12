@@ -10,11 +10,13 @@ export function AuthVaultShell({
   mode,
   callbackUrl,
   booking = false,
+  bookingContext,
   children,
 }: {
   mode: "login" | "register";
   callbackUrl: string;
   booking?: boolean;
+  bookingContext?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const bookingParam = booking ? "&booking=1" : "";
@@ -22,8 +24,9 @@ export function AuthVaultShell({
   const registerHref = `/register?callbackUrl=${encodeURIComponent(callbackUrl)}${bookingParam}`;
 
   return (
-    <div className={`haven-vault haven-vault--${mode}`}>
+    <div className={`haven-vault haven-vault--${mode}${bookingContext?" haven-vault--booking":""}`}>
       <aside className="haven-vault__visual" aria-label="Welcome to Haven">
+        {bookingContext || <>
         <Image src="/hotel-hero.png" alt="A peaceful Haven hotel terrace overlooking the water" fill priority sizes="(max-width: 900px) 100vw, 56vw" />
         <span className="haven-vault__visual-wash" aria-hidden="true" />
         <Link href="/" className="brand brand-light haven-vault__brand" aria-label="Haven home">
@@ -41,15 +44,16 @@ export function AuthVaultShell({
           <li><UsersRound aria-hidden="true" /><span>Thoughtful<br />service</span></li>
           <li><Sun aria-hidden="true" /><span>Brighter<br />stays</span></li>
         </ul>
+        </>}
       </aside>
 
       <section className="haven-vault__panel">
         <header className="haven-vault__header">
           <Link href="/" className="haven-vault__back"><ArrowLeft size={15} aria-hidden="true" /> Back to Haven</Link>
-          <a className="haven-vault__help" href="mailto:hello@haven-hotel.ph">
+          <Link className="haven-vault__help" href="/#contact">
             <Headphones size={18} aria-hidden="true" />
             <span>Need help?<strong>Contact Front Desk</strong></span>
-          </a>
+          </Link>
         </header>
         <main className="haven-vault__stage">
           <div className="haven-vault__card">
@@ -71,7 +75,7 @@ export function AuthVaultShell({
           </nav>
 
           {children}
-            <p className="haven-vault__security"><ShieldCheck size={15} aria-hidden="true" /> Your account information is protected.</p>
+            <p className="haven-vault__foot"><Link href="/privacy">Privacy policy</Link> · <Link href="/terms">Booking terms</Link></p><p className="haven-vault__security"><ShieldCheck size={15} aria-hidden="true" /> Your account information is protected.</p>
           </div>
         </main>
       </section>

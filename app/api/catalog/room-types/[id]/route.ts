@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { guardCatalog, adminGuardFailed, adminRpcFailure } from "@/lib/admin-route";
 import { ROOM_TYPE_COLORS } from "@/lib/room-type-badge";
@@ -11,6 +12,7 @@ const schema = z.object({
   amenities: z.array(z.string().trim().min(1).max(100)).max(100),
   baseRate: z.coerce.number().min(0).max(10000000),
   active: z.boolean(),
+  acknowledgeAmenities: z.boolean().optional().default(false),
   photoUrls: z.array(z.string().trim().url().max(400)).max(24).optional(),
   badgeColorKey: z.enum(ROOM_TYPE_COLORS).nullable(),
   reason: z.string().trim().min(3).max(500),
@@ -23,21 +25,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const p = schema.safeParse(await request.json());
   if (!p.success) return NextResponse.json({ error: "Enter valid room-type configuration and a reason." }, { status: 400 });
   const v = p.data;
-  const { data, error } = await c.client.rpc("admin_update_room_type", {
-    p_room_type_id: (await params).id,
-    p_description: v.description,
-    p_max_guests: v.maxGuests,
-    p_beds: v.beds,
-    p_size_sqm: v.sizeSqm ?? null,
-    p_amenities: v.amenities,
-    p_base_rate: v.baseRate,
-    p_active: v.active,
-    p_photo_urls: v.photoUrls ?? null,
-    p_reason: v.reason,
-    p_expected_version: v.version,
-    p_actor_user_id: c.actorId,
-    p_badge_color_key: v.badgeColorKey,
+  const { data, error } = await c.client.rpc("catalog_update_room_type", {
+    p_type: (await params).id, p_body: v, p_actor: c.actorId,
   });
   if (error) return adminRpcFailure(error, "Unable to update the room type.");
+  revalidatePath("/");
   return NextResponse.json({ data });
 }

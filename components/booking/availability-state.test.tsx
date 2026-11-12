@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const lookup = vi.hoisted(() => ({ availability: vi.fn(), catalog: vi.fn() }));
 vi.mock("next-auth", () => ({ getServerSession: async () => null }));
 vi.mock("@/lib/auth", () => ({ authOptions: {} }));
-vi.mock("@/components/landing/landing-nav", () => ({ LandingNav: () => null }));
+vi.mock("@/components/landing/public-website-nav", () => ({ PublicWebsiteNav: () => null }));
 vi.mock("@/components/booking/booking-search-form", () => ({ BookingSearchForm: () => <form aria-label="Stay search" /> }));
 vi.mock("@/components/booking/back-button", () => ({ BackButton: () => null }));
 vi.mock("@/lib/booking", async () => ({ ...(await vi.importActual("@/lib/booking")), getAvailability: lookup.availability, getRoomCatalog: lookup.catalog }));

@@ -3,6 +3,7 @@ import { FormEvent, useRef, useState } from "react";
 import { getSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { MobileNumberField } from "@/components/ui/mobile-number-field";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
 
 export function RegisterForm({ callbackUrl }: { callbackUrl: string }) {
@@ -62,7 +63,7 @@ export function RegisterForm({ callbackUrl }: { callbackUrl: string }) {
         </div>
       )}
 
-      <form onSubmit={submit} noValidate>
+      <form onSubmit={submit}>
         <div className="haven-vault__row">
           <label className="haven-vault__field">
             First name
@@ -73,10 +74,7 @@ export function RegisterForm({ callbackUrl }: { callbackUrl: string }) {
             <input name="lastName" required maxLength={80} autoComplete="family-name" placeholder="Reyes" />
           </label>
         </div>
-        <label className="haven-vault__field">
-          Mobile number
-          <input name="phone" type="tel" minLength={7} maxLength={30} required autoComplete="tel" placeholder="+63 9xx xxx xxxx" />
-        </label>
+        <MobileNumberField name="phone" className="haven-vault__field" />
         <label className="haven-vault__field">
           Email
           <input name="email" type="email" required maxLength={200} autoComplete="email" placeholder="you@haven.com" />

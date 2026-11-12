@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { AmenitySnapshot } from "@/components/booking/amenity-snapshot";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -27,6 +28,7 @@ export type ReservationDetailViewData = {
   id: string;
   confirmationNumber: string;
   roomType: string;
+  amenitySnapshot?: unknown;
   checkIn: string;
   checkOut: string;
   nights: number;
@@ -321,7 +323,7 @@ export function ReservationDetailView({ data }: { data: ReservationDetailViewDat
         </div>
       </section>
 
-      <div className="crd-tabs" role="tablist" aria-label="Reservation details">
+      <AmenitySnapshot value={data.amenitySnapshot} /><div className="crd-tabs" role="tablist" aria-label="Reservation details">
         {TABS.map(({ key, label, icon: Icon }) => (
           <button
             key={key}

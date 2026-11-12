@@ -66,7 +66,7 @@ export function RoomResults({
               soldOut ? (
                 <button type="button" className="btn btn-accent" disabled>Unavailable</button>
               ) : (
-                <Link className="btn btn-accent" href={hrefFor(room.name)}>Select room <ArrowRight size={16} aria-hidden="true"/></Link>
+                <Link className="btn btn-accent" href={hrefFor(room.name)}>Choose this type <ArrowRight size={16} aria-hidden="true"/></Link>
               )
             ) : (
               <ChooseDatesButton />

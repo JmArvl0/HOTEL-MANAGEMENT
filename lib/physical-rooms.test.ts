@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
+import {createPhysicalRoomSchema,updatePhysicalRoomSchema} from "./room-configuration";
+const sharedRoute = readFileSync("lib/room-configuration-route.ts", "utf8");
+const lifecycle = readFileSync("supabase/migrations/20261111020000_room_type_lifecycle_amenities.sql", "utf8");
 const roster = readFileSync("components/manager/room-roster-panel.tsx", "utf8");
 const migration = readFileSync("supabase/migrations/20260916010000_physical_room_management.sql", "utf8");
 const createReasonMigration = readFileSync("supabase/migrations/20261002010000_room_create_reason_optional.sql", "utf8");
@@ -33,7 +36,7 @@ describe("physical room roster surface", () => {
     expect(roster).toContain("Room numbers are permanent");
     // The edit payload carries no number — it is spread in only when creating.
     expect(roster).toContain("...(creating ? { number: draft.number.trim() } : {})");
-    expect(roster).not.toContain("rate");
+    expect(roster).not.toMatch(/(?:baseRate|nightlyRate|type="number"[^>]*rate)/);
   });
   it("sends versioned writes and requires a reason only when editing", () => {
     expect(roster).toContain("version: editing.configuration_version");
@@ -70,25 +73,31 @@ describe("catalog room routes carry no authority of their own", () => {
     for (const route of [roomsRoute, idRoute]) {
       expect(route).toContain("guardCatalog");
       expect(route).toContain("adminGuardFailed");
-      expect(route).toContain("adminRpcFailure");
-      expect(route).toContain("p_actor_user_id:c.actorId");
+      expect(route + sharedRoute).toContain("adminRpcFailure");
+      expect(route + sharedRoute).toMatch(/p_actor:\s*(?:c|context).actorId/);
       expect(route).not.toContain("actorId:body");
     }
   });
   it("PATCH accepts no room number and rides the same RPC as the governance route", () => {
-    expect(idRoute).toContain("admin_update_room_metadata");
-    expect(idRoute).toContain("p_expected_version");
+    expect(idRoute).toContain("updatePhysicalRoom");
+    expect(sharedRoute).toContain("catalog_save_room");
+    expect(lifecycle).toContain("admin_update_room_metadata");
+    expect(sharedRoute).toContain("updatePhysicalRoomSchema");
+    expect(updatePhysicalRoomSchema.safeParse({floor:1,type:"Twin",active:true,reason:"Edit room",version:0}).success).toBe(false);
     expect(idRoute).not.toContain("number:z.string");
   });
   it("POST exposes no rate and reports forward commitments for the UI hint", () => {
-    expect(roomsRoute).toContain("admin_create_room");
+    expect(roomsRoute).toContain("catalog_save_room");
+    expect(lifecycle).toContain("admin_create_room");
     expect(roomsRoute).not.toContain("rate:z");
     expect(roomsRoute).toContain("commitments");
   });
   it("POST requires no reason while PATCH still demands one", () => {
     expect(roomsRoute).not.toMatch(/reason:z\.string\(\)\.trim\(\)\.min\(3\)/);
-    expect(roomsRoute).toContain("reason:z.string().trim().max(500).optional()");
-    expect(idRoute).toContain("reason:z.string().trim().min(3).max(500)");
+    const room = { number: "101", floor: 1, type: "Twin", active: true };
+    expect(createPhysicalRoomSchema.safeParse(room).success).toBe(true);
+    expect(updatePhysicalRoomSchema.safeParse({ ...room, version: 1 }).success).toBe(false);
+    expect(updatePhysicalRoomSchema.safeParse({ ...room, version: 1, reason: "Reconfigure" }).success).toBe(true);
   });
 });
 

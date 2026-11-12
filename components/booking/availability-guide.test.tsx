@@ -134,9 +134,9 @@ describe("choose-dates source contracts", () => {
   const guide = readFileSync("components/booking/availability-guide.tsx", "utf8");
   const css = readFileSync("app/guest-booking.css", "utf8");
 
-  it("routes browse cards through the shared button and keeps Select room", () => {
+  it("routes browse cards through the shared button and keeps room selection explicit", () => {
     expect(results).toContain("ChooseDatesButton");
-    expect(results).toContain("Select room");
+    expect(results).toContain("Choose this type");
     expect(results).not.toContain("hrefFor(room.name)}>Choose dates");
   });
 
