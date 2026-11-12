@@ -659,6 +659,11 @@
 .hero-booking-submit:not(:disabled):hover { background: #172d49; translate: 0 -2px; }
 .hero-booking-submit:disabled { opacity: .72; cursor: wait; }
 .hotel-home .hero-booking-submit:focus-visible { outline-color: var(--hotel-navy); }
+/* The native select is taller than its value row; keep its focus ring below the label. */
+.hotel-home .hero-booking-guests select:focus-visible {
+  outline-offset: -8px;
+  border-radius: 6px;
+}
 .hotel-home .hero-booking-form .booking-party-help { max-width: none; margin: 12px 0 0; font-size: 13px; color: #4f463a; }
 .hotel-home .hero-booking-error { margin-top: 10px; color: #96271f; }
 .hotel-booking-policy { margin-top: 4px; }
