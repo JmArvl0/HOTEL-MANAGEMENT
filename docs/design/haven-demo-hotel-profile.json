@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "mode": "demo",
+  "identity": {
+    "name": "Haven Hotel & Residences",
+    "shortName": "HAVEN",
+    "city": "Manila",
+    "district": "Ermita",
+    "headline": "Your Haven in {city}.",
+    "heroLead": "Calm city stays, with room to make yourself at home.",
+    "introduction": "Settle into a thoughtfully furnished room in {district}, with space for a short city break, a work trip or a longer stay. Compare four room types, choose your dates and find the stay that suits you.",
+    "metaTitle": "{name} | {city}"
+  },
+  "location": {
+    "streetAddress": "18 Haven Lane",
+    "postalCode": "1000",
+    "country": "Philippines",
+    "addressIsFictional": true,
+    "mapLabel": "Rizal Park, Manila — demo orientation pin",
+    "mapIsDemo": true,
+    "entranceNotes": "Sample arrival guide: use the main lobby entrance and present your reservation details at Front Desk. Contact the hotel before arrival if you need assistance.",
+    "airportGuide": "For an airport arrival, request a transfer in advance. Front Desk confirms the fare, pickup point and schedule; a request is not a confirmed transfer.",
+    "localGuide": "Use the Manila city guide to plan your visit. The map pin is a public landmark for this demo, not a real Haven property. Distances from the fictional hotel are not asserted."
+  },
+  "contact": {
+    "phone": "+63 2 8000 0000",
+    "email": "hello@haven.example",
+    "frontDeskHours": "24 hours daily",
+    "outboundActionsEnabled": false
+  },
+  "policies": {
+    "timezone": "Asia/Manila",
+    "checkIn": "15:00",
+    "checkOut": "12:00",
+    "minimumBookingAge": 18,
+    "validIdRequired": true,
+    "depositPercent": 30,
+    "holdMinutes": 15,
+    "fullRefundDays": 14,
+    "partialRefundDays": 7,
+    "partialRefundPercent": 50,
+    "vatPercent": 12,
+    "serviceChargePercent": 10,
+    "taxesIncluded": true,
+    "balanceDue": "At the hotel before check-in; additional stay charges are settled before checkout.",
+    "earlyLatePolicy": "Early check-in and late checkout require prior approval and availability. Additional charges may apply; Front Desk confirms them before you accept.",
+    "petsAllowed": false,
+    "smokingAllowed": false,
+    "specialRequestsGuaranteed": false
+  },
+  "amenities": {
+    "wifi": "Complimentary Wi-Fi in guest rooms and shared areas.",
+    "parking": "Complimentary self-parking for registered guests, subject to space. Parking is not reserved automatically.",
+    "pool": "Outdoor pool for registered guests, open 7:00 AM–9:00 PM. Children require adult supervision.",
+    "fitness": "Fitness room for registered guests, open 6:00 AM–10:00 PM.",
+    "transfers": "Airport transfers on request. Fare, pickup time and vehicle are confirmed separately before travel.",
+    "laundry": "Laundry service on request. The itemised price and collection schedule are confirmed before service."
+  },
+  "dining": {
+    "name": "The Haven Table",
+    "description": "A relaxed all-day dining space serving breakfast and simple comfort dishes.",
+    "breakfastIncluded": false,
+    "breakfastPrice": 450,
+    "breakfastStart": "06:30",
+    "breakfastEnd": "10:00",
+    "breakfastChargeBasis": "per person, per breakfast",
+    "roomRateBasis": "Room-only base rate; breakfast is charged separately unless the selected offer explicitly includes it."
+  },
+  "family": {
+    "summary": "Children are welcome and count toward the room’s stated maximum occupancy. Choose a room with enough sleeping space for everyone; no automatic child discount is applied in this demo.",
+    "extraBeds": "Extra beds are not offered in the sample room rates. Ask Front Desk about cot availability and any applicable charge before booking; requests do not increase room capacity."
+  },
+  "accessibility": {
+    "summary": "Sample facilities include a step-free lobby entrance and lift access to guest floors. Contact Front Desk to confirm bathroom layout, doorway clearance and any assistance required before choosing a room.",
+    "isVerified": false
+  },
+  "media": {
+    "heroImageKey": "room",
+    "contactBackgroundImageKey": "rizal",
+    "isIllustrative": true,
+    "gallery": [
+      { "key": "room", "label": "Room layouts", "alt": "Illustrative Deluxe King room concept" },
+      { "key": "bathroom", "label": "Bathrooms", "alt": "Illustrative guest bathroom concept" },
+      { "key": "ocean", "label": "Suite living spaces", "alt": "Illustrative suite interior" },
+      { "key": "executive", "label": "A closer look inside", "alt": "Illustrative hotel room interior" }
+    ]
+  },
+  "nearby": [
+    { "name": "Rizal Park", "description": "Make time for a city walk and the Rizal Monument.", "imageKey": "rizal", "distanceMeters": null },
+    { "name": "Manila museum district", "description": "Put the National Museum of Fine Arts on your cultural itinerary.", "imageKey": "museum", "distanceMeters": null },
+    { "name": "City transport connections", "description": "Explore Manila by LRT. Ask Front Desk to help plan your route.", "imageKey": "transport", "distanceMeters": null }
+  ],
+  "legal": {
+    "privacyDraft": "This fictional hotel preview illustrates the information a hotel may request for account access, reservations and guest support. It does not create accounts, send messages or collect payments. A real client must provide the approved data-handling notice, retention details and privacy contact before launch.",
+    "termsDraft": "These are sample booking terms for the fictional {name} property. Dates, occupancy, the selected room and applicable rate must be reviewed before submission. A room is held only after guest details are submitted. Confirmation follows verification of the required deposit. Special requests, transfers and early or late arrival arrangements require separate approval."
+  },
+  "reviewPolicy": {
+    "showOnlyRealReviews": true,
+    "hideWhenEmpty": true
+  },
+  "provenance": {
+    "purpose": "Configurable fictional content for the proposed comparison only. Not connected to application settings or the live database.",
+    "policyBasis": "Current repository provisional defaults in lib/hotel-policy.ts and lib/booking.ts; these are not universal hotel standards.",
+    "contentPatternSources": [
+      "https://www.hilton.com/en/hotels/mnlphhi-hilton-manila-newport-world-resorts/hotel-info/",
+      "https://help.marriott.com/s/article/find-information-specific-marriott-hotel"
+    ]
+  }
+}

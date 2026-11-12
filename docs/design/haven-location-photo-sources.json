@@ -1,0 +1,47 @@
+{
+  "scope": "Actual area photographs for the fictional hotel's proposed comparison only; these do not depict the hotel.",
+  "retrievedOn": "2026-11-11",
+  "photos": {
+    "rizal": {
+      "label": "Rizal Park, Manila",
+      "caption": "Rizal Monument, Rizal Park",
+      "alt": "Rizal Monument and Philippine flags at Rizal Park in Manila",
+      "author": "Gabo Halili",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Rizal_Park_Facing_Quirino_Grandstand.jpg",
+      "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/0/00/Rizal_Park_Facing_Quirino_Grandstand.jpg",
+      "originalFile": "manila-rizal-original.jpg",
+      "license": "CC BY 2.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/2.0/",
+      "changes": "Resized and encoded as WebP; responsive display crop. Contact background has a dark text-legibility overlay.",
+      "objectPosition": "52% 50%"
+    },
+    "museum": {
+      "label": "National Museum of Fine Arts",
+      "caption": "National Museum of Fine Arts, Manila",
+      "alt": "Columned facade and entrance of the National Museum of Fine Arts in Manila",
+      "author": "Xenovilius",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:National_Museum_of_Fine_Arts_of_the_Philippines_Building.jpg",
+      "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/bb/National_Museum_of_Fine_Arts_of_the_Philippines_Building.jpg",
+      "originalFile": "manila-fine-arts-original.jpg",
+      "license": "CC0 1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "changes": "Resized and encoded as WebP; responsive display crop.",
+      "objectPosition": "50% 58%"
+    },
+    "transport": {
+      "label": "LRT at Pedro Gil station",
+      "caption": "LRT-1, Pedro Gil station",
+      "alt": "LRT-1 train beside the Pedro Gil station sign in Manila",
+      "author": "Koressha and an anonymous collaborator",
+      "creditNote": "Source attribution line: GFDL.",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:LRT1_1G_(1000_class)_train_at_Pedro_Gil_station.jpg",
+      "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9c/LRT1_1G_%281000_class%29_train_at_Pedro_Gil_station.jpg",
+      "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/LRT1_1G_%281000_class%29_train_at_Pedro_Gil_station.jpg/1280px-LRT1_1G_%281000_class%29_train_at_Pedro_Gil_station.jpg",
+      "originalFile": "manila-transport-original.jpg",
+      "license": "CC BY-SA 2.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "changes": "Resized and encoded as WebP; responsive display crop. Adapted photo remains under CC BY-SA 2.0.",
+      "objectPosition": "50% 45%"
+    }
+  }
+}
