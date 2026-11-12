@@ -36,7 +36,7 @@ describe("admin location content editor", () => {
     render(<LocationContentPanel />); await screen.findByText("Demo location");
     fireEvent.click(screen.getByRole("button", { name: "Nearby places" })); fireEvent.click(screen.getByRole("button", { name: "Edit" }));
     const dialog = screen.getByRole("dialog", { name: "Edit nearby place" });
-    const search = within(dialog).getByLabelText(/Demo category search/), photo = within(dialog).getByLabelText(/AI sample photo/);
+    const search = within(dialog).getByLabelText(/Demo category search/), photo = within(dialog).getByLabelText(/Demo photo/);
     fireEvent.change(search, { target: { value: "" } }); fireEvent.change(photo, { target: { value: "" } });
     fireEvent.change(within(dialog).getByLabelText("Publication status"), { target: { value: "draft" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "Save draft" }));

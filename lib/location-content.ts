@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const LOCATION_IMAGE_LIMIT = 5 * 1024 * 1024;
-export const SAMPLE_IMAGES = ["cafe", "shopping", "garden", "transport", "airport", "city"] as const;
+export const SAMPLE_IMAGES = ["cafe", "shopping", "garden", "transport", "airport", "city", "rizal", "museum", "manila-transit"] as const;
 export const LOCATION_HOTEL_ID = "00000000-0000-4000-8000-000000000001";
 const text = (max: number) => z.string().trim().max(max);
 const date = z.string().date().nullable();
@@ -78,14 +78,28 @@ export function placeNavigation(place: LocationPlace, hotel: LocationHotel): str
   if (hotel.is_demo && place.maps_search) { const url = new URL("https://www.google.com/maps/search/"); url.searchParams.set("api", "1"); url.searchParams.set("query", place.maps_search); return url.href; }
   return directions(place, hotel);
 }
+
+export function nearbyPlaceMap(place: LocationPlace, hotel: LocationHotel): string | null {
+  const query = place.verified_at && hasCoordinates(place)
+    ? `${place.latitude},${place.longitude}`
+    : hotel.is_demo ? place.maps_search.trim() : "";
+  if (!query) return null;
+
+  // Construct this public map URL ourselves. Saved area embeds still go through
+  // safeGoogleEmbedUrl and cannot supply this endpoint or any extra parameters.
+  const url = new URL("https://www.google.com/maps");
+  url.search = new URLSearchParams({ q: query, z: "17", output: "embed" }).toString();
+  return url.href;
+}
 export function locationImageUrl(record: Pick<LocationPlace, "image_id" | "sample_image">, preview = false): string | null {
   if (record.image_id && z.string().uuid().safeParse(record.image_id).success) return `/api/location/images/${record.image_id}${preview ? "?preview=1" : ""}`;
+  if (record.sample_image === "manila-transit") return "/website-samples/transport.webp";
+  if (record.sample_image === "rizal" || record.sample_image === "museum") return `/website-samples/${record.sample_image}.webp`;
   return record.sample_image && SAMPLE_IMAGES.includes(record.sample_image) ? `/location-samples/${record.sample_image}.webp` : null;
 }
 export function locationDistance(place: Pick<LocationPlace, "distance_m" | "distance_basis" | "distance_reviewed_at">, demo: boolean): string | null {
-  if (place.distance_m === null) return null;
+  if (place.distance_m === null || demo) return null;
   const value = place.distance_m < 1000 ? `${place.distance_m} m` : `${Number((place.distance_m / 1000).toFixed(1))} km`;
-  if (demo) return `${value} · Sample distance · manually maintained`;
   const basis = { walking: "walking distance", driving: "driving distance", straight_line: "straight-line distance" }[place.distance_basis];
   return `${value} · ${basis} · manually maintained${place.distance_reviewed_at ? ` · reviewed ${place.distance_reviewed_at}` : ""}`;
 }

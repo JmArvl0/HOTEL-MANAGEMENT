@@ -4,6 +4,7 @@
 .coastal-landing {
   --ink:#111827; --forest:#111827; --green:#047857; --accent:#111827;
   --cream:#f3f3f3; --paper:#fff; --line:#d1d5db; --muted:#5b6472;
+  --room-chip-bg:#f2eddf; --room-chip-ink:#584b32;
   color:var(--ink); background:var(--cream); overflow:clip; color-scheme:light;
 }
 .coastal-landing *{box-sizing:border-box}
@@ -24,9 +25,15 @@
 .coastal-landing .brand{color:var(--ink);gap:14px;font-size:27px;letter-spacing:5px;font-weight:500}
 .coastal-landing .brand small{font-size:6px;letter-spacing:2px;color:#5b6472;margin-top:4px}
 .coastal-landing .brand-mark{width:48px;height:32px;border:0;border-radius:0;background:none;flex-shrink:0;color:#111827}
-.coastal-landing .nav-links{display:flex;align-items:center;gap:28px}
-.coastal-landing .nav-links a{font-size:12px;color:var(--ink);padding:12px 0}
-.coastal-landing .nav-links a:hover{text-decoration:underline;text-underline-offset:6px}
+.coastal-landing .nav-links{position:relative;display:flex;align-items:center;gap:28px;flex-shrink:0}
+.coastal-landing .nav-links a{font-size:13px;color:var(--ink);padding:12px 0;min-height:44px;white-space:nowrap}
+.coastal-landing .nav-links a:hover{opacity:.8}
+.coastal-landing .landing-nav-indicator{position:absolute;bottom:5px;left:0;width:1px;height:2px;background:var(--hotel-gold,#b9965a);transform-origin:left;pointer-events:none;transition:transform .24s cubic-bezier(.16,1,.3,1),opacity .15s ease}
+.coastal-landing .landing-drawer-links a[aria-current]{font-weight:700;text-decoration:underline;text-decoration-color:var(--hotel-gold,#b9965a);text-decoration-thickness:2px;text-underline-offset:7px}
+.coastal-landing .landing-back-to-top{position:fixed;right:max(20px,env(safe-area-inset-right));bottom:max(20px,env(safe-area-inset-bottom));z-index:19;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:56px;height:56px;padding:6px;border:0;border-radius:50%;background:var(--hotel-navy,#0c1b31);color:var(--hotel-cream,#fbf8f3);font:600 13px/1.15 var(--font-sans),Inter,sans-serif;cursor:pointer;transition:transform .2s ease,background-color .2s ease}
+.coastal-landing .landing-back-to-top:hover{background:var(--hotel-ink,#111827);transform:translateY(-3px)}
+.coastal-landing .landing-back-to-top:active{transform:translateY(0)}
+@media(prefers-reduced-motion:reduce){.coastal-landing .landing-back-to-top:hover{transform:none}}
 .coastal-landing .landing-actions{display:flex;align-items:center;gap:10px}
 .coastal-landing .sign-in-link{display:flex;align-items:center;min-height:40px;padding:10px 19px;border:1px solid #11182730;background:#ffffffb8;border-radius:99px;color:var(--ink);font-size:12px}
 .coastal-landing .landing-menu-btn{display:none;place-items:center;width:44px;height:44px;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:50%}
@@ -61,15 +68,32 @@
 .coast-section{width:min(1440px,93.4%);margin:0 auto;padding:32px 0}
 .coast-section-heading{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:20px}
 .coast-section-heading p{margin:6px 0 0;color:var(--muted)}
-.coast-room-grid{--room-cols:4;--room-gap:18px;display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - (var(--room-cols) - 1) * var(--room-gap)) / var(--room-cols));align-items:stretch;gap:var(--room-gap);overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scroll-behavior:smooth;scrollbar-width:none;padding:8px 2px 18px;margin:-8px -2px -4px;outline:none}
-.coast-room{display:flex;min-width:0;height:100%;flex-direction:column;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px #11182706}
-.coast-room-photo{position:relative;display:block;height:210px;overflow:hidden}
-.coast-room-photo img{object-fit:cover;transition:transform .4s}
-.coast-room:hover .coast-room-photo img{transform:scale(1.035)}
-.coast-room-copy{display:flex;flex:1;flex-direction:column;padding:18px 20px}
-.coastal-landing .coast-room h3{font-size:21px}
-.coast-room-copy>p{font-size:11px;color:var(--muted);margin:6px 0 15px}
-.coast-room-copy>div{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto;font-size:12px}
+.coast-room-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch;gap:24px}
+.coast-room{display:grid;grid-template-columns:46% 54%;min-width:0;height:100%;background:var(--paper);border-radius:24px;overflow:hidden}
+.coast-room-photo{position:relative;display:block;width:100%;min-height:342px;padding:0;border:0;background:var(--line);overflow:hidden;cursor:pointer}
+.coast-room-photo>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .3s}
+.coast-room-photo:hover>img{transform:scale(1.025)}
+.coast-room-photo-hint{position:absolute;bottom:14px;left:14px;display:inline-flex;align-items:center;gap:6px;padding:8px 11px;border-radius:99px;background:var(--paper);color:var(--ink);font-size:11px}
+.coast-room-photo-empty{display:grid;place-items:center;padding:24px;cursor:default;color:var(--muted);font-size:13px;line-height:1.7}
+.coast-room-copy{display:flex;flex-direction:column;gap:12px;min-width:0;padding:26px 24px}
+.coastal-landing .coast-room h3{font-size:27px;letter-spacing:-.025em;overflow-wrap:anywhere}
+.coast-room h3 a{color:var(--ink)}
+.coastal-landing .coast-room-facts{font-size:11px;line-height:1.6;color:var(--muted);margin:0}
+.coastal-landing .coast-room-description{font-size:13px;line-height:1.75;margin:0;overflow-wrap:anywhere}
+.coast-room-highlights{display:flex;flex-wrap:wrap;gap:6px;list-style:none;padding:0;margin:0}
+.coast-room-highlights li{padding:4px 10px;background:var(--room-chip-bg);color:var(--room-chip-ink);border-radius:99px;font-size:11px;line-height:1.5;overflow-wrap:anywhere;max-width:100%}
+.coast-room-thumbs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding-top:4px;margin-top:auto}
+.coast-room-thumbs>button{position:relative;display:block;min-width:0;min-height:44px;aspect-ratio:1.16;padding:0;border:2px solid transparent;border-radius:11px;background:var(--cream);overflow:hidden;cursor:pointer}
+.coast-room-thumbs>button[aria-pressed="true"]{border-color:var(--ink)}
+.coast-room-thumbs img{display:block;width:100%;height:100%;object-fit:cover;opacity:.85}
+.coast-room-thumbs>button:hover img,.coast-room-thumbs>button[aria-pressed="true"] img{opacity:1}
+.coast-room-thumbs>button>span{position:absolute;inset:auto 4px 4px auto;background:var(--paper);color:var(--ink);padding:2px 5px;border-radius:5px;font-size:11px}
+.coast-room-price-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto;padding-top:1px}
+.coast-room-price{font-size:11px;line-height:1.6;color:var(--muted)}
+.coast-room-price strong{font:600 16px/1.5 var(--font-sans),Arial,sans-serif;color:var(--ink);font-variant-numeric:tabular-nums}
+.coast-room-price small{display:block;font-size:11px}
+.coastal-landing .coast-room-action{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:44px;padding:9px 13px;border-radius:99px;background:var(--forest);color:var(--paper);font-size:11px;white-space:nowrap}
+.coastal-landing .coast-room-action:hover{background:var(--muted)}
 .coastal-landing .coast-arrow{display:grid;place-items:center;width:38px;height:38px;flex:0 0 38px;background:var(--forest);color:white;border-radius:50%;transition:background .2s}
 .coastal-landing .coast-arrow:hover{background:#0b132b}
 .coastal-landing .coast-caption{color:var(--muted);font-size:10px;margin:14px 0 0}
@@ -136,9 +160,9 @@
 .coastal-landing .coast-footer h2{font-size:28px;font-style:italic;margin-bottom:20px}
 .coast-copyright{grid-column:1/-1;border-top:1px solid #ffffff26;padding-top:18px;color:#93a0b4;font-size:10px}
 @media(min-width:1600px){.coast-hero{height:710px}.coast-hero-copy{padding-top:190px}}
-@media(max-width:1100px){.coastal-landing .nav-links{gap:17px}.coastal-landing .brand{font-size:22px;letter-spacing:3px}.coast-portal{padding:26px;grid-template-columns:1fr}.coast-phone{display:none}.coast-room-photo{height:180px}.coast-room-copy{padding:16px}.coastal-landing .coast-room h3{font-size:20px}.coast-service-grid{grid-template-columns:1fr 1fr}.coast-care{grid-column:1/-1;min-height:0!important;display:grid;grid-template-columns:auto 1fr 1.5fr auto;gap:25px;align-items:center}.coastal-landing .coast-care h2{margin:0}.coast-care p{margin:0}}
-@media(max-width:900px){.coastal-landing .nav-links{display:none}.coastal-landing .landing-menu-btn{display:grid}.coast-room-grid{--room-cols:2.2}.coast-room-photo{height:240px}.coast-hero-note{display:none}.coast-hero-copy{margin-left:5%}.coast-book{width:92%}.coastal-landing .booking-bar label{padding:4px 12px}.coast-amenities ul{grid-template-columns:repeat(4,1fr);gap:24px}.coast-experience-grid{grid-template-columns:1fr}.coast-portal{grid-template-columns:1fr .6fr;padding:32px}.coast-phone{display:block;justify-self:center}.coast-care{display:block}.coast-care p{margin:16px 0}.coast-contact,.coast-faq{gap:28px;grid-template-columns:1fr 1.2fr}.coast-footer-inner{gap:24px}.coast-footer-brand{font-size:22px;letter-spacing:3px}}
-@media(max-width:600px){.coastal-landing .landing-nav{height:76px;padding:0 18px;gap:10px}.coastal-landing .brand{font-size:20px;gap:8px;letter-spacing:3px}.coastal-landing .brand-mark{width:34px}.coastal-landing .brand-mark svg{width:34px}.coastal-landing .brand small{font-size:5px;letter-spacing:1px}.coastal-landing .sign-in-link{display:none}.coastal-landing .landing-actions{gap:8px}.coastal-landing .btn-nav-cta{min-height:40px;font-size:11px;padding:10px 15px}.coast-hero{height:auto;min-height:720px;padding-bottom:25px}.coast-hero-copy{margin:0;padding:122px 24px 36px}.coastal-landing .coast-hero-copy h1{font-size:52px;max-width:320px}.coastal-landing .coast-hero-lead{font-size:19px;max-width:310px}.coast-hero-wash{background:linear-gradient(90deg,#f3f3f3e8,#f3f3f3bb 60%,#d1d5db33)}.coast-book{position:relative;bottom:auto;left:auto;transform:none;width:auto;margin:0 18px}.coastal-landing .booking-bar{grid-template-columns:1fr 1fr;border-radius:20px;padding:12px;gap:12px}.coastal-landing .booking-bar label{padding:8px;border:0;background:#f3f3f3;border-radius:10px}.coastal-landing .booking-bar label:last-of-type{grid-column:1/-1}.coastal-landing .booking-bar input,.coastal-landing .booking-bar select{background:transparent;font-size:12px;min-height:32px}.coastal-landing .booking-bar .btn{grid-column:1/-1;margin:0;min-height:48px}.coast-section{width:calc(100% - 36px);padding:26px 0}.coast-section-heading{align-items:start;flex-direction:column;gap:6px}.coast-section-heading p{font-size:12px}.coast-room-grid{--room-cols:1.12;--room-gap:14px}.coast-room-photo{height:240px}.coast-room-copy{padding:18px}.coast-amenities li{font-size:10px}.coast-amenities ul{gap:20px 10px}.coast-amenities li>span{width:48px;height:48px}.coast-experience{min-height:470px}.coast-experience-copy{padding:27px}.coastal-landing .coast-experience-copy h2{font-size:33px}.coast-scene-choices{left:14px;right:14px;gap:8px}.coast-scene-choices span{font-size:9px;min-height:39px}.coast-portal{padding:26px;grid-template-columns:1fr}.coast-phone{display:none}.coast-service-grid{grid-template-columns:1fr;padding-top:0}.coast-service-grid article{min-height:260px}.coast-care{grid-column:auto}.coast-contact,.coast-faq{grid-template-columns:1fr}.coast-contact-photo{min-height:280px}.coast-contact-photo>div{padding:28px}.coast-footer{padding:32px 0}.coast-footer-inner{width:calc(100% - 36px);grid-template-columns:1fr;gap:28px}.coast-footer nav{max-width:350px}.coast-copyright{margin-top:0}}
+@media(max-width:1100px){.coastal-landing .nav-links{gap:17px}.coastal-landing .brand{font-size:22px;letter-spacing:3px}.coast-portal{padding:26px;grid-template-columns:1fr}.coast-phone{display:none}.coast-service-grid{grid-template-columns:1fr 1fr}.coast-care{grid-column:1/-1;min-height:0!important;display:grid;grid-template-columns:auto 1fr 1.5fr auto;gap:25px;align-items:center}.coastal-landing .coast-care h2{margin:0}.coast-care p{margin:0}}
+@media(max-width:900px){.coastal-landing .nav-links{display:none}.coastal-landing .landing-menu-btn{display:grid}.coast-hero-note{display:none}.coast-hero-copy{margin-left:5%}.coast-book{width:92%}.coastal-landing .booking-bar label{padding:4px 12px}.coast-amenities ul{grid-template-columns:repeat(4,1fr);gap:24px}.coast-experience-grid{grid-template-columns:1fr}.coast-portal{grid-template-columns:1fr .6fr;padding:32px}.coast-phone{display:block;justify-self:center}.coast-care{display:block}.coast-care p{margin:16px 0}.coast-contact,.coast-faq{gap:28px;grid-template-columns:1fr 1.2fr}.coast-footer-inner{gap:24px}.coast-footer-brand{font-size:22px;letter-spacing:3px}}
+@media(max-width:600px){.coastal-landing .landing-nav{height:76px;padding:0 18px;gap:10px}.coastal-landing .brand{font-size:20px;gap:8px;letter-spacing:3px}.coastal-landing .brand-mark{width:34px}.coastal-landing .brand-mark svg{width:34px}.coastal-landing .brand small{font-size:5px;letter-spacing:1px}.coastal-landing .sign-in-link{display:none}.coastal-landing .landing-actions{gap:8px}.coastal-landing .btn-nav-cta{min-height:40px;font-size:11px;padding:10px 15px}.coast-hero{height:auto;min-height:720px;padding-bottom:25px}.coast-hero-copy{margin:0;padding:122px 24px 36px}.coastal-landing .coast-hero-copy h1{font-size:52px;max-width:320px}.coastal-landing .coast-hero-lead{font-size:19px;max-width:310px}.coast-hero-wash{background:linear-gradient(90deg,#f3f3f3e8,#f3f3f3bb 60%,#d1d5db33)}.coast-book{position:relative;bottom:auto;left:auto;transform:none;width:auto;margin:0 18px}.coastal-landing .booking-bar{grid-template-columns:1fr 1fr;border-radius:20px;padding:12px;gap:12px}.coastal-landing .booking-bar label{padding:8px;border:0;background:#f3f3f3;border-radius:10px}.coastal-landing .booking-bar label:last-of-type{grid-column:1/-1}.coastal-landing .booking-bar input,.coastal-landing .booking-bar select{background:transparent;font-size:12px;min-height:32px}.coastal-landing .booking-bar .btn{grid-column:1/-1;margin:0;min-height:48px}.coast-section{width:calc(100% - 36px);padding:26px 0}.coast-section-heading{align-items:start;flex-direction:column;gap:6px}.coast-section-heading p{font-size:12px}.coast-amenities li{font-size:10px}.coast-amenities ul{gap:20px 10px}.coast-amenities li>span{width:48px;height:48px}.coast-experience{min-height:470px}.coast-experience-copy{padding:27px}.coastal-landing .coast-experience-copy h2{font-size:33px}.coast-scene-choices{left:14px;right:14px;gap:8px}.coast-scene-choices span{font-size:9px;min-height:39px}.coast-portal{padding:26px;grid-template-columns:1fr}.coast-phone{display:none}.coast-service-grid{grid-template-columns:1fr;padding-top:0}.coast-service-grid article{min-height:260px}.coast-care{grid-column:auto}.coast-contact,.coast-faq{grid-template-columns:1fr}.coast-contact-photo{min-height:280px}.coast-contact-photo>div{padding:28px}.coast-footer{padding:32px 0}.coast-footer-inner{width:calc(100% - 36px);grid-template-columns:1fr;gap:28px}.coast-footer nav{max-width:350px}.coast-copyright{margin-top:0}}
 /* — Scroll cue (hero, GSAP reveals it last) — */
 .coast-scroll-cue{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#5b647266;pointer-events:none}
 
@@ -163,27 +187,11 @@
 .coast-review-card footer span{font-size:11px;color:var(--muted)}
 .coast-review-verified{display:inline-flex;align-items:center;gap:5px;color:#047857;font-weight:600}
 
-/* — Room card: restrained premium hover (lift + image scale + arrow nudge) — */
-.coast-room{transition:transform .3s cubic-bezier(.22,1,.36,1),box-shadow .3s cubic-bezier(.22,1,.36,1)}
-.coast-room:hover{transform:translateY(-4px);box-shadow:0 14px 34px #11182714}
-.coast-room:hover .coast-room-photo img{transform:scale(1.045)}
-.coastal-landing .coast-arrow{transition:background .2s,transform .25s cubic-bezier(.22,1,.36,1)}
-.coast-room:hover .coast-arrow{transform:translateX(3px)}
-
-/* — Featured Stays scroll pane: snap track + edge fade + progress rail + prev/next — */
-.coast-room-pane{position:relative}
-.coast-room-grid::-webkit-scrollbar{display:none}
-.coast-room-grid>.coast-room{scroll-snap-align:start}
-.coast-room-grid:focus-visible{box-shadow:0 0 0 2px var(--paper),0 0 0 4px var(--ink);border-radius:18px}
-.coast-room-pane[data-scrollable]:not([data-at-end])::after{content:"";position:absolute;top:0;right:-2px;bottom:66px;width:56px;pointer-events:none;background:linear-gradient(90deg,transparent,var(--cream));opacity:.9}
-.coast-room-controls{display:flex;align-items:center;gap:10px;margin-top:14px}
-.coast-room-rail{position:relative;flex:1;height:4px;border-radius:999px;background:var(--line);overflow:hidden;margin-right:8px}
-.coast-room-rail>span{position:absolute;top:0;bottom:0;border-radius:inherit;background:var(--ink);transition:left .18s ease-out,width .18s ease-out}
-.coast-room-nav{display:grid;place-items:center;width:42px;height:42px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer;box-shadow:0 4px 12px #11182708;transition:background .2s,color .2s,border-color .2s,transform .2s cubic-bezier(.22,1,.36,1)}
-.coast-room-nav:hover:not(:disabled){background:var(--ink);border-color:var(--ink);color:var(--paper);transform:translateY(-1px)}
-.coast-room-nav:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
-.coast-room-nav:disabled{opacity:.4;cursor:default;box-shadow:none}
-@media(max-width:600px){.coast-room-pane[data-scrollable]:not([data-at-end])::after{width:28px}.coast-room-nav{width:38px;height:38px}}
+/* Approved room comparison: two columns, then one responsive reading column. */
+@media(min-width:1441px){.coast-room-copy{padding:30px;gap:15px}.coast-room-photo{min-height:365px}.coastal-landing .coast-room h3{font-size:30px}.coast-room-thumbs>button{aspect-ratio:1.35}}
+@media(max-width:1100px){.coast-room{grid-template-columns:44% 56%}.coast-room-copy{padding:22px 18px;gap:11px}.coastal-landing .coast-room h3{font-size:25px}.coastal-landing .coast-room-description{font-size:12px}.coast-room-thumbs{gap:6px}.coast-room-price-row{flex-wrap:wrap}.coast-room-photo{min-height:365px}}
+@media(max-width:900px){.coast-room-grid{grid-template-columns:1fr}.coast-room{grid-template-columns:46% 54%}.coast-room-photo{min-height:330px}.coast-room-copy{padding:28px;gap:14px}.coastal-landing .coast-room h3{font-size:30px}.coastal-landing .coast-room-description{font-size:14px}.coastal-landing .coast-room-facts{font-size:12px}.coast-room-highlights li{font-size:12px}.coast-room-thumbs>button{aspect-ratio:1.5}.coast-room-price-row{flex-wrap:nowrap}.coast-room-price strong{font-size:18px}.coastal-landing .coast-room-action{font-size:12px}}
+@media(max-width:480px){.coast-room-grid{gap:22px}.coast-room{grid-template-columns:1fr;border-radius:20px}.coast-room-photo{min-height:0;aspect-ratio:1.3}.coast-room-copy{padding:24px;gap:14px}.coastal-landing .coast-room h3{font-size:28px}.coastal-landing .coast-room-description{font-size:13px}.coastal-landing .coast-room-facts{font-size:11px}.coast-room-highlights li{font-size:11px}.coast-room-thumbs>button{aspect-ratio:1.4}.coastal-landing .coast-room-action{font-size:11px}}
 
 /* — Experience gallery image crossfade (CSS only, GSAP not needed) — */
 .coast-experience>img{transition:opacity .45s ease}

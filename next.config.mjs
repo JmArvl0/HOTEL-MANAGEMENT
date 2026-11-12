@@ -4,6 +4,7 @@ const nextConfig = {
   distDir: process.env.HAVEN_BUILD_DIR || ".next",
   reactStrictMode: true,
   images: {
+    qualities: [75, 85],
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com", pathname: "/photo-*" },
       { protocol: "https", hostname: "vztkkugkvqjghftnlxxr.supabase.co", pathname: "/storage/v1/object/public/**" },

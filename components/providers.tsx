@@ -1,20 +1,23 @@
 "use client";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { HavenLoader } from "@/components/ui/haven-loader";
 
-function HavenBootGate({ children }: { children: React.ReactNode }) {
-  const [ready, setReady] = useState(false);
+export function Providers({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  // Show the homepage in the initial HTML, including visits with a section hash.
+  const [ready, setReady] = useState(() => pathname === "/");
   const [hiding, setHiding] = useState(false);
 
   useEffect(() => {
-    // quick bespoke intro — only on first mount, not on every route (app/loading.tsx covers Suspense)
+    if (ready) return;
     const t1 = window.setTimeout(() => setHiding(true), 880);
     const t2 = window.setTimeout(() => setReady(true), 1220);
     return () => {
       window.clearTimeout(t1);
       window.clearTimeout(t2);
     };
-  }, []);
+  }, [ready]);
 
   if (ready) return <>{children}</>;
   return (
@@ -27,8 +30,4 @@ function HavenBootGate({ children }: { children: React.ReactNode }) {
       </div>
     </>
   );
-}
-
-export function Providers({ children }: { children: React.ReactNode }) {
-  return <HavenBootGate>{children}</HavenBootGate>;
 }

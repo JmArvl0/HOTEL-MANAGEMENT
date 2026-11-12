@@ -1,0 +1,7 @@
+import { getPublicBookingInformation } from "@/lib/public-booking-information-server";
+import { publicCancellationSummary, publicHotelTime } from "@/lib/public-booking-information";
+import { BookingPolicySummary } from "@/components/landing/hotel-information";
+import { WebsiteDocument } from "@/components/landing/website-document";
+export const metadata = { title: "Deposit, cancellation & arrival policy" };
+export const revalidate = 300;
+export default async function PolicyPage() { const information = await getPublicBookingInformation(), p = information.operations; return <WebsiteDocument title="Booking policy"><BookingPolicySummary information={information} /><h2>Cancellation & refunds</h2><p>{publicCancellationSummary(p)}</p><p>Approved refunds follow hotel verification and processing. No-show and early-departure requests require review under the policy attached to your reservation.</p><h2>Arrival & departure</h2><p>Check-in from {publicHotelTime(p.checkInTime)}. Check-out by {publicHotelTime(p.checkOutTime)} ({p.hotelTimezone}). Early check-in and late checkout require confirmation and may carry a charge.</p><p>Lead guest minimum age: {p.minimumBookingAge}. {p.validIdRequired ? "Bring a valid government-issued ID and reservation details." : "Bring your reservation details."}</p><p>The policy shown at checkout is saved with your reservation. Changes made later do not rewrite that policy snapshot.</p></WebsiteDocument>; }

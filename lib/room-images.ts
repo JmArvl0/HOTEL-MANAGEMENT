@@ -1,10 +1,9 @@
 /**
- * Landing imagery (royalty-free CDN stock, images.unsplash.com).
+ * Illustrative room imagery (CDN stock and local AI-generated sample photos).
  *
  * Pure, imports nothing, so both server components (RoomResults card band)
  * and client components (the details overlay) can use it.
- * Room photos: DB `photo_urls` wins; the stock map is the fallback — swap in
- * real property photos later by editing the PHOTOS map.
+ * Room photos: admin-managed DB `photo_urls` wins; this map is only a fallback.
  * Scene photos: editorial sections (brand story, experience, gallery,
  * location, final CTA) pull from SCENES below.
  * All URLs below are verified to return HTTP 200.
@@ -19,11 +18,11 @@ const PHOTOS: Record<string, string[]> = {
     cdn("photo-1680210851458-b7dc5685e06e"),
     cdn("photo-1673687778498-5ddd20749408"),
   ],
-  // Deluxe King — king bed, clean contemporary finishes.
+  // Deluxe King — generated whole-room, reverse-angle and bathroom concepts.
   "deluxe king": [
-    cdn("photo-1631049307264-da0ec9d70304"),
-    cdn("photo-1631049421450-348ccd7f8949"),
-    cdn("photo-1631049307485-2bfb23080676"),
+    "/room-samples/deluxe-king-room.webp",
+    "/room-samples/deluxe-king-room-angle.webp",
+    "/room-samples/deluxe-king-bathroom.webp",
   ],
   // Ocean Suite — king bed + separate lounge, expansive ocean outlook.
   "ocean suite": [
@@ -56,6 +55,12 @@ export function roomPhotosFor(photos?: string[], name?: string): string[] {
 /** Primary display image for a room type, honouring DB photos first. */
 export function roomPrimary(photos?: string[], name?: string): string | undefined {
   return roomPhotosFor(photos, name)[0];
+}
+
+/** Preserve direct external catalog URLs while optimizing managed/sample media. */
+export function roomPhotoNeedsDirectUrl(src: string): boolean {
+  if (src.startsWith("/")) return false;
+  try { const url = new URL(src); return !(url.protocol === "https:" && ((url.hostname === "images.unsplash.com" && url.pathname.startsWith("/photo-")) || (url.hostname === "vztkkugkvqjghftnlxxr.supabase.co" && url.pathname.startsWith("/storage/v1/object/public/")))); } catch { return true; }
 }
 
 // --- Editorial scene imagery -------------------------------------------------

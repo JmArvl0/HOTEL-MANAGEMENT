@@ -1,0 +1,122 @@
+/* Rooms and Gallery share the fixed-header anchor convention. The document
+   already reserves 86px (72px on phones), leaving only 2px to reserve here. */
+.hotel-home .hotel-section#stay {
+  --rooms-header-space: 88px;
+  display: flex;
+  flex-direction: column;
+  height: calc(100svh - var(--rooms-header-space));
+  padding-block: clamp(12px, 1.8svh, 24px);
+  scroll-margin-top: 2px;
+}
+.hotel-home #stay > header { flex-shrink: 0; margin-bottom: clamp(12px, 1.6svh, 18px); }
+.hotel-home #stay > header h2 { font-size: clamp(30px, 4.2svh, 46px); }
+.hotel-home #stay > header p { margin-top: 6px; }
+.hotel-home #stay > .hotel-caption { flex-shrink: 0; max-width: none; margin-top: 10px; line-height: 1.5; }
+.hotel-home #stay .coast-room-grid {
+  flex: 1 1 0;
+  min-height: 0;
+  grid-auto-rows: minmax(0, 1fr);
+  gap: clamp(12px, 1.6svh, 20px);
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--hotel-warm-line) transparent;
+}
+.hotel-home #stay .coast-room-grid:focus-visible { outline: 2px solid var(--hotel-gold); outline-offset: 4px; }
+.hotel-home #stay .coast-room-grid:has(> .coast-room:nth-child(5)) { grid-auto-rows: minmax(260px, 1fr); }
+.hotel-home #stay .coast-room { min-height: 0; }
+.hotel-home #stay .coast-room-photo { min-height: 0; }
+.hotel-home #stay .coast-room-copy { min-height: 0; padding: clamp(12px, 1.6svh, 18px); gap: 6px; }
+.hotel-home #stay .coast-room-copy > :is(h3, .coast-room-facts, .coast-room-description) { flex-shrink: 0; }
+.hotel-home #stay .coast-room h3 { font-size: clamp(21px, 2.6svh, 27px); }
+.hotel-home #stay .coast-room h3,
+.hotel-home #stay .coast-room-description { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.hotel-home #stay .coast-room-facts { font-size: 13px; line-height: 1.5; }
+.hotel-home #stay .coast-room-description { font-size: 13px; line-height: 1.45; }
+.hotel-home #stay .coast-room-highlights { flex-shrink: 0; gap: 5px; max-height: 54px; overflow: hidden; }
+.hotel-home #stay .coast-room-highlights li { padding: 3px 8px; font-size: 13px; }
+.hotel-home #stay .coast-room-thumbs { flex-shrink: 0; padding-top: 0; gap: 6px; }
+.hotel-home #stay .coast-room-thumbs > button { height: clamp(44px, 5.2svh, 58px); min-height: 44px; aspect-ratio: auto; }
+.hotel-home #stay .coast-room-thumbs > button > span,
+.hotel-home #stay .coast-room-photo-hint,
+.hotel-home #stay .coast-room-price small { font-size: 13px; }
+.hotel-home.hotel-public #stay .coast-room-price-row { flex-shrink: 0; flex-wrap: nowrap; gap: 8px; padding-top: 2px; }
+.hotel-home #stay .coast-room-price { flex-shrink: 0; font-size: 13px; }
+.hotel-home #stay .coast-room-price strong { font-size: 16px; }
+.hotel-home.hotel-public #stay .coast-room-action { flex: 0 1 auto; min-width: 0; min-height: 44px; gap: 6px; padding: 8px 12px; font-size: 13px; line-height: 1.3; }
+.hotel-home #stay .coast-catalog-empty { flex: 1; }
+@media (max-height: 1000px) {
+  .hotel-home #stay .coast-room-highlights { display: none; }
+}
+@media (max-height: 850px) {
+  .hotel-home #stay .coast-room-thumbs { display: none; }
+}
+@media (max-width: 1100px) {
+  .hotel-home #stay .coast-room-thumbs { display: none; }
+  .hotel-home.hotel-public #stay .coast-room-action { padding-inline: 10px; }
+}
+@media (max-width: 900px) {
+  .hotel-home .hotel-section#stay {
+    height: auto;
+    padding-block: 28px;
+  }
+  .hotel-home #stay > header { margin-bottom: 24px; }
+  .hotel-home #stay .coast-room-grid,
+  .hotel-home #stay .coast-room-grid:has(> .coast-room:nth-child(5)) {
+    flex: none;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: none;
+    grid-auto-flow: row;
+    grid-auto-rows: auto;
+    gap: 24px;
+    overflow: visible;
+  }
+  .hotel-home #stay .coast-room {
+    height: auto;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .hotel-home #stay .coast-room-photo { aspect-ratio: 16 / 10; }
+  .hotel-home #stay .coast-room-copy { padding: 20px; gap: 12px; }
+  .hotel-home #stay .coast-room h3,
+  .hotel-home #stay .coast-room-description {
+    display: block;
+    -webkit-line-clamp: unset;
+    overflow: visible;
+  }
+  .hotel-home #stay .coast-room h3 { font-size: 28px; }
+  .hotel-home #stay .coast-room-facts { font-size: 14px; }
+  .hotel-home #stay .coast-room-description { font-size: 16px; line-height: 1.6; }
+  .hotel-home #stay .coast-room-highlights { display: flex; max-height: none; }
+  .hotel-home #stay .coast-room-thumbs { display: grid; margin-top: 4px; }
+  .hotel-home #stay .coast-room-thumbs > button { height: 58px; }
+  .hotel-home.hotel-public #stay .coast-room-price-row {
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: auto;
+    padding-top: 8px;
+  }
+  .hotel-home #stay .coast-room-price { font-size: 14px; }
+  .hotel-home #stay .coast-room-price strong { font-size: 20px; }
+  .hotel-home.hotel-public #stay .coast-room-action { padding: 12px 16px; font-size: 14px; }
+  .hotel-home #stay > .hotel-caption { margin-top: 20px; }
+}
+@media (max-width: 680px) {
+  .hotel-home .hotel-section#stay { --rooms-header-space: 74px; }
+  .hotel-home #stay .coast-room-grid,
+  .hotel-home #stay .coast-room-grid:has(> .coast-room:nth-child(5)) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .hotel-home #stay .coast-room-copy { padding: 18px; }
+}
+@media (max-width: 480px) {
+  .hotel-home.hotel-public #stay .coast-room-price-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+/* Landscape/zoomed windows can scroll rather than clip room details. */
+@media (min-width: 901px) and (max-height: 560px) {
+  .hotel-home .hotel-section#stay { height: auto; min-height: calc(100svh - var(--rooms-header-space)); }
+  .hotel-home #stay .coast-room-grid { flex: none; grid-auto-rows: minmax(230px, auto); }
+  .hotel-home #stay .coast-room { min-height: 230px; }
+}

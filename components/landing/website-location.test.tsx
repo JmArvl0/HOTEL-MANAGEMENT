@@ -4,6 +4,10 @@ import { EMPTY_LOCATION, type LocationContent } from "@/lib/location-content";
 import { testHotel } from "@/tests/fixtures/location-content";
 const state = vi.hoisted(() => ({ content: {} as LocationContent }));
 vi.mock("@/lib/location-content-server", () => ({ getPublishedLocation: async () => ({ content: state.content, unavailable: false }) }));
+vi.mock("@/lib/website-content-server", async () => {
+  const { DEFAULT_WEBSITE_CONTENT } = await import("@/lib/website-content");
+  return { getPublishedWebsiteContent: async () => ({ content: DEFAULT_WEBSITE_CONTENT, images: [], unavailable: false }) };
+});
 import { WebsiteLocation, HotelContactMapLink } from "./website-location";
 beforeEach(() => { state.content = { ...EMPTY_LOCATION, hotel: testHotel }; });
 describe("published hotel SEO and contact link", () => {
