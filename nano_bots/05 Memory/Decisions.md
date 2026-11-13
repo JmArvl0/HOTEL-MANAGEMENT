@@ -4,6 +4,14 @@ Lightweight decision log. Each entry records a choice that constrains future dev
 Trivial implementation details do not belong here. Historical sessions never override the
 current system or `SYSTEM.md` — see [[AI Session Handoff]] for the authority order.
 
+## D-039 — Manager dashboard shows four masked financial aggregates
+
+2026-11-11 user approved Today’s finances in the Manager dashboard. Its
+role-scoped summary provides collections, deposits, outstanding balances,
+and refunds. The eye controls their display and a fresh visit starts masked.
+D-007 continues to govern ledger access and financial execution. See
+[[2026-11-11 - Manager Dashboard Implementation]].
+
 ## D-038 — Room cards in Room Management and the calendar in Bookings
 
 2026-11-09 user asked to apply the two staff references. Room Management owns

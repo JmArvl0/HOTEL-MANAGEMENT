@@ -115,8 +115,8 @@ describe("Admin lifecycle and configuration invariants", () => {
     for (const action of ["Manage accounts", "Review permissions", "Configure rooms", "Update hotel policy", "Review security"]) {
       expect(dashboard).toContain(action);
     }
-    expect(dashboard).toContain("admin-quick-actions");
-    expect(dashboard).toContain("admin-health-grid");
+    expect(dashboard).toContain('title="Governance actions"');
+    expect(dashboard).toContain("DashboardMetrics");
     expect(dashboard).toContain("HavenActionItem");
     expect(dashboard).toContain("Account distribution");
     expect(dashboard).toContain("Recent governance activity");

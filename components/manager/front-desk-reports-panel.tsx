@@ -148,7 +148,11 @@ export default function FrontDeskReportsPanel({ role, initialDate }: { role: Rol
       setError(cause instanceof Error ? cause.message : "Unable to load report history.");
     }
   }, [page]);
-  useEffect(() => { void load(); setLoading(false); }, [load]);
+  useEffect(() => {
+    let current = true;
+    void load().finally(() => { if (current) setLoading(false); });
+    return () => { current = false; };
+  }, [load]);
 
   async function generate() {
     setBuilding(true);
@@ -200,6 +204,12 @@ export default function FrontDeskReportsPanel({ role, initialDate }: { role: Rol
   return <>
     <PageHeader variant="band" eyebrow={canGenerate ? "Hotel operations" : "Management control"} title={canGenerate ? "Daily operations report" : "Front desk reports"} subtitle={canGenerate ? "One daily snapshot of front desk operations. Export prints or saves the preview — it never submits. Submitting stores an immutable snapshot for Manager review." : "Daily front desk operations snapshots submitted for review. Acknowledge to close, or return with a note for resubmission."} actions={canGenerate && <div className="report-tools"><label>Report date<input type="date" value={date} max={today} onChange={(event) => setDate(event.target.value)}/></label><button className="btn btn-accent" onClick={() => void generate()} disabled={building}>{building ? "Building…" : "Generate preview"}</button></div>} />
     {error && <HavenErrorAlert title="Reports unavailable" body={error} variant="internal" />}
+    {loading ? <HavenSkeletonCard hasHeader /> : !error && <ModuleSummaryCards cards={[
+      { label: "Submitted", value: rows.filter((row) => row.status === "submitted").length, hint: "On this page · awaiting review", icon: Send, tone: "attention", queue: "submitted" },
+      { label: "Acknowledged", value: rows.filter((row) => row.status === "acknowledged").length, hint: "On this page · reviewed and closed", icon: ClipboardCheck, tone: "done", queue: "acknowledged" },
+      { label: "Returned", value: rows.filter((row) => row.status === "returned").length, hint: "On this page · needs resubmission", icon: FileText, tone: "today", queue: "returned" },
+      { label: "On record", value: total, hint: "All stored snapshots", icon: CalendarDays },
+    ]} activeQueue={["submitted", "acknowledged", "returned"].includes(status) ? status : undefined} onSelect={(target) => setStatus(target)} ariaLabel="Report history summary"/>}
     {canReview && <ExecutiveDigestCard reportDate={viewing ? viewing.report_date.slice(0, 10) : date} />}
     {(preview || viewing) && <article className="panel report-preview">
       <div className="panel-heading"><div><h3>{viewing ? `Submitted snapshot · ${formatDate(viewing.report_date)}` : "Preview"}</h3><p>{viewing ? `Submitted by ${viewing.submitted_by_name ?? "Front Desk"} · ${formatStamp(viewing.submitted_at)}` : "Auto-generated from live hotel records for the selected hotel day."}</p></div>
@@ -211,12 +221,6 @@ export default function FrontDeskReportsPanel({ role, initialDate }: { role: Rol
       <p className="export-note">Export prints or saves this preview. It does not submit anything to the Manager.</p>
       <ReportSnapshotView snapshot={viewing ? viewing.snapshot : preview!}/>
     </article>}
-    <ModuleSummaryCards cards={[
-      { label: "Submitted", value: rows.filter((row) => row.status === "submitted").length, hint: "Awaiting Manager review", icon: Send, tone: "attention", queue: "submitted" },
-      { label: "Acknowledged", value: rows.filter((row) => row.status === "acknowledged").length, hint: "Reviewed and closed", icon: ClipboardCheck, tone: "done", queue: "acknowledged" },
-      { label: "Returned", value: rows.filter((row) => row.status === "returned").length, hint: "Needs resubmission", icon: FileText, tone: "today", queue: "returned" },
-      { label: "On record", value: rows.length, hint: "All stored snapshots", icon: CalendarDays },
-    ]} activeQueue={["submitted", "acknowledged", "returned"].includes(status) ? status : undefined} onSelect={(target) => setStatus(target)} ariaLabel="Report history summary"/>
     <div className="reservation-filters"><div>{["all", "submitted", "acknowledged", "returned"].map((value) => <button key={value} className={status === value ? "active" : ""} aria-pressed={status === value} onClick={() => setStatus(value)}>{value === "all" ? "All" : label(value)}</button>)}</div></div>
     <div className="data-panel"><div className="table-scroll"><table aria-label="Front desk report history"><thead><tr><th>Report date</th><th>Submitted</th><th>By</th><th>Status</th><th>Review</th><th>Actions</th></tr></thead>
       <tbody>{visible.map((row) => <tr key={row.id}>
@@ -233,7 +237,6 @@ export default function FrontDeskReportsPanel({ role, initialDate }: { role: Rol
       </tr>)}</tbody></table></div>
       {!visible.length && <div className="empty"><FileText/><h3>No reports</h3><p>{status === "all" ? "No daily operations reports have been submitted yet." : `No ${label(status)} reports.`}</p></div>}
       <TablePagination page={page + 1} pageCount={pageCount} start={rows.length ? page * REPORT_PAGE_SIZE + 1 : 0} end={page * REPORT_PAGE_SIZE + rows.length} total={total} onPageChange={(next) => void load(next - 1)} noun="reports" note="Submitted snapshots are immutable evidence — they are never edited after submission." /></div>
-    {loading && <HavenSkeletonCard hasHeader />}
     {toast && <div className="toast"><ClipboardCheck size={18}/>{toast}</div>}
     {dialogs.view}
   </>;

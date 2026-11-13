@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Reports & Insights · Haven prototype</title>
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="reports-preview.css">
+  <script src="hms-workflow-icons.js" defer></script>
+  <script src="reports-preview.js" defer></script>
+</head>
+<body data-design="brief">
+  <a class="skip-link" href="#reports-main">Skip to reports</a>
+  <aside class="sidebar" aria-label="Reports prototype navigation">
+    <a class="brand" href="#reports-main" aria-label="Haven reports prototype">
+      <img src="../haven-logo-small.png" alt="" width="38" height="38">
+      <span><strong>HAVEN</strong><small>HOTEL MANAGEMENT</small></span>
+    </a>
+    <nav aria-label="Report sections">
+      <p>REPORTS</p>
+      <a href="#reports-main" aria-current="page"><i data-icon="Activity"></i><span>Overview</span></a>
+      <a href="#analysis"><i data-icon="Activity"></i><span id="nav-primary">Performance</span></a>
+      <a href="#reports-table"><i data-icon="FileText"></i><span id="nav-secondary">Recent reports</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <span class="role-icon"><i data-icon="Users"></i></span>
+      <div><small>PREVIEWING AS</small><strong id="sidebar-role">Manager</strong></div>
+    </div>
+  </aside>
+
+  <div class="workspace">
+    <header class="topbar">
+      <span class="location"><span>Workspace</span><i data-icon="ChevronRight"></i><strong>Reports</strong></span>
+      <span class="mobile-brand"><img src="../haven-logo-small.png" alt="" width="27" height="27"> HAVEN</span>
+      <div class="top-actions">
+        <span class="sample-label"><i data-icon="Activity"></i> Prototype · sample data</span>
+        <button class="icon-button" id="theme" type="button" aria-label="Switch to dark theme" aria-pressed="false" title="Toggle theme"><i data-icon="Moon"></i></button>
+      </div>
+    </header>
+
+    <main id="reports-main" tabindex="-1">
+      <div class="prototype-note"><i data-icon="Activity"></i><span>Design prototype only. Sample figures and actions do not change hotel records.</span></div>
+      <section class="design-chooser" aria-labelledby="design-chooser-title">
+        <div class="chooser-heading">
+          <div><h2 id="design-chooser-title">Choose a design direction</h2><p>Same reports, three different ways to organize the page.</p></div>
+          <span class="selected-design" id="selected-design">Selected · A</span>
+        </div>
+        <div class="design-options" role="group" aria-label="Reports design choices">
+          <button class="design-choice" type="button" data-design-choice="brief" aria-pressed="true">
+            <span class="choice-kicker">CHOICE A <b>Selected</b></span>
+            <span class="mini-preview mini-brief" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <strong>Executive brief</strong>
+            <small>Roomy and chart-led. Best for quick performance reviews.</small>
+          </button>
+          <button class="design-choice" type="button" data-design-choice="workbench" aria-pressed="false">
+            <span class="choice-kicker">CHOICE B <b>Selected</b></span>
+            <span class="mini-preview mini-workbench" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <strong>Operations workbench</strong>
+            <small>Compact and queue-first. Best for reviewing reports and follow-ups.</small>
+          </button>
+          <button class="design-choice" type="button" data-design-choice="library" aria-pressed="false">
+            <span class="choice-kicker">CHOICE C <b>Selected</b></span>
+            <span class="mini-preview mini-library" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <strong>Report library</strong>
+            <small>Module-first and browseable. Best for finding a report to open or export.</small>
+          </button>
+        </div>
+        <p class="design-note" id="design-note" aria-live="polite">A · Executive brief — highlights the key metrics and trend first.</p>
+      </section>
+      <header class="page-heading">
+        <div>
+          <h1 id="page-title">Reports &amp; insights</h1>
+          <p id="page-subtitle">A clear view of hotel performance and the reports that need attention.</p>
+        </div>
+        <div class="page-tools">
+          <label class="field-label" for="role-view">Preview account
+            <select id="role-view" aria-label="Choose an account to preview"></select>
+          </label>
+          <label class="field-label" id="period-wrap" for="period-view">Report period
+            <select id="period-view"></select>
+          </label>
+          <button class="button primary" id="export" type="button"><i data-icon="ArrowDownToLine"></i><span id="export-label">Export report</span></button>
+        </div>
+      </header>
+
+      <p class="view-caption" id="view-caption" aria-live="polite">Manager view · Performance and operational summaries</p>
+      <section class="summary-strip" id="metrics" aria-label="Report summary"></section>
+
+      <div class="report-grid">
+        <section class="panel report-panel" id="analysis" aria-labelledby="chart-title">
+          <header class="panel-heading">
+            <div><h2 id="chart-title">Booked occupancy</h2><p id="chart-description">Seven-day trend from reservation stay dates.</p></div>
+            <span class="period-chip" id="chart-period">Last 7 days</span>
+          </header>
+          <div class="chart-wrap" id="chart" aria-live="polite"></div>
+          <details class="data-details" id="chart-data-details">
+            <summary>View chart data</summary>
+            <div class="table-scroll" id="chart-data"></div>
+          </details>
+        </section>
+
+        <aside class="panel insight-panel" aria-labelledby="insight-title">
+          <header class="panel-heading">
+            <div><h2 id="insight-title">Room readiness</h2><p id="insight-description">Current room status from the room rack.</p></div>
+          </header>
+          <div class="insight-content" id="insight-content"></div>
+        </aside>
+      </div>
+
+      <div class="lower-grid">
+        <section class="panel reports-panel" id="reports-table" aria-labelledby="reports-title">
+          <header class="panel-heading">
+            <div><h2 id="reports-title">Recent reports</h2><p id="reports-subtitle">Latest report activity for this account.</p></div>
+            <button class="text-button" id="view-all" type="button">View all <i data-icon="ArrowUpRight"></i></button>
+          </header>
+          <div class="table-scroll">
+            <table>
+              <caption class="sr-only">Recent reports</caption>
+              <thead><tr><th scope="col">Report</th><th scope="col">Period</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Action</span></th></tr></thead>
+              <tbody id="report-rows"></tbody>
+            </table>
+          </div>
+          <p class="table-note" id="table-note">Showing the latest records · prototype data</p>
+        </section>
+
+        <section class="panel modules-panel" aria-labelledby="modules-title">
+          <header class="panel-heading">
+            <div><h2 id="modules-title">Report modules</h2><p>Choose a view for more detail.</p></div>
+          </header>
+          <div class="module-list" id="module-list"></div>
+        </section>
+      </div>
+      <p class="toast" id="toast" role="status" aria-live="polite"></p>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,233 +1,179 @@
 // @vitest-environment jsdom
-// Render-layer smoke test for the Housekeeping queue summary cards: the counts
-// must come from the same groupQueueTask grouping the visible queue renders, so
-// card == queue by construction (same pattern as module-summary.test.tsx).
-import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import HousekeepingQueuePanel, { groupQueueTask } from "./housekeeping-queue-panel";
+import { afterEach, expect, it, vi } from "vitest";
+import type { ComponentProps } from "react";
+import HousekeepingQueuePanel from "./housekeeping-queue-panel";
 import type { RecordItem } from "@/lib/types";
 
 const noop = () => {};
-// The panel derives "today" from the real clock (Asia/Manila); the test must
-// use the same derivation so completed-today rows land in that group.
-const TODAY = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
-const nowIso = new Date().toISOString();
+const now = new Date();
+const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(now);
+const task = (overrides: Partial<RecordItem> = {}): RecordItem => ({
+  id: "t1", room_number: "101", room_type: "Deluxe King", task_type: "checkout_cleaning",
+  task: "Turnover clean", status: "pending", priority: "normal", assigned_user_id: null,
+  assigned_to: "Unassigned", maintenance_blocked: false, inspection_status: "none",
+  room_housekeeping: "dirty", room_status: "available", room_id: "room-101",
+  created_at: "2026-09-23T02:00:00Z", ...overrides,
+});
 
-const task = (overrides: Record<string, unknown> = {}): RecordItem => ({
-  id: "t1", room_number: "101", room_type: "Deluxe King", task_type: "checkout_cleaning", task: "Turnover clean",
-  status: "pending", priority: "normal", assigned_user_id: null, assigned_to: "Unassigned", maintenance_blocked: false,
-  inspection_status: "none", room_housekeeping: "dirty", created_at: "2026-09-23T02:00:00Z", room_id: "rm1", room_status: "dirty",
-  ...overrides,
-} as RecordItem);
-
-function renderPanel(items: RecordItem[], role: "housekeeping" | "manager" = "housekeeping") {
-  render(<HousekeepingQueuePanel
-    role={role} userId="u1" items={items} search="" setSearch={noop}
-    housekeepingAction={noop} coordinate={noop} onViewMaintenance={noop} onViewRoom={noop}
+function renderPanel(items: RecordItem[], overrides: Partial<ComponentProps<typeof HousekeepingQueuePanel>> = {}) {
+  return render(<HousekeepingQueuePanel
+    role="housekeeping" userId="u1" items={items} search="" setSearch={noop}
+    housekeepingAction={noop} coordinate={noop} onViewRoom={noop}
+    {...overrides}
   />);
 }
 
+const queue = () => within(screen.getByRole("region", { name: "Room queue" }));
+const detail = () => within(screen.getByRole("region", { name: "Selected room task" }));
+const stages = () => within(screen.getByRole("group", { name: "Filter by task stage" }));
+const rows = () => within(queue().getByRole("list", { name: "Room tasks" })).getAllByRole("button");
+const taskRow = (room: string) => queue().getByRole("button", { name: new RegExp(`^Room ${room}\\b`) });
+
 afterEach(cleanup);
 
-it("offers the core workflow when service instructions are unavailable", () => {
-  render(<HousekeepingQueuePanel
-    role="housekeeping" userId="u1"
-    items={[task({ task_type: "stayover_cleaning", active_reservation_id: "R-1", assigned_user_id: "u1", service_instructions_available: false })]}
-    search="" setSearch={noop} housekeepingAction={noop} coordinate={noop}
-    onViewMaintenance={noop} onViewRoom={noop} onSetDnd={vi.fn()} onServiceOutcome={vi.fn()}
-  />);
-  expect(screen.queryByRole("button", { name: "Set DND" })).toBeNull();
-  expect(screen.queryByRole("button", { name: "Guest declined" })).toBeNull();
-  expect(screen.queryByRole("button", { name: "Mark late" })).toBeNull();
-  expect(screen.getByRole("button", { name: "Start cleaning" })).toBeTruthy();
+it("shows one priority-ordered queue and updates the selected room", () => {
+  renderPanel([
+    task({ id: "later", room_number: "105", next_arrival: "2099-01-01" }),
+    task({ id: "urgent", room_number: "106", priority: "urgent", notes: "Replace extra pillows.", room_floor: "Mezzanine" }),
+    task({ id: "earlier", room_number: "107", next_arrival: today, next_arrival_time: "14:00" }),
+  ]);
+  expect(rows().map((row) => row.textContent)).toEqual([
+    expect.stringContaining("106"), expect.stringContaining("107"), expect.stringContaining("105"),
+  ]);
+  expect(detail().getByRole("heading", { name: "Room 106" })).toBeTruthy();
+  expect(detail().getByText("Replace extra pillows.")).toBeTruthy();
+  expect(detail().getByText(/Mezzanine/)).toBeTruthy();
+  fireEvent.click(taskRow("107"));
+  expect(detail().getByRole("heading", { name: "Room 107" })).toBeTruthy();
+  expect(detail().getByText(/Today.*2:00 PM/i)).toBeTruthy();
 });
 
-describe("HousekeepingQueuePanel summary cards", () => {
-  it("counts the five cards from the same grouping the queue renders", () => {
-    const items = [
-      task(), // pending, unassigned → needs_attention
-      task({ id: "t2", status: "in_progress" }), // → in_progress
-      task({ id: "t3", status: "completed", inspection_status: "pending", completed_at: nowIso }), // → waiting_inspection
-      task({ id: "t4", maintenance_blocked: true }), // → blocked
-      task({ id: "t5", status: "completed", inspection_status: "passed", completed_at: nowIso }), // → completed_today
-      task({ id: "t6", status: "cancelled" }), // grouped null — never counted
-    ];
-    // Sanity: the grouping itself puts each item where the test claims.
-    const groups = items.map((item) => groupQueueTask(item, "u1", TODAY));
-    expect(groups).toEqual(["needs_attention", "in_progress", "waiting_inspection", "blocked", "completed_today", null]);
-    renderPanel(items);
-    const summary = screen.getByRole("group", { name: "Housekeeping summary" });
-    // Card values are the <b> inside each article; assert by label order.
-    const cards = Array.from(summary.querySelectorAll("article")).map((card) => ({
-      label: card.querySelector("span")?.textContent,
-      value: card.querySelector("b")?.textContent,
-    }));
-    expect(cards).toEqual([
-      { label: "Needs attention", value: "1" },
-      { label: "In progress", value: "1" },
-      { label: "Waiting for inspection", value: "1" },
-      { label: "Blocked by Maintenance", value: "1" },
-      { label: "Completed today", value: "1" },
-    ]);
-  });
-
-  it("renders valid zero counts instead of hiding cards", () => {
-    renderPanel([task({ id: "t1", status: "cancelled" })]);
-    const cards = Array.from(screen.getByRole("group", { name: "Housekeeping summary" }).querySelectorAll("article")).map((card) => card.querySelector("b")?.textContent);
-    expect(cards).toEqual(["0", "0", "0", "0", "0"]);
-  });
+it("counts every visible stage once and filters the queue when a stage is pressed", () => {
+  const items = [
+    task(),
+    task({ id: "t2", room_number: "102", status: "in_progress", assigned_user_id: "u1" }),
+    task({ id: "t3", status: "completed", inspection_status: "pending", completed_at: now.toISOString() }),
+    task({ id: "t4", maintenance_blocked: true }),
+    task({ id: "t5", status: "completed", inspection_status: "passed", completed_at: now.toISOString() }),
+    task({ id: "t6", status: "cancelled" }),
+    task({ id: "t7", status: "completed", completed_at: "2020-01-01T00:00:00Z" }),
+  ];
+  renderPanel(items);
+  for (const name of ["To clean", "Cleaning", "To inspect", "On hold", "Completed today"]) {
+    expect(stages().getByRole("button", { name: `1 ${name}` })).toBeTruthy();
+  }
+  expect(rows()).toHaveLength(5);
+  fireEvent.click(stages().getByRole("button", { name: "1 Cleaning" }));
+  expect(rows()).toHaveLength(1);
+  expect(detail().getByRole("heading", { name: "Room 102" })).toBeTruthy();
+  expect(stages().getByRole("button", { name: "1 Cleaning" }).getAttribute("aria-pressed")).toBe("true");
 });
 
-describe("HousekeepingQueuePanel workspace", () => {
-  it("keeps inspection available to Housekeeping even when another worker cleaned", () => {
-    renderPanel([task({ status: "completed", assigned_user_id: "other", inspection_status: "pending", completed_at: nowIso })]);
-    expect(screen.getByRole("button", { name: "Inspect" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Complete Task" })).toBeNull();
-  });
+it("keeps stage counts global and offers a clear state for empty filters", () => {
+  const full = [task(), task({ id: "t2", status: "completed", inspection_status: "pending" })];
+  renderPanel([full[1]], { allItems: full, search: "turnover" });
+  expect(stages().getByRole("button", { name: "1 To clean" })).toBeTruthy();
+  fireEvent.click(stages().getByRole("button", { name: "1 To clean" }));
+  expect(queue().getByText("No matching tasks")).toBeTruthy();
+  fireEvent.click(queue().getByRole("button", { name: "Clear filters" }));
+  expect(rows()).toHaveLength(1);
+});
 
-  it("lets the Manager prioritize without offering cleaning execution", () => {
-    const coordinate = vi.fn();
-    const item = task();
-    render(<HousekeepingQueuePanel role="manager" userId="u1" items={[item]} search="" setSearch={noop}
-      housekeepingAction={noop} coordinate={coordinate} onViewMaintenance={noop} onViewRoom={noop} />);
-    fireEvent.click(screen.getByRole("button", { name: "Prioritize" }));
-    expect(coordinate).toHaveBeenCalledWith(item);
-    expect(screen.queryByRole("button", { name: "Claim" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Start cleaning" })).toBeNull();
-  });
+it("combines work type and My tasks while keeping the shift counts global", () => {
+  renderPanel([
+    task({ assigned_user_id: "u1" }),
+    task({ id: "t2", room_number: "102", task_type: "stayover_cleaning", status: "assigned", assigned_user_id: "u1" }),
+    task({ id: "t3", room_number: "103", task_type: "stayover_cleaning", status: "assigned", assigned_user_id: "other" }),
+  ]);
+  fireEvent.click(queue().getByRole("button", { name: "Filter by work type" }));
+  fireEvent.click(screen.getByRole("option", { name: "Stayover cleaning" }));
+  fireEvent.click(queue().getByRole("button", { name: "My tasks" }));
+  expect(rows()).toEqual([taskRow("102")]);
+  expect(stages().getByRole("button", { name: "3 To clean" })).toBeTruthy();
+});
 
-  it("keeps Front Desk read-only", () => {
-    render(<HousekeepingQueuePanel role="front_desk" userId="u1" items={[task()]} search="" setSearch={noop}
-      housekeepingAction={noop} coordinate={noop} onViewMaintenance={noop} onViewRoom={noop} />);
-    expect(screen.getByText("View only")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Claim" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Prioritize" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Room Details" })).toBeTruthy();
-  });
+it("shows the Manager unassigned tasks and invokes the existing priority action", () => {
+  const coordinate = vi.fn();
+  const item = task();
+  renderPanel([item, task({ id: "t2", room_number: "102", assigned_user_id: "u1" })], { role: "manager", coordinate });
+  fireEvent.click(queue().getByRole("button", { name: "Unassigned" }));
+  expect(rows()).toEqual([taskRow("101")]);
+  fireEvent.click(detail().getByRole("button", { name: "Prioritize task" }));
+  expect(coordinate).toHaveBeenCalledWith(item);
+  expect(detail().queryByRole("button", { name: /Claim|Start cleaning/ })).toBeNull();
+});
 
-  it("does not offer claim or start for another worker's assigned task", () => {
-    renderPanel([task({ status: "assigned", assigned_user_id: "someone-else", assigned_to: "Another worker" })]);
-    expect(screen.queryByRole("button", { name: "Reassign" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Start cleaning" })).toBeNull();
-    expect(screen.getByText("Assigned to another Housekeeping worker")).toBeTruthy();
-  });
+it("filters Front Desk to today's arrivals without exposing task mutations", () => {
+  renderPanel([
+    task({ next_arrival: "2099-01-01" }),
+    task({ id: "t2", room_number: "102", next_arrival: today, room_status: "reserved", room_housekeeping: "inspection", status: "completed", inspection_status: "pending" }),
+  ], { role: "front_desk" });
+  fireEvent.click(queue().getByRole("button", { name: "Arrivals today" }));
+  expect(rows()).toEqual([taskRow("102")]);
+  expect(detail().getByText(/Awaiting Housekeeping inspection/)).toBeTruthy();
+  expect(detail().getByText("Reserved")).toBeTruthy();
+  expect(detail().getByRole("button", { name: "Room details" })).toBeTruthy();
+  expect(detail().queryByRole("button", { name: /Inspect room|Prioritize task|Claim/ })).toBeNull();
+});
 
-  it("does not offer completion for another worker's running task", () => {
-    renderPanel([task({ status: "in_progress", assigned_user_id: "someone-else", assigned_to: "Another worker" })]);
-    expect(screen.queryByRole("button", { name: "Complete Task" })).toBeNull();
-  });
+it("keeps the selected task after its action moves it out of the current filter", () => {
+  const original = task({ status: "assigned", assigned_user_id: "u1" });
+  const other = task({ id: "t2", room_number: "102", status: "pending" });
+  const props = { role: "housekeeping" as const, userId: "u1", search: "", setSearch: noop,
+    housekeepingAction: vi.fn(), coordinate: noop, onViewRoom: noop };
+  const view = render(<HousekeepingQueuePanel {...props} items={[original, other]} />);
+  fireEvent.click(stages().getByRole("button", { name: "2 To clean" }));
+  fireEvent.click(detail().getByRole("button", { name: "Start cleaning" }));
+  expect(props.housekeepingAction).toHaveBeenCalledWith(original, "start");
+  view.rerender(<HousekeepingQueuePanel {...props} items={[{ ...original, status: "in_progress" }, other]} />);
+  expect(rows()).toEqual([taskRow("102")]);
+  expect(detail().getByRole("heading", { name: "Room 101" })).toBeTruthy();
+  expect(detail().getByRole("button", { name: "Complete cleaning" })).toBeTruthy();
+});
 
-  it("keeps the current worker's cleaning controls connected to the selected task", () => {
-    const action = vi.fn();
-    const item = task({ status: "assigned", assigned_user_id: "u1" });
-    render(<HousekeepingQueuePanel role="housekeeping" userId="u1" items={[item]} search="" setSearch={noop}
-      housekeepingAction={action} coordinate={noop} onViewMaintenance={noop} onViewRoom={noop} />);
-    fireEvent.click(screen.getByRole("button", { name: "Start cleaning" }));
-    expect(action).toHaveBeenCalledWith(item, "start");
-  });
+it("keeps inspection available to Housekeeping after a different worker cleans", () => {
+  renderPanel([task({ status: "completed", assigned_user_id: "other", inspection_status: "pending" })]);
+  expect(detail().getByRole("button", { name: "Inspect room" })).toBeTruthy();
+  expect(detail().queryByRole("button", { name: "Complete cleaning" })).toBeNull();
+});
 
-  it("renders the hero, the typical-path legend, and prominent active work", () => {
-    renderPanel([task({ status: "in_progress", assigned_user_id: "u1" })]);
-    expect(screen.getByRole("heading", { name: "Housekeeping" })).toBeTruthy();
-    const flow = screen.getByRole("list", { name: "Typical room-care path" });
-    expect(flow.textContent).toContain("Pending");
-    expect(flow.textContent).toContain("Ready");
-    // The non-empty work group carries primary emphasis.
-    expect(document.querySelector(".hk-group-primary")).toBeTruthy();
-    // Complete Task leads the actions on an in-progress card.
-    const card = document.querySelector(".hk-group-primary .hk-queue-card")!;
-    const actions = Array.from(card.querySelectorAll("button")).map((b) => b.textContent);
-    expect(actions[0]).toBe("Complete Task");
-  });
+it("shows the possible inspection step before a turnover has been evaluated for inspection", () => {
+  renderPanel([task({ inspection_status: "not_required" })]);
+  const progress = within(detail().getByRole("list", { name: "Task progress" }));
+  expect(progress.getByText("Inspection if required")).toBeTruthy();
+});
 
-  it("filters the queue by work type and status while cards stay global", () => {
-    renderPanel([
-      task({ id: "t1", task_type: "checkout_cleaning", status: "pending" }),
-      task({ id: "t2", task: "Stayover tidy", task_type: "stayover_cleaning", status: "in_progress", assigned_user_id: null, assigned_to: "Unassigned" }),
-    ]);
-    // Narrow to stayover work: only the stayover card remains listed.
-    fireEvent.click(screen.getByRole("button", { name: "Filter by work type" }));
-    fireEvent.click(screen.getByRole("option", { name: "stayover cleaning" }));
-    const queue = screen.getByRole("region", { name: "Room care queue" });
-    expect(within(queue).queryByText("checkout cleaning")).toBeNull();
-    expect(within(queue).getByText("stayover cleaning")).toBeTruthy();
-    // Cards still describe the whole loaded queue.
-    const cards = Array.from(screen.getByRole("group", { name: "Housekeeping summary" }).querySelectorAll("article")).map((card) => card.querySelector("b")?.textContent);
-    expect(cards).toEqual(["1", "1", "0", "0", "0"]);
-  });
+it("shows DND and maintenance holds and keeps another worker's task protected", () => {
+  renderPanel([
+    task({ dnd_active: true, task_type: "stayover_cleaning", assigned_user_id: "u1" }),
+    task({ id: "t2", room_number: "102", maintenance_blocked: true }),
+    task({ id: "t3", room_number: "103", status: "in_progress", assigned_user_id: "other" }),
+  ]);
+  expect(stages().getByRole("button", { name: "2 On hold" })).toBeTruthy();
+  fireEvent.click(taskRow("101"));
+  expect(detail().getByText("Do Not Disturb")).toBeTruthy();
+  expect(detail().queryByRole("button", { name: "Start cleaning" })).toBeNull();
+  fireEvent.click(taskRow("102"));
+  expect(detail().getByRole("button", { name: "View work order" })).toBeTruthy();
+  fireEvent.click(taskRow("103"));
+  expect(detail().getByText("Assigned to another Housekeeping worker")).toBeTruthy();
+  expect(detail().queryByRole("button", { name: "Complete cleaning" })).toBeNull();
+});
 
-  it("counts the summary from the full load even when the queue arrives pre-filtered", () => {
-    // Regression (QA BUG-005): "Waiting for inspection 1" beside a queue
-    // showing other totals looked contradictory. The cards describe allItems;
-    // the queue (and its footer) describe items.
-    const full = [
-      task({ id: "t1", task_type: "checkout_cleaning", status: "pending" }),
-      task({ id: "t2", status: "completed", inspection_status: "pending", completed_at: nowIso }),
-    ];
-    render(<HousekeepingQueuePanel
-      role="housekeeping" userId="u1" items={[full[1]]} allItems={full} search="" setSearch={noop}
-      housekeepingAction={noop} coordinate={noop} onViewMaintenance={noop} onViewRoom={noop}
-    />);
-    const cards = Array.from(screen.getByRole("group", { name: "Housekeeping summary" }).querySelectorAll("article")).map((card) => card.querySelector("b")?.textContent);
-    expect(cards).toEqual(["1", "0", "1", "0", "0"]);
-    expect(within(screen.getByRole("region", { name: "Room care queue" })).getByText(/Showing 1 of 1 task/)).toBeTruthy();
-    expect(screen.getByText(/Summary counts cover all loaded tasks/)).toBeTruthy();
-  });
+it("keeps core task actions available when service instructions are unavailable", () => {
+  renderPanel([task({ task_type: "stayover_cleaning", active_reservation_id: "R-1",
+    assigned_user_id: "u1", service_instructions_available: false })], { onSetDnd: noop, onServiceOutcome: noop });
+  expect(detail().queryByRole("button", { name: /Set DND|Guest declined|Mark late/ })).toBeNull();
+  expect(detail().getByRole("button", { name: "Start cleaning" })).toBeTruthy();
+});
 
-  it("excludes collapsed history from the visible footer count", () => {
-    // The completed-today group starts collapsed: its cards are counted by
-    // the queue total but not visible, so the footer reports both numbers.
-    render(<HousekeepingQueuePanel
-      role="housekeeping" userId="u1"
-      items={[task({ id: "t1" }), task({ id: "t2", status: "completed", inspection_status: "passed", completed_at: nowIso })]}
-      search="" setSearch={noop}
-      housekeepingAction={noop} coordinate={noop} onViewMaintenance={noop} onViewRoom={noop}
-    />);
-    expect(within(screen.getByRole("region", { name: "Room care queue" })).getByText(/Showing 1 of 2 tasks/)).toBeTruthy();
-  });
-
-  it("links to Guest Requests with the live open count and no duplicate actions", () => {
-    const open = vi.fn();
-    render(<HousekeepingQueuePanel
-      role="housekeeping" userId="u1" items={[task()]} search="" setSearch={noop}
-      housekeepingAction={noop} coordinate={noop} onViewMaintenance={noop} onViewRoom={noop}
-      guestRequestOpen={4} onOpenGuestRequests={open}
-    />);
-    const strip = screen.getByRole("region", { name: "Guest service requests" });
-    expect(strip.textContent).toContain("4 open");
-    expect(within(strip).queryByRole("button", { name: "Start" })).toBeNull();
-    expect(within(strip).queryByRole("button", { name: "Complete" })).toBeNull();
-    fireEvent.click(within(strip).getByRole("button", { name: "Open Guest Requests" }));
-    expect(open).toHaveBeenCalledOnce();
-  });
-
-  it("hides the guest strip without a navigator and for other roles", () => {
-    renderPanel([task()]);
-    expect(screen.queryByRole("region", { name: "Guest service requests" })).toBeNull();
-    cleanup();
-    render(<HousekeepingQueuePanel
-      role="manager" userId="u1" items={[task()]} search="" setSearch={noop}
-      housekeepingAction={noop} coordinate={noop} onViewMaintenance={noop} onViewRoom={noop}
-      guestRequestOpen={4} onOpenGuestRequests={noop}
-    />);
-    expect(screen.queryByRole("region", { name: "Guest service requests" })).toBeNull();
-  });
-
-  it("keeps completed history collapsible and the maintenance block explicit", () => {
-    renderPanel([
-      task({ id: "t1", status: "completed", inspection_status: "passed", completed_at: nowIso }),
-      task({ id: "t2", task: "Stayover tidy", maintenance_blocked: true }),
-    ]);
-    // Completed-today starts collapsed behind its toggle (task text lives in
-    // the card body, so assert on the section's content, not a bare text node).
-    const completedSection = () => screen.getByRole("region", { name: "Completed today" });
-    expect(completedSection().textContent).not.toContain("Turnover clean");
-    const toggle = screen.getByRole("button", { name: /Completed today/ });
-    expect(toggle.getAttribute("aria-expanded")).toBe("false");
-    fireEvent.click(toggle);
-    expect(completedSection().textContent).toContain("Turnover clean");
-    // Blocked work names the blocker (card + section) and links the work order.
-    expect(screen.getAllByText("Blocked by Maintenance")).toHaveLength(2);
-    expect(screen.getByRole("button", { name: "View work order" })).toBeTruthy();
-  });
+it("links Housekeeping to the separate Guest Requests workflow with the live count", () => {
+  const open = vi.fn();
+  renderPanel([task()], { guestRequestOpen: 4, onOpenGuestRequests: open });
+  fireEvent.click(screen.getByRole("button", { name: "Guest requests, 4 open" }));
+  expect(open).toHaveBeenCalledOnce();
+  cleanup();
+  renderPanel([task()], { role: "front_desk", guestRequestOpen: 4, onOpenGuestRequests: open });
+  expect(screen.queryByRole("button", { name: "Guest requests, 4 open" })).toBeNull();
 });

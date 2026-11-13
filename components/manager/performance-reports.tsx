@@ -4,7 +4,7 @@ import { BedDouble, Download, Gauge, TrendingDown, TrendingUp, Wallet } from "lu
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { DashboardData, Role } from "@/lib/types";
 import { CHART_REPORT_OCCUPANCY } from "@/lib/chart-tokens";
-import { ModuleSummaryCards, type ModuleSummaryCard } from "@/components/manager/module-summary-cards";
+import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { PageHeader } from "@/components/ui";
 import NightAuditPanel from "./night-audit-panel";
 
@@ -27,7 +27,6 @@ export default function PerformanceReports({ data, role }: { data: DashboardData
   const moneyValue = role === "manager" ? data.metrics.collectionsToday : data.metrics.revenue;
 
   return <section className="performance-reports" aria-label="Property performance">
-    <NightAuditPanel role={role} readOnly />
     <PageHeader variant="band" className="reports-title" eyebrow="Administration & analytics" title="Property performance" subtitle="Review revenue movement, occupancy, and room readiness from the hotel's current operational records." actions={<button className="btn btn-accent" type="button" onClick={() => window.print()} aria-label="Export property performance report">
         <Download size={17} aria-hidden="true"/> Export report
       </button>} />
@@ -77,5 +76,6 @@ export default function PerformanceReports({ data, role }: { data: DashboardData
         })}</ul>
       </aside>
     </div>
+    <NightAuditPanel role={role} readOnly />
   </section>;
 }

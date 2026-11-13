@@ -294,6 +294,20 @@ Key properties:
   independently — so the two can legitimately differ, and every surface that shows both labels which
   is which (Reports, Dashboard, Owner Executive). The Owner executive trend
   (`/api/owner/data`) is computed by the same helper, never a second copy.
+- **Manager overview.** The Manager payload adds the preceding seven-night
+  occupancy series and room readiness on the same current-week basis as Room
+  Management. Dashboard cards open the existing booking or room filters, and
+  the Shift briefing action opens Hotel Operations. The Manager-specific
+  overview payload exposes aggregate collections, deposits, outstanding
+  balances, and refunds. The dashboard masks these amounts on load and
+  reveals them together with centavos. Ledger and transaction access follow
+  their existing role checks.
+- **Account dashboards.** Seven staff roles enter through `/manager_dashboard`.
+  Guests enter through `/account`. Each overview shows role-specific metrics
+  and links to authorized workspaces. Front Desk receives its shared drawer
+  summary. Housekeeping and Maintenance see the room and workload counts
+  relevant to their departments. The shared eye masks dashboard amounts on
+  entry for Manager, Front Desk, Accounting, Owner and Guest.
 - **Promise-based dialog bridge.** All three dashboards run their confirm/prompt/form dialogs
   through `components/ui/action-dialogs.tsx` (`useActionDialogs`) — no ad-hoc dialog state.
 
@@ -1001,22 +1015,27 @@ housekeeping-only (`HOUSEKEEPING_INSPECTION_FORBIDDEN` for every other role); si
 self-serve, **the person who cleaned may inspect their own work** — a deliberate, documented
 separation-of-duties trade-off, kept after review.
 
-**Operational queue.** All roles see the Housekeeping section as a grouped card queue
-(`components/manager/housekeeping-queue-panel.tsx`), not a CRUD table: Needs attention (unassigned or
-urgent/high) → My tasks → Cleaning in progress → Waiting for inspection → Blocked by Maintenance →
-Scheduled open work → Completed today (collapsed). Cards sort by the stored priority, then next
-arrival, then age, and show the room's recorded state — never a derived "available" claim. Actions
-reuse the exact RPC handlers and role gates as before: housekeeping acts, manager Prioritizes,
-front desk views. Readiness is decided by the audited workflow, not by the view.
+**Operational queue.** Housekeeping, Manager, and Front Desk share the room queue and selected
+task workspace (`components/manager/housekeeping-queue-panel.tsx`). The stage strip counts and
+filters To clean, Cleaning, To inspect, On hold, and Completed today. The counts cover the full
+shift queue. Search, work type, and the role's quick filter narrow the list. Active work sorts
+by stored priority, then next arrival, then age. Upcoming arrivals use the Manila calendar day
+and show the recorded expected arrival time when provided. Room condition and inventory status
+come from the room record. The date and time stay in the staff header.
+
+Housekeeping has My tasks and uses the existing audited cleaning and inspection actions. Manager
+has Unassigned and can prioritize open tasks. Front Desk has Arrivals today and reads the queue
+and room details. Maintenance holds link to the affected room's maintenance history. On narrow
+screens, opening a task preserves the filters and returning restores focus to the room row.
 
 **Suggested assignments** (roadmap Phase 6 — advisory only). `GET /api/housekeeping/
 assignment-suggestions` (housekeeping/manager/owner/admin) returns a suggested plan for the queue's
 unassigned open tasks (inspections excluded): tasks ordered by stored priority → next arrival →
 age, dealt round-robin to the Housekeeping teammate carrying the fewest open assignments — workload
 from the Staff & Duty derivation (§7.9: operational records only, **login is never a duty signal**),
-never a skill score, never an invented preference. The queue renders the plan as a clearly labeled
-"Suggested assignments — suggestion, you decide" strip; a row drops out the moment its task stops
-being open unassigned work. Applying one still routes through the audited
+never a skill score, never an invented preference. The queue shows eligible suggestions in the
+Suggested assignments disclosure. A suggestion drops out when its task leaves the eligible
+unassigned queue. Applying one still routes through the audited
 `housekeeping_assign_task` RPC via `POST /api/housekeeping/tasks/[id]/assign`: Housekeeping
 self-assigns ("Assign to me" — the RPC's `SELF_ASSIGNMENT_ONLY` rule unchanged), the Owner assigns
 the suggested teammate, and the Manager — who has no assign authority — sees the plan read-only and

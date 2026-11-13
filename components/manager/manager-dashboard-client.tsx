@@ -1,5 +1,9 @@
 "use client";
 import type { ReservationQueue } from "@/lib/reservation-workspace";
+import type { RackBoardState } from "@/lib/room-rack";
+import ManagerOverview from "./manager-overview";
+import { DashboardHeading, DashboardMetrics, DashboardOverview, DashboardPanel, type DashboardMetric } from "@/components/ui/dashboard-overview";
+import { DailyDashboardFinances, DashboardFinances } from "@/components/ui/dashboard-finances";
 import CashExceptionsPanel from "@/components/manager/cash-exceptions-panel";
 import PaymentDetailsDialog from "@/components/manager/payment-details-dialog";
 import TeamOperationsPanel from "@/components/manager/operational-handover-panel";
@@ -8,10 +12,11 @@ import RefundPayoutDialog from "./refund-payout-dialog";
 import CashShiftsWorkspace from "@/components/manager/cash-shifts-workspace";
 import StaffHeaderClock from "./staff-header-clock";
 import StaffBillingWorkspace from "./staff-billing-workspace";
+import FinancialDocumentsWorkspace from "./financial-documents-workspace";
 import { canCollectPayment, canViewGuestContact } from "@/lib/permissions";
 import StockIntegrityPanel from "@/components/manager/stock-integrity-panel";
 import LostFoundPanel from "@/components/manager/lost-found-panel";
- import { useCallback, useEffect, useMemo, useRef, useState } from "react"; import { signOut } from "next-auth/react"; import Link from "next/link"; import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis } from "recharts"; import { Activity, AlertTriangle, BedDouble, Bell, Boxes, Building2, CalendarCheck, CalendarDays, CarTaxiFront, CheckCircle2, ChevronDown, ChevronRight, CircleDollarSign, ClipboardCheck, Clock, DoorClosed, Eye, FileText, Gauge, Landmark, LayoutGrid, ListChecks, LogIn, LogOut, PanelLeftClose, Plus, QrCode, ReceiptText, Scale, Search, Settings, Sparkles, TrendingUp, Users, Wallet, Wrench } from "lucide-react"; import { ROOM_TYPE_CHANGE_REASONS } from "@/lib/room-type-change-reasons"; import { requestLabel } from "@/lib/request-options"; import { parseFrozenRates } from "@/lib/rate-plans"; import { depositAgeBand, depositAgeMinutes, formatDepositAge, DEFAULT_DEPOSIT_SLA_HOURS } from "@/lib/deposit-sla"; import { formatPaymentSubmittedAt } from "@/lib/payment-display"; import { filterStaffItems } from "@/lib/staff-search"; import { ASSET_DUE_WINDOWS, assetDueWindow, daysUntil, type MaintenanceAsset } from "@/lib/maintenance-assets"; import { ThemeToggle } from "@/components/theme-toggle"; import { NotificationHistoryModal } from "@/components/customer/notification-history-modal"; import { Modal } from "@/components/ui/Modal"; import { HavenActionItem } from "@/components/ui/haven-action-item"; import { QrScannerModal } from "@/components/qr/qr-scanner"; import { SettingsDialog } from "@/components/ui/SettingsDialog"; import { useNotificationSound } from "@/components/ui/sound-toggle"; import { isRefundActionable, ratePercent } from "@/lib/accounting"; import type { AccountingLedger } from "@/lib/accounting"; import { CHART_GRID, CHART_OCCUPANCY } from "@/lib/chart-tokens"; import type { AccountingSection, DashboardData, ManagerSection, RecordItem, Resource, Role } from "@/lib/types"; import { useActionDialogs } from "@/components/ui/action-dialogs"; import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination"; import RoomCatalogPanel from "@/components/catalog/room-catalog-panel"; import TransportServicesPanel from "@/components/catalog/transport-vehicle-types-panel"; import RequestTypesPanel from "@/components/catalog/request-types-panel"; import TransportationPanel from "@/components/manager/transportation-panel"; import FrontDeskReportsPanel from "@/components/manager/front-desk-reports-panel"; import Reports from "@/components/manager/performance-reports"; import GuestRequestsPanel from "@/components/manager/guest-requests-panel"; import RoomDetailModal from "@/components/manager/room-detail-modal"; import RoomRosterPanel from "@/components/manager/room-roster-panel"; import HousekeepingQueuePanel from "@/components/manager/housekeeping-queue-panel"; import type { AssignmentSuggestion } from "@/lib/housekeeping-suggestions"; import FrontDeskArrivalDialog, { type ArrivalProgress } from "@/components/manager/front-desk-arrival-dialog"; import FrontOfficeRack from "@/components/front-desk/fused-room-rack-panel"; import WalkInDialog from "@/components/manager/walk-in-dialog"; import ExtendStayDialog from "@/components/manager/extend-stay-dialog"; import PredictiveInsightsPanel from "@/components/manager/predictive-insights-panel"; import HavenAiPanel from "@/components/manager/haven-ai-panel"; import StaffDutyPanel from "@/components/manager/staff-duty-panel"; import { ManagerReservationsPanel } from "@/components/manager/manager-reservations-panel"; import { ModuleSummaryCards, type ModuleSummaryCard } from "@/components/manager/module-summary-cards"; import { ToastStack, useToasts } from "@/components/ui/toast-stack"; import { ManagerApprovalView } from "@/components/manager/approvals-workspace"; import { HavenSelect } from "@/components/ui/haven-select"; import { ALL_LOYALTY_TIERS, loyaltyTierOptions, matchesLoyaltyTier } from "@/lib/guest-loyalty"; import { HavenDataToolbar, HavenFilterBadges, HavenSearchInput } from "@/components/ui/haven-data-controls";
+ import { useCallback, useEffect, useMemo, useRef, useState } from "react"; import { signOut } from "next-auth/react"; import Link from "next/link"; import { Activity, AlertTriangle, BedDouble, Bell, Boxes, Building2, CalendarCheck, CalendarDays, CarTaxiFront, CheckCircle2, ChevronDown, ChevronRight, CircleDollarSign, ClipboardCheck, Clock, DoorClosed, Eye, FileText, Gauge, Landmark, LayoutGrid, ListChecks, LogIn, LogOut, PanelLeftClose, Plus, QrCode, ReceiptText, Scale, Search, Settings, Sparkles, TrendingUp, Users, Wallet, Wrench } from "lucide-react"; import { ROOM_TYPE_CHANGE_REASONS } from "@/lib/room-type-change-reasons"; import { requestLabel } from "@/lib/request-options"; import { parseFrozenRates } from "@/lib/rate-plans"; import { depositAgeBand, depositAgeMinutes, formatDepositAge, DEFAULT_DEPOSIT_SLA_HOURS } from "@/lib/deposit-sla"; import { formatPaymentSubmittedAt } from "@/lib/payment-display"; import { filterStaffItems } from "@/lib/staff-search"; import { ASSET_DUE_WINDOWS, assetDueWindow, daysUntil, type MaintenanceAsset } from "@/lib/maintenance-assets"; import { ThemeToggle } from "@/components/theme-toggle"; import { NotificationHistoryModal } from "@/components/customer/notification-history-modal"; import { Modal } from "@/components/ui/Modal"; import { HavenActionItem } from "@/components/ui/haven-action-item"; import { QrScannerModal } from "@/components/qr/qr-scanner"; import { SettingsDialog } from "@/components/ui/SettingsDialog"; import { useNotificationSound } from "@/components/ui/sound-toggle"; import { isRefundActionable } from "@/lib/accounting"; import type { AccountingLedger } from "@/lib/accounting"; import type { AccountingSection, DashboardData, ManagerSection, RecordItem, Resource, Role } from "@/lib/types"; import { useActionDialogs } from "@/components/ui/action-dialogs"; import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination"; import RoomCatalogPanel from "@/components/catalog/room-catalog-panel"; import TransportServicesPanel from "@/components/catalog/transport-vehicle-types-panel"; import RequestTypesPanel from "@/components/catalog/request-types-panel"; import TransportationPanel from "@/components/manager/transportation-panel"; import FrontDeskReportsPanel from "@/components/manager/front-desk-reports-panel"; import Reports from "@/components/manager/performance-reports"; import GuestRequestsPanel from "@/components/manager/guest-requests-panel"; import RoomDetailModal from "@/components/manager/room-detail-modal"; import RoomRosterPanel from "@/components/manager/room-roster-panel"; import HousekeepingQueuePanel from "@/components/manager/housekeeping-queue-panel"; import type { AssignmentSuggestion } from "@/lib/housekeeping-suggestions"; import FrontDeskArrivalDialog, { type ArrivalProgress } from "@/components/manager/front-desk-arrival-dialog"; import FrontOfficeRack from "@/components/front-desk/fused-room-rack-panel"; import WalkInDialog from "@/components/manager/walk-in-dialog"; import ExtendStayDialog from "@/components/manager/extend-stay-dialog"; import PredictiveInsightsPanel from "@/components/manager/predictive-insights-panel"; import HavenAiPanel from "@/components/manager/haven-ai-panel"; import StaffDutyPanel from "@/components/manager/staff-duty-panel"; import { ManagerReservationsPanel } from "@/components/manager/manager-reservations-panel"; import { ModuleSummaryCards, type ModuleSummaryCard } from "@/components/manager/module-summary-cards"; import { ToastStack, useToasts } from "@/components/ui/toast-stack"; import { ManagerApprovalView } from "@/components/manager/approvals-workspace"; import { HavenSelect } from "@/components/ui/haven-select"; import { ALL_LOYALTY_TIERS, loyaltyTierOptions, matchesLoyaltyTier } from "@/lib/guest-loyalty"; import { HavenDataToolbar, HavenFilterBadges, HavenSearchInput } from "@/components/ui/haven-data-controls";
 import HotelOperationsPanel, { OperatingDateBanner } from "@/components/manager/hotel-operations-panel";
 import ReservationPartyPanel from "@/components/manager/reservation-party-panel";
 import ReservationReadinessPanel from "@/components/manager/reservation-readiness-panel";
@@ -120,7 +125,7 @@ const required = (message = "This field is required.") => (v: string | number | 
   const [cashHandoverFocus, setCashHandoverFocus] = useState<string | undefined>();
   const [section, setSection] = useState<Section>("overview"); const [rackRefreshVersion, setRackRefreshVersion] = useState(0); const [dashboard, setDashboard] = useState<DashboardData | null>(null); const [ledger, setLedger] = useState<AccountingLedger | null>(null); const [items, setItems] = useState<RecordItem[]>([]); const [mode, setMode] = useState("demo"); const [loading, setLoading] = useState(true); const [loadError, setLoadError] = useState(""); const [searchBySection, setSearchBySection] = useState<Record<string, string>>({}); const search = searchBySection[section] ?? ""; const sectionRef = useRef<Section>(section); useEffect(() => { sectionRef.current = section; }, [section]); const setSearch = useCallback((value: string) => { const target = sectionRef.current; setSearchBySection(previous => ({ ...previous, [target]: value })); }, []); const setSearchForSection = useCallback((target: Section, value: string) => { setSearchBySection(previous => ({ ...previous, [target]: value })); }, []); const [modal, setModal] = useState(false); const [menu, setMenu] = useState(false); // Transient toast stack — one controller for both surfaces: new-alert toasts
   // (from the dashboard poll diff) and local action feedback (notify()).
-  const toastController = useToasts(); const [notificationsHover, setNotificationsHover] = useState(false); const [notificationsPinned, setNotificationsPinned] = useState(false); const [historyOpen, setHistoryOpen] = useState(false); const staffBellBtn = useRef<HTMLButtonElement>(null); const staffReadKey = `haven-staff-read:${user.id}:${user.role}`; const [staffReadIds, setStaffReadIds] = useState<Set<string>>(() => { try { const raw = window.localStorage.getItem(staffReadKey); const parsed: unknown = raw ? JSON.parse(raw) : []; return new Set(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : []); } catch { return new Set<string>(); } }); const [profileOpen, setProfileOpen] = useState(false); const [settingsOpen, setSettingsOpen] = useState(false); const [soundOn, setSoundOn] = useNotificationSound(); const [detail, setDetail] = useState<ReservationDetail | null>(null); const [guestProfile, setGuestProfile] = useState<GuestProfile | null>(null); const [roomDetail, setRoomDetail] = useState<RecordItem | null>(null); const [roomDetailActions, setRoomDetailActions] = useState<{ label: string; hint?: string; onSelect: () => void }[]>([]); const [rackEntry, setRackEntry] = useState<{ view: "board" | ReservationQueue; tab: ReservationQueue; roomStatus?: "available" } | null>(null); useEffect(() => {
+  const toastController = useToasts(); const [notificationsHover, setNotificationsHover] = useState(false); const [notificationsPinned, setNotificationsPinned] = useState(false); const [historyOpen, setHistoryOpen] = useState(false); const staffBellBtn = useRef<HTMLButtonElement>(null); const staffReadKey = `haven-staff-read:${user.id}:${user.role}`; const [staffReadIds, setStaffReadIds] = useState<Set<string>>(() => { try { const raw = window.localStorage.getItem(staffReadKey); const parsed: unknown = raw ? JSON.parse(raw) : []; return new Set(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : []); } catch { return new Set<string>(); } }); const [profileOpen, setProfileOpen] = useState(false); const [settingsOpen, setSettingsOpen] = useState(false); const [soundOn, setSoundOn] = useNotificationSound(); const [detail, setDetail] = useState<ReservationDetail | null>(null); const [guestProfile, setGuestProfile] = useState<GuestProfile | null>(null); const [roomDetail, setRoomDetail] = useState<RecordItem | null>(null); const [roomDetailActions, setRoomDetailActions] = useState<{ label: string; hint?: string; onSelect: () => void }[]>([]); const [rackEntry, setRackEntry] = useState<{ view: "board" | ReservationQueue; tab: ReservationQueue; roomStatus?: RackBoardState } | null>(null); useEffect(() => {
     if (section !== "room_rack" && section !== "reservations") setRackEntry(null); setDetail(null); setGuestProfile(null); setRoomDetail(null); setRoomDetailActions([]); // eslint-disable-line react-hooks/set-state-in-effect -- section-scoped detail modals must not survive navigation (QA BUG-003); setting already-null state bails out with no render.
 
     // Enforce section access control - redirect to default if section not allowed for role
@@ -401,15 +406,15 @@ const required = (message = "This field is required.") => (v: string | number | 
       <div className="workspace-body">
         {section === "reconciliation" && financialAuthority && <CashExceptionsPanel />}
 
-        {section === "inventory" ? <StockIntegrityPanel role={user.role} /> : section === "team_operations" ? <TeamOperationsPanel role={user.role} actorId={user.id} focusId={cashHandoverFocus} initialSource={cashHandoverSource} onOpenSource={(kind, id) => { const target = ({ reservation: "reservations", guest_request: "guest_requests", housekeeping: "housekeeping_tasks", maintenance: "maintenance_orders", cash_shift: "cash_shifts" } as Record<string, Section>)[kind]; if (target && access[user.role].includes(target)) { setSearchForSection(target, id); setSection(target); } else { notify("Source record retained. Ask the responsible department for details."); } }} /> : section === "lost_found" ? <LostFoundPanel role={user.role} /> : section === "room_types" ? <RoomCatalogPanel role={user.role} /> : section === "transport_services" ? <TransportServicesPanel /> : section === "request_types" ? <RequestTypesPanel /> : section === "transportation" ? <TransportationPanel role={user.role} /> : section === "insights" ? <PredictiveInsightsPanel /> : section === "ai" ? <HavenAiPanel userName={user.name} onOpenQueue={(queue) => setSection(queue)} /> : section === "staff_duty" ? <StaffDutyPanel /> : section === "guest_requests" && ["front_desk", "manager", "housekeeping"].includes(user.role) ? <GuestRequestsPanel role={user.role} onEscalate={user.role === "housekeeping" ? request => escalateGuestRequest(request as unknown as RecordItem) : undefined} /> : section === "invoices" && cashHandling ? <StaffBillingWorkspace role={user.role} refreshVersion={billingRefreshVersion} search={search} onSearch={setSearch} onCollect={collectPayment} onReviewDeposit={verifyDeposit} onOpenReservation={viewReservation} /> : section === "guests" && canViewGuestContact(user.role) ? <GuestManagementWorkspace role={user.role} search={search} setSearch={setSearch} onViewReservation={id => void viewReservation({ id })} /> : loading ? <Loading /> : loadError ? <LoadFailure message={loadError} retry={() => void load()} /> : section === "overview" ? <Overview data={dashboard!} setSection={setSection} allowed={access[user.role]} role={user.role} onScan={() => setScanOpen(true)} onOpenRack={(view, tab) => { setRackEntry({ view, tab }); setSection(view === "board" ? "room_rack" : "reservations"); }} onNewReservation={() => void createReservation()} /> : section === "reports" ? user.role === "front_desk" ? <FrontDeskReportsPanel key={cashReportDate ?? "default"} role={user.role} initialDate={cashReportDate} /> : user.role === "accounting" ? <Reports data={dashboard!} role={user.role} /> : <>
+        {section === "inventory" ? <StockIntegrityPanel role={user.role} /> : section === "team_operations" ? <TeamOperationsPanel role={user.role} actorId={user.id} focusId={cashHandoverFocus} initialSource={cashHandoverSource} onOpenSource={(kind, id) => { const target = ({ reservation: "reservations", guest_request: "guest_requests", housekeeping: "housekeeping_tasks", maintenance: "maintenance_orders", cash_shift: "cash_shifts" } as Record<string, Section>)[kind]; if (target && access[user.role].includes(target)) { setSearchForSection(target, id); setSection(target); } else { notify("Source record retained. Ask the responsible department for details."); } }} /> : section === "lost_found" ? <LostFoundPanel role={user.role} /> : section === "room_types" ? <RoomCatalogPanel role={user.role} /> : section === "transport_services" ? <TransportServicesPanel /> : section === "request_types" ? <RequestTypesPanel /> : section === "transportation" ? <TransportationPanel role={user.role} /> : section === "insights" ? <PredictiveInsightsPanel /> : section === "ai" ? <HavenAiPanel userName={user.name} onOpenQueue={(queue) => setSection(queue)} /> : section === "staff_duty" ? <StaffDutyPanel /> : section === "guest_requests" && ["front_desk", "manager", "housekeeping"].includes(user.role) ? <GuestRequestsPanel role={user.role} onEscalate={user.role === "housekeeping" ? request => escalateGuestRequest(request as unknown as RecordItem) : undefined} /> : section === "invoices" && cashHandling ? <StaffBillingWorkspace role={user.role} refreshVersion={billingRefreshVersion} search={search} onSearch={setSearch} onCollect={collectPayment} onReviewDeposit={verifyDeposit} onOpenReservation={viewReservation} /> : section === "guests" && canViewGuestContact(user.role) ? <GuestManagementWorkspace role={user.role} search={search} setSearch={setSearch} onViewReservation={id => void viewReservation({ id })} /> : loading ? <Loading /> : loadError ? <LoadFailure message={loadError} retry={() => void load()} /> : section === "overview" ? <Overview data={dashboard!} setSection={setSection} allowed={access[user.role]} role={user.role} onScan={() => setScanOpen(true)} onOpenRack={(view, tab, roomStatus) => { setRackEntry({ view, tab, roomStatus }); setSection(view === "board" ? "room_rack" : "reservations"); }} onNewReservation={() => void createReservation()} /> : section === "reports" ? user.role === "front_desk" ? <FrontDeskReportsPanel key={cashReportDate ?? "default"} role={user.role} initialDate={cashReportDate} /> : user.role === "accounting" ? <Reports data={dashboard!} role={user.role} /> : <>
           <Reports data={dashboard!} role={user.role} />
           <FrontDeskReportsPanel key={cashReportDate ?? "default"} role={user.role} initialDate={cashReportDate} />
-        </> : section === "hotel_operations" ? <HotelOperationsPanel role={user.role} onRoom={["front_desk","manager","housekeeping","maintenance"].includes(user.role) ? id => setRoomDetail({id,number:id}) : undefined} onGuest={["front_desk","manager"].includes(user.role) ? id => void viewGuestProfile(id) : undefined} onReservation={["front_desk","manager","accounting"].includes(user.role) ? id => void viewReservation({ id }) : undefined} onTasks={["front_desk","manager","housekeeping"].includes(user.role) ? () => setSection("housekeeping_tasks") : undefined} /> : section === "room_rack" || section === "reservations" && user.role === "front_desk" ? <FrontOfficeRack key={section} refreshVersion={rackRefreshVersion} workspace={section === "room_rack" ? "rooms" : "reservations"} onNavigateReservations={queue => { setRackEntry({ view: queue, tab: queue }); setSection("reservations"); }} onNavigateRooms={() => { setRackEntry({ view: "board", tab: "all", roomStatus: "available" }); setSection("room_rack"); }} onManageRooms={catalogAuthority ? () => setRoster(true) : undefined} role={user.role} onOpenFolio={id => viewReservation({ id })} onCheckIn={id => openArrival({ id })} onViewRoom={(item, actions) => { setRoomDetail(item); setRoomDetailActions(actions ?? []); }} initialView={rackEntry?.view} initialTab={rackEntry?.tab} initialRoomStatus={rackEntry?.roomStatus} onNewReservation={() => void createReservation()} onCheckOut={item => void checkOut(item)} onScan={() => setScanOpen(true)} notify={(message, tone) => toastController.push({ title: message, tone: tone ?? "info", duration: 20000 })} /> : section === "approvals" ? <ManagerApprovalView items={items} openRefunds={() => setSection("refunds")} search={search} setSearch={setSearch} review={reviewManagerApproval} execute={executeManagerApproval} financialExecute={executeManagerFinancialApproval} escalateOwner={escalateOwner} executeException={executeException} canReview={user.role === "manager"} canExecute={operational} canFinancialExecute={financialAuthority} actorId={user.id} /> : section === "cash_shifts" ? <CashShiftsWorkspace refreshError={cashRefreshError} ledger={ledger} role={user.role} actorId={user.id} search={search} setSearch={setSearch} onOpen={openCashShift} onRefresh={() => { void load(true); void refreshShiftStatus(); }} onOpenHandovers={id => { setCashHandoverSource(undefined); setCashHandoverFocus(id); setSection("team_operations"); }} onCreateHandover={shift => { setCashHandoverFocus(undefined); setCashHandoverSource({ type: "cash_shift", id: String(shift.id), summary: "Drawer #" + String(shift.id).slice(0, 8) + " closed with recorded variance " + pesoExact(shift.variance) + ". Concern: " }); setSection("team_operations"); }} onOpenReport={date => { setCashReportDate(date); setSection("reports"); }} /> : isAccountingSection(section) ? <AccountingView section={section} ledger={ledger} search={search} setSearch={setSearch} rejectDeposit={rejectDeposit} reverseCharge={reverseCharge} recordAdjustment={recordAdjustment} recordReconciliation={recordReconciliation} generateDocument={generateDocument} canVerify={financialAuthority} canAdjust={financialAuthority} canReconcile={financialAuthority} canIssueDocument={cashHandling} /> : section === "housekeeping_tasks" ? <HousekeepingQueuePanel role={user.role} userId={user.id} items={filtered} allItems={items} search={search} setSearch={setSearch} housekeepingAction={operateHousekeeping} coordinate={coordinateHousekeeping} applySuggestion={applySuggestion} suggestions={suggestions} onViewMaintenance={() => setSection("maintenance_orders")} onViewRoom={item => setRoomDetail({ id: String(item.room_id), number: item.room_number, type: item.room_type, floor: null, status: item.room_status, housekeeping: item.room_housekeeping })} guestRequestOpen={user.role === "housekeeping" ? dashboard?.metrics?.departmentRequests ?? 0 : 0} onOpenGuestRequests={() => setSection("guest_requests")} /> : section === "reservations" && user.role === "manager" ? <ManagerReservationsPanel items={filtered} search={search} setSearch={setSearch} viewReservation={viewReservation} onReviewException={reviewReservationException} onScan={() => setScanOpen(true)} /> : <ResourceView key={section} resource={section} items={filtered} allItems={items} depositSlaHours={dashboard?.metrics?.depositSlaHours ?? DEFAULT_DEPOSIT_SLA_HOURS} replenishment={replenishmentRoles ? replenishment : null} createDraftPo={createDraftPo} submitPo={submitPo} receivePo={receivePo} cancelPo={cancelPo} assets={assetRoles ? maintenanceAssets : null} registerAsset={registerAsset} assetAction={assetAction} search={search} setSearch={setSearch} open={section === "maintenance_orders" ? createMaintenance : () => setModal(true)} advance={advance} checkIn={openArrival} verifyDeposit={verifyDeposit} rejectDeposit={rejectDeposit} viewReservation={viewReservation} viewRoom={item => setRoomDetail(item)} viewGuest={item => viewGuestProfile(String(item.id))} processRefund={processRefund} failRefund={failRefund} canProcessRefund={financialAuthority} canVerify={financialAuthority} canCheckIn={operational} requestApproval={requestManagerApproval} escalateGuestRequest={escalateGuestRequest} progressGuestRequest={progressGuestRequest} canProgressGuestRequest={canProgressGuestRequest} coordinateHousekeeping={coordinateHousekeeping} coordinateMaintenance={coordinateMaintenance} housekeepingAction={operateHousekeeping} maintenanceAction={operateMaintenance} createReservation={createReservation} openWalkIn={openWalkInDialog} canMaintain={user.role === "maintenance"} canAssignOthers={false} canHousekeep={user.role === "housekeeping"} canCoordinate={user.role === "manager"} canRequestApproval={user.role === "front_desk" || user.role === "housekeeping" || user.role === "maintenance" || user.role === "accounting"} manageRooms={catalogAuthority ? () => setRoster(true) : null} onScan={section === "reservations" ? () => setScanOpen(true) : null} canCreate={section !== "rooms" && section !== "maintenance_orders" && user.role !== "accounting" && user.role !== "manager" && !(user.role === "front_desk" && ["rooms", "guests", "housekeeping_tasks", "invoices", "payments"].includes(section))} canAdvance={section !== "rooms" && section !== "maintenance_orders" && user.role !== "manager" && !(user.role === "front_desk" && ["rooms", "housekeeping_tasks", "invoices"].includes(section))} />}
+        </> : section === "hotel_operations" ? <HotelOperationsPanel role={user.role} onRoom={["front_desk","manager","housekeeping","maintenance"].includes(user.role) ? id => setRoomDetail({id,number:id}) : undefined} onGuest={["front_desk","manager"].includes(user.role) ? id => void viewGuestProfile(id) : undefined} onReservation={["front_desk","manager","accounting"].includes(user.role) ? id => void viewReservation({ id }) : undefined} onTasks={["front_desk","manager","housekeeping"].includes(user.role) ? () => setSection("housekeeping_tasks") : undefined} /> : section === "room_rack" || section === "reservations" && user.role === "front_desk" ? <FrontOfficeRack key={section} refreshVersion={rackRefreshVersion} workspace={section === "room_rack" ? "rooms" : "reservations"} onNavigateReservations={queue => { setRackEntry({ view: queue, tab: queue }); setSection("reservations"); }} onNavigateRooms={() => { setRackEntry({ view: "board", tab: "all", roomStatus: "available" }); setSection("room_rack"); }} onManageRooms={catalogAuthority ? () => setRoster(true) : undefined} role={user.role} onOpenFolio={id => viewReservation({ id })} onCheckIn={id => openArrival({ id })} onViewRoom={(item, actions) => { setRoomDetail(item); setRoomDetailActions(actions ?? []); }} initialView={rackEntry?.view} initialTab={rackEntry?.tab} initialRoomStatus={rackEntry?.roomStatus} onNewReservation={() => void createReservation()} onCheckOut={item => void checkOut(item)} onScan={() => setScanOpen(true)} notify={(message, tone) => toastController.push({ title: message, tone: tone ?? "info", duration: 20000 })} /> : section === "approvals" ? <ManagerApprovalView items={items} openRefunds={() => setSection("refunds")} search={search} setSearch={setSearch} review={reviewManagerApproval} execute={executeManagerApproval} financialExecute={executeManagerFinancialApproval} escalateOwner={escalateOwner} executeException={executeException} canReview={user.role === "manager"} canExecute={operational} canFinancialExecute={financialAuthority} actorId={user.id} /> : section === "cash_shifts" ? <CashShiftsWorkspace refreshError={cashRefreshError} ledger={ledger} role={user.role} actorId={user.id} search={search} setSearch={setSearch} onOpen={openCashShift} onRefresh={() => { void load(true); void refreshShiftStatus(); }} onOpenHandovers={id => { setCashHandoverSource(undefined); setCashHandoverFocus(id); setSection("team_operations"); }} onCreateHandover={shift => { setCashHandoverFocus(undefined); setCashHandoverSource({ type: "cash_shift", id: String(shift.id), summary: "Drawer #" + String(shift.id).slice(0, 8) + " closed with recorded variance " + pesoExact(shift.variance) + ". Concern: " }); setSection("team_operations"); }} onOpenReport={date => { setCashReportDate(date); setSection("reports"); }} /> : isAccountingSection(section) ? <AccountingView section={section} ledger={ledger} search={search} setSearch={setSearch} rejectDeposit={rejectDeposit} reverseCharge={reverseCharge} recordAdjustment={recordAdjustment} recordReconciliation={recordReconciliation} generateDocument={generateDocument} canVerify={financialAuthority} canAdjust={financialAuthority} canReconcile={financialAuthority} canIssueDocument={cashHandling} /> : section === "housekeeping_tasks" ? <HousekeepingQueuePanel role={user.role} userId={user.id} items={filtered} allItems={items} search={search} setSearch={setSearch} housekeepingAction={operateHousekeeping} coordinate={coordinateHousekeeping} applySuggestion={applySuggestion} suggestions={suggestions} onViewRoom={(item, tab) => setRoomDetail({ id: String(item.room_id), number: item.room_number, type: item.room_type, floor: item.room_floor, status: item.room_status, housekeeping: item.room_housekeeping, initial_tab: tab })} onServiceOutcome={recordHousekeepingOutcome} onSetDnd={setHousekeepingDnd} guestRequestOpen={user.role === "housekeeping" ? dashboard?.metrics?.departmentRequests ?? 0 : 0} onOpenGuestRequests={() => setSection("guest_requests")} /> : section === "reservations" && user.role === "manager" ? <ManagerReservationsPanel initialQueue={rackEntry?.tab} items={filtered} search={search} setSearch={setSearch} viewReservation={viewReservation} onReviewException={reviewReservationException} onScan={() => setScanOpen(true)} /> : <ResourceView key={section} resource={section} items={filtered} allItems={items} depositSlaHours={dashboard?.metrics?.depositSlaHours ?? DEFAULT_DEPOSIT_SLA_HOURS} replenishment={replenishmentRoles ? replenishment : null} createDraftPo={createDraftPo} submitPo={submitPo} receivePo={receivePo} cancelPo={cancelPo} assets={assetRoles ? maintenanceAssets : null} registerAsset={registerAsset} assetAction={assetAction} search={search} setSearch={setSearch} open={section === "maintenance_orders" ? createMaintenance : () => setModal(true)} advance={advance} checkIn={openArrival} verifyDeposit={verifyDeposit} rejectDeposit={rejectDeposit} viewReservation={viewReservation} viewRoom={item => setRoomDetail(item)} viewGuest={item => viewGuestProfile(String(item.id))} processRefund={processRefund} failRefund={failRefund} canProcessRefund={financialAuthority} canVerify={financialAuthority} canCheckIn={operational} requestApproval={requestManagerApproval} escalateGuestRequest={escalateGuestRequest} progressGuestRequest={progressGuestRequest} canProgressGuestRequest={canProgressGuestRequest} coordinateHousekeeping={coordinateHousekeeping} coordinateMaintenance={coordinateMaintenance} housekeepingAction={operateHousekeeping} maintenanceAction={operateMaintenance} createReservation={createReservation} openWalkIn={openWalkInDialog} canMaintain={user.role === "maintenance"} canAssignOthers={false} canHousekeep={user.role === "housekeeping"} canCoordinate={user.role === "manager"} canRequestApproval={user.role === "front_desk" || user.role === "housekeeping" || user.role === "maintenance" || user.role === "accounting"} manageRooms={catalogAuthority ? () => setRoster(true) : null} onScan={section === "reservations" ? () => setScanOpen(true) : null} canCreate={section !== "rooms" && section !== "maintenance_orders" && user.role !== "accounting" && user.role !== "manager" && !(user.role === "front_desk" && ["rooms", "guests", "housekeeping_tasks", "invoices", "payments"].includes(section))} canAdvance={section !== "rooms" && section !== "maintenance_orders" && user.role !== "manager" && !(user.role === "front_desk" && ["rooms", "housekeeping_tasks", "invoices"].includes(section))} />}
       </div>
     </main>
     {modal && isResourceSection(section) && <CreateModal resource={section} close={() => setModal(false)} submit={add} />}
     {settingsOpen && <SettingsDialog isOpen onClose={() => setSettingsOpen(false)} />}
-    {roomDetail && <RoomDetailModal key={String(roomDetail.id)} room={roomDetail} role={user.role} onClose={() => { setRoomDetail(null); setRoomDetailActions([]); }} actions={roomDetailActions.map((action) => ({ ...action, onSelect: () => { const run = action.onSelect; setRoomDetail(null); setRoomDetailActions([]); run(); } }))} onViewReservation={id => { setRoomDetail(null); viewReservation({ id }); }} />}
+    {roomDetail && <RoomDetailModal key={String(roomDetail.id)} room={roomDetail} role={user.role} initialTab={roomDetail.initial_tab === "maintenance" ? "maintenance" : "overview"} onClose={() => { setRoomDetail(null); setRoomDetailActions([]); }} actions={roomDetailActions.map((action) => ({ ...action, onSelect: () => { const run = action.onSelect; setRoomDetail(null); setRoomDetailActions([]); run(); } }))} onViewReservation={id => { setRoomDetail(null); viewReservation({ id }); }} />}
     {verifyPayment && <PaymentRecordDialog item={verifyPayment} busy={verifying} canReview={financialAuthority} onClose={() => setVerifyPayment(null)} onConfirm={() => confirmVerifyDeposit(verifyPayment)} onReject={() => { const item = verifyPayment; setVerifyPayment(null); rejectDeposit(item); }} />}
     {scanOpen && <QrScannerModal onClose={() => setScanOpen(false)} onCta={scanCta} />}
     {roster && <RoomRosterPanel onClose={() => { setRoster(false); void load(true); }} />}
@@ -424,165 +429,124 @@ const required = (message = "This field is required.") => (v: string | number | 
   </div>;
 } // Role-based Overview composition (exported for the jsdom composition test;
 // the dashboard itself uses it internally).
-export function Overview({ data, setSection, allowed, role, onScan, onOpenRack, onNewReservation }: { data: DashboardData; setSection: (s: Section) => void; allowed: Section[]; role: Role; onScan: () => void; onOpenRack?: (view: "board" | ReservationQueue, tab: ReservationQueue) => void; onNewReservation?: () => void; }) {
-  const m = data.metrics; const canUseRack = allowed.includes("reservations") && allowed.includes("rooms"); const openRooms = () => ((canUseRack && onOpenRack) ? onOpenRack("board", "arrivals") : setSection("rooms")); const trend = data.occupancyTrend; const delta = trend.length > 1 ? trend[trend.length - 1].occupancy - trend[0].occupancy : 0; const cards = role === "manager" ? [{ label: "Occupancy today", value: `${m.occupancy}%`, hint: `Live room rack · ${m.inHouse} in-house guests`, icon: BedDouble }, { label: "Arrivals / departures", value: `${m.arrivals} / ${m.departures}`, hint: `${m.unassignedArrivals} arrivals unassigned`, icon: CalendarDays }, { label: "Rooms ready", value: m.availableRooms, hint: `${m.dirtyRooms} dirty · ${m.outOfServiceRooms} out of service`, icon: BedDouble }, { label: "Pending approvals", value: m.pendingApprovals, hint: `${m.escalatedIssues} escalated guest issues`, icon: ClipboardCheck }, { label: "Critical Maintenance", value: m.criticalMaintenance, hint: `${m.openMaintenance} open work orders`, icon: Wrench }, { label: "Overdue workload", value: m.overdueHousekeeping + m.overdueRequests, hint: `${m.overdueHousekeeping} Housekeeping · ${m.overdueRequests} requests`, icon: Activity }, { label: "Collections today", value: peso(m.collectionsToday), hint: `${peso(m.depositsReceived)} deposits`, icon: CircleDollarSign }, { label: "Outstanding balances", value: peso(m.outstandingBalances), hint: `${peso(m.refundSummary)} refunds today`, icon: ReceiptText }] : role === "front_desk" ? [{ label: "Arrivals today", value: m.arrivals, hint: `${m.unassignedArrivals} need room assignment`, icon: CalendarDays }, { label: "Departures today", value: m.departures, hint: `${m.balancesAttention} balance${m.balancesAttention === 1 ? "" : "s"} need${m.balancesAttention === 1 ? "s" : ""} attention`, icon: LogOut }, { label: "In-house guests", value: m.inHouse, hint: `${m.openRequests} open guest requests`, icon: Users }, { label: "Rooms ready", value: m.availableRooms, hint: `${m.dirtyRooms} awaiting readiness`, icon: BedDouble }, { label: "Cash this shift", value: peso(m.cashThisShift ?? 0), hint: m.shiftOpen ? `Open shift · float ${peso(m.shiftFloat ?? 0)} · closes into expected cash` : "Shift closed · Open in Cash & Shifts", icon: CircleDollarSign }] : role === "housekeeping" ? [{ label: "Dirty rooms", value: m.dirtyRooms, hint: `${m.openTasks} open room-care tasks`, icon: BedDouble }, { label: "Cleaning now", value: m.roomsCleaning, hint: "Exclusive active tasks", icon: ClipboardCheck }, { label: "Awaiting inspection", value: m.roomsAwaitingInspection, hint: `${m.overdueHousekeeping} overdue task${m.overdueHousekeeping === 1 ? "" : "s"}`, icon: Search }, { label: "Rooms ready", value: m.availableRooms, hint: `${m.openMaintenance} maintenance blocks`, icon: Sparkles }] : role === "maintenance" ? [{ label: "Active work orders", value: m.openMaintenance, hint: `${m.criticalMaintenance} urgent or critical`, icon: Wrench }, { label: "Rooms technically blocked", value: m.outOfServiceRooms, hint: "Based on Maintenance diagnosis", icon: BedDouble }, { label: "Maintenance guest requests", value: m.openRequests, hint: "Routed operational requests", icon: Bell }, { label: "Rooms ready", value: m.availableRooms, hint: "Clean and technically serviceable", icon: Sparkles }] : role === "accounting" ? [{ label: "Pending verifications", value: m.pendingVerifications ?? 0, hint: (m.oldestPendingVerificationMinutes ?? 0) > 0 ? `Oldest waiting ${formatDepositAge(m.oldestPendingVerificationMinutes ?? 0)}` : "No deposits awaiting review", icon: ClipboardCheck }, { label: "Past SLA", value: m.pendingPastSla ?? 0, hint: `Verification target ${m.depositSlaHours ?? 4}h`, icon: AlertTriangle }, { label: "Pending refunds", value: m.pendingRefundCount ?? 0, hint: "Awaiting Accounting action", icon: CircleDollarSign }, { label: "Collections today", value: peso(m.collectionsToday), hint: `${peso(m.depositsReceived)} deposits`, icon: Wallet }, { label: "Outstanding balances", value: peso(m.outstandingBalances), hint: "Across open folios", icon: ReceiptText }, { label: "Refunds today", value: peso(m.refundSummary), hint: "Settled refund amounts", icon: Scale }] : [{ label: "Occupancy", value: `${m.occupancy}%`, hint: "Live room status across all rooms", icon: BedDouble }, { label: "Arrivals today", value: m.arrivals, hint: "Expected check-ins", icon: CalendarDays }, { label: "Departures", value: m.departures, hint: "Due to check out", icon: LogOut }, { label: "Revenue collected", value: peso(m.revenue), hint: "Current folios", icon: CircleDollarSign }]; return <>
-    <PageHeader
-      variant="default"
-      eyebrow={role === "manager" ? "Management command center" : role === "accounting" ? "Accounting operations" : role === "housekeeping" ? "Housekeeping operations" : role === "maintenance" ? "Maintenance operations" : "Operations overview"}
-      title={role === "manager" ? "What is at risk right now?" : role === "accounting" ? "What needs financial action?" : role === "housekeeping" ? "Room readiness for this shift" : role === "maintenance" ? "Technical serviceability for this shift" : "Here's what's happening today."}
-      subtitle={role === "manager" ? "Cross-department exceptions, readiness, workload, and authorized summaries." : role === "accounting" ? "Verifications, refunds, collections, and reconciliation — actionable work first." : role === "maintenance" ? "Claim, diagnose, repair, and restore assets through an auditable workflow." : "Everything your team needs for a smooth shift."}
-      actions={<>
-        <button className="btn btn-soft" onClick={onScan}>
-          <QrCode size={17} /> Scan QR
-        </button>
-        {allowed.includes("reservations") && <button className="btn btn-accent" onClick={() => (onNewReservation ? onNewReservation() : setSection("reservations"))}>
-          <Plus size={17} /> New reservation
-        </button>}
-      </>}
-    />
-    <div className={`metric-grid${role === "front_desk" ? " front-desk-metrics" : ""}`}>
-      {cards.map(({ label: txt, value, hint, icon: Icon }) => <article className={`metric-card${role === "front_desk" && ((txt === "In-house guests" && m.openRequests > 0) || (txt === "Cash this shift" && !m.shiftOpen)) ? " metric-needs-attention" : ""}`} key={txt}>
-        <div>
-          <span>{txt}</span>
-          <b>{value}</b>
-          <small>{hint}</small>
+export function Overview({ data, setSection, allowed, role, onScan, onOpenRack, onNewReservation }: { data: DashboardData; setSection: (s: Section) => void; allowed: Section[]; role: Role; onScan: () => void; onOpenRack?: (view: "board" | ReservationQueue, tab: ReservationQueue, roomStatus?: RackBoardState) => void; onNewReservation?: () => void; }) {
+  if (role === "manager") return <ManagerOverview data={data} setSection={setSection} allowed={allowed} onScan={onScan} onOpenRack={onOpenRack} />;
+  if (role !== "front_desk" && role !== "housekeeping" && role !== "maintenance" && role !== "accounting") return null;
+
+  const m = data.metrics;
+  const openSection = (section: Section) => canOpenSection(allowed, section) ? () => setSection(section) : undefined;
+  const openRooms = () => canOpenSection(allowed, "room_rack") && onOpenRack
+    ? onOpenRack("board", "arrivals")
+    : setSection("rooms");
+  const openBookingQueue = (queue: ReservationQueue) => () => onOpenRack && canOpenSection(allowed, "room_rack")
+    ? onOpenRack(queue, queue)
+    : setSection("reservations");
+  const frontDesk = role === "front_desk";
+  const accounting = role === "accounting";
+  const housekeeping = role === "housekeeping";
+  const briefing = openSection("hotel_operations");
+  const title = { front_desk: "Front Desk", housekeeping: "Housekeeping", maintenance: "Maintenance", accounting: "Accounting" }[role];
+  const queueTitle = frontDesk ? "Today's arrivals & departures" : accounting ? "Pending financial actions" : housekeeping ? "Priority tasks this shift" : "Work orders needing attention";
+
+  const cards: DashboardMetric[] = frontDesk ? [
+    { label: "Arrivals today", value: m.arrivals, hint: `${m.unassignedArrivals} need room assignment`, icon: CalendarDays, onOpen: allowed.includes("reservations") ? openBookingQueue("arrivals") : undefined },
+    { label: "Departures today", value: m.departures, hint: `${m.balancesAttention} balances need attention`, icon: LogOut, onOpen: allowed.includes("reservations") ? openBookingQueue("departures") : undefined },
+    { label: "In-house stays", value: m.inHouse, hint: `${m.openRequests} open guest requests`, icon: Users, onOpen: allowed.includes("reservations") ? openBookingQueue("in_house") : undefined },
+    { label: "Rooms ready", value: m.availableRooms, hint: "Clean and ready to assign", icon: BedDouble, onOpen: allowed.includes("rooms") ? () => onOpenRack ? onOpenRack("board", "all", "available") : openRooms() : undefined },
+  ] : accounting ? [
+    { label: "Pending verifications", value: m.pendingVerifications ?? 0, hint: (m.oldestPendingVerificationMinutes ?? 0) > 0 ? `Oldest waiting ${formatDepositAge(m.oldestPendingVerificationMinutes ?? 0)}` : "Deposit review queue", icon: ClipboardCheck, onOpen: openSection("payments") },
+    { label: "Past SLA", value: m.pendingPastSla ?? 0, hint: `Verification target ${m.depositSlaHours ?? 4}h`, icon: AlertTriangle, onOpen: openSection("payments") },
+    { label: "Pending refunds", value: m.pendingRefundCount ?? 0, hint: "Awaiting Accounting action", icon: CircleDollarSign, onOpen: openSection("refunds") },
+    { label: "Balances to review", value: m.balancesAttention, hint: "Arrivals and departures with a balance", icon: ReceiptText, onOpen: openSection("folios") },
+  ] : housekeeping ? [
+    { label: "Dirty rooms", value: m.dirtyRooms, hint: `${m.openTasks} open room-care tasks`, icon: BedDouble, onOpen: openSection("housekeeping_tasks") },
+    { label: "Cleaning now", value: m.roomsCleaning, hint: "Active cleaning tasks", icon: ClipboardCheck, onOpen: openSection("housekeeping_tasks") },
+    { label: "Awaiting inspection", value: m.roomsAwaitingInspection, hint: `${m.overdueHousekeeping} overdue tasks`, icon: Search, onOpen: openSection("housekeeping_tasks") },
+    { label: "Rooms ready", value: m.availableRooms, hint: "Clean and serviceable", icon: Sparkles, onOpen: openSection("rooms") },
+  ] : [
+    { label: "Active work orders", value: m.openMaintenance, hint: `${m.criticalMaintenance} urgent or critical`, icon: Wrench, onOpen: openSection("maintenance_orders") },
+    { label: "Rooms blocked", value: m.outOfServiceRooms, hint: "Based on Maintenance diagnosis", icon: BedDouble, onOpen: openSection("rooms") },
+    { label: "Routed guest requests", value: m.departmentRequests ?? 0, hint: "Approved requests for Maintenance", icon: Bell, onOpen: openSection("maintenance_orders") },
+    { label: "Rooms ready", value: m.availableRooms, hint: "Clean and technically serviceable", icon: Sparkles, onOpen: openSection("rooms") },
+  ];
+
+  const shift = data.frontDeskShift;
+  const viewBookings = () => onOpenRack && canOpenSection(allowed, "room_rack") ? onOpenRack("all", "all") : setSection("reservations");
+
+  return <DashboardOverview className={`overview-role-${role}`}>
+    <DashboardHeading title={`${title} dashboard`} actions={<>
+      <button type="button" className="btn btn-soft" onClick={onScan}><QrCode size={17} aria-hidden="true" /> Scan QR</button>
+      {frontDesk && allowed.includes("reservations") && <button type="button" className="btn btn-accent" onClick={onNewReservation ?? viewBookings}><Plus size={17} aria-hidden="true" /> New reservation</button>}
+      {briefing && <button type="button" className={frontDesk ? "btn btn-soft" : "btn btn-accent"} onClick={briefing}><ClipboardCheck size={17} aria-hidden="true" /> Shift briefing</button>}
+    </>} />
+    <DashboardMetrics items={cards} />
+    <div className="dashboard-grid-layout">
+      <DashboardPanel title={queueTitle}>
+        <div className="dashboard-actions">
+          {frontDesk ? <>
+            <HavenActionItem icon={CalendarDays} tone="amber" title={`${m.unassignedArrivals} arrivals need rooms`} description="Arrivals without a room assignment" quiet={m.unassignedArrivals === 0} onAction={openRooms} />
+            <HavenActionItem icon={LogIn} tone="green" title={`${m.arrivals} arrivals today`} description="Expected check-ins" quiet={m.arrivals === 0} onAction={openBookingQueue("arrivals")} />
+            <HavenActionItem icon={LogOut} tone="neutral" title={`${m.departures} departures today`} description={`${m.balancesAttention} balances need attention`} quiet={m.departures === 0} onAction={openBookingQueue("departures")} />
+            <HavenActionItem icon={Users} tone="amber" title={`${m.openRequests} open guest requests`} description="Across all departments" quiet={m.openRequests === 0} onAction={openSection("guest_requests")} />
+          </> : accounting ? <>
+            <HavenActionItem icon={ClipboardCheck} tone="amber" title={`${m.pendingVerifications ?? 0} deposits awaiting verification`} description={(m.pendingPastSla ?? 0) > 0 ? `${m.pendingPastSla} past the ${m.depositSlaHours ?? 4}h target` : "Oldest first in Deposit Verification"} quiet={(m.pendingVerifications ?? 0) === 0} onAction={openSection("payments")} />
+            <HavenActionItem icon={CircleDollarSign} tone="rose" title={`${m.pendingRefundCount ?? 0} refunds awaiting action`} description="Review open and failed refunds" quiet={(m.pendingRefundCount ?? 0) === 0} onAction={openSection("refunds")} />
+            <HavenActionItem icon={Scale} tone="info" title="Reconciliation" description="Match statements against recorded collections" onAction={openSection("reconciliation")} />
+          </> : housekeeping ? <>
+            <HavenActionItem icon={BedDouble} tone="amber" title={`${m.dirtyRooms} dirty rooms`} description={`${m.openTasks} open room-care tasks`} quiet={m.dirtyRooms === 0} onAction={openSection("housekeeping_tasks")} />
+            <HavenActionItem icon={ClipboardCheck} tone="green" title={`${m.roomsCleaning} cleaning in progress`} description="Claimed and being worked now" quiet={m.roomsCleaning === 0} onAction={openSection("housekeeping_tasks")} />
+            <HavenActionItem icon={Search} tone="amber" title={`${m.roomsAwaitingInspection} awaiting inspection`} description={`${m.overdueHousekeeping} overdue tasks`} quiet={m.roomsAwaitingInspection === 0} onAction={openSection("housekeeping_tasks")} />
+            <HavenActionItem icon={Wrench} tone="rose" title={`${m.outOfServiceRooms} technically blocked rooms`} description="Review room availability" quiet={m.outOfServiceRooms === 0} onAction={openSection("rooms")} />
+          </> : <>
+            <HavenActionItem icon={AlertTriangle} tone="rose" title={`${m.criticalMaintenance} urgent or critical`} description="Safety and guest-impact work" quiet={m.criticalMaintenance === 0} onAction={openSection("maintenance_orders")} />
+            <HavenActionItem icon={Wrench} tone="amber" title={`${m.openMaintenance} active work orders`} description="Review open repairs" quiet={m.openMaintenance === 0} onAction={openSection("maintenance_orders")} />
+            <HavenActionItem icon={BedDouble} tone="rose" title={`${m.outOfServiceRooms} technically blocked rooms`} description="Based on Maintenance diagnosis" quiet={m.outOfServiceRooms === 0} onAction={openSection("rooms")} />
+            <HavenActionItem icon={Bell} tone="info" title={`${m.departmentRequests ?? 0} routed guest requests`} description="Approved requests for Maintenance" quiet={(m.departmentRequests ?? 0) === 0} onAction={openSection("maintenance_orders")} />
+          </>}
         </div>
-        <i>
-          <Icon size={21} />
-        </i>
-      </article>)}
+      </DashboardPanel>
+      {accounting ? <DailyDashboardFinances totals={m} /> : <DashboardPanel title="Room readiness" description="Current room rack">
+        <div className="dashboard-panel-body">
+          <div className="dashboard-partition" aria-hidden="true">{data.roomMix.filter(room => room.value > 0).map(room => <span key={room.name} style={{ background: room.color, flexGrow: room.value }} />)}</div>
+          <div className="dashboard-actions dashboard-room-list">{data.roomMix.map(room => {
+            const noun = room.value === 1 ? "room" : "rooms";
+            const title = room.name === "Available" ? `${noun} ready` : room.name === "Service" ? `${noun} requiring service` : `${room.name.toLowerCase()} ${noun}`;
+            const state = ({ Available: "available", Occupied: "occupied", Reserved: "reserved" } as Partial<Record<string, RackBoardState>>)[room.name];
+            const open = frontDesk && onOpenRack && state ? () => onOpenRack("board", "all", state) : openRooms;
+            return <HavenActionItem key={room.name} icon={BedDouble} title={`${room.value} ${title}`}
+              tone={room.name === "Available" ? "green" : "neutral"} quiet={room.value === 0}
+              onAction={allowed.includes("rooms") ? open : undefined} />;
+          })}</div>
+        </div>
+      </DashboardPanel>}
+
+      {allowed.includes("reservations") && <DashboardPanel title="Recent bookings" description="Latest guest activity"
+        action={<button type="button" className="btn btn-soft btn-sm" onClick={viewBookings}>View all <ChevronRight size={16} aria-hidden="true" /></button>}>
+        <div className="dashboard-panel-body">
+          {data.recentReservations.length ? data.recentReservations.map(row => <div className="arrival-row" key={row.id}>
+            <span className="avatar" aria-hidden="true">{String(row.guest_name).split(" ").map(name => name[0]).join("")}</span>
+            <div><b>{row.guest_name}</b><small>{row.room_type} · {row.check_in}</small></div>
+            <StatusBadge status={String(row.status)} label={label(row.status)} />
+          </div>) : <p className="dashboard-empty">No recent bookings.</p>}
+        </div>
+      </DashboardPanel>}
+      {frontDesk && allowed.includes("cash_shifts") && <DashboardFinances title="Cash this shift"
+        description={shift?.open ? "Open drawer" : undefined}
+        empty={shift ? "No drawer is open." : "Drawer summary is unavailable."}
+        amounts={shift?.open ? [{ label: "Collected into drawer", value: shift.collected }, { label: "Opening float", value: shift.openingFloat }] : []}>
+        <button type="button" className="btn btn-soft" onClick={openSection("cash_shifts")}>Cash &amp; Shifts <ChevronRight size={15} aria-hidden="true" /></button>
+      </DashboardFinances>}
+      {!frontDesk && <DashboardPanel title={accounting ? "Financial follow-ups" : "Department shortcuts"} className={accounting ? undefined : "dashboard-wide"}>
+        <div className="dashboard-actions">
+          {allowed.includes("approvals") && <HavenActionItem icon={ClipboardCheck} tone="neutral" title="Approvals & escalations" description="Track filed requests" onAction={openSection("approvals")} />}
+          {allowed.includes("documents") && <HavenActionItem icon={FileText} tone="neutral" title="Financial documents" description="Issued receipts and folio statements" onAction={openSection("documents")} />}
+          {allowed.includes("cash_shifts") && <HavenActionItem icon={Wallet} tone="neutral" title="Cash & shifts" description="Review drawer activity" onAction={openSection("cash_shifts")} />}
+          {allowed.includes("inventory") && <HavenActionItem icon={Boxes} tone="neutral" title="Inventory" description="Review department supplies" onAction={openSection("inventory")} />}
+          {housekeeping && allowed.includes("guest_requests") && <HavenActionItem icon={Bell} tone="info" title="Guest requests" description={`${m.departmentRequests ?? 0} routed to Housekeeping`} onAction={openSection("guest_requests")} />}
+        </div>
+      </DashboardPanel>}
     </div>
-    <div className={`dashboard-grid overview-role-${role}`}>
-      {role === "manager" ? <article className="panel chart-panel">
-        <div className="panel-heading">
-          <div>
-            <h3>Booked occupancy this week</h3>
-            <p>Rooms with a stay covering each night, from reservation stay dates</p>
-          </div>
-          <span className="trend">
-            {delta >= 0 ? "+" : ""}
-            {delta}%
-          </span>
-        </div>
-        <ResponsiveContainer width="100%" height={240}>
-          <AreaChart data={data.occupancyTrend}>
-            <defs>
-              <linearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={CHART_OCCUPANCY} stopOpacity={0.28} />
-                <stop offset="95%" stopColor={CHART_OCCUPANCY} stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART_GRID} />
-            <XAxis dataKey="day" axisLine={false} tickLine={false} />
-            <Tooltip />
-            <Area type="monotone" dataKey="occupancy" stroke={CHART_OCCUPANCY} strokeWidth={2.5} fill="url(#fill)" />
-          </AreaChart>
-        </ResponsiveContainer>
-      </article> : <article className="panel ops-queue-panel">
-        <div className="panel-heading">
-          <div>
-            <h3>{role === "front_desk" ? "Today's arrivals & departures" : role === "accounting" ? "Pending financial actions" : role === "housekeeping" ? "Priority tasks this shift" : "Work orders needing attention"}</h3>
-            <p>{role === "front_desk" ? "Guests moving today, and the rooms they need" : role === "accounting" ? "Verifications, refunds, and reconciliation queues" : role === "housekeeping" ? "Rooms that need your hands first" : "Repairs ranked by guest and safety impact"}</p>
-          </div>
-        </div>
-        {role === "front_desk" ? <div className="haven-action-list">
-          <HavenActionItem icon={CalendarDays} tone="amber" title={<>{m.unassignedArrivals} arrivals need rooms</>} description="Confirmed arrivals without a room assignment" quiet={m.unassignedArrivals === 0} onAction={() => (onOpenRack ? onOpenRack("board", "arrivals") : setSection("room_rack"))} />
-          <HavenActionItem icon={LogIn} tone="green" title={<>{m.arrivals} arrivals today</>} description="Expected check-ins" quiet={m.arrivals === 0} onAction={() => (onOpenRack ? onOpenRack("arrivals", "arrivals") : setSection("room_rack"))} />
-          <HavenActionItem icon={LogOut} tone="neutral" title={<>{m.departures} departures today</>} description={<>{m.balancesAttention} balance{m.balancesAttention === 1 ? "" : "s"} need{m.balancesAttention === 1 ? "s" : ""} attention</>} quiet={m.departures === 0} onAction={() => (onOpenRack ? onOpenRack("departures", "departures") : setSection("room_rack"))} />
-          <HavenActionItem icon={Users} tone="amber" title={<>{m.openRequests} open guest requests</>} description="Across all departments" quiet={m.openRequests === 0} onAction={() => setSection("guest_requests")} />
-        </div> : role === "accounting" ? <div className="haven-action-list">
-          <HavenActionItem icon={ClipboardCheck} tone="amber" title={<>{m.pendingVerifications ?? 0} deposits awaiting verification</>} description={(m.pendingPastSla ?? 0) > 0 ? `${m.pendingPastSla} past the ${m.depositSlaHours ?? 4}h target` : "Oldest first in Deposit Verification"} quiet={(m.pendingVerifications ?? 0) === 0} onAction={() => setSection("payments")} />
-          <HavenActionItem icon={CircleDollarSign} tone="rose" title={<>{m.pendingRefundCount ?? 0} refund{(m.pendingRefundCount ?? 0) === 1 ? "" : "s"} awaiting action</>} description="Failed refunds need a retry decision" quiet={(m.pendingRefundCount ?? 0) === 0} onAction={() => setSection("refunds")} />
-          <HavenActionItem icon={Scale} tone="info" title="Reconciliation & documents" description={`${peso(m.outstandingBalances)} outstanding across open folios`} onAction={() => setSection("reconciliation")} />
-        </div> : role === "housekeeping" ? <div className="haven-action-list">
-          <HavenActionItem icon={BedDouble} tone="amber" title={<>{m.dirtyRooms} dirty rooms</>} description={`${m.openTasks} open room-care tasks`} quiet={m.dirtyRooms === 0} onAction={() => setSection("housekeeping_tasks")} />
-          <HavenActionItem icon={ClipboardCheck} tone="green" title={<>{m.roomsCleaning} cleaning in progress</>} description="Claimed and being worked now" quiet={m.roomsCleaning === 0} onAction={() => setSection("housekeeping_tasks")} />
-          <HavenActionItem icon={Search} tone="amber" title={<>{m.roomsAwaitingInspection} awaiting inspection</>} description={<>{m.overdueHousekeeping} overdue task{m.overdueHousekeeping === 1 ? "" : "s"}</>} quiet={m.roomsAwaitingInspection === 0} onAction={() => setSection("housekeeping_tasks")} />
-          <HavenActionItem icon={Wrench} tone="rose" title={<>{m.outOfServiceRooms} technically blocked room{m.outOfServiceRooms === 1 ? "" : "s"}</>} description="Visible for coordination; Maintenance owns repair" quiet={m.outOfServiceRooms === 0} onAction={openRooms} />
-        </div> : <div className="haven-action-list">
-          <HavenActionItem icon={AlertTriangle} tone="rose" title={<>{m.criticalMaintenance} urgent or critical</>} description="Safety and guest-impact first" quiet={m.criticalMaintenance === 0} onAction={() => setSection("maintenance_orders")} />
-          <HavenActionItem icon={Wrench} tone="amber" title={<>{m.openMaintenance} active work orders</>} description="Claim, diagnose, repair, restore" quiet={m.openMaintenance === 0} onAction={() => setSection("maintenance_orders")} />
-          <HavenActionItem icon={BedDouble} tone="rose" title={<>{m.outOfServiceRooms} room{m.outOfServiceRooms === 1 ? "" : "s"} technically blocked</>} description="Based on Maintenance diagnosis" quiet={m.outOfServiceRooms === 0} onAction={openRooms} />
-          <HavenActionItem icon={Bell} tone="info" title={<>{m.departmentRequests ?? 0} routed guest requests</>} description="Approved guest needs — file a work order from Maintenance" quiet={(m.departmentRequests ?? 0) === 0} onAction={() => setSection("maintenance_orders")} />
-        </div>}
-      </article>}
-      <article className="panel room-mix">
-        <div className="panel-heading">
-          <div>
-            <h3>Room status</h3>
-            <p>Live inventory at a glance</p>
-          </div>
-        </div>
-        <div className="donut-wrap">
-          <ResponsiveContainer width="52%" height={190}>
-            <PieChart>
-              <Pie data={data.roomMix} innerRadius={58} outerRadius={78} paddingAngle={3} dataKey="value">
-                {data.roomMix.map(x => <Cell key={x.name} fill={x.color} />)}
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
-          <div>
-            {data.roomMix.map(x => <p key={x.name}>
-              <i style={{ background: x.color }} />
-              <span>{x.name}</span>
-              <b>{x.value}</b>
-            </p>)}
-          </div>
-        </div>
-      </article>
-      {allowed.includes("reservations") ? <article className="panel arrivals">
-        <div className="panel-heading">
-          <div>
-            <h3>Recent bookings</h3>
-            <p>Latest guest activity</p>
-          </div>
-<button type="button" className={role === "front_desk" ? "btn recent-reservations-view-all" : undefined} onClick={() => (onOpenRack && canOpenSection(allowed, "room_rack") ? onOpenRack("all", "all") : setSection("reservations"))}>
-            View all
-            {role === "front_desk" && <ChevronRight size={16} aria-hidden="true" />}
-          </button>
-        </div>
-        {data.recentReservations.map(r => <div className="arrival-row" key={r.id}>
-          <span className="avatar">
-            {String(r.guest_name).split(" ").map(x => x[0]).join("")}
-          </span>
-          <div>
-            <b>{r.guest_name}</b>
-            <small>
-              {r.room_type} {r.check_in}
-            </small>
-          </div>
-          <StatusBadge status={String(r.status)} label={label(r.status)} />
-        </div>)}
-      </article> : role === "housekeeping" || role === "maintenance" ? null : <article className="panel room-activity-panel">
-        <div className="panel-heading">
-          <div>
-            <h3>Room readiness activity</h3>
-            <p>
-              Live room states requiring attention
-            </p>
-          </div>
-          <button onClick={openRooms}>View rooms</button>
-        </div>
-        {<div className="haven-action-list">{data.roomMix.filter(item => item.name !== "Available").map(item => <HavenActionItem key={item.name} icon={BedDouble} tone="amber" title={<>{item.value} {item.name.toLowerCase()} rooms</>} description="Open the room inventory for details" quiet={item.value === 0} onAction={openRooms} />)}</div>}</article>}
-      <article className="panel panel-needs-attention">
-        <div className="panel-heading">
-          <div>
-            <h3>{role === "manager" ? "Decisions & exceptions" : role === "accounting" ? "Financial follow-ups" : "Needs attention"}</h3>
-            <p>{role === "manager" ? "Items waiting on management authority" : role === "accounting" ? "Queues that close the books" : "Priority actions for this shift"}</p>
-          </div>
-        </div>
-        <div className="haven-action-list">
-          {allowed.includes("housekeeping_tasks") && role !== "housekeeping" && <HavenActionItem icon={ClipboardCheck} tone="amber" title={<>{m.openTasks} housekeeping tasks</>} description="Open room-care work" quiet={m.openTasks === 0} onAction={() => setSection("housekeeping_tasks")} />}
-          {allowed.includes("rooms") && role !== "housekeeping" && role !== "maintenance" && <HavenActionItem icon={BedDouble} tone="green" title={<>{m.availableRooms} rooms ready</>} description="Available for assignment now" quiet={m.availableRooms === 0} onAction={openRooms} />}
-          {allowed.includes("maintenance_orders") && role !== "maintenance" && <HavenActionItem icon={Wrench} tone="rose" title="Maintenance work orders" description="Review open repair priorities" onAction={() => setSection("maintenance_orders")} />}
-          {allowed.includes("approvals") && <HavenActionItem icon={ClipboardCheck} tone="rose" title={<>{m.pendingApprovals} pending approvals</>} description={<>{m.escalatedIssues} escalated guest issue{m.escalatedIssues === 1 ? "" : "s"}</>} quiet={m.pendingApprovals === 0} onAction={() => setSection("approvals")} />}
-          {allowed.includes("insights") && <HavenActionItem icon={TrendingUp} tone="info" title="Predictive insights" description="Demand, staffing, and maintenance forecasts" onAction={() => setSection("insights")} />}
-          {allowed.includes("reconciliation") && <HavenActionItem icon={Scale} tone="neutral" title="Reconciliation" description="Match statements against recorded collections" onAction={() => setSection("reconciliation")} />}
-          {allowed.includes("documents") && <HavenActionItem icon={FileText} tone="neutral" title="Financial documents" description="Issued receipts and folio statements" onAction={() => setSection("documents")} />}
-        </div>
-      </article>
-    </div>
-  </>;
+  </DashboardOverview>;
 } // Queue predicates shared by the reservation filter chips (counts) and the
 // visible rows, so the two can never drift. Filters compare raw ISO strings.
 function queueFilter(item: RecordItem, queue: string, source: string, today: string) { if (source !== "all" && String(item.source) !== source) return false; const status = String(item.status); if (queue === "upcoming") return String(item.check_in) > today && ["pending", "confirmed"].includes(status); if (queue === "arrivals") return String(item.check_in) === today && ["confirmed", "checked_in"].includes(status); if (queue === "departures") return String(item.check_out) === today && ["confirmed", "checked_in"].includes(status); if (queue === "in_house") return status === "checked_in"; if (queue === "cancelled") return status === "cancelled"; if (queue === "no_show") return status === "no_show"; return true; } // Header split action for reservations: one compact control, two authorized creation
@@ -1445,14 +1409,14 @@ function AccountingDetailTable({ title, subtitle, ariaLabel, headers, rows, rend
     <TablePagination {...page} onPageChange={page.setPage} noun="records" note="Financial chronology retained." />
   </article>;
 } function AccountingView({ section, ledger, search, setSearch, rejectDeposit, reverseCharge, recordAdjustment, recordReconciliation, generateDocument, canVerify, canAdjust, canReconcile, canIssueDocument }: { section: Exclude<AccountingSection, "cash_shifts">; ledger: AccountingLedger | null; search: string; setSearch: (s: string) => void; rejectDeposit: (x: RecordItem) => void; reverseCharge: (x: RecordItem) => void; recordAdjustment: (reservationId: string) => void; recordReconciliation: () => void; generateDocument: (payload: { documentType: "receipt"; paymentId: string; } | { documentType: "folio"; reservationId: string; }) => void; canVerify: boolean; canAdjust: boolean; canReconcile: boolean; canIssueDocument: boolean; }) {
-  const [viewing, setViewing] = useState<RecordItem | null>(null); const view = accountingViews[section]; const matchingRows = ledger ? (ledger[view.source] as Record<string, unknown>[]).filter(row => JSON.stringify(row).toLowerCase().includes(search.toLowerCase())) : []; const page = useTablePagination(matchingRows); if (!ledger) return <div className="empty">
+  const view = accountingViews[section]; const matchingRows = ledger ? (ledger[view.source] as Record<string, unknown>[]).filter(row => JSON.stringify(row).toLowerCase().includes(search.toLowerCase())) : []; const page = useTablePagination(matchingRows); if (!ledger) return <div className="empty">
     <Search />
     <h3>Ledger unavailable</h3>
     <p>
       The financial ledger requires the shared hotel database. Configure
       Supabase to open the Accounting workspaces.
     </p>
-  </div>; const m = ledger.metrics; const cards: Record<Exclude<AccountingSection, "cash_shifts">, { label: string; value: string; hint: string; }[]> = { transactions: [{ label: "Gross collected", value: pesoExact(m.grossCollected), hint: "Settled payments" }, { label: "Refunds issued", value: pesoExact(m.refundsIssued), hint: "Settled refunds" }, { label: "Net collections", value: pesoExact(m.netRevenue), hint: "Collected less refunded" }, { label: "Awaiting verification", value: String(m.pendingVerification), hint: "Submitted deposits" }], folios: [{ label: "Outstanding balance", value: pesoExact(m.outstandingBalance), hint: "Across open folios" }, { label: "Folio credit", value: pesoExact(m.folioCredit), hint: "Overpayment held" }, { label: "Net collections", value: pesoExact(m.netRevenue), hint: "Collected less refunded" }, { label: "Open folios", value: String(ledger.invoices.filter(row => Number(row.balance || 0) > 0).length), hint: "With a balance due" }], reconciliation: [{ label: "Unexplained variance", value: pesoExact(m.openReconciliationVariance), hint: "Flagged periods" }, { label: "Periods recorded", value: String(ledger.reconciliations.length), hint: "Manual statement checks" }, { label: "Cash variance", value: pesoExact(m.cashVariance), hint: "From closed shifts" }, { label: "Failed refunds", value: String(m.failedRefunds), hint: "Retryable" }], documents: [{ label: "Documents issued", value: String(ledger.documents.length), hint: "Receipts and statements" }, { label: "Receipts", value: String(ledger.documents.filter(row => row.document_type === "receipt").length), hint: "Settled payments" }, { label: "Folio statements", value: String(ledger.documents.filter(row => row.document_type === "folio").length), hint: "Point-in-time snapshots" }, { label: "Net collections", value: pesoExact(m.netRevenue), hint: "Collected less refunded" }] }; const rows = page.rows; const actions = (row: Record<string, unknown>) => {
+  </div>; if (section === "documents") return <FinancialDocumentsWorkspace documents={ledger.documents} search={search} setSearch={setSearch} />; const m = ledger.metrics; const cards: Record<Exclude<AccountingSection, "cash_shifts">, { label: string; value: string; hint: string; }[]> = { transactions: [{ label: "Gross collected", value: pesoExact(m.grossCollected), hint: "Settled payments" }, { label: "Refunds issued", value: pesoExact(m.refundsIssued), hint: "Settled refunds" }, { label: "Net collections", value: pesoExact(m.netRevenue), hint: "Collected less refunded" }, { label: "Awaiting verification", value: String(m.pendingVerification), hint: "Submitted deposits" }], folios: [{ label: "Outstanding balance", value: pesoExact(m.outstandingBalance), hint: "Across open folios" }, { label: "Folio credit", value: pesoExact(m.folioCredit), hint: "Overpayment held" }, { label: "Net collections", value: pesoExact(m.netRevenue), hint: "Collected less refunded" }, { label: "Open folios", value: String(ledger.invoices.filter(row => Number(row.balance || 0) > 0).length), hint: "With a balance due" }], reconciliation: [{ label: "Unexplained variance", value: pesoExact(m.openReconciliationVariance), hint: "Flagged periods" }, { label: "Periods recorded", value: String(ledger.reconciliations.length), hint: "Manual statement checks" }, { label: "Cash variance", value: pesoExact(m.cashVariance), hint: "From closed shifts" }, { label: "Failed refunds", value: String(m.failedRefunds), hint: "Retryable" }], documents: [{ label: "Documents issued", value: String(ledger.documents.length), hint: "Receipts and statements" }, { label: "Receipts", value: String(ledger.documents.filter(row => row.document_type === "receipt").length), hint: "Settled payments" }, { label: "Folio statements", value: String(ledger.documents.filter(row => row.document_type === "folio").length), hint: "Point-in-time snapshots" }, { label: "Net collections", value: pesoExact(m.netRevenue), hint: "Collected less refunded" }] }; const rows = page.rows; const actions = (row: Record<string, unknown>) => {
     if (section === "transactions") return <div className="reservation-actions">
       {canVerify && row.status === "pending_verification" && <button className="table-action" onClick={() => rejectDeposit(row as RecordItem)}>
         Reject
@@ -1470,10 +1434,6 @@ function AccountingDetailTable({ title, subtitle, ariaLabel, headers, rows, rend
       </button>}
     </div>; if (section === "reconciliation") return <div className="reservation-actions">
       {row.notes ? <small>{label(row.notes)}</small> : <span>No variance note</span>}
-    </div>; if (section === "documents") return <div className="reservation-actions">
-      <button className="table-action" onClick={() => setViewing(row as RecordItem)}>
-        View
-      </button>
     </div>; return <span>{label(row.created_at)}</span>;
   }; return <>
     <PageHeader variant="band" eyebrow="Accounting" title={view.title} subtitle={view.subtitle} actions={<>
@@ -1554,144 +1514,7 @@ function AccountingDetailTable({ title, subtitle, ariaLabel, headers, rows, rend
       <td>{label(adjustment.reason as string)}</td>
       <td>{label(adjustment.created_at as string)}</td>
     </tr>} />}
-    {viewing && <DocumentViewerModal item={viewing} close={() => setViewing(null)} />}
   </>;
-} // Immutable financial-document viewer. Everything shown was frozen server-side at issue
-// time — this renders the snapshot, it never recomputes. The tax breakdown lines were
-// derived from the reservation's frozen rates at generation; documents issued before
-// tax configuration simply have no breakdown section.
-function DocumentViewerModal({ item, close }: { item: RecordItem; close: () => void; }) {
-  const snap = (item.snapshot ?? {}) as Record<string, unknown>; const tax = snap.taxBreakdown as { vatRateBp: number; serviceChargeBp: number; netSubtotal: number; serviceCharge: number; vatAmount: number; grossTotal: number; } | null | undefined; const list = (key: string) => Array.isArray(snap[key]) ? snap[key] as Record<string, unknown>[] : []; const isReceipt = String(snap.documentType ?? "") === "receipt"; const money = (value: unknown) => pesoExact(Number(value ?? 0)); return <Modal isOpen onClose={close} title={`${isReceipt ? "Payment receipt" : "Folio statement"} ${label(item.document_number)}`} description={`Immutable snapshot · issued ${fmtStamp(String(snap.generatedAt ?? ""))} · never edited after issue`} size="lg" headerVariant="branded" className="approval-review-modal" footer={<button className="btn btn-soft" onClick={close}>
-    Close
-  </button>}>
-    <div className="approval-review-grid">
-      <section>
-        <h3>Document</h3>
-        <dl>
-          <div>
-            <dt>Number</dt>
-            <dd>{label(item.document_number)}</dd>
-          </div>
-          <div>
-            <dt>Guest</dt>
-            <dd>{label(snap.guestName)}</dd>
-          </div>
-          <div>
-            <dt>Stay</dt>
-            <dd>
-              {label(snap.roomType)} · {label(snap.checkIn)} →{" "}
-              {label(snap.checkOut)}
-            </dd>
-          </div>
-          <div>
-            <dt>Reservation</dt>
-            <dd>{label(snap.confirmationNumber || snap.reservationId)}</dd>
-          </div>
-        </dl>
-      </section>
-      <section>
-        <h3>Financial position at issue</h3>
-        <dl>
-          {Boolean(snap.terminalSettlement) && <div>
-            <dt>Original reservation obligation</dt>
-            <dd>{money(snap.originalFolioAmount)}</dd>
-          </div>}
-          <div>
-            <dt>Folio amount</dt>
-            <dd>
-              <b>{money(snap.folioAmount)}</b>
-            </dd>
-          </div>
-          <div>
-            <dt>Paid</dt>
-            <dd>{money(snap.paid)}</dd>
-          </div>
-          <div>
-            <dt>Balance</dt>
-            <dd>{money(snap.balance)}</dd>
-          </div>
-          {Number(snap.creditBalance ?? 0) > 0 && <div>
-            <dt>Credit held</dt>
-            <dd>{money(snap.creditBalance)}</dd>
-          </div>}
-          <div>
-            <dt>Status</dt>
-            <dd>
-              <StatusBadge status={String(snap.folioStatus ?? "")} label={label(snap.folioStatus)} />
-            </dd>
-          </div>
-        </dl>
-      </section>
-    </div>
-    {tax && <section className="approval-review-section">
-      <h3>Tax breakdown · VAT-inclusive</h3>
-      <dl>
-        <div>
-          <dt>Net subtotal</dt>
-          <dd>{money(tax.netSubtotal)}</dd>
-        </div>
-        <div>
-          <dt>Service charge ({ratePercent(tax.serviceChargeBp)})</dt>
-          <dd>{money(tax.serviceCharge)}</dd>
-        </div>
-        <div>
-          <dt>VAT ({ratePercent(tax.vatRateBp)})</dt>
-          <dd>{money(tax.vatAmount)}</dd>
-        </div>
-        <div>
-          <dt>Gross total</dt>
-          <dd>
-            <b>{money(tax.grossTotal)}</b>
-          </dd>
-        </div>
-      </dl>
-      <p className="muted">
-        Derived from the frozen rates at issue: displayed prices already
-        include service charge and VAT; the lines above always sum to the
-        gross.
-      </p>
-    </section>}
-    {list("charges").length > 0 && <section className="approval-review-section">
-      <h3>Charges</h3>
-      <dl>
-        {list("charges").map((charge, index) => <div key={index}>
-          <dt>
-            {label(String(charge.description ?? ""))}{" "}
-            <small>{label(String(charge.category ?? ""))}</small>
-          </dt>
-          <dd>{money(charge.amount)}</dd>
-        </div>)}
-      </dl>
-    </section>}
-    {list("payments").length > 0 && <section className="approval-review-section">
-      <h3>Payments</h3>
-      <dl>
-        {list("payments").map((payment, index) => <div key={index}>
-          <dt>
-            {label(String(payment.purpose ?? ""))} ·{" "}
-            {label(String(payment.method ?? ""))}
-            {payment.reference ? ` · ${label(String(payment.reference))}` : ""}
-          </dt>
-          <dd>{money(payment.amount)}</dd>
-        </div>)}
-      </dl>
-    </section>}
-    {list("adjustments").length > 0 && <section className="approval-review-section">
-      <h3>Adjustments</h3>
-      <dl>
-        {list("adjustments").map((adjustment, index) => <div key={index}>
-          <dt>
-            {label(String(adjustment.transactionType ?? ""))} ·{" "}
-            {label(String(adjustment.reason ?? ""))}
-          </dt>
-          <dd>
-            {adjustment.direction === "credit" ? "-" : "+"}
-            {money(adjustment.amount)}
-          </dd>
-        </div>)}
-      </dl>
-    </section>}
-  </Modal>;
 } // Consolidated guest dossier: everything comes from authoritative records — no
 // inferred preferences, no invented tiers. The financial summary renders only
 // when the server attached one (roles allowed to see reservation financials).
@@ -1789,7 +1612,6 @@ function ProofPreview({ paymentId, name }: { paymentId: string; name: string | n
  * oversight={user.role==="manager"||user.role==="owner"}
   * function reviewReservationException(item:RecordItem){setDetail(null);setSearchForSection("approvals",String(item.confirmation_number||item.id));setSection("approvals")}
  * "checkout_exception","stay_extension"
- * allowed.includes("reservations")?<article className="panel arrivals"
  * >Complete<
  * >Inspect<
  * >Defer<

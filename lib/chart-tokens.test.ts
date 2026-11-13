@@ -16,7 +16,7 @@ import {
 // manual browser checklist item - these tests cannot be visual verification.
 
 const PANELS = [
-  "components/manager/manager-dashboard-client.tsx",
+  "components/manager/manager-overview.tsx",
   "components/manager/predictive-insights-panel.tsx",
   "components/manager/performance-reports.tsx",
 ];

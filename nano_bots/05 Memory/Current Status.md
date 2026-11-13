@@ -1,5 +1,43 @@
 # Current Status
 
+## Financial Documents implementation (2026-11-13, local)
+
+- The Financial Documents section pairs a type/date/search register with the
+  selected immutable receipt or folio snapshot. Phones return to the same
+  register page. Role access, issuance and database behavior are unchanged.
+- Typecheck passed; targeted lint had three existing hook warnings. Production
+  build was blocked by Windows denying Turbopack's local sharp junction.
+  See [[2026-11-13 - Financial Documents Implementation]].
+
+## Reports design implementation (2026-11-12, local)
+
+- Applied approved Executive brief hierarchy to the existing Reports surfaces:
+  shared Manager/Accounting analytics, Front Desk daily reports, Admin account
+  distribution, and Owner executive reports. Existing role scopes and report
+  actions remain intact. Typecheck passed; browser QA pending.
+- See [[2026-11-12 - Reports Choice A Implementation]].
+
+## All account dashboards (2026-11-12, local)
+
+- Shared heading, linked metric cards, and responsive panels are active on
+  each account overview. Front Desk, Accounting, Owner, Guest, and Manager
+  use the shared financial eye control for their respective amounts.
+  See [[2026-11-12 - All Account Dashboards]].
+
+## Manager dashboard redesign (2026-11-11, local)
+
+- The approved overview links to live reservation, room, and shift briefing
+  views. Managers can reveal the four aggregate peso amounts together.
+  Chrome verified both themes and the Manager-specific read scope. See
+  [[2026-11-11 - Manager Dashboard Implementation]].
+
+## Housekeeping redesign (2026-11-11, local)
+
+- Housekeeping, Manager, and Front Desk share one room queue with task
+  stages, recorded arrival details, and role-specific controls. Phone
+  navigation returns to the filtered queue. See
+  [[2026-11-11 - Housekeeping Redesign Implementation]].
+
 ## Housekeeping load compatibility (2026-11-11, local)
 
 - The shared queue read supports the deployed core schema and the upgraded

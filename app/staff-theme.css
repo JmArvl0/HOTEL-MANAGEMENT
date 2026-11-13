@@ -2557,3 +2557,20 @@ tbody tr:hover{background: var(--surface-hover)}
 @media (max-width: 420px) {
   .app-shell .metric-grid.front-desk-metrics { grid-template-columns: minmax(0, 1fr); }
 }
+
+.app-shell .admin-report-distribution { min-width: 0; }
+.app-shell .admin-role-distribution { display: grid; gap: 14px; margin: 0; padding: 18px 16px 12px; list-style: none; }
+.app-shell .admin-role-distribution li { display: grid; gap: 6px; min-width: 0; }
+.app-shell .admin-role-distribution-copy { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: var(--dt); font-size: 11px; }
+.app-shell .admin-role-distribution-copy > span { min-width: 0; }
+.app-shell .admin-role-distribution-copy strong { flex: none; font-variant-numeric: tabular-nums; }
+.app-shell .admin-role-distribution-copy small { color: var(--dm); font-size: 9px; font-weight: 500; }
+.app-shell .admin-role-distribution-track { height: 7px; overflow: hidden; border-radius: 999px; background: var(--ds2); }
+.app-shell .admin-role-distribution-track span { display: block; height: 100%; min-width: 0; border-radius: inherit; background: var(--dg); }
+.app-shell .admin-role-distribution-empty { padding: 20px 16px; color: var(--dm); font-size: 11px; }
+.app-shell .admin-report-table-details { margin: 0 16px 14px; border-top: 1px solid var(--dl); }
+.app-shell .admin-report-table-details > summary { padding: 11px 0 2px; color: var(--dg); cursor: pointer; font-size: 10px; font-weight: 650; }
+.app-shell .admin-report-table-details > summary:focus-visible { outline: 2px solid var(--dg); outline-offset: 3px; }
+.app-shell .admin-report-table-details .table-scroll { margin-top: 8px; }
+.app-shell.owner-workspace .owner-report-grid { grid-template-columns: minmax(0, 1.35fr) minmax(280px, 1fr); }
+@media(max-width:1200px){.app-shell.owner-workspace .owner-report-grid{grid-template-columns:1fr}}

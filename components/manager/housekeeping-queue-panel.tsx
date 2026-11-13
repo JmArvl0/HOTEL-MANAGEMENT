@@ -1,288 +1,400 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { ArrowLeft, ArrowUpRight, BedDouble, Bell, CalendarDays, Check, ChevronRight, CircleCheck, ClipboardCheck, ClipboardList, FileText, LockKeyhole, Search, UserRound, Users } from "lucide-react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { BedDouble, Bell, ChevronDown, ClipboardCheck, Search, Sparkles, Wand2, Wrench } from "lucide-react";
-import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
+import { HavenSearchInput } from "@/components/ui/haven-data-controls";
 import { HavenSelect } from "@/components/ui/haven-select";
-import { HavenDataToolbar, HavenSearchInput } from "@/components/ui/haven-data-controls";
+import { formatHotelDateTime, HOTEL_TIME_ZONE } from "@/lib/format";
+import { groupQueueTask, housekeepingDay } from "@/lib/housekeeping-queue";
+import { canCoordinateOperations, canPerformHousekeeping } from "@/lib/permissions";
 import type { AssignmentSuggestion } from "@/lib/housekeeping-suggestions";
 import type { RecordItem, Role } from "@/lib/types";
+import "./housekeeping-queue.css";
 
-// Operational queue for the housekeeping workflow. Renders the same
-// authoritative housekeeping_tasks rows the previous table showed (same
-// payload, same RPC actions) grouped by what the room needs next — never a
-// derived "available" claim: cards show the room's recorded state only.
-// Guest-service requests are worked in the Guest Requests module; this queue
-// carries only a compact link strip there, never duplicate completion buttons.
-
-const label = (value: unknown) => String(value ?? " ").replaceAll("_", " ");
-const when = (value: unknown) => {
-  if (!value) return null;
-  const date = new Date(String(value));
-  return Number.isNaN(date.getTime()) ? label(value) : date.toLocaleTimeString("en-PH", { hour: "2-digit", minute: "2-digit" });
-};
-const day = (value: unknown) => {
-  if (!value) return null;
-  const date = new Date(String(value));
-  return Number.isNaN(date.getTime()) ? null : new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(date);
-};
-const time = (value: unknown) => {
-  if (!value) return null;
-  const date = new Date(String(value));
-  return Number.isNaN(date.getTime()) ? null : date.toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" });
-};
-
-const priorityRank: Record<string, number> = { urgent: 0, high: 1, normal: 2, low: 3 };
-const openTaskStatuses = ["pending", "assigned", "deferred"];
-
-// Pure grouping + ordering so vitest can verify the queue's answer to
-// "what should I clean next" without a rendered page. One group per task:
-// the first match wins, so a card never appears twice.
-export type QueueGroup = "blocked" | "needs_attention" | "my_tasks" | "in_progress" | "waiting_inspection" | "completed_today" | "other_open";
-
-export function groupQueueTask(item: RecordItem, userId: string, today: string): QueueGroup | null {
-  const status = String(item.status);
-  if (status === "cancelled") return null;
-  const maintenanceBlocked = item.maintenance_blocked === true;
-  if (status === "completed") {
-    if (String(item.inspection_status) === "pending") return "waiting_inspection";
-    if (day(item.completed_at) === today) return "completed_today";
-    return null; // older history — the room detail modal owns it
-  }
-  if (maintenanceBlocked && openTaskStatuses.concat("in_progress").includes(status)) return "blocked";
-  if (openTaskStatuses.includes(status) && (!item.assigned_user_id || (priorityRank[String(item.priority)] ?? 3) <= 1)) return "needs_attention";
-  if (userId && item.assigned_user_id === userId && [...openTaskStatuses, "in_progress"].includes(status)) return "my_tasks";
-  if (status === "in_progress") return "in_progress";
-  return "other_open";
-}
-
-export const queueTaskOrder = (a: RecordItem, b: RecordItem): number =>
-  (priorityRank[String(a.priority)] ?? 3) - (priorityRank[String(b.priority)] ?? 3)
-  || String(a.next_arrival ?? "9999").localeCompare(String(b.next_arrival ?? "9999"))
-  || String(a.created_at ?? "").localeCompare(String(b.created_at ?? ""));
-
-type GroupSpec = { key: QueueGroup; title: string; hint: string; icon: typeof BedDouble };
-
-export default function HousekeepingQueuePanel({ role, userId, items, allItems, search, setSearch, housekeepingAction, coordinate, applySuggestion, suggestions = [], onViewMaintenance, onViewRoom, guestRequestOpen = 0, onOpenGuestRequests, onServiceOutcome, onSetDnd }: {
+type TaskAction = "assign" | "start" | "complete" | "inspect" | "defer" | "maintenance";
+type QueueProps = {
   role: Role;
   userId: string;
   items: RecordItem[];
-  /** Unfiltered load for the summary snapshot; the queue below renders `items`. */
   allItems?: RecordItem[];
   search: string;
   setSearch: (value: string) => void;
-  housekeepingAction: (item: RecordItem, action: "assign" | "start" | "complete" | "inspect" | "defer" | "maintenance") => void;
+  housekeepingAction: (item: RecordItem, action: TaskAction) => void;
   coordinate: (item: RecordItem) => void;
-  /** Applies an advisory assignment suggestion through the audited assign route. Housekeeping self-assigns; Owner assigns the suggested teammate. */
   applySuggestion?: (suggestion: AssignmentSuggestion) => void;
-  /** Advisory plan from /api/housekeeping/assignment-suggestions — the parent owns data fetching, this panel stays presentational. */
   suggestions?: AssignmentSuggestion[];
-  onViewMaintenance: () => void;
-  onViewRoom: (item: RecordItem) => void;
-  /** Open approved guest-service items routed to Housekeeping (parent's live badge metric) — display only; work happens in Guest Requests. */
+  onViewRoom: (item: RecordItem, tab?: "maintenance") => void;
   guestRequestOpen?: number;
-  /** Navigates to the Guest Requests module. Rendered only for the housekeeping role. */
   onOpenGuestRequests?: () => void;
   onServiceOutcome?: (item: RecordItem, outcome: "service_declined" | "late_service") => void;
   onSetDnd?: (item: RecordItem) => void;
-}) {
-  const [showCompleted, setShowCompleted] = useState(false);
+};
+
+const stages = {
+  queued: { label: "To clean", status: "pending", icon: ClipboardList, tone: "warning" },
+  cleaning: { label: "Cleaning", status: "cleaning", icon: BedDouble, tone: "info" },
+  inspection: { label: "To inspect", status: "pending", icon: ClipboardCheck, tone: "warning" },
+  hold: { label: "On hold", status: "blocked", icon: LockKeyhole, tone: "danger" },
+  completed: { label: "Completed today", status: "completed", icon: CircleCheck, tone: "success" },
+} as const;
+type Stage = keyof typeof stages;
+type QueueTask = { item: RecordItem; stage: Stage };
+
+const openTaskStatuses = ["pending", "assigned", "deferred"];
+const priorityRank: Record<string, number> = { urgent: 0, high: 1, normal: 2, low: 3 };
+const dateFormat = new Intl.DateTimeFormat("en-PH", { month: "short", day: "numeric", year: "numeric", timeZone: HOTEL_TIME_ZONE });
+const clockFormat = new Intl.DateTimeFormat("en-PH", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: HOTEL_TIME_ZONE });
+const label = (value: RecordItem[string]) => {
+  const text = String(value ?? "").replaceAll("_", " ").trim();
+  return text.charAt(0).toUpperCase() + text.slice(1);
+};
+const roomName = (item: RecordItem) => item.room_number && item.room_number !== "-" ? `Room ${item.room_number}` : "Room unassigned";
+const workTypeName = (item: RecordItem) => label(item.task_type || item.task) || "Room care";
+const assignee = (item: RecordItem) => String(item.assigned_to || item.assignee || "Unassigned");
+const isUnassigned = (item: RecordItem) => !item.assigned_user_id && !item.assignee && assignee(item) === "Unassigned";
+const hasDndHold = (item: RecordItem) => item.dnd_active === true && item.task_type === "stayover_cleaning";
+const hasOpenTask = (item: RecordItem) => openTaskStatuses.includes(String(item.status));
+const isClockTime = (text: string) => /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(text);
+const arrivalClock = (item: RecordItem) => {
+  const text = String(item.next_arrival_time ?? "").trim();
+  return isClockTime(text) ? text : "";
+};
+const arrivalTime = (item: RecordItem) => {
+  const text = String(item.next_arrival_time ?? "").trim();
+  return isClockTime(text) ? clockFormat.format(new Date(`2000-01-01T${text}:00+08:00`)) : text;
+};
+
+export const queueTaskOrder = (a: RecordItem, b: RecordItem): number =>
+  (priorityRank[String(a.priority)] ?? 3) - (priorityRank[String(b.priority)] ?? 3)
+  || String(a.next_arrival || "9999").localeCompare(String(b.next_arrival || "9999"))
+  || (arrivalClock(a) || "99:99").localeCompare(arrivalClock(b) || "99:99")
+  || String(a.created_at ?? "").localeCompare(String(b.created_at ?? ""));
+
+function stageFor(item: RecordItem, today: string): Stage | null {
+  const group = groupQueueTask(item, "", today);
+  if (!group) return null;
+  if (group === "waiting_inspection") return "inspection";
+  if (group === "completed_today") return "completed";
+  if (group === "blocked" || item.status === "deferred" || (hasOpenTask(item) && hasDndHold(item))) return "hold";
+  return item.status === "in_progress" ? "cleaning" : "queued";
+}
+
+function arrivalLabel(item: RecordItem, today: string) {
+  const arrival = housekeepingDay(item.next_arrival);
+  if (!arrival) return null;
+  const day = arrival === today ? "Today" : dateFormat.format(new Date(`${arrival}T00:00:00+08:00`));
+  const time = arrivalTime(item);
+  return time ? `${day}, ${time}` : day;
+}
+
+function stageBadge({ item, stage }: QueueTask) {
+  const spec = stages[stage];
+  if (stage === "completed" && item.inspection_status === "failed") return <StatusBadge status="failed" label="Inspection failed" size="sm" />;
+  if (stage === "hold" && item.maintenance_blocked === true) return <StatusBadge status="maintenance" label="Maintenance hold" size="sm" />;
+  if (stage === "hold" && hasDndHold(item)) return <StatusBadge status="deferred" label="Do Not Disturb" size="sm" />;
+  if (stage === "hold") return <StatusBadge status="deferred" label="Deferred" size="sm" />;
+  return <StatusBadge status={spec.status} label={stage === "completed" ? "Completed" : spec.label} icon={<spec.icon size={13} />} size="sm" />;
+}
+
+export default function HousekeepingQueuePanel(props: QueueProps) {
+  const { role, userId, items, allItems = items, search, setSearch, suggestions = [], applySuggestion, onOpenGuestRequests, guestRequestOpen = 0 } = props;
+  const [today, setToday] = useState(() => housekeepingDay(new Date()) ?? "");
+  const [stageFilter, setStageFilter] = useState<Stage | null>(null);
   const [workType, setWorkType] = useState("all");
-  const [workStatus, setWorkStatus] = useState("all");
-  const today = useMemo(() => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date()), []);
-  const mine = role === "housekeeping" ? userId : "";
-  const canHousekeep = role === "housekeeping";
-  const canCoordinate = role === "manager";
-  // Advisory assignment plan — Housekeeping sees it to claim, Manager to
-  // coordinate, Owner to assign. Front Desk keeps its read-only queue.
-  const canSeeSuggestions = ["housekeeping", "manager", "owner"].includes(role);
-  const canApplySuggestion = canHousekeep || role === "owner";
+  const [quickFilter, setQuickFilter] = useState(false);
+  const [selectedId, setSelectedId] = useState<string>();
+  const [detailOpen, setDetailOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const rowTrigger = useRef<HTMLButtonElement | null>(null);
+  const back = useRef<HTMLButtonElement>(null);
+  const detailTitle = useRef<HTMLHeadingElement>(null);
+  const queueTitle = useId();
+  const isHousekeeping = canPerformHousekeeping(role);
+  const isManager = canCoordinateOperations(role);
+  const quick = isHousekeeping ? { label: "My tasks", Icon: UserRound, matches: (item: RecordItem) => item.assigned_user_id === userId }
+    : isManager ? { label: "Unassigned", Icon: Users, matches: (item: RecordItem) => hasOpenTask(item) && isUnassigned(item) }
+    : role === "front_desk" ? { label: "Arrivals today", Icon: CalendarDays, matches: (item: RecordItem) => housekeepingDay(item.next_arrival) === today } : null;
 
-  // Keep the plan honest against the live queue: a row disappears the moment
-  // its task is no longer open unassigned work (claimed, reassigned, done).
-  const liveSuggestions = useMemo(
-    () => (canSeeSuggestions ? suggestions.filter((suggestion) => items.some((item) => String(item.id) === suggestion.taskId && !item.assigned_user_id && !item.assignee && openTaskStatuses.includes(String(item.status)))) : []),
-    [canSeeSuggestions, suggestions, items]
+  useEffect(() => {
+    const timer = window.setInterval(() => setToday(housekeepingDay(new Date()) ?? ""), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const counts: Record<Stage, number> = { queued: 0, cleaning: 0, inspection: 0, hold: 0, completed: 0 };
+  for (const item of allItems) {
+    const stage = stageFor(item, today);
+    if (stage) counts[stage]++;
+  }
+  const queue = items.flatMap(item => {
+    const stage = stageFor(item, today);
+    return stage ? [{ item, stage }] : [];
+  });
+  const visible = queue.filter(({ item, stage }) =>
+    (!stageFilter || stage === stageFilter)
+    && (workType === "all" || (item.task_type || item.task) === workType)
+    && (!quickFilter || !quick || quick.matches(item))
   );
+  const rank: Record<Stage, number> = { queued: 0, cleaning: 0, inspection: 0, hold: 1, completed: 2 };
+  visible.sort((a, b) => rank[a.stage] - rank[b.stage] || (a.stage === "completed"
+    ? String(b.item.inspected_at ?? b.item.completed_at ?? "").localeCompare(String(a.item.inspected_at ?? a.item.completed_at ?? ""))
+    : queueTaskOrder(a.item, b.item)));
+  // User selection survives a server refresh that moves the task to a different stage.
+  // Explicit filters reset selection below and choose the first matching row.
+  const selectedItem = selectedId ? allItems.find(item => item.id === selectedId) : undefined;
+  const selectedStage = selectedItem && stageFor(selectedItem, today);
+  const selected = selectedItem && selectedStage ? { item: selectedItem, stage: selectedStage } : visible[0];
+  const taskTypes = [...new Set(allItems.map(item => String(item.task_type || item.task || "")).filter(Boolean))].sort();
+  const activeFilters = Boolean(search.trim()) || stageFilter !== null || workType !== "all" || quickFilter;
+  const eligibleSuggestions = new Set(visible.filter(({ item, stage }) => stage === "queued" && isUnassigned(item) && hasOpenTask(item)).map(({ item }) => item.id));
+  const liveSuggestions = isHousekeeping || isManager || role === "owner"
+    ? suggestions.filter(suggestion => eligibleSuggestions.has(suggestion.taskId)) : [];
 
-  const taskTypes = useMemo(() => Array.from(new Set(items.map((item) => String(item.task_type ?? "")).filter(Boolean))).sort(), [items]);
-  const workStatuses = useMemo(() => Array.from(new Set(items.map((item) => String(item.status ?? "")).filter(Boolean))).sort(), [items]);
-  const queueItems = useMemo(() => items.filter((item) =>
-    (workType === "all" || String(item.task_type) === workType)
-    && (workStatus === "all" || String(item.status) === workStatus)
-  ), [items, workType, workStatus]);
+  function changeFilters() {
+    setSelectedId(undefined);
+    setDetailOpen(false);
+  }
 
-  const groups = useMemo(() => {
-    const grouped: Record<QueueGroup, RecordItem[]> = { blocked: [], needs_attention: [], my_tasks: [], in_progress: [], waiting_inspection: [], completed_today: [], other_open: [] };
-    for (const item of queueItems) {
-      const group = groupQueueTask(item, mine, today);
-      if (group) grouped[group].push(item);
-    }
-    for (const key of Object.keys(grouped) as QueueGroup[]) grouped[key].sort(queueTaskOrder);
-    return grouped;
-  }, [queueItems, mine, today]);
-  // Summary cards always describe the whole loaded queue — filters narrow the
-  // sections below, never the snapshot above.
-  const totals = useMemo(() => {
-    const grouped: Record<QueueGroup, number> = { blocked: 0, needs_attention: 0, my_tasks: 0, in_progress: 0, waiting_inspection: 0, completed_today: 0, other_open: 0 };
-    for (const item of allItems ?? items) {
-      const group = groupQueueTask(item, mine, today);
-      if (group) grouped[group] += 1;
-    }
-    return grouped;
-  }, [allItems, items, mine, today]);
+  function select(item: RecordItem, trigger: HTMLButtonElement, keyboard: boolean) {
+    rowTrigger.current = trigger;
+    setSelectedId(item.id);
+    setDetailOpen(true);
+    window.requestAnimationFrame(() => {
+      const narrow = Boolean(back.current?.getClientRects().length);
+      if (narrow) back.current?.scrollIntoView({ block: "start" });
+      if (narrow || keyboard) detailTitle.current?.focus({ preventScroll: true });
+    });
+  }
 
-  const specs: GroupSpec[] = [
-    { key: "needs_attention", title: "Needs attention", hint: "Unassigned or urgent open work — the next rooms to clean", icon: ClipboardCheck },
-    { key: "my_tasks", title: "My tasks", hint: "Assigned to you and not yet finished", icon: BedDouble },
-    { key: "in_progress", title: "Cleaning in progress", hint: "Active work by the rest of the team", icon: BedDouble },
-    { key: "waiting_inspection", title: "Waiting for inspection", hint: "Cleaned — the room is not sellable until inspection passes", icon: Sparkles },
-    { key: "blocked", title: "Blocked by Maintenance", hint: "A work order holds these rooms; Maintenance owns the repair", icon: Wrench },
-    { key: "other_open", title: "Scheduled open work", hint: "Assigned routine work", icon: ClipboardCheck },
-  ];
+  function returnToQueue() {
+    setDetailOpen(false);
+    window.requestAnimationFrame(() => {
+      const row = rowTrigger.current;
+      const target = row?.isConnected ? row : root.current?.querySelector<HTMLElement>('.hk-room-row[aria-pressed="true"]');
+      (target ?? root.current?.querySelector<HTMLInputElement>('input[type="search"]'))?.focus();
+    });
+  }
 
-  // The first non-empty work group is the primary action target — rendered
-  // with emphasis so active work dominates the page.
-  const primaryKey = (["needs_attention", "my_tasks", "in_progress"] as QueueGroup[]).find((key) => groups[key].length > 0) ?? null;
-  const actionable = specs.filter((spec) => groups[spec.key].length > 0);
-  const completed = groups.completed_today;
-  // Cards collapsed behind the completed-today toggle are counted by the
-  // queue but not visible: the footer reports visible-of-total so the two
-  // numbers on screen can never disagree.
-  const visibleCount = queueItems.length - (showCompleted ? 0 : completed.length);
-  const showGuestStrip = role === "housekeeping" && onOpenGuestRequests;
+  return <div className="housekeeping-workspace" ref={root} data-detail-open={detailOpen && Boolean(selected)}>
+    <header className="hk-page-heading">
+      <h1>Housekeeping</h1>
+      {isHousekeeping && onOpenGuestRequests && <button type="button" className="btn btn-soft" onClick={onOpenGuestRequests}
+        aria-label={`Guest requests, ${guestRequestOpen} open`}>
+        <Bell size={16} aria-hidden="true" /> Guest requests <span className="hk-count">{guestRequestOpen}</span><ArrowUpRight size={14} aria-hidden="true" />
+      </button>}
+    </header>
+
+    <div className="hk-stage-strip" role="group" aria-label="Filter by task stage">
+      {(Object.keys(stages) as Stage[]).map(stage => {
+        const { icon: Icon, label, tone } = stages[stage];
+        return <button type="button" key={stage} aria-label={`${counts[stage]} ${label}`} aria-pressed={stageFilter === stage} onClick={() => {
+          changeFilters(); setStageFilter(stageFilter === stage ? null : stage);
+        }}><span className={`hk-stage-icon is-${tone}`}><Icon size={18} aria-hidden="true" /></span>
+          <span><b>{counts[stage]}</b><small>{label}</small></span>
+        </button>;
+      })}
+    </div>
+
+    <div className="hk-workspace-grid">
+      <section className="hk-workspace-panel hk-room-queue" aria-labelledby={queueTitle}>
+        <div className="hk-queue-header">
+          <div className="hk-queue-title">
+            <div><h2 id={queueTitle}>Room queue</h2><span className="hk-count">{visible.length}</span></div>
+            {quick && <button className="btn btn-soft hk-quick-filter" type="button" aria-pressed={quickFilter}
+              onClick={() => { changeFilters(); setQuickFilter(!quickFilter); }}><quick.Icon size={15} aria-hidden="true" /> {quick.label}</button>}
+          </div>
+          <div className="hk-filters">
+            <HavenSearchInput value={search} onValueChange={value => { changeFilters(); setSearch(value); }}
+              label="Search the room queue" placeholder="Search rooms or staff" />
+            <HavenSelect value={workType} onChange={value => { changeFilters(); setWorkType(value); }} ariaLabel="Filter by work type"
+              options={[{ value: "all", label: "All work types" }, ...taskTypes.map(type => ({ value: type, label: label(type) }))]} />
+          </div>
+          {liveSuggestions.length > 0 && <details className="hk-suggestions">
+            <summary>Suggested assignments <span className="hk-count">{liveSuggestions.length}</span></summary>
+            <p>Suggestions are advisory and nothing is assigned automatically.</p>
+            <ul>{liveSuggestions.map(suggestion => <li key={suggestion.taskId}>
+              <div><b>Room {suggestion.roomNumber} · {suggestion.staffName}</b><small>{suggestion.reason}</small></div>
+              {applySuggestion && (isHousekeeping || role === "owner") && <button type="button" className="btn btn-soft" onClick={() => applySuggestion(suggestion)}>
+                {isHousekeeping ? "Assign to me" : `Assign to ${suggestion.staffName}`}
+              </button>}
+              {isManager && <small>Suggestion only — coordinate via Prioritize</small>}
+            </li>)}</ul>
+          </details>}
+        </div>
+
+        <div className="hk-room-columns hk-column-head" aria-hidden="true"><span>Room</span><span>Task</span><span className="hk-assignee">Assigned to</span><span>Status</span><span /></div>
+        {visible.length ? <ul className="hk-room-list" aria-label="Room tasks">
+          {visible.map(row => {
+            const { item, stage } = row;
+            const arrival = arrivalLabel(item, today);
+            const priority = stage !== "completed" && (item.priority === "urgent" || item.priority === "high") ? label(item.priority) : null;
+            const person = isHousekeeping && item.assigned_user_id === userId ? "You" : assignee(item);
+            const rowStatus = `${queueTitle}-${item.id}-status`;
+            return <li key={item.id}><button type="button" className="hk-room-row hk-room-columns" aria-pressed={selected?.item.id === item.id}
+              aria-label={[roomName(item), workTypeName(item), priority && `${priority} priority`, arrival && `Arrival ${arrival}`, person].filter(Boolean).join(" · ")}
+              aria-describedby={rowStatus}
+              onClick={event => select(item, event.currentTarget, event.detail === 0)}>
+              <span className="hk-room-number"><b>{item.room_number && item.room_number !== "-" ? item.room_number : "Unassigned"}</b>{item.room_floor != null && <small>Floor {item.room_floor}</small>}</span>
+              <span className="hk-row-task"><b>{workTypeName(item)}</b>
+                {(arrival || priority) && <small>
+                  {priority && <strong>{priority}{arrival && " · "}</strong>}
+                  {arrival && `Arrives ${arrival.replace(/^Today/, "today")}`}
+                </small>}
+                <small className="hk-assignee-compact">{person}</small>
+              </span>
+              <span className="hk-assignee">{person}</span>
+              <span className="hk-row-status" id={rowStatus}>{stageBadge(row)}</span>
+              <ChevronRight size={14} className="hk-row-chevron" aria-hidden="true" />
+            </button></li>;
+          })}
+        </ul> : <div className="hk-empty">
+          <Search size={19} aria-hidden="true" /><h3>{activeFilters ? "No matching tasks" : "No room tasks"}</h3>
+          <p>{activeFilters ? "Clear the filters or try another search." : "Room-care tasks will appear here as they are created."}</p>
+        </div>}
+        <footer className="hk-queue-footer">
+          <span role="status">{activeFilters ? `Showing ${visible.length} of ${Object.values(counts).reduce((sum, count) => sum + count, 0)} tasks` : `${visible.length} ${visible.length === 1 ? "task" : "tasks"} · Priority, then next arrival`}</span>
+          {activeFilters && <button className="btn btn-soft" type="button" onClick={() => {
+            changeFilters(); setStageFilter(null); setWorkType("all"); setQuickFilter(false); setSearch("");
+            root.current?.querySelector<HTMLInputElement>('input[type="search"]')?.focus();
+          }}>Clear filters</button>}
+        </footer>
+      </section>
+
+      <section className="hk-workspace-panel hk-task-detail" aria-label="Selected room task">
+        <button ref={back} type="button" className="btn btn-soft hk-back" onClick={returnToQueue}><ArrowLeft size={16} aria-hidden="true" /> Back to room queue</button>
+        {selected ? <TaskDetail key={selected.item.id} row={selected} today={today} titleRef={detailTitle} props={props}
+          keepSelected={() => setSelectedId(selected.item.id)} />
+          : <div className="hk-empty"><ClipboardList size={20} aria-hidden="true" /><h3>Select a room task</h3><p>Room details and actions appear here.</p></div>}
+      </section>
+    </div>
+  </div>;
+}
+
+function TaskDetail({ row, today, titleRef, props, keepSelected }: { row: QueueTask; today: string; titleRef: React.RefObject<HTMLHeadingElement>; props: QueueProps; keepSelected: () => void }) {
+  const { item, stage } = row;
+  const { role, userId, housekeepingAction, coordinate, onViewRoom, onSetDnd, onServiceOutcome } = props;
+  const canHousekeep = canPerformHousekeeping(role);
+  const canCoordinate = canCoordinateOperations(role);
+  const assignedElsewhere = Boolean(item.assigned_user_id) && item.assigned_user_id !== userId;
+  const canWork = canHousekeep && !assignedElsewhere;
+  const open = hasOpenTask(item);
+  const regularTask = item.task_type !== "inspection";
+  const stayServiceTask = item.task_type === "stayover_cleaning" || item.task_type === "guest_request";
+  const serviceControls = item.service_instructions_available !== false && canWork && stayServiceTask && open;
+  const inspect = item.inspection_status === "pending" && item.status === "completed";
+  const blocked = item.maintenance_blocked === true;
+  const dnd = hasDndHold(item);
+  const canStart = canWork && open && regularTask && !dnd && !blocked;
+  const canClaim = canWork && open && regularTask && !item.assigned_user_id;
+  const action = (text: string, key: TaskAction, primary = false) =>
+    <button type="button" className={`btn ${primary ? "btn-accent hk-next-action" : "btn-soft"}`} onClick={() => { keepSelected(); housekeepingAction(item, key); }}>
+      {text}{primary && <ChevronRight size={16} aria-hidden="true" />}
+    </button>;
+  let primary: ReactNode = null;
+  if (canCoordinate && item.status !== "completed") {
+    primary = <button type="button" className="btn btn-accent hk-next-action" onClick={() => { keepSelected(); coordinate(item); }}>Prioritize task <ChevronRight size={16} aria-hidden="true" /></button>;
+  } else if (canHousekeep && inspect) {
+    primary = action("Inspect room", "inspect", true);
+  } else if (canWork && item.status === "in_progress") {
+    primary = action("Complete cleaning", "complete", true);
+  } else if (canClaim && !blocked && !dnd) {
+    primary = action("Claim task", "assign", true);
+  } else if (canStart) {
+    primary = action("Start cleaning", "start", true);
+  }
+
+  const additional: ReactNode[] = [];
+  if (canStart && canClaim) additional.push(action("Start cleaning", "start"));
+  if (canWork && open && regularTask && (!canClaim || blocked || dnd)) additional.push(action(item.assigned_user_id ? "Reassign" : "Claim task", "assign"));
+  if (canWork && item.status === "in_progress" && stayServiceTask) additional.push(action("Defer service", "defer"));
+  if (serviceControls && item.dnd_active !== true && item.active_reservation_id && onSetDnd) additional.push(
+    <button type="button" className="btn btn-soft" onClick={() => { keepSelected(); onSetDnd(item); }}>Set DND</button>);
+  if (serviceControls && !item.service_outcome && onServiceOutcome) additional.push(
+    <button type="button" className="btn btn-soft" onClick={() => { keepSelected(); onServiceOutcome(item, "service_declined"); }}>Guest declined</button>,
+    <button type="button" className="btn btn-soft" onClick={() => { keepSelected(); onServiceOutcome(item, "late_service"); }}>Mark late</button>);
+  if (canHousekeep) additional.push(action("Report maintenance issue", "maintenance"));
+
+  const activity = [
+    [item.inspected_at, item.inspection_status === "failed" ? "Inspection failed" : "Inspection passed"],
+    [item.completed_at, "Cleaning completed"], [item.deferred_at, "Service deferred"],
+    [item.started_at, "Cleaning started"], [item.created_at, "Task opened"],
+  ].filter(([value]) => Boolean(value)).sort(([a], [b]) => String(b).localeCompare(String(a)));
+  const notes = [
+    item.task && item.task !== item.task_type && label(item.task) !== workTypeName(item) ? item.task : null,
+    item.notes, item.inspection_reason, item.deferred_reason, item.service_outcome_note,
+  ].filter(Boolean);
+  const arrival = arrivalLabel(item, today);
+  const next = inspect && !canHousekeep ? "Awaiting Housekeeping inspection before release."
+    : inspect ? "Pass inspection to release the room when it is serviceable."
+    : assignedElsewhere && canHousekeep && item.status !== "completed" ? "Assigned to another Housekeeping worker"
+    : role === "front_desk" && item.status !== "completed" && !blocked && !dnd ? "Housekeeping updates this task as work progresses." : null;
+  const housekeepingState = label(item.room_housekeeping);
+  const inventoryState = item.room_status !== item.room_housekeeping ? label(item.room_status) : "";
 
   return <>
-    <div className="hk-hero">
-      <div><p className="hk-eyebrow">Hotel operations</p><h1>Housekeeping</h1><p>Live room-care queue from turnover through inspection and readiness. Tomorrow&apos;s workload forecast lives in Predictive Insights; plain-language explanations in HAVEN AI.</p></div>
+    <header className="hk-detail-heading">
+      <div className="hk-detail-badges">
+        {stageBadge(row)}
+        {blocked && stage !== "hold" && <StatusBadge status="maintenance" label="Maintenance hold" size="sm" />}
+        {item.dnd_active === true && !(stage === "hold" && dnd && !blocked) && <StatusBadge status="deferred" label="Do Not Disturb" size="sm" />}
+        {item.priority && (item.priority !== "normal" || canCoordinate) && <StatusBadge status={String(item.priority)} size="sm" label={`${label(item.priority)} priority`} />}
+      </div>
+      <h2 ref={titleRef} tabIndex={-1}>{roomName(item)}</h2>
+      {(item.room_type || item.room_floor != null) && <p>{[item.room_type, item.room_floor != null ? `Floor ${item.room_floor}` : null].filter(Boolean).join(" · ")}</p>}
+    </header>
+    <div className="hk-detail-body">
+      <dl className="hk-room-facts">
+        <div><dt>Work type</dt><dd>{workTypeName(item)}</dd></div>
+        <div><dt>Assigned to</dt><dd>{assignee(item)}{canHousekeep && item.assigned_user_id === userId ? " (you)" : ""}</dd></div>
+        <div><dt>Next arrival</dt><dd>{arrival ?? "None scheduled"}</dd></div>
+        <div><dt>Room state</dt><dd>
+          {housekeepingState || inventoryState || "Unavailable"}
+          {housekeepingState && inventoryState && <small>Inventory status: <span>{inventoryState}</span></small>}
+        </dd></div>
+        {item.service_outcome && <div><dt>Service outcome</dt><dd>{label(item.service_outcome)}</dd></div>}
+      </dl>
+      {(notes.length > 0 || blocked || dnd) && <div className="hk-task-notes">
+        <FileText size={16} aria-hidden="true" />
+        <div><h3>{blocked || dnd ? "Service restrictions" : "Service notes"}</h3>
+          {blocked && <p>An open maintenance work order holds this room.</p>}
+          {dnd && <p>Wait for Front Desk to clear the guest’s Do Not Disturb instruction before starting routine cleaning.</p>}
+          {[...new Set(notes)].map(note => <p key={String(note)}>{note}</p>)}
+        </div>
+      </div>}
+      {stage !== "hold" && <TaskProgress row={row} />}
     </div>
-    <ModuleSummaryCards cards={[
-      { label: "Needs attention", value: totals.needs_attention, hint: "Unassigned or urgent", icon: ClipboardCheck, tone: "attention" },
-      { label: "In progress", value: totals.in_progress, hint: "Being cleaned now", icon: BedDouble, tone: "today" },
-      { label: "Waiting for inspection", value: totals.waiting_inspection, hint: "Not sellable until passed", icon: Sparkles, tone: "active" },
-      { label: "Blocked by Maintenance", value: totals.blocked, hint: "Work order holds the room", icon: Wrench, tone: "attention" },
-      { label: "Completed today", value: totals.completed_today, hint: "Finished this hotel day", icon: ClipboardCheck, tone: "done" },
-    ]} ariaLabel="Housekeeping summary"/>
-    <p className="hk-scope-note">Summary counts cover all loaded tasks. Search and filters narrow the queue below — and the &ldquo;Showing N tasks&rdquo; footer counts that narrowed queue.</p>
-    {showGuestStrip && <section className="data-panel hk-guest-strip" aria-label="Guest service requests">
-      <span className="hk-guest-icon" aria-hidden="true"><Bell size={16} /></span>
-      <div><b>Guest service requests assigned to Housekeeping</b><small>{guestRequestOpen} open — start and complete them in Guest Requests</small></div>
-      <button type="button" className="table-action action-neutral" onClick={onOpenGuestRequests}>Open Guest Requests</button>
-    </section>}
-    {canSeeSuggestions && liveSuggestions.length > 0 && <div className="data-panel hk-queue" aria-label="Suggested assignments">
-      <section className="hk-queue-group">
-        <header><h3><Wand2 size={14} aria-hidden="true" />Suggested assignments<i>{liveSuggestions.length}</i></h3><p>Suggestion — you decide. A balanced plan from open tasks and current workloads; nothing is assigned automatically.</p></header>
-        {liveSuggestions.map((suggestion) => <article key={suggestion.taskId} className="hk-queue-card">
-          <div className="hk-queue-main">
-            <header>
-              <b>Room {suggestion.roomNumber}</b>
-              <span className="hk-queue-type">{suggestion.taskType}</span>
-              <StatusBadge status={suggestion.priority} label={suggestion.priority} />
-            </header>
-            <p className="hk-queue-service"><strong>{suggestion.staffName}</strong></p>
-            <small>{suggestion.reason}</small>
-          </div>
-          <div className="hk-queue-actions">
-            {canApplySuggestion && applySuggestion && <button className="table-action action-primary" onClick={() => applySuggestion(suggestion)}>{canHousekeep ? "Assign to me" : `Assign to ${suggestion.staffName}`}</button>}
-            {!canApplySuggestion && <span>Suggestion only — coordinate via Prioritize</span>}
-          </div>
-        </article>)}
-      </section>
-    </div>}
-    <HavenDataToolbar
-      label="Search and filter the room-care queue"
-      filtersLayout="compact"
-      search={<HavenSearchInput value={search} onValueChange={setSearch} label="Search the room-care queue" placeholder="Search the room-care queue..." />}
-      advancedFilters={<>
-        <div className="haven-filter"><HavenSelect value={workType} onChange={setWorkType} ariaLabel="Filter by work type" options={[{ value: "all", label: "All work types" }, ...taskTypes.map((type) => ({ value: type, label: label(type) }))]} /></div>
-        <div className="haven-filter"><HavenSelect value={workStatus} onChange={setWorkStatus} ariaLabel="Filter by task status" options={[{ value: "all", label: "All task statuses" }, ...workStatuses.map((status) => ({ value: status, label: label(status) }))]} /></div>
-      </>}
-      resultCount={visibleCount}
-      resultNoun={`task${visibleCount !== 1 ? "s" : ""} of ${queueItems.length}`}
-      hasActiveFilters={Boolean(search.trim()) || workType !== "all" || workStatus !== "all"}
-      onClearFilters={() => { setSearch(""); setWorkType("all"); setWorkStatus("all"); }}
-    />
-    <ol className="hk-flow" aria-label="Typical room-care path">
-      <li>Pending</li><li>In progress</li><li>Inspection</li><li>Ready</li>
-    </ol>
-    <section className="data-panel hk-queue" aria-label="Room care queue">
-      {queueItems.length === 0 && <div className="empty"><Search /><h3>No records found</h3><p>No matching operational records are available.</p></div>}
-      {actionable.map(({ key, title, hint, icon: Icon }) => <section key={key} className={`hk-queue-group${key === primaryKey ? " hk-group-primary" : ""}`} aria-label={title}>
-        <header><h3><Icon size={14} aria-hidden="true" />{title}<i>{groups[key].length}</i></h3><p>{hint}</p></header>
-        {groups[key].map((item) => <QueueCard key={String(item.id)} item={item} userId={userId} canHousekeep={canHousekeep} canCoordinate={canCoordinate} housekeepingAction={housekeepingAction} coordinate={coordinate} onViewMaintenance={onViewMaintenance} onViewRoom={onViewRoom} onServiceOutcome={onServiceOutcome} onSetDnd={onSetDnd} />)}
-      </section>)}
-      {completed.length > 0 && <section className="hk-queue-group" aria-label="Completed today">
-        <header><button className="hk-queue-toggle" aria-expanded={showCompleted} onClick={() => setShowCompleted((value) => !value)}><h3><ClipboardCheck size={14} aria-hidden="true" />Completed today<i>{completed.length}</i><ChevronDown size={14} aria-hidden="true" className={showCompleted ? "open" : ""} /></h3></button><p>Finished work, with inspection outcome. Full history lives in the room detail.</p></header>
-        {showCompleted && completed.map((item) => <QueueCard key={String(item.id)} item={item} userId={userId} canHousekeep={canHousekeep} canCoordinate={false} housekeepingAction={housekeepingAction} coordinate={coordinate} onViewMaintenance={onViewMaintenance} onViewRoom={onViewRoom} onServiceOutcome={onServiceOutcome} onSetDnd={onSetDnd} />)}
-      </section>}
-      {queueItems.length > 0 && <div className="table-footer">Showing {visibleCount} of {queueItems.length} task{queueItems.length !== 1 ? "s" : ""}<span>Readiness is decided by the audited housekeeping workflow, not by this view.</span></div>}
-    </section>
+    <div className="hk-detail-actions">
+      {next && <p>{next}</p>}
+      {primary}
+      {additional.length > 0 && <details className="hk-more-actions"><summary>More actions</summary>
+        <div>{additional.map((control, index) => <span key={index}>{control}</span>)}</div>
+      </details>}
+      {item.room_id && <div className="hk-room-links">
+        {blocked && <button type="button" className="btn btn-soft" onClick={() => onViewRoom(item, "maintenance")}>View work order</button>}
+        <button type="button" className="btn btn-soft" onClick={() => onViewRoom(item)}>Room details</button>
+      </div>}
+    </div>
+    {activity.length > 0 && <details className="hk-task-activity"><summary>Task activity</summary>
+      <ul>{activity.map(([value, event]) => <li key={String(event)}><time dateTime={String(value)}>{formatHotelDateTime(value as string)}</time><span>{event}</span></li>)}</ul>
+    </details>}
   </>;
 }
 
-function QueueCard({ item, userId, canHousekeep, canCoordinate, housekeepingAction, coordinate, onViewMaintenance, onViewRoom, onServiceOutcome, onSetDnd }: {
-  item: RecordItem;
-  userId: string;
-  canHousekeep: boolean;
-  canCoordinate: boolean;
-  housekeepingAction: (item: RecordItem, action: "assign" | "start" | "complete" | "inspect" | "defer" | "maintenance") => void;
-  coordinate: (item: RecordItem) => void;
-  onViewMaintenance: () => void;
-  onViewRoom: (item: RecordItem) => void;
-  onServiceOutcome?: (item: RecordItem, outcome: "service_declined" | "late_service") => void;
-  onSetDnd?: (item: RecordItem) => void;
-}) {
-  const status = String(item.status);
-  const type = String(item.task_type);
-  const assignedElsewhere = Boolean(item.assigned_user_id) && item.assigned_user_id !== userId;
-  const canWork = canHousekeep && !assignedElsewhere;
-  const dndActive = item.dnd_active === true;
-  const serviceInstructionsAvailable = item.service_instructions_available !== false;
-  const stayServiceTask = ["stayover_cleaning", "guest_request"].includes(type);
-  const isTurnover = type === "checkout_cleaning";
-  const created = isTurnover ? `checked out ${when(item.created_at) ?? "recently"}` : `created ${time(item.created_at) ?? "recently"}`;
-  const arrival = item.next_arrival ? `next arrival ${day(item.next_arrival)}` : null;
-  return <article className="hk-queue-card">
-    <div className="hk-queue-main">
-      <header>
-        <b>Room {label(item.room_number)}</b>
-        <span className="hk-queue-type">{label(item.room_type)}</span>
-        <StatusBadge status={String(item.priority)} label={label(item.priority)} />
-        <StatusBadge status={status} label={label(status)} />
-        {item.maintenance_blocked === true && <span className="badge maintenance">maintenance</span>}
-        {dndActive && <span className="badge attention">Do Not Disturb</span>}
-      </header>
-      <p className="hk-queue-service"><strong>{label(type)}</strong> · {label(item.task)}</p>
-      <small>
-        {created}{item.assigned_to && item.assigned_to !== "Unassigned" ? ` · ${label(item.assigned_to)}` : " · unassigned"}
-        {item.started_at ? ` · started ${when(item.started_at)}` : ""}
-        {item.completed_at ? ` · completed ${when(item.completed_at)}` : ""}
-        {arrival ? ` · ${arrival}` : ""}
-      </small>
-      <small>
-        Room state: <StatusBadge status={String(item.room_housekeeping)} label={label(item.room_housekeeping)} />
-        {String(item.inspection_status) === "pending" ? " · awaiting inspection" : ""}
-        {String(item.inspection_status) === "failed" ? ` · inspection failed: ${label(item.inspection_reason)}` : ""}
-        {String(item.inspection_status) === "passed" ? " · inspection passed" : ""}
-      </small>
-      {item.service_outcome && <small>Service outcome: {label(item.service_outcome)}{item.service_outcome_note ? ` · ${item.service_outcome_note}` : ""}</small>}
-    </div>
-    <div className="hk-queue-actions">
-      {canWork && status === "in_progress" && <button className="table-action action-primary" onClick={() => housekeepingAction(item, "complete")}>Complete Task</button>}
-      {canHousekeep && String(item.inspection_status) === "pending" && <button className="table-action" onClick={() => housekeepingAction(item, "inspect")}>Inspect</button>}
-      {canWork && openTaskStatuses.includes(status) && type !== "inspection" && <button className="table-action action-primary" onClick={() => housekeepingAction(item, "assign")}>{item.assigned_user_id ? "Reassign" : "Claim"}</button>}
-      {canWork && openTaskStatuses.includes(status) && type !== "inspection" && !(dndActive && type === "stayover_cleaning") && <button className="table-action action-primary" onClick={() => housekeepingAction(item, "start")}>Start cleaning</button>}
-      {serviceInstructionsAvailable && canWork && stayServiceTask && openTaskStatuses.includes(status) && !dndActive && item.active_reservation_id && onSetDnd && <button className="table-action" onClick={() => onSetDnd(item)}>Set DND</button>}
-      {serviceInstructionsAvailable && canWork && stayServiceTask && openTaskStatuses.includes(status) && !item.service_outcome && onServiceOutcome && <button className="table-action" onClick={() => onServiceOutcome(item, "service_declined")}>Guest declined</button>}
-      {serviceInstructionsAvailable && canWork && stayServiceTask && openTaskStatuses.includes(status) && !item.service_outcome && onServiceOutcome && <button className="table-action" onClick={() => onServiceOutcome(item, "late_service")}>Mark late</button>}
-      {canWork && status === "in_progress" && ["stayover_cleaning", "guest_request"].includes(type) && <button className="table-action" onClick={() => housekeepingAction(item, "defer")}>Defer</button>}
-      {canHousekeep && status !== "cancelled" && <button className="table-action" onClick={() => housekeepingAction(item, "maintenance")}>Report Issue</button>}
-      {item.maintenance_blocked === true && <button className="table-action" onClick={onViewMaintenance}>View work order</button>}
-      {canCoordinate && status !== "completed" && <button className="table-action" onClick={() => coordinate(item)}>Prioritize</button>}
-      <button className="table-action" onClick={() => onViewRoom(item)}>Room Details</button>
-      {canHousekeep && assignedElsewhere && ["pending", "assigned", "deferred", "in_progress"].includes(status) && <span>Assigned to another Housekeeping worker</span>}
-      {!canHousekeep && !canCoordinate && <span>View only</span>}
-    </div>
-  </article>;
+function TaskProgress({ row }: { row: QueueTask }) {
+  const { item, stage } = row;
+  const includeInspection = item.status === "completed"
+    ? item.inspection_status === "pending" || item.inspection_status === "passed" || item.inspection_status === "failed"
+    : item.task_type !== "stayover_cleaning" && item.room_status !== "occupied";
+  const steps = [
+    { key: "queued", label: "To clean" }, { key: "cleaning", label: "Cleaning" },
+    ...(includeInspection ? [{ key: "inspection", label: item.status === "completed" ? "Inspection" : "Inspection if required" }] : []),
+    { key: "completed", label: "Complete" },
+  ];
+  const current = item.inspection_status === "failed" ? "inspection" : stage;
+  const active = steps.findIndex(step => step.key === current);
+  return <div className="hk-task-progress"><h3>Task progress</h3>
+    <ol aria-label="Task progress">{steps.map((step, index) => <li key={step.key} aria-current={step.key === current ? "step" : undefined} data-done={index < active}>
+      <span aria-hidden="true">{index < active ? <Check size={13} /> : index + 1}</span>{step.label}
+    </li>)}</ol>
+  </div>;
 }

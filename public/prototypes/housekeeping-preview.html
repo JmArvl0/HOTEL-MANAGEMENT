@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Housekeeping · Haven design prototype</title>
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="housekeeping-preview.css">
+  <script src="hms-workflow-icons.js" defer></script>
+  <script src="housekeeping-preview.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to housekeeping</a>
+  <aside class="sidebar" aria-label="Haven staff workspace">
+    <div class="brand">
+      <img src="../haven-logo-small.png" alt="" width="40" height="40">
+      <div><b>HAVEN</b><small>HOTEL MANAGEMENT</small></div>
+    </div>
+    <nav aria-label="Staff modules">
+      <p class="nav-label">Workspace</p>
+      <span class="nav-item" data-shell><i data-icon="Gauge"></i><span>Dashboard</span></span>
+      <span class="nav-item" data-shell><i data-icon="BedDouble"></i><span id="rooms-nav-label">Rooms</span></span>
+      <button class="nav-item" type="button" data-requests data-attendant title="Guest Requests"><i data-icon="Bell"></i><span>Guest Requests</span></button>
+      <span class="nav-item" data-shell data-other-role hidden><i data-icon="Bell"></i><span>Guest Requests</span></span>
+      <a class="nav-item current" href="#main" id="housekeeping-home" aria-current="page" title="Housekeeping"><i data-icon="ClipboardList"></i><span>Housekeeping</span></a>
+      <span class="nav-item" data-shell data-inventory><i data-icon="Package"></i><span>Inventory</span></span>
+      <span class="nav-item" data-shell><i data-icon="ShieldCheck"></i><span>Approvals &amp; Escalations</span></span>
+    </nav>
+    <div class="sidebar-footer">
+      <span class="avatar" id="avatar" aria-hidden="true">MS</span>
+      <div><b id="account-name">Mara Santos</b><small id="account-role">Housekeeping</small></div>
+    </div>
+  </aside>
+
+  <div class="workspace">
+    <header class="topbar">
+      <div class="header-context">
+        <div class="breadcrumb"><span>Operations</span><i data-icon="ChevronRight"></i><b>Housekeeping</b></div>
+        <div class="mobile-brand"><img src="../haven-logo-small.png" alt="" width="23" height="23"> HAVEN</div>
+        <time class="header-clock" datetime="2026-11-11T12:15:00+08:00" title="Hotel local time (Manila)">
+          <i data-icon="Clock3"></i><span>Wed, Nov 11</span><strong>12:15 PM</strong>
+        </time>
+      </div>
+      <div class="top-actions">
+        <span class="preview-label">Sample data</span>
+        <div class="role-picker">
+          <label for="preview-role">Preview as</label>
+          <select id="preview-role">
+            <option value="housekeeping">Housekeeping</option>
+            <option value="manager">Manager</option>
+            <option value="front_desk">Front Desk</option>
+          </select>
+        </div>
+        <button class="button reset" id="reset" type="button" aria-label="Reset sample data" title="Reset sample data"><i data-icon="RefreshCw"></i><span>Reset</span></button>
+        <button class="button icon-button" id="theme" type="button" aria-label="Dark theme" aria-pressed="false" title="Toggle dark theme"><i data-icon="Moon"></i></button>
+      </div>
+    </header>
+
+    <main id="main" tabindex="-1">
+      <header class="page-heading">
+        <h1>Housekeeping</h1>
+        <button class="button requests-button" type="button" data-requests data-attendant><i data-icon="Bell"></i> Guest requests <span class="count">3</span><i data-icon="ArrowUpRight"></i></button>
+      </header>
+
+      <section class="shift-strip" id="shift" aria-label="Filter by task stage"></section>
+
+      <div class="desk" id="desk">
+        <section class="queue panel" aria-labelledby="queue-title">
+          <header class="queue-head">
+            <div class="queue-title">
+              <div><h2 id="queue-title" tabindex="-1">Room queue</h2><span class="count" id="queue-count"></span></div>
+              <button class="button quick-filter" id="quick-filter" type="button" aria-pressed="false"></button>
+            </div>
+            <div class="filters">
+              <label class="search">
+                <i data-icon="Search"></i>
+                <span class="sr-only">Search by room, task, or assignee</span>
+                <input type="search" id="search" placeholder="Search rooms or staff" autocomplete="off">
+              </label>
+              <select id="type" aria-label="Filter by work type">
+                <option value="">All work types</option>
+                <option>Checkout cleaning</option>
+                <option>Stayover cleaning</option>
+                <option>Maintenance cleanup</option>
+                <option>Reclean</option>
+              </select>
+            </div>
+          </header>
+          <div class="row-grid column-head" aria-hidden="true">
+            <span>Room</span><span>Task</span><span>Assigned to</span><span>Status</span><span></span>
+          </div>
+          <ul class="queue-list" id="queue-list" aria-label="Room tasks"></ul>
+          <div class="empty" id="empty" hidden>
+            <i data-icon="Search"></i>
+            <h3>No matching tasks</h3>
+            <p>Clear the filters to see the full room queue.</p>
+            <button class="button" id="clear-empty" type="button">Clear filters</button>
+          </div>
+          <footer class="queue-footer"><span id="queue-caption"></span><button type="button" class="text-button" id="clear-filters" hidden>Clear filters</button></footer>
+        </section>
+
+        <section class="detail panel" id="detail" aria-label="Selected room task">
+          <button class="button back" id="back" type="button"><i data-icon="ArrowLeft"></i> Back to room queue</button>
+          <div id="detail-content"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <p class="sr-only" id="announcement" role="status"></p>
+  <dialog id="requests-dialog" aria-labelledby="requests-title">
+    <header>
+      <div><h2 id="requests-title">Guest requests</h2><p>3 sample requests routed to Housekeeping</p></div>
+      <form method="dialog"><button class="button icon-button" aria-label="Close guest requests"><i data-icon="X"></i></button></form>
+    </header>
+    <ul class="requests-list">
+      <li><span class="request-room">Room 207</span><div><b>Extra bath towels</b><small>2 towels · requested at 11:42 AM</small></div></li>
+      <li><span class="request-room">Room 418</span><div><b>Extra pillow</b><small>1 pillow · requested at 11:56 AM</small></div></li>
+      <li><span class="request-room">Room 512</span><div><b>Collect used linens</b><small>Requested at 12:08 PM</small></div></li>
+    </ul>
+    <footer>Staff handle these requests in the Guest Requests module.</footer>
+  </dialog>
+  <noscript><p class="no-script">Enable JavaScript to use the interactive Housekeeping prototype.</p></noscript>
+</body>
+</html>

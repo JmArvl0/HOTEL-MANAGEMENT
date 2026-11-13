@@ -7,6 +7,7 @@ import { TablePagination, useTablePagination } from "@/components/ui/table-pagin
 import { PageHeader } from "@/components/ui";
 import { HavenDataToolbar, HavenEmptyState, HavenFilterBadges, HavenSearchInput } from "@/components/ui";
 import type { RecordItem } from "@/lib/types";
+import type { ReservationQueue } from "@/lib/reservation-workspace";
 
 const peso = (value: unknown) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 }).format(Number(value || 0));
 const label = (value: unknown) => String(value ?? " ").replaceAll("_", " ");
@@ -28,6 +29,7 @@ const QUEUES: [string, string][] = [
   ["all", "All"],
   ["attention", "Attention Required"],
   ["arrivals", "Arrivals Today"],
+  ["unassigned", "Unassigned Arrivals"],
   ["departures", "Departures Today"],
   ["in_house", "In-House"],
   ["upcoming", "Upcoming"],
@@ -40,7 +42,9 @@ const CLOSED_STATUSES = ["checked_out", "cancelled", "no_show"];
 function managerQueueFilter(item: AttentionRow, queue: string, today: string) {
   const status = String(item.status);
   if (queue === "attention") return needsAttention(item, today);
-  if (queue === "arrivals") return String(item.check_in) === today && ["confirmed", "checked_in"].includes(status);
+  if (queue === "arrivals" || queue === "unassigned") {
+    return String(item.check_in) === today && ["confirmed", "checked_in"].includes(status) && (queue === "arrivals" || !item.room_id);
+  }
   if (queue === "departures") return String(item.check_out) === today && ["confirmed", "checked_in"].includes(status);
   if (queue === "in_house") return status === "checked_in";
   if (queue === "upcoming") return String(item.check_in) > today && ["pending", "confirmed"].includes(status);
@@ -56,15 +60,16 @@ function IssueBadge({ issues }: { issues: ReturnType<typeof deriveReservationAtt
   </span>;
 }
 
-export function ManagerReservationsPanel({ items, search, setSearch, viewReservation, onReviewException, onScan }: {
+export function ManagerReservationsPanel({ items, search, setSearch, viewReservation, onReviewException, onScan, initialQueue = "all" }: {
   items: RecordItem[];
   search: string;
   setSearch: (value: string) => void;
   viewReservation: (item: RecordItem) => void;
   onReviewException: (item: RecordItem) => void;
   onScan: (() => void) | null;
+  initialQueue?: ReservationQueue;
 }) {
-  const [queue, setQueue] = useState("all");
+  const [queue, setQueue] = useState<string>(initialQueue);
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
   const rows = items as AttentionRow[];
   const counts = useMemo(() => new Map(QUEUES.map(([value]) => [value, rows.filter((item) => managerQueueFilter(item, value, today)).length] as [string, number])), [rows, today]);

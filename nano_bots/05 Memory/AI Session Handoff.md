@@ -1,5 +1,68 @@
 # AI Session Handoff
 
+## Financial Documents implementation (2026-11-13)
+
+The Financial Documents section now pairs a searchable, filtered register
+with the selected receipt or folio snapshot. Phones open it separately and
+return focus to the current register page. Typecheck passed; targeted lint
+reported three existing hook warnings. The production build stopped on a
+Windows access-denied error creating Turbopack's sharp junction. See
+[[2026-11-13 - Financial Documents Implementation]].
+
+## Financial Documents design prototype (2026-11-12)
+
+The standalone sample-data preview pairs a searchable register with the
+selected receipt or folio. Phones open the document separately and retain the
+filtered list position on return. Chromium checked both themes from 320 to
+1,440 px. The prototype informed the implementation; see [[2026-11-13 - Financial Documents Implementation]].
+See [[2026-11-12 - Financial Documents Design Prototype]].
+
+## Reports design implementation (2026-11-12)
+
+User approved Choice A, Executive brief. The live Reports pages now lead with
+summary information and key visual data across the shared Manager/Accounting,
+Front Desk, Admin, and Owner surfaces. Admin role counts are visualized with
+bars; exact counts remain in an expandable table. Front Desk status cards
+distinguish current-page counts from the server total. Existing role rules and
+workflow actions are unchanged. Typecheck passed; lint reports four hook
+warnings in pre-existing effects, with no errors. Browser QA remains pending.
+See [[2026-11-12 - Reports Choice A Implementation]].
+
+## All account dashboards (2026-11-12)
+
+The seven staff roles at `/manager_dashboard` and Guest at `/account` now
+share the approved overview layout. The same eye control masks authorized
+dashboard amounts. Chrome verified the eight role sessions and data scopes
+against local PostgreSQL. See [[2026-11-12 - All Account Dashboards]].
+
+## Manager dashboard implementation (2026-11-11)
+
+The Manager overview uses live room and booking metrics, linked exception
+queues, two booked-occupancy periods, and four masked finance aggregates.
+Chrome verified the workflow with a fresh local PostgreSQL database. See
+[[2026-11-11 - Manager Dashboard Implementation]].
+
+## Manager dashboard design prototype (2026-11-11)
+
+The standalone Manager preview brings priority queues and room readiness
+together above booked occupancy and today's finances. An eye button reveals
+the masked peso amounts until toggled off or reloaded. Chrome verified the
+interactions and both themes. See [[2026-11-11 - Manager Dashboard Design Prototype]].
+
+## Housekeeping redesign (2026-11-11)
+
+The staff module uses the approved room queue and selected task layout across
+Housekeeping, Manager, and Front Desk. The shared header carries the clock.
+Chrome verified each role against an isolated PostgreSQL database. See
+[[2026-11-11 - Housekeeping Redesign Implementation]].
+
+## Housekeeping design prototype (2026-11-11)
+
+The standalone sample-data preview shares a room queue across Housekeeping,
+Manager, and Front Desk, with role-specific actions and filters. The sample
+clock appears in the header. Chrome verified all three views. See
+[[2026-11-11 - Housekeeping Design Prototype]].
+
 ## Housekeeping load fix (2026-11-11)
 
 The queue supports the configured database before service-instruction fields

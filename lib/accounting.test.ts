@@ -284,8 +284,10 @@ describe("shared cash drawer (20261024110000)", () => {
   });
 
   it("derives Front Desk drawer metrics from the shared shift", () => {
-    expect(dataLib).toContain('.eq("status","open").order("opened_at"');
-    expect(dataLib).not.toContain('.eq("staff_user_id",userId).eq("status","open")');
+    const drawerRead = dataLib.slice(dataLib.indexOf('supabase.from("cash_shifts")'), dataLib.indexOf("const notifications:"));
+    expect(drawerRead).toMatch(/\.eq\("status",\s*"open"\)\.order\("opened_at"/);
+    expect(drawerRead).not.toContain('.eq("staff_user_id"');
+    expect(drawerRead).toContain('openingFloat: Number(shift.data.opening_amount');
   });
 });
 

@@ -13,7 +13,7 @@ import "./security-config.css";
 import "./system-health.css";
 import { HavenSelect } from "@/components/ui/haven-select";
 import { HavenSearchInput, HavenSkeletonCard, HavenErrorAlert } from "@/components/ui/haven-data-controls";
-import { HavenActionItem, type HavenActionItemTone } from "@/components/ui/haven-action-item";
+import { HavenActionItem } from "@/components/ui/haven-action-item";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
 import { HavenLogo } from "@/components/ui/haven-logo";
 import type { FormField } from "@/components/ui/FormDialog";
@@ -26,6 +26,7 @@ import OccupantPolicySection from "@/components/admin/occupant-policy-section";
 import { SystemHealthLedger } from "@/components/admin/system-health-ledger";
 import { migrationStatus, type SystemHealth } from "@/lib/system-health";
 import { SessionExpiryGuard } from "@/components/auth/session-expiry-guard";
+import { DashboardHeading, DashboardMetrics, DashboardOverview, DashboardPanel } from "@/components/ui/dashboard-overview";
 type Section = "overview" | "users" | "roles" | "rooms" | "website_location" | "room_types" | "transport_services" | "policy" | "audit" | "security" | "security_config" | "password_resets" | "reports" | "system"; type User = { id: string; name?: string | null; email?: string | null; role: Role }; type Overview = { metrics: Record<string, number>; roleCounts: Record<string, number>; recentAudit: RecordItem[] };
 const nav: [Section, string, React.ElementType][] = [["overview", "Dashboard", Activity], ["users", "Users & Staff", Users], ["roles", "Roles & Permissions", ShieldCheck], ["rooms", "Room Configuration", Building2], ["room_types", "Room Types", Building2], ["transport_services", "Transfer Vehicles", CarTaxiFront], ["website_location", "Location & Places", MapPin], ["policy", "Hotel Policies", Settings], ["audit", "Audit Logs", FileText], ["security", "Security events", KeyRound], ["security_config", "Security Configuration", ShieldCheck], ["password_resets", "Password reset audit", UserCheck], ["reports", "Admin Reports", ClipboardCheck], ["system", "System Health", HeartPulse]];
 // Presentational grouping only — admin sees every module; no RBAC filtering on this client.
@@ -294,28 +295,46 @@ function Overview({ data, setSection }: { data: Overview; setSection: (s: Sectio
     { label: "Review security", detail: "Inspect access and recovery events", section: "security", Icon: KeyRound },
     { label: "Security configuration", detail: "Control session and verification safeguards", section: "security_config", Icon: ShieldCheck },
   ];
-  const health: { label: string; value: number; detail: string; section: Section; Icon: React.ElementType; tone: string }[] = [
-    { label: "Needs attention", value: attention, detail: "Suspended or recovery-required", section: "security", Icon: KeyRound, tone: attention > 0 ? "attention" : "healthy" },
-    { label: "Active recovery links", value: Number(m.activeRecoveryTokens ?? 0), detail: "Unused links that have not expired", section: "security", Icon: ShieldCheck, tone: Number(m.activeRecoveryTokens ?? 0) > 0 ? "caution" : "neutral" },
-    { label: "Inactive rooms", value: Number(m.inactiveRooms ?? 0), detail: "Administratively disabled records", section: "rooms", Icon: Building2, tone: Number(m.inactiveRooms ?? 0) > 0 ? "caution" : "neutral" },
-    { label: "Inactive users", value: Number(m.inactiveUsers ?? 0), detail: "Accounts currently disabled", section: "users", Icon: Users, tone: Number(m.inactiveUsers ?? 0) > 0 ? "caution" : "neutral" },
-    { label: "Active users", value: Number(m.activeUsers ?? 0), detail: "Accounts currently enabled", section: "users", Icon: Users, tone: "healthy" },
-    { label: "Staff accounts", value: Number(m.staffAccounts ?? 0), detail: "Operational and governance users", section: "users", Icon: Users, tone: "neutral" },
-    { label: "Guest accounts", value: Number(m.guestAccounts ?? 0), detail: "Customer portal users", section: "users", Icon: Users, tone: "neutral" },
-    { label: "Room types", value: Number(m.roomTypes ?? 0), detail: "Room categories in the catalogue", section: "room_types", Icon: Building2, tone: "neutral" },
+  const health: { label: string; value: number; detail: string; section: Section; Icon: React.ElementType }[] = [
+    { label: "Needs attention", value: attention, detail: "Suspended or recovery-required", section: "security", Icon: KeyRound },
+    { label: "Active recovery links", value: Number(m.activeRecoveryTokens ?? 0), detail: "Unused links that have not expired", section: "security", Icon: ShieldCheck },
+    { label: "Inactive rooms", value: Number(m.inactiveRooms ?? 0), detail: "Administratively disabled records", section: "rooms", Icon: Building2 },
+    { label: "Inactive users", value: Number(m.inactiveUsers ?? 0), detail: "Accounts currently disabled", section: "users", Icon: Users },
+    { label: "Active users", value: Number(m.activeUsers ?? 0), detail: "Accounts currently enabled", section: "users", Icon: Users },
+    { label: "Staff accounts", value: Number(m.staffAccounts ?? 0), detail: "Operational and governance users", section: "users", Icon: Users },
+    { label: "Guest accounts", value: Number(m.guestAccounts ?? 0), detail: "Customer portal users", section: "users", Icon: Users },
+    { label: "Room types", value: Number(m.roomTypes ?? 0), detail: "Room categories in the catalogue", section: "room_types", Icon: Building2 },
   ];
-  const healthTone = (tone: string): HavenActionItemTone => tone === "attention" ? "rose" : tone === "caution" ? "amber" : tone === "healthy" ? "green" : "neutral";
-  const healthQuiet = (tone: string, value: number) => value === 0 && (tone === "attention" || tone === "caution");
-  const roles = Object.entries(data.roleCounts ?? {}).sort((a, b) => b[1] - a[1]), maxRole = Math.max(1, ...roles.map(([, count]) => count));
-  return <div className="admin-overview">
-    <PageHeader variant="band" title="Governance at a glance" subtitle="Live account health, hotel configuration, and immutable administrative activity." actions={<div className={`admin-posture ${attention > 0 ? "attention" : "healthy"}`}><ShieldCheck size={19} /><span><strong>{attention > 0 ? `${attention} account${attention === 1 ? "" : "s"} need review` : "Account access is clear"}</strong><small>Based on suspension and recovery flags</small></span><button type="button" onClick={() => setSection("security")}>Review<ChevronRight size={15} /></button></div>} />
-    <section className="admin-quick-section" aria-labelledby="admin-quick-title"><div className="admin-section-heading"><div><h2 id="admin-quick-title">Quick actions</h2><p>Open the most-used administration tools.</p></div></div><div className="admin-quick-actions">{quickActions.map(({ label: actionLabel, detail, section: target, Icon }) => <HavenActionItem key={target} icon={Icon} tone="neutral" title={actionLabel} description={detail} onAction={() => setSection(target)} />)}</div></section>
-    <section className="admin-health-section" aria-labelledby="admin-health-title"><div className="admin-section-heading"><div><h2 id="admin-health-title">System health</h2><p>Select an indicator to open its source module.</p></div><span>Live Supabase records</span></div><div className="admin-health-grid">{health.map(({ label: metricLabel, value, detail, section: target, Icon, tone }) => <HavenActionItem key={metricLabel} variant="stat" icon={Icon} tone={healthTone(tone)} quiet={healthQuiet(tone, Number(value))} title={metricLabel} value={value} description={detail} onAction={() => setSection(target)} actionLabel={`${metricLabel}: ${value}. Open ${nav.find(([key]) => key === target)?.[1] ?? target}`} />)}</div></section>
-    <div className="admin-overview-lower">
-      <section className="panel admin-role-panel" aria-labelledby="admin-role-title"><div className="panel-heading"><div><h3 id="admin-role-title">Account distribution</h3><p>Current accounts by assigned role</p></div><button type="button" className="btn btn-soft btn-sm" onClick={() => setSection("roles")}>Review permissions</button></div><div className="admin-role-list">{roles.map(([role, count]) => <div className="admin-role-row" key={role}><span><strong>{roleLabel(role)}</strong><small>{count} account{count === 1 ? "" : "s"}</small></span><div className="admin-role-meter" aria-hidden="true"><i style={{ width: `${Math.max(4, count / maxRole * 100)}%` }} /></div><b>{count}</b></div>)}</div></section>
-      <section className="data-panel admin-audit-panel" aria-labelledby="admin-audit-title"><div className="panel-heading"><div><h3 id="admin-audit-title">Recent governance activity</h3><p>Latest immutable administrative events</p></div><button type="button" className="btn btn-soft btn-sm" onClick={() => setSection("audit")}>View audit log</button></div><AuditRows rows={data.recentAudit ?? []} /></section>
+  const roles = Object.entries(data.roleCounts ?? {}).sort((a, b) => b[1] - a[1]);
+  const maxRole = Math.max(1, ...roles.map(([, count]) => count));
+  return <DashboardOverview className="admin-overview">
+    <DashboardHeading title="Administration dashboard" actions={<button type="button" className="btn btn-accent" onClick={() => setSection("system")}><Activity size={17} aria-hidden="true" /> System health</button>} />
+    <DashboardMetrics items={health.slice(0, 4).map(({ label, value, detail, section, Icon }) => ({ label, value, hint: detail, icon: Icon, onOpen: () => setSection(section) }))} />
+    <div className="dashboard-grid-layout">
+      <DashboardPanel title="Governance actions">
+        <div className="dashboard-actions">{quickActions.map(({ label: actionLabel, detail, section, Icon }) =>
+          <HavenActionItem key={section} icon={Icon} tone={section === "security" && attention > 0 ? "rose" : "neutral"}
+            title={actionLabel} description={detail} onAction={() => setSection(section)} />)}</div>
+      </DashboardPanel>
+      <DashboardPanel title="Account distribution" description="Current accounts by assigned role"
+        action={<button type="button" className="btn btn-soft btn-sm" onClick={() => setSection("roles")}>Review permissions</button>}>
+        <div className="admin-role-list">{roles.map(([role, count]) => <div className="admin-role-row" key={role}>
+          <span><strong>{roleLabel(role)}</strong><small>{count} account{count === 1 ? "" : "s"}</small></span>
+          <div className="admin-role-meter" aria-hidden="true"><i style={{ width: `${count / maxRole * 100}%` }} /></div><b>{count}</b>
+        </div>)}</div>
+        {!roles.length && <p className="dashboard-empty">No account counts available.</p>}
+      </DashboardPanel>
+      <DashboardPanel title="Recent governance activity" className="dashboard-audit"
+        action={<button type="button" className="btn btn-soft btn-sm" onClick={() => setSection("audit")}>View audit log</button>}>
+        <AuditRows rows={data.recentAudit ?? []} />
+      </DashboardPanel>
+      <DashboardPanel title="Account and catalog totals">
+        <div className="dashboard-actions">{health.slice(4).map(({ label, value, detail, section, Icon }) =>
+          <HavenActionItem key={label} icon={Icon} title={`${label} · ${value}`} description={detail} onAction={() => setSection(section)} />)}</div>
+      </DashboardPanel>
     </div>
-  </div>
+  </DashboardOverview>;
+
 }
 // Exported for the jsdom render test (users-view.test.tsx). Filters are
 // client-side over the already-loaded rows — same pattern as the
@@ -544,19 +563,40 @@ function AuditRows({ rows }: { rows: RecordItem[] }) { const page = useTablePagi
 // account totals, role distribution with shares, and configuration state.
 // Reporting only — operational and financial execution stay in departments.
 function Reports({ data }: { data: Overview }) {
-  const m = data?.metrics ?? {}; const total = Number(m.activeUsers ?? 0) + Number(m.inactiveUsers ?? 0); const roles = sortTableRows(Object.entries(data?.roleCounts ?? {}), ([role]) => role); const page = useTablePagination(roles); return <><PageHeader variant="band" eyebrow="Administrative reporting" title="Account and configuration summary" subtitle="Governance reporting only — operational and financial execution remain in their departments." />
+  const m = data?.metrics ?? {};
+  const total = Number(m.activeUsers ?? 0) + Number(m.inactiveUsers ?? 0);
+  const roles = sortTableRows(Object.entries(data?.roleCounts ?? {}), ([role]) => role);
+  const page = useTablePagination(roles);
+
+  return <>
+    <PageHeader variant="band" eyebrow="Administrative reporting" title="Account and configuration summary" subtitle="Governance reporting only — operational and financial execution remain in their departments." />
     <ModuleSummaryCards ariaLabel="Governance report summary" cards={[
       { label: "Accounts on record", value: total, hint: "Every account ever created", icon: Users, tone: "active" },
       { label: "Staff accounts", value: Number(m.staffAccounts ?? 0), hint: "Operational and governance roles", icon: ShieldCheck },
       { label: "Guest accounts", value: Number(m.guestAccounts ?? 0), hint: "Customer portal users", icon: User },
       { label: "Needs attention", value: Number(m.attention ?? 0), hint: "Suspended or recovery-required", icon: KeyRound, tone: Number(m.attention ?? 0) > 0 ? "attention" : "done" },
-      { label: "Rooms disabled", value: Number(m.inactiveRooms ?? 0), hint: "Administratively inactive", icon: Building2, tone: Number(m.inactiveRooms ?? 0) > 0 ? "today" : "done" },
-      { label: "Room types inactive", value: Number(m.inactiveRoomTypes ?? 0), hint: "Hidden from the catalogue", icon: Building2, tone: Number(m.inactiveRoomTypes ?? 0) > 0 ? "today" : "done" },
     ]} />
     <div className="admin-report-lower">
-      <section className="data-panel" aria-labelledby="admin-report-roles"><div className="panel-heading"><div><h3 id="admin-report-roles">Accounts by role</h3><p>Current distribution across the fixed role catalogue</p></div></div><div className="table-scroll"><table aria-label="Accounts by role"><thead><tr><th>Role</th><th>Accounts</th><th>Share</th></tr></thead><tbody>{page.rows.map(([role, count]) => <tr key={role}><td><strong>{roleLabel(role)}</strong></td><td>{count}</td><td>{total ? `${Math.round(count / total * 100)}%` : "—"}</td></tr>)}</tbody></table></div><TablePagination {...page} onPageChange={page.setPage} noun="roles" note={`${total} account${total !== 1 ? "s" : ""} on record · one fixed role per account`} /></section>
+      <section className="data-panel admin-report-distribution" aria-labelledby="admin-report-roles">
+        <div className="panel-heading"><div><h3 id="admin-report-roles">Accounts by role</h3><p>Current distribution across the fixed role catalogue</p></div></div>
+        {roles.length ? <ul className="admin-role-distribution" aria-label="Account count and share by role">
+          {roles.map(([role, count]) => {
+            const share = total ? Math.round(Number(count) / total * 100) : 0;
+            return <li key={role}>
+              <div className="admin-role-distribution-copy"><span>{roleLabel(role)}</span><strong>{count}<small>{total ? ` · ${share}%` : " · share unavailable"}</small></strong></div>
+              <div className="admin-role-distribution-track" aria-hidden="true"><span style={{ width: `${share}%` }} /></div>
+            </li>;
+          })}
+        </ul> : <div className="admin-role-distribution-empty"><p>No account distribution is available yet.</p></div>}
+        <details className="admin-report-table-details">
+          <summary>View detailed role counts</summary>
+          <div className="table-scroll"><table aria-label="Accounts by role"><thead><tr><th>Role</th><th>Accounts</th><th>Share</th></tr></thead><tbody>{page.rows.map(([role, count]) => <tr key={role}><td><strong>{roleLabel(role)}</strong></td><td>{count}</td><td>{total ? `${Math.round(count / total * 100)}%` : "—"}</td></tr>)}</tbody></table></div>
+          <TablePagination {...page} onPageChange={page.setPage} noun="roles" note={`${total} account${total !== 1 ? "s" : ""} on record · one fixed role per account`} />
+        </details>
+      </section>
       <section className="data-panel" aria-labelledby="admin-report-config"><div className="panel-heading"><div><h3 id="admin-report-config">Configuration summary</h3><p>Live hotel configuration state</p></div></div><ul className="admin-config-list"><li><span>Room types in catalogue</span><b>{Number(m.roomTypes ?? 0)}</b></li><li><span>Room types inactive</span><b>{Number(m.inactiveRoomTypes ?? 0)}</b></li><li><span>Rooms administratively inactive</span><b>{Number(m.inactiveRooms ?? 0)}</b></li><li><span>Unused recovery links</span><b>{Number(m.activeRecoveryTokens ?? 0)}</b></li><li><span>Accounts needing attention</span><b>{Number(m.attention ?? 0)}</b></li></ul></section>
-    </div></>
+    </div>
+  </>;
 }
 // Exported for the jsdom render test (system-health-view.test.tsx). All
 // figures arrive server-computed; the view only formats them. Auto-refreshes

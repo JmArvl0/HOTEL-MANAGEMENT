@@ -1,3 +1,5 @@
+import type { RackBoardState } from "./room-rack";
+
 export type Role = "owner" | "admin" | "manager" | "front_desk" | "housekeeping" | "maintenance" | "accounting" | "guest";
 
 export type Resource = "reservations" | "rooms" | "guests" | "guest_requests" | "housekeeping_tasks" | "maintenance_orders" | "invoices" | "payments" | "refunds" | "inventory" | "staff";
@@ -19,7 +21,15 @@ export interface DashboardData {
    *  covers each night (`bookedOccupancyTrend`). Measured from reservation stay dates, so
    *  it is NOT the live room rack in `metrics.occupancy`/`roomMix`; surfaces showing both
    *  must label which is which. */
-  occupancyTrend: { day: string; occupancy: number }[];
+  occupancyTrend: { date?: string; day: string; occupancy: number }[];
+  managerOverview?: {
+    previousOccupancyTrend: DashboardData["occupancyTrend"];
+    roomReadiness: Record<RackBoardState, number>;
+    checkedInArrivals: number;
+    checkedOutDepartures: number;
+    finances: Pick<DashboardData["metrics"], "collectionsToday" | "depositsReceived" | "outstandingBalances" | "refundSummary">;
+  };
+  frontDeskShift?: { open: boolean; collected: number; openingFloat: number };
   roomMix: { name: string; value: number; color: string }[];
   recentReservations: RecordItem[];
   notifications: { id: string; title: string; detail: string; section: Resource | AccountingSection | ManagerSection | "reports" | "room_rack"; createdAt?: string }[];

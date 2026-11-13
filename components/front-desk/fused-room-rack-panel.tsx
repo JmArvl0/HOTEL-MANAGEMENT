@@ -5,7 +5,7 @@ import { ArrowLeft, BedDouble, CalendarDays, ChevronDown, DoorOpen, List, Plus, 
 import { Modal, ConfirmDialog } from "@/components/ui/Modal";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { HavenDataToolbar, HavenSearchInput, HavenFilterBadges, PageHeader } from "@/components/ui";
-import { inReservationQueue, reservationOverlapsWindow, reservationQueues } from "@/lib/reservation-workspace";
+import { inReservationQueue, reservationOverlapsWindow, reservationQueues, roomRackStays } from "@/lib/reservation-workspace";
 import { HavenSelect } from "@/components/ui/haven-select";
 import { useFrontOfficeRack } from "@/hooks/use-front-office-rack";
 import BoardReservationTabs, { type BoardTab } from "./board-reservation-tabs";
@@ -135,7 +135,7 @@ export default function FrontOfficeRack({
   onNavigateReservations?: (queue: BoardTab) => void;
   onNavigateRooms?: () => void;
   onManageRooms?: () => void;
-  initialRoomStatus?: "available";
+  initialRoomStatus?: RackBoardState;
   /** Transient feedback — the shared toast stack. Falls back to inline text. */
   notify?: (message: string, tone?: ToastTone) => void;
 }) {
@@ -233,7 +233,7 @@ export default function FrontOfficeRack({
   const types = useMemo(() => [...new Set(rooms.map((r) => r.type))], [rooms]);
   const floors = useMemo(() => [...new Set(rooms.map((r) => String(r.floor ?? "—")))], [rooms]);
   const currentStays = useMemo(() => history && !historyError
-    ? history.filter(r => r.status === "checked_in" || reservationOverlapsWindow(r, today, addDays(today, 6)))
+    ? roomRackStays(history, today)
     : reservations, [history, historyError, reservations, today]);
   const states = useMemo(
     () => new Map(rooms.map((room) => [room.id, roomBoardState(room, currentStays, today, blockedIds)] as const)),

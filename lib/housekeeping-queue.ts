@@ -1,11 +1,8 @@
+import { HOTEL_TIME_ZONE } from "@/lib/format";
 import type { RecordItem } from "@/lib/types";
 
-// Room-care queue grouping — the single rule behind the Housekeeping summary
-// cards, the visible queue groups, and the dashboard workload metrics. One
-// group per task (first match wins, so a card never appears twice);
-// cancelled and stale history group to null and are never counted as open
-// work. Hoisted from the queue panel so server metrics and the client queue
-// cannot disagree.
+// Shared scope for the room-care queue and workload metrics. Cancelled and
+// older completed tasks are outside the shift queue.
 
 export type QueueGroup =
   | "blocked"
@@ -20,12 +17,13 @@ const priorityRank: Record<string, number> = { urgent: 0, high: 1, normal: 2, lo
 
 const openTaskStatuses = ["pending", "assigned", "deferred"];
 
-const toDay = (value: unknown): string | null => {
+const hotelDayFormat = new Intl.DateTimeFormat("en-CA", { timeZone: HOTEL_TIME_ZONE });
+export const housekeepingDay = (value: unknown): string | null => {
   if (!value) return null;
-  const date = new Date(String(value));
+  const date = value instanceof Date ? value : new Date(String(value));
   return Number.isNaN(date.getTime())
     ? null
-    : new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(date);
+    : hotelDayFormat.format(date);
 };
 
 export function groupQueueTask(item: RecordItem, userId: string, today: string): QueueGroup | null {
@@ -34,7 +32,7 @@ export function groupQueueTask(item: RecordItem, userId: string, today: string):
   const maintenanceBlocked = item.maintenance_blocked === true;
   if (status === "completed") {
     if (String(item.inspection_status) === "pending") return "waiting_inspection";
-    if (toDay(item.completed_at) === today) return "completed_today";
+    if (housekeepingDay(item.inspected_at ?? item.completed_at) === today) return "completed_today";
     return null; // older history — the room detail modal owns it
   }
   if (maintenanceBlocked && openTaskStatuses.concat("in_progress").includes(status)) return "blocked";
@@ -44,9 +42,7 @@ export function groupQueueTask(item: RecordItem, userId: string, today: string):
   return "other_open";
 }
 
-/** Open room-care work: every group except finished-today history and the
- * ungrouped rows above. Mirrors exactly what the queue renders as actionable
- * plus its collapsed history. */
+/** Open room-care work across all visible stages except completed history. */
 const OPEN_GROUPS: ReadonlySet<QueueGroup> = new Set([
   "blocked",
   "needs_attention",

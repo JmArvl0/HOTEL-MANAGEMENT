@@ -39,7 +39,15 @@ const data = {
     pendingVerifications: 2, pendingRefundCount: 1, depositSlaHours: 4,
     oldestPendingVerificationMinutes: 90, pendingPastSla: 0,
   },
-  occupancyTrend: [{ day: "Mon", occupancy: 50 }, { day: "Tue", occupancy: 62 }],
+  occupancyTrend: [{ date: "2026-11-10", day: "Tue", occupancy: 50 }, { date: "2026-11-11", day: "Wed", occupancy: 62 }],
+  managerOverview: {
+    roomReadiness: { occupied: 12, available: 30, reserved: 2, dirty: 3, out_of_service: 1 },
+    previousOccupancyTrend: [{ date: "2026-11-03", day: "Tue", occupancy: 40 }, { date: "2026-11-04", day: "Wed", occupancy: 38 }],
+    checkedInArrivals: 2,
+    checkedOutDepartures: 1,
+    finances: { collectionsToday: 50000, depositsReceived: 20000, outstandingBalances: 15000, refundSummary: 0 },
+  },
+  frontDeskShift: { open: true, collected: 8000, openingFloat: 5000 },
   roomMix: [
     { name: "Occupied", value: 12, color: "#084b55" },
     { name: "Available", value: 30, color: "#85cbd0" },
@@ -64,18 +72,65 @@ describe("Overview role composition", () => {
     expect(onOpenRack).not.toHaveBeenCalled();
   });
   it("manager keeps the occupancy chart and leads with decisions & exceptions", () => {
-    const { container } = show("manager", ["overview", "reservations", "rooms", "approvals", "insights"]);
-    expect(screen.getByText("Booked occupancy this week")).toBeTruthy();
+    show("manager", ["overview", "reservations", "rooms", "approvals", "insights"]);
+    expect(screen.getByRole("heading", { name: "Hotel dashboard" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Booked occupancy" })).toBeTruthy();
     expect(screen.getByText("Decisions & exceptions")).toBeTruthy();
-    expect(container.querySelector(".overview-role-manager .panel-needs-attention")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Room readiness" })).toBeTruthy();
     expect(screen.getByText("Predictive insights")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Occupancy period"), { target: { value: "previous" } });
+    expect(screen.getByText("39%")).toBeTruthy();
+  });
+
+  it("manager masks all four peso figures until toggled and hides them again on a fresh visit", () => {
+    const view = show("manager", ["overview"]);
+    const toggle = screen.getByRole("button", { name: "Show financial amounts" });
+    expect(screen.getByText("₱5*,***.**")).toBeTruthy();
+    expect(screen.getByText("₱2*,***.**")).toBeTruthy();
+    expect(screen.getByText("₱1*,***.**")).toBeTruthy();
+    expect(screen.getByText("₱0.**")).toBeTruthy();
+    expect(screen.queryByText("₱50,000.00")).toBeNull();
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByText("₱50,000.00")).toBeTruthy();
+    expect(screen.getByText("₱20,000.00")).toBeTruthy();
+    expect(screen.getByText("₱15,000.00")).toBeTruthy();
+    expect(screen.getByText("₱0.00")).toBeTruthy();
+    fireEvent.click(toggle);
+    expect(screen.queryByText("₱50,000.00")).toBeNull();
+    fireEvent.click(toggle);
+    view.unmount();
+    show("manager", ["overview"]);
+    expect(screen.getByRole("button", { name: "Show financial amounts" }).getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("manager filters exception queues and opens the live destinations with the matching scope", () => {
+    const setSection = vi.fn();
+    const onOpenRack = vi.fn();
+    render(<Overview data={data} setSection={setSection} allowed={["overview", "reservations", "rooms", "approvals", "maintenance_orders", "hotel_operations"]} role="manager" onScan={() => {}} onOpenRack={onOpenRack} />);
+    fireEvent.click(screen.getByRole("button", { name: /^Decisions/ }));
+    expect(screen.queryByText(/urgent or critical work order/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /2 pending approvals/ }));
+    expect(setSection).toHaveBeenLastCalledWith("approvals");
+    fireEvent.click(screen.getByRole("button", { name: /Operations/ }));
+    fireEvent.click(screen.getByRole("button", { name: /arrivals need rooms/ }));
+    expect(onOpenRack).toHaveBeenLastCalledWith("unassigned", "unassigned");
+    fireEvent.click(screen.getByRole("button", { name: /Rooms ready/ }));
+    expect(onOpenRack).toHaveBeenLastCalledWith("board", "all", "available");
+    fireEvent.click(screen.getByRole("button", { name: "Shift briefing" }));
+    expect(setSection).toHaveBeenLastCalledWith("hotel_operations");
   });
 
   it("front desk gets an arrivals queue panel and no occupancy chart", () => {
-    const { container } = show("front_desk", ["overview", "reservations", "rooms", "guest_requests", "folios"]);
+    const { container } = show("front_desk", ["overview", "reservations", "rooms", "guest_requests", "folios", "cash_shifts"]);
+    expect(screen.getByRole("heading", { name: "Front Desk dashboard" })).toBeTruthy();
     expect(screen.getByText("Today's arrivals & departures")).toBeTruthy();
     expect(screen.queryByText("Booked occupancy this week")).toBeNull();
     expect(container.querySelector(".overview-role-front_desk")).toBeTruthy();
+    expect(screen.getByText("₱8,***.**")).toBeTruthy();
+    expect(screen.queryByText("₱8,000.00")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Show financial amounts" }));
+    expect(screen.getByText("₱8,000.00")).toBeTruthy();
   });
 
   it("accounting gets financial cards and actions, no occupancy chart", () => {
@@ -83,12 +138,17 @@ describe("Overview role composition", () => {
     expect(screen.getByText("Pending verifications")).toBeTruthy();
     expect(screen.getByText("Pending refunds")).toBeTruthy();
     expect(screen.getByText("Pending financial actions")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Accounting dashboard" })).toBeTruthy();
+    expect(screen.queryByText("₱15,000.00")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Show financial amounts" }));
+    expect(screen.getByText("₱15,000.00")).toBeTruthy();
     expect(screen.queryByText("Booked occupancy this week")).toBeNull();
   });
 
   it("housekeeping gets a task-first panel and no occupancy chart", () => {
     show("housekeeping", ["overview", "rooms", "housekeeping_tasks", "guest_requests"]);
     expect(screen.getByText("Priority tasks this shift")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Housekeeping dashboard" })).toBeTruthy();
     expect(screen.queryByText("Booked occupancy this week")).toBeNull();
     expect(screen.queryByText("Recent bookings")).toBeNull();
   });
@@ -96,6 +156,7 @@ describe("Overview role composition", () => {
   it("maintenance gets a work-order panel, no chart, and no room creation", () => {
     const { container } = show("maintenance", ["overview", "rooms", "maintenance_orders", "guest_requests"]);
     expect(screen.getByText("Work orders needing attention")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Maintenance dashboard" })).toBeTruthy();
     expect(screen.queryByText("Booked occupancy this week")).toBeNull();
     expect(container.textContent).not.toMatch(/add rooms|create room|new room/i);
   });
@@ -149,7 +210,7 @@ describe("Overview role composition", () => {
       <Overview data={data} setSection={setSection} allowed={["overview", "reservations", "rooms", "approvals"] as never} role="front_desk" onScan={() => {}} onOpenRack={onOpenRack} onNewReservation={vi.fn()} />
     );
     fireEvent.click(screen.getByText(/rooms ready/));
-    expect(onOpenRack).toHaveBeenCalledWith("board", "arrivals");
+    expect(onOpenRack).toHaveBeenCalledWith("board", "all", "available");
     expect(setSection).not.toHaveBeenCalledWith("rooms");
     cleanup();
     render(

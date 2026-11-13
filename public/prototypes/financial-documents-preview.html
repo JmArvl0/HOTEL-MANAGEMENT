@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Financial documents · Haven prototype</title>
+  <link rel="stylesheet" href="financial-documents-preview.css">
+  <script src="hms-workflow-icons.js" defer></script>
+  <script src="financial-documents-preview.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to financial documents</a>
+  <header class="masthead">
+    <div class="masthead-inner">
+      <div class="brand">
+        <img src="../haven-logo-small.png" alt="" width="36" height="36">
+        <span>HAVEN<small>HOTEL MANAGEMENT</small></span>
+      </div>
+      <div class="breadcrumb"><span>Finance</span><i data-icon="ChevronRight"></i><strong>Financial documents</strong></div>
+      <div class="masthead-tools">
+        <span class="demo-tag"><span></span><span>Prototype <span class="demo-extra">· Sample data</span></span></span>
+        <button class="theme-button" id="theme" type="button" aria-label="Dark mode" aria-pressed="false"><i data-icon="Moon"></i></button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1">
+    <header class="page-heading">
+      <div>
+        <h1>Financial documents</h1>
+        <p>Find issued payment receipts and guest folio statements.</p>
+      </div>
+      <div class="archive-note">
+        <span class="note-icon"><i data-icon="LockKeyhole"></i></span>
+        <div><strong>Read-only archive</strong><small>Documents are preserved as issued.</small></div>
+      </div>
+    </header>
+    <div class="workspace" id="workspace">
+      <section class="register" id="register" aria-labelledby="register-title">
+        <div class="register-heading">
+          <h2 id="register-title">Document register</h2>
+          <span class="count" id="count" role="status"></span>
+        </div>
+        <div class="type-filters" role="group" aria-label="Document type">
+          <button type="button" data-type="all" aria-pressed="true">All documents <span></span></button>
+          <button type="button" data-type="receipt" aria-pressed="false">Receipts <span></span></button>
+          <button type="button" data-type="folio" aria-pressed="false">Folio statements <span></span></button>
+        </div>
+        <div class="toolbar" role="search" aria-label="Filter documents">
+          <label class="search">
+            <i data-icon="Search"></i>
+            <span class="visually-hidden">Search by document number, guest or booking reference</span>
+            <input type="search" id="query" placeholder="Search number, guest, or booking">
+          </label>
+          <label class="issue-filter">
+            <i data-icon="CalendarDays"></i>
+            <span class="visually-hidden">Issue date in Manila</span>
+            <select id="date">
+              <option value="">All issue dates</option>
+              <option value="2026-11-12">12 Nov 2026</option>
+              <option value="2026-11-11">11 Nov 2026</option>
+              <option value="week">5–12 Nov 2026</option>
+            </select>
+            <i data-icon="ChevronDown"></i>
+          </label>
+          <button id="reset" class="text-button" type="button" hidden>Clear filters</button>
+        </div>
+        <div class="register-body">
+          <table id="table" aria-label="Issued financial documents">
+            <thead><tr><th scope="col">Document</th><th scope="col">Guest &amp; booking</th><th scope="col" class="issued-cell">Issued <small>(Manila)</small></th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+          <div id="no-results" class="empty" hidden>
+            <span class="empty-icon"><i data-icon="Search"></i></span>
+            <h3>No matching documents</h3>
+            <p>Try another number, guest name, or issue date.</p>
+            <button class="text-button" id="empty-reset" type="button">Clear filters</button>
+          </div>
+        </div>
+        <footer class="register-footer">
+          <p id="range"></p>
+          <div class="pager" role="group" aria-label="Document pages">
+            <button id="prev" type="button" aria-label="Previous page"><i data-icon="ChevronRight"></i></button>
+            <span id="page"></span>
+            <button id="next" type="button" aria-label="Next page"><i data-icon="ChevronRight"></i></button>
+          </div>
+        </footer>
+      </section>
+      <section class="preview" id="preview" aria-labelledby="preview-title">
+        <div class="preview-heading">
+          <button class="text-button back" id="back" type="button"><i data-icon="ArrowLeft"></i> Back to documents</button>
+          <div class="preview-title-row">
+            <h2 id="preview-title" tabindex="-1">Document preview</h2>
+            <span class="snapshot"><i data-icon="LockKeyhole"></i> Read-only</span>
+          </div>
+        </div>
+        <div class="preview-stage" id="preview-content"></div>
+      </section>
+    </div>
+    <footer class="page-footer">
+      <span><i data-icon="CircleHelp"></i> Showing sample records for design review.</span>
+      <span>Haven Hotel &amp; Residences</span>
+    </footer>
+  </main>
+</body>
+</html>

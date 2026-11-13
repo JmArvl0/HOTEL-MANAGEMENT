@@ -48,10 +48,10 @@ function readiness(room: RecordItem, blocked: boolean): string[] {
 
 export type RoomDetailAction = { label: string; hint?: string; onSelect: () => void };
 
-export default function RoomDetailModal({ room, role, onClose, onViewReservation, actions = [] }: { room: RecordItem; role?:Role; onClose: () => void; onViewReservation: (reservationId: string) => void; actions?: RoomDetailAction[] }) {
+export default function RoomDetailModal({ room, role, onClose, onViewReservation, actions = [], initialTab = "overview" }: { room: RecordItem; role?:Role; onClose: () => void; onViewReservation: (reservationId: string) => void; actions?: RoomDetailAction[]; initialTab?: "overview" | "maintenance" }) {
   const [detail, setDetail] = useState<RoomDetail | null>(null);
   const [error, setError] = useState("");
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState<string>(initialTab);
   const [expanded, setExpanded] = useState<Record<string, number>>({});
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 

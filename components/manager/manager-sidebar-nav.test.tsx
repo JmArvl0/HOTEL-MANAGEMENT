@@ -145,9 +145,9 @@ describe("Housekeeping overview boundaries", () => {
   it("shows room-readiness activity instead of linking to forbidden reservations", () => {
     const dashboard = readFileSync(resolve(process.cwd(), "components/manager/manager-dashboard-client.tsx"), "utf8");
 
-    expect(dashboard).toContain('allowed.includes("reservations")?<article className="panel arrivals"');
-    expect(dashboard).toContain("Room readiness activity");
-    expect(dashboard).toContain("onClick={openRooms}>View rooms");
+    expect(dashboard).toContain('allowed.includes("reservations") && <DashboardPanel title="Recent bookings"');
+    expect(dashboard).toContain('<DashboardPanel title="Room readiness"');
+    expect(dashboard).toContain('onAction={allowed.includes("rooms") ? open : undefined}');
     expect(dashboard).toContain('onOpenRack("board", "arrivals")');
   });
 });

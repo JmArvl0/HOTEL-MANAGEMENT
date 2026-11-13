@@ -11,6 +11,14 @@ export function reservationOverlapsWindow(r: RackReservation, from: string, thro
   return r.check_in.slice(0, 10) <= through && r.check_out.slice(0, 10) > from;
 }
 
+/** Room Management uses the current week and keeps in-house stays visible past checkout. */
+export function roomRackStays(reservations: RackReservation[], today: string) {
+  const lastDay = new Date(`${today}T00:00:00Z`);
+  lastDay.setUTCDate(lastDay.getUTCDate() + 6);
+  const through = lastDay.toISOString().slice(0, 10);
+  return reservations.filter(item => item.status === "checked_in" || reservationOverlapsWindow(item, today, through));
+}
+
 export function inReservationQueue(r: RackReservation, queue: ReservationQueue, today: string) {
   const arrival = r.status === "pending" || r.status === "confirmed";
   if (queue === "arrivals") return arrival && r.check_in.slice(0, 10) === today;

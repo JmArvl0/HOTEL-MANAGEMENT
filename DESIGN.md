@@ -4,6 +4,24 @@ The source-of-truth reference for the shipped UI. **Do not apply
 `design-system/haven-hotel/MASTER.md`** — it is superseded (see `DESIGN-STATUS.md` F2).
 This doc and `app/ui-primitives.css` are the current system.
 
+**Account dashboards (2026-11-12).** Manager, Front Desk, Housekeeping,
+Maintenance, Accounting, Admin, Owner, and Guest share the dashboard heading,
+four linked metrics, and responsive panels. The lead panel reflects the
+role’s work. Dashboard peso amounts reveal together through the eye and start
+masked on each visit. The Guest view retains its room photo and stay actions.
+
+**Manager dashboard (2026-11-11).** Four headline metrics open the relevant
+booking or room filters. Decisions & exceptions and Room readiness share the
+first workspace row, followed by two periods of booked occupancy and today’s
+financial summaries. The eye button reveals the four peso amounts with
+centavos. The masked state returns on every fresh visit.
+
+**Housekeeping (2026-11-11).** A counted stage strip sits above a room queue and
+the selected task. The detail shows recorded room state, arrival, service notes,
+and the signed-in role's next action. Phones open the task separately and
+return to the filtered queue with focus on its room. The shared staff header
+shows the date and time.
+
 **Hotel Operations (2026-11-11).** The shift briefing places the operating
 date, close blockers and carry-forward work above one department handover
 sheet. Notes expand inline for ownership, linked records and history. The
@@ -413,6 +431,19 @@ mirrors) is the analytics half of the Reports section; the immutable daily
 operations-report review (`FrontDeskReportsPanel`) renders below it as a
 visually distinct second workflow, never a competing page header.
 
+The report pages follow the approved Executive brief order: page heading,
+decision metrics, the main report visualization, then supporting review work.
+The shared Manager/Accounting page places Night Audit after its performance
+summary and chart. Front Desk places daily report-status metrics immediately
+under its heading, before the generated snapshot and history. The status counts
+describe the visible history page; the total card uses the server-provided full
+record count. Admin uses account metrics followed by a role-distribution bar
+view and configuration summary; an expandable paginated table retains exact
+role counts. Owner keeps its executive metrics, booked-occupancy and
+collections charts, and day-by-day table, with occupancy given the lead width.
+Account-specific data, permissions, export, review and submission workflows
+remain as before.
+
 - **Header + decision KPIs.** One `page-title` row (eyebrow, title, plain-language
   subtitle, `window.print()` Export — the single print entry point on this
   surface) followed by exactly three KPI cards: money (role-aware label/figure),
@@ -546,32 +577,25 @@ auth screens are explicitly out of scope and untouched.
 - Expiration opens a blocking, focus-directed dialog with one action:
   **Sign in again**.
 
-## 18. Role-based overview composition (2026-09-21)
+## 18. Role-based overview composition (2026-11-12)
 
-One visual system, different information hierarchies per role. All five
-staff overviews share `Overview` (`manager-dashboard-client.tsx`), the same
-`DashboardData` payload, `metric-card`s, `HavenActionItem` queues, and the
-room-mix donut — only composition differs:
+`DashboardOverview`, `DashboardHeading`, `DashboardMetrics`, and `DashboardPanel`
+share layout and theme behavior across the staff and guest shells. On phones
+metrics form two columns and the panels stack.
 
-- **Manager:** decisions-first — `Decisions & exceptions` panel leads
-  visually (`order:-1`, DOM unchanged) with approvals, escalations, and a
-  Predictive Insights link; occupancy-area chart retained (only role with
-  one, plus Owner Reports).
-- **Front Desk:** arrivals/departures queue panel replaces the chart;
-  compact room-mix donut kept for assignment decisions.
-- **Accounting:** financial card set (pending verifications with oldest-age
-  hint, past-SLA, pending refunds, collections, outstanding, refunds today)
-  + `Pending financial actions` panel; no occupancy chart.
-- **Housekeeping / Maintenance:** task-first queue panels replace the chart
-  and the duplicate room-activity panel; their `Needs attention` panels hide
-  items duplicated by the queue panel (cross-department approvals remain).
-- Overview action items link to existing module sections only (never to a
-  filter the target module does not support); counts are the same
-  predicates the modules use. `overview-role-<role>` scopes composition
-  CSS; `≤1000px` stacks `.dashboard-grid` to one column.
-- Customer `/account` stays the dedicated personal dashboard (stay hero,
-  attention list, folio/requests/notifications cards, quick actions);
-  `/my-reservations` stays the separate history module.
+- **Manager:** `ManagerOverview` leads with decisions, operational exceptions,
+  and the five room-rack states. The occupancy chart compares two consecutive
+  seven-night periods. Shift briefing opens Hotel Operations. Financial
+  amounts start masked and reveal together through the eye button.
+- **Front Desk:** arrivals and departures, room readiness, recent bookings,
+  and the shared drawer summary.
+- **Accounting:** verifications, SLA, refunds, folios, and financial follow-ups.
+- **Housekeeping / Maintenance:** the current task or repair queue leads,
+  with room readiness and department shortcuts beside or below it.
+- **Admin / Owner:** account governance and executive exceptions lead their
+  respective dashboards, with authorized detail pages reached from cards.
+- **Guest:** `/account` shows the guest’s reservation, attention items,
+  stay finances, requests and notifications. `/my-reservations` holds history.
 
 ## 19. Predictive pricing workspace (2026-09-22)
 

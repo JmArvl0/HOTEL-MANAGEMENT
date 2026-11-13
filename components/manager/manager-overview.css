@@ -1,0 +1,157 @@
+.manager-overview {
+  --mo-surface: var(--st-bg-surface);
+  --mo-soft: var(--st-bg-surface-subtle);
+  --mo-line: var(--st-border-color);
+  --mo-ink: var(--st-text-primary);
+  --mo-muted: var(--st-text-secondary);
+  --mo-focus: #a4d7bf;
+  --mo-occupied: #79aa97;
+  --mo-ready: #b0c9a3;
+  --mo-reserved: #829bc4;
+  --mo-dirty: #dfb376;
+  --mo-blocked: #d18e86;
+  --mo-red: #ffbdb9;
+  --mo-amber: #f2ce99;
+  --mo-info: #c3d9ff;
+  min-inline-size: 0;
+  color: var(--mo-ink);
+}
+.theme-light .manager-overview {
+  --mo-focus: #286651;
+  --mo-occupied: #356352;
+  --mo-ready: #94b293;
+  --mo-reserved: #6c8eb2;
+  --mo-dirty: #d4a558;
+  --mo-blocked: #b97568;
+  --mo-red: #8f2924;
+  --mo-amber: #75430d;
+  --mo-info: #2a5085;
+}
+
+.manager-overview :is(.mo-room, .mo-insights, select):focus-visible {
+  outline: 2px solid var(--mo-focus);
+  outline-offset: 2px;
+}
+
+.mo-panel {
+  min-inline-size: 0;
+  border: 1px solid var(--mo-line);
+  border-radius: 15px;
+  background: var(--mo-surface);
+  box-shadow: var(--st-shadow-xs);
+}
+.mo-panel-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+  gap: 8px 10px;
+  padding: 17px 16px 12px;
+}
+.mo-panel-heading h2 { margin: 0; color: var(--mo-ink); font-size: 18px; font-weight: 680; line-height: 1.3; letter-spacing: -.02em; }
+.mo-panel-heading p { margin: 3px 0 0; color: var(--mo-muted); font-size: 12px; }
+.mo-total { padding-block-start: 3px; color: var(--mo-muted); font-size: 12px; font-weight: 650; }
+.mo-badge {
+  --mo-tone: var(--mo-amber);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 6px;
+  padding: 4px 7px;
+  background: color-mix(in srgb, var(--mo-tone) 12%, var(--mo-surface));
+  color: var(--mo-tone);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+.mo-badge[data-tone="rose"] { --mo-tone: var(--mo-red); }
+.mo-badge[data-tone="info"] { --mo-tone: var(--mo-info); }
+.mo-filters { padding: 0 16px 9px; }
+.mo-filters .haven-filter-badges { display: flex; gap: 6px; }
+.mo-filters .haven-filter-badge { min-block-size: 44px; }
+.mo-priorities, .mo-rooms { margin: 0; padding: 0 16px 9px; list-style: none; }
+.mo-priorities li, .mo-rooms li { border-block-start: 1px solid var(--mo-line); }
+.app-shell .mo-priorities .haven-action-item { min-block-size: 56px; padding-inline: 2px; border-color: transparent; background: transparent; }
+.app-shell .mo-priorities .haven-action-item:hover { background: var(--mo-soft); }
+.mo-trailing { display: flex; align-items: center; gap: 6px; color: var(--mo-muted); }
+.mo-empty { margin: 0; padding: 16px; color: var(--mo-muted); font-size: 13px; }
+
+.mo-room-bar { display: flex; gap: 3px; height: 13px; margin: 6px 16px 14px; overflow: hidden; border-radius: 5px; }
+.mo-room-bar span { flex-basis: 0; }
+.mo-room-bar span, .mo-room-dot { background: var(--room-state); }
+.manager-overview [data-state="occupied"] { --room-state: var(--mo-occupied); }
+.manager-overview [data-state="available"] { --room-state: var(--mo-ready); }
+.manager-overview [data-state="reserved"] { --room-state: var(--mo-reserved); }
+.manager-overview [data-state="dirty"] { --room-state: var(--mo-dirty); }
+.manager-overview [data-state="out_of_service"] { --room-state: var(--mo-blocked); }
+.mo-room {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  inline-size: 100%;
+  min-block-size: 51px;
+  padding: 7px 2px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+}
+button.mo-room:hover { background: var(--mo-soft); }
+.mo-room-dot { inline-size: 9px; block-size: 9px; border-radius: 3px; }
+.mo-room strong, .mo-room small { display: block; }
+.mo-room strong { font-size: 13px; font-weight: 650; }
+.mo-room small { color: var(--mo-muted); font-size: 12px; }
+.mo-room b { font-size: 15px; font-variant-numeric: tabular-nums; }
+.mo-room svg { color: var(--mo-muted); }
+
+.mo-panel-heading select {
+  min-block-size: 44px;
+  border: 1px solid var(--mo-line);
+  border-radius: 8px;
+  background: var(--mo-surface);
+  color: var(--mo-ink);
+}
+.manager-overview .mo-panel-heading select { inline-size: auto; max-inline-size: 100%; padding-inline: 8px; font: 600 12px var(--font-sans, system-ui); }
+.mo-average { display: flex; flex-wrap: wrap; align-items: baseline; gap: 7px; padding: 0 16px 14px; }
+.mo-average b { font-size: 28px; font-weight: 680; letter-spacing: -.04em; }
+.mo-average span { color: var(--mo-muted); font-size: 12px; }
+.mo-chart {
+  --mo-plot-height: 118px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px;
+  margin: 0 16px 12px;
+  color: var(--mo-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.mo-chart-scale { display: grid; grid-template-rows: repeat(2, calc(var(--mo-plot-height) / 2)) 0; transform: translateY(-.72em); text-align: end; }
+.mo-bars {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: repeating-linear-gradient(to bottom, var(--mo-line) 0 1px, transparent 1px calc(var(--mo-plot-height) / 2)) no-repeat;
+  background-size: 100% calc(var(--mo-plot-height) + 1px);
+}
+.mo-bars li { display: grid; grid-template-rows: var(--mo-plot-height) 24px; justify-items: center; text-align: center; }
+.mo-bars time { align-self: end; white-space: nowrap; }
+.mo-bar { position: relative; align-self: end; width: min(68%, 42px); border-radius: 4px 4px 0 0; background: color-mix(in srgb, var(--mo-chart-color) 38%, var(--mo-surface)); }
+.mo-bar b { position: absolute; bottom: calc(100% + 1px); left: 50%; transform: translateX(-50%); color: var(--mo-ink); font-weight: 650; }
+.mo-bar-today { background: var(--mo-occupied); }
+.mo-insights { display: flex; align-items: center; gap: 6px; min-block-size: 44px; margin: 0 16px 8px; padding: 0; border: 0; background: transparent; color: var(--mo-info); font: inherit; font-size: 12px; font-weight: 650; }
+.mo-insights:hover { text-decoration: underline; }
+
+@container dashboard (max-width: 420px) {
+  .mo-panel-heading, .mo-filters, .mo-priorities, .mo-rooms, .mo-average { padding-inline: 12px; }
+  .mo-room-bar, .mo-chart, .mo-insights { margin-inline: 12px; }
+  .mo-bars { font-size: 9px; }
+  .mo-trailing { gap: 3px; }
+  .mo-trailing .mo-badge { display: none; }
+}

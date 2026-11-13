@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { groupQueueTask, queueTaskOrder } from "@/components/manager/housekeeping-queue-panel";
+import { queueTaskOrder } from "@/components/manager/housekeeping-queue-panel";
+import { groupQueueTask } from "@/lib/housekeeping-queue";
 import { summarizeDailyActivity } from "@/lib/front-desk-reports";
 import type { RecordItem } from "@/lib/types";
 
@@ -48,29 +49,13 @@ describe("housekeeping queue grouping", () => {
 });
 
 describe("housekeeping queue surface", () => {
-  it("is a grouped card list, not a CRUD table", () => {
-    expect(panel).toContain("hk-queue-card");
-    expect(panel).not.toContain("<table");
-    for (const group of ["Needs attention", "My tasks", "Waiting for inspection", "Blocked by Maintenance", "Completed today"]) expect(panel).toContain(group);
-  });
   it("reuses the existing RPC action handlers and adds no write path of its own", () => {
     expect(panel).not.toContain("supabase");
     expect(panel).not.toContain("fetch(");
     expect(dashboard).toContain('housekeepingAction={operateHousekeeping}');
     expect(dashboard).toContain("HousekeepingQueuePanel");
-    expect(panel).toContain('housekeepingAction(item, "start")');
-    expect(panel).toContain('housekeepingAction(item, "inspect")');
-  });
-  it("keeps role authority: housekeeping acts, manager prioritizes, front desk views", () => {
-    expect(panel).toContain("View only");
-    expect(panel).toContain("canHousekeep");
-    expect(panel).toContain("canCoordinate");
-    expect(dashboard).toContain('role={user.role} userId={user.id} items={filtered}');
-  });
-  it("never claims sellability — cards show the recorded room state", () => {
-    expect(panel).toContain("Room state:");
-    expect(panel).not.toContain("available now");
-    expect(panel).toContain("not sellable until inspection passes");
+    expect(panel).toContain('action("Start cleaning", "start"');
+    expect(panel).toContain('action("Inspect room", "inspect"');
   });
 });
 
