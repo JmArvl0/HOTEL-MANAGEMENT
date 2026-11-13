@@ -945,6 +945,29 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 @media(prefers-reduced-motion:reduce){.pricing-overlay .pricing-editor-row{transition:none}}
 @media(prefers-reduced-motion:reduce){.app-shell .insights-tabpanel{animation:none}}
 .app-shell .performance-reports{display:grid;gap:12px;min-width:0}
+.app-shell .front-desk-reports{display:grid;gap:12px;min-width:0}
+.app-shell .front-desk-reports .front-desk-activity-chart{min-width:0;margin:0;padding:18px 20px 14px;border-radius:var(--st-radius-2xl);box-shadow:var(--st-shadow-xs)}
+.app-shell .front-desk-reports .front-desk-activity-chart .chart-title{color:var(--st-text-primary);font:600 16px/1.3 var(--font-sans),system-ui,sans-serif}
+.app-shell .front-desk-reports .front-desk-activity-chart .chart-description{color:var(--st-text-secondary);font-size:12px}
+.app-shell .front-desk-reports .front-desk-activity-chart .recharts-cartesian-axis-tick-value{fill:var(--st-text-secondary);font-size:11px}
+.app-shell .front-desk-reports .front-desk-activity-chart .recharts-cartesian-grid line{stroke:var(--st-border-color)}
+.app-shell .front-desk-reports .report-activity-empty{display:grid;gap:14px;margin:0;padding:18px 20px;border-radius:var(--st-radius-2xl);box-shadow:var(--st-shadow-xs)}
+.app-shell .front-desk-reports .report-activity-empty header h2{margin:0;color:var(--st-text-primary);font:600 16px/1.3 var(--font-sans),system-ui,sans-serif}
+.app-shell .front-desk-reports .report-activity-empty header p{margin:4px 0 0;color:var(--st-text-secondary);font-size:12px;line-height:1.45}
+.app-shell .front-desk-reports .report-activity-zero-state{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--st-border-color);border-radius:var(--st-radius-lg);background:var(--st-bg-surface-subtle);color:var(--st-text-primary)}
+.app-shell .front-desk-reports .report-activity-zero-state>svg{flex:none;color:var(--haven-brand-600)}
+.app-shell .front-desk-reports .report-activity-zero-state>div{display:grid;gap:3px}
+.app-shell .front-desk-reports .report-activity-zero-state strong{font-size:13px}
+.app-shell .front-desk-reports .report-activity-zero-state span{color:var(--st-text-secondary);font-size:12px}
+.app-shell .front-desk-reports .report-activity-empty ol{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0;margin:0;padding:0;list-style:none;border:1px solid var(--st-border-color);border-radius:var(--st-radius-lg);overflow:hidden}
+.app-shell .front-desk-reports .report-activity-empty li{display:grid;gap:5px;padding:10px 12px;border-right:1px solid var(--st-border-color);background:var(--st-bg-surface)}
+.app-shell .front-desk-reports .report-activity-empty li:last-child{border-right:0}
+.app-shell .front-desk-reports .report-activity-empty li span{color:var(--st-text-secondary);font-size:11px;font-weight:600}
+.app-shell .front-desk-reports .report-activity-empty li b{color:var(--st-text-primary);font-size:11px;font-variant-numeric:tabular-nums}
+.app-shell .front-desk-reports .report-history{display:grid;gap:10px;min-width:0}
+.app-shell .front-desk-reports .report-history-heading{padding:2px 2px 0}
+.app-shell .front-desk-reports .report-history-heading h2{margin:0;color:var(--st-text-primary);font:600 16px/1.25 var(--font-sans),system-ui,sans-serif}
+.app-shell .front-desk-reports .report-history-heading p{margin:4px 0 0;color:var(--st-text-secondary);font-size:12px;line-height:1.45}
 .app-shell .performance-reports .reports-title{margin:0}
 .app-shell .report-analysis-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(260px,.75fr);gap:10px;align-items:stretch;min-width:0}
 .app-shell .report-analysis-panel{--panel-divider-inset:20px;min-width:0;margin:0;padding:20px;border-radius:10px}
@@ -986,7 +1009,12 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 @media(max-width:760px){.app-shell .report-panel-heading{flex-direction:column}}
 @media(max-width:760px){.app-shell .report-room-status ul{grid-template-columns:1fr}}
 @media(max-width:760px){.app-shell .performance-reports+.page-header{align-items:stretch;flex-direction:column;padding:17px}}
+@media(max-width:1100px){.app-shell .front-desk-reports .report-activity-empty ol{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:760px){.app-shell .front-desk-reports .report-activity-empty{padding:16px}}
+@media(max-width:560px){.app-shell .front-desk-reports .report-activity-empty ol{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media print{.app-shell .performance-reports{gap:10px}}
+@media print{.app-shell .front-desk-reports>*:not(.report-preview){display:none!important}}
+@media print{.app-shell .front-desk-reports .report-preview{display:block!important;break-inside:auto}}
 @media print{.app-shell .report-analysis-grid{grid-template-columns:1.65fr .75fr}}
 @media print{.app-shell .report-data-details{display:none}}
 @media print{.app-shell .report-chart-canvas{border-color:#e8edf4!important;background:#fff!important;box-shadow:none!important}}

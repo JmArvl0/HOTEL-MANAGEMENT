@@ -1595,6 +1595,10 @@ Legitimate document downloads — receipts/folios via `generateDocument`, and th
   type, awaiting inspection, average turnaround minutes — aggregated from the authoritative
   `housekeeping_tasks` table, not a duplicate), rooms, transportation, and manager approvals. The
   default date is the hotel's local today.
+- **Activity trend.** The Front Desk preview can request seven hotel days of arrivals and
+  departures from reservation `checked_in_at` / `checked_out_at` timestamps. The series is grouped
+  by Asia/Manila calendar day and remains supporting live analytics, separate from the immutable
+  submitted snapshot.
 - **Submission.** `POST /api/front-desk/reports` builds the snapshot **server-side** (the browser
   never supplies snapshot content — the preview the user saw is exactly the immutable evidence
   stored) and calls `submit_front_desk_report` (front-desk-guarded, future dates refused,

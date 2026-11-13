@@ -1,5 +1,14 @@
 # AI Session Handoff
 
+## Front Desk report visibility follow-up (2026-11-13)
+
+The Front Desk Reports page now loads the selected-day snapshot on entry and
+shows a seven-day arrivals/departures trend from recorded timestamps. Daily
+headline metrics lead; submission-status metrics sit with history. When all
+trend values are zero, each day's zero counts are visible. Typecheck, touched
+lint and localhost browser review passed. No tests or production build were run.
+See [[2026-11-13 - Front Desk Reports Visibility Fix]].
+
 ## Financial Documents implementation (2026-11-13)
 
 The Financial Documents section now pairs a searchable, filtered register

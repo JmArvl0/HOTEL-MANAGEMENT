@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-import { buildDailyReport, isReportDate, listFrontDeskReports } from "@/lib/front-desk-reports";
+import { buildDailyActivityTrend, buildDailyReport, isReportDate, listFrontDeskReports } from "@/lib/front-desk-reports";
 import { canGenerateFrontDeskReport, canReviewFrontDeskReports } from "@/lib/permissions";
 import type { Role } from "@/lib/types";
 
@@ -19,14 +19,19 @@ export async function GET(request: Request) {
   const allowed = canGenerateFrontDeskReport(role) || canReviewFrontDeskReports(role);
   if (!allowed) return NextResponse.json({ error: "Reports access required." }, { status: 403 });
   if (!supabase) return unavailable;
-  const date = new URL(request.url).searchParams.get("date");
+  const searchParams = new URL(request.url).searchParams;
+  const date = searchParams.get("date");
   try {
     if (date) {
       if (!isReportDate(date)) return NextResponse.json({ error: "Enter a valid report date (YYYY-MM-DD)." }, { status: 400 });
       if (!canGenerateFrontDeskReport(role)) return NextResponse.json({ error: "Front Desk report generation required." }, { status: 403 });
+      if (searchParams.get("trend") === "7d") {
+        const [data, trend] = await Promise.all([buildDailyReport(date), buildDailyActivityTrend(date)]);
+        return NextResponse.json({ data, trend });
+      }
       return NextResponse.json({ data: await buildDailyReport(date) });
     }
-    const page = Number(new URL(request.url).searchParams.get("page") ?? "0");
+    const page = Number(searchParams.get("page") ?? "0");
     return NextResponse.json({ data: await listFrontDeskReports(Number.isFinite(page) ? page : 0) });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to load reports." }, { status: 500 });

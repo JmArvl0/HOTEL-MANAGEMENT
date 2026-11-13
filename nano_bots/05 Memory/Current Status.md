@@ -17,6 +17,15 @@
   actions remain intact. Typecheck passed; browser QA pending.
 - See [[2026-11-12 - Reports Choice A Implementation]].
 
+## Front Desk report visibility follow-up (2026-11-13, local)
+
+- The live Front Desk report now loads its selected-day snapshot and seven-day
+  arrivals/departures on entry. Daily headline figures lead the page, and the
+  submission-status cards now sit with history. The all-zero trend state shows
+  each day's counts explicitly. Typecheck, targeted lint and localhost browser
+  review passed; no tests or production build were run.
+- See [[2026-11-13 - Front Desk Reports Visibility Fix]].
+
 ## All account dashboards (2026-11-12, local)
 
 - Shared heading, linked metric cards, and responsive panels are active on

@@ -96,6 +96,58 @@ export const hotelDayWindow = (date: string) => {
   return { start: start.toISOString(), end: new Date(start.getTime() + 86400000).toISOString() };
 };
 
+export type DailyActivityTrendPoint = { date: string; day: string; arrivals: number; departures: number };
+
+// A compact seven-day history for the Front Desk chart. It reads the recorded
+// check-in/check-out timestamps directly, using the same Manila hotel days as
+// the daily report snapshot.
+export async function buildDailyActivityTrend(selectedDate: string): Promise<DailyActivityTrendPoint[]> {
+  if (!supabase) throw new Error("Database unavailable.");
+
+  const firstDate = new Date(`${selectedDate}T00:00:00.000Z`);
+  firstDate.setUTCDate(firstDate.getUTCDate() - 6);
+  const dayKeys = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(firstDate);
+    date.setUTCDate(date.getUTCDate() + index);
+    return date.toISOString().slice(0, 10);
+  });
+  const start = hotelDayWindow(dayKeys[0]).start;
+  const end = hotelDayWindow(selectedDate).end;
+  const [arrivals, departures] = await Promise.all([
+    supabase.from("reservations").select("checked_in_at").not("checked_in_at", "is", null).gte("checked_in_at", start).lt("checked_in_at", end),
+    supabase.from("reservations").select("checked_out_at").not("checked_out_at", "is", null).gte("checked_out_at", start).lt("checked_out_at", end),
+  ] as const);
+  for (const result of [arrivals, departures] as const) if (result.error) throw result.error;
+
+  const dateFormatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
+  });
+  const toHotelDate = (timestamp: string) => {
+    const parts = new Map(dateFormatter.formatToParts(new Date(timestamp)).map(({ type, value }) => [type, value]));
+    return [parts.get("year"), parts.get("month"), parts.get("day")].join("-");
+  };
+  const arrivalCounts = new Map<string, number>(dayKeys.map((day) => [day, 0]));
+  const departureCounts = new Map<string, number>(dayKeys.map((day) => [day, 0]));
+  for (const row of arrivals.data ?? []) {
+    if (!row.checked_in_at) continue;
+    const day = toHotelDate(row.checked_in_at);
+    if (arrivalCounts.has(day)) arrivalCounts.set(day, (arrivalCounts.get(day) ?? 0) + 1);
+  }
+  for (const row of departures.data ?? []) {
+    if (!row.checked_out_at) continue;
+    const day = toHotelDate(row.checked_out_at);
+    if (departureCounts.has(day)) departureCounts.set(day, (departureCounts.get(day) ?? 0) + 1);
+  }
+
+  const dayLabel = new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", month: "short", day: "numeric" });
+  return dayKeys.map((date) => ({
+    date,
+    day: dayLabel.format(new Date(`${date}T12:00:00.000Z`)),
+    arrivals: arrivalCounts.get(date) ?? 0,
+    departures: departureCounts.get(date) ?? 0,
+  }));
+}
+
 export const isReportDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value));
 
 export async function buildDailyReport(date: string): Promise<DailyReportSnapshot> {

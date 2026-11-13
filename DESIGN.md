@@ -434,10 +434,12 @@ visually distinct second workflow, never a competing page header.
 The report pages follow the approved Executive brief order: page heading,
 decision metrics, the main report visualization, then supporting review work.
 The shared Manager/Accounting page places Night Audit after its performance
-summary and chart. Front Desk places daily report-status metrics immediately
-under its heading, before the generated snapshot and history. The status counts
-describe the visible history page; the total card uses the server-provided full
-record count. Admin uses account metrics followed by a role-distribution bar
+summary and chart. Front Desk loads the selected day's live snapshot and leads
+with arrivals, departures, new reservations, and collections, followed by a
+seven-day arrival/departure trend and the full report preview. When all seven
+days are zero, a clear zero-activity state lists the actual daily counts. The
+submission-history cards then describe the visible history page; the total card
+uses the server-provided full record count. Admin uses account metrics followed by a role-distribution bar
 view and configuration summary; an expandable paginated table retains exact
 role counts. Owner keeps its executive metrics, booked-occupancy and
 collections charts, and day-by-day table, with occupancy given the lead width.
