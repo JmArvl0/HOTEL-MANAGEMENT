@@ -58,6 +58,12 @@ normal refunds lacked a payout method/drawer link, and unsaved counts existed
 only in component memory. That historical evidence remains in
 `docs/qa/cash-shifts-data-flow-qa-2026-11-04.md`.
 
+**Cash & Shifts prototype integration (2026-11-14, local):** The shared
+Front Desk and Accounting workspace presents the drawer and physical count
+editor inline. Review count shows a separate confirmation before Close uses
+the saved draft version and retry key. Accounting keeps explicit reconciliation.
+Activity, history and handovers use the existing ledger and routes.
+
 **Cash safeguards (2026-11-05, local; migration pending hosted release):**
 `20261105010000_cash_refunds_and_count_drafts.sql` adds explicit Accounting-recorded
 refund payout methods. Cash requires the selected open drawer and sufficient
@@ -965,17 +971,17 @@ Staff operations (each a named RPC with row locks + audit, §10):
   reservation, posts any legacy transport lines as folio charges (deterministic idempotency keys),
   and files the booking's transportation preference as a live request (§7.11). `accounting_reject_deposit`
   returns a proof with a reason.
-- **Payment Details** uses one shared `PaymentDetailsDialog` receipt for deposit
-  and stay-payment records, including pending review. The selected payment supplies the
-  amount, guest/stay, method/reference, status, proof metadata and Manila timestamp;
-  existing signed proof previews remain available. The fluid receipt keeps its
-  header and X close control visible above a keyboard-accessible scrolling record;
-  there is no duplicate bottom Close button. Escape also dismisses the modal.
-  Purpose identifies the payment type; only deposits include the expected amount
-  and over/under comparison. Only pending records with Accounting review capability
-  expose the existing Verify/Reject callbacks in a persistent footer. PayMongo
-  payments never expose manual confirmation; authorized rejection remains. The
-  existing endpoints, signed proof access and server-side authorization are unchanged.
+- **Deposit Verification workspace** replaces the old payments table/review modal
+  in the Deposit Verification section. It pairs a searchable, filterable queue
+  with the selected payment's inline review, proof, reservation facts, amount
+  comparison, and decision history. Pending manual proofs sort oldest first;
+  cards and filters expose needs review, past SLA, provider pending, and history.
+  The target is display-only. Accounting confirms or rejects in a separate
+  decision dialog; rejection requires a reason. PayMongo pending payments have
+  no manual confirmation, but Accounting can reject them. Front Desk sees
+  record details without proof requests or decision controls. Signed proof
+  URLs and the existing verify/reject endpoints keep their server guards.
+  Billing's deposit-review entry point still uses `PaymentDetailsDialog`.
 - **Housekeeping owns the dirty→ready leg** (§7.5); **Maintenance owns serviceability** (§7.6).
 
 ### 7.5 Housekeeping workflow
@@ -1521,10 +1527,11 @@ a room, or settlement, the retired ArrivalLane strip's blocker logic — with Ar
 Departures / In-house clickable onto the queue filters; manager oversight panel: Attention
 Required — the authoritative `needsAttention` definition from `lib/manager-attention.ts` —
 plus Arrivals / Departures / In-house, all clickable), the seven status modules
-(Maintenance, Rooms, Inventory, Deposit Verification, Refunds, Billing, and the
+(Maintenance, Rooms, Inventory, Refunds, Billing, and the
 generic Maintenance view of Guest Requests — informational, via one shared
-`moduleSummary` helper in the generic `ResourceView`; Deposit Verification's cards include
-**Past SLA** — pending payments waiting past the policy's `depositSlaHours`), the **Accounting**
+`moduleSummary` helper in the generic `ResourceView`; Deposit Verification uses
+its own queue-backed cards, including **Past SLA** for pending manual payments
+waiting past the policy's `depositSlaHours`), the **Accounting**
 sections (Transactions/Folios/Cash/Reconciliation/Documents, informational),
 **Housekeeping** (five cards from the same
 `groupQueueTask` grouping the queue renders: Needs attention / In progress / Waiting for

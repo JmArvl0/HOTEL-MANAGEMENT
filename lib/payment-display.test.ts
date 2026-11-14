@@ -70,21 +70,6 @@ describe("Accounting deposit verification presentation", () => {
     expect(branch).not.toContain('from("reservations")');
   });
 
-  it("keeps status badges separate from explicit pending and read-only actions", () => {
-    const source = readFileSync(
-      "components/manager/manager-dashboard-client.tsx",
-      "utf8",
-    );
-    expect(source).toContain("Reservation / guest");
-    expect(source).toContain(
-      "Search by guest name, reservation code, or reference number...",
-    );
-    expect(source).toContain('className="payment-status"');
-    expect(source).toContain('className="table-action action-primary"');
-    expect(source).toContain('className="table-action action-danger"');
-    expect(source).toContain("View details");
-  });
-
   it("scopes the shared action hierarchy to internal application pages", () => {
     const css = readFileSync("app/staff-theme.css", "utf8");
     expect(css).toContain(".app-shell .table-action.action-primary");

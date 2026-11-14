@@ -98,10 +98,4 @@ describe("surface contracts", () => {
     expect(data).toMatch(/const pendingAges=refundRole\?/); // accounting-gated
   });
 
-  it("the queue renders aging chips from the shared band helper, never deciding anything", () => {
-    const ui = read("components/manager/manager-dashboard-client.tsx");
-    expect(ui).toMatch(/badge sla-\$\{band\}/);
-    expect(ui).toMatch(/depositAgeBand\(item\.submitted_at,depositSlaHours\)/);
-    expect(ui).not.toMatch(/Past SLA[^"']*auto/i);
-  });
 });

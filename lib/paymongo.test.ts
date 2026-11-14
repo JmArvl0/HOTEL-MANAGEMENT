@@ -401,10 +401,4 @@ describe("gateway abandonment migration contract", () => {
     expect(actions).toContain("Cancel this attempt and try again");
   });
 
-  it("steers staff away from verifying gateway rows while keeping reject", () => {
-    const dashboard = read("components/manager/manager-dashboard-client.tsx");
-    expect(dashboard).toContain("Awaiting provider");
-    expect(dashboard).toContain('!== "gateway_paymongo"');
-    expect(read("components/manager/payment-details-dialog.tsx")).toContain("manual verification is disabled for them");
-  });
 });

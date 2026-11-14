@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { X } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { cashMoney, cashNumber, cashExpected, cashCountVariance, canCloseDrawer, cashDate } from "@/lib/cash-shift-display";
 import type { AccountingLedger } from "@/lib/accounting";
@@ -8,7 +9,7 @@ import type { Role } from "@/lib/types";
 export type CashCountPresentation = {
   counted: number | null; variance: number | null; expected: number | null;
   busy: boolean; mayClose: boolean; review: () => void;
-  draftStatus: string;
+  expanded: boolean; editor: ReactNode; draftStatus: string; triggerRef: React.RefObject<HTMLButtonElement>;
 };
 type SavedCount = {
   actualCash: number; notes: string; basis: string; version: number; closeKey: string;
@@ -38,11 +39,14 @@ function DrawerCount({ ledger, actorId, role, onSaved, onStale, renderWorkspace 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const [reviewOpen, setReviewOpen] = useState(false);
+  const [entryOpen, setEntryOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [uncertain, setUncertain] = useState(false);
   const pending = useRef<SavedCount | null>(null);
   const countStarted = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const editorHeadingRef = useRef<HTMLHeadingElement>(null);
   const saved = context?.draft && !context.draft.invalidatedAt ? context.draft : null;
   const counted = cashNumber(count);
   const expected = context?.expectedCash ?? cashExpected(shift?.opening_amount, shift?.collected);
@@ -50,6 +54,7 @@ function DrawerCount({ ledger, actorId, role, onSaved, onStale, renderWorkspace 
   const stale = Boolean(count && context && countBasis !== context.basis);
   const dirty = Boolean(count || note) && !(saved && counted === Number(saved.actualCash) && note.trim() === saved.notes && countBasis === saved.basis);
   const chooseSaved = Boolean(saved && !chosen);
+  const canSubmit = !busy && !loading && Boolean(context) && !stale && !chooseSaved;
   const activity = JSON.stringify((ledger.transactions ?? []).filter(row => row.cash_shift_id === shift?.id && row.status === "paid")
     .map(row => [row.id, row.amount, row.purpose, row.method]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))));
 
@@ -79,6 +84,14 @@ function DrawerCount({ ledger, actorId, role, onSaved, onStale, renderWorkspace 
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty, uncertain]);
+  useEffect(() => {
+    if (entryOpen) editorHeadingRef.current?.focus();
+  }, [entryOpen]);
+
+  function dismissEditor() {
+    setEntryOpen(false);
+    requestAnimationFrame(() => triggerRef.current?.focus());
+  }
 
   function resume() {
     if (!saved || uncertain) return;
@@ -111,15 +124,23 @@ function DrawerCount({ ledger, actorId, role, onSaved, onStale, renderWorkspace 
   async function saveAndReturn() {
     if (busy) return;
     setBusy(true); setError("");
-    try { await saveDraft(); setReviewOpen(false); }
+    try { await saveDraft(); dismissEditor(); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to save. Your entries are preserved."); }
     finally { setBusy(false); }
   }
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    if (!shift || !mayClose || busy) return;
-    if (!uncertain && (counted === null || counted < 0 || counted > 10000000)) { setError("Enter a fresh physical cash count between ₱0.00 and ₱10,000,000.00."); return; }
-    if (!uncertain && variance !== 0 && note.trim().length < 3) { setError("Explain the cash difference before closing the drawer."); return; }
+  function validateCount() {
+    if (!uncertain && (counted === null || counted < 0 || counted > 10000000)) {
+      setError("Enter a fresh physical cash count between ₱0.00 and ₱10,000,000.00.");
+      return false;
+    }
+    if (!uncertain && variance !== 0 && note.trim().length < 3) {
+      setError("Explain the cash difference before closing the drawer.");
+      return false;
+    }
+    return true;
+  }
+  async function closeDrawer() {
+    if (!shift || !mayClose || busy || (!canSubmit && !uncertain) || !validateCount()) return;
     setBusy(true); setError("");
     try {
       const draft = pending.current ?? await saveDraft();
@@ -135,34 +156,71 @@ function DrawerCount({ ledger, actorId, role, onSaved, onStale, renderWorkspace 
       }
       const result = "Drawer closed. Expected " + cashMoney(body.data.expectedCash) + "; counted " + cashMoney(body.data.actualCash) + "; variance " + cashMoney(body.data.variance) + ".";
       pending.current = null; setUncertain(false); setMessage(result);
-      setReviewOpen(false); setCount(""); setNote(""); setContext(null); onSaved(result);
+      setConfirmOpen(false); setEntryOpen(false); setCount(""); setNote(""); setContext(null); onSaved(result);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Close result unavailable. Retry the same saved count."); }
     finally { setBusy(false); }
   }
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    if (!mayClose || busy || (!canSubmit && !uncertain) || !validateCount()) return;
+    setError("");
+    if (renderWorkspace) setConfirmOpen(true);
+    else void closeDrawer();
+  }
   const draftStatus = dirty ? "Unsaved changes. Save draft before leaving this module." : chosen && saved && !count && !note ? "Fresh count not saved. The previous saved draft remains available." : saved ? "Draft saved at " + cashDate(saved.updatedAt) : loading ? "Loading saved count…" : "No saved count draft.";
   const status = <p role="status">{draftStatus}</p>;
-  const form = <form className="hms-cash-count" onSubmit={submit}>
-    <p>Count physical cash independently. Save draft stores your work; Close records the final count.</p>
+  const form = <form id={renderWorkspace ? "cash-count-editor" : undefined} className={renderWorkspace ? "hms-cash-count cash-count-editor" : "hms-cash-count"} onSubmit={submit}
+    onKeyDown={event => { if (renderWorkspace && !busy && event.key === "Escape") dismissEditor(); }}>
+    {renderWorkspace && <div className="cash-editor-heading">
+      <h3 ref={editorHeadingRef} tabIndex={-1}>Record a physical count</h3>
+      <button type="button" className="cash-button cash-editor-dismiss" aria-label="Hide cash count" disabled={busy} onClick={dismissEditor}><X size={16} aria-hidden="true" /></button>
+    </div>}
+    <p>Count the notes and coins in the drawer, then compare with expected cash.</p>
     {status}
     {saved && <div className="btn-row"><button type="button" className="btn btn-secondary" disabled={busy || uncertain} onClick={resume}>{chosen ? "Reload saved draft" : "Resume saved draft"}</button></div>}
     <button type="button" className="cash-text-action" disabled={busy || !context || uncertain} onClick={fresh}>Start a fresh count</button>
     {stale && <p role="alert">Cash activity changed. Start a fresh count and count the drawer again.</p>}
     {uncertain && <p role="alert">The close result is unconfirmed. Retry closing with the same saved count before making changes.</p>}
-    <label>Physical cash counted (PHP)<input ref={inputRef} id="physical-cash-count" type="number" required min="0" max="10000000" step="0.01" value={count} disabled={busy || loading || chooseSaved || uncertain} onChange={event => { countStarted.current = true; setCount(event.target.value); }} aria-describedby="cash-count-help" /></label>
-    <dl><div><dt>Expected cash</dt><dd>{cashMoney(expected)}</dd></div><div><dt>Variance</dt><dd>{variance === null ? "Enter physical count" : cashMoney(variance)}</dd></div></dl>
+    <div className="cash-count-field">
+      <label htmlFor="physical-cash-count">Physical cash counted (PHP)</label>
+      <div className={renderWorkspace ? "cash-money-input" : undefined}>
+        {renderWorkspace && <span aria-hidden="true">₱</span>}
+        <input ref={inputRef} id="physical-cash-count" type="number" required min="0" max="10000000" step="0.01" value={count} disabled={busy || loading || chooseSaved || uncertain} onChange={event => { countStarted.current = true; setCount(event.target.value); }} aria-describedby="cash-count-help" />
+      </div>
+    </div>
+    <dl><div><dt>Expected cash</dt><dd>{cashMoney(expected)}</dd></div><div><dt>Difference</dt><dd>{variance === null ? "Enter physical count" : cashMoney(variance)}</dd></div></dl>
     <label>Count note / variance explanation<textarea rows={3} maxLength={400} value={note} disabled={busy || loading || chooseSaved || uncertain} onChange={event => setNote(event.target.value)} required={counted !== null && variance !== 0} aria-describedby="cash-count-help" /></label>
     <p id="cash-count-help">Explain any difference before closing. Closing ends cash collection in this drawer; Accounting reviews it afterward.</p>
-    {error && <p role="alert">{error}</p>}
+    {error && !confirmOpen && <p role="alert">{error}</p>}
     <div className="btn-row">
-      {renderWorkspace && <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => setReviewOpen(false)}>Return without saving</button>}
+      {renderWorkspace && <button type="button" className="btn btn-secondary" disabled={busy} onClick={dismissEditor}>Return without saving</button>}
       <button type="button" className="btn btn-secondary" disabled={busy || loading || !context || stale || chooseSaved || uncertain} onClick={() => void saveAndReturn()}>Save draft &amp; return</button>
-      <button className="btn btn-primary" disabled={busy || loading || !context || stale || chooseSaved}>{busy ? "Recording count…" : uncertain ? "Retry closing drawer" : "Close shared drawer"}</button>
+      <button className="btn btn-primary" disabled={!canSubmit && (!uncertain || busy)}>{busy ? "Recording count…" : uncertain ? "Retry closing drawer" : renderWorkspace ? "Review count" : "Close shared drawer"}</button>
     </div>
     {!context && !loading && <button type="button" className="btn btn-secondary" onClick={() => void load()}>Reload saved count</button>}
   </form>;
   if (renderWorkspace) return <>
-    {renderWorkspace({ counted, variance, expected, busy, mayClose, draftStatus, review: () => setReviewOpen(true) })}
-    <Modal isOpen={reviewOpen && mayClose} onClose={() => { if (!busy) setReviewOpen(false); }} title="Review count & close" description="Save a count draft or record the final cash difference." initialFocusRef={inputRef} className="cash-count-dialog" closeOnEscape={!busy} closeOnOverlayClick={!busy} showCloseButton={!busy}>{form}</Modal>
+    {renderWorkspace({
+      counted, variance, expected, busy, mayClose, draftStatus,
+      expanded: entryOpen, editor: entryOpen && mayClose ? form : null,
+      triggerRef, review: () => setEntryOpen(true),
+    })}
+    <Modal isOpen={confirmOpen && mayClose} onClose={() => { if (!busy) setConfirmOpen(false); }} title="Review count & close" description="Confirm the physical count before closing the shared drawer." className="cash-count-dialog" closeOnEscape={!busy} closeOnOverlayClick={!busy} showCloseButton={!busy}>
+      <div className="hms-cash-count">
+        <dl>
+          <div><dt>Expected cash</dt><dd>{cashMoney(expected)}</dd></div>
+          <div><dt>Counted cash</dt><dd>{cashMoney(counted)}</dd></div>
+          <div><dt>Difference</dt><dd>{cashMoney(variance)}</dd></div>
+        </dl>
+        {note.trim() && <p>{note.trim()}</p>}
+        <p>Closing ends cash collection in this drawer. Accounting reviews the recorded result.</p>
+        {error && <p role="alert">{error}</p>}
+        <div className="btn-row">
+          <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => setConfirmOpen(false)}>Back to count</button>
+          <button type="button" className="btn btn-primary" disabled={!canSubmit && (!uncertain || busy)} onClick={() => void closeDrawer()}>{busy ? "Recording count…" : uncertain ? "Retry closing drawer" : "Close shared drawer"}</button>
+        </div>
+      </div>
+    </Modal>
   </>;
   return <section id="shared-drawer-count" className="panel hms-panel"><h3>Count &amp; close shared drawer</h3>
     {message && <p role="status">{message}</p>}

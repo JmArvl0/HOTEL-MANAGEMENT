@@ -102,6 +102,13 @@ forms preserve the existing portal/arrival shell. Labels, draft preservation,
 stable retry keys, truthful status/error feedback and keyboard focus are part of
 the workflow; no prototype/sample records are wired into production screens.
 
+**Cash & Shifts prototype integration (2026-11-14, local):** Front Desk and
+Accounting share the preview's drawer card, inline physical count editor,
+readiness checklist, handover card, cash activity filters, and history summary.
+Accounting has the reconciliation controls. The separate confirmation dialog
+shows the count and difference before final close. Mobile tables scroll within
+their cards. The workspace uses the staff dashboard's light/dark theme.
+
 **Cash safeguards (2026-11-05, local):** Count review distinguishes unsaved edits,
 an explicitly saved server draft, resume/fresh count and final Close. Changed
 cash activity requires recounting; stale versions and unconfirmed close responses
@@ -275,7 +282,16 @@ Canonical base (in `ui-primitives.css`, overrides the three legacy `.btn` blocks
 
 ## 6. Forms & modals
 
-Staff deposit/stay-payment details and pending reviews share `PaymentDetailsDialog`, matching the
+The Deposit Verification section uses a two-pane review workspace: queue on
+the left, selected payment and proof on the right. Compact metric cards and
+queue filters surface manual reviews, past-SLA items, provider waits, and
+history. On phones the queue and detail become separate views with an explicit
+Back control; decisions stay in a reachable footer. Accounting's verify/reject
+actions open a confirmation dialog, while Front Desk has a read-only view and
+no private proof preview. All status colors use staff theme tokens in light and
+dark mode.
+
+Billing's deposit/stay-payment detail entry point uses `PaymentDetailsDialog`, matching the
 user-supplied green-header receipt reference (2026-11-04), with the actual
 HAVEN Hotel & Residences name and shared `HavenLogo` mark (white on the green
 header in both themes). Garden Twin is a room type, never the hotel brand. This
@@ -291,7 +307,7 @@ outside the keyboard-accessible scrolling record; the redundant bottom Close
 button is removed, with balanced paper padding below Total. Proof content expands the
 scroll region. No scale transforms. Values remain live. The common title is
 Payment Details; Purpose distinguishes the payment type. The same detail-row
-component renders both sections. Deposits include Expected Deposit and over/under
+component renders both payment purposes. Deposits include Expected Deposit and over/under
 comparison. Pending records get review actions only when the caller has Accounting
 authority; these actions stay in a fixed footer. Gateway payments never offer manual
 confirmation. Other viewers and settled records use the same receipt in read-only mode.

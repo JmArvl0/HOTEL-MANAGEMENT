@@ -23,7 +23,10 @@ function readReply(url: string) {
   return emptyHandovers;
 }
 function stubReads() { const fetch = vi.fn(async (url: string) => reply(readReply(url))); vi.stubGlobal("fetch", fetch); return fetch; }
-function review() { fireEvent.click(screen.getAllByRole("button", { name: "Review count & close" })[0]); return screen.getByRole("dialog", { name: "Review count & close" }); }
+function openCount() {
+  fireEvent.click(screen.getByRole("button", { name: "Record cash count" }));
+  return screen.getByRole("heading", { name: "Record a physical count" });
+}
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe("Cash & Shifts workspace", () => {
@@ -32,19 +35,19 @@ describe("Cash & Shifts workspace", () => {
     vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => { if (init?.method) writes(); return reply(readReply(url)); }));
     const p = props(); const first = render(<CashShiftsWorkspace {...p} />);
     await screen.findByText(/No unresolved cash follow-up appears/);
-    review(); fireEvent.change(screen.getByLabelText("Physical cash counted (PHP)"), { target: { value: "34850" } });
+    openCount(); fireEvent.change(screen.getByLabelText("Physical cash counted (PHP)"), { target: { value: "34850" } });
     fireEvent.click(screen.getByRole("button", { name: "Return without saving" }));
     first.unmount(); render(<CashShiftsWorkspace {...p} />);
     await screen.findByText(/No unresolved cash follow-up appears/);
-    review(); expect((screen.getByLabelText("Physical cash counted (PHP)") as HTMLInputElement).value).toBe("");
+    openCount(); expect((screen.getByLabelText("Physical cash counted (PHP)") as HTMLInputElement).value).toBe("");
     expect(writes).not.toHaveBeenCalled();
   });
   it("shows the active drawer and paid refund basis without inventing a physical count or another open action", async () => {
     stubReads(); render(<CashShiftsWorkspace {...props()} />);
     await screen.findByText(/No unresolved cash follow-up appears/);
-    expect(screen.getByRole("heading", { name: "Current shift" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Front Desk" })).toBeTruthy();
     expect(screen.getAllByText("₱34,920.00").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Difference unavailable").length).toBeGreaterThan(0);
+    expect(screen.getByText("Not counted")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Open cash shift" })).toBeNull();
     expect(within(screen.getByRole("table", { name: "Shift cash movements" })).getByText("−₱3,500.00")).toBeTruthy();
     expect(screen.getAllByText("Not supplied").length).toBeGreaterThan(0);
@@ -52,40 +55,40 @@ describe("Cash & Shifts workspace", () => {
   it("preserves a draft through Cancel, filtering and same-drawer refresh, then resets for a new drawer", async () => {
     stubReads(); const p = props(); const { rerender } = render(<CashShiftsWorkspace {...p} />);
     await screen.findByText(/No unresolved cash follow-up appears/);
-    review(); fireEvent.change(screen.getByLabelText("Physical cash counted (PHP)"), { target: { value: "34850" } });
+    openCount(); fireEvent.change(screen.getByLabelText("Physical cash counted (PHP)"), { target: { value: "34850" } });
     fireEvent.change(screen.getByLabelText("Count note / variance explanation"), { target: { value: "Independent count" } });
     fireEvent.click(screen.getByRole("button", { name: "Return without saving" }));
     fireEvent.change(screen.getByLabelText("Shift status"), { target: { value: "reconciled" } });
     rerender(<CashShiftsWorkspace {...p} ledger={ledger([{ ...active, collected: 25020 }, closed])} />);
-    review(); expect((screen.getByLabelText("Physical cash counted (PHP)") as HTMLInputElement).value).toBe("34850");
-    fireEvent.keyDown(document, { key: "Escape" });
+    openCount(); expect((screen.getByLabelText("Physical cash counted (PHP)") as HTMLInputElement).value).toBe("34850");
+    fireEvent.keyDown(screen.getByLabelText("Physical cash counted (PHP)"), { key: "Escape" });
     rerender(<CashShiftsWorkspace {...p} ledger={ledger([{ ...active, id: "replacement" }, closed])} />);
-    review(); expect((screen.getByLabelText("Physical cash counted (PHP)") as HTMLInputElement).value).toBe("");
+    openCount(); expect((screen.getByLabelText("Physical cash counted (PHP)") as HTMLInputElement).value).toBe("");
     expect((screen.getByLabelText("Count note / variance explanation") as HTMLTextAreaElement).value).toBe("");
   });
   it("does not expose closing inputs to another Front Desk cashier", async () => {
     stubReads(); render(<CashShiftsWorkspace {...props()} actorId="john" />);
     await screen.findByText(/No unresolved cash follow-up appears/);
-    expect(screen.queryByRole("button", { name: "Review count & close" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Record cash count" })).toBeNull();
     expect(screen.getByText(/Maria Santos owns this drawer/)).toBeTruthy();
     expect(screen.queryByLabelText("Physical cash counted (PHP)")).toBeNull();
   });
   it("requires an independent new count when the operator or role changes", async () => {
     stubReads(); const p = props(); const { rerender } = render(<CashShiftsWorkspace {...p} />);
     await screen.findByText(/No unresolved cash follow-up appears/);
-    review(); fireEvent.change(screen.getByLabelText("Physical cash counted (PHP)"), { target: { value: "34920" } });
+    openCount(); fireEvent.change(screen.getByLabelText("Physical cash counted (PHP)"), { target: { value: "34920" } });
     fireEvent.click(screen.getByRole("button", { name: "Return without saving" }));
     rerender(<CashShiftsWorkspace {...p} role="accounting" actorId="sara" />);
-    review(); expect((screen.getByLabelText("Physical cash counted (PHP)") as HTMLInputElement).value).toBe("");
+    openCount(); expect((screen.getByLabelText("Physical cash counted (PHP)") as HTMLInputElement).value).toBe("");
   });
   it("labels stale ledger data without clearing the count draft on refresh failure", async () => {
     stubReads(); const p = props(); const { rerender } = render(<CashShiftsWorkspace {...p} />);
     await screen.findByText(/No unresolved cash follow-up appears/);
-    review(); fireEvent.change(screen.getByLabelText("Physical cash counted (PHP)"), { target: { value: "34920" } });
+    openCount(); fireEvent.change(screen.getByLabelText("Physical cash counted (PHP)"), { target: { value: "34920" } });
     fireEvent.click(screen.getByRole("button", { name: "Return without saving" }));
     rerender(<CashShiftsWorkspace {...p} refreshError="Network unavailable" />);
     expect(screen.getByText(/Values below are from the last successful ledger read/)).toBeTruthy();
-    review(); expect((screen.getByLabelText("Physical cash counted (PHP)") as HTMLInputElement).value).toBe("34920");
+    openCount(); expect((screen.getByLabelText("Physical cash counted (PHP)") as HTMLInputElement).value).toBe("34920");
   });
   it("retains failed-close input and idempotency key, then reports the server's final values", async () => {
     const writes: Record<string, unknown>[] = [];
@@ -96,12 +99,15 @@ describe("Cash & Shifts workspace", () => {
       return writes.length === 1 ? reply({ error: "Temporary close failure" }, 503) : reply({ data: { expectedCash: 35000, actualCash: 34850, variance: -150 } });
     }));
     render(<CashShiftsWorkspace {...props()} />); await screen.findByText(/No unresolved cash follow-up appears/);
-    review(); fireEvent.change(screen.getByLabelText("Physical cash counted (PHP)"), { target: { value: "34850" } });
+    openCount(); fireEvent.change(screen.getByLabelText("Physical cash counted (PHP)"), { target: { value: "34850" } });
     fireEvent.change(screen.getByLabelText("Count note / variance explanation"), { target: { value: "Physical count verified" } });
-    fireEvent.submit(screen.getByRole("button", { name: "Close shared drawer" }).closest("form")!);
+    fireEvent.click(screen.getByRole("button", { name: "Review count" }));
+    const confirmation = screen.getByRole("dialog", { name: "Review count & close" });
+    expect(writes).toHaveLength(0);
+    fireEvent.click(within(confirmation).getByRole("button", { name: "Close shared drawer" }));
     await screen.findByText("Temporary close failure");
     expect((screen.getByLabelText("Physical cash counted (PHP)") as HTMLInputElement).value).toBe("34850");
-    fireEvent.submit(screen.getByRole("button", { name: "Retry closing drawer" }).closest("form")!);
+    fireEvent.click(within(confirmation).getByRole("button", { name: "Retry closing drawer" }));
     await screen.findByText(/Drawer closed. Expected ₱35,000.00; counted ₱34,850.00; variance -₱150.00/);
     expect(writes).toHaveLength(2); expect(writes[0].idempotencyKey).toBe(writes[1].idempotencyKey);
     expect(writes[0].draftVersion).toBe(1);
@@ -135,17 +141,18 @@ describe("Cash & Shifts workspace", () => {
     render(<CashShiftsWorkspace {...props()} ledger={ledger(shifts)} />); await screen.findByText(/No unresolved cash follow-up appears/);
     fireEvent.click(screen.getByRole("button", { name: "Next page of matching shifts" }));
     fireEvent.click(screen.getByRole("button", { name: "View shift history-10" }));
+    fireEvent.click(screen.getByRole("button", { name: "Full shift record" }));
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getByText("Count verified, shortage retained")).toBeTruthy();
     expect(within(dialog).getByText("Net collected")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Close dialog" }));
-    expect(screen.getByRole("heading", { name: "Current shift" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Front Desk" })).toBeTruthy();
   });
   it("keeps cash usable if handovers fail and does not convert that error into a zero count", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => reply({ error: "Unavailable" }, 503)));
     render(<CashShiftsWorkspace {...props()} />); await screen.findByText(/Cash follow-up could not be confirmed/);
     expect(screen.queryByText(/No unresolved cash follow-up appears/)).toBeNull();
-    expect(screen.getByRole("heading", { name: "Current shift" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Front Desk" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Retry handovers" })).toBeTruthy();
   });
   it("shows authorized source-linked follow-up and navigates to its existing record", async () => {

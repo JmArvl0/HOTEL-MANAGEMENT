@@ -53,8 +53,8 @@ function renderBilling(items: RecordItem[], search: string, resource: "invoices"
       open={noop}
       advance={noop}
       checkIn={noop}
-      verifyDeposit={noop}
-      rejectDeposit={noop}
+      confirmVerifyDeposit={async () => true}
+      rejectDeposit={async () => true}
       viewReservation={viewReservation}
       viewRoom={noop}
       viewGuest={noop}

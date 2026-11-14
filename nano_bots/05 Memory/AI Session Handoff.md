@@ -1,5 +1,27 @@
 # AI Session Handoff
 
+## Deposit Verification prototype integration (2026-11-14)
+
+The approved prototype now drives the live Accounting/Front Desk Deposit
+Verification section. It has a queue, inline payment and proof review, history,
+role-scoped decisions, provider state, and mobile queue/detail views. Existing
+server routes and Billing's payment dialog remain in place. Typecheck, touched
+lint, targeted tests and full Vitest (2,423) passed. Webpack compiled but Next
+route type generation failed on two unrelated route exports; the default build
+hit a Windows junction permission error. Browser QA could not connect to the
+local dev server. See [[2026-11-14 - Deposit Verification Prototype Integration]].
+
+## Cash & Shifts prototype integration (2026-11-14)
+
+Ported the Cash & Shifts preview to the shared Front Desk and Accounting page.
+The drawer card contains the inline count editor and a separate final-close
+confirmation. Readiness, handover, activity search and history details use
+system data and role permissions. Typecheck, touched-file ESLint, and 43
+targeted tests passed. Both roles were checked in Chrome on desktop and at
+390px. The open drawer interaction used a browser-only fixture with zero
+financial writes. See
+[[2026-11-14 - Cash & Shifts Prototype Integration]].
+
 ## Reports role QA (2026-11-14)
 
 Fixed the local Playwright path: reports QA now uses an isolated port/build
@@ -501,3 +523,12 @@ E2E, zoom/touch/Safari remain unverified. See
 [[2026-11-04 - Cash Shifts Data Flow QA]]; implementation screenshot report stays
 in `docs/qa/cash-shifts-ui-implementation-2026-11-04.md`. Earlier counts above are
 prior-checkout checkpoints.
+
+## Deposit Verification prototype (2026-11-14)
+
+Standalone sample-data preview and desktop/mobile captures are in
+`public/prototypes/deposit-verification-*`. Accounting decision and Front Desk
+read-only views, provider restriction, aging, proof comparison, and sample
+decision dialogs were checked in Chrome Playwright. Independent UI review
+findings were resolved. No application integration or live-data write.
+Awaiting user feedback; see [[2026-11-14 - Deposit Verification Prototype]].

@@ -1,5 +1,18 @@
 # Current Status
 
+## Deposit Verification prototype integration (2026-11-14, local)
+
+- The live Accounting and Front Desk section uses the approved queue/detail
+  workspace for deposit and stay-payment review. Accounting can inspect signed
+  proof and confirm/reject with a reason; Front Desk is read-only. PayMongo
+  pending payments have no manual verify. Existing routes and Billing review
+  remain.
+- Typecheck, touched lint, targeted tests, full Vitest (2,423), and diff check
+  passed. Default build hit a Windows junction permission error; isolated Webpack
+  compiled, then failed on two unrelated Next route exports. Browser QA could
+  not connect to the local dev server. No deployment or hosted write. See
+  [[2026-11-14 - Deposit Verification Prototype Integration]].
+
 ## Reports role QA (2026-11-14, local)
 
 - Fixed the Playwright setup with an isolated port/build directory, auth
