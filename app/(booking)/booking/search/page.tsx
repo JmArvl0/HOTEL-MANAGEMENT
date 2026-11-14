@@ -1,5 +1,4 @@
 import { getServerSession } from "next-auth";
-import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, CalendarDays, Check, ChevronRight, Clock3, Headphones, ShieldCheck, Users, Waves } from "lucide-react";
@@ -11,8 +10,7 @@ import { AvailabilityGuide } from "@/components/booking/availability-guide";
 import { BackButton } from "@/components/booking/back-button";
 import { RoomResults } from "@/components/booking/room-results";
 import { RoomFocus } from "@/components/booking/room-focus";
-import { getAvailability, getRoomCatalog, parseSearchIntent, type AvailableRoomType, type RoomTypeSummary } from "@/lib/booking";
-import { SCENES } from "@/lib/room-images";
+import { bookingGuestCapacity, getDepositPolicy, getAvailability, getRoomCatalog, parseSearchIntent, type AvailableRoomType, type RoomTypeSummary } from "@/lib/booking";
 import "./search.css";
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
@@ -28,6 +26,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
 
   // Intent comes from the URL (see parseSearchIntent): valid dates → availability, otherwise browse.
   const intent = parseSearchIntent(raw);
+  const depositPolicy = await getDepositPolicy();
   let rooms: (AvailableRoomType | RoomTypeSummary)[] = [];
   let lookupError: string | undefined;
   let focusNotice: string | undefined;
@@ -67,7 +66,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   if (focusRoomType) rooms = [...rooms.filter((room) => room.name === focusRoomType), ...rooms.filter((room) => room.name !== focusRoomType)];
 
   const capacityCatalog = intent.mode === "browse" ? rooms : await Promise.resolve(getRoomCatalog()).catch(() => []);
-  const maxGuests = capacityCatalog?.length ? Math.min(8, Math.max(...capacityCatalog.map(room => room.maxGuests))) : 4;
+  const maxGuests = bookingGuestCapacity(capacityCatalog);
   const availability = intent.mode === "availability" ? intent : undefined;
   const nights = availability ? (() => {
     const diff = Math.round((Date.parse(`${availability.checkOut}T00:00:00Z`) - Date.parse(`${availability.checkIn}T00:00:00Z`)) / 86_400_000);
@@ -88,7 +87,6 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     <main className="booking-page">
       <PublicWebsiteNav bookingHref="#book-form" active="Rooms" rootLinks />
       <section className="booking-hero--search" aria-labelledby="search-title">
-        <Image src={SCENES.story} alt="A calm, sunlit hotel interior" fill priority sizes="100vw" className="booking-search-hero-image" />
         <div className="booking-search-hero-shade" />
         <div className="booking-search-hero-inner">
           <nav className="booking-breadcrumbs" aria-label="Breadcrumb">
@@ -111,7 +109,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           </div>
         </div>
         <AvailabilityGuide id="book-form" className="booking-search-summary">
-          <BookingSearchForm compact initial={formInitial} maxGuests={maxGuests} />
+          <BookingSearchForm compact initial={formInitial} maxGuests={maxGuests} searched={availability} />
           {availability && <div className="booking-active-filters" aria-label="Current search filters">
             <span className="booking-filter-chip"><CalendarDays size={14} aria-hidden="true" /> {availability.checkIn} → {availability.checkOut} · {nights} night{nights !== 1 ? "s" : ""}</span>
             <span className="booking-filter-chip"><Users size={14} aria-hidden="true" /> {availability.guests} guest{availability.guests !== 1 ? "s" : ""}</span>
@@ -139,7 +137,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
               </span>
             </div>
             {focusRoomType && <RoomFocus roomType={focusRoomType} searchKey={JSON.stringify(raw)} />}
-            <RoomResults rooms={rooms} error={lookupError} retryHref={`/booking/search${forwarded.size ? `?${forwarded}` : ""}`} hrefFor={details} focusRoomType={focusRoomType} />
+            <RoomResults depositPolicy={depositPolicy} rooms={rooms} error={lookupError} retryHref={`/booking/search${forwarded.size ? `?${forwarded}` : ""}`} hrefFor={details} focusRoomType={focusRoomType} />
           </div>
 
           <aside className="booking-sidebar" aria-label="Booking help">

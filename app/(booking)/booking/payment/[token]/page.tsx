@@ -13,6 +13,7 @@ import { calculateNights, depositPolicyLabel, formatPeso, getOwnedHold, policyFr
 import { operationalPolicyFromSnapshot } from "@/lib/hotel-policy";
 import { isPaymentDestinationComplete } from "@/lib/payment-destination";
 import { XenditCheckout, XenditPaymentBreakdown, XenditPaymentChoice } from "@/components/booking/xendit-checkout";
+import { PaymentRecovery } from "@/components/booking/payment-recovery";
 import { xenditConfigured } from "@/lib/xendit";
 import { gatewayConfigured } from "@/lib/gateway";
 import { activeDepositMethod } from "@/lib/payment-destination";
@@ -33,13 +34,13 @@ const xenditReady = xendit && xenditConfigured();
 const depositBody = xendit
   ? xenditReady
     ? <XenditCheckout holdToken={token} amount={deposit} />
-    : <div className="booking-empty"><h2>Sandbox checkout unavailable</h2><p>Xendit test configuration is incomplete. Please contact the hotel.</p></div>
+    : <PaymentRecovery title="Sandbox checkout unavailable" detail="Xendit test payments are temporarily unavailable. Try again or ask Front Desk for help." />
   : !destination.enabled || depositMode === "off"
-    ? <div className="booking-empty"><Clock3 /><h1>Deposits temporarily unavailable</h1><p>Online reservation deposits are temporarily unavailable. Please contact the hotel for assistance.</p></div>
+    ? <PaymentRecovery title="Deposits temporarily unavailable" detail="Online reservation deposits are temporarily unavailable. Try again or ask Front Desk for help." />
     : depositMode === "paymongo"
       ? <><p>Pay your reservation deposit instantly through GCash.</p><PaymentMethodSelector holdToken={token} gatewayAvailable={true} depositAmount={deposit} /></>
       : !depositsOpen
-        ? <div className="booking-empty"><Clock3 /><h1>Deposit details unavailable</h1><p>Payment details are being updated. Please try again shortly or contact the hotel for assistance.</p></div>
+        ? <PaymentRecovery title="Deposit details unavailable" detail="Payment details are being updated. Try again shortly or contact Front Desk for assistance." />
         : <><p>Send your reservation deposit through GCash below.</p><ConfirmBookingForm token={token} deposit={deposit} accountName={destination.accountName as string} mobileNumber={destination.mobileNumber as string} qrDataUrl={qrDataUrl} depositPolicy={policy} cancelPolicy={cancelPolicy} remainingBalance={remaining} checkIn={hold.check_in} /></>;
 const stage = (
   <section className={`booking-stage customer-booking-stage-inner${xendit ? " payment-checkout-stage" : ""}`}>
@@ -68,7 +69,7 @@ const stage = (
         {transport.length > 0 && <p><strong>Transport booked ({transport.length}):</strong> {transport.map((line) => line.name).join(", ")} - {formatPeso(transportTotal(transport))}
           <small className="summary-note">{xendit ? "Included in the stay total above." : "Included in the stay total above and covered by this reservation deposit."}</small>
         </p>}
-        {requested.length > 0 && <p><strong>We will prepare:</strong> {requested.join(", ")}{hold.special_requests ? ` - ${hold.special_requests}` : ""}</p>}
+        {(requested.length > 0 || hold.special_requests) && <p><strong>Stay requests:</strong> {[...requested, hold.special_requests].filter(Boolean).join(", ")}. Subject to availability and hotel confirmation.</p>}
         <p>{xendit ? "Your reservation is confirmed after your payment is verified." : "Your reservation will be confirmed only after the required deposit has been verified."}</p>
         {!xenditReady && <small>The remaining balance will be settled {policy.remainingBalanceDue.toLowerCase()}.</small>}
       </>}

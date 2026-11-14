@@ -28,13 +28,16 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 /** Renders the form, optionally turning on the transportation block so Pickup time exists. */
 function renderForm(props: Partial<Parameters<typeof GuestDetailsForm>[0]> = {}, withRide = false) {
   const view = render(<GuestDetailsForm {...base} {...props}/>);
-  if (withRide) fireEvent.click(screen.getByLabelText("Request transportation"));
+  if (withRide) {
+    fireEvent.click(screen.getByText("Transportation (optional)"));
+    fireEvent.click(screen.getByLabelText("Request transportation"));
+  }
   return view;
 }
 
 const submitForm = (container: HTMLElement) => fireEvent.submit(container.querySelector("form")!);
 const payloadOf = () => JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
-const arrival = () => screen.getByLabelText("Expected arrival") as HTMLInputElement;
+const arrival = () => screen.getByLabelText(/Expected arrival/) as HTMLInputElement;
 const pickup = () => screen.getByLabelText("Pickup time") as HTMLInputElement;
 
 describe("expected arrival — simple time input", () => {
@@ -45,7 +48,7 @@ describe("expected arrival — simple time input", () => {
     expect(input.getAttribute("type")).toBe("time");
     expect(input.getAttribute("name")).toBe("expectedArrival");
     const label = container.querySelector('label[for="expected-arrival"]')!;
-    expect(label.textContent).toBe("Expected arrival");
+    expect(label.textContent).toBe("Expected arrival (required)");
     expect(label.getAttribute("for")).toBe(input.id);
     // The long note stays outside the label, so it never becomes the accessible name.
     expect(screen.getByText(/Early check-in is a separate request/).tagName).toBe("SMALL");
@@ -107,12 +110,16 @@ describe("expected arrival — simple time input", () => {
     expect(payloadOf().expectedArrival).toBe("13:00");
   });
 
-  it("still requires a value, with the same message and the same presentation", async () => {
+  it("shows an inline arrival error, focuses the field and sends no booking request", async () => {
     const { container } = renderForm();
     submitForm(container);
     const alert = await screen.findByRole("alert");
-    expect(alert.textContent).toContain("Select your expected arrival time.");
-    expect(alert.className).toContain("haven-error-alert");
+    expect(alert.textContent).toContain("Choose your expected arrival time.");
+    expect(arrival().getAttribute("aria-invalid")).toBe("true");
+    expect(arrival().required).toBe(true);
+    expect(document.activeElement).toBe(arrival());
+    fireEvent.change(arrival(), { target: { value: "15:00" } });
+    expect(screen.queryByRole("alert")).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
     expect(push).not.toHaveBeenCalled();
   });

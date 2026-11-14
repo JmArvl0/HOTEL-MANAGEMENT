@@ -142,6 +142,10 @@ export type RoomTypeSummary = {
   sizeSqm: number | null; amenities: string[]; nightlyRate: number; photos: string[];
 };
 
+export function bookingGuestCapacity(rooms: readonly { maxGuests: number }[] | undefined) {
+  return rooms?.length ? Math.min(8, Math.max(1, ...rooms.map((room) => room.maxGuests))) : 4;
+}
+
 /**
  * How the guest arrived at /booking/search: with a valid date pair (availability)
  * or without one (browse). `roomType` rides along in both modes and is validated
@@ -387,8 +391,22 @@ export async function getGuestProfile(userId: string, email?: string | null) {
 export async function getOwnedHold(token: string, userId: string) {
   if (!supabase || !z.string().uuid().safeParse(token).success) return null;
   await supabase.rpc("expire_booking_holds");
-  const { data } = await supabase.from("booking_holds").select("*").eq("token", token).eq("user_id", userId).maybeSingle();
+  const { data, error } = await supabase.from("booking_holds").select("*").eq("token", token).eq("user_id", userId).maybeSingle();
+  if (error) throw new Error("Could not load the booking hold.", { cause: error });
   return data;
+}
+
+export async function getActiveGuestHolds(userId: string) {
+  if (!supabase) return [];
+  const { data, error } = await supabase.from("booking_holds")
+    .select("token,room_type,selected_room_number,check_in,check_out,expires_at,guest_count,total,deposit_required,deposit_policy_snapshot,request_options,special_requests,transportation_preferences")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .is("reservation_id", null)
+    .gt("expires_at", new Date().toISOString())
+    .order("expires_at", { ascending: true });
+  if (error) throw new Error("Could not load active room holds.", { cause: error });
+  return data ?? [];
 }
 
 const reservationColumns = "id,confirmation_number,guest_name,guest_email,room_type,room_number,check_in,check_out,guests,status,total,deposit,deposit_required,deposit_policy_snapshot,payment_due_at,payment_status,payment_method,source,special_requests,request_options,transport_lines,transportation_preferences,expected_arrival,created_at";;

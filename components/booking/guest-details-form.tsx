@@ -18,6 +18,7 @@ const SERVICE_OPTIONS = [
 
 export function GuestDetailsForm({ roomId, holdToken, roomType, checkIn, checkOut, guests, checkInFrom, defaults, initialRequests = [], initialArrival = "", initialTransport = null, preArrival }: Props) {
   const router = useRouter(); const [error, setError] = useState(""); const [loading, setLoading] = useState(false);
+  const [arrivalError, setArrivalError] = useState(false);
   // Amenities come from live Manager-linked inventory (server-supplied); services stay
   // structured constants. No hardcoded amenity fallback ever renders here.
   const amenities = preArrival?.amenities ?? [];
@@ -33,7 +34,11 @@ export function GuestDetailsForm({ roomId, holdToken, roomType, checkIn, checkOu
     const field = (key: string) => String(form.get(key) ?? "");
     // Expected arrival stays required. The native time input yields canonical "HH:MM" — the same
     // value the old picker committed — so the guard reads it straight off the form.
-    if (!field("expectedArrival")) { setError("Select your expected arrival time."); setLoading(false); return; }
+    if (!field("expectedArrival")) {
+      setArrivalError(true); setLoading(false);
+      event.currentTarget.querySelector<HTMLInputElement>('[name="expectedArrival"]')?.focus();
+      return;
+    }
     const payload: Record<string, unknown> = {
       roomId, holdToken, roomType: field("roomType"), checkIn: field("checkIn"), checkOut: field("checkOut"),
       guests: Number(field("guests")), firstName: field("firstName"), lastName: field("lastName"),
@@ -52,15 +57,18 @@ export function GuestDetailsForm({ roomId, holdToken, roomType, checkIn, checkOu
         specialInstructions: field("rideNote").trim() || undefined,
       } } : {}),
     };
-    const response = await fetch("/api/booking/holds", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-    const body = await response.json(); setLoading(false);
-    if (!response.ok) { setError(body.error ?? "We could not hold this room. Please try again."); return; }
-    router.push(`/booking/review/${body.token}`);
+    try {
+      const response = await fetch("/api/booking/holds", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const body = await response.json();
+      if (!response.ok) { setError(body.error ?? "We could not hold this room. Please try again."); return; }
+      router.push(`/booking/review/${body.token}`);
+    } catch { setError("Could not reach Haven. Try again or check your connection."); }
+    finally { setLoading(false); }
   }
   return <form className="booking-form-card" onSubmit={submit}>
     <input type="hidden" name="roomType" value={roomType}/><input type="hidden" name="checkIn" value={checkIn}/><input type="hidden" name="checkOut" value={checkOut}/><input type="hidden" name="guests" value={guests}/>
-    <div className="booking-form-grid"><label>First name<input name="firstName" defaultValue={defaults.firstName} required maxLength={80}/></label><label>Last name<input name="lastName" defaultValue={defaults.lastName} required maxLength={80}/></label><label>Email<input name="email" type="email" defaultValue={defaults.email} required maxLength={200}/></label><MobileNumberField name="mobile" defaultValue={defaults.mobile}/><label className="wide">Address<input name="address" defaultValue={defaults.address} required maxLength={300}/></label><label>Nationality (optional)<input name="nationality" defaultValue={defaults.nationality} maxLength={80}/></label><div className="arrival-field"><label htmlFor="expected-arrival">Expected arrival</label><input id="expected-arrival" name="expectedArrival" type="time" defaultValue={initialArrival}/><small className="arrival-note">Helps Front Desk prepare — your room follows check-in from {checkInFrom}, not this time. Early check-in is a separate request.</small></div></div>
-    <div className="booking-form-options">
+    <div className="booking-form-grid"><label>First name<input name="firstName" defaultValue={defaults.firstName} required maxLength={80}/></label><label>Last name<input name="lastName" defaultValue={defaults.lastName} required maxLength={80}/></label><label>Email<input name="email" type="email" defaultValue={defaults.email} required maxLength={200}/></label><MobileNumberField name="mobile" defaultValue={defaults.mobile}/><label className="wide">Address<input name="address" defaultValue={defaults.address} required maxLength={300}/></label><label>Nationality (optional)<input name="nationality" defaultValue={defaults.nationality} maxLength={80}/></label><div className="arrival-field"><label htmlFor="expected-arrival">Expected arrival <span>(required)</span></label><input id="expected-arrival" name="expectedArrival" type="time" required defaultValue={initialArrival} aria-invalid={arrivalError || undefined} aria-describedby={arrivalError ? "arrival-error arrival-note" : "arrival-note"} onInvalid={(event) => { event.preventDefault(); setArrivalError(true); event.currentTarget.focus(); }} onChange={() => setArrivalError(false)}/>{arrivalError && <small id="arrival-error" className="booking-field-error" role="alert">Choose your expected arrival time.</small>}<small id="arrival-note" className="arrival-note">Helps Front Desk prepare — your room follows check-in from {checkInFrom}, not this time. Early check-in is a separate request.</small></div></div>
+    <details className="booking-optional" open={initialRequests.length > 0}><summary>Room preferences & requests (optional)</summary><div className="booking-form-options">
       <span className="booking-form-option-heading">What can we prepare before you arrive? <small>Optional — choose as many as you like. Each will be filed with the right team once your stay is confirmed.</small></span>
       <p className="request-options-subhead">Amenities &amp; items</p>
       {amenities.length ? (
@@ -70,8 +78,8 @@ export function GuestDetailsForm({ roomId, holdToken, roomType, checkIn, checkOu
       )}
       <p className="request-options-subhead">Special requests</p>
       <div className="request-options-list">{services.map((option) => <label className="request-option" key={option.value}><input type="checkbox" name="requestOption" value={option.value} defaultChecked={initialRequests.includes(option.value)}/><span>{option.label}</span></label>)}</div>
-    </div>
-    <div className="booking-form-options">
+    </div></details>
+    <details className="booking-optional" open={Boolean(initialTransport)}><summary>Transportation (optional)</summary><div className="booking-form-options">
       <span className="booking-form-option-heading"><span className="transport-title"><CarTaxiFront size={14}/> Need a ride?</span><small>Optional — request hotel transportation. Our Front Desk reviews and schedules it once your stay is confirmed; the fare is settled with the hotel directly.</small></span>
       <div className="request-options-list">
         <label className="request-option"><input type="checkbox" checked={needRide} onChange={(e) => setNeedRide(e.target.checked)}/><span><strong>Request transportation</strong></span></label>
@@ -90,8 +98,8 @@ export function GuestDetailsForm({ roomId, holdToken, roomType, checkIn, checkOu
           <label className="wide">Pickup time or instructions (optional)<input name="rideNote" maxLength={500} placeholder="e.g. flight lands 6:00 PM, 2 large suitcases" defaultValue={initialTransport?.specialInstructions ?? ""}/></label>
         </div>)}
       </div>
-    </div>
+    </div></details>
     <label className="booking-form-other"><span>Anything else?</span><small>Optional — tell us more and we will pass it to the front desk.</small><textarea name="specialRequests" defaultValue={defaults.specialRequests} maxLength={1000} rows={3}/></label>
-    {error && <HavenErrorAlert title="Booking failed" body={error} variant="customer" />}<button className="btn btn-accent" disabled={loading}>{loading ? "Securing your room…" : "Review booking"}<ArrowRight size={17}/></button>
+    {error && <HavenErrorAlert title="We could not hold your room" body={error} variant="customer" />}<button className="btn btn-accent" disabled={loading}>{loading ? "Securing your room…" : "Review booking"}<ArrowRight size={17}/></button>
   </form>;
 }

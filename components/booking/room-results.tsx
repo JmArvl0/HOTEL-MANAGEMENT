@@ -1,8 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, BedDouble, Check, Ruler, Users } from "lucide-react";
+import { publicDepositEstimate } from "@/lib/public-booking-information";
 import { formatPeso } from "@/lib/format";
-import { type AvailableRoomType, type RoomTypeSummary } from "@/lib/booking";
+import { type AvailableRoomType, type RoomTypeSummary, type DepositPolicy } from "@/lib/booking";
 import { RoomDetailsButton } from "@/components/booking/room-details";
 import { ChooseDatesButton } from "@/components/booking/choose-dates-button";
 import { RoomPhotoTrigger } from "@/components/booking/room-photo-lightbox";
@@ -20,17 +21,20 @@ export function RoomResults({
   retryHref,
   hrefFor,
   focusRoomType,
+  depositPolicy,
 }: {
   rooms: (AvailableRoomType | RoomTypeSummary)[];
   error?: string;
   retryHref?: string;
   hrefFor: (roomType: string) => string;
   focusRoomType?: string;
+  depositPolicy?: DepositPolicy;
 }) {
   if (error) return <div className="booking-empty" role="alert"><h2>Room lookup unavailable</h2><p>{error}</p>{retryHref && <a className="btn btn-accent" href={retryHref}>Retry availability</a>}</div>;
   if (rooms.length === 0) return <div className="booking-empty"><BedDouble/><h2>No rooms available</h2><p>Try different dates or fewer guests. Your search details have been preserved.</p></div>;
   return <div className="availability-grid">{rooms.map((room, index) => {
     const priced = "availableUnits" in room;
+    const deposit = priced && depositPolicy ? publicDepositEstimate(room.subtotal, depositPolicy) : null;
     const soldOut = priced && room.availableUnits <= 0;
     const isLow = priced && !soldOut && room.availableUnits <= 2;
     const chipModifier = !priced ? " is-browse" : soldOut ? " is-off" : isLow ? " is-low" : "";
@@ -56,7 +60,7 @@ export function RoomResults({
         <ul className="room-amenities" aria-label={`${room.name} amenities preview`}>{room.amenities.slice(0, CARD_AMENITY_LIMIT).map((amenity) => <li key={amenity}><Check size={13} aria-hidden="true" />{amenity}</li>)}{extraAmenities > 0 && <li className="room-amenities-more">+{extraAmenities} more</li>}</ul>
         <div className="room-rate">
           {priced ? (
-            <span className="room-price"><small className="room-price-nights">{room.nights} night{room.nights !== 1 ? "s" : ""}</small><strong className="room-price-nightly">{formatPeso(room.nightlyRate)}</strong> / night<br /><em className="room-price-total">{formatPeso(room.subtotal)} estimated total</em></span>
+            <span className="room-price"><small className="room-price-nights">{room.nights} night{room.nights !== 1 ? "s" : ""}</small><strong className="room-price-nightly">{formatPeso(room.nightlyRate)}</strong> / night<br /><em className="room-price-total">{formatPeso(room.subtotal)} estimated total</em>{deposit !== null && <small className="room-deposit-estimate">{formatPeso(deposit)} estimated deposit</small>}</span>
           ) : (
             <span className="room-price"><small className="room-price-nights">From</small><strong className="room-price-nightly">{formatPeso(room.nightlyRate)}</strong> / night</span>
           )}

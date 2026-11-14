@@ -46,6 +46,7 @@ describe("pre-arrival request options", () => {
     const { container } = render(<GuestDetailsForm {...base} preArrival={live} />);
     expect(screen.getByText("Amenities & items")).toBeTruthy();
     expect(screen.getByText("Special requests")).toBeTruthy();
+    fireEvent.click(screen.getByText("Room preferences & requests (optional)"));
     expect(screen.getByRole("checkbox", { name: "Extra towels" })).toBeTruthy();
     expect(screen.getByRole("checkbox", { name: "Early check-in request" })).toBeTruthy();
     expect(container.textContent).not.toMatch(/24|stock/i);
@@ -56,6 +57,7 @@ describe("pre-arrival request options", () => {
     expect(screen.getByText("Request items are temporarily unavailable.")).toBeTruthy();
     expect(screen.queryByRole("checkbox", { name: "Extra towels" })).toBeNull();
     expect(screen.queryByRole("checkbox", { name: "Extra pillows" })).toBeNull();
+    fireEvent.click(screen.getByText("Room preferences & requests (optional)"));
     // Services stand on their own source.
     expect(screen.getByRole("checkbox", { name: "Early check-in request" })).toBeTruthy();
   });
@@ -66,7 +68,7 @@ describe("pre-arrival request options", () => {
     );
     // Stale value (no longer offered) renders no checkbox at all.
     expect(screen.queryByRole("checkbox", { name: "Extra pillows" })).toBeNull();
-    fireEvent.change(screen.getByLabelText("Expected arrival"), { target: { value: "15:00" } });
+    fireEvent.change(screen.getByLabelText(/Expected arrival/), { target: { value: "15:00" } });
     fireEvent.submit(container.querySelector("form")!);
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     const payload = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));

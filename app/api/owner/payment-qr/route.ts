@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { guardOwner, ownerGuardFailed } from "@/lib/owner-route";
 import { PROOF_MAX_BYTES, proofExt, sniffProofKind } from "@/lib/payment-proof";
 
-export const QR_BUCKET = "payment-qr";
+const QR_BUCKET = "payment-qr";
 const STAGED_QR = /^gcash\/[0-9a-f-]{36}\.(jpg|png|webp)$/;
 
 /**

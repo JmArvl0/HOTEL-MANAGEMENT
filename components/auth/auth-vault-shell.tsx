@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Building2, Headphones, ShieldCheck, Sparkles, Sun, UsersRound } from "lucide-react";
+import { ArrowLeft, Building2, Headphones, ShieldCheck, Sun, UsersRound } from "lucide-react";
 import { AuthMotion } from "./auth-motion";
 import { HavenLogo } from "@/components/ui/haven-logo";
 import "./auth-vault.css";
@@ -13,7 +13,7 @@ export function AuthVaultShell({
   bookingContext,
   children,
 }: {
-  mode: "login" | "register";
+  mode: "login" | "register" | "forgot-password";
   callbackUrl: string;
   booking?: boolean;
   bookingContext?: React.ReactNode;
@@ -27,7 +27,7 @@ export function AuthVaultShell({
     <div className={`haven-vault haven-vault--${mode}${bookingContext?" haven-vault--booking":""}`}>
       <aside className="haven-vault__visual" aria-label="Welcome to Haven">
         {bookingContext || <>
-        <Image src="/hotel-hero.png" alt="A peaceful Haven hotel terrace overlooking the water" fill priority sizes="(max-width: 900px) 100vw, 56vw" />
+        <Image src="/hotel-hero.png" alt="A peaceful Haven hotel terrace overlooking the water" fill preload sizes="(max-width: 900px) 0px, 50vw" />
         <span className="haven-vault__visual-wash" aria-hidden="true" />
         <Link href="/" className="brand brand-light haven-vault__brand" aria-label="Haven home">
           <span className="brand-mark" aria-hidden="true"><HavenLogo size={34} /></span>
@@ -49,7 +49,7 @@ export function AuthVaultShell({
 
       <section className="haven-vault__panel">
         <header className="haven-vault__header">
-          <Link href="/" className="haven-vault__back"><ArrowLeft size={15} aria-hidden="true" /> Back to Haven</Link>
+          <Link href="/" className="haven-vault__back"><span className="haven-vault__mobile-logo"><HavenLogo size={30} /></span><ArrowLeft size={15} aria-hidden="true" /> Back to Haven</Link>
           <Link className="haven-vault__help" href="/#contact">
             <Headphones size={18} aria-hidden="true" />
             <span>Need help?<strong>Contact Front Desk</strong></span>
@@ -57,7 +57,8 @@ export function AuthVaultShell({
         </header>
         <main className="haven-vault__stage">
           <div className="haven-vault__card">
-          <nav className="haven-vault__tabs" aria-label="Account access">
+          {bookingContext && <div className="haven-vault__mobile-stay">{bookingContext}</div>}
+          {mode === "forgot-password" ? <Link href={loginHref} scroll={false} className="haven-vault__recovery-back"><ArrowLeft size={15} aria-hidden="true" /> Back to sign in</Link> : <nav className="haven-vault__tabs" aria-label="Account access">
             <Link
               href={loginHref}
               aria-current={mode === "login" ? "page" : undefined}
@@ -72,10 +73,10 @@ export function AuthVaultShell({
             >
               Create account
             </Link>
-          </nav>
+          </nav>}
 
           {children}
-            <p className="haven-vault__foot"><Link href="/privacy">Privacy policy</Link> · <Link href="/terms">Booking terms</Link></p><p className="haven-vault__security"><ShieldCheck size={15} aria-hidden="true" /> Your account information is protected.</p>
+            <footer className="haven-vault__footer"><Link href="/booking-policy">Booking policy</Link><p className="haven-vault__security"><ShieldCheck size={15} aria-hidden="true" /> Your account information is protected.</p></footer>
           </div>
         </main>
       </section>

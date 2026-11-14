@@ -1,4 +1,11 @@
 "use client";
+import "@/app/customer-portal.css";
+import "./my-stay.css";
+import "@/app/sidebar-navigation.css";
+import "./notification-history.css";
+import "@/components/auth/session-expiry.css";
+import "@/components/ui/haven-account-modal.css";
+import "@/components/ui/profile-popover.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -21,10 +28,10 @@ const getGuestNavLabels = () => ({
   // Add more context-aware labels here if needed
 });
 
-const NAV = [{ href: "/account", label: "Dashboard", icon: Home, exact: true }, { href: "/account/find-room", label: "Find a Room", icon: Compass }, { href: "/my-reservations", label: "My Reservations", icon: CalendarDays }, { href: "/account/transportation", label: "Transportation", icon: CarTaxiFront }, { href: "/account/payments", label: "Payments & Folio", icon: ReceiptText }, { href: "/account/requests", label: getGuestNavLabels().requests, icon: BookOpenText }, { href: "/account/loyalty", label: "Rewards", icon: Award }];
+const NAV = [{ href: "/account", label: "My Stay", icon: Home, exact: true }, { href: "/account/find-room", label: "Find a Room", icon: Compass }, { href: "/my-reservations", label: "My Reservations", icon: CalendarDays }, { href: "/account/transportation", label: "Transportation", icon: CarTaxiFront }, { href: "/account/payments", label: "Payments & Folio", icon: ReceiptText }, { href: "/account/requests", label: getGuestNavLabels().requests, icon: BookOpenText }, { href: "/account/loyalty", label: "Rewards", icon: Award }];
 const HELP = { href: "/account/help", label: "Help & Support", icon: CircleHelp };
 // Pages reachable from the account menu or header still need a header title.
-const TITLES = [...NAV, { href: "/account/notifications", label: "Notifications" }, { href: "/account/profile", label: "My Profile" }, { href: "/account/loyalty", label: "HAVEN Rewards" }, HELP, { href: "/account/settings", label: "Account Security" }, { href: "/booking/details", label: "Guest details" }, { href: "/booking/review", label: "Review" }, { href: "/booking/payment", label: "Reservation deposit" }, { href: "/booking/confirmation", label: "Confirmation" }];
+const TITLES = [...NAV, { href: "/account/notifications", label: "Notifications" }, { href: "/account/profile", label: "My Profile" }, { href: "/account/loyalty", label: "HAVEN Rewards" }, { href: "/account/stay-guide", label: "Stay guide" }, HELP, { href: "/account/settings", label: "Account Security" }, { href: "/booking/details", label: "Guest details" }, { href: "/booking/review", label: "Review" }, { href: "/booking/payment", label: "Reservation deposit" }, { href: "/booking/confirmation", label: "Confirmation" }];
 export type CustomerNotification = HavenNotification;
 export function CustomerShell({ user, notifications, initialUnreadCount, sessionExpiresAt, children }: { user: { name?: string | null; email?: string | null }; notifications?: CustomerNotification[]; initialUnreadCount?: number; sessionExpiresAt?: string | null; children: React.ReactNode }) {
   const pathname = usePathname(); const router = useRouter(); const [collapsed, setCollapsed] = useState(false); const [mobile, setMobile] = useState(false); const [accountOpen, setAccountOpen] = useState(false); const [profileModalOpen, setProfileModalOpen] = useState(false); const [accountSecurityOpen, setAccountSecurityOpen] = useState(false); const [bellPinned, setBellPinned] = useState(false); const [cmdOpen, setCmdOpen] = useState(false); const account = useRef<HTMLDivElement>(null); const bell = useRef<HTMLDivElement>(null); const bellOpen = bellPinned; const [historyOpen, setHistoryOpen] = useState(false); const [historyLoading, setHistoryLoading] = useState(false); const [historyLoaded, setHistoryLoaded] = useState(false); const [historyExhausted, setHistoryExhausted] = useState(false); const [historyError, setHistoryError] = useState(false); const [historyItems, setHistoryItems] = useState(notifications ?? []); const unreadCountState = useState(initialUnreadCount ?? historyItems.filter((item) => !item.readAt).length); const unreadCount = unreadCountState[0]; const setUnreadCount = unreadCountState[1]; const bellBtn = useRef<HTMLButtonElement>(null); const accountBtn = useRef<HTMLButtonElement>(null);

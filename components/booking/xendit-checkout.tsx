@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, CreditCard, FlaskConical, LockKeyhole, Wallet } from "lucide-react";
 import { HavenErrorAlert } from "@/components/ui/haven-data-controls";
@@ -116,6 +117,6 @@ export function XenditCheckout({ holdToken, amount, retry = false }: { holdToken
       </button>
       <p className="xendit-secure-note"><LockKeyhole size={13} aria-hidden="true" />Secure checkout by Xendit</p>
     {notice && <p className="xendit-checkout-notice" role="status">{notice}</p>}
-    {error && <HavenErrorAlert title="Sandbox checkout unavailable" body={error} variant="customer" />}
+    {error && <><HavenErrorAlert title="Sandbox checkout unavailable" body={error} variant="customer" /><p className="xendit-checkout-notice">Your reservation is not confirmed. Retry using the payment button above to check your existing attempt. The room is held only until its payment deadline; after expiry, check availability again. <Link href="/account/help">Contact Front Desk</Link> or <Link href="/account">return to My Stay</Link>.</p></>}
   </section>;
 }

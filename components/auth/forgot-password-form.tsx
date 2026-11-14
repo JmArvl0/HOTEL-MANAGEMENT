@@ -10,7 +10,7 @@ type Step = "email" | "code" | "sent";
  * code. A verified code triggers the one-time reset link by email; the link
  * itself still requires the identity selfie before a password is accepted.
  */
-export function ForgotPasswordForm() {
+export function ForgotPasswordForm({ loginHref }: { loginHref: string }) {
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [masked, setMasked] = useState("");
@@ -60,38 +60,37 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <main className="auth-page">
-      <section className="auth-card">
-        <p className="eyebrow">Password reset</p>
-        <h1>{step === "code" ? "Enter your verification code" : "Reset your password"}</h1>
+    <>
+        <div className="haven-vault__head">
+          <h1>{step === "code" ? "Enter your verification code" : step === "sent" ? "Check your email" : "Forgot password?"}</h1>
+        </div>
         {step === "email" && (
           <>
-            <p>Enter your account email. If it matches our records, a verification code follows.</p>
+            <p className="haven-vault__recovery-copy">Enter your account email. If it matches our records, a verification code follows.</p>
             <form onSubmit={requestCode}>
-              <label>Account email<input name="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" /></label>
-              {error && <p className="form-error">{error}</p>}
-              <button className="btn btn-accent" disabled={busy}>{busy ? "Sending code…" : "Send verification code"}</button>
+              <label className="haven-vault__field"><span><Mail size={12} aria-hidden="true" /> Account email</span><input name="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" placeholder="you@haven.com" /></label>
+              {error && <p className="haven-vault__error" role="alert">{error}</p>}
+              <button className="haven-vault__submit" disabled={busy} aria-busy={busy}>{busy ? "Sending code…" : "Send verification code"} <ArrowRight size={15} aria-hidden="true" /></button>
             </form>
           </>
         )}
         {step === "code" && (
           <>
-            <p>A 6-digit code was sent to {masked || "your email"}. It expires in minutes and can be used once.</p>
+            <p className="haven-vault__recovery-copy">A 6-digit code was sent to {masked || "your email"}. It expires in minutes and can be used once.</p>
             <form onSubmit={verifyCode}>
-              <label>Verification code<input name="code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} required /></label>
-              {error && <p className="form-error">{error}</p>}
-              <button className="btn btn-accent" disabled={busy || code.length !== 6}>{busy ? "Verifying…" : "Verify code"} <ArrowRight size={15} aria-hidden="true" /></button>
+              <label className="haven-vault__field">Verification code<input className="haven-vault__otp" name="code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} required /></label>
+              {error && <p className="haven-vault__error" role="alert">{error}</p>}
+              <button className="haven-vault__submit" disabled={busy || code.length !== 6} aria-busy={busy}>{busy ? "Verifying…" : "Verify code"} <ArrowRight size={15} aria-hidden="true" /></button>
             </form>
-            <p><Mail size={13} aria-hidden="true" /> Didn&apos;t get a code? <button type="button" className="table-action" onClick={() => setStep("email")} disabled={busy}>Try a different email</button></p>
+            <p className="haven-vault__recovery-copy">Didn&apos;t get a code? <button type="button" className="haven-vault__link" onClick={() => { setStep("email"); setCode(""); setError(""); }} disabled={busy}>Try a different email</button></p>
           </>
         )}
         {step === "sent" && (
           <>
-            <p><KeyRound size={15} aria-hidden="true" /> If {masked || "that email"} holds a HAVEN account, a one-time reset link is on its way. The link expires after one hour, and a live identity selfie is required before a new password is accepted.</p>
+            <p className="haven-vault__recovery-copy" role="status"><KeyRound size={15} aria-hidden="true" /> If {masked || "that email"} holds a HAVEN account, a one-time reset link is on its way. The link expires after one hour, and a live identity selfie is required before a new password is accepted.</p>
+            <Link href={loginHref} scroll={false} className="haven-vault__submit">Back to sign in <ArrowRight size={15} aria-hidden="true" /></Link>
           </>
         )}
-        <Link href="/login">Back to sign in</Link>
-      </section>
-    </main>
+    </>
   );
 }

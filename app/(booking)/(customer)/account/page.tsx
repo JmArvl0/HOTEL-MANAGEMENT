@@ -1,41 +1,76 @@
-import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Bell, BookOpenText, CalendarDays, Compass, QrCode, ReceiptText } from "lucide-react";
+import { ArrowRight, BookOpenText, CalendarDays, CarTaxiFront, MapPin, ReceiptText } from "lucide-react";
 import { requireCustomerSession } from "@/lib/customer-auth";
-import { calculateFinancialState, calculateNights, formatPeso, hotelDateWithin, hotelToday } from "@/lib/booking";
-import { formatStayRange, getCustomerOverview } from "@/lib/customer";
+import { getActiveGuestHolds, getRoomCatalog, policyFromSnapshot } from "@/lib/booking";
+import { formatStayRange, friendlyStatus, getCustomerOverview } from "@/lib/customer";
+import { formatHotelDateTime } from "@/lib/format";
+import { getOperationalPolicy } from "@/lib/hotel-policy";
 import { roomPrimary } from "@/lib/room-images";
-import { StatusBadge } from "@/components/ui";
+import { requestLabel } from "@/lib/request-options";
+import { ActiveBookingHolds } from "@/components/customer/active-booking-holds";
+import { MyStayCard, type MyStayCardData } from "@/components/customer/my-stay-card";
+import { FrontDeskSupport } from "@/components/customer/front-desk-support";
 
-export default async function CustomerOverviewPage(){
-  const session=await requireCustomerSession();const data=await getCustomerOverview(session.user.id);const stay=data.primary;const financial=data.financial;
-  const money=stay?calculateFinancialState(financial?.invoice?.amount??stay.total,financial?.invoice?.paid??stay.deposit??0):null;
-  const stayPhoto=stay?roomPrimary(undefined,stay.room_type):undefined;
-  const paymentStatus=financial?.invoice?.status??stay?.payment_status;
-  const activeRequests=data.requests.filter((request)=>request.status!=="completed"&&request.status!=="closed");
-  // "Needs your attention" — real actionable states only, derived from data already in the overview.
-  const attention:{id:string;label:string;detail:string;href:string}[]=[];
-  if(stay&&money&&money.balance>0&&(stay.status==="confirmed"||stay.status==="checked_in")){
-    if(paymentStatus==="pending_verification")attention.push({id:"verify",label:"Deposit awaiting verification",detail:"We're reviewing your payment proof — no action needed yet.",href:"/account/payments"});
-    else if(paymentStatus!=="paid")attention.push({id:"balance",label:"Remaining balance on your stay",detail:`${formatPeso(money.balance)} left to settle.`,href:"/account/payments"});
-  }
-  if(activeRequests.length)attention.push({id:"requests",label:`${activeRequests.length} guest request${activeRequests.length!==1?"s":""} in progress`,detail:"Track responses from Front Desk.",href:"/account/requests"});
-  if(stay&&stay.status==="confirmed"&&stay.check_in>hotelToday()&&stay.check_in<hotelDateWithin(7))attention.push({id:"arrival",label:"Your check-in is approaching",detail:"Review your arrival details and check-in QR.",href:`/my-reservations/${stay.id}`});
-  return <><section className="customer-page-title"><p className="eyebrow">Your Haven</p><h1>Welcome back, {(session.user.name??"Guest").split(" ")[0]}.</h1><p>Everything you need for your next stay, gathered in one calm place.</p></section>
-  {stay?<section className="customer-stay-hero">
-    {stayPhoto&&<div className="customer-stay-photo"><Image src={stayPhoto} alt={`${stay.room_type} at Haven`} fill sizes="(max-width: 900px) 100vw, 460px" /></div>}
-    <div className="customer-stay-copy">
-      <div className="customer-stay-badges"><StatusBadge status={stay.status} size="sm" /><span className="customer-stay-kind">{stay.status==="pending"?"Awaiting deposit verification":data.groups.current.length?"Current stay":"Upcoming stay"}</span></div>
-      <h2 className="room-title">{stay.room_type}</h2>
-      <strong>{formatStayRange(stay.check_in,stay.check_out)}</strong>
-      <small>{calculateNights(stay.check_in,stay.check_out)} nights · {stay.guests} guest{stay.guests!==1?"s":""} · {stay.confirmation_number??stay.id}</small>
-      <div className="customer-stay-actions"><Link className="btn" href={`/my-reservations/${stay.id}`}>Manage stay <ArrowRight size={15}/></Link>{(stay.status==="confirmed"||stay.status==="checked_in")&&<Link className="customer-stay-qr" href={`/my-reservations/${stay.id}`}><QrCode size={15}/>Check-in QR</Link>}</div>
-    </div>
-    {money&&<div className="customer-stay-folio"><span>Remaining balance</span><strong>{formatPeso(money.balance)}</strong><small>of {formatPeso(money.total)} stay total</small><Link href="/account/payments">Payment details <ArrowRight size={14}/></Link></div>}
-  </section>:<section className="customer-feature-card empty-feature"><div><p>No upcoming stay</p><h2>Let&apos;s plan something memorable.</h2></div><Link className="btn btn-cream" href="/account/find-room">Find a room</Link></section>}
-  {attention.length>0&&<section className="customer-attention" aria-label="Needs your attention"><h2>Needs your attention</h2><div>{attention.map((item)=><Link href={item.href} key={item.id}><b>{item.label}</b><span>{item.detail}</span><ArrowRight size={15}/></Link>)}</div></section>}
-  <section className="customer-overview-grid"><article className="customer-card"><div className="customer-card-heading"><ReceiptText/><div><p>Remaining balance</p><h2>{money?formatPeso(money.balance):"—"}</h2></div></div>{stay&&money?<><dl><div><dt>Stay total</dt><dd>{formatPeso(money.total)}</dd></div><div><dt>Required deposit</dt><dd>{formatPeso(stay.deposit_required??0)}</dd></div><div><dt>Paid</dt><dd>{formatPeso(money.paid)}</dd></div><div><dt>Payment status</dt><dd><StatusBadge status={paymentStatus} size="sm" /></dd></div></dl><Link href="/account/payments">View payment details <ArrowRight size={14}/></Link></>:<p>No reservation balance to display.</p>}</article>
-  <article className="customer-card"><div className="customer-card-heading"><BookOpenText/><div><p>Guest requests</p><h2>{data.requests.length} recent</h2></div></div>{data.requests.length?<ul>{data.requests.map((request)=><li key={request.id}><span>{request.request}</span><StatusBadge status={request.status} size="sm" /></li>)}</ul>:<p>No active or recent requests.</p>}<Link className="btn btn-soft" href="/account/requests">View requests <ArrowRight size={14}/></Link></article>
-  <article className="customer-card customer-notification-preview"><div className="customer-card-heading"><Bell/><div><p>Notifications</p><h2>Recent updates</h2></div></div>{data.notifications.length?<ul>{data.notifications.slice(0,3).map((item)=><li key={item.id}><Link href={item.href}>{item.title}<small>{item.detail}</small></Link></li>)}</ul>:<p>No updates yet.</p>}<Link href="/account/notifications">View notifications <ArrowRight size={14}/></Link></article></section>
-  <section className="customer-quick-actions"><h2>Quick actions</h2><div><Link href="/account/find-room"><Compass/>Find a room</Link><Link href="/my-reservations"><CalendarDays/>My reservations</Link><Link href="/account/requests"><BookOpenText/>Guest requests</Link><Link href="/account/payments"><ReceiptText/>Payments</Link></div></section></>;
+export default async function CustomerOverviewPage() {
+  const session = await requireCustomerSession();
+  const [data, holds, catalog, policy] = await Promise.all([
+    getCustomerOverview(session.user.id), getActiveGuestHolds(session.user.id),
+    getRoomCatalog().catch(() => []), getOperationalPolicy(),
+  ]);
+  const photo = (roomType: string) => roomPrimary(catalog.find((room) => room.name === roomType)?.photos, roomType);
+  const stay = data.primary;
+  const total = Number(stay?.invoice?.amount ?? stay?.total ?? 0);
+  const verifiedPaid = Number(stay?.invoice?.paid ?? (stay?.status === "confirmed" || stay?.status === "checked_in" ? stay.deposit : 0) ?? 0);
+  const credit = Number(stay?.invoice?.credit_balance ?? 0);
+  const financial = stay ? { total, paid: verifiedPaid, balance: Number(stay.invoice?.balance ?? Math.max(0, total - verifiedPaid - credit)) } : null;
+  const verification = stay?.payments.some((payment) => payment.purpose === "reservation_deposit" && payment.status === "pending_verification" && ["manual_gcash", "manual_bank_transfer"].includes(payment.method));
+  const stage = stay?.status === "confirmed" || stay?.status === "checked_in" ? "confirmed" : verification ? "verification" : "payment";
+  const detailHref = stay ? `/my-reservations/${stay.id}` : "/my-reservations";
+  const primary: MyStayCardData | null = stay && financial ? {
+    roomType: stay.room_type, roomNumber: stay.room_number, credit, photo: photo(stay.room_type), dates: formatStayRange(stay.check_in, stay.check_out),
+    guests: stay.guests, reference: stay.confirmation_number ?? stay.id,
+    status: stage === "verification" ? "Verifying payment" : stage === "payment" ? "Awaiting payment" : friendlyStatus(stay.status), stage,
+    total: financial.total, paid: financial.paid, balance: financial.balance, deposit: Number(stay.deposit_required ?? 0),
+    submitted: stay.payments.filter((payment) => payment.status === "pending_verification" && ["manual_gcash", "manual_bank_transfer"].includes(payment.method)).reduce((sum, payment) => sum + Number(payment.amount), 0),
+    due: financial.balance === 0 ? "Your stay balance is settled." : stay.payment_due_at && stage === "payment" ? `Pay by ${formatHotelDateTime(stay.payment_due_at, policy.hotelTimezone)} (hotel time).` : `Remaining balance due ${policyFromSnapshot(stay.deposit_policy_snapshot).remainingBalanceDue.toLowerCase()}.`,
+    nextTitle: stage === "verification" ? "Your deposit is being reviewed" : stage === "payment" ? "Complete your reservation payment" : stay.status === "checked_in" ? "Make yourself at home" : "Get ready for your arrival",
+    nextDetail: stage === "verification" ? "No need to pay again. Your stay is confirmed after the hotel verifies your deposit." : stage === "payment" ? "Your reservation is not confirmed yet. Open your booking to check or retry payment." : stay.status === "checked_in" ? "Your requests, transportation and hotel information are a click away." : "Review your arrival details, check-in QR and booking-time policies.",
+    action: stage === "payment" ? "Continue payment" : stage === "verification" ? "View booking status" : "Manage stay",
+    href: stage === "payment" ? `/booking/confirmation/${stay.id}` : detailHref,
+  } : null;
+  const activeHolds = holds.map((hold) => {
+    const expiryLabel = formatHotelDateTime(hold.expires_at, policy.hotelTimezone);
+    const preferences = [...(Array.isArray(hold.request_options) ? hold.request_options.map((value: string) => requestLabel(value)) : []), ...(hold.special_requests ? [String(hold.special_requests)] : []), ...(hold.transportation_preferences ? ["Transportation requested"] : [])];
+    return {
+      token: hold.token, roomType: hold.room_type, roomNumber: hold.selected_room_number,
+      dates: formatStayRange(hold.check_in, hold.check_out), expiresAt: hold.expires_at, expiryLabel,
+      stay: {
+        roomType: hold.room_type, roomNumber: hold.selected_room_number, photo: photo(hold.room_type),
+        dates: formatStayRange(hold.check_in, hold.check_out), guests: hold.guest_count,
+        status: "Room held", stage: "held" as const, total: Number(hold.total), paid: 0,
+        balance: Number(hold.total), deposit: Number(hold.deposit_required), preferences,
+        due: `Deposit due before the hold ends: ${expiryLabel} (hotel time).`,
+        nextTitle: "Finish booking your stay", nextDetail: `Your room is held until ${expiryLabel} (hotel time). It is not confirmed. If the hold expires, check availability again.`,
+        action: "Resume booking", href: `/booking/review/${hold.token}`,
+      },
+    };
+  });
+  return <div className="my-stay-overview">
+    <header className="my-stay-greeting"><div><h1>My Stay</h1><p>Welcome back, {(session.user.name ?? "Guest").split(" ")[0]}.</p></div><Link href="/my-reservations">All reservations <ArrowRight size={16} aria-hidden="true" /></Link></header>
+    {primary && <MyStayCard stay={primary} />}
+    {activeHolds.length > 0 && <ActiveBookingHolds holds={activeHolds} featured={!primary} />}
+    {!primary && !activeHolds.length && <section className="my-stay-empty"><div><h2>Your next stay starts here.</h2><p>Choose your dates and find a room. Your booking and next steps will appear here.</p></div><Link className="btn btn-accent" href="/account/find-room">Find a room <ArrowRight size={16} aria-hidden="true" /></Link></section>}
+    <nav className="my-stay-shortcuts" aria-label="Stay shortcuts">
+      <h2>Stay shortcuts</h2><div>
+        <Link href={detailHref}><CalendarDays size={19} aria-hidden="true" />Reservation details<ArrowRight size={15} aria-hidden="true" /></Link>
+        <Link href="/account/payments"><ReceiptText size={19} aria-hidden="true" />Payments & receipts<ArrowRight size={15} aria-hidden="true" /></Link>
+        <Link href="/account/requests"><BookOpenText size={19} aria-hidden="true" />Guest requests<ArrowRight size={15} aria-hidden="true" /></Link>
+        <Link href="/account/transportation"><CarTaxiFront size={19} aria-hidden="true" />Transportation<ArrowRight size={15} aria-hidden="true" /></Link>
+        <Link href="/account/stay-guide"><MapPin size={19} aria-hidden="true" />Stay guide & directions<ArrowRight size={15} aria-hidden="true" /></Link>
+      </div>
+    </nav>
+    <div className="my-stay-lower"><section className="my-stay-updates"><div className="my-stay-section-heading"><h2>Recent updates</h2><Link href="/account/notifications">View all</Link></div>
+      {data.notifications.length ? <ul>{data.notifications.slice(0, 3).map((item) => <li key={item.id}><Link href={item.href}><strong>{item.title}</strong><span>{item.detail}</span></Link></li>)}</ul> : <p>Booking updates, payment verification and hotel replies will appear here.</p>}
+    </section><FrontDeskSupport /></div>
+  </div>;
 }

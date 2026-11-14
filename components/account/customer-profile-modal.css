@@ -308,14 +308,14 @@
 }
 
 .cpm-btn-primary {
-  background: #2563eb;
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+  background: var(--cp-text, #172639);
+  color: var(--cp-panel, #fffefa);
+  box-shadow: none;
 }
 
 .cpm-btn-primary:hover:not(:disabled) {
-  background: #1d4ed8;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.45);
+  background: var(--cp-muted, #344259);
+  box-shadow: none;
 }
 
 .cpm-btn-secondary {

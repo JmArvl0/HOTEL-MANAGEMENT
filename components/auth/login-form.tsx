@@ -4,6 +4,7 @@ import { getSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
+import { authDestination } from "@/lib/auth-destination";
 
 export default function LoginForm({
   callbackUrl = "/manager_dashboard",
@@ -54,7 +55,7 @@ export default function LoginForm({
         router.refresh();
         return;
       }
-      router.push(result?.url ?? callbackUrl);
+      router.push(authDestination(callbackUrl));
       router.refresh();
     }
   }
@@ -62,10 +63,7 @@ export default function LoginForm({
   return (
     <>
       <div className="haven-vault__head">
-        <p className="eyebrow" style={{ color: "var(--color-ink)", margin: 0 }}>
-          Haven portal
-        </p>
-        <h1>{booking ? "Sign in to continue your reservation" : "Sign in to your Haven account"}</h1>
+        <h1>{booking ? "Continue your stay" : "Sign in to Haven"}</h1>
         <p>{booking ? "Your selected room and stay details are waiting." : "Access your dashboard, reservations, and stay details securely."}</p>
       </div>
 
@@ -86,7 +84,7 @@ export default function LoginForm({
       <form onSubmit={submit} noValidate>
         <label className="haven-vault__field" htmlFor="haven-email">
           <span>
-            <Mail size={12} aria-hidden="true" /> Work or guest email
+            <Mail size={12} aria-hidden="true" /> Email address
           </span>
           <input
             id="haven-email"
@@ -139,7 +137,7 @@ export default function LoginForm({
             </label>
           )}
           <p className="haven-vault__foot haven-vault__foot--end">
-            <Link href="/forgot-password">Forgot password?</Link>
+            <Link href={`/login?view=forgot-password&callbackUrl=${encodeURIComponent(callbackUrl)}${booking ? "&booking=1" : ""}`} scroll={false}>Forgot password?</Link>
           </p>
         </div>
 
@@ -147,11 +145,6 @@ export default function LoginForm({
           {loading ? "Signing in…" : "Sign in"} <ArrowRight size={15} aria-hidden="true" />
         </button>
       </form>
-
-      <p className="haven-vault__foot">
-        New guest? <Link href={`/register?callbackUrl=${encodeURIComponent(callbackUrl)}${booking ? "&booking=1" : ""}`}>Create an account</Link>
-      </p>
-      <div className="haven-vault__trust"><span>Secure credentials</span><span>•</span><span>Role-based access</span></div>
     </>
   );
 }

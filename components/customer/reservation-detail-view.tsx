@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { AmenitySnapshot } from "@/components/booking/amenity-snapshot";
+import { StayProgress } from "./stay-progress";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -259,7 +260,9 @@ export function ReservationDetailView({ data }: { data: ReservationDetailViewDat
             )}
           </div>
         </div>
-        {!terminal(data.status) && (
+        {!terminal(data.status) && <StayProgress stage={data.status !== "pending" ? "confirmed" : data.payments.some((payment) => payment.status === "pending_verification" && ["manual_gcash", "manual_bank_transfer"].includes(payment.method)) ? "verification" : "payment"} />}
+        <Link className="customer-inline-action" href="/account/stay-guide">Stay guide & directions</Link>
+        {!terminal(data.status) && data.status !== "pending" && (
           <ol className="crd-stepper" aria-label="Reservation progress">
             {STATUS_STEPS.map((step, index) => (
               <li key={step} data-state={index < currentStep ? "past" : index === currentStep ? "current" : "future"} aria-current={index === currentStep ? "step" : undefined}>

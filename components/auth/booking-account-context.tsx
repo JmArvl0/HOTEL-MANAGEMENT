@@ -16,14 +16,13 @@ export async function bookingAccountContext(callback:string){
  const changeRoom = `/booking/rooms/${encodeURIComponent(type)}?${new URLSearchParams({...stay.data,guests:String(stay.data.guests)})}`;
  const image = photo || '/hotel-hero.png';
  return <div className="booking-account-context">
-   <h2>Continue with Room {selected.number}</h2>
+   <Image className="booking-account-photo" src={image} alt={`${type} representative room photo`} width={700} height={440} sizes="(max-width: 900px) 100vw, 45vw" unoptimized={roomPhotoNeedsDirectUrl(image)} />
+   <h2>{type} · Room {selected.number}</h2>
    <p>{type} · {formatStayRange(stay.data.checkIn, stay.data.checkOut)} · {stay.data.guests} {stay.data.guests === 1 ? 'guest' : 'guests'}</p>
-   <details className="booking-account-stay">
-     <summary>View stay details</summary>
-     <Image src={image} alt={`${type} representative room photo`} width={560} height={280} sizes="(max-width: 900px) 100vw, 45vw" unoptimized={roomPhotoNeedsDirectUrl(image)} />
+   <div className="booking-account-stay">
      <p>Floor {selected.floor}{priced && <> · <strong>{formatPeso(priced.subtotal)}</strong> estimated total for {priced.nights} {priced.nights === 1 ? 'night' : 'nights'}</>}</p>
      <Link href={changeRoom}>Change room or dates</Link>
-   </details>
+   </div>
    <p>Your room hold begins after you submit guest details.</p>
  </div>;
 }

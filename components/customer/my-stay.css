@@ -1,0 +1,169 @@
+/* Guest account: one stay leads; 2 flexible columns + 24px gap fill the canvas. */
+.customer-shell { --cp-card-radius:12px; --cp-shadow:none; --cp-shadow-hover:none; }
+.theme-light .customer-shell {
+  --cp-bg:#f8f6f0; --cp-panel:#fffefa; --cp-panel-2:#f0ede5;
+  --cp-line:#d8d5cd; --cp-line-soft:#e5e1d8; --cp-text:#172639;
+  --cp-muted:#5c6269; --cp-green:#172639; --cp-accent:#172639;
+  --cp-gold:#8a632d; --cp-rail:#fffefa; --cp-sage:#f0ede5;
+}
+.customer-shell .customer-page-title {
+  min-height:0; padding:0; margin-bottom:24px; overflow:visible;
+  border:0; border-radius:0; background:transparent; color:var(--cp-text);
+}
+.customer-shell .customer-page-title::after { display:none; }
+.customer-shell .customer-page-title h1 { font:600 28px/1.2 var(--font-display); color:var(--cp-text); letter-spacing:-.02em; }
+.customer-shell .customer-page-title .eyebrow { display:none; }
+.customer-shell .customer-page-title>p:last-child,
+.customer-shell .customer-page-title>div>p:last-child { color:var(--cp-muted); font-size:14px; }
+.customer-shell .customer-page-title>.btn-accent { background:var(--cp-accent); border-color:var(--cp-accent); color:var(--cp-panel); }
+.customer-shell .customer-page-title>.btn-soft { border-color:var(--cp-line); color:var(--cp-text); }
+.customer-shell .customer-empty { padding:24px; text-align:left; }
+.customer-shell .customer-empty h2 { font-size:22px; }
+.customer-shell .customer-empty p { font-size:14px; }
+.customer-shell .customer-sidebar nav a.active { box-shadow:none; }
+.my-stay-overview { display:grid; gap:24px; }
+.my-stay-overview h1,.my-stay-overview h2,.my-stay-overview h3 { margin:0; color:var(--cp-text); }
+.my-stay-greeting { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.my-stay-greeting h1 { font:500 30px/1.2 var(--font-display); letter-spacing:-.02em; }
+.my-stay-greeting p { margin:6px 0 0; color:var(--cp-muted); font-size:14px; }
+.my-stay-greeting>a { display:flex; gap:8px; align-items:center; min-height:44px; font-size:13px; }
+.my-stay-card { overflow:hidden; border:1px solid var(--cp-line); border-radius:12px; background:var(--cp-panel); }
+.my-stay-room { display:grid; grid-template-columns:minmax(180px,28%) minmax(0,1fr); min-height:190px; }
+.my-stay-image { position:relative; min-height:190px; }
+.my-stay-image img { object-fit:cover; }
+.my-stay-room-copy { align-self:center; padding:22px 28px; min-width:0; }
+.my-stay-status { display:inline-flex; padding:5px 9px; margin-bottom:10px; border:1px solid var(--cp-line); border-radius:4px; font-size:12px; font-weight:600; color:var(--cp-gold); }
+.my-stay-room h2 { font:500 28px/1.2 var(--font-display); }
+.my-stay-room h2 small { display:block; font:500 14px/1.5 var(--font-sans); margin-top:5px; }
+.my-stay-room p { margin:8px 0 0; font-size:14px; overflow-wrap:anywhere; }
+.my-stay-room p:last-child { color:var(--cp-muted); font-size:13px; }
+.my-stay-progress { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; list-style:none; margin:0; padding:18px 24px; border-block:1px solid var(--cp-line-soft); }
+.my-stay-progress li { display:flex; align-items:center; gap:8px; font:500 12px/1.4 var(--font-sans); color:var(--cp-muted); }
+.my-stay-progress li>span { display:grid; place-items:center; width:24px; height:24px; flex:none; border:1px solid var(--cp-line); border-radius:50%; font-variant-numeric:tabular-nums; }
+.my-stay-progress li[data-state="current"] { color:var(--cp-text); font-weight:700; }
+.my-stay-progress li[data-state="current"]>span { background:var(--cp-accent); color:var(--cp-panel); border-color:var(--cp-accent); }
+.my-stay-progress li[data-state="complete"]>span { color:var(--cp-text); border-color:var(--cp-text); }
+.my-stay-next { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:20px 24px; background:var(--cp-panel-2); }
+.my-stay-next h3 { font:600 16px/1.4 var(--font-sans); }
+.my-stay-next p { margin:6px 0 0; max-width:65ch; font-size:13px; line-height:1.6; color:var(--cp-muted); }
+.my-stay-next-actions { display:flex; flex-direction:column; gap:4px; flex:none; }
+.my-stay-next .btn { min-height:44px; border-radius:6px; white-space:nowrap; }
+.my-stay-release { min-height:44px; padding:8px 12px; background:transparent; color:var(--cp-muted); border:0; font-size:12px; text-decoration:underline; text-underline-offset:4px; cursor:pointer; }
+.my-stay-release:disabled { opacity:.5; cursor:wait; }
+.my-stay-release:hover { color:var(--cp-text); }
+.my-stay-payment { padding:20px 24px; }
+.my-stay-payment h3 { font:600 14px/1.5 var(--font-sans); }
+.my-stay-payment dl { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin:12px 0; }
+.my-stay-payment dt { font-size:12px; color:var(--cp-muted); }
+.my-stay-payment dd { margin:5px 0 0; font-size:20px; font-weight:500; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.my-stay-payment p { margin:6px 0 0; color:var(--cp-muted); font-size:12px; line-height:1.6; }
+.my-stay-preferences { border-top:1px solid var(--cp-line-soft); padding:0 24px; font-size:13px; }
+.my-stay-preferences summary { cursor:pointer; padding-block:16px; min-height:44px; font-weight:600; }
+.my-stay-preferences p,.my-stay-preferences li { color:var(--cp-muted); line-height:1.6; }
+.my-stay-shortcuts h2,.my-stay-section-heading h2,.my-stay-support h2 { font:600 17px/1.4 var(--font-sans); }
+.my-stay-shortcuts>div { display:flex; flex-wrap:wrap; gap:0 24px; margin-top:10px; border-block:1px solid var(--cp-line); }
+.my-stay-shortcuts a { display:flex; align-items:center; gap:10px; min-height:52px; font-size:13px; }
+.my-stay-shortcuts a>svg:first-child { color:var(--cp-gold); flex:none; }
+.my-stay-shortcuts a:hover,.my-stay-greeting>a:hover,.my-stay-section-heading>a:hover { text-decoration:underline; text-underline-offset:4px; }
+.my-stay-lower { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:32px; }
+.my-stay-section-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.my-stay-section-heading>a { display:flex; align-items:center; min-height:44px; font-size:13px; }
+.my-stay-updates>p,.my-stay-support>p,.my-stay-empty p { color:var(--cp-muted); font-size:14px; line-height:1.6; margin:8px 0; }
+.my-stay-updates ul { list-style:none; padding:0; margin:0; }
+.my-stay-updates li+li { border-top:1px solid var(--cp-line-soft); }
+.my-stay-updates li a { display:grid; gap:5px; padding:12px 0; font-size:13px; }
+.my-stay-updates li span { color:var(--cp-muted); overflow-wrap:anywhere; }
+.my-stay-support { border:0; background:transparent; }
+.my-stay-support-actions { display:flex; flex-wrap:wrap; gap:4px 20px; }
+.my-stay-support-actions a { display:inline-flex; align-items:center; gap:8px; min-height:44px; font-size:13px; overflow-wrap:anywhere; }
+.my-stay-support small { display:block; color:var(--cp-muted); line-height:1.6; font-size:12px; }
+.my-stay-support>a { display:inline-flex; align-items:center; min-height:44px; text-decoration:underline; text-underline-offset:4px; font-size:13px; }
+.my-stay-empty { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:24px; border:1px solid var(--cp-line); border-radius:12px; background:var(--cp-panel); }
+.my-stay-empty h2 { font:500 24px/1.3 var(--font-display); }
+.my-stay-holds { display:grid; gap:20px; }
+.customer-shell .booking-form-grid>label:has(input[name="email"]),
+.customer-shell .booking-form-grid>.mobile-number-field { grid-column:1/-1; }
+.customer-shell .booking-stage:has(.booking-form-card) { grid-template-columns:minmax(0,1.7fr) minmax(240px,1fr); gap:24px; }
+.booking-optional>summary { min-height:48px; padding-block:12px; cursor:pointer; font-weight:600; }
+.booking-optional .booking-form-options { margin-top:0; }
+.booking-field-error { display:block; font-size:13px; color:var(--cp-danger,var(--danger)); line-height:1.5; margin-top:6px; }
+.customer-shell .arrival-field input[aria-invalid="true"] { border-color:var(--cp-danger); }
+.my-stay-guide { display:grid; gap:24px; }
+.my-stay-guide-section { border-bottom:1px solid var(--cp-line); padding-bottom:24px; }
+.my-stay-guide-section h2 { font:500 22px/1.4 var(--font-display); margin:0 0 12px; }
+.my-stay-guide-section p,.my-stay-guide-section li { font-size:14px; line-height:1.7; }
+.my-stay-guide-section dl { display:grid; gap:12px; margin:0; }
+.my-stay-guide-section dl>div { display:grid; grid-template-columns:150px minmax(0,1fr); gap:16px; }
+.my-stay-guide-section dt { color:var(--cp-muted); font-size:13px; }
+.my-stay-guide-section dd { margin:0; font-size:14px; }
+.my-stay-guide-section a { display:inline-flex; align-items:center; gap:8px; min-height:44px; text-decoration:underline; text-underline-offset:4px; }
+.my-stay-overview :focus-visible,.my-stay-guide :focus-visible { outline:2px solid var(--cp-gold); outline-offset:4px; }
+@media(max-width:1100px) {
+  .my-stay-next { align-items:flex-start; }
+  .my-stay-next-actions { flex-shrink:1; }
+  .my-stay-next .btn { white-space:normal; }
+}
+@media(max-width:900px) {
+  .customer-shell .booking-stage:has(.booking-form-card) { grid-template-columns:minmax(0,1fr); }
+  .my-stay-lower { grid-template-columns:minmax(0,1fr); gap:24px; }
+}
+@media(max-width:680px) {
+  .my-stay-greeting { align-items:flex-start; }
+  .my-stay-greeting h1 { font-size:28px; }
+  .my-stay-greeting>a { font-size:12px; }
+  .my-stay-room { grid-template-columns:minmax(0,1fr); }
+  .my-stay-image { min-height:170px; max-height:210px; }
+  .my-stay-room-copy { padding:20px; }
+  .my-stay-room h2 { font-size:25px; }
+  .my-stay-progress { grid-template-columns:repeat(2,minmax(0,1fr)); padding:16px 20px; gap:12px; }
+  .my-stay-next { flex-direction:column; padding:20px; gap:12px; }
+  .my-stay-next-actions { width:100%; }
+  .my-stay-payment { padding:20px; }
+  .my-stay-payment dl { gap:8px; }
+  .my-stay-payment dd { font-size:17px; }
+  .my-stay-payment dt { font-size:11px; }
+  .my-stay-preferences { padding-inline:20px; }
+  .my-stay-empty { flex-direction:column; align-items:stretch; padding:20px; gap:12px; }
+  .my-stay-shortcuts>div { display:grid; grid-template-columns:minmax(0,1fr); }
+  .my-stay-shortcuts a+ a { border-top:1px solid var(--cp-line-soft); }
+  .my-stay-shortcuts a>svg:last-child { margin-left:auto; }
+  .my-stay-guide-section dl>div { grid-template-columns:minmax(0,1fr); gap:4px; }
+}
+@media(max-width:360px) {
+  .my-stay-greeting { flex-wrap:wrap; gap:4px; }
+  .my-stay-payment dl { grid-template-columns:minmax(0,1fr); }
+  .my-stay-payment dl>div { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .my-stay-payment dd { margin:0; }
+}
+.my-stay-empty>.btn { flex:none; white-space:nowrap; }
+.my-stay-payment-recovery { padding:24px 0; }
+.my-stay-payment-recovery h2 { font-size:22px; }
+.my-stay-payment-recovery p { font-size:14px; line-height:1.7; max-width:65ch; }
+.my-stay-payment-recovery>a { display:inline-flex; align-items:center; min-height:44px; text-decoration:underline; }
+.room-deposit-estimate { display:block; font-size:12px; color:var(--cp-muted,var(--muted)); margin-top:6px; }
+.customer-shell .booking-form-grid input,
+.customer-shell .booking-form-grid select,
+.customer-shell .booking-form-other textarea { border-radius:6px; min-height:44px; font-size:14px; background:var(--cp-panel); border-color:var(--cp-line); color:var(--cp-text); }
+.customer-shell .booking-form-grid .arrival-note { font-size:12px; }
+.customer-shell .booking-form-card { border-radius:12px; }
+.customer-shell .booking-stage>.booking-payment-main>h1 { font-size:30px; }
+@media(max-width:1100px) {
+ .customer-shell .booking-stage:has(.booking-form-card) { grid-template-columns:minmax(0,1fr); }
+}
+@media(max-width:680px) {
+ .customer-shell .booking-form-grid input,
+ .customer-shell .booking-form-grid select,
+ .customer-shell .booking-form-other textarea { font-size:16px; }
+}
+.customer-content:has(.my-stay-overview) { padding-top:26px; }
+.my-stay-room,.my-stay-image { min-height:160px; }
+.my-stay-room-copy { padding:18px 24px; }
+.my-stay-next { padding:16px 24px; }
+.my-stay-next-actions { min-width:160px; flex-shrink:0; }
+.my-stay-next .btn { white-space:nowrap; }
+.my-stay-payment { padding:16px 24px; }
+.my-stay-payment dl { margin-block:8px; }
+@media(max-width:680px) {
+ .my-stay-next,.my-stay-payment { padding:16px 20px; }
+ .my-stay-image { min-height:160px; }
+}
