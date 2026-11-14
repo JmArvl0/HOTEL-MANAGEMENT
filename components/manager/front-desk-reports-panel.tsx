@@ -1,11 +1,10 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CalendarDays, ClipboardCheck, Download, FileText, Send, Sparkles, X } from "lucide-react";
+import { Activity, CalendarDays, ClipboardCheck, Download, FileText, Send, Sparkles, X } from "lucide-react";
 import { AI_DISCLOSURE } from "@/lib/ai/prompts";
 import { AccessibleChart } from "@/components/ui/AccessibleChart";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { TablePagination } from "@/components/ui/table-pagination";
-import { PageHeader } from "@/components/ui";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
 import { HavenSkeletonCard, HavenErrorAlert } from "@/components/ui/haven-data-controls";
 import { CHART_OCCUPANCY, CHART_FORECAST } from "@/lib/chart-tokens";
@@ -27,6 +26,7 @@ type ReportRow = {
 const label = (value: unknown) => String(value ?? "—").replaceAll("_", " ");
 const peso = (value: number) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 }).format(Number(value || 0));
 const formatDate = (value: string) => new Intl.DateTimeFormat("en-PH", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(`${value.slice(0, 10)}T00:00:00Z`));
+const formatLongDate = (value: string) => new Intl.DateTimeFormat("en-PH", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(`${value.slice(0, 10)}T00:00:00Z`));
 const formatStamp = (value: string | null) => value ? new Intl.DateTimeFormat("en-PH", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(value)) : "—";
 const required = (message: string) => (v: string | number | boolean) => (String(v ?? "").trim() ? null : message);
 
@@ -35,19 +35,22 @@ function CountList({ title, hint, entries }: { title: string; hint?: string; ent
   return <section><h3>{title}</h3>{hint && <p className="snapshot-hint">{hint}</p>}{keys.length ? <ul className="snapshot-list">{keys.map((key) => <li key={key}><span>{label(key)}</span><b>{entries[key]}</b></li>)}</ul> : <p className="snapshot-hint">Nothing recorded.</p>}</section>;
 }
 
-export function ReportSnapshotView({ snapshot }: { snapshot: DailyReportSnapshot }) {
+export function ReportSnapshotMetrics({ snapshot, className = "" }: { snapshot: DailyReportSnapshot; className?: string }) {
+  const r = snapshot.reservations;
+  return <dl className={`front-desk-report-metrics ${className}`.trim()}>
+    <div><dt>Arrivals</dt><dd>{r.arrivals}</dd><small>Check-ins completed this day</small></div>
+    <div><dt>Departures</dt><dd>{r.departures}</dd><small>Check-outs completed this day</small></div>
+    <div><dt>New reservations</dt><dd>{r.created}</dd><small>Created on the selected day</small></div>
+    <div><dt>Collections</dt><dd>{peso(snapshot.collections.total)}</dd><small>{snapshot.collections.count} settled payment{snapshot.collections.count !== 1 ? "s" : ""}</small></div>
+  </dl>;
+}
+
+export function ReportSnapshotView({ snapshot, showHeader = true, showMetrics = true, collapseBreakdown = true }: { snapshot: DailyReportSnapshot; showHeader?: boolean; showMetrics?: boolean; collapseBreakdown?: boolean }) {
   const r = snapshot.reservations;
   const byMethod = snapshot.collections.byMethod ?? {};
   const cashTotal = byMethod.cash ?? 0;
   const shifts = snapshot.cashShifts;
-  return <div className="report-snapshot">
-    <header><div><p className="eyebrow">Daily Front Desk Operations Report</p><h2>{formatDate(snapshot.reportDate)}</h2></div><small>Generated {formatStamp(snapshot.generatedAt)}</small></header>
-    <div className="metric-grid">
-      <article className="metric-card"><div><span>Arrivals</span><b>{r.arrivals}</b><small>Check-ins completed this day</small></div><i><CalendarDays size={21}/></i></article>
-      <article className="metric-card"><div><span>Departures</span><b>{r.departures}</b><small>Check-outs completed this day</small></div><i><ClipboardCheck size={21}/></i></article>
-      <article className="metric-card"><div><span>New reservations</span><b>{r.created}</b><small>{Object.entries(r.bySource).map(([source, count]) => `${count} ${label(source)}`).join(" · ") || "None recorded"}</small></div><i><CalendarDays size={21}/></i></article>
-      <article className="metric-card"><div><span>Collections</span><b>{peso(snapshot.collections.total)}</b><small>{snapshot.collections.count} settled payment{snapshot.collections.count !== 1 ? "s" : ""}</small></div><i><Send size={21}/></i></article>
-    </div>
+  const breakdown = <div className="report-snapshot-breakdown">
     <section>
       <h3>Payments &amp; cash collection</h3>
       <p className="snapshot-hint">Settled payments this day by method. Cash counts toward the shift&apos;s expected cash on hand.</p>
@@ -72,30 +75,43 @@ export function ReportSnapshotView({ snapshot }: { snapshot: DailyReportSnapshot
     <CountList title="Exception approvals raised" entries={snapshot.approvals} hint="Manager approval requests filed this day, by status." />
     <CountList title="Rooms at generation" entries={snapshot.rooms} hint="Rooms carry no per-day history — this is the live snapshot at generation time." />
   </div>;
+  return <div className="report-snapshot">
+    {showHeader && <header><div><p className="eyebrow">Daily Front Desk Operations Report</p><h2>{formatDate(snapshot.reportDate)}</h2></div><small>Generated {formatStamp(snapshot.generatedAt)}</small></header>}
+    {showMetrics && <ReportSnapshotMetrics snapshot={snapshot}/>}
+    {collapseBreakdown ? <details className="report-snapshot-details"><summary>View full daily breakdown</summary>{breakdown}</details> : breakdown}
+  </div>;
 }
 
 function DailyActivityTrend({ reportDate, points }: { reportDate: string; points: DailyActivityTrendPoint[] }) {
   if (!points.length) return null;
   const hasActivity = points.some((point) => point.arrivals > 0 || point.departures > 0);
-  const description = `Recorded check-ins and check-outs across the seven hotel days ending ${formatDate(reportDate)}.`;
-  if (!hasActivity) return <section className="panel report-activity-empty" aria-labelledby="front-desk-activity-title">
-    <header><div><h2 id="front-desk-activity-title">Daily arrivals &amp; departures</h2><p>{description}</p></div></header>
-    <div className="report-activity-zero-state" role="status"><CalendarDays size={20} aria-hidden="true"/><div><strong>No arrivals or departures recorded</strong><span>All seven days currently show zero activity.</span></div></div>
-    <ol aria-label="Arrivals and departures by hotel day">{points.map((point) => <li key={point.date}><span>{point.day}</span><b>{point.arrivals} arrivals · {point.departures} departures</b></li>)}</ol>
+  const description = hasActivity
+    ? `Daily guest movement across the selected hotel week ending ${formatDate(reportDate)}.`
+    : `No arrivals or departures were recorded across the seven hotel days ending ${formatDate(reportDate)}.`;
+  if (!hasActivity) return <section className="panel front-desk-activity-empty" aria-labelledby="front-desk-activity-title">
+    <header><div><h2 id="front-desk-activity-title">Arrivals &amp; departures</h2><p>{description}</p></div></header>
+    <div className="front-desk-zero-legend" aria-hidden="true"><span><i/>Arrivals</span><span><i/>Departures</span></div>
+    <ol className="front-desk-zero-days" aria-label="Arrivals and departures by hotel day">{points.map((point) => <li key={point.date} aria-label={`${point.day}: ${point.arrivals} arrivals and ${point.departures} departures`}>
+      <span>{point.day}</span><b>{point.arrivals} <small>/</small> {point.departures}</b><small>arrivals / departures</small>
+    </li>)}</ol>
   </section>;
   return <AccessibleChart
     className="front-desk-activity-chart"
     data={points.map(({ day, arrivals, departures }) => ({ day, arrivals, departures }))}
     xKey="day"
+    chartType="bar"
+    barOrientation="vertical"
     series={[
       { key: "arrivals", label: "Arrivals", color: CHART_OCCUPANCY },
       { key: "departures", label: "Departures", color: CHART_FORECAST },
     ]}
-    title="Daily arrivals & departures"
+    title="Arrivals & departures"
     description={description}
     xAxisLabel="Hotel day"
     yAxisLabel="Guest count"
-    height={250}
+    showAxisLabels={false}
+    showGrid={false}
+    height={185}
   />;
 }
 
@@ -146,7 +162,7 @@ function ExecutiveDigestCard({ reportDate }: { reportDate: string }) {
   );
 }
 
-export default function FrontDeskReportsPanel({ role, initialDate }: { role: Role; initialDate?: string }) {
+export default function FrontDeskReportsPanel({ role, initialDate, showHeader = true }: { role: Role; initialDate?: string; showHeader?: boolean }) {
   const [date, setDate] = useState(() => initialDate ?? new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date()));
   const [preview, setPreview] = useState<DailyReportSnapshot | null>(null);
   const [activityTrend, setActivityTrend] = useState<DailyActivityTrendPoint[]>([]);
@@ -186,6 +202,11 @@ export default function FrontDeskReportsPanel({ role, initialDate }: { role: Rol
     }, 0);
     return () => { current = false; window.clearTimeout(initial); };
   }, [load]);
+  useEffect(() => {
+    if (!canReview || loading) return;
+    const matching = rows.filter((row) => status === "all" || row.status === status);
+    setViewing((current) => matching.find((row) => row.id === current?.id) ?? matching[0] ?? null);
+  }, [canReview, loading, rows, status]);
 
   const generate = useCallback(async (reportDate: string) => {
     const request = ++previewRequest.current;
@@ -244,33 +265,98 @@ export default function FrontDeskReportsPanel({ role, initialDate }: { role: Rol
   }
 
   const visible = rows.filter((row) => status === "all" || row.status === status);
+  const openGuestRequests = preview ? Object.values(preview.guestRequests.openByDepartment).reduce((sum, count) => sum + Number(count || 0), 0) : 0;
+  const roomsAtGeneration = preview ? Object.values(preview.rooms).reduce((sum, count) => sum + Number(count || 0), 0) : 0;
+  const occupiedAtGeneration = Number(preview?.rooms.occupied ?? 0);
+  const cashShiftSummary = !preview?.cashShifts
+    ? "Not recorded"
+    : preview.cashShifts.closed === 0
+      ? "No shift closed"
+      : preview.cashShifts.variance === 0
+        ? `${preview.cashShifts.closed} closed · balanced`
+        : `${preview.cashShifts.closed} closed · ${peso(preview.cashShifts.variance)} variance`;
   return <div className="front-desk-reports">
-    <PageHeader variant="band" eyebrow={canGenerate ? "Hotel operations" : "Management control"} title={canGenerate ? "Daily operations report" : "Front desk reports"} subtitle={canGenerate ? "Live daily figures and a seven-day activity trend. Export prints the preview; submitting is a separate action." : "Daily front desk operations snapshots submitted for review. Acknowledge to close, or return with a note for resubmission."} actions={canGenerate && <div className="report-tools"><label>Report date<input type="date" value={date} max={today} onChange={(event) => { setDate(event.target.value); setPreview(null); setActivityTrend([]); setViewing(null); }}/></label><button className="btn btn-accent" onClick={() => void generate(date)} disabled={building}>{building ? "Building…" : "Generate preview"}</button></div>} />
+    {showHeader && <header className="front-desk-report-heading">
+      <div className="front-desk-report-heading-copy">
+        <h1>{canGenerate ? "Daily operations report" : "Front desk reports"}</h1>
+        <p>{canGenerate ? "Review live daily figures, export a copy, or submit a shift snapshot to your Manager." : "Review submitted Front Desk snapshots and their current status."}</p>
+      </div>
+      {canGenerate && <div className="front-desk-report-heading-actions">
+        <label className="front-desk-report-date">Report date<input type="date" value={date} max={today} onChange={(event) => { setDate(event.target.value); setPreview(null); setActivityTrend([]); setViewing(null); }}/></label>
+        {(preview || viewing) && <button className="btn btn-soft" type="button" onClick={() => window.print()}><Download size={16} aria-hidden="true"/>Export preview</button>}
+        <button className="btn btn-accent" type="button" onClick={() => void generate(date)} disabled={building}>{building ? "Building…" : <><Activity size={16} aria-hidden="true"/>Generate preview</>}</button>
+      </div>}
+    </header>}
     {previewError && <HavenErrorAlert title="Daily preview unavailable" body={previewError} variant="internal" />}
     {historyError && <HavenErrorAlert title="Report history unavailable" body={historyError} variant="internal" />}
     {canGenerate && building && !preview && !viewing && <HavenSkeletonCard hasHeader />}
-    {canGenerate && preview && !viewing && <DailyActivityTrend reportDate={date} points={activityTrend} />}
-    {(preview || viewing) && <article className="panel report-preview">
+    {canGenerate && preview && !viewing && <ReportSnapshotMetrics snapshot={preview}/>}
+    {canGenerate && preview && !viewing && <div className="front-desk-report-overview-grid">
+      <DailyActivityTrend reportDate={date} points={activityTrend}/>
+      <article className="panel report-preview front-desk-daily-preview" aria-labelledby="front-desk-daily-preview-title">
+        <div className="front-desk-preview-heading"><div><h2 id="front-desk-daily-preview-title">Daily report preview</h2><p>A current snapshot, ready for your Manager.</p></div><span className="report-preview-ready">Preview ready</span></div>
+        <div className="front-desk-preview-summary">
+          <span>{formatLongDate(preview.reportDate)} <small>· Generated {formatStamp(preview.generatedAt)}</small></span>
+          <strong>Shift activity</strong>
+          <dl aria-label="Daily shift activity">
+            <div><dt>Open guest requests</dt><dd>{openGuestRequests}</dd></div>
+            <div><dt>Rooms occupied</dt><dd>{occupiedAtGeneration} / {roomsAtGeneration}</dd></div>
+            <div><dt>Cash shift</dt><dd>{cashShiftSummary}</dd></div>
+          </dl>
+        </div>
+        <div className="front-desk-preview-action-row">
+          <span className="front-desk-preview-submit-status"><i aria-hidden="true"/>Not submitted</span>
+          <button className="btn btn-accent" type="button" onClick={() => void submit(date)}><Send size={16} aria-hidden="true"/>Submit to Manager</button>
+        </div>
+        <details className="report-preview-breakdown"><summary>View full report details</summary><ReportSnapshotView snapshot={preview} showHeader={false} showMetrics={false} collapseBreakdown={false}/></details>
+      </article>
+    </div>}
+    {canGenerate && viewing && <article className="panel report-preview">
       <div className="panel-heading"><div><h3>{viewing ? `Submitted snapshot · ${formatDate(viewing.report_date)}` : "Daily report preview"}</h3><p>{viewing ? `Submitted by ${viewing.submitted_by_name ?? "Front Desk"} · ${formatStamp(viewing.submitted_at)}` : "Current figures from live hotel records for the selected hotel day."}</p></div>
       <div className="report-actions">
-        <button className="btn btn-soft" onClick={() => window.print()}><Download size={16}/> Export</button>
-        {canGenerate && preview && !viewing && <button className="btn btn-accent" onClick={() => void submit(date)}><Send size={16}/> Submit to Manager</button>}
-        {viewing && <button className="btn btn-soft" onClick={() => setViewing(null)}><X size={16}/> Close</button>}
+        <button className="btn btn-soft" type="button" onClick={() => window.print()}><Download size={16} aria-hidden="true"/>Export</button>
+        <button className="btn btn-soft" type="button" onClick={() => setViewing(null)}><X size={16} aria-hidden="true"/>Close</button>
       </div></div>
       <p className="export-note">Export prints or saves this preview. It does not submit anything to the Manager.</p>
-      <ReportSnapshotView snapshot={viewing ? viewing.snapshot : preview!}/>
+      <ReportSnapshotView snapshot={viewing.snapshot}/>
     </article>}
     {canReview && <ExecutiveDigestCard reportDate={viewing ? viewing.report_date.slice(0, 10) : date} />}
-    <section className="report-history" aria-labelledby="front-desk-report-history-title">
-      <header className="report-history-heading"><div><h2 id="front-desk-report-history-title">Submission history</h2><p>Submitted daily snapshots and their Manager review status.</p></div></header>
-      {loading ? <HavenSkeletonCard hasHeader /> : !historyError && <ModuleSummaryCards cards={[
-        { label: "Submitted", value: rows.filter((row) => row.status === "submitted").length, hint: "On this page · awaiting review", icon: Send, tone: "attention", queue: "submitted" },
-        { label: "Acknowledged", value: rows.filter((row) => row.status === "acknowledged").length, hint: "On this page · reviewed and closed", icon: ClipboardCheck, tone: "done", queue: "acknowledged" },
-        { label: "Returned", value: rows.filter((row) => row.status === "returned").length, hint: "On this page · needs resubmission", icon: FileText, tone: "today", queue: "returned" },
-        { label: "On record", value: total, hint: "All stored snapshots", icon: CalendarDays },
-      ]} activeQueue={["submitted", "acknowledged", "returned"].includes(status) ? status : undefined} onSelect={(target) => setStatus(target)} ariaLabel="Report history summary"/>}
-      <div className="reservation-filters"><div>{["all", "submitted", "acknowledged", "returned"].map((value) => <button key={value} className={status === value ? "active" : ""} aria-pressed={status === value} onClick={() => setStatus(value)}>{value === "all" ? "All" : label(value)}</button>)}</div></div>
-      <div className="data-panel"><div className="table-scroll"><table aria-label="Front desk report history"><thead><tr><th>Report date</th><th>Submitted</th><th>By</th><th>Status</th><th>Review</th><th>Actions</th></tr></thead>
+    {canReview ? <section className="manager-report-review" aria-label="Front Desk report review">
+      {loading ? <HavenSkeletonCard hasHeader /> : !historyError && <>
+        <ModuleSummaryCards cards={[
+          { label: "Submitted", value: rows.filter((row) => row.status === "submitted").length, hint: "On this page · awaiting review", icon: Send, tone: "attention", queue: "submitted" },
+          { label: "Acknowledged", value: rows.filter((row) => row.status === "acknowledged").length, hint: "On this page · reviewed and closed", icon: ClipboardCheck, tone: "done", queue: "acknowledged" },
+          { label: "Returned", value: rows.filter((row) => row.status === "returned").length, hint: "On this page · needs resubmission", icon: FileText, tone: "today", queue: "returned" },
+          { label: "On record", value: total, hint: "All stored snapshots", icon: CalendarDays },
+        ]} activeQueue={["submitted", "acknowledged", "returned"].includes(status) ? status : undefined} onSelect={(target) => setStatus(target)} ariaLabel="Report review summary"/>
+        <div className="manager-report-review-grid">
+          <section className="data-panel manager-report-inbox" aria-labelledby="manager-report-inbox-title">
+            <header className="report-history-heading"><div><h2 id="manager-report-inbox-title">Report inbox</h2><p>Submitted Front Desk snapshots and their current review status.</p></div></header>
+            <div className="reservation-filters"><div>{["all", "submitted", "acknowledged", "returned"].map((value) => <button key={value} className={status === value ? "active" : ""} aria-pressed={status === value} onClick={() => setStatus(value)}>{value === "all" ? "All" : label(value)}</button>)}</div></div>
+            <div className="manager-report-queue">{visible.map((row) => <button type="button" key={row.id} className="manager-report-queue-item" aria-pressed={viewing?.id === row.id} onClick={() => setViewing(row)}>
+              <span className="manager-report-queue-top"><strong>{formatDate(row.report_date)}</strong><span className={`badge ${row.status}`}>{label(row.status)}</span></span>
+              <span className="manager-report-queue-meta">{label(row.submitted_by_name)} · {formatStamp(row.submitted_at)}</span>
+              <small>{row.snapshot.reservations.arrivals} arrivals · {row.snapshot.reservations.departures} departures · {peso(row.snapshot.collections.total)} collected</small>
+            </button>)}</div>
+            {!visible.length && <div className="empty"><FileText/><h3>No reports</h3><p>{status === "all" ? "No daily operations reports have been submitted yet." : `No ${label(status)} reports.`}</p></div>}
+            <TablePagination page={page + 1} pageCount={pageCount} start={rows.length ? page * REPORT_PAGE_SIZE + 1 : 0} end={page * REPORT_PAGE_SIZE + rows.length} total={total} onPageChange={(next) => void load(next - 1)} noun="reports" note="Submitted snapshots are immutable evidence — they are never edited after submission." />
+          </section>
+          <section className="panel manager-report-detail" aria-labelledby="manager-report-detail-title">
+            {viewing ? <>
+              <div className="panel-heading"><div><p className="report-section-label">Selected submission</p><h2 id="manager-report-detail-title">Daily snapshot</h2><p>{formatDate(viewing.report_date)} · submitted by {viewing.submitted_by_name ?? "Front Desk"} · {formatStamp(viewing.submitted_at)}</p></div><span className={`badge ${viewing.status}`}>{label(viewing.status)}</span></div>
+              {viewing.review_note && <p className="manager-report-review-note"><strong>Review note</strong><br/>{viewing.review_note}<br/><small>{label(viewing.reviewed_by_name)} · {formatStamp(viewing.reviewed_at)}</small></p>}
+              {viewing.status === "submitted" ? <div className="manager-report-review-actions"><button className="btn btn-soft" type="button" onClick={() => void review(viewing, "return")}>Return with note</button><button className="btn btn-accent" type="button" onClick={() => void review(viewing, "acknowledge")}><ClipboardCheck size={16} aria-hidden="true"/>Acknowledge report</button></div> : <p className="manager-report-closed-note">This snapshot is {label(viewing.status)}. Its submitted values remain unchanged.</p>}
+              <div className="manager-report-snapshot"><ReportSnapshotView snapshot={viewing.snapshot}/></div>
+            </> : <div className="empty"><FileText/><h3 id="manager-report-detail-title">Select a report</h3><p>Choose a Front Desk submission to review its immutable snapshot.</p></div>}
+          </section>
+        </div>
+      </>}
+    </section> : <section className="front-desk-history-panel" aria-labelledby="front-desk-report-history-title">
+      <header className="front-desk-history-heading">
+        <div><h2 id="front-desk-report-history-title">Submission history</h2><p>Your daily snapshots and their Manager review status.</p></div>
+        <div className="front-desk-history-filters" role="group" aria-label="Filter reports by status">{["all", "submitted", "acknowledged", "returned"].map((value) => <button type="button" key={value} aria-pressed={status === value} onClick={() => setStatus(value)}>{value === "all" ? "All reports" : label(value)}</button>)}</div>
+      </header>
+      {loading ? <HavenSkeletonCard hasHeader /> : !historyError && <div className="data-panel front-desk-history-table"><div className="table-scroll"><table aria-label="Front desk report history"><thead><tr><th>Report date</th><th>Submitted</th><th>By</th><th>Status</th><th>Review</th><th>Actions</th></tr></thead>
       <tbody>{visible.map((row) => <tr key={row.id}>
         <td><strong>{formatDate(row.report_date)}</strong>{row.supersedes && <><br/><small>Resubmission</small></>}</td>
         <td>{formatStamp(row.submitted_at)}</td>
@@ -280,12 +366,11 @@ export default function FrontDeskReportsPanel({ role, initialDate }: { role: Rol
         <td><div className="reservation-actions">
           <button className="table-action action-neutral" onClick={() => { setViewing(row); window.scrollTo({ top: 0, behavior: "smooth" }); }}>View snapshot</button>
           {canGenerate && row.status === "returned" && <button className="table-action" onClick={() => void submit(row.report_date, row.id)}>Resubmit</button>}
-          {canReview && row.status === "submitted" && <><button className="table-action action-primary" onClick={() => void review(row, "acknowledge")}>Acknowledge</button><button className="table-action" onClick={() => void review(row, "return")}>Return</button></>}
         </div></td>
       </tr>)}</tbody></table></div>
-      {!loading && !historyError && !visible.length && <div className="empty"><FileText/><h3>No reports</h3><p>{status === "all" ? "No daily operations reports have been submitted yet." : `No ${label(status)} reports.`}</p></div>}
-      <TablePagination page={page + 1} pageCount={pageCount} start={rows.length ? page * REPORT_PAGE_SIZE + 1 : 0} end={page * REPORT_PAGE_SIZE + rows.length} total={total} onPageChange={(next) => void load(next - 1)} noun="reports" note="Submitted snapshots are immutable evidence — they are never edited after submission." /></div>
-    </section>
+      {!loading && !historyError && !visible.length && <div className="empty front-desk-history-empty"><FileText/><h3>No reports</h3><p>{status === "all" ? "No daily operations reports have been submitted yet." : `No ${label(status)} reports.`}</p></div>}
+      <TablePagination page={page + 1} pageCount={pageCount} start={rows.length ? page * REPORT_PAGE_SIZE + 1 : 0} end={page * REPORT_PAGE_SIZE + rows.length} total={total} onPageChange={(next) => void load(next - 1)} noun="reports" note="Submitted snapshots are immutable evidence — they are never edited after submission." /></div>}
+    </section>}
     {toast && <div className="toast"><ClipboardCheck size={18}/>{toast}</div>}
     {dialogs.view}
   </div>;

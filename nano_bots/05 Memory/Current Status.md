@@ -1,5 +1,47 @@
 # Current Status
 
+## Reports role QA (2026-11-14, local)
+
+- Fixed the Playwright setup with an isolated port/build directory, auth
+  callback origin, and the missing auth-state setup command. Old role sessions
+  were expired.
+- Browser QA passed for Front Desk, Manager, Admin and Owner on desktop and
+  390px mobile. Role-specific buttons and restricted actions were checked;
+  Manager's night-audit section settled without an error. Accounting remains
+  unverified because the configured test credential was rejected. No test
+  account password was reset; no report submission or night-audit action was made.
+- Typecheck, touched-file ESLint, and `git diff --check` passed. See
+  [[2026-11-14 - Reports Role QA]].
+
+## Front Desk Reports prototype parity (2026-11-14, local)
+
+- The live Front Desk Reports page now follows the approved prototype's
+  heading/actions, joined metric strip, grouped vertical activity bars,
+  `Shift activity` summary, and compact history panel. The zero state lists the
+  seven actual daily counts without drawing fake bars. Existing RBAC and report
+  workflows remain in place. Reports now use shared Haven brand/gold tokens;
+  the export regression assertion matches the `Export preview` label.
+- Typecheck, Reports/RBAC tests (158), full Vitest (2,420), touched-file ESLint,
+  layout detector, and `git diff --check` passed. Live browser review remains
+  Front Desk only: the role-wide Playwright run could not start because the
+  local Next server/browser binary was unavailable to the runner. No
+  production build, deployment, or hosted writes.
+  See [[2026-11-14 - Reports Prototype Visual Parity]].
+
+## Reports prototype integration (2026-11-13, local)
+
+- Manager Reports now has one tabbed workspace for daily review and
+  performance, with queue and selected snapshot side by side. Accounting has
+  ledger-backed collection/refund reporting, method breakdown and read-only
+  Night Audit. Front Desk has a four-metric lead and a side-by-side activity
+  trend/compact snapshot layout, with full details available on demand; Admin
+  and Owner keep their aggregate scopes and have print exports. Existing
+  API/RBAC guards remain.
+- Typecheck and touched-file ESLint passed; localhost browser review confirmed
+  the corrected Front Desk layout. No tests, production build, deployment or
+  hosted writes. Other roles were not available for live browser review.
+  See [[2026-11-13 - Reports RBAC Prototype]].
+
 ## Financial Documents implementation (2026-11-13, local)
 
 - The Financial Documents section pairs a type/date/search register with the
@@ -17,13 +59,15 @@
   actions remain intact. Typecheck passed; browser QA pending.
 - See [[2026-11-12 - Reports Choice A Implementation]].
 
-## Front Desk report visibility follow-up (2026-11-13, local)
+## Front Desk report visibility and layout follow-up (2026-11-13, local)
 
-- The live Front Desk report now loads its selected-day snapshot and seven-day
-  arrivals/departures on entry. Daily headline figures lead the page, and the
-  submission-status cards now sit with history. The all-zero trend state shows
-  each day's counts explicitly. Typecheck, targeted lint and localhost browser
-  review passed; no tests or production build were run.
+- The live Front Desk report loads its selected-day snapshot and seven-day
+  arrivals/departures on entry. Browser review exposed that the first
+  integration still stacked the full report below the trend, so the page now
+  puts four headline figures first and pairs the trend with a compact live
+  snapshot. Full details open on demand; submission-status cards stay with
+  history; the all-zero trend state shows each day's counts. Typecheck, targeted
+  lint and localhost browser review passed; no tests or production build were run.
 - See [[2026-11-13 - Front Desk Reports Visibility Fix]].
 
 ## All account dashboards (2026-11-12, local)

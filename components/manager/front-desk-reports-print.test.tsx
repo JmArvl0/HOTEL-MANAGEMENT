@@ -44,8 +44,8 @@ describe("FrontDeskReportsPanel export", () => {
     const print = vi.spyOn(window, "print").mockImplementation(() => undefined);
     render(<FrontDeskReportsPanel role="front_desk" />);
     fireEvent.click(screen.getByRole("button", { name: "Generate preview" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Export" })).toBeTruthy());
-    fireEvent.click(screen.getByRole("button", { name: "Export" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Export preview" })).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Export preview" }));
     expect(print).toHaveBeenCalledOnce();
   });
 });

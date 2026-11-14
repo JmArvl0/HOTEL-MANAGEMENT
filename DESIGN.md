@@ -425,40 +425,48 @@ Radix/shadcn — banned in `docs/ui-motion-guidelines.md`).
 
 ## 12. Performance reports surface (staff Reports section)
 
-`PerformanceReports` (`components/manager/performance-reports.tsx`, styles in
-the report block of `app/staff-theme.css` — dark and `.theme-light`
-mirrors) is the analytics half of the Reports section; the immutable daily
-operations-report review (`FrontDeskReportsPanel`) renders below it as a
-visually distinct second workflow, never a competing page header.
+The approved Reports role prototype now maps to separate live role-specific
+surfaces. `/prototypes/reports` remains a development-only sample-data preview;
+production views use their existing session role and server-backed payloads.
 
-The report pages follow the approved Executive brief order: page heading,
-decision metrics, the main report visualization, then supporting review work.
-The shared Manager/Accounting page places Night Audit after its performance
-summary and chart. Front Desk loads the selected day's live snapshot and leads
-with arrivals, departures, new reservations, and collections, followed by a
-seven-day arrival/departure trend and the full report preview. When all seven
-days are zero, a clear zero-activity state lists the actual daily counts. The
-submission-history cards then describe the visible history page; the total card
-uses the server-provided full record count. Admin uses account metrics followed by a role-distribution bar
-view and configuration summary; an expandable paginated table retains exact
-role counts. Owner keeps its executive metrics, booked-occupancy and
-collections charts, and day-by-day table, with occupancy given the lead width.
-Account-specific data, permissions, export, review and submission workflows
-remain as before.
-
-- **Header + decision KPIs.** One `page-title` row (eyebrow, title, plain-language
-  subtitle, `window.print()` Export — the single print entry point on this
-  surface) followed by exactly three KPI cards: money (role-aware label/figure),
-  average occupancy with seven-day point change, operational readiness. Same
-  card grammar as `ModuleSummaryCards` (label / strong value / hint / icon
-  chip); numbers derive from the existing `DashboardData` payload only.
-- **Chart + evidence + inventory.** The seven-day occupancy `AreaChart`
-  carries a `role="img"` summary label and a `<details>` data-table fallback
-  with the same values; the room-status aside renders share bars from
-  `roomMix` colors with per-slice percentages. Print CSS keeps the 3-column
-  KPI row and hides the data-table disclosure.
-- **Responsive.** 3→1 KPI columns ≤760px, analysis grid 1.65fr/.75fr → 1fr
-  ≤1050px, room-status list 2→1 columns; figures use tabular numerals.
+- **Front Desk.** `FrontDeskReportsPanel` reads the selected hotel day's live
+  snapshot and seven-day arrivals/departures trend. The page uses the approved
+  prototype's editorial heading, date/export/generate actions, joined four-value
+  metric band, and a trend panel beside a compact `Shift activity` preview.
+  Nonzero trends use grouped vertical bars; all-zero trends show seven explicit
+  zero days without synthetic activity. Full snapshot detail remains available
+  on demand and in print. Submission history stays in one compact panel with
+  inline status filters. Preview export and immutable submission remain
+  separate actions.
+- **Manager.** `ManagerReportsWorkspace` is one `Operations & review` page with
+  pressed-button views for Daily report review and Performance (daily review is
+  the default). It mounts only the selected view, so performance and the
+  Front Desk report inbox no longer appear as two stacked report frontends.
+  The daily view pairs a submission queue with the selected immutable snapshot
+  and its Manager-only acknowledge/return actions. `PerformanceReports` keeps
+  the existing Manager dashboard metrics.
+- **Accounting.** `AccountingPerformanceReports` uses the existing restricted
+  accounting ledger for settled collections, refunds, net receipts, and open
+  reconciliation variance. Its seven-day chart groups paid ledger entries by
+  `verified_at` (falling back to `created_at`) in Asia/Manila; booked occupancy
+  remains clearly distinct from live room-rack status. A payment-method
+  breakdown aggregates settled ledger entries without showing guest-level
+  details. Night Audit remains read-only. The ledger endpoint is requested only
+  for Accounting and retains its existing role guard.
+- **Admin and Owner.** Admin keeps aggregate account/configuration governance
+  with exact role counts disclosed in its paginated table. Owner keeps the
+  executive operating/financial aggregates and seven-day charts/table. Both
+  have a print-based export action; neither gains transaction-level controls.
+- **Shared presentation and boundaries.** Report pages retain the Executive
+  brief order and existing server permission gates. Admin/Owner data stays on
+  their respective routes; the daily report review route and immutable
+  snapshot workflow are unchanged. Export prints the currently visible report
+  view. The Manager selector uses `role="group"` with `aria-pressed` so it
+  behaves as a button group rather than an incomplete ARIA tablist.
+- **Responsive.** The Manager controls wrap to two columns on narrow screens;
+  analysis grids collapse to one column at 1050px and use the existing light
+  and dark staff tokens. Charts keep accessible labels and exact-value table
+  disclosures; figures use tabular numerals.
 
 ## 13. Known-open items
 

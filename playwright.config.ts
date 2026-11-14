@@ -1,5 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3100';
+const playwrightPort = process.env.PLAYWRIGHT_PORT || new URL(baseURL).port || '3100';
+const playwrightBuildDir = process.env.PLAYWRIGHT_HAVEN_BUILD_DIR || '.tmp/playwright-next';
+const playwrightServerCommand = process.env.PLAYWRIGHT_DEV_SERVER_COMMAND || `npm run dev -- --port ${playwrightPort}`;
+
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
@@ -12,7 +17,7 @@ export default defineConfig({
     ['list']
   ],
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
+    baseURL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -46,10 +51,16 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
+    command: playwrightServerCommand,
+    url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
+    env: {
+      ...process.env,
+      PORT: playwrightPort,
+      HAVEN_BUILD_DIR: playwrightBuildDir,
+      NEXTAUTH_URL: baseURL,
+    },
   },
   expect: {
     toHaveScreenshot: {

@@ -17,5 +17,9 @@ export const CHART_AXIS = "#94a3b8";
 export const CHART_OCCUPANCY = "#176773";
 /** Report-surface occupancy variant (performance reports). */
 export const CHART_REPORT_OCCUPANCY = "#2a9098";
+/** Settled collections (Accounting Reports). */
+export const CHART_COLLECTED = "#1b7b81";
+/** Refund outflows (Accounting Reports). */
+export const CHART_REFUNDED = "#c46a62";
 /** Prediction/forecast series (amber). */
 export const CHART_FORECAST = "#b8860b";

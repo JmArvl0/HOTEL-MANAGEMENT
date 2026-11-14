@@ -16,7 +16,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report",
-    "test:e2e:auth-setup": "playwright test tests/auth/setup-auth.ts",
+    "test:e2e:auth-setup": "playwright test --config=playwright.auth-setup.config.ts --workers=1",
     "test:e2e:headed": "playwright test --headed",
     "migrate": "node scripts/migrate.mjs",
     "set-passwords": "node scripts/set-passwords.mjs"

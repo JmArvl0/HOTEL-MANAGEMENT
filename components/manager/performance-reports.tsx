@@ -14,7 +14,7 @@ const peso = (value: unknown) => new Intl.NumberFormat("en-PH", {
   maximumFractionDigits: 0,
 }).format(Number(value || 0));
 
-export default function PerformanceReports({ data, role }: { data: DashboardData; role: Role }) {
+export default function PerformanceReports({ data, role, showHeader = true, showExport = true }: { data: DashboardData; role: Role; showHeader?: boolean; showExport?: boolean }) {
   const totalRooms = data.roomMix.reduce((total, slice) => total + slice.value, 0);
   const outOfService = data.roomMix.find((slice) => slice.name === "Service")?.value ?? 0;
   const serviceableRooms = Math.max(totalRooms - outOfService, 0);
@@ -27,9 +27,9 @@ export default function PerformanceReports({ data, role }: { data: DashboardData
   const moneyValue = role === "manager" ? data.metrics.collectionsToday : data.metrics.revenue;
 
   return <section className="performance-reports" aria-label="Property performance">
-    <PageHeader variant="band" className="reports-title" eyebrow="Administration & analytics" title="Property performance" subtitle="Review revenue movement, occupancy, and room readiness from the hotel's current operational records." actions={<button className="btn btn-accent" type="button" onClick={() => window.print()} aria-label="Export property performance report">
+    {showHeader && <PageHeader variant="band" className="reports-title" eyebrow="Administration & analytics" title="Property performance" subtitle="Review revenue movement, occupancy, and room readiness from the hotel's current operational records." actions={showExport && <button className="btn btn-accent" type="button" onClick={() => window.print()} aria-label="Export property performance report">
         <Download size={17} aria-hidden="true"/> Export report
-      </button>} />
+      </button>} />}
 
     <ModuleSummaryCards
       cards={[

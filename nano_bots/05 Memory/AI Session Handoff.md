@@ -1,12 +1,64 @@
 # AI Session Handoff
 
+## Reports role QA (2026-11-14)
+
+Fixed the local Playwright path: reports QA now uses an isolated port/build
+directory and aligns `NEXTAUTH_URL` with the test origin. Added the missing
+auth-state setup command and role filtering; expired sessions had been saved
+on Oct 26. Front Desk, Manager, Admin and Owner Reports browser checks passed
+on desktop and 390px mobile, including their role-specific actions. Manager's
+night-audit loading state settled without an error. Accounting could not sign
+in with the configured test credential, so its browser view is unverified. No
+password reset, report submission, or night-audit action was made. Typecheck,
+touched-file ESLint and `git diff --check` passed. See
+[[2026-11-14 - Reports Role QA]].
+
+## Front Desk Reports prototype parity (2026-11-14)
+
+Compared the user's live DOM with `/prototypes/reports`. The earlier integration
+had kept the old boxed heading, icon metric cards, line chart/oversized empty
+state, and status KPI cards. The live Front Desk page now follows the prototype
+structure and visual language: editorial title with report actions, joined
+four-metric band, grouped vertical bar trend, compact `Shift activity` preview,
+and a single history panel with inline filters. Zero activity shows all seven
+days explicitly and never invents bars. The top module label is `Reports` to
+avoid repeating the page title. Existing role checks, live data, API calls,
+submission, resubmission, and print/export behavior remain. Reports use shared
+Haven brand/gold tokens, and the export regression assertion uses the current
+`Export preview` label. Typecheck and ESLint passed; targeted Reports/RBAC
+coverage passed (158 tests) and full Vitest passed (2,420 tests). The layout
+detector and `git diff --check` passed. Live browser review remains Front Desk
+only: Playwright could not start a second Next server and no Chromium binary was
+installed. No production build was run. See [[2026-11-14 - Reports Prototype Visual Parity]].
+
+## Reports prototype integration (2026-11-13)
+
+The approved prototype now informs the five live role-specific Reports views.
+Manager has one Operations & review page with Daily report review and
+Performance views, removing the stacked duplicate frontends; the review view
+pairs the report queue with a selected snapshot. Accounting has a ledger-backed
+financial summary, seven-day collection/refund chart, and method breakdown,
+with read-only Night Audit. Front Desk keeps its live daily snapshot and
+immutable submit/review flow. Four daily figures lead the page, followed by
+the activity trend beside a compact snapshot; full details remain available in
+a disclosure and print. Admin and Owner retain their scoped aggregate reports
+and gain print exports. Existing API and role guards remain in place;
+`/prototypes/reports` remains dev-only with sample data. Typecheck and
+touched-file ESLint passed; localhost browser review confirmed the updated
+Front Desk layout. No tests, production build, deployment or hosted write.
+Manager/Accounting/Admin/Owner live sessions were not available for browser
+review. See
+[[2026-11-13 - Reports RBAC Prototype]].
+
 ## Front Desk report visibility follow-up (2026-11-13)
 
 The Front Desk Reports page now loads the selected-day snapshot on entry and
-shows a seven-day arrivals/departures trend from recorded timestamps. Daily
-headline metrics lead; submission-status metrics sit with history. When all
-trend values are zero, each day's zero counts are visible. Typecheck, touched
-lint and localhost browser review passed. No tests or production build were run.
+shows a seven-day arrivals/departures trend from recorded timestamps. Browser
+review showed the first integration still stacked the old full preview below
+the trend, so the layout was corrected: daily headline metrics lead, then the
+trend and compact snapshot sit side by side. Submission-status metrics stay
+with history; all-zero trends show each day's counts. Typecheck, touched lint
+and localhost browser review passed. No tests or production build were run.
 See [[2026-11-13 - Front Desk Reports Visibility Fix]].
 
 ## Financial Documents implementation (2026-11-13)

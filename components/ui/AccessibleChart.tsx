@@ -38,6 +38,7 @@ export interface AccessibleChartProps {
   xKey: string;
   series: ChartSeries[];
   chartType?: "line" | "area" | "bar" | "pie";
+  barOrientation?: "horizontal" | "vertical";
   title: string;
   description?: string;
   xAxisLabel?: string;
@@ -46,6 +47,7 @@ export interface AccessibleChartProps {
   height?: number | string;
   showGrid?: boolean;
   showLegend?: boolean;
+  showAxisLabels?: boolean;
   showTooltip?: boolean;
   animate?: boolean;
   className?: string;
@@ -58,6 +60,7 @@ export function AccessibleChart({
   xKey,
   series,
   chartType = "line",
+  barOrientation = "horizontal",
   title,
   description,
   xAxisLabel,
@@ -66,6 +69,7 @@ export function AccessibleChart({
   height = 300,
   showGrid = true,
   showLegend = true,
+  showAxisLabels = true,
   showTooltip = true,
   animate = true,
   className = "",
@@ -234,18 +238,33 @@ export function AccessibleChart({
 
       case "bar":
         return (
-          <RechartsBarChart {...commonProps} layout="vertical">
-            {showGrid && <CartesianGrid strokeDasharray="3 3" horizontal={false} />}
-            <YAxis
-              type="category"
-              dataKey={xKey}
-              tick={{ fontSize: 11 }}
-              width={80}
-            />
-            <XAxis
-              tick={{ fontSize: 11 }}
-              label={{ value: yAxisLabel || "Value", position: "insideBottom", offset: -10, fontSize: 11 }}
-            />
+          <RechartsBarChart {...commonProps} layout={barOrientation === "vertical" ? "horizontal" : "vertical"}>
+            {showGrid && <CartesianGrid strokeDasharray="3 3" vertical={barOrientation !== "vertical"} horizontal={barOrientation === "vertical"} />}
+            {barOrientation === "vertical" ? <>
+              <XAxis
+                type="category"
+                dataKey={xKey}
+                tick={{ fontSize: 11 }}
+                label={showAxisLabels ? { value: xAxisLabel || xKey, position: "insideBottom", offset: -10, fontSize: 11 } : undefined}
+              />
+              <YAxis
+                type="number"
+                tick={{ fontSize: 11 }}
+                label={showAxisLabels ? { value: yAxisLabel || "Value", angle: -90, position: "insideLeft", offset: 10, fontSize: 11 } : undefined}
+              />
+            </> : <>
+              <YAxis
+                type="category"
+                dataKey={xKey}
+                tick={{ fontSize: 11 }}
+                width={80}
+              />
+              <XAxis
+                type="number"
+                tick={{ fontSize: 11 }}
+                label={showAxisLabels ? { value: yAxisLabel || "Value", position: "insideBottom", offset: -10, fontSize: 11 } : undefined}
+              />
+            </>}
             {showTooltip && <Tooltip formatter={(value: number) => [value.toLocaleString(), ""]} />}
             {showLegend && <Legend />}
             {series.map((s, index) => (

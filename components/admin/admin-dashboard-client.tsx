@@ -569,7 +569,7 @@ function Reports({ data }: { data: Overview }) {
   const page = useTablePagination(roles);
 
   return <>
-    <PageHeader variant="band" eyebrow="Administrative reporting" title="Account and configuration summary" subtitle="Governance reporting only — operational and financial execution remain in their departments." />
+    <PageHeader variant="band" eyebrow="Administrative reporting" title="Account and configuration summary" subtitle="Governance reporting only — operational and financial execution remain in their departments." actions={<button type="button" className="btn btn-soft" onClick={() => window.print()}>Export governance summary</button>} />
     <ModuleSummaryCards ariaLabel="Governance report summary" cards={[
       { label: "Accounts on record", value: total, hint: "Every account ever created", icon: Users, tone: "active" },
       { label: "Staff accounts", value: Number(m.staffAccounts ?? 0), hint: "Operational and governance roles", icon: ShieldCheck },
