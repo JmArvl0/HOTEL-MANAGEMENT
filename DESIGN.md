@@ -4,6 +4,15 @@ The source-of-truth reference for the shipped UI. **Do not apply
 `design-system/haven-hotel/MASTER.md`** — it is superseded (see `DESIGN-STATUS.md` F2).
 This doc and `app/ui-primitives.css` are the current system.
 
+**Billing folio detail (2026-11-14).** Front Desk and Accounting use one Billing
+workspace with the existing summary and checkout/deposit/settled queues. A
+selected folio shows identity, invoice totals, contextual actions, and a
+filterable history of the base stay, charges, payments, and corrections.
+Statement issuance and Accounting corrections sit in the detail footer. On
+phones, the queue and detail are separate views with a Back control that
+returns focus to the selected folio. The standalone Guest Folios sidebar item
+is removed; Billing remains the entry point.
+
 **Account dashboards (2026-11-12).** Manager, Front Desk, Housekeeping,
 Maintenance, Accounting, Admin, Owner, and Guest share the dashboard heading,
 four linked metrics, and responsive panels. The lead panel reflects the

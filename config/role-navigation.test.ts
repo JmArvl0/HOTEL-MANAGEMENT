@@ -38,3 +38,8 @@ describe("room rack navigation", () => {
     expect(NAV_ITEMS.find(i => i.section === "guests")?.label).toBe("Guest Management");
   });
 });
+
+it("keeps Billing visible without a separate Guest Folios sidebar item", () => {
+  expect(NAV_ITEMS.find(item => item.section === "invoices")?.label).toBe("Billing");
+  expect(NAV_ITEMS.some(item => item.section === "folios" && !item.hidden)).toBe(false);
+});

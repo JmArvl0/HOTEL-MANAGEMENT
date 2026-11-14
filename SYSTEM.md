@@ -1225,10 +1225,20 @@ are unchanged. Workspaces offered per role:
 | Role | Sections offered |
 |---|---|
 | Manager | Dashboard (risk command centre), reservations, rooms (+ **Manage rooms** roster, §6), guests, guest requests, **Transportation**, **Room Types & Photos**, **Transfer Vehicles**, housekeeping, maintenance, inventory, **Approvals & Escalations**, **Reports** (performance center + daily-report review, §7.12) |
-| Front Desk | Dashboard (arrivals/departures/in-house/rooms ready), reservations, rooms, guests, guest requests, **Transportation**, housekeeping, billing, Deposit verification (queue view — verification itself is Accounting's), **Transactions · Guest folios · Cash & shifts · Financial documents**, Approvals, **Reports** (daily operations report, §7.12) |
+| Front Desk | Dashboard (arrivals/departures/in-house/rooms ready), reservations, rooms, guests, guest requests, **Transportation**, housekeeping, **Billing with guest folio detail**, Deposit verification (queue view — verification itself is Accounting's), **Transactions · Cash & shifts · Financial documents**, Approvals, **Reports** (daily operations report, §7.12) |
 | Housekeeping | Dashboard, rooms, guest requests, housekeeping tasks, inventory, Approvals |
 | Maintenance | Dashboard, rooms, guest requests, maintenance orders, inventory, Approvals |
-| Accounting | Dashboard, reservations, billing, **Deposit verification** (the only role that can act on it), Refunds, **Transactions · Folios · Cash & shifts · Reconciliation · Documents**, Reports, Approvals |
+| Accounting | Dashboard, reservations, **Billing with guest folio detail**, **Deposit verification** (the only role that can act on it), Refunds, **Transactions · Cash & shifts · Reconciliation · Documents**, Reports, Approvals |
+
+**Billing folio detail (2026-11-14).** Front Desk and Accounting use the existing
+Billing checkout, deposit-review, and settled queues to open a folio. Its detail
+shows the authoritative invoice totals beside the booked-stay obligation,
+posted charges, financial corrections, and payment history. The booked-stay
+line is the invoice amount less the separately listed charges and corrections,
+so entries reconcile without counting those amounts twice. Existing collection,
+deposit review, reservation, and statement actions remain; Accounting alone can
+reverse charges or record adjustments. The separate Guest Folios navigation item
+is removed. No financial records or guest-facing folios are removed.
 
 **Front Office modules (2026-11-09).** Staff navigation separates Room Management
 (`room_rack`), Front Desk Bookings (`reservations`), and Guest Management (`guests`).

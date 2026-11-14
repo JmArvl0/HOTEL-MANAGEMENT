@@ -1,5 +1,19 @@
 # Current Status
 
+## Billing folio prototype integration (2026-11-14, local)
+
+- Front Desk and Accounting Billing now includes detailed folio activity and
+  role-scoped statement/adjustment actions. Existing balances, queues,
+  collection, and deposit review remain. The separate Guest Folios staff menu
+  item is gone; financial records and guest-facing folios remain intact.
+- Front Desk desktop and phone browser review passed. Accounting live login was
+  unavailable; role actions passed component tests. Typecheck, touched lint,
+  and 15 targeted tests passed. Full Vitest passed before a concurrent
+  untracked cash-report test appeared; the latest run has that one unrelated
+  failure (2,428 passed, 1 failed). Default build stopped on the known Windows
+  sharp junction permission error. No deployment or hosted write. See
+  [[2026-11-14 - Billing Folio Prototype Integration]].
+
 ## Deposit Verification prototype integration (2026-11-14, local)
 
 - The live Accounting and Front Desk section uses the approved queue/detail

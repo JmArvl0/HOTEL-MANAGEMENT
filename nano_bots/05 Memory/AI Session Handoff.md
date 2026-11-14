@@ -1,5 +1,31 @@
 # AI Session Handoff
 
+## Billing folio prototype integration (2026-11-14)
+
+The approved folio-detail prototype is now integrated into the live Front Desk
+and Accounting Billing workspace. Existing Billing summaries, queues,
+collection, and deposit review remain. Detailed charges, corrections, and
+payment history appear with invoice totals; statement and Accounting correction
+actions are available in the selected detail. Guest Folios is no longer a
+separate staff menu item. Front Desk desktop and 390px phone browser QA,
+typecheck, touched lint, and targeted tests (15) passed. Full Vitest passed
+before a concurrent untracked cash-report refund test was added; the latest
+run has that one unrelated failure (2,428 passed, 1 failed). Default build hit
+the known Windows sharp junction permission error. No hosted write or
+deployment. See [[2026-11-14 - Billing Folio Prototype Integration]].
+
+## Billing with folio detail prototype (2026-11-14)
+
+Standalone sample-data preview is in `public/prototypes/guest-folios-preview.html`.
+After review of the existing Billing workspace, the prototype was revised to
+place detailed folio activity inside Billing and remove the separate Guest
+Folios menu from the proposed layout. It keeps Billing's checkout/deposit/
+settled queues, role-aware actions, and mobile queue/detail views. Typecheck,
+syntax, CSS parsing, and jsdom interaction checks passed. Browser visual QA was blocked by the
+computer-use policy for local `file:` URLs. The live modules and navigation
+remain unchanged; review the revised preview before integration. See
+[[2026-11-14 - Guest Folios UI Prototype]].
+
 ## Deposit Verification prototype integration (2026-11-14)
 
 The approved prototype now drives the live Accounting/Front Desk Deposit

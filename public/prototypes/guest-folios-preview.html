@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Billing &amp; payments · Folio prototype · Haven</title>
+  <link rel="stylesheet" href="guest-folios-preview.css">
+  <script src="guest-folios-preview.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to Billing</a>
+  <div class="shell">
+    <aside class="sidebar" aria-label="Preview navigation">
+      <div class="brand"><img src="../haven-logo-small.png" width="36" height="36" alt=""><span>HAVEN<small>HOTEL MANAGEMENT</small></span></div>
+      <div class="property"><strong>Haven Hotel &amp; Residences</strong><span>Staff workspace</span></div>
+      <p class="nav-group">WORKSPACE</p><div class="nav-item">Dashboard</div>
+      <p class="nav-group">FRONT OFFICE</p><div class="nav-item">Bookings</div><div class="nav-item">Guest Management</div>
+      <p class="nav-group">FINANCE</p><div class="nav-item active" aria-current="page">Billing</div><div class="nav-item">Transactions</div><div class="nav-item">Deposit Verification</div><div class="nav-item">Financial Documents</div>
+      <div class="sidebar-foot"><strong>Prototype</strong><span>Sample records for layout review</span></div>
+    </aside>
+    <div class="main-frame">
+      <header class="topbar"><div class="breadcrumb"><span>Finance</span><span class="separator">/</span><strong>Billing</strong></div><div class="topbar-actions"><span class="sample-chip">SAMPLE DATA</span><button id="theme" class="icon-button" type="button" aria-label="Switch to dark theme" title="Switch theme"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.1 15.3A8.5 8.5 0 0 1 8.7 3.9 8.6 8.6 0 1 0 20.1 15.3Z"/></svg></button></div></header>
+      <main id="main" tabindex="-1">
+        <div class="page-head"><div><h1>Billing &amp; payments</h1><p>Find a stay, settle its balance, and see the folio entries behind the total.</p></div><div class="role-switch" role="group" aria-label="Preview account role"><button type="button" data-role="front_desk" aria-pressed="true">Front Desk</button><button type="button" data-role="accounting" aria-pressed="false">Accounting</button></div></div>
+        <p class="prototype-note"><strong>Revised prototype.</strong> Detailed folios live inside Billing; the separate Guest Folios menu is removed here. Names and amounts are sample data.</p>
+        <div class="workspace" id="workspace">
+          <section class="register" id="register" aria-labelledby="register-title">
+            <div class="panel-heading"><div><h2 id="register-title">Guest folios</h2><p>Find the billing record for a stay</p></div><span class="result-count" id="result-count" role="status"></span></div>
+            <div class="register-controls">
+              <label class="search-field"><span class="sr-only">Search guest or booking reference</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg><input id="search" type="search" placeholder="Search guest or booking reference" autocomplete="off"></label>
+              <div class="filters" role="group" aria-label="Billing queue"><button type="button" data-filter="all" aria-pressed="true">All <span></span></button><button type="button" data-filter="checkout" aria-pressed="false">Checkout due <span></span></button><button type="button" data-filter="review" aria-pressed="false">Deposit review <span></span></button><button type="button" data-filter="settled" aria-pressed="false">Settled <span></span></button></div>
+            </div>
+            <div class="register-list" id="folio-list" aria-label="Sample folios"></div>
+            <div class="empty" id="empty" hidden><h3>No folios match</h3><p>Try another guest, booking reference, or billing queue.</p><button id="clear" class="text-button" type="button">Clear search and filters</button></div>
+            <footer class="register-footer"><span id="range"></span><span>Figures shown in PHP</span></footer>
+          </section>
+          <section class="detail" id="detail" aria-labelledby="detail-title">
+            <div class="detail-top"><button class="back-button" id="back" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg>Back to folios</button><div class="detail-heading"><div><h2 id="detail-title" tabindex="-1"></h2><p id="detail-reference"></p></div><span id="detail-status" class="status"></span></div></div>
+            <div class="detail-scroll">
+              <section class="balance-block" aria-label="Selected folio totals"><div><span>Folio total</span><strong id="total-value"></strong><small>Room, posted charges, and corrections</small></div><div class="balance-rule"></div><div class="balance-breakdown"><div><span>Applied payments</span><strong id="paid-value"></strong></div><div><span>Balance due</span><strong id="due-value"></strong></div><div><span>Credit held</span><strong id="credit-value"></strong></div></div></section>
+              <p class="deposit-note" id="deposit-note" hidden></p>
+              <div class="activity-heading"><div><h3>Folio activity</h3><p>Room, charges, corrections, and verified payments</p></div><span id="activity-count"></span></div>
+              <div class="activity-filters" role="group" aria-label="Activity type"><button type="button" data-activity="all" aria-pressed="true">All activity</button><button type="button" data-activity="charges" aria-pressed="false">Charges</button><button type="button" data-activity="payments" aria-pressed="false">Payments</button><button type="button" data-activity="adjustments" aria-pressed="false">Corrections</button></div>
+              <div class="activity-list" id="activity-list"></div>
+              <p class="ledger-note">Corrections appear as new entries; the original financial history stays visible.</p>
+            </div>
+            <div class="detail-actions"><button class="secondary-button" id="statement" type="button">Issue statement</button><button class="secondary-button" id="adjustment" type="button" hidden>Record adjustment</button><button class="primary-button" id="primary-action" type="button"></button></div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import StaffBillingWorkspace from "./staff-billing-workspace";
-import { attachBillingDeposits, type BillingFolio } from "@/lib/staff-billing";
+import { attachBillingDeposits, attachBillingEntries, type BillingFolio } from "@/lib/staff-billing";
 
 const stay = { id: "RSV-42", confirmation_number: "HVN-42", guest_name: "Mara Cruz", room_number: "205", check_out: "2026-11-10", status: "checked_in" };
 const upcoming = { id: "RSV-43", confirmation_number: "HVN-43", guest_name: "Nico Reyes", check_in: "2026-11-11", status: "pending", deposit_required: 2940 };
@@ -89,4 +89,60 @@ it("offers a retry if the initial billing read fails", async () => {
   render(<StaffBillingWorkspace role="front_desk" refreshVersion={0} search="" onSearch={vi.fn()} onCollect={vi.fn()} onReviewDeposit={vi.fn()} onOpenReservation={vi.fn()} />);
   fireEvent.click(await screen.findByRole("button", { name: "Retry billing" }));
   await waitFor(() => expect(screen.getByText("No folios on record")).toBeTruthy());
+});
+
+it("shows posted charges and corrections beside payment activity in Billing", async () => {
+  const detailed = [{
+    ...folios[0],
+    reservation: { ...stay, total: 12400, created_at: "2026-11-08T09:00:00Z" },
+    charges: [{ id: "CHG-42", description: "Minibar", category: "incidental", amount: 1200, status: "posted", created_at: "2026-11-09T08:00:00Z" }],
+    adjustments: [{ id: "ADJ-42", transaction_type: "credit", direction: "credit", reason: "Goodwill credit", amount: 400, created_at: "2026-11-09T09:00:00Z" }],
+  }];
+  vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({ data: { today: "2026-11-10", folios: detailed } }) })));
+  render(<StaffBillingWorkspace role="front_desk" refreshVersion={0} search="" onSearch={vi.fn()} onCollect={vi.fn()} onReviewDeposit={vi.fn()} onOpenReservation={vi.fn()} />);
+  const detail = await screen.findByRole("complementary", { name: "Folio details" });
+  expect(within(detail).getByText("Minibar")).toBeTruthy();
+  expect(within(detail).getByText("Goodwill credit")).toBeTruthy();
+  expect(within(detail).getByText(/Stay payment/)).toBeTruthy();
+  expect(within(detail).getByText("+₱11,600")).toBeTruthy();
+  fireEvent.click(within(detail).getByRole("button", { name: "Charges" }));
+  expect(within(detail).queryByText("Goodwill credit")).toBeNull();
+  expect(within(detail).getByText("Minibar")).toBeTruthy();
+});
+
+it("keeps statement and Accounting corrections in Billing without giving Front Desk correction actions", async () => {
+  const charge = { id: "CHG-42", description: "Minibar", category: "incidental", amount: 1200, status: "posted" };
+  const detailed = [{ ...folios[0], charges: [charge], adjustments: [] }];
+  vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({ data: { today: "2026-11-10", folios: detailed } }) })));
+  const actions = { onCollect: vi.fn(), onReviewDeposit: vi.fn(), onOpenReservation: vi.fn(), onIssueStatement: vi.fn(), onAdjustFolio: vi.fn(), onReverseCharge: vi.fn() };
+  const view = render(<StaffBillingWorkspace role="front_desk" refreshVersion={0} search="" onSearch={vi.fn()} {...actions} />);
+  const detail = await screen.findByRole("complementary", { name: "Folio details" });
+  fireEvent.click(within(detail).getByRole("button", { name: "Issue statement" }));
+  expect(actions.onIssueStatement).toHaveBeenCalledWith(stay.id);
+  expect(within(detail).queryByRole("button", { name: "Record adjustment" })).toBeNull();
+  expect(within(detail).queryByRole("button", { name: "Reverse charge" })).toBeNull();
+  view.rerender(<StaffBillingWorkspace role="accounting" refreshVersion={0} search="" onSearch={vi.fn()} {...actions} />);
+  fireEvent.click(within(detail).getByRole("button", { name: "Record adjustment" }));
+  fireEvent.click(within(detail).getByRole("button", { name: "Reverse charge" }));
+  expect(actions.onAdjustFolio).toHaveBeenCalledWith(stay.id);
+  expect(actions.onReverseCharge).toHaveBeenCalledWith(charge);
+});
+
+it("attaches complete ledger entries by invoice, then reservation, without leaking unrelated rows", () => {
+  const linked = attachBillingEntries(folios,
+    [{ id: "PAY-A", invoice_id: "INV-42" }, { id: "PAY-B", reservation_id: stay.id }, { id: "PAY-X" }],
+    [{ id: "CHG-A", invoice_id: "INV-42" }],
+    [{ id: "ADJ-A", reservation_id: stay.id }]);
+  expect(linked[0].activity.map(row => row.id)).toEqual(["PAY-A", "PAY-B"]);
+  expect(linked[0].charges?.map(row => row.id)).toEqual(["CHG-A"]);
+  expect(linked[0].adjustments?.map(row => row.id)).toEqual(["ADJ-A"]);
+});
+
+it("marks an unsettled payment as unapplied to the folio balance", async () => {
+  const pendingPayment = { id: "PAY-PENDING", purpose: "stay_payment", status: "pending_verification", amount: 500, method: "gcash" };
+  vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({ data: { today: "2026-11-10", folios: [{ ...folios[0], activity: [pendingPayment] }] } }) })));
+  render(<StaffBillingWorkspace role="front_desk" refreshVersion={0} search="" onSearch={vi.fn()} onCollect={vi.fn()} onReviewDeposit={vi.fn()} onOpenReservation={vi.fn()} />);
+  const detail = await screen.findByRole("complementary", { name: "Folio details" });
+  expect(within(detail).getByText("Not applied to balance", { exact: false })).toBeTruthy();
+  expect(within(detail).getByText("₱500", { selector: "b" })).toBeTruthy();
 });

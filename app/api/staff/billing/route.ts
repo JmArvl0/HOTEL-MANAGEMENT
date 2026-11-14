@@ -5,15 +5,17 @@ import { hotelToday } from "@/lib/booking";
 import { demoStore } from "@/lib/demo-store";
 import { canCollectPayment } from "@/lib/permissions";
 import { readAllRows } from "@/lib/read-all-rows";
-import { attachBillingDeposits, type BillingFolio, type BillingSnapshot } from "@/lib/staff-billing";
+import { attachBillingDeposits, attachBillingEntries, type BillingFolio, type BillingSnapshot } from "@/lib/staff-billing";
 import { supabase } from "@/lib/supabase";
 import type { RecordItem } from "@/lib/types";
 
-const STAY = "id,confirmation_number,guest_name,room_number,room_type,check_in,check_out,status,deposit_required";
-const ACTIVITY = "id,purpose,method,amount,status,created_at,verified_at,submitted_at";
+const STAY = "id,confirmation_number,guest_name,room_number,room_type,check_in,check_out,status,deposit_required,total,created_at";
+const ACTIVITY = "id,invoice_id,reservation_id,purpose,method,amount,status,created_at,verified_at,submitted_at";
 const INVOICE = "id,reservation_id,guest_name,amount,paid,balance,credit_balance,status";
-const DEPOSIT = `${ACTIVITY},reservation_id,invoice_id,reference,proof_original_name,proof_size_bytes,proof_uploaded_at`;
-type JoinedInvoice = { id: string; reservation: RecordItem | null; activity: RecordItem[] };
+const DEPOSIT = `${ACTIVITY},reference,proof_original_name,proof_size_bytes,proof_uploaded_at`;
+const CHARGE = "id,invoice_id,reservation_id,description,category,amount,status,created_at";
+const ADJUSTMENT = "id,invoice_id,reservation_id,transaction_type,direction,amount,reason,created_at";
+type JoinedInvoice = { id: string; reservation: RecordItem | null };
 type JoinedDeposit = { id: string; reservation: RecordItem | null };
 
 export async function GET() {
@@ -27,20 +29,20 @@ export async function GET() {
     let folios: BillingFolio[];
     let pending: { payment: RecordItem; reservation: RecordItem | null }[];
     if (client) {
-      const [invoices, deposits] = await Promise.all([
+      const [invoices, payments, charges, adjustments, deposits] = await Promise.all([
         readAllRows(() => client.from("invoices")
-          .select(`${INVOICE},reservation:reservations(${STAY}),activity:payments(${ACTIVITY})`)
-          .order("created_at", { ascending: false })
-          .order("created_at", { referencedTable: "activity", ascending: false })
-          .order("id", { referencedTable: "activity" })
-          .limit(4, { referencedTable: "activity" }).returns<JoinedInvoice[]>()),
+          .select(`${INVOICE},reservation:reservations(${STAY})`)
+          .order("created_at", { ascending: false }).returns<JoinedInvoice[]>()),
+        readAllRows(() => client.from("payments").select(ACTIVITY).order("created_at", { ascending: false })),
+        readAllRows(() => client.from("folio_charges").select(CHARGE).order("created_at", { ascending: false })),
+        readAllRows(() => client.from("financial_adjustments").select(ADJUSTMENT).order("created_at", { ascending: false })),
         readAllRows(() => client.from("payments")
           .select(`${DEPOSIT},reservation:reservations(${STAY})`)
           .eq("status", "pending_verification").eq("purpose", "reservation_deposit")
           .order("submitted_at", { ascending: true }).returns<JoinedDeposit[]>()),
       ]);
-      folios = invoices.map(({ reservation, activity, ...invoice }) =>
-        ({ key: invoice.id, invoice, reservation, activity, deposits: [] }));
+      folios = attachBillingEntries(invoices.map(({ reservation, ...invoice }) =>
+        ({ key: invoice.id, invoice, reservation, activity: [], deposits: [] })), payments, charges, adjustments);
       pending = deposits.map(({ reservation, ...payment }) => ({ reservation, payment }));
     } else {
       const reservationFor = (id: RecordItem[string]) =>
