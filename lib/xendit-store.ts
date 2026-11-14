@@ -1,5 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { z } from "zod";
 import { getXenditSession, testCheckoutUrl, xenditSessionSchema, type XenditSession } from "@/lib/xendit";
+
+const webhookReference = z.object({ reference_id: z.string().min(1).max(64) });
 
 export async function attachXenditSession(client: SupabaseClient, session: XenditSession) {
   if (!session.payment_link_url) throw new Error("XENDIT_SESSION_MISMATCH");
@@ -13,14 +16,15 @@ export async function attachXenditSession(client: SupabaseClient, session: Xendi
 export async function processXenditEvent(client: SupabaseClient, input: unknown) {
   const event = input as { event?: unknown; data?: unknown } | null;
   if (!event || !["payment_session.completed", "payment_session.expired"].includes(String(event.event))) return { outcome: "ignored" };
-  const data = xenditSessionSchema.parse(event.data);
-  const expected = event.event === "payment_session.completed" ? "COMPLETED" : "EXPIRED";
-  if (data.status !== expected) throw new Error("XENDIT_SESSION_MISMATCH");
-  const known = await client.from("payments").select("id").eq("payment_gateway", "xendit").eq("provider_reference_id", data.reference_id).maybeSingle();
+  const { reference_id: reference } = webhookReference.parse(event.data);
+  const known = await client.from("payments").select("id").eq("payment_gateway", "xendit").eq("provider_reference_id", reference).maybeSingle();
   if (known.error) throw new Error("XENDIT_LOOKUP_RETRY_REQUIRED");
   // Local attempts commit before provider creation. Unmatched Dashboard samples
   // and unrelated payments can be acknowledged without changing a booking.
   if (!known.data) return { outcome: "ignored_unmatched_reference" };
+  const data = xenditSessionSchema.parse(event.data);
+  const expected = event.event === "payment_session.completed" ? "COMPLETED" : "EXPIRED";
+  if (data.status !== expected) throw new Error("XENDIT_SESSION_MISMATCH");
   // The test API credential independently verifies account/mode and prevents
   // binding forged IDs, including a webhook arriving before the create response.
   const trusted = await getXenditSession(data.payment_session_id);

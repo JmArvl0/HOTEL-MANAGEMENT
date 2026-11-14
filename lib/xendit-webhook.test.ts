@@ -45,9 +45,15 @@ it("requests retry if the database has not committed a matching payment", async 
 it("ignores unrelated events", async () => {
   expect((await POST(request({ event: "payment.failure" }))).status).toBe(200); expect(rpc).not.toHaveBeenCalled();
 });
-it("acknowledges an authenticated Dashboard sample with no matching local booking", async () => {
+it.each(["completed", "expired"])("acknowledges the Dashboard's %s SAVE sample without changing any payment", async status => {
   from.mockReturnValue({ select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }) });
-  const response = await POST(request({ event: "payment_session.completed", data }));
+  const sample = { id: "ps-example", reference_id: "test_session", session_type: "SAVE", country: "ID", currency: "IDR", status: status.toUpperCase() };
+  const response = await POST(request({ event: `payment_session.${status}`, data: sample }));
   expect(response.status).toBe(200); expect(await response.json()).toMatchObject({ outcome: "ignored_unmatched_reference" });
+  expect(fetch).not.toHaveBeenCalled(); expect(rpc).not.toHaveBeenCalled();
+});
+it("rejects a known reference with a non-payment session", async () => {
+  const response = await POST(request({ event: "payment_session.completed", data: { ...data, session_type: "SAVE", currency: "IDR" } }));
+  expect(response.status).toBe(400);
   expect(fetch).not.toHaveBeenCalled(); expect(rpc).not.toHaveBeenCalled();
 });
