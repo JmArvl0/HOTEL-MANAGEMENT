@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/ui/Navigation";
 import { OwnerEmpty, OwnerSectionHead, OwnerTablePanel, formatOwnerDate } from "@/components/owner/owner-primitives";
 import { GCASH_QR_PATH_RE, normalizeGcashNumber } from "@/lib/payment-destination";
 
-type DepositMethod = "paymongo" | "manual" | "off";
+type DepositMethod = "paymongo" | "xendit" | "manual" | "off";
 type Destination = { accountName: string | null; mobileNumber: string | null; qrStoragePath: string | null; enabled: boolean; depositMethod: DepositMethod; version: number };
 type TrailEntry = { id: number; created_at: string; actorName: string; action: string; after_data?: { accountName?: unknown; mobileNumber?: unknown; qrConfigured?: unknown; enabled?: unknown; reason?: unknown } | null };
 type Payload = { destination: Destination; qrDataUrl: string | null; qrHealthy: boolean; lastUpdated: string | null; lastUpdatedBy: string | null; trail: TrailEntry[] };
@@ -18,6 +18,7 @@ const EMPTY: Destination = { accountName: null, mobileNumber: null, qrStoragePat
 // The method radio is the single control: path + on/off. The toggle is gone;
 // "off" means deposits stop and the destination save re-syncs gcash_enabled.
 const METHOD_OPTIONS: [DepositMethod, string, string][] = [
+  ["xendit", "Xendit sandbox", "Hosted GCash or Maya test payments. No real money."],
   ["paymongo", "PayMongo instant auto-pay", "Provider-hosted GCash checkout, confirmed automatically."],
   ["manual", "Manual GCash verification", "Guest transfers, then staff verify the receipt."],
   ["off", "Deposits off", "Guests see a temporarily-unavailable notice."],
@@ -48,7 +49,7 @@ export default function PaymentSettingsPanel({ notify }: { notify: (message: str
       setLoaded(data);
       setName(dest.accountName ?? "");
       setMobile(dest.mobileNumber ?? "");
-      setDepositMethod(dest.depositMethod === "paymongo" || dest.depositMethod === "off" ? dest.depositMethod : "manual");
+      setDepositMethod(dest.depositMethod === "paymongo" || dest.depositMethod === "xendit" || dest.depositMethod === "off" ? dest.depositMethod : "manual");
       setQrPath(dest.qrStoragePath);
       setQrPreview(data.qrDataUrl);
       setError("");
@@ -90,7 +91,7 @@ export default function PaymentSettingsPanel({ notify }: { notify: (message: str
     // counter, so this single action commits both — the method first, then the
     // destination with the version the method switch returned.
     const methodChanged = depositMethod !== (loaded?.destination.depositMethod ?? depositMethod);
-    if (depositMethod === "paymongo" && !methodChanged) return;
+    if ((depositMethod === "paymongo" || depositMethod === "xendit") && !methodChanged) return;
     const destReason = await dialogs.askPrompt({
       title: methodChanged ? "Switch deposit method" : "Confirm payment destination change",
       message: methodChanged
@@ -120,8 +121,8 @@ export default function PaymentSettingsPanel({ notify }: { notify: (message: str
         if (!methodResponse.ok) { setError(methodBody.error ?? "Unable to save the deposit method."); return; }
         version = (methodBody.data as { version?: number } | null)?.version ?? version + 1;
         // Instant checkout needs no destination or review.
-        if (depositMethod === "paymongo") {
-          notify("Deposit method switched to PayMongo instant auto-pay.");
+        if ((depositMethod === "paymongo" || depositMethod === "xendit")) {
+          notify("Deposit method switched to hosted checkout.");
           await load();
           return;
         }
@@ -148,7 +149,7 @@ export default function PaymentSettingsPanel({ notify }: { notify: (message: str
     window.setTimeout(() => setJustPicked((current) => (current === value ? null : current)), 350);
   }
   const methodLabel = METHOD_OPTIONS.find(([value]) => value === depositMethod)?.[1] ?? depositMethod;
-  const paymongoSelected: boolean = depositMethod === "paymongo";
+  const paymongoSelected: boolean = (depositMethod === "paymongo" || depositMethod === "xendit");
 
   if (loading || !loaded) return <OwnerEmpty icon={<QrCode size={22} />} title="Loading payment settings…" body="Fetching the authoritative payment destination." />;
   const methodDirty = depositMethod !== loaded.destination.depositMethod;
@@ -174,7 +175,7 @@ export default function PaymentSettingsPanel({ notify }: { notify: (message: str
       />
       <ol className="owner-wizard" aria-label="Payment setup progress">
         {steps.map(({ n, label }) => {
-          const skipped = depositMethod === "paymongo" && n > 1;
+          const skipped = (depositMethod === "paymongo" || depositMethod === "xendit") && n > 1;
           return (
           <li key={n} className={step === n && !skipped ? "current" : step > n || skipped ? "done" : ""} aria-current={step === n && !skipped ? "step" : undefined}>
             <button type="button" onClick={() => setStep(n)} disabled={skipped} aria-label={skipped ? `${label} — not needed for instant checkout` : `Go to step ${n}: ${label}`}>
@@ -185,9 +186,9 @@ export default function PaymentSettingsPanel({ notify }: { notify: (message: str
           );
         })}
       </ol>
-      {depositMethod === "paymongo" && <p className="owner-express-note">Instant checkout needs no destination or review — pick PayMongo, record the reason, activate.</p>}
+      {(depositMethod === "paymongo" || depositMethod === "xendit") && <p className="owner-express-note">Instant checkout needs no destination or review — pick a provider, record the reason, activate.</p>}
       <div className="owner-steps" key={`${step}-${depositMethod}`}>
-        {(step === 1 || depositMethod === "paymongo") && (
+        {(step === 1 || (depositMethod === "paymongo" || depositMethod === "xendit")) && (
         <section className="data-panel owner-panel owner-step-enter" aria-labelledby="pay-method">
           <div className="panel-heading"><div><h3 id="pay-method">Step 1 — Deposit method</h3><p>The single method offered for new online reservation deposits.</p></div></div>
           <div className="owner-method-grid" role="radiogroup" aria-label="Deposit method">
@@ -198,12 +199,12 @@ export default function PaymentSettingsPanel({ notify }: { notify: (message: str
               </label>
             ))}
           </div>
-          <div className="form-actions">{depositMethod === "paymongo"
-            ? <button type="button" className="btn btn-accent" disabled={saving || !methodDirty} onClick={save}>{saving ? "Activating…" : "Activate PayMongo"}</button>
+          <div className="form-actions">{(depositMethod === "paymongo" || depositMethod === "xendit")
+            ? <button type="button" className="btn btn-accent" disabled={saving || !methodDirty} onClick={save}>{saving ? "Activating…" : (depositMethod === "xendit" ? "Activate Xendit sandbox" : "Activate PayMongo")}</button>
             : <button type="button" className="btn btn-accent" disabled={saving} onClick={() => setStep(2)}>Continue to destination</button>}</div>
         </section>
         )}
-        {step === 2 && depositMethod !== "paymongo" && (
+        {step === 2 && (depositMethod !== "paymongo" && depositMethod !== "xendit") && (
         <section className="data-panel owner-panel owner-step-enter" aria-labelledby="pay-destination">
           <div className="panel-heading"><div><h3 id="pay-destination">Step 2 — Payment destination</h3><p>{paymongoSelected ? "Not needed for instant checkout — only required if you switch back to manual. No PINs, passwords, or secrets belong here." : "Exactly what customers pay into. No PINs, passwords, or secrets belong here."}</p></div></div>
           <div className="owner-dest-grid">
@@ -229,7 +230,7 @@ export default function PaymentSettingsPanel({ notify }: { notify: (message: str
           <div className="form-actions"><button type="button" className="btn btn-soft" onClick={() => setStep(1)}>Back</button><button type="button" className="btn btn-accent" onClick={() => setStep(3)}>Review changes</button></div>
         </section>
         )}
-        {step === 3 && depositMethod !== "paymongo" && (
+        {step === 3 && (depositMethod !== "paymongo" && depositMethod !== "xendit") && (
         <section className="data-panel owner-panel owner-step-enter" aria-labelledby="pay-review">
           <div className="panel-heading"><div><h3 id="pay-review">Step 3 — Review & save</h3><p>Confirm exactly what guests will see before anything goes live.</p></div></div>
           <dl className="owner-review-list">
@@ -248,7 +249,7 @@ export default function PaymentSettingsPanel({ notify }: { notify: (message: str
         </section>
         )}
       </div>
-      {depositMethod !== "paymongo" && (
+      {(depositMethod !== "paymongo" && depositMethod !== "xendit") && (
       <div className="form-actions owner-sticky-saves" aria-label="Save payment configuration">
         <button type="button" className="btn btn-accent" disabled={saving} onClick={save}>{saving ? "Saving…" : "Save changes"}</button>
       </div>

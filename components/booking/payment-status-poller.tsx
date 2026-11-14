@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation";
  */
 
 const POLL_INTERVAL_MS = 5000;
-const MAX_ATTEMPTS = 72; // ~6 minutes — the hold is 15, the redirect is quick.
+const MAX_ATTEMPTS = 216; // 18 minutes includes the sandbox session expiry.
 
 export function PaymentStatusPoller({
   reservationId,
@@ -67,8 +67,8 @@ export function PaymentStatusPoller({
   return (
     <p className="payment-status-poller" role="status" aria-live="polite">
       {state === "settling"
-        ? "Payment confirmed! Updating your reservation…"
-        : "Awaiting payment confirmation — this page updates automatically once GCash settles."}
+        ? "Updating your reservation status…"
+        : "Awaiting payment verification — this page updates automatically when the provider responds."}
     </p>
   );
 }

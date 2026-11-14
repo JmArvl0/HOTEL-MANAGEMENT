@@ -838,7 +838,7 @@ const roomStatusRank: Record<string, number> = { available: 0, dirty: 1, mainten
                     </span>;
                   })()}
                   {item.status === "failed" && item.decision_reason && <small>{label(item.decision_reason)}</small>}
-                  {item.status === "pending_verification" && String(item.method ?? "") === "gateway_paymongo" && <StatusBadge status="pending" label="Awaiting provider" title="Online payment — confirms automatically once the provider settles" showIcon={false} />}
+                  {item.status === "pending_verification" && ["gateway_paymongo", "gateway_xendit"].includes(String(item.method ?? "")) && <StatusBadge status="pending" label="Awaiting provider" title="Online payment — confirms automatically once the provider settles" showIcon={false} />}
                 </div> : canAdvance ? <button className={`badge ${item.status}`} onClick={() => advance(item)} title="Click to move to next status">
                   {label(item.status)}
                 </button> : <StatusBadge status={String(item.status)} label={label(item.status)} /> : column.key === "basis" ? refundBasisBadge(item) : column.key === "payment_status" ? <StatusBadge status={String(item.payment_status)} label={label(item.payment_status)} /> : column.key === "source" ? <span className={`source-badge ${String(item.source).toLowerCase()}`}>
@@ -847,7 +847,7 @@ const roomStatusRank: Record<string, number> = { available: 0, dirty: 1, mainten
               </td>)}
               {resource === "payments" && <td>
                 <div className="reservation-actions payment-actions">
-                  {item.status === "pending_verification" && canVerify && String(item.method ?? "") !== "gateway_paymongo" ? <>
+                  {item.status === "pending_verification" && canVerify && String(item.method ?? "") !== "gateway_paymongo" && String(item.method ?? "") !== "gateway_xendit" ? <>
                     <button className="table-action action-primary" onClick={() => verifyDeposit(item)}>
                       <Eye size={14} /> Review
                     </button>

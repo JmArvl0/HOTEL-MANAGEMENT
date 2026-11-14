@@ -749,6 +749,44 @@ inventory, flips payment→`paid` + reservation→`confirmed`, completes the hol
 row, and itemizes transport. Duplicate events replay idempotently by `webhook_event_id`; the same
 reference arriving on both checkout and payment channels settles once.
 
+**§7.2.2 Xendit sandbox (2026-11-14, test mode only).**
+Owner/Admin may select `deposit_method='xendit'`. `POST /api/booking/payments/xendit`
+requires the authenticated guest's own hold and accepts that token, an optional
+`GCASH`/`PAYMAYA` selection, and an optional `deposit`/`full` choice. `hotel_begin_xendit_checkout` reuses the established atomic gateway
+conversion, frozen pricing, exact-room allocation, guest restrictions and breakfast snapshot.
+It creates one pending deposit in existing `payments` (`gateway_xendit`, provider `xendit`),
+keeps the reservation pending and claims one external-create attempt. The server calls
+Xendit `POST /sessions` using Basic `secret-key:` auth, `PAY`/`PAYMENT_LINK`, PHP/PH,
+automatic capture, the selected server-priced deposit or stay total in pesos, and a unique stored reference. The initial
+16-minute deadline leaves margin over the provider's ten-minute minimum. Returned session ID,
+test checkout URL and expiry are saved before redirect; retries reopen an active session.
+Definitive rejections permit retry; uncertain creation responses remain claimed to prevent
+duplicate sessions. An authenticated notification can recover an initially lost binding.
+
+`POST /api/webhooks/xendit` verifies `x-callback-token` in constant time before data access.
+Known PAY session notifications (`payment_session.completed`, `payment_session.expired`)
+are independently retrieved with the test API credential and matched on session/reference,
+PHP currency, amount and transaction. Transactional settlement reuses the existing inventory,
+invoice, confirmation and audit logic. A verified full payment settles the deposit and the remaining stay
+balance from one provider transaction. Accounting retains separate ledger amounts so deposit-based fees
+still use the required deposit. Duplicate delivery is idempotent; paid deposits cannot
+be downgraded, manually verified or settled through the PayMongo boundary. Unmatched Dashboard
+samples are acknowledged without booking writes. Missing tokens return401, invalid details400,
+and transient failures503 for provider retry. Logs exclude credentials and raw customer payloads.
+
+Expiry releases the pending reservation/hold through both notifications and the existing
+availability sweep. Guest status polling also invokes that sweep. A payment received after
+inventory release is retained with its transaction ID and an Accounting-review note/audit
+outcome; it never resurrects a room claim. Success/cancel return URLs are display-only, and
+the existing confirmation page shows pending, cancelled-return, expired/retry or confirmed
+states with sandbox labeling and a transaction reference when paid. Legacy manual/PayMongo
+records remain intact. The Xendit checkout presents official GCash/Maya logo choices
+alongside the server-priced stay summary, which updates the amount due today and remaining balance
+as the guest selects deposit or full payment. Narrow screens stack the summary below the checkout controls.
+The Xendit session and payment choice migrations are applied to hosted Supabase.
+Provider-hosted GCash/Maya simulation and Dashboard delivery require the configured test credentials
+and HTTPS webhook. See `docs/integrations/XENDIT_SANDBOX.md` for setup and verification limits.
+
 **GCash payment destination (Owner-controls-where).** The deposit page shows the
 Owner-configured destination — account name, mobile number with Copy, official QR
 (220–280px, `object-contain`), exact deposit amount, and an 8-step how-to-pay guide —

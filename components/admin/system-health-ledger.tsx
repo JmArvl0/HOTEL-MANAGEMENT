@@ -21,9 +21,10 @@ const tabs = [
 
 type TabKey = (typeof tabs)[number]["key"];
 
-type DepositMethod = "paymongo" | "manual" | "off";
+type DepositMethod = "paymongo" | "xendit" | "manual" | "off";
 
 const DEPOSIT_OPTIONS: [DepositMethod, string, string][] = [
+  ["xendit", "Xendit sandbox", "Hosted GCash or Maya test payments. No real money."],
   ["paymongo", "PayMongo instant", "Provider-hosted GCash checkout, confirmed automatically."],
   ["manual", "Manual GCash", "Guest transfers, then staff verify the receipt."],
   ["off", "Off", "Guests see a temporarily-unavailable notice."],
@@ -33,12 +34,14 @@ function DepositMethodSwitch({
   current,
   version,
   gatewayOn,
+  xenditOn,
   notify,
   onRefresh,
 }: {
   current: DepositMethod;
   version: number;
   gatewayOn: boolean;
+  xenditOn?: boolean;
   notify?: (message: string) => void;
   onRefresh?: () => void;
 }) {
@@ -58,7 +61,7 @@ function DepositMethodSwitch({
       });
       const body = await response.json().catch(() => null);
       if (!response.ok) { setError((body as { error?: string } | null)?.error ?? "Unable to switch the deposit method."); return; }
-      notify?.(`Deposit method switched to ${method === "paymongo" ? "PayMongo instant" : method === "manual" ? "manual GCash" : "off"}.`);
+      notify?.(`Deposit method switched to ${method === "xendit" ? "Xendit sandbox" : method === "paymongo" ? "PayMongo instant" : method === "manual" ? "manual GCash" : "off"}.`);
       setReason("");
       onRefresh?.();
     } finally {
@@ -80,6 +83,7 @@ function DepositMethodSwitch({
         {method === "paymongo" && !gatewayOn && (
           <p className="booking-error" role="alert">PayMongo is selected but its server configuration is missing — guests would see the manual path until it is configured.</p>
         )}
+        {method === "xendit" && !xenditOn && <p className="booking-error" role="alert">Xendit sandbox needs a test secret, webhook token and HTTPS app origin. Guests cannot pay until all three are configured.</p>}
         <label>Reason for change<textarea value={reason} maxLength={500} onChange={(event) => setReason(event.target.value)} placeholder="Record the business reason — it is stored in the audit trail…" /></label>
         {error && <p className="booking-error" role="alert">{error}</p>}
         <button type="button" className="btn btn-soft" disabled={saving || method === current} onClick={save}>{saving ? "Switching…" : "Switch deposit method"}</button>
@@ -107,6 +111,7 @@ export function PaymentHealthPanel({ payments, gateway, notify, onRefresh }: { p
         <StatusBadge status={payments.status === "Active" ? "paid" : "expired"} label={payments.status} />
       </div>
       <dl className="system-health-config">
+        <div><dt>Xendit sandbox</dt><dd>{gateway?.xenditConfigured ? "Configured · Test mode only" : "Not configured"} · /api/webhooks/xendit</dd></div>
         <div>
           <dt>Business destination (Owner-controlled, read-only)</dt>
           <dd>
@@ -143,6 +148,7 @@ export function PaymentHealthPanel({ payments, gateway, notify, onRefresh }: { p
         <DepositMethodSwitch
           current={payments.depositMethod}
           version={payments.version}
+          xenditOn={gateway?.xenditConfigured}
           gatewayOn={gateway?.status === "listening_live" || gateway?.status === "listening_test"}
           notify={notify}
           onRefresh={onRefresh}

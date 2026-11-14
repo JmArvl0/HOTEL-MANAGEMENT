@@ -3,7 +3,7 @@ import { z } from "zod";
 import { guardAdmin, adminGuardFailed, adminRpcFailure } from "@/lib/admin-route";
 
 const schema = z.object({
-  depositMethod: z.enum(["paymongo", "manual", "off"]),
+  depositMethod: z.enum(["paymongo", "xendit", "manual", "off"]),
   reason: z.string().trim().min(3, "Record why the deposit method is changing.").max(500),
   version: z.coerce.number().int().positive(),
 });

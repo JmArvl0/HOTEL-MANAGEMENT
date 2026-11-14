@@ -24,7 +24,7 @@ export function maskGcashNumber(value: string | null | undefined) {
   return `09******${trimmed.slice(-4)}`;
 }
 
-export const DEPOSIT_METHODS = ["paymongo", "manual", "off"] as const;
+export const DEPOSIT_METHODS = ["paymongo", "xendit", "manual", "off"] as const;
 export type DepositMethod = (typeof DEPOSIT_METHODS)[number];
 
 export type PaymentDestination = {
@@ -40,7 +40,9 @@ export type PaymentDestination = {
 export function activeDepositMethod(
   destination: Pick<PaymentDestination, "enabled" | "depositMethod">,
   gatewayOn: boolean,
+  xenditOn = false,
 ): DepositMethod {
+  if (destination.depositMethod === "xendit") return xenditOn ? "xendit" : "off";
   if (!destination.enabled) return "off";
   if (destination.depositMethod === "paymongo" && gatewayOn) return "paymongo";
   if (destination.depositMethod === "off") return "off";
@@ -58,7 +60,7 @@ export function isPaymentDestinationComplete(destination: Pick<PaymentDestinatio
   );
 }
 
-export const depositMethodSchema = z.enum(["paymongo", "manual", "off"]);
+export const depositMethodSchema = z.enum(["paymongo", "xendit", "manual", "off"]);
 
 export const paymentDestinationSchema = z.object({
   accountName: z.string().trim().max(80),

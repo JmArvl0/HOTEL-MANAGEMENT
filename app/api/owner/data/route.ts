@@ -76,7 +76,7 @@ export async function GET(request: Request) {
           mobileNumber: row.gcash_mobile_number ?? null,
           qrStoragePath: row.gcash_qr_storage_path ?? null,
           enabled: Boolean(row.gcash_enabled),
-          depositMethod: row.deposit_method === "paymongo" || row.deposit_method === "off" ? row.deposit_method : "manual",
+          depositMethod: row.deposit_method === "paymongo" || row.deposit_method === "xendit" || row.deposit_method === "off" ? row.deposit_method : "manual",
           version: row.version ?? 1,
         },
         qrDataUrl,

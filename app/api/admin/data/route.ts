@@ -5,6 +5,7 @@ import { guardAdmin,adminGuardFailed } from "@/lib/admin-route";
 import { ROLE_CAPABILITIES } from "@/lib/admin";
 import { isPaymentDestinationComplete, maskGcashNumber } from "@/lib/payment-destination";
 import { automationRunStatus, deploymentBuildStatus, migrationStatus, pendingMigrations, type AutomationRunStatus, type SystemHealth } from "@/lib/system-health";
+import { xenditConfigured } from "@/lib/xendit";
 import { gatewayConfigured, resolveGatewaySecrets } from "@/lib/gateway";
 
 export async function GET(request:Request){const context=await guardAdmin();if(adminGuardFailed(context))return context;const section=new URL(request.url).searchParams.get("section")??"overview";const db=context.client;
@@ -95,14 +96,14 @@ async function systemHealth(db:AdminDbClient):Promise<SystemHealth>{
     const qrPath=typeof row.gcash_qr_storage_path==="string"?row.gcash_qr_storage_path:"";
     const mobile=typeof row.gcash_mobile_number==="string"?row.gcash_mobile_number:null;
     const name=typeof row.gcash_account_name==="string"?row.gcash_account_name:"";
-    const enabled=Boolean(row.gcash_enabled);
+    const enabled=row.deposit_method === "xendit" || Boolean(row.gcash_enabled);
     let qrStorage:NonNullable<SystemHealth["payments"]>["qrStorage"]="Unknown";
     if(qrPath){try{const listed=await db.storage.from("payment-qr").list("gcash");qrStorage=Array.isArray(listed.data)&&listed.data.some((object)=>`gcash/${object.name}`===qrPath)?"Healthy":"Unavailable"}catch{qrStorage="Unknown"}}
     const{data:latest}=await db.from("audit_logs").select("created_at,user_id").eq("entity_type","hotel_payment_destination").order("created_at",{ascending:false}).limit(1).maybeSingle();
     let configuredBy:string|null=null;
     if(latest?.user_id){const{data:actor}=await db.from("user_accounts").select("name,role").eq("id",String(latest.user_id)).maybeSingle();configuredBy=actor?`${actor.name??"Unknown"} (${actor.role==="admin"?"System Administrator":actor.role})`:null}
-     const depositMethod=(row.deposit_method==="paymongo"||row.deposit_method==="off"?row.deposit_method:"manual") as "paymongo"|"manual"|"off";
-     payments={status:enabled?"Active":"Inactive",accountName:name||"Not configured",mobileNumber:maskGcashNumber(mobile),qrImage:qrPath?"Configured":"Missing",configuredBy,lastUpdated:latest?.created_at?String(latest.created_at):row.updated_at?String(row.updated_at):null,qrStorage,configuration:!enabled?"Disabled":isPaymentDestinationComplete({accountName:name||null,mobileNumber:mobile,qrStoragePath:qrPath||null,enabled})?"Complete":"Incomplete",depositMethod,version:typeof row.version==="number"?row.version:1};
+     const depositMethod=(row.deposit_method==="paymongo"||row.deposit_method==="xendit"||row.deposit_method==="off"?row.deposit_method:"manual") as "paymongo"|"xendit"|"manual"|"off";
+     payments={status:enabled?"Active":"Inactive",accountName:name||"Not configured",mobileNumber:maskGcashNumber(mobile),qrImage:qrPath?"Configured":"Missing",configuredBy,lastUpdated:latest?.created_at?String(latest.created_at):row.updated_at?String(row.updated_at):null,qrStorage,configuration:row.deposit_method === "xendit" ? (xenditConfigured() ? "Complete" : "Incomplete") : !enabled?"Disabled":isPaymentDestinationComplete({accountName:name||null,mobileNumber:mobile,qrStoragePath:qrPath||null,enabled})?"Complete":"Incomplete",depositMethod,version:typeof row.version==="number"?row.version:1};
    }catch{payments=undefined}
   }
   // PayMongo gateway presence + mode, derived server-side from the secret-key
@@ -111,9 +112,10 @@ async function systemHealth(db:AdminDbClient):Promise<SystemHealth>{
   const hasSecretKey = gatewayKey.length > 0;
   const hasWebhookSecret = gatewayWebhook.length > 0;
   const { data: depositPolicy } = await db.from("hotel_operational_policies").select("deposit_method").eq("key", "default").maybeSingle();
-  const depositMethod = (depositPolicy as { deposit_method?: unknown } | null)?.deposit_method === "paymongo" || (depositPolicy as { deposit_method?: unknown } | null)?.deposit_method === "off" ? String((depositPolicy as { deposit_method?: unknown }).deposit_method) : "manual";
+  const depositMethod = (depositPolicy as { deposit_method?: unknown } | null)?.deposit_method === "paymongo" || (depositPolicy as { deposit_method?: unknown } | null)?.deposit_method === "xendit" || (depositPolicy as { deposit_method?: unknown } | null)?.deposit_method === "off" ? String((depositPolicy as { deposit_method?: unknown }).deposit_method) : "manual";
   const gateway: NonNullable<SystemHealth["gateway"]> = !gatewayConfigured() ? { status: "not_configured", hasSecretKey, hasWebhookSecret, depositMethod }
     : gatewayKey.startsWith("sk_live_") ? { status: "listening_live", hasSecretKey: true, hasWebhookSecret: true, depositMethod } : { status: "listening_test", hasSecretKey: true, hasWebhookSecret: true, depositMethod };
+  gateway.xenditConfigured = xenditConfigured();
   // Recent audit rows for the Audit Trail tab. Safe columns only, capped —
   // payloads and secrets are never selected. Actors resolve through one
   // batched user lookup (same pattern as the payment destination above).

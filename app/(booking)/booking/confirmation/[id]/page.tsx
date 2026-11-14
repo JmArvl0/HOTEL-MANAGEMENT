@@ -11,14 +11,20 @@ import { ProofThumbnail } from "@/components/booking/proof-thumbnail";
 import { ConfirmationActions } from "@/components/booking/confirmation-actions";
 import { GatewayPendingActions } from "@/components/booking/gateway-pending-actions";
 import { PaymentStatusPoller } from "@/components/booking/payment-status-poller";
+import Link from "next/link";
+import { supabase } from "@/lib/supabase";
+import { XenditCheckout } from "@/components/booking/xendit-checkout";
 
 export default async function ConfirmationPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ checkout?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   const { id } = await params;
+  const returned = (await searchParams).checkout;
   if (!session) redirect(`/login?callbackUrl=${encodeURIComponent(`/booking/confirmation/${id}`)}`);
   if (session.user.role !== "guest") redirect("/manager_dashboard");
 
@@ -47,6 +53,19 @@ export default async function ConfirmationPage({
 
   const depositPayment =
     reservation.payments.find((payment) => payment.purpose === "reservation_deposit") ?? null;
+  const xendit = reservation.payment_method === "gateway_xendit";
+  const paidInFull = xendit && finance.paid > 0 && finance.balance === 0;
+  const terminal = reservation.status === "cancelled";
+  let xenditHold: string | null = null;
+  let checkoutAmount = Number(reservation.deposit_required ?? 0);
+  if (xendit && !confirmed && !terminal && supabase) {
+    const [hold, payment] = await Promise.all([
+      supabase.from("booking_holds").select("token").eq("reservation_id", id).eq("user_id", session.user.id).maybeSingle(),
+      supabase.from("payments").select("gateway_checkout_amount").eq("reservation_id", id).eq("purpose", "reservation_deposit").eq("payment_gateway", "xendit").maybeSingle(),
+    ]);
+    xenditHold = payment.error ? null : hold.data?.token ?? null;
+    checkoutAmount = Number(payment.data?.gateway_checkout_amount ?? checkoutAmount);
+  }
   const gatewayPending =
     !confirmed &&
     (reservation.payment_method === "gateway_paymongo" ||
@@ -75,27 +94,39 @@ export default async function ConfirmationPage({
   return (
     <BookingPageFrame
       session={session}
-      step={confirmed ? "Confirmed" : "Verification pending"}
+      step={confirmed ? "Confirmed" : xendit && terminal ? "Checkout expired" : "Verification pending"}
       breadcrumb={breadcrumb}
     >
       <section className="confirmation-card deposit-confirmation">
         {confirmed ? <CheckCircle2 /> : <Clock3 />}
-        <p className="eyebrow">{confirmed ? "Reservation confirmed" : "Deposit awaiting verification"}</p>
+        <p>{xendit ? "Xendit sandbox · Test mode · No real money" : confirmed ? "Reservation confirmed" : "Deposit awaiting verification"}</p>
         <h1>
           {confirmed
             ? "Your Haven stay is reserved."
+            : xendit && terminal
+            ? "This checkout has expired."
+            : xendit && returned === "cancelled"
+            ? "Checkout was not completed."
+            : xendit
+            ? "Waiting for payment verification."
             : gatewayPending
             ? "No payment received yet."
             : "Your payment reference was submitted."}
         </h1>
         <p>
           {confirmed
-            ? "Haven verified your reservation deposit."
+            ? paidInFull ? "Haven verified your full stay payment." : "Haven verified your reservation deposit."
+            : xendit && terminal
+            ? "Your reservation is not confirmed and its temporary room hold has been released. Choose an available room to try again. Contact the hotel if you completed a simulated payment."
+            : xendit
+            ? "Returning from checkout does not confirm payment. This page updates after Haven verifies Xendit’s notification. You can safely retry to reopen an existing checkout."
             : gatewayPending
             ? "You left the online checkout before paying, so nothing was charged and your room is not held yet. Wait here and this page updates on its own if the payment lands, or cancel the attempt below to try again."
             : "Your reservation is not confirmed yet. Front Desk or Accounting must verify the submitted deposit before the hold expires."}
         </p>
-        {!confirmed && <PaymentStatusPoller reservationId={reservation.id} status={reservation.status} />}
+        {!confirmed && !terminal && <PaymentStatusPoller reservationId={reservation.id} status={reservation.status} />}
+        {xenditHold && <XenditCheckout holdToken={xenditHold} amount={checkoutAmount} retry />}
+        {xendit && terminal && <Link className="btn btn-accent" href={`/account/find-room?${new URLSearchParams({ checkIn: reservation.check_in, checkOut: reservation.check_out, guests: String(reservation.guests) })}`}>Retry payment with a new room hold</Link>}
         {gatewayPending && (
           <GatewayPendingActions
             reservationId={reservation.id}
@@ -150,7 +181,7 @@ export default async function ConfirmationPage({
             <dd>{formatPeso(reservation.deposit_required ?? 0)}</dd>
           </div>
           <div>
-            <dt>Deposit paid</dt>
+            <dt>{xendit ? "Amount paid" : "Deposit paid"}</dt>
             <dd>{formatPeso(finance.paid)}</dd>
           </div>
           <div>
@@ -165,6 +196,8 @@ export default async function ConfirmationPage({
             <dt>Payment</dt>
             <dd>{friendlyStatus(reservation.invoice?.status ?? reservation.payment_status)}</dd>
           </div>
+          {xendit && depositPayment && <div><dt>{depositPayment.status === "paid" ? "Transaction reference" : "Payment reference"}</dt><dd>{depositPayment.reference}</dd></div>}
+          {xendit && !confirmed && !terminal && reservation.payment_due_at && <div><dt>Sandbox checkout deadline</dt><dd>{new Date(reservation.payment_due_at).toLocaleString("en-PH", { timeZone: "Asia/Manila", dateStyle: "medium", timeStyle: "short" })} (Philippine time)</dd></div>}
           {depositPayment?.proof_original_name && (
             <div>
               <dt>Payment proof</dt>

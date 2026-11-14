@@ -27,6 +27,7 @@ export function BookingStaySummary({
   photos,
   depositDue,
   remainingBalance,
+  paymentBreakdown,
   footnote,
 }: {
   roomNumber?: string;
@@ -42,6 +43,7 @@ export function BookingStaySummary({
   photos: string[];
   depositDue?: { label: string; amount: number };
   remainingBalance?: number;
+  paymentBreakdown?: ReactNode;
   footnote?: ReactNode;
 }) {
   const varied = nightly && nightly.length > 0 && nightly.some((night) => night.rate !== nightly[0].rate);
@@ -139,6 +141,7 @@ export function BookingStaySummary({
               <dd>{formatPeso(remainingBalance)}</dd>
             </div>
           )}
+          {paymentBreakdown}
         </dl>
         <small>Taxes and service charges are currently included at ₱0 under the configured hotel policy.</small>
         {footnote && <div className="review-stay-footnote">{footnote}</div>}

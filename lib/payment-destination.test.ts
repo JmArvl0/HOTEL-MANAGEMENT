@@ -197,7 +197,7 @@ describe("customer GCash-only contracts", () => {
   });
   it("offers instant checkout without destination setup on the paymongo path", () => {
     const page = read("app/(booking)/booking/payment/[token]/page.tsx");
-    const paymongoAt = page.indexOf('depositMode==="paymongo"');
+    const paymongoAt = page.search(/depositMode\s*===\s*"paymongo"/);
     const gateAt = page.indexOf("Deposit details unavailable");
     expect(paymongoAt).toBeGreaterThan(-1);
     expect(gateAt).toBeGreaterThan(-1);

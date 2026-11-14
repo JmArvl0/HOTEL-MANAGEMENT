@@ -54,7 +54,7 @@ export default function PaymentDetailsDialog({ item, proofMeta, proof, review, o
   const pending = status === "pending_verification";
   const canReview = pending && Boolean(review);
   const stayPayment = item.purpose === "stay_payment";
-  const gateway = item.method === "gateway_paymongo";
+  const gateway = ["gateway_paymongo", "gateway_xendit"].includes(String(item.method));
   const expected = Number(reservation?.deposit_required ?? 0);
   const difference = expected ? Number(item.amount ?? 0) - expected : 0;
   const statusClass = status === "paid" ? " spr-paid" : pending ? " spr-pending" : ["rejected", "failed"].includes(status) ? " spr-rejected" : "";
@@ -64,7 +64,7 @@ export default function PaymentDetailsDialog({ item, proofMeta, proof, review, o
     ["Reservation", `${text(reservation?.confirmation_number ?? item.reservation_id)}${reservation?.room_type ? ` – ${text(reservation.room_type)}` : ""}`],
     ["Stay", <span key="stay" className="spr-stay">{text(reservation?.check_in)} → {text(reservation?.check_out)}<span aria-hidden="true"> · </span><span className={`spr-stay-status${stayStatus === "cancelled" ? " spr-cancelled" : ""}`}>{sentence(reservation?.status)}</span></span>],
     ["Purpose", item.purpose === "reservation_deposit" || !item.purpose ? "Reservation deposit" : sentence(item.purpose)],
-    ["Method", ["gcash", "manual_gcash"].includes(String(item.method).toLowerCase()) ? "GCash" : gateway ? "Online payment (PayMongo)" : sentence(item.method)],
+    ["Method", ["gcash", "manual_gcash"].includes(String(item.method).toLowerCase()) ? "GCash" : gateway ? (item.method === "gateway_xendit" ? "Xendit sandbox" : "Online payment (PayMongo)") : sentence(item.method)],
     ["Reference", text(item.reference)],
     ["Status", <span key="status" className={`spr-status${statusClass}`}>{status === "paid" && <CircleCheck size={10} aria-hidden="true" />}{sentence(item.status)}</span>],
   ];
