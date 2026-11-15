@@ -1,5 +1,16 @@
 # Current Status
 
+## Git reconciliation branches (2026-11-15)
+
+Two local branches now complete the scoped reconciliation: `codex/backup-nine-local-commits-20261115`
+(the 38-change series on `origin/main`) and `codex/remaining-backup-items-20261115`
+(the ported missing earlier history: 10 commits plus two `30512aa` DB-test
+scripts, all conflicts resolved, breakfast feature-flagged). Both are fully
+verified — full Vitest, production build, typecheck, scoped lint and the real
+disposable-PostgreSQL suites (25 migration-replay PASS, breakfast 5 PASS,
+inventory replenishment PASS). Neither is merged to main or pushed; both await
+the user's release decision. See [[2026-11-15 - Remaining Backup Items Port]].
+
 ## Error message and UX repairs (2026-11-15)
 
 The user-approved error audit is implemented locally with safe error messages, field validation, notification severity, stable retries, honest unknown outcomes, queue/polling recovery and redacted diagnostics. The follow-up verified that cancellation guidance and actions stay in view at 320 × 568 and 390 × 844 in Edge mobile emulation. Full Vitest passes 2,602 tests across 259 files. Typecheck, build and lint on touched files pass. The prior coordinated release remains pending. See [[2026-11-15 - Error Microcopy Repairs]], [[2026-11-15 - Cancellation Error Visibility]] and `docs/qa/error-microcopy-implementation-2026-11-15.md`.

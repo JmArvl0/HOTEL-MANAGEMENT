@@ -1,5 +1,22 @@
 # AI Session Handoff
 
+## Remaining backup items port — 2026-11-15
+
+All missing earlier local history is now ported onto a local branch
+`codex/remaining-backup-items-20261115` (worktree `.tmp/remaining-backup-items-20261115`),
+a single commit `b1b97a2` on top of `origin/main` `794eca8`: 10 previously missing
+commits plus both missing `30512aa` DB-test scripts, with all 22 conflicts across
+14 files resolved. Every current main safeguard was kept (attempt-based holds,
+Xendit-only checkout, error microcopy, durable email, deposit gating); the old
+breakfast/policy/landing features were added on top and remain feature-flagged
+(`HAVEN_BREAKFAST_ENABLED`, default false). The old PayMongo/GCash manual
+payment UI was discarded. Verified on Node 22.22.2: typecheck, scoped ESLint
+(0 errors / 9 pre-existing-pattern warnings), full Vitest 2,637/265, production
+build, and real disposable-PostgreSQL suites — migration replay 25 PASS / 0 fail,
+breakfast 5 PASS, inventory replenishment PASS. No merge to main, no push, no
+hosted write, no browser QA available. See
+[[2026-11-15 - Remaining Backup Items Port]].
+
 ## Scoped Git reconciliation — 2026-11-15
 
 Reconciled the 38-change series on top of `origin/main` without the 21 earlier local commits. Preserved the hosted Fleet version and the remote cash draft workflow. The verified plan and eight pending migrations are recorded in `docs/runbooks/reconciliation-release-2026-11-15.md`. All 2,625 app tests, the production build, a fresh 149-migration replay, and seven SQL suites passed. Production lacks the new booking and cash functions, so the production push remains gated on the coordinated database rollout.
