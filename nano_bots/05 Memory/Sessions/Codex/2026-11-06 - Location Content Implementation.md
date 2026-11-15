@@ -138,3 +138,19 @@ dependency junction required a documented Turbopack root override in the verific
 copy only (restored afterwards). A prior Webpack fallback exposed two unchanged
 HEAD route-export guards; neither unrelated file was edited. Sandbox build directory
 denial was resolved by approved retry. No push or application deployment requested.
+
+## User-authorized location-only push
+
+User subsequently requested pushing only this commit. Fresh origin/main wascc07121;
+local8ab9fc5 also descended from unrelated unpushed30512aa. Used an isolated branch
+from the remote and cherry-picked8ab9fc5, preserving remote notes in three documentation
+conflicts. Published8a8efad9b8f1c5c4831918157d772dd4cade73a1 directly to origin/main,
+verified with ls-remote. Exactly47 feature files changed;30512aa is not its ancestor.
+Original local branch and107 unrelated dirty files preserved; no force push.
+
+Publication default Turbopack production build passes;54 location/sidebar tests pass.
+Full remote-based suite2398 pass/2 fail. The same PO copy assertion and room-rack initial
+render failures reproduce on untouchedcc07121 (41 pass/2 fail), so no unrelated fix was
+included. Temporary linked-dependency config/generated tracked files restored and both
+task-created worktrees removed safely. No hosted deployment verification claimed.
+Ignored receipt/logs remain under .tmp/location/. Push follow-up notes are local only.
