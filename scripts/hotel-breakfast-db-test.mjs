@@ -23,6 +23,52 @@ try {
   const readHold = token => query("select subtotal::text,total::text,deposit_required::text,breakfast_snapshot,status from booking_holds where token=$1", [token]);
   await db.query("update reservation_deposit_policies set enabled=true,calculation_type='percentage',percentage_basis_points=3000 where key='online_reservation'");
 
+  await test("current booking attempts preserve breakfast through concurrent retries and Xendit settlement", async () => {
+    await db.query("update hotel_operational_policies set deposit_method='xendit' where key='default'");
+    const f = await hotelFixture(db, 1);
+    const offerId = await offer(f);
+    const attempt = { p_user: f.users.guest, p_attempt: randomUUID(),
+      p_details: { ...details(f), roomId: f.rooms[0].id, breakfastOfferId: offerId }, p_breakfast_enabled: true };
+    const other = await suite.connect();
+    let created;
+    try {
+      const both = await Promise.all([
+        value("create_booking_hold_attempt", attempt),
+        value("create_booking_hold_attempt", attempt, other),
+      ]);
+      assert.equal(both[0].token, both[1].token);
+      assert.deepEqual(both.map(result => result.replayed).sort(), [false, true]);
+      created = both[0];
+    } finally { await other.end(); }
+    assert.equal((await readHold(created.token)).total, "2000.00");
+    assert.equal((await readHold(created.token)).deposit_required, "600.00");
+    assert.equal((await value("read_booking_hold_attempt", {
+      p_user: f.users.guest, p_attempt: attempt.p_attempt, p_details: attempt.p_details,
+    })).token, created.token);
+    assert.equal((await value("create_booking_hold_attempt", { ...attempt, p_breakfast_enabled: false })).token, created.token);
+    await assert.rejects(value("create_booking_hold_attempt", {
+      ...attempt, p_details: { ...attempt.p_details, breakfastOfferId: randomUUID() },
+    }), /RETRY_PAYLOAD_CONFLICT/);
+    const checkout = await value("hotel_begin_xendit_checkout", {
+      p_token: created.token, p_user_id: f.users.guest, p_channel: "GCASH",
+    });
+    assert.equal(Number(checkout.amount), 600);
+    const session = `ps-${randomUUID()}`;
+    await value("hotel_attach_xendit_session", {
+      p_reference: checkout.reference, p_session: session,
+      p_url: `https://dev.xen.to/${randomUUID()}`, p_expires: checkout.expiresAt, p_amount: checkout.amount,
+    });
+    await value("hotel_process_xendit_event", {
+      p_event: "payment_session.completed", p_reference: checkout.reference, p_session: session,
+      p_amount: checkout.amount, p_currency: "PHP", p_transaction: `py-${checkout.paymentId}`, p_channel: "GCASH",
+    });
+    const stay = await query("select status,total::text,breakfast_snapshot from reservations where id=$1", [checkout.reservationId]);
+    assert.equal(stay.status, "confirmed");
+    assert.equal(stay.total, "2000.00");
+    assert.equal(stay.breakfast_snapshot.offerId, offerId);
+    assert.equal((await query("select count(*)::int n from hotel_breakfast_days where reservation_id=$1", [checkout.reservationId])).n, 2);
+  });
+
   await test("room-only, optional, changed and included offers price inside the exact hold", async () => {
     const f = await hotelFixture(db, 1);
     const id = await offer(f);

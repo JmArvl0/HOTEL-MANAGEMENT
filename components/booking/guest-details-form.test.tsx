@@ -187,3 +187,42 @@ it("lets the guest explicitly leave the arrival time unknown", async () => {
   await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
   expect(payloadOf().expectedArrival).toBe("");
 });
+
+describe("breakfast selection with booking recovery", () => {
+  const breakfast = {
+    id: "972dd3d7-d1a0-43ce-bf72-071647fbfa0e", mode: "optional" as const,
+    guests: 2, mornings: 2, venue: "Hotel dining", start: "06:30", end: "10:00",
+    price: 1800, total: 2000, deposit: 600, balance: 1400,
+    roomTotal: 200, roomDeposit: 60, roomBalance: 140,
+  };
+
+  it("leaves optional breakfast unselected and omits it from a room-only booking", async () => {
+    const { container } = renderForm({ breakfast, initialArrival: "15:00" });
+    expect((screen.getByRole("radio", { name: "Room only" }) as HTMLInputElement).checked).toBe(true);
+    submitForm(container);
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(payloadOf()).not.toHaveProperty("breakfastOfferId");
+  });
+
+  it("preserves the selected offer and attempt identity after a lost booking response", async () => {
+    const { container } = renderForm({ breakfast, initialArrival: "15:00" });
+    fireEvent.click(screen.getByRole("radio", { name: /Room with breakfast/ }));
+    fetchMock.mockRejectedValueOnce(new Error("connection lost"));
+    submitForm(container);
+    await screen.findByText("We couldn't confirm your room hold. Try again with the same details to check this booking attempt.");
+    const first = payloadOf();
+    expect(first.breakfastOfferId).toBe(breakfast.id);
+    submitForm(container);
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(JSON.parse(String(fetchMock.mock.calls[1][1].body))).toEqual(first);
+    await vi.waitFor(() => expect(push).toHaveBeenCalledWith("/booking/review/hold-token"));
+  });
+
+  it("includes the published included offer without requiring a paid option", async () => {
+    const { container } = renderForm({ breakfast: { ...breakfast, mode: "included", price: 0 }, initialArrival: "15:00" });
+    expect(screen.queryByRole("radio")).toBeNull();
+    submitForm(container);
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(payloadOf().breakfastOfferId).toBe(breakfast.id);
+  });
+});
