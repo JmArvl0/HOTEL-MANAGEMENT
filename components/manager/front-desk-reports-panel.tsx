@@ -24,7 +24,9 @@ type ReportRow = {
 };
 
 const label = (value: unknown) => String(value ?? "—").replaceAll("_", " ");
-const peso = (value: number) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 }).format(Number(value || 0));
+const peso = (value: number) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(value || 0));
+const hasLegacyRefunds = (snapshot: DailyReportSnapshot) => !snapshot.refunds && Number(snapshot.collections.byPurpose.refund ?? 0) > 0;
+const collectionsLabel = (snapshot: DailyReportSnapshot) => hasLegacyRefunds(snapshot) ? "Legacy settled payments (includes refunds)" : snapshot.refunds ? "Collections received" : "Collections";
 const formatDate = (value: string) => new Intl.DateTimeFormat("en-PH", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(`${value.slice(0, 10)}T00:00:00Z`));
 const formatLongDate = (value: string) => new Intl.DateTimeFormat("en-PH", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(`${value.slice(0, 10)}T00:00:00Z`));
 const formatStamp = (value: string | null) => value ? new Intl.DateTimeFormat("en-PH", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(value)) : "—";
@@ -41,7 +43,7 @@ export function ReportSnapshotMetrics({ snapshot, className = "" }: { snapshot: 
     <div><dt>Arrivals</dt><dd>{r.arrivals}</dd><small>Check-ins completed this day</small></div>
     <div><dt>Departures</dt><dd>{r.departures}</dd><small>Check-outs completed this day</small></div>
     <div><dt>New reservations</dt><dd>{r.created}</dd><small>Created on the selected day</small></div>
-    <div><dt>Collections</dt><dd>{peso(snapshot.collections.total)}</dd><small>{snapshot.collections.count} settled payment{snapshot.collections.count !== 1 ? "s" : ""}</small></div>
+    <div><dt>{collectionsLabel(snapshot)}</dt><dd>{peso(snapshot.collections.total)}</dd><small>{snapshot.collections.count} settled payment{snapshot.collections.count !== 1 ? "s" : ""}</small></div>
   </dl>;
 }
 
@@ -49,15 +51,24 @@ export function ReportSnapshotView({ snapshot, showHeader = true, showMetrics = 
   const r = snapshot.reservations;
   const byMethod = snapshot.collections.byMethod ?? {};
   const cashTotal = byMethod.cash ?? 0;
+  const legacyRefunds = hasLegacyRefunds(snapshot);
+  const cashRefunds = snapshot.refunds?.byMethod.cash ?? 0;
   const shifts = snapshot.cashShifts;
   const breakdown = <div className="report-snapshot-breakdown">
     <section>
       <h3>Payments &amp; cash collection</h3>
-      <p className="snapshot-hint">Settled payments this day by method. Cash counts toward the shift&apos;s expected cash on hand.</p>
+      <p className="snapshot-hint">{legacyRefunds ? "This historic snapshot mixes collections and refunds by method. Refund amounts cannot be reconstructed from this snapshot." : "Incoming collections this day by method. Cash collections count toward the shift's expected cash on hand."}</p>
+      {snapshot.refunds && <ul className="snapshot-list">
+        <li><span>Collections received</span><b>{peso(snapshot.collections.total)}</b></li>
+        <li><span>Refunds paid out</span><b>{peso(snapshot.refunds.total)}</b></li>
+        <li><span>Net receipts</span><b>{peso(snapshot.netReceipts ?? snapshot.collections.total - snapshot.refunds.total)}</b></li>
+      </ul>}
       {Object.keys(byMethod).length
         ? <ul className="snapshot-list">{Object.entries(byMethod).map(([method, total]) => <li key={method}><span>{label(method)}</span><b>{peso(total)}</b></li>)}</ul>
         : <p className="snapshot-hint">Cash breakdown not recorded in this snapshot.</p>}
-      {cashTotal > 0 && <p className="snapshot-hint">Cash received: <b>{peso(cashTotal)}</b></p>}
+      {cashTotal > 0 && !legacyRefunds && <p className="snapshot-hint">{snapshot.refunds ? "Cash collections" : "Cash received"}: <b>{peso(cashTotal)}</b></p>}
+      {snapshot.refunds && <p className="snapshot-hint">Cash refunds: <b>{peso(cashRefunds)}</b></p>}
+      {snapshot.refunds && Object.keys(snapshot.refunds.byMethod).length > 0 && <ul className="snapshot-list" aria-label="Refunds by method">{Object.entries(snapshot.refunds.byMethod).map(([method, amount]) => <li key={method}><span>{label(method)} refunds</span><b>{peso(amount)}</b></li>)}</ul>}
       {shifts && (shifts.closed > 0
         ? <ul className="snapshot-list">
             <li><span>Shifts closed</span><b>{shifts.closed}</b></li>
@@ -70,7 +81,7 @@ export function ReportSnapshotView({ snapshot, showHeader = true, showMetrics = 
     <CountList title="Reservation exceptions" entries={{ Cancellations: r.cancelled, "No-shows": r.noShow }} hint="Cancellations and no-shows recorded on this report date." />
     <CountList title="Guest requests" entries={{ Opened: snapshot.guestRequests.opened, Escalated: snapshot.guestRequests.escalated, ...snapshot.guestRequests.openByDepartment }} hint="Open requests grouped by department they are routed to." />
     {snapshot.housekeeping && <CountList title="Room care turnover" entries={{ "Tasks completed": snapshot.housekeeping.tasksCompleted, "Awaiting inspection": snapshot.housekeeping.awaitingInspection, "Avg turnaround (min)": snapshot.housekeeping.avgTurnaroundMinutes ?? "—", ...snapshot.housekeeping.byType }} hint="Completed housekeeping tasks this day, from the audited turnover workflow. Awaiting inspection counts rooms cleaned but not yet passed." />}
-    <CountList title="Collections by purpose" entries={snapshot.collections.byPurpose} hint="Settled payments this day, by purpose — front-desk collections view only." />
+    <CountList title={legacyRefunds ? "Legacy settled payments by purpose" : "Collections by purpose"} entries={snapshot.collections.byPurpose} hint={legacyRefunds ? "Historic category counts include refunds; their amounts cannot be recovered from this snapshot." : "Incoming settled payments this day, by purpose."} />
     <CountList title="Transportation requests" entries={snapshot.transportation} hint="Requests created this day, by status." />
     <CountList title="Exception approvals raised" entries={snapshot.approvals} hint="Manager approval requests filed this day, by status." />
     <CountList title="Rooms at generation" entries={snapshot.rooms} hint="Rooms carry no per-day history — this is the live snapshot at generation time." />
@@ -336,7 +347,7 @@ export default function FrontDeskReportsPanel({ role, initialDate, showHeader = 
             <div className="manager-report-queue">{visible.map((row) => <button type="button" key={row.id} className="manager-report-queue-item" aria-pressed={viewing?.id === row.id} onClick={() => setViewing(row)}>
               <span className="manager-report-queue-top"><strong>{formatDate(row.report_date)}</strong><span className={`badge ${row.status}`}>{label(row.status)}</span></span>
               <span className="manager-report-queue-meta">{label(row.submitted_by_name)} · {formatStamp(row.submitted_at)}</span>
-              <small>{row.snapshot.reservations.arrivals} arrivals · {row.snapshot.reservations.departures} departures · {peso(row.snapshot.collections.total)} collected</small>
+              <small>{row.snapshot.reservations.arrivals} arrivals · {row.snapshot.reservations.departures} departures · {collectionsLabel(row.snapshot)} {peso(row.snapshot.collections.total)}{row.snapshot.refunds ? ` · Refunds ${peso(row.snapshot.refunds.total)} · Net ${peso(row.snapshot.netReceipts ?? row.snapshot.collections.total - row.snapshot.refunds.total)}` : ""}</small>
             </button>)}</div>
             {!visible.length && <div className="empty"><FileText/><h3>No reports</h3><p>{status === "all" ? "No daily operations reports have been submitted yet." : `No ${label(status)} reports.`}</p></div>}
             <TablePagination page={page + 1} pageCount={pageCount} start={rows.length ? page * REPORT_PAGE_SIZE + 1 : 0} end={page * REPORT_PAGE_SIZE + rows.length} total={total} onPageChange={(next) => void load(next - 1)} noun="reports" note="Submitted snapshots are immutable evidence — they are never edited after submission." />

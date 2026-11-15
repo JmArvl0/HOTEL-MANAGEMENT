@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { guardCatalog, adminGuardFailed, adminRpcFailure } from "@/lib/admin-route";
 
-export const transportVehicleTypeColumns = "id,name,description,seats,base_fare,per_km,per_minute,booking_fee,active,sort,version,created_at,updated_at";
+const transportVehicleTypeColumns = "id,name,description,seats,base_fare,per_km,per_minute,booking_fee,active,sort,version,created_at,updated_at";
 
 export async function GET() {
   const c = await guardCatalog();
@@ -17,7 +17,7 @@ export async function GET() {
   return NextResponse.json({ data });
 }
 
-export const transportVehicleTypeSchema = z.object({
+const transportVehicleTypeSchema = z.object({
   name: z.string().trim().min(1).max(120),
   description: z.string().trim().max(500).optional().default(""),
   seats: z.coerce.number().int().min(1).max(20).optional().default(4),

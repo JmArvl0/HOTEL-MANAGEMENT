@@ -31,6 +31,56 @@ async function enterCount() {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe("saved physical cash counts", () => {
+  it("shows the newest ledger amount while count context refreshes and preserves typed entries", async () => {
+    let resolveContext: ((value: Response) => void) | undefined;
+    const fetch = vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init?.method) throw new Error("Unexpected write");
+      if (fetch.mock.calls.length === 1) return response({ status: "open", basis, expectedCash: 3000, draft: null });
+      return new Promise<Response>((resolve) => { resolveContext = resolve; });
+    });
+    vi.stubGlobal("fetch", fetch);
+    const p = props();
+    const view = (data: { expected: number | null; review: () => void; editor: React.ReactNode }) => <><output aria-label="Current drawer expected cash">{data.expected}</output><button onClick={data.review}>Record count</button>{data.editor}</>;
+    const ui = render(<CashCountPanel {...p} renderWorkspace={view} />);
+    fireEvent.click(screen.getByRole("button", { name: "Record count" }));
+    await waitFor(() => expect(screen.getByLabelText("Current drawer expected cash").textContent).toBe("3000"));
+    await enterCount();
+    fireEvent.change(screen.getByLabelText("Count note / variance explanation"), { target: { value: "Still counting" } });
+    const refundedLedger = { cashShifts: [{ ...shift, collected: 1750 }], transactions: [{ id: "refund-1", cash_shift_id: "drawer", status: "paid", purpose: "refund", method: "cash", amount: 250 }] } as unknown as AccountingLedger;
+    ui.rerender(<CashCountPanel {...p} ledger={refundedLedger} renderWorkspace={view} />);
+    expect(screen.getByLabelText("Current drawer expected cash").textContent).toBe("2750");
+    expect((screen.getByLabelText("Physical cash counted (PHP)") as HTMLInputElement).value).toBe("3000");
+    expect((screen.getByLabelText("Count note / variance explanation") as HTMLTextAreaElement).value).toBe("Still counting");
+    expect((screen.getByRole("button", { name: "Save draft & return" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Review count" }) as HTMLButtonElement).disabled).toBe(true);
+    await waitFor(() => expect(resolveContext).toBeDefined());
+    resolveContext!(response({ status: "open", basis: nextBasis, expectedCash: 2750, draft: null }));
+    await waitFor(() => expect(screen.getByText(/Cash activity changed/)).toBeTruthy());
+    expect((screen.getByLabelText("Physical cash counted (PHP)") as HTMLInputElement).value).toBe("3000");
+  });
+  it("waits for a fresh count basis when paid movements change with the same net", async () => {
+    let resolveContext: ((value: Response) => void) | undefined;
+    const fetch = vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init?.method) throw new Error("Unexpected write");
+      if (fetch.mock.calls.length === 1) return response({ status: "open", basis, expectedCash: 3000, draft: null });
+      return new Promise<Response>((resolve) => { resolveContext = resolve; });
+    });
+    vi.stubGlobal("fetch", fetch);
+    const p = props();
+    const ui = render(<CashCountPanel {...p} />);
+    await enterCount();
+    const sameNetLedger = { cashShifts: [{ ...shift }], transactions: [
+      { id: "collection-1", cash_shift_id: "drawer", status: "paid", purpose: "stay_payment", method: "cash", amount: 250 },
+      { id: "refund-1", cash_shift_id: "drawer", status: "paid", purpose: "refund", method: "cash", amount: 250 },
+    ] } as unknown as AccountingLedger;
+    ui.rerender(<CashCountPanel {...p} ledger={sameNetLedger} />);
+    expect(screen.getByText("₱3,000.00")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Close shared drawer" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Save draft & return" }) as HTMLButtonElement).disabled).toBe(true);
+    await waitFor(() => expect(resolveContext).toBeDefined());
+    resolveContext!(response({ status: "open", basis: nextBasis, expectedCash: 3000, draft: null }));
+    await waitFor(() => expect(screen.getByText(/Cash activity changed/)).toBeTruthy());
+  });
   it("explicitly saves and restores a draft after remount, without closing the drawer", async () => {
     const fetch = setup(); const p = props(); const first = render(<CashCountPanel {...p} />);
     await enterCount(); fireEvent.change(screen.getByLabelText("Count note / variance explanation"), { target: { value: "Counted independently" } });

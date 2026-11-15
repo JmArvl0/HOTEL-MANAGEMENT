@@ -97,6 +97,13 @@
 .app-shell .cash-button:hover { background: var(--cash-soft); }
 .app-shell .cash-button.cash-primary { background: var(--cash-forest); border-color: var(--cash-forest); color: var(--cash-on-forest); }
 .app-shell .cash-button.cash-primary:hover { filter: brightness(.94); }
+.app-shell .cash-button.cash-outline {
+  border-color: var(--cash-forest);
+  background: color-mix(in srgb, var(--cash-forest) 8%, var(--cash-surface));
+  color: var(--cash-forest);
+  font-weight: 700;
+}
+.app-shell .cash-button.cash-outline:hover { background: color-mix(in srgb, var(--cash-forest) 16%, var(--cash-surface)); }
 .app-shell .cash-button:disabled { opacity: .65; cursor: wait; }
 .app-shell .cash-text-action {
   display: inline-flex;
@@ -141,7 +148,7 @@
   background: var(--cash-surface);
   overflow-wrap: anywhere;
 }
-.app-shell .cash-current { padding: 20px; }
+.app-shell .cash-current { align-self: stretch; padding: 20px; }
 .app-shell .cash-workspace .cash-section-label {
   margin-bottom: 3px;
   color: var(--cash-muted);
@@ -235,6 +242,27 @@
 .app-shell .cash-workspace .cash-closed-note { margin-top: 11px; color: var(--cash-muted); font-size: 13px; }
 .app-shell .cash-last-close { margin-top: 18px; padding-top: 13px; border-top: 1px solid var(--cash-line); }
 
+@container (min-width: 821px) {
+  .app-shell .cash-current-closed,
+  .app-shell .cash-current-closed .cash-last-close { display: flex; flex-direction: column; }
+  .app-shell .cash-current-closed .cash-last-close,
+  .app-shell .cash-current-closed .cash-recorded-count { flex: 1; }
+  .app-shell .cash-current-closed .cash-recorded-count {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    padding-bottom: 0;
+  }
+  .app-shell .cash-current-closed .cash-recorded-count > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-top: 1px solid var(--cash-line);
+  }
+  .app-shell .cash-current-closed .cash-recorded-count dd { margin: 0; font-size: 18px; }
+}
+
 .app-shell .cash-panel-heading { align-items: center; padding: 16px 18px 12px; }
 .app-shell .cash-panel-heading p { color: var(--cash-muted); font-size: 12px; margin-top: 3px; }
 .app-shell .cash-readiness-list {
@@ -284,10 +312,81 @@
 .app-shell .cash-handover-list h3 { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
 .app-shell .cash-handover-list p { margin: 6px 0; font-size: 13px; }
 .app-shell .cash-follow-up-disclosure { border-top: 1px solid var(--cash-line); }
-.app-shell .cash-follow-up-disclosure > summary { display: flex; align-items: center; gap: 5px; padding: 10px 16px; color: var(--cash-forest); font-size: 12px; font-weight: 650; cursor: pointer; }
-.app-shell .cash-follow-up-disclosure > summary::-webkit-details-marker { display: none; }
-.app-shell .cash-follow-up-disclosure[open] > summary svg { transform: rotate(90deg); }
-.app-shell .cash-follow-up-disclosure .cash-next-steps { border: 0; border-top: 1px solid var(--cash-line); border-radius: 0; }
+.app-shell .cash-post-close-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 0 0 10px 10px;
+  background: var(--cash-surface);
+  color: var(--cash-forest);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+}
+.app-shell .cash-post-close-trigger:hover,
+.app-shell .cash-post-close-trigger[aria-expanded="true"] { background: var(--cash-success-bg); }
+.app-shell .cash-post-close-trigger[aria-expanded="true"] svg { transform: rotate(90deg); }
+.app-shell .cash-post-close-popover {
+  position: fixed;
+  inset: auto;
+  max-width: calc(100vw - 24px);
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--cash-line);
+  border-radius: 11px;
+  background: var(--cash-surface);
+  color: var(--cash-ink);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .22), 0 4px 12px rgba(0, 0, 0, .08);
+  scrollbar-color: var(--cash-control) var(--cash-surface);
+}
+.app-shell .cash-post-close-popover::backdrop { background: transparent; }
+.app-shell .cash-post-close-popover-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 18px 13px;
+  border-bottom: 1px solid var(--cash-line);
+  background: var(--cash-surface);
+}
+.app-shell .cash-post-close-popover-head h2 { font-size: 16px; }
+.app-shell .cash-post-close-popover-head p { margin-top: 4px; color: var(--cash-muted); font-size: 11px; line-height: 1.4; }
+.app-shell .cash-popover-close {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border: 1px solid var(--cash-line);
+  border-radius: 6px;
+  background: var(--cash-surface);
+  color: var(--cash-forest);
+  cursor: pointer;
+}
+.app-shell .cash-popover-close:hover { background: var(--cash-soft); }
+.app-shell .cash-post-close-popover .cash-next-steps { border: 0; border-radius: 0; background: transparent; }
+.app-shell .cash-post-close-popover .cash-next-steps-body { gap: 0; padding: 0; }
+.app-shell .cash-post-close-popover .cash-next-steps-body > p { padding: 14px 18px; }
+.app-shell .cash-popover-section { padding: 14px 18px; border-bottom: 1px solid var(--cash-line); }
+.app-shell .cash-popover-section:last-child { border-bottom: 0; }
+.app-shell .cash-popover-section h3 { margin-bottom: 5px; font-size: 13px; }
+.app-shell .cash-popover-section p { margin-top: 4px; color: var(--cash-muted); font-size: 12px; line-height: 1.5; }
+.app-shell .cash-popover-section .cash-popover-review-status { display: flex; align-items: center; gap: 7px; color: var(--cash-success); font-weight: 700; }
+.app-shell .cash-popover-section .cash-popover-review-pending { color: var(--cash-warning); }
+.app-shell .cash-popover-review-status::before { content: ""; width: 7px; height: 7px; flex: none; border-radius: 50%; background: currentColor; }
+.app-shell .cash-popover-section .cash-table-note { margin-top: 10px; font-size: 11px; }
 
 .app-shell :is(.cash-activity-region, .cash-history) { scroll-margin-top: 82px; }
 .app-shell :is(.cash-activity-controls, .cash-history-controls) {

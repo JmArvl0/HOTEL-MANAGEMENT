@@ -1,5 +1,43 @@
 # Known Issues
 
+## KI-029 — Billing paid totals lack linked payment history
+
+Status: Fixed in local source (2026-11-15); P1 financial data integrity. Three live
+invoices (`INV-7799`, `INV-7800`, `INV-7801`) had nonzero applied payments but no
+linked paid transactions in `payments`. Verified against live Transactions — no
+matching rows exist for any of the three reservations. Correction migration
+`20261115020000_correct_unlinked_invoice_paid.sql` sets `paid=0`, `balance=amount`,
+and `status='unpaid'` on each affected invoice, with audit log entries. No payment
+records were created, modified, or deleted; no folio amounts were changed. The `paid`
+field is now derived from linked payments via `sync_invoice_financials` as intended.
+See `docs/qa/billing-qa-2026-11-15.md`, BILL-01.
+
+## KI-030 — Pending deposit disappears from Billing payment filter
+
+Status: Open (2026-11-15); P2. A pending ₱19,140 deposit is visible in a
+Billing banner and Deposit Verification but Payments says no payments. Front
+Desk also sees “Verify deposit” in the queue although it cannot verify. Include
+the pending row with an unapplied label and make the queue wording role-aware.
+See `docs/qa/billing-qa-2026-11-15.md`, BILL-03.
+
+## KI-031 — Cancelled folio detail omits cancellation context
+
+Status: Open (2026-11-15); P2. `INV-FF587288` shows an original ₱63,800 stay
+charge and a ₱0 due balance with no explanation in the detail. Its Cancelled
+status appears only in the queue, which the phone detail hides. Show status,
+the reason the balance is closed, and actual cancellation events without
+fabricating an adjustment. See `docs/qa/billing-qa-2026-11-15.md`, BILL-04.
+
+## KI-028 — Current Drawer headline briefly lags after cash activity
+
+Status: Open (2026-11-15); P2 presentation issue. In isolated browser-to-DB QA,
+a ₱250 cash refund appeared in Cash payouts while Expected cash briefly still
+showed ₱3,000 instead of ₱2,750. The headline corrected after the separate
+count-context GET completed. Stored shift/payment values and close basis were
+correct. The display prefers `CashCountPanel`'s previous context until its
+effect reloads on ledger activity. See
+`docs/qa/cash-shifts-pre-push-qa-2026-11-15.md`.
+
 ## KI-027 — Guest Management requires undeployed merge/removal schema
 
 Status: Fixed in local source (2026-11-06); browser confirmation unverified.
@@ -395,32 +433,16 @@ Related:
 
 ---
 
-## KI-013 — Repeated receipts / folio statements for the same source records (unverified)
+## KI-013 — Repeated receipts / folio statements for unchanged source records
 
-Status: Open
-Area: Accounting documents
-
-Description:
-The Accounting QA pass (2026-10-03) reported what looked like duplicate immutable documents — the
-same source payment/folio apparently producing more than one receipt or folio statement. The report
-itself **did not count this as a confirmed bug** and asked for product clarification rather than a
-code fix, and it named no document numbers, so nothing has been reproduced. No code was changed for
-it (BUG-001 in the same report was fixed separately).
-
-Impact:
-Unknown until reproduced. If a receipt is genuinely re-issued for one source record, the document
-trail is confusing to audit. If a new immutable document per generation is deliberate, the behaviour
-is correct and only the listing/traceability needs to say so.
-
-Fix options: none yet — this needs a reproduction (the duplicated document numbers with their
-`created_at`, plus the source payment/folio ids) and a product decision on whether re-issuing a
-document for the same source record is allowed. [[D-019]] (one canonical customer receipt document;
-eligibility mirrors the staff document RPC) is the closest governing decision — check it before
-touching generation.
-
-Related:
-`lib/customer.ts` (`getCustomerReceipt`) · `lib/receipt-pdf.ts` · `lib/receipt-image.ts` ·
-[[D-019]] · [[2026-10-03 - Occupancy Basis Fix]]
+Status: Fixed in local source (2026-11-15); server-side dedup deployed via migration
+`20261115010000_dedup_financial_documents.sql`. `accounting_generate_document` now
+checks whether an existing folio statement for the same reservation already carries
+the same financial snapshot (amount, paid, balance, credit, status) before
+inserting; if matched, it returns the existing document number instead of creating
+a duplicate. Receipts are unaffected. Existing immutable documents preserved.
+UI click guard + "View statement after success" already in
+`components/manager/staff-billing-workspace.tsx`. See `docs/qa/billing-qa-2026-11-15.md` (BILL-02).
 
 ## KI-014 — Frontend remediation Phase 1 outcomes need browser verification
 

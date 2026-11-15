@@ -146,3 +146,61 @@ it("marks an unsettled payment as unapplied to the folio balance", async () => {
   expect(within(detail).getByText("Not applied to balance", { exact: false })).toBeTruthy();
   expect(within(detail).getByText("₱500", { selector: "b" })).toBeTruthy();
 });
+
+it("lists pending deposits once in Payments and uses a role-aware queue status", async () => {
+  setup("front_desk");
+  fireEvent.click(await screen.findByRole("button", { name: "Deposit review" }));
+  const detail = screen.getByRole("complementary", { name: "Folio details" });
+  fireEvent.click(within(detail).getByRole("button", { name: "Payments" }));
+  expect(within(detail).getAllByText("Reservation deposit")).toHaveLength(1);
+  expect(within(detail).getByText(/Not applied to balance/)).toBeTruthy();
+  expect(within(screen.getByRole("table", { name: "Guest folios" })).getByText("Awaiting Accounting")).toBeTruthy();
+});
+
+it("shows a reconciliation warning when applied payments have no settled transaction", async () => {
+  const unsupported = [{ ...folios[0], invoice: { ...folios[0].invoice, paid: 8900, balance: 3500 }, activity: [] }];
+  vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({ data: { today: "2026-11-10", folios: unsupported } }) })));
+  render(<StaffBillingWorkspace role="front_desk" refreshVersion={0} search="" onSearch={vi.fn()} onCollect={vi.fn()} onReviewDeposit={vi.fn()} onOpenReservation={vi.fn()} />);
+  const detail = await screen.findByRole("complementary", { name: "Folio details" });
+  expect(within(detail).getByRole("alert").textContent).toMatch(/payment history.*reconcil/i);
+});
+
+it("explains a cancelled folio without inventing a ledger adjustment", async () => {
+  const cancelled = [{ ...folios[0], reservation: { ...stay, status: "cancelled" }, invoice: { ...folios[0].invoice, amount: 63800, paid: 0, balance: 0, status: "cancelled" }, activity: [] }];
+  vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({ data: { today: "2026-11-10", folios: cancelled } }) })));
+  render(<StaffBillingWorkspace role="front_desk" refreshVersion={0} search="" onSearch={vi.fn()} onCollect={vi.fn()} onReviewDeposit={vi.fn()} onOpenReservation={vi.fn()} />);
+  const detail = await screen.findByRole("complementary", { name: "Folio details" });
+  expect(within(detail).getByText("Cancelled")).toBeTruthy();
+  expect(within(detail).getByText(/stay entry.*history/i)).toBeTruthy();
+  expect(within(detail).queryByText("Cancellation adjustment")).toBeNull();
+});
+
+it("issues one statement per click burst and offers its document after success", async () => {
+  let resolve!: (value: string) => void;
+  const onIssueStatement = vi.fn(() => new Promise<string>(done => { resolve = done; }));
+  const onOpenIssuedStatement = vi.fn();
+  vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({ data: { today: "2026-11-10", folios } }) })));
+  render(<StaffBillingWorkspace role="front_desk" refreshVersion={0} search="" onSearch={vi.fn()} onCollect={vi.fn()} onReviewDeposit={vi.fn()} onOpenReservation={vi.fn()} onIssueStatement={onIssueStatement} onOpenIssuedStatement={onOpenIssuedStatement} />);
+  const detail = await screen.findByRole("complementary", { name: "Folio details" });
+  const button = within(detail).getByRole("button", { name: "Issue statement" });
+  fireEvent.click(button);
+  fireEvent.click(button);
+  expect(onIssueStatement).toHaveBeenCalledTimes(1);
+  resolve("FOL-261115-TEST");
+  fireEvent.click(await within(detail).findByRole("button", { name: "View statement FOL-261115-TEST" }));
+  expect(onOpenIssuedStatement).toHaveBeenCalledWith("FOL-261115-TEST");
+});
+
+it("allows a new statement after the folio's financial position changes", async () => {
+  const updated = [{ ...folios[0], invoice: { ...folios[0].invoice, amount: 13400, balance: 7400 } }];
+  vi.stubGlobal("fetch", vi.fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ data: { today: "2026-11-10", folios } }) })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ data: { today: "2026-11-10", folios: updated } }) }));
+  const onIssueStatement = vi.fn(async () => "FOL-261115-OLD");
+  const props = { role: "front_desk" as const, search: "", onSearch: vi.fn(), onCollect: vi.fn(), onReviewDeposit: vi.fn(), onOpenReservation: vi.fn(), onIssueStatement, onOpenIssuedStatement: vi.fn() };
+  const view = render(<StaffBillingWorkspace {...props} refreshVersion={0} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Issue statement" }));
+  await screen.findByRole("button", { name: "View statement FOL-261115-OLD" });
+  view.rerender(<StaffBillingWorkspace {...props} refreshVersion={1} />);
+  expect(await screen.findByRole("button", { name: "Issue statement" })).toBeTruthy();
+});

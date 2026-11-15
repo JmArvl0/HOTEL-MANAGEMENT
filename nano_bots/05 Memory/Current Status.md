@@ -1,5 +1,26 @@
 # Current Status
 
+## Billing QA (2026-11-15, local)
+
+- Front Desk desktop/390px QA validated the integrated Billing navigation,
+  summary, search/filter/pagination, reservation link, deposit cross-check,
+  and phone Back/focus. The local snapshot had 38 folios, 48 payment rows, and
+  4 pending deposits.
+- Open findings: missing linked payment history for three nonzero-paid
+  invoices (KI-029), repeated document snapshots (KI-013), pending deposits
+  excluded from Payments activity (KI-030), and cancelled folio detail without
+  status/settlement explanation (KI-031). KI-013 fixed locally — server-side
+  dedup added to `accounting_generate_document` via migration
+  `20261115010000_dedup_financial_documents.sql` so one canonical folio
+  statement is returned per unchanged financial state. KI-030 and KI-031 fixed
+  in `staff-billing-workspace.tsx`. KI-029 fixed locally — correction migration
+  `20261115020000_correct_unlinked_invoice_paid.sql` sets `paid=0`,
+  `balance=amount`, `status='unpaid'` on INV-7799/INV-7800/INV-7801 with audit
+  log entries; no payment records created or modified. Accounting browser/write
+  paths and live charge/adjustment cases remain untested. Typecheck, scoped
+  lint, targeted 77/77 and full 2,451/2,451 tests passed; production build
+  passes. See `docs/qa/billing-qa-2026-11-15.md`.
+
 ## Billing folio prototype integration (2026-11-14, local)
 
 - Front Desk and Accounting Billing now includes detailed folio activity and

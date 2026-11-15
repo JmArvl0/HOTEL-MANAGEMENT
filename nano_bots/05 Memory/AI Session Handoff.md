@@ -1,5 +1,42 @@
 # AI Session Handoff
 
+## Billing QA (2026-11-15)
+
+Read-only Front Desk browser QA covered 38 folios, related Finance sections,
+and 390px queue/detail behavior. Summary values, deposit destination, search,
+filters, pagination, reservation opening, and phone Back/focus worked. Four
+findings are documented: paid totals with missing linked history (KI-029),
+repeated financial document snapshots (KI-013), pending deposits absent from
+Payments activity (KI-030), and cancelled detail without status/settlement
+context (KI-031). All four findings fixed locally:
+
+- KI-013: server-side dedup added to `accounting_generate_document` via
+  migration `20261115010000_dedup_financial_documents.sql` — one canonical
+  folio statement returned per unchanged financial state.
+- KI-030 & KI-031: fixed in `staff-billing-workspace.tsx` (pending deposits in
+  Payments activity with role-aware labels; cancelled status and settlement
+  context in folio detail).
+- KI-029: correction migration `20261115020000_correct_unlinked_invoice_paid.sql`
+  sets `paid=0`, `balance=amount`, `status='unpaid'` on INV-7799/INV-7800/
+  INV-7801 with audit log entries; no payment records created or modified.
+
+Accounting browser/write paths and live charge/adjustment cases remain untested.
+Typecheck, scoped lint, 77 targeted tests, and all 2,451 Vitest tests passed;
+production build passes.
+See `docs/qa/billing-qa-2026-11-15.md` and [[2026-11-15 - Billing QA]].
+
+## Cash & Shifts pre-push QA (2026-11-15)
+
+Isolated real-app browser/database flow passed Open, cash collection and refund,
+durable count draft, Close, Accounting reconciliation and post-close links.
+Current SQL harness passed 12/12; focused tests passed 68/68; full Vitest
+passed 2,428/2,428. The 320px popover focus scroll jump was fixed and retested.
+Acceptance remains open for KI-022 (refunds counted as report collections),
+KI-028 (brief stale Current Drawer headline after refund), and a production
+build blocked at two unrelated Next route exports after Webpack compilation.
+No push or hosted business write. See
+`docs/qa/cash-shifts-pre-push-qa-2026-11-15.md`.
+
 ## Billing folio prototype integration (2026-11-14)
 
 The approved folio-detail prototype is now integrated into the live Front Desk
@@ -13,6 +50,16 @@ before a concurrent untracked cash-report refund test was added; the latest
 run has that one unrelated failure (2,428 passed, 1 failed). Default build hit
 the known Windows sharp junction permission error. No hosted write or
 deployment. See [[2026-11-14 - Billing Folio Prototype Integration]].
+
+## Cash post-close popover integration (2026-11-14)
+
+The approved post-close actions preview is integrated into the shared live
+Front Desk and Accounting Cash & Shifts workspace. The anchored popover keeps
+the Current Drawer and Recent cash activity fixed and retains live follow-up
+and report actions. Typecheck, touched lint, 14 targeted tests, and both-role
+desktop/mobile browser checks passed. Full Vitest had two unrelated
+Billing/navigation failures; the build stopped on the known Windows sharp
+junction permission error. See [[2026-11-14 - Cash Post-Close Popover Integration]].
 
 ## Billing with folio detail prototype (2026-11-14)
 

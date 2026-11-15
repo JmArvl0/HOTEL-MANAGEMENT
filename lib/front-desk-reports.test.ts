@@ -101,11 +101,31 @@ describe("report generation and submission wiring", () => {
     expect(snapshot.guestRequests).toMatchObject({ opened: 3, escalated: 1 });
     expect(snapshot.guestRequests.openByDepartment).toEqual({ front_desk: 2, housekeeping: 1 });
     expect(snapshot.collections).toEqual({ count: 3, total: 9900.5, byPurpose: { reservation_deposit: 2, stay_payment: 1 }, byMethod: { gcash: 2670, cash: 7230.5 } });
+    expect(snapshot.refunds).toEqual({ count: 0, total: 0, byMethod: {} });
+    expect(snapshot.netReceipts).toBe(9900.5);
     expect(snapshot.cashShifts).toEqual({ closed: 1, counted: 7200, expected: 7230.5, variance: -30.5 });
     expect(snapshot.rooms).toEqual({ occupied: 2, available: 1 });
     expect(snapshot.transportation).toEqual({ COMPLETED: 1, REQUESTED: 1 });
     expect(snapshot.approvals).toEqual({ pending: 1 });
     expect(snapshot.reportDate).toBe("2026-09-05");
+  });
+  it("separates paid refunds from collections and retains centavos", () => {
+    const rows: DailyReportRows = {
+      reservationsCreated: [], checkedIn: [], checkedOut: [], reservationAuditEvents: [],
+      guestRequestsOpened: [], guestRequestsEscalated: [], openRequests: [],
+      settledPayments: [
+        { purpose: "stay_payment", method: "cash", amount: 2000 },
+        { purpose: "refund", method: "cash", amount: 250 },
+        { purpose: "refund", method: "manual_gcash", amount: "100.25" },
+      ],
+      cashShiftsClosed: [{ expected_cash: 2750, actual_cash: 2750, variance: 0 }],
+      housekeepingCompleted: [], rooms: [], transportation: [], approvals: [],
+    };
+    const snapshot = summarizeDailyActivity(rows, "2026-09-05");
+    expect(snapshot.collections).toEqual({ count: 1, total: 2000, byPurpose: { stay_payment: 1 }, byMethod: { cash: 2000 } });
+    expect(snapshot.refunds).toEqual({ count: 2, total: 350.25, byMethod: { cash: 250, manual_gcash: 100.25 } });
+    expect(snapshot.netReceipts).toBe(1649.75);
+    expect(snapshot.cashShifts?.expected).toBe(2750);
   });
 });
 

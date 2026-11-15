@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import FrontDeskReportsPanel from "./front-desk-reports-panel";
+import FrontDeskReportsPanel, { ReportSnapshotView } from "./front-desk-reports-panel";
 import type { DailyReportSnapshot } from "@/lib/front-desk-reports";
 
 afterEach(() => {
@@ -47,6 +47,34 @@ describe("FrontDeskReportsPanel export", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Export preview" })).toBeTruthy());
     fireEvent.click(screen.getByRole("button", { name: "Export preview" }));
     expect(print).toHaveBeenCalledOnce();
+  });
+});
+
+describe("report money presentation", () => {
+  const current: DailyReportSnapshot = {
+    ...snapshot,
+    collections: { count: 1, total: 2000, byPurpose: { stay_payment: 1 }, byMethod: { cash: 2000 } },
+    refunds: { count: 2, total: 350.25, byMethod: { cash: 250, manual_gcash: 100.25 } },
+    netReceipts: 1649.75,
+  };
+
+  it("shows incoming, outgoing and net amounts with centavos in the shared report view", () => {
+    render(<ReportSnapshotView snapshot={current} collapseBreakdown={false} />);
+    expect(screen.getAllByText("Collections received").length).toBeGreaterThan(0);
+    expect(screen.getByText("Refunds paid out")).toBeTruthy();
+    expect(screen.getByText("Net receipts")).toBeTruthy();
+    expect(screen.getByText(/Cash collections:/)).toBeTruthy();
+    expect(screen.getByText(/Cash refunds:/)).toBeTruthy();
+    expect(screen.getByText("₱100.25")).toBeTruthy();
+    expect(screen.getByText("₱1,649.75")).toBeTruthy();
+  });
+
+  it("labels older mixed snapshots without changing their stored total", () => {
+    render(<ReportSnapshotView snapshot={{ ...snapshot, collections: { count: 2, total: 2100.25, byPurpose: { stay_payment: 1, refund: 1 }, byMethod: { cash: 2100.25 } } }} collapseBreakdown={false} />);
+    expect(screen.getByText("Legacy settled payments (includes refunds)")).toBeTruthy();
+    expect(screen.getByText(/Refund amounts cannot be reconstructed/)).toBeTruthy();
+    expect(screen.getAllByText("₱2,100.25").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Cash received")).toBeNull();
   });
 });
 

@@ -4,6 +4,12 @@ The source-of-truth reference for the shipped UI. **Do not apply
 `design-system/haven-hotel/MASTER.md`** — it is superseded (see `DESIGN-STATUS.md` F2).
 This doc and `app/ui-primitives.css` are the current system.
 
+**Cash & Shifts post-close actions (2026-11-14).** In the shared Front Desk
+and Accounting workspace, the handover card opens post-close actions in an
+anchored, internally scrollable popover. It stays within the viewport and does
+not resize the Current Drawer card or move Recent cash activity. Escape,
+outside click, and the close button dismiss it.
+
 **Billing folio detail (2026-11-14).** Front Desk and Accounting use one Billing
 workspace with the existing summary and checkout/deposit/settled queues. A
 selected folio shows identity, invoice totals, contextual actions, and a

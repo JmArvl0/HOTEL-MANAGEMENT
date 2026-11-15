@@ -31,7 +31,7 @@ function DrawerCount({ ledger, actorId, role, onSaved, onStale, renderWorkspace 
   const shiftId = String(shift?.id ?? "");
   const [count, setCount] = useState("");
   const [note, setNote] = useState("");
-  const [context, setContext] = useState<CountContext | null>(null);
+  const [contextEntry, setContextEntry] = useState<{ value: CountContext; fingerprint: string } | null>(null);
   const [countBasis, setCountBasis] = useState("");
   const [version, setVersion] = useState(0);
   const [chosen, setChosen] = useState(false);
@@ -47,18 +47,21 @@ function DrawerCount({ ledger, actorId, role, onSaved, onStale, renderWorkspace 
   const inputRef = useRef<HTMLInputElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const editorHeadingRef = useRef<HTMLHeadingElement>(null);
+  const activity = JSON.stringify((ledger.transactions ?? []).filter(row => row.cash_shift_id === shift?.id && row.status === "paid")
+    .map(row => [row.id, row.amount, row.purpose, row.method]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))));
+  const fingerprint = JSON.stringify([shift?.opening_amount, shift?.collected, activity]);
+  const context = contextEntry?.value ?? null;
+  const freshContext = contextEntry?.fingerprint === fingerprint;
   const saved = context?.draft && !context.draft.invalidatedAt ? context.draft : null;
   const counted = cashNumber(count);
-  const expected = context?.expectedCash ?? cashExpected(shift?.opening_amount, shift?.collected);
+  const expected = freshContext ? context?.expectedCash ?? cashExpected(shift?.opening_amount, shift?.collected) : cashExpected(shift?.opening_amount, shift?.collected);
   const variance = cashCountVariance(counted, expected);
   const stale = Boolean(count && context && countBasis !== context.basis);
   const dirty = Boolean(count || note) && !(saved && counted === Number(saved.actualCash) && note.trim() === saved.notes && countBasis === saved.basis);
   const chooseSaved = Boolean(saved && !chosen);
-  const canSubmit = !busy && !loading && Boolean(context) && !stale && !chooseSaved;
-  const activity = JSON.stringify((ledger.transactions ?? []).filter(row => row.cash_shift_id === shift?.id && row.status === "paid")
-    .map(row => [row.id, row.amount, row.purpose, row.method]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))));
+  const canSubmit = !busy && !loading && Boolean(context) && freshContext && !stale && !chooseSaved;
 
-  const load = useCallback(async (signal?: AbortSignal) => {
+  const load = useCallback(async (requestedFingerprint: string, signal?: AbortSignal) => {
     if (!mayClose) return;
     setLoading(true);
     try {
@@ -66,18 +69,18 @@ function DrawerCount({ ledger, actorId, role, onSaved, onStale, renderWorkspace 
       const body = await response.json();
       if (!response.ok || typeof body.data?.basis !== "string" || typeof body.data?.status !== "string") throw new Error(body.error || "Saved count unavailable. Reload before saving or closing.");
       if (signal?.aborted) return;
-      setContext(body.data);
+      setContextEntry({ value: body.data, fingerprint: requestedFingerprint });
       if (!countStarted.current) setCountBasis(body.data.basis);
       if (body.data.status !== "open") { setMessage("This drawer is already closed. Refresh to view its recorded count."); onStale?.(); }
     } catch (cause) {
-      if (!signal?.aborted) { setContext(null); setError(cause instanceof Error ? cause.message : "Unable to load the saved count."); }
+      if (!signal?.aborted) { setContextEntry(null); setError(cause instanceof Error ? cause.message : "Unable to load the saved count."); }
     } finally { if (!signal?.aborted) setLoading(false); }
   }, [mayClose, shiftId, onStale]);
   useEffect(() => {
     const controller = new AbortController();
-    queueMicrotask(() => { if (!controller.signal.aborted) void load(controller.signal); });
+    queueMicrotask(() => { if (!controller.signal.aborted) void load(fingerprint, controller.signal); });
     return () => controller.abort();
-  }, [load, activity]);
+  }, [load, fingerprint]);
   useEffect(() => {
     if (!dirty && !uncertain) return;
     const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
@@ -100,14 +103,14 @@ function DrawerCount({ ledger, actorId, role, onSaved, onStale, renderWorkspace 
     setVersion(saved.version); setChosen(true); setError("");
   }
   function fresh() {
-    if (!context || uncertain) return;
+    if (!context || !freshContext || uncertain) return;
     countStarted.current = false;
     setCount(""); setNote(""); setCountBasis(context.basis); setVersion(context.draft?.version ?? 0);
     setChosen(true); setError(""); inputRef.current?.focus();
   }
   async function saveDraft(): Promise<SavedCount> {
     if (counted === null || counted < 0 || counted > 10000000) throw new Error("Enter a fresh physical cash count between ₱0.00 and ₱10,000,000.00.");
-    if (!context || context.status !== "open") throw new Error("Reload the drawer before saving or closing.");
+    if (!context || !freshContext || context.status !== "open") throw new Error("Reload the drawer before saving or closing.");
     if (stale) throw new Error("Cash activity changed. Start a fresh physical count before saving or closing.");
     if (!dirty && saved) return saved;
     const response = await fetch("/api/accounting/cash-shifts/" + shiftId, {
@@ -115,10 +118,10 @@ function DrawerCount({ ledger, actorId, role, onSaved, onStale, renderWorkspace 
       body: JSON.stringify({ actualCash: counted, notes: note.trim(), basis: countBasis, version })
     });
     const body = await response.json();
-    if (!response.ok) { if (response.status === 409) void load(); throw new Error(body.error || "Unable to save. Your entries are preserved."); }
+    if (!response.ok) { if (response.status === 409) void load(fingerprint); throw new Error(body.error || "Unable to save. Your entries are preserved."); }
     if (!body.data?.closeKey || !body.data?.version) throw new Error("Save result unavailable. Reload the saved draft before continuing.");
     const draft = body.data as SavedCount;
-    setContext(current => current && { ...current, draft }); setVersion(draft.version); setChosen(true);
+    setContextEntry(current => current && { ...current, value: { ...current.value, draft } }); setVersion(draft.version); setChosen(true);
     return draft;
   }
   async function saveAndReturn() {
@@ -151,12 +154,12 @@ function DrawerCount({ ledger, actorId, role, onSaved, onStale, renderWorkspace 
       });
       const body = await response.json();
       if (!response.ok) {
-        if (response.status === 409 || response.status === 403) { pending.current = null; setUncertain(false); void load(); onStale?.(); }
+        if (response.status === 409 || response.status === 403) { pending.current = null; setUncertain(false); void load(fingerprint); onStale?.(); }
         throw new Error(body.error || "Close result unavailable. Retry the same saved count.");
       }
       const result = "Drawer closed. Expected " + cashMoney(body.data.expectedCash) + "; counted " + cashMoney(body.data.actualCash) + "; variance " + cashMoney(body.data.variance) + ".";
       pending.current = null; setUncertain(false); setMessage(result);
-      setConfirmOpen(false); setEntryOpen(false); setCount(""); setNote(""); setContext(null); onSaved(result);
+      setConfirmOpen(false); setEntryOpen(false); setCount(""); setNote(""); setContextEntry(null); onSaved(result);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Close result unavailable. Retry the same saved count."); }
     finally { setBusy(false); }
   }
@@ -178,7 +181,7 @@ function DrawerCount({ ledger, actorId, role, onSaved, onStale, renderWorkspace 
     <p>Count the notes and coins in the drawer, then compare with expected cash.</p>
     {status}
     {saved && <div className="btn-row"><button type="button" className="btn btn-secondary" disabled={busy || uncertain} onClick={resume}>{chosen ? "Reload saved draft" : "Resume saved draft"}</button></div>}
-    <button type="button" className="cash-text-action" disabled={busy || !context || uncertain} onClick={fresh}>Start a fresh count</button>
+    <button type="button" className="cash-text-action" disabled={busy || !context || !freshContext || uncertain} onClick={fresh}>Start a fresh count</button>
     {stale && <p role="alert">Cash activity changed. Start a fresh count and count the drawer again.</p>}
     {uncertain && <p role="alert">The close result is unconfirmed. Retry closing with the same saved count before making changes.</p>}
     <div className="cash-count-field">
@@ -194,10 +197,10 @@ function DrawerCount({ ledger, actorId, role, onSaved, onStale, renderWorkspace 
     {error && !confirmOpen && <p role="alert">{error}</p>}
     <div className="btn-row">
       {renderWorkspace && <button type="button" className="btn btn-secondary" disabled={busy} onClick={dismissEditor}>Return without saving</button>}
-      <button type="button" className="btn btn-secondary" disabled={busy || loading || !context || stale || chooseSaved || uncertain} onClick={() => void saveAndReturn()}>Save draft &amp; return</button>
+      <button type="button" className="btn btn-secondary" disabled={busy || loading || !context || !freshContext || stale || chooseSaved || uncertain} onClick={() => void saveAndReturn()}>Save draft &amp; return</button>
       <button className="btn btn-primary" disabled={!canSubmit && (!uncertain || busy)}>{busy ? "Recording count…" : uncertain ? "Retry closing drawer" : renderWorkspace ? "Review count" : "Close shared drawer"}</button>
     </div>
-    {!context && !loading && <button type="button" className="btn btn-secondary" onClick={() => void load()}>Reload saved count</button>}
+    {!context && !loading && <button type="button" className="btn btn-secondary" onClick={() => void load(fingerprint)}>Reload saved count</button>}
   </form>;
   if (renderWorkspace) return <>
     {renderWorkspace({

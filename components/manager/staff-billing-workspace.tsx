@@ -27,7 +27,7 @@ function dayLabel(value: string) {
 }
 const money = (value: RecordItem[string]) => value == null ? "—" : formatPeso(Number(value));
 
-function billingRow(folio: BillingFolio, today: string) {
+function billingRow(folio: BillingFolio, today: string, role: Role) {
   const { invoice, reservation, deposits } = folio;
   const guest = String(reservation?.guest_name || invoice?.guest_name || "Guest");
   const reference = String(reservation?.confirmation_number || reservation?.id || invoice?.reservation_id || "");
@@ -38,13 +38,15 @@ function billingRow(folio: BillingFolio, today: string) {
   const overdue = inHouse && Boolean(checkOut) && checkOut < today;
   const leaving = inHouse && checkOut === today;
   const checkoutDue = (overdue || leaving) && (balance ?? 0) > 0;
-  const settled = balance === 0 && invoice?.status === "paid" && !deposits.length;
+  const terminal = reservation?.status === "cancelled" || reservation?.status === "no_show";
+  const settled = !terminal && balance === 0 && invoice?.status === "paid" && !deposits.length;
   const upcoming = reservation?.status === "pending" || reservation?.status === "confirmed";
   const room = reservation?.room_number ? `Room ${reservation.room_number}` : reservation?.room_type;
   const stay = [room, overdue ? "Checkout overdue" : leaving ? "Checkout today"
     : inHouse && checkOut ? `Checkout ${dayLabel(checkOut)}`
     : upcoming && checkIn ? `Arrival ${dayLabel(checkIn)}` : null].filter(Boolean).join(" · ");
-  const status = deposits.length ? { status: "pending_verification", label: "Verify deposit" }
+  const status = terminal ? { status: String(reservation.status), label: reservation.status === "cancelled" ? "Cancelled" : "No-show" }
+    : deposits.length ? { status: "pending_verification", label: canVerifyDeposit(role) ? "Review deposit" : "Awaiting Accounting" }
     : checkoutDue ? { status: "pending", label: overdue ? "Checkout overdue" : "Checkout due" }
     : settled ? { status: "paid", label: "Settled" }
     : { status: String(invoice?.status ?? "unknown"), label: invoice?.status === "partial" ? "Part-paid" : undefined };
@@ -61,23 +63,29 @@ type Props = {
   onCollect: (reservation: RecordItem) => void;
   onReviewDeposit: (payment: RecordItem) => void;
   onOpenReservation: (reservation: RecordItem) => void;
-  onIssueStatement?: (reservationId: string) => void;
+  onIssueStatement?: (reservationId: string) => Promise<string | null> | string | null | void;
+  onOpenIssuedStatement?: (documentNumber: string) => void;
   onAdjustFolio?: (reservationId: string) => void;
   onReverseCharge?: (charge: RecordItem) => void;
 };
 
 type EntryFilter = "all" | "charges" | "payments" | "adjustments";
 
-function FolioDetails({ row, role, readOnly, onCollect, onReviewDeposit, onOpenReservation, onIssueStatement, onAdjustFolio, onReverseCharge, onBack }: {
+function FolioDetails({ row, role, readOnly, onCollect, onReviewDeposit, onOpenReservation, onIssueStatement, onOpenIssuedStatement, onAdjustFolio, onReverseCharge, onBack }: {
   row: Row;
   role: Role;
   readOnly: boolean;
   onBack: () => void;
-} & Pick<Props, "onCollect" | "onReviewDeposit" | "onOpenReservation" | "onIssueStatement" | "onAdjustFolio" | "onReverseCharge">) {
+} & Pick<Props, "onCollect" | "onReviewDeposit" | "onOpenReservation" | "onIssueStatement" | "onOpenIssuedStatement" | "onAdjustFolio" | "onReverseCharge">) {
   const [entryFilter, setEntryFilter] = useState<EntryFilter>("all");
+  const issuingRef = useRef(false);
+  const [issuing, setIssuing] = useState(false);
+  const [issuedNumber, setIssuedNumber] = useState<string | null>(null);
   const { invoice, reservation, deposits } = row;
   const initials = row.guest.trim().split(/\s+/).slice(0, 2).map(word => word[0]).join("");
-  const activity = row.activity.filter(payment => !deposits.some(deposit => deposit.id === payment.id));
+  const activity = [...row.activity, ...deposits.filter(deposit => !row.activity.some(payment => payment.id === deposit.id))];
+  const paidRows = activity.filter(payment => payment.status === "paid" && payment.purpose !== "refund");
+  const missingPaymentHistory = Number(invoice?.paid ?? 0) > 0 && paidRows.length === 0;
   const chargeEntries = (row.charges ?? []).map(charge => ({ id: String(charge.id), kind: "charge" as const, title: String(charge.description ?? "Folio charge"), note: String(charge.category ?? "Charge").replaceAll("_", " "), amount: Number(charge.amount ?? 0), at: String(charge.created_at ?? ""), status: String(charge.status ?? ""), record: charge }));
   const adjustmentEntries = (row.adjustments ?? []).map(adjustment => ({ id: String(adjustment.id), kind: "adjustment" as const, title: String(adjustment.reason ?? "Folio correction"), note: String(adjustment.transaction_type ?? "Adjustment").replaceAll("_", " "), amount: Number(adjustment.amount ?? 0) * (adjustment.direction === "credit" ? -1 : 1), at: String(adjustment.created_at ?? ""), status: "", record: adjustment }));
   const baseAmount = invoice?.amount != null
@@ -91,10 +99,22 @@ function FolioDetails({ row, role, readOnly, onCollect, onReviewDeposit, onOpenR
   ].sort((a, b) => b.at.localeCompare(a.at));
   const filteredEntries = entries.filter(entry => entryFilter === "all" || entryFilter === "charges" && ["room", "charge"].includes(entry.kind) || entryFilter === "payments" && entry.kind === "payment" || entryFilter === "adjustments" && entry.kind === "adjustment");
   const reservationId = String(reservation?.id ?? invoice?.reservation_id ?? "");
+  async function issueStatement() {
+    if (!onIssueStatement || !reservationId || issuingRef.current || issuedNumber) return;
+    issuingRef.current = true;
+    setIssuing(true);
+    try {
+      const number = await onIssueStatement(reservationId);
+      if (number) setIssuedNumber(number);
+    } finally {
+      issuingRef.current = false;
+      setIssuing(false);
+    }
+  }
   return <>
     <header className="billing-folio-heading">
       <button className="billing-back" type="button" onClick={onBack}><ArrowLeft size={16} aria-hidden="true" /> Back to folios</button>
-      <h2 id="billing-folio-title" tabIndex={-1}>Folio details</h2><small>{invoice?.id ?? "Folio not issued"}</small>
+      <h2 id="billing-folio-title" tabIndex={-1}>Folio details</h2><StatusBadge {...row.status} variant="soft" size="sm" showIcon={false} /><small>{invoice?.id ?? "Folio not issued"}</small>
     </header>
     <div className="billing-identity">
       <span aria-hidden="true">{initials}</span>
@@ -106,7 +126,15 @@ function FolioDetails({ row, role, readOnly, onCollect, onReviewDeposit, onOpenR
       <div><dt>Folio credit</dt><dd>{money(invoice?.credit_balance ?? 0)}</dd></div>
       <div className="billing-due"><dt>Balance due</dt><dd>{money(row.balance)}</dd></div>
     </dl>
+    {missingPaymentHistory && <div className="billing-context" data-tone="checkout" role="alert">
+      <strong>Payment history needs reconciliation</strong>
+      <p>This folio reports applied payments, but no settled payment transaction is linked. Ask Accounting to reconcile the source records before relying on the paid total.</p>
+    </div>}
     <div className="billing-contexts">
+      {reservation?.status === "cancelled" && <div className="billing-context" data-tone="checkout">
+        <strong>Cancelled reservation</strong>
+        <p>The stay entry is retained in the folio history. {row.balance === 0 ? "No balance is due on this cancelled reservation." : "The balance due above is the current amount reported by the folio."} Cancellation credits and fees appear in activity when recorded.</p>
+      </div>}
       {deposits.length > 0 ? <>
         {deposits.map((deposit, index) => <div className="billing-deposit" key={deposit.id}>
           <div className="billing-context" data-tone="review">
@@ -152,7 +180,9 @@ function FolioDetails({ row, role, readOnly, onCollect, onReviewDeposit, onOpenR
     </section>
     <div className="billing-actions">
       {reservation && <button type="button" className="btn btn-soft" onClick={() => onOpenReservation(reservation)}><FileText size={16} aria-hidden="true" /> Open reservation</button>}
-      {invoice && reservationId && onIssueStatement && <button type="button" className="btn btn-soft" disabled={readOnly} onClick={() => onIssueStatement(reservationId)}>Issue statement</button>}
+      {invoice && reservationId && onIssueStatement && (issuedNumber && onOpenIssuedStatement
+        ? <button type="button" className="btn btn-soft" onClick={() => onOpenIssuedStatement(issuedNumber)}>View statement {issuedNumber}</button>
+        : <button type="button" className="btn btn-soft" disabled={readOnly || issuing || Boolean(issuedNumber)} onClick={() => void issueStatement()}>{issuing ? "Issuing statement…" : "Issue statement"}</button>)}
       {role === "accounting" && invoice && reservationId && onAdjustFolio && invoice.status !== "cancelled" && <button type="button" className="btn btn-soft" disabled={readOnly} onClick={() => onAdjustFolio(reservationId)}>Record adjustment</button>}
       {reservation && !deposits.length && row.inHouse && (row.balance ?? 0) > 0 && canCollectPayment(role) &&
         <button type="button" className="btn btn-accent" disabled={readOnly} onClick={() => onCollect(reservation)}><CreditCard size={16} aria-hidden="true" /> Collect payment</button>}
@@ -160,7 +190,7 @@ function FolioDetails({ row, role, readOnly, onCollect, onReviewDeposit, onOpenR
   </>;
 }
 
-export default function StaffBillingWorkspace({ role, refreshVersion, search, onSearch, onCollect, onReviewDeposit, onOpenReservation, onIssueStatement, onAdjustFolio, onReverseCharge }: Props) {
+export default function StaffBillingWorkspace({ role, refreshVersion, search, onSearch, onCollect, onReviewDeposit, onOpenReservation, onIssueStatement, onOpenIssuedStatement, onAdjustFolio, onReverseCharge }: Props) {
   const [read, setRead] = useState<{ data: BillingSnapshot | null; error: string; version: number }>({ data: null, error: "", version: -1 });
   const [retry, setRetry] = useState(0);
   const [queue, setQueue] = useState("all");
@@ -190,8 +220,8 @@ export default function StaffBillingWorkspace({ role, refreshVersion, search, on
   }, [refreshVersion, retry]);
 
   const snapshot = read.data;
-  const rows = useMemo(() => snapshot ? snapshot.folios.map(folio => billingRow(folio, snapshot.today))
-    .sort((a, b) => a.priority - b.priority || (b.balance ?? 0) - (a.balance ?? 0)) : [], [snapshot]);
+  const rows = useMemo(() => snapshot ? snapshot.folios.map(folio => billingRow(folio, snapshot.today, role))
+    .sort((a, b) => a.priority - b.priority || (b.balance ?? 0) - (a.balance ?? 0)) : [], [snapshot, role]);
   const matching = useMemo(() => {
     const needle = search.trim().toLowerCase();
     return rows.filter(row => {
@@ -260,10 +290,10 @@ export default function StaffBillingWorkspace({ role, refreshVersion, search, on
           <TablePagination {...page} onPageChange={next => { page.setPage(next); setSelected(null); setMobileDetail(false); }} noun="folios" allTotal={rows.length} />
         </section>
         <aside className="data-panel billing-folio" ref={detailRef} aria-labelledby="billing-folio-title">
-          {active ? <FolioDetails key={active.key} row={active} role={role} readOnly={Boolean(read.error || read.data.demo || read.version !== refreshVersion)}
+          {active ? <FolioDetails key={JSON.stringify([active.key, active.invoice, active.activity, active.charges, active.adjustments])} row={active} role={role} readOnly={Boolean(read.error || read.data.demo || read.version !== refreshVersion)}
             onCollect={reservation => { setSelected(active.key); onCollect(reservation); }}
             onReviewDeposit={payment => { setSelected(active.key); onReviewDeposit(payment); }}
-            onOpenReservation={onOpenReservation} onIssueStatement={onIssueStatement} onAdjustFolio={onAdjustFolio} onReverseCharge={onReverseCharge} onBack={backToFolios} />
+            onOpenReservation={onOpenReservation} onIssueStatement={onIssueStatement} onOpenIssuedStatement={onOpenIssuedStatement} onAdjustFolio={onAdjustFolio} onReverseCharge={onReverseCharge} onBack={backToFolios} />
             : <><h2 id="billing-folio-title">Folio details</h2><p className="billing-muted">Select a folio to see its balance and actions.</p></>}
         </aside>
       </div>

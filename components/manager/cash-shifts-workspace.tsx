@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDownLeft, ArrowRight, ArrowUpRight, Banknote, Check, ChevronRight, Clock3, Filter, RefreshCw, Search, ShieldCheck, TriangleAlert } from "lucide-react";
+import { ArrowDownLeft, ArrowRight, ArrowUpRight, Banknote, Check, ChevronRight, Clock3, Filter, RefreshCw, Search, ShieldCheck, TriangleAlert, X } from "lucide-react";
 import CashCountPanel, { type CashCountPresentation } from "./cash-count-panel";
 import CashCloseNextSteps from "./cash-close-next-steps";
 import { Modal } from "@/components/ui/Modal";
@@ -138,6 +138,57 @@ function ReconciliationDialog({ shift, onClose, onRefresh, onSaved }: { shift: C
   </Modal>;
 }
 
+function CashPostClosePopover({ shift, role, onCreateHandover, onOpenHandovers, onOpenReport }: { shift: CashRecord; role: Role; onCreateHandover: (shift: CashRecord) => void; onOpenHandovers: (id?: string) => void; onOpenReport: (date: string) => void }) {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+  const positionPanel = useCallback(() => {
+    const trigger = triggerRef.current, panel = panelRef.current;
+    if (!trigger || !panel) return;
+    const rect = trigger.getBoundingClientRect();
+    const railWidth = trigger.closest(".cash-handovers")?.getBoundingClientRect().width ?? 420;
+    const width = Math.min(420, railWidth, window.innerWidth - 24);
+    const below = window.innerHeight - rect.bottom - 12;
+    const above = rect.top - 12;
+    const opensBelow = below >= 320 || below >= above;
+    panel.style.width = `${width}px`;
+    panel.style.left = `${Math.max(12, Math.min(rect.right - width, window.innerWidth - width - 12))}px`;
+    panel.style.maxHeight = `${Math.min(440, Math.max(180, opensBelow ? below : above))}px`;
+    panel.style.top = opensBelow ? `${rect.bottom + 6}px` : "auto";
+    panel.style.bottom = opensBelow ? "auto" : `${window.innerHeight - rect.top + 6}px`;
+  }, []);
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    const onToggle = () => setOpen(panel.matches(":popover-open"));
+    const onViewportChange = () => { if (panel.matches(":popover-open")) positionPanel(); };
+    panel.addEventListener("toggle", onToggle);
+    window.addEventListener("resize", onViewportChange);
+    window.addEventListener("scroll", onViewportChange, true);
+    return () => {
+      panel.removeEventListener("toggle", onToggle);
+      window.removeEventListener("resize", onViewportChange);
+      window.removeEventListener("scroll", onViewportChange, true);
+      if (panel.matches(":popover-open")) panel.hidePopover();
+    };
+  }, [positionPanel]);
+  const toggle = () => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    if (panel.matches(":popover-open")) { panel.hidePopover(); setOpen(false); }
+    else { positionPanel(); panel.showPopover(); setOpen(true); closeRef.current?.focus({ preventScroll: true }); }
+  };
+  const close = () => { panelRef.current?.hidePopover(); setOpen(false); triggerRef.current?.focus({ preventScroll: true }); };
+  return <div className="cash-follow-up-disclosure">
+    <button ref={triggerRef} type="button" className="cash-post-close-trigger" aria-expanded={open} aria-controls={`cash-post-close-${shift.id}`} aria-haspopup="dialog" onClick={toggle}>Post-close actions<ChevronRight size={14} aria-hidden="true" /></button>
+    <div ref={panelRef} id={`cash-post-close-${shift.id}`} className="cash-post-close-popover" popover="auto" role="dialog" aria-modal="false" aria-label={`Post-close actions for shift ${shortId(shift)}`}>
+      <header className="cash-post-close-popover-head"><div><h2>Post-close actions</h2><p>Shift #{shortId(shift)} · {cashDate(shift.closed_at)}<br />Recorded variance {cashMoney(shift.variance)}</p></div><button ref={closeRef} type="button" className="cash-popover-close" aria-label="Close post-close actions" onClick={close}><X size={16} aria-hidden="true" /></button></header>
+      <CashCloseNextSteps shift={shift} role={role} onCreateHandover={onCreateHandover} onOpenHandovers={onOpenHandovers} onOpenReport={onOpenReport} popover />
+    </div>
+  </div>;
+}
+
 export default function CashShiftsWorkspace({ ledger, actorId, role, search, setSearch, onOpen, onRefresh, onOpenHandovers, onCreateHandover, onOpenReport, refreshError = "" }: Props) {
   const [status, setStatus] = useState("all");
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -240,7 +291,7 @@ export default function CashShiftsWorkspace({ ledger, actorId, role, search, set
         </div>}
 
         <div className="cash-operational-grid">
-            <section className="cash-surface cash-current" aria-labelledby="cash-current-heading" id="shared-drawer-count">
+            <section className={`cash-surface cash-current${active ? "" : " cash-current-closed"}`} aria-labelledby="cash-current-heading" id="shared-drawer-count">
               <div className="cash-section-heading">
                 <div>
                   <p className="cash-section-label">CURRENT DRAWER</p>
@@ -272,7 +323,7 @@ export default function CashShiftsWorkspace({ ledger, actorId, role, search, set
                 {latestClosed && <div className="cash-last-close">
                   <div className="cash-section-heading">
                     <div><h3>Latest closed shift</h3><p>{text(latestClosed.staff_name)} · {cashDate(latestClosed.closed_at)}</p></div>
-                    <button className="cash-text-action" onClick={() => setDetailId(String(latestClosed.id))}>View shift record<ChevronRight size={14} aria-hidden="true" /></button>
+                    <button className="cash-button cash-outline" onClick={() => setDetailId(String(latestClosed.id))}>View shift record<ChevronRight size={14} aria-hidden="true" /></button>
                   </div>
                   <RecordedCount expected={latestClosed.expected_cash} counted={latestClosed.actual_cash} variance={latestClosed.variance} />
                 </div>}
@@ -296,14 +347,11 @@ export default function CashShiftsWorkspace({ ledger, actorId, role, search, set
             </section>
 
             <section className="cash-surface cash-handovers" aria-labelledby="cash-handover-heading">
-              <header className="cash-panel-heading"><div><p className="cash-section-label">TEAM FOLLOW-UP</p><h2 id="cash-handover-heading">Drawer handover</h2></div>{outstandingHandovers.length > 0 && <span className="cash-handover-count">{outstandingHandovers.length} open</span>}<button className="cash-text-action" aria-label="Open operational handover" onClick={() => onOpenHandovers()}>View all</button></header>
+              <header className="cash-panel-heading"><div><p className="cash-section-label">TEAM FOLLOW-UP</p><h2 id="cash-handover-heading">Drawer handover</h2></div>{outstandingHandovers.length > 0 && <span className="cash-handover-count">{outstandingHandovers.length} open</span>}<button className="cash-button cash-outline" aria-label="View all drawer handovers" onClick={() => onOpenHandovers()}>View all</button></header>
               {handoverError ? <div className="cash-empty" role="alert">Cash follow-up could not be confirmed: {handoverError} <button className="cash-text-action" onClick={() => setHandoverRetry(value => value + 1)}>Retry handovers</button></div> : !handovers ? <p className="cash-empty" role="status">Loading authorized handovers…</p> : <>
                 {outstandingHandovers.length ? <ul className="cash-handover-list">{outstandingHandovers.slice(0, 1).map(row => <li key={row.id}><div className="cash-section-heading"><h3>{nameOf(row.submitted_by)} <ArrowRight size={14} aria-label="to" /> {nameOf(row.follow_up_user_id)}</h3><span className={`cash-status ${row.acknowledged_at ? "" : "cash-status-review"}`}>{row.acknowledged_at ? "Acknowledged · Unresolved" : "Awaiting acknowledgement"}</span></div><p>{row.summary}</p><small>{row.source_id === current?.id ? active ? "Current drawer" : "Latest closed drawer" : "Other cash shift"} · #{row.source_id.slice(0, 8)} · Submitted {cashDate(row.submitted_at)}</small><button className="cash-text-action" onClick={() => onOpenHandovers(row.id)}>View follow-up</button></li>)}</ul> : <p className="cash-empty">No unresolved cash follow-up appears in the recent authorized records. Older records are outside this list.</p>}
               </>}
-              {latestClosed && !detail && <details className="cash-follow-up-disclosure">
-                <summary>Post-close actions<ChevronRight size={14} aria-hidden="true" /></summary>
-                <CashCloseNextSteps key={String(latestClosed.id)} shift={latestClosed} role={role} onCreateHandover={onCreateHandover} onOpenHandovers={onOpenHandovers} onOpenReport={onOpenReport} />
-              </details>}
+              {latestClosed && !detail && <CashPostClosePopover key={String(latestClosed.id)} shift={latestClosed} role={role} onCreateHandover={onCreateHandover} onOpenHandovers={onOpenHandovers} onOpenReport={onOpenReport} />}
             </section>
           </aside>
         </div>

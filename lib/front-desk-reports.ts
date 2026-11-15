@@ -12,6 +12,9 @@ export type DailyReportSnapshot = {
   reservations: { created: number; bySource: Record<string, number>; arrivals: number; departures: number; cancelled: number; noShow: number };
   guestRequests: { opened: number; escalated: number; openByDepartment: Record<string, number> };
   collections: { count: number; total: number; byPurpose: Record<string, number>; byMethod?: Record<string, number> };
+  // Added after the first submitted snapshots. Older snapshots remain immutable.
+  refunds?: { count: number; total: number; byMethod: Record<string, number> };
+  netReceipts?: number;
   // Shift close-out figures were added after the first snapshots shipped, so they
   // stay optional: older submitted snapshots simply predate them.
   cashShifts?: { closed: number; counted: number; expected: number; variance: number };
@@ -61,7 +64,12 @@ const sumBy = (rows: { [key: string]: unknown }[], key: string, amountKey: strin
 export function summarizeDailyActivity(rows: DailyReportRows, reportDate: string): Omit<DailyReportSnapshot, "generatedAt"> {
   const cancelled = rows.reservationAuditEvents.filter((event) => event.action === "cancel_reservation").length;
   const noShow = rows.reservationAuditEvents.filter((event) => event.action === "reservation_no_show").length;
-  const total = rows.settledPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+  const incoming = rows.settledPayments.filter((payment) => payment.purpose !== "refund");
+  const outgoing = rows.settledPayments.filter((payment) => payment.purpose === "refund");
+  const total = (payments: DailyReportRows["settledPayments"]) =>
+    Math.round(payments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0) * 100) / 100;
+  const collectionsTotal = total(incoming);
+  const refundsTotal = total(outgoing);
   const shiftTotal = (key: "expected_cash" | "actual_cash" | "variance") =>
     Math.round(rows.cashShiftsClosed.reduce((sum, shift) => sum + Number(shift[key] || 0), 0) * 100) / 100;
   // Turnaround averages minutes from start to completion, rounded to whole
@@ -80,7 +88,9 @@ export function summarizeDailyActivity(rows: DailyReportRows, reportDate: string
     reportDate,
     reservations: { created: rows.reservationsCreated.length, bySource: countBy(rows.reservationsCreated, "source"), arrivals: rows.checkedIn.length, departures: rows.checkedOut.length, cancelled, noShow },
     guestRequests: { opened: rows.guestRequestsOpened.length, escalated: rows.guestRequestsEscalated.length, openByDepartment: countBy(rows.openRequests, "department") },
-    collections: { count: rows.settledPayments.length, total: Math.round(total * 100) / 100, byPurpose: countBy(rows.settledPayments, "purpose"), byMethod: sumBy(rows.settledPayments, "method", "amount") },
+    collections: { count: incoming.length, total: collectionsTotal, byPurpose: countBy(incoming, "purpose"), byMethod: sumBy(incoming, "method", "amount") },
+    refunds: { count: outgoing.length, total: refundsTotal, byMethod: sumBy(outgoing, "method", "amount") },
+    netReceipts: Math.round((collectionsTotal - refundsTotal) * 100) / 100,
     cashShifts: { closed: rows.cashShiftsClosed.length, counted: shiftTotal("actual_cash"), expected: shiftTotal("expected_cash"), variance: shiftTotal("variance") },
     housekeeping,
     rooms: countBy(rows.rooms, "status"),
