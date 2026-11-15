@@ -5,6 +5,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import StaffDutyPanel from "./staff-duty-panel";
+vi.mock("./workforce-panel", () => ({ default: () => null }));
 import { STAFF_DUTY_BASIS_NOTE, type StaffDutySnapshot } from "@/lib/staff-duty";
 
 // jsdom ships no matchMedia; Modal reads prefers-reduced-motion on every render.
@@ -57,7 +58,7 @@ describe("StaffDutyPanel", () => {
     expect(within(working).getByText("1")).toBeTruthy();
     expect(within(table()).getByText("Room 102 · Checkout clean")).toBeTruthy(); // Ana's live assignment
     const housekeeping = screen.getByRole("button", { name: /housekeeping/i });
-    expect(within(housekeeping).getByText((_, element) => element?.textContent === "1 of 1 on duty")).toBeTruthy();
+    expect(within(housekeeping).getByText((_, element) => element?.textContent === "1 of 1 with active work")).toBeTruthy();
     for (const name of ["Ana Cruz", "Carlo Diaz", "Mia Reyes"]) expect(within(table()).getByText(name)).toBeTruthy();
   });
 
@@ -65,7 +66,7 @@ describe("StaffDutyPanel", () => {
     vi.stubGlobal("fetch", serve({ data: snapshot }));
     const { container } = render(<StaffDutyPanel />);
     expect(await screen.findByRole("heading", { name: /staff & duty/i })).toBeTruthy();
-    expect(screen.getByText(/staff operations/i)).toBeTruthy();
+    expect(screen.getByText(/department activity/i)).toBeTruthy();
     const summary = screen.getByLabelText("Duty summary");
     for (const name of ["Working now", "Assigned work", "No active work", "Departments"]) {
       expect(within(summary).getByText(name)).toBeTruthy();
@@ -85,10 +86,10 @@ describe("StaffDutyPanel", () => {
     expect(panel.tagName.toLowerCase()).toBe("aside");
     expect(within(panel).getByText("Department Coverage")).toBeTruthy();
     const housekeeping = within(panel).getByRole("button", { name: /housekeeping/i });
-    expect(within(housekeeping).getByText((_, element) => element?.textContent === "1 of 1 on duty")).toBeTruthy();
+    expect(within(housekeeping).getByText((_, element) => element?.textContent === "1 of 1 with active work")).toBeTruthy();
     expect(within(housekeeping).getByText("100%")).toBeTruthy();
     const frontDesk = within(panel).getByRole("button", { name: /front desk/i });
-    expect(within(frontDesk).getByText((_, element) => element?.textContent === "0 of 1 on duty")).toBeTruthy();
+    expect(within(frontDesk).getByText((_, element) => element?.textContent === "0 of 1 with active work")).toBeTruthy();
     expect(within(frontDesk).getByText("0%")).toBeTruthy();
   });
 

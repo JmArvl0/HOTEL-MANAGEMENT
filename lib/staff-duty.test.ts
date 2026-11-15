@@ -24,6 +24,21 @@ function input(overrides: Partial<StaffDutyInput> = {}): StaffDutyInput {
 }
 
 describe("staff duty derivation", () => {
+  it.each(["housekeeping", "maintenance"] as const)("counts every in-progress %s record while counting the worker once", (department) => {
+    const id = department === "housekeeping" ? "ana" : "carlo";
+    const work = ["in_progress", "in_progress", "assigned", "completed"].map((status, i) => ({
+      id: `WORK-${i}`, room_number: String(101 + i), task: "Room care", issue: "Repair", status, assigned_user_id: id,
+    }));
+    const snapshot = deriveStaffDuty(input(department === "housekeeping"
+      ? { housekeepingTasks: work }
+      : { maintenanceOrders: work }));
+    const worker = snapshot.staff.find((member) => member.id === id)!;
+    expect(worker.workload).toMatchObject({ inProgress: 2, assigned: 1 });
+    expect(worker.activeWork).toHaveLength(3);
+    expect(snapshot.summary.working).toBe(1);
+    expect(snapshot.departments.find((item) => item.name === worker.department)?.working).toBe(1);
+  });
+
   it("marks staff with in-progress work as working", () => {
     const snapshot = deriveStaffDuty(input({ housekeepingTasks: [{ id: "HKT-1", room_number: "102", task: "Checkout clean", status: "in_progress", assigned_user_id: "ana" }] }));
     const ana = snapshot.staff.find((member) => member.id === "ana")!;

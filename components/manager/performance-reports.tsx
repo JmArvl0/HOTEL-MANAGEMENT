@@ -1,11 +1,12 @@
 "use client";
 
-import { BedDouble, Download, Gauge, TrendingDown, TrendingUp, Wallet } from "lucide-react";
+import { BedDouble, Gauge, TrendingDown, TrendingUp, Wallet } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { DashboardData, Role } from "@/lib/types";
 import { CHART_REPORT_OCCUPANCY } from "@/lib/chart-tokens";
 import { ModuleSummaryCards, type ModuleSummaryCard } from "@/components/manager/module-summary-cards";
 import { PageHeader } from "@/components/ui";
+import { DownloadMenu, printDownload } from "@/components/ui/download-menu";
 import NightAuditPanel from "./night-audit-panel";
 
 const peso = (value: unknown) => new Intl.NumberFormat("en-PH", {
@@ -28,13 +29,11 @@ export default function PerformanceReports({ data, role }: { data: DashboardData
 
   return <section className="performance-reports" aria-label="Property performance">
     <NightAuditPanel role={role} readOnly />
-    <PageHeader variant="band" className="reports-title" eyebrow="Administration & analytics" title="Property performance" subtitle="Review revenue movement, occupancy, and room readiness from the hotel's current operational records." actions={<button className="btn btn-accent" type="button" onClick={() => window.print()} aria-label="Export property performance report">
-        <Download size={17} aria-hidden="true"/> Export report
-      </button>} />
+    <PageHeader variant="band" className="reports-title" eyebrow="Administration & analytics" title="Property performance" subtitle="Review collections, occupancy, and room readiness from the hotel's current operational records." actions={<DownloadMenu label="Download property performance report" actions={[printDownload]} />} />
 
     <ModuleSummaryCards
       cards={[
-        { label: role === "manager" ? "Collections today" : "Estimated room revenue", value: peso(moneyValue), hint: role === "manager" ? `${peso(data.metrics.depositsReceived)} deposits · ${peso(data.metrics.refundSummary)} refunds` : "Based on current folios", icon: Wallet, tone: "today" },
+        { label: role === "manager" ? "Collections today" : "Payments applied to folios", value: peso(moneyValue), hint: role === "manager" ? `${peso(data.metrics.depositsReceived)} deposits · ${peso(data.metrics.refundSummary)} refunds` : "Based on current folios", icon: Wallet, tone: "today" },
         { label: "Average booked occupancy", value: `${averageOccupancy}%`, hint: `${occupancyChange >= 0 ? "+" : ""}${occupancyChange} points across the seven-day view`, icon: TrendIcon, tone: "today" },
         { label: "Operational readiness", value: `${readiness}%`, hint: `${serviceableRooms} of ${totalRooms} rooms serviceable`, icon: Gauge, tone: "today" },
       ]}
@@ -44,7 +43,7 @@ export default function PerformanceReports({ data, role }: { data: DashboardData
     <div className="report-analysis-grid">
       <article className="panel report-chart report-analysis-panel">
         <div className="panel-heading report-panel-heading">
-          <div><p className="report-section-label">Occupancy trend</p><h2>Seven-day booked occupancy</h2><p>Rooms with a stay covering each night, as a share of serviceable rooms — measured from reservation stay dates, not the live room rack. The last point is today.</p></div>
+          <div><p className="report-section-label">Occupancy trend</p><h2>Seven-day booked occupancy</h2><p>Booked stay nights divided by the current serviceable room count. Past room capacity may differ. The last point is today.</p></div>
           <span className={`report-change ${occupancyChange < 0 ? "negative" : "positive"}`}><TrendIcon size={14} aria-hidden="true"/>{occupancyChange >= 0 ? "+" : ""}{occupancyChange} pts</span>
         </div>
         <div className="report-chart-canvas" role="img" aria-label={`Seven-day booked occupancy chart. Average ${averageOccupancy} percent, ending at ${latestOccupancy} percent booked for today.`}>

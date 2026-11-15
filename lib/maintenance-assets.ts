@@ -23,6 +23,7 @@ export interface MaintenanceAsset {
   notes: string | null;
   active: boolean;
   created_at: string;
+  updated_at?: string;
 }
 
 export type AssetDueWindow = "overdue" | "due_7" | "due_30" | "scheduled" | "unscheduled";

@@ -1,11 +1,10 @@
 // @vitest-environment jsdom
-// Render-layer smoke test for the Housekeeping queue summary cards: the counts
-// must come from the same groupQueueTask grouping the visible queue renders, so
-// card == queue by construction (same pattern as module-summary.test.tsx).
+// Summary and work-order regressions for the Housekeeping queue.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import HousekeepingQueuePanel, { groupQueueTask } from "./housekeeping-queue-panel";
 import type { RecordItem } from "@/lib/types";
+vi.mock("./workforce-panel", () => ({ default: () => null }));
 
 const noop = () => {};
 // The panel derives "today" from the real clock (Asia/Manila); the test must
@@ -27,10 +26,15 @@ function renderPanel(items: RecordItem[], role: "housekeeping" | "manager" = "ho
   />);
 }
 
+function openQueueOverview() {
+  fireEvent.click(screen.getByText("Queue overview", { selector: "summary" }));
+  return screen.getByRole("group", { name: "Housekeeping summary" });
+}
+
 afterEach(cleanup);
 
 describe("HousekeepingQueuePanel summary cards", () => {
-  it("counts the five cards from the same grouping the queue renders", () => {
+  it("counts active work even when it appears in My Tasks or Blocked by Maintenance", () => {
     const items = [
       task(), // pending, unassigned → needs_attention
       task({ id: "t2", status: "in_progress" }), // → in_progress
@@ -38,12 +42,14 @@ describe("HousekeepingQueuePanel summary cards", () => {
       task({ id: "t4", maintenance_blocked: true }), // → blocked
       task({ id: "t5", status: "completed", inspection_status: "passed", completed_at: nowIso }), // → completed_today
       task({ id: "t6", status: "cancelled" }), // grouped null — never counted
+      task({ id: "t7", status: "in_progress", assigned_user_id: "u1" }), // → my_tasks
+      task({ id: "t8", status: "in_progress", maintenance_blocked: true }), // → blocked
     ];
     // Sanity: the grouping itself puts each item where the test claims.
     const groups = items.map((item) => groupQueueTask(item, "u1", TODAY));
-    expect(groups).toEqual(["needs_attention", "in_progress", "waiting_inspection", "blocked", "completed_today", null]);
+    expect(groups).toEqual(["needs_attention", "in_progress", "waiting_inspection", "blocked", "completed_today", null, "my_tasks", "blocked"]);
     renderPanel(items);
-    const summary = screen.getByRole("group", { name: "Housekeeping summary" });
+    const summary = openQueueOverview();
     // Card values are the <b> inside each article; assert by label order.
     const cards = Array.from(summary.querySelectorAll("article")).map((card) => ({
       label: card.querySelector("span")?.textContent,
@@ -51,16 +57,16 @@ describe("HousekeepingQueuePanel summary cards", () => {
     }));
     expect(cards).toEqual([
       { label: "Needs attention", value: "1" },
-      { label: "In progress", value: "1" },
+      { label: "In progress", value: "3" },
       { label: "Waiting for inspection", value: "1" },
-      { label: "Blocked by Maintenance", value: "1" },
+      { label: "Blocked by Maintenance", value: "2" },
       { label: "Completed today", value: "1" },
     ]);
   });
 
   it("renders valid zero counts instead of hiding cards", () => {
     renderPanel([task({ id: "t1", status: "cancelled" })]);
-    const cards = Array.from(screen.getByRole("group", { name: "Housekeeping summary" }).querySelectorAll("article")).map((card) => card.querySelector("b")?.textContent);
+    const cards = Array.from(openQueueOverview().querySelectorAll("article")).map((card) => card.querySelector("b")?.textContent);
     expect(cards).toEqual(["0", "0", "0", "0", "0"]);
   });
 });
@@ -127,19 +133,37 @@ describe("HousekeepingQueuePanel workspace", () => {
     expect(actions[0]).toBe("Complete Task");
   });
 
+  it("puts active owned rooms first, ahead of urgent assigned and unclaimed work", () => {
+    renderPanel([
+      task({ id: "unclaimed", priority: "urgent", room_number: "101" }),
+      task({ id: "urgent-mine", priority: "urgent", status: "assigned", assigned_user_id: "u1", room_number: "102" }),
+      task({ id: "active-mine", status: "in_progress", assigned_user_id: "u1", room_number: "103" }),
+    ]);
+
+    const queue = screen.getByRole("region", { name: "Room care queue" });
+    const myTasks = within(queue).getByRole("region", { name: "My Tasks" });
+    const attention = within(queue).getByRole("region", { name: "Needs attention" });
+    const roomCards = within(myTasks).getAllByRole("article");
+    expect(roomCards.map((card) => card.querySelector("header b")?.textContent)).toEqual(["Room 103", "Room 102"]);
+    expect(myTasks.compareDocumentPosition(attention) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(attention).getAllByRole("button").slice(0, 2).map((button) => button.textContent)).toEqual(["Start cleaning", "Claim"]);
+    expect(screen.getByText("Queue overview", { selector: "summary" }).closest("details")?.open).toBe(false);
+  });
+
   it("filters the queue by work type and status while cards stay global", () => {
     renderPanel([
       task({ id: "t1", task_type: "checkout_cleaning", status: "pending" }),
       task({ id: "t2", task: "Stayover tidy", task_type: "stayover_cleaning", status: "in_progress", assigned_user_id: null, assigned_to: "Unassigned" }),
     ]);
     // Narrow to stayover work: only the stayover card remains listed.
+    fireEvent.click(screen.getByText("Filters", { selector: "summary" }));
     fireEvent.click(screen.getByRole("button", { name: "Filter by work type" }));
     fireEvent.click(screen.getByRole("option", { name: "stayover cleaning" }));
     const queue = screen.getByRole("region", { name: "Room care queue" });
     expect(within(queue).queryByText("checkout cleaning")).toBeNull();
     expect(within(queue).getByText("stayover cleaning")).toBeTruthy();
     // Cards still describe the whole loaded queue.
-    const cards = Array.from(screen.getByRole("group", { name: "Housekeeping summary" }).querySelectorAll("article")).map((card) => card.querySelector("b")?.textContent);
+    const cards = Array.from(openQueueOverview().querySelectorAll("article")).map((card) => card.querySelector("b")?.textContent);
     expect(cards).toEqual(["1", "1", "0", "0", "0"]);
   });
 
@@ -155,7 +179,7 @@ describe("HousekeepingQueuePanel workspace", () => {
       role="housekeeping" userId="u1" items={[full[1]]} allItems={full} search="" setSearch={noop}
       housekeepingAction={noop} coordinate={noop} onViewMaintenance={noop} onViewRoom={noop}
     />);
-    const cards = Array.from(screen.getByRole("group", { name: "Housekeeping summary" }).querySelectorAll("article")).map((card) => card.querySelector("b")?.textContent);
+    const cards = Array.from(openQueueOverview().querySelectorAll("article")).map((card) => card.querySelector("b")?.textContent);
     expect(cards).toEqual(["1", "0", "1", "0", "0"]);
     expect(within(screen.getByRole("region", { name: "Room care queue" })).getByText(/Showing 1 of 1 task/)).toBeTruthy();
     expect(screen.getByText(/Summary counts cover all loaded tasks/)).toBeTruthy();
@@ -214,7 +238,7 @@ describe("HousekeepingQueuePanel workspace", () => {
     fireEvent.click(toggle);
     expect(completedSection().textContent).toContain("Turnover clean");
     // Blocked work names the blocker (card + section) and links the work order.
-    expect(screen.getAllByText("Blocked by Maintenance")).toHaveLength(2);
+    expect(within(openQueueOverview()).getByText("Blocked by Maintenance")).toBeTruthy();
     expect(screen.getByRole("button", { name: "View work order" })).toBeTruthy();
   });
 });

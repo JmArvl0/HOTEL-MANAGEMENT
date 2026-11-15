@@ -62,7 +62,7 @@ describe("moduleSummary counts", () => {
   it("counts maintenance queues, blocked rooms, and urgent severity separately", () => {
     const chips = moduleSummary("maintenance_orders", rows([
       { id: "1", status: "open", severity: "normal", serviceability_impact: "serviceable" },
-      { id: "2", status: "assigned", severity: "high", serviceability_impact: "blocked" },
+      { id: "2", room_id: "R1", status: "assigned", severity: "high", serviceability_impact: "blocked" },
       { id: "3", status: "in_progress", severity: "critical", serviceability_impact: "serviceable" },
       { id: "4", status: "waiting_parts", severity: "normal", serviceability_impact: "serviceable" },
     ]), TODAY);
@@ -73,6 +73,44 @@ describe("moduleSummary counts", () => {
       ["Blocked rooms", 1],
       ["Urgent or critical", 2],
     ]);
+  });
+
+  it("counts distinct actively blocked rooms, including out-of-service, without ended orders or non-room work", () => {
+    const chips = moduleSummary("maintenance_orders", rows([
+      { id: "M1", room_id: "R1", status: "in_progress", severity: "critical", serviceability_impact: "blocked" },
+      { id: "M2", room_id: "R1", status: "waiting_parts", serviceability_impact: "blocked" },
+      { id: "M3", room_id: "R2", status: "assigned", severity: "high", serviceability_impact: "out_of_service" },
+      { id: "M4", room_id: "R3", status: "resolved", severity: "critical", serviceability_impact: "blocked" },
+      { id: "M5", room_id: "R4", status: "cancelled", severity: "critical", serviceability_impact: "blocked" },
+      { id: "M6", target_type: "equipment", status: "in_progress", serviceability_impact: "blocked" },
+    ]), TODAY);
+    expect(chips.find(chip => chip.label === "Blocked rooms")?.value).toBe(2);
+    expect(chips.find(chip => chip.label === "Urgent or critical")?.value).toBe(2);
+  });
+
+  it("splits refunds by policy vs Manager-approval basis and ignores processed exceptions", () => {
+    const chips = moduleSummary("refunds", rows([
+      { id: "1", status: "pending", exception_approval_id: null },
+      { id: "2", status: "pending", exception_approval_id: "ap-1", approval_status: "pending" },
+      { id: "3", status: "processed", exception_approval_id: "ap-2", approval_status: "approved" },
+      { id: "4", status: "failed", exception_approval_id: null },
+    ]), TODAY);
+    expect(chips.map(({ label, value }) => [label, value])).toEqual([
+      ["Within policy, to settle", 2],
+      ["Awaiting Manager approval", 1],
+      ["Processed", 1],
+      ["Failed", 1],
+    ]);
+  });
+
+  it("sums the outstanding balance across billing folios", () => {
+    const chips = moduleSummary("invoices", rows([
+      { id: "1", status: "unpaid", balance: 6400 },
+      { id: "2", status: "partial", balance: 3200.50 },
+      { id: "3", status: "paid", balance: 0 },
+    ]), TODAY);
+    expect(chips.find((chip) => chip.label === "Outstanding balance")?.value).toBe("₱9,601");
+    expect(chips.find((chip) => chip.label === "Unpaid")?.value).toBe(1);
   });
 
   it("counts only Xendit payments as awaiting provider settlement", () => {

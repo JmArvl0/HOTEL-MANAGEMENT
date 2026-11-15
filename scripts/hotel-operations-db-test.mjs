@@ -192,11 +192,15 @@ try {
         }finally{await peer.query("rollback");}
       });
       const competingArgs = { ...args, p_key: randomUUID() };
+      const obligationsBefore = (await db.query("select id,amount from invoices order by id")).rows;
+      const chargesBefore = (await db.query("select id,amount from folio_charges order by id")).rows;
       const attempts = await Promise.allSettled([rpc(db, "hotel_night_audit_close", args), rpc(peer, "hotel_night_audit_close", competingArgs)]);
       assert.equal(attempts.filter(row => row.status === "fulfilled").length, 1);
       const saved = (await rpc(db, "hotel_night_audit_close", attempts[0].status === "fulfilled" ? args : competingArgs))[0].hotel_night_audit_close;
       assert.ok(saved.snapshot);
       assert.equal(Number((await db.query("select count(*) n from hotel_night_audits where business_date=$1", [preview.businessDate])).rows[0].n), 1);
+      assert.deepEqual((await db.query("select id,amount from invoices order by id")).rows, obligationsBefore, "Night close does not add a second room obligation");
+      assert.deepEqual((await db.query("select id,amount from folio_charges order by id")).rows, chargesBefore, "Repeated close adds no charge lines");
       await assert.rejects(db.query("update hotel_night_audits set snapshot='{}' where business_date=$1", [preview.businessDate]), /IMMUTABLE/);
     } finally { await peer.end(); }
   });

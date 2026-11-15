@@ -64,7 +64,8 @@ describe("PerformanceReports", () => {
     const print = vi.spyOn(window, "print").mockImplementation(() => undefined);
     render(<PerformanceReports data={data} role="manager"/>);
 
-    fireEvent.click(screen.getByRole("button", { name: "Export property performance report" }));
+    fireEvent.click(screen.getByRole("button", { name: "Download property performance report" }));
+    fireEvent.click(screen.getByRole("option", { name: "Print / Save as PDF" }));
     expect(print).toHaveBeenCalledOnce();
   });
 });

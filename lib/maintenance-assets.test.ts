@@ -88,7 +88,7 @@ describe("route contracts", () => {
   });
 
   it("every mutation runs through its audited RPC — no direct table writes, no room writes", () => {
-    for (const rpc of ["maintenance_register_asset", "maintenance_record_asset_service", "maintenance_update_asset", "maintenance_deactivate_asset"]) {
+    for (const rpc of ["maintenance_register_asset", "maintenance_record_asset_service", "maintenance_apply_asset_change"]) {
       expect(list + actions).toContain(`"${rpc}"`);
     }
     expect(list + actions).not.toMatch(/from\("maintenance_assets"\)\.(insert|update|delete)/);
@@ -97,8 +97,9 @@ describe("route contracts", () => {
 
   it("rejects future service dates and resolves staff-typed rooms to ids", () => {
     expect(list).toContain("cannot be in the future");
-    expect(actions).toContain("cannot be in the future");
-    expect(list).toMatch(/from\("rooms"\)\.select\("id"\)\.or\(/);
+    expect(actions).toContain("on or before today");
+    expect(read("lib/asset-room.ts")).toContain('.eq("id", identifier)');
+    expect(read("lib/asset-room.ts")).toContain('.eq("number", identifier)');
   });
 });
 

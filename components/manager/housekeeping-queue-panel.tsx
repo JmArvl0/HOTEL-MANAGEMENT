@@ -8,6 +8,7 @@ import { HavenSelect } from "@/components/ui/haven-select";
 import { HavenDataToolbar, HavenSearchInput } from "@/components/ui/haven-data-controls";
 import type { AssignmentSuggestion } from "@/lib/housekeeping-suggestions";
 import type { RecordItem, Role } from "@/lib/types";
+import WorkforcePanel from "@/components/manager/workforce-panel";
 
 // Operational queue for the housekeeping workflow. Renders the same
 // authoritative housekeeping_tasks rows the previous table showed (same
@@ -44,15 +45,15 @@ export type QueueGroup = "blocked" | "needs_attention" | "my_tasks" | "in_progre
 export function groupQueueTask(item: RecordItem, userId: string, today: string): QueueGroup | null {
   const status = String(item.status);
   if (status === "cancelled") return null;
-  const maintenanceBlocked = item.maintenance_blocked === true;
   if (status === "completed") {
     if (String(item.inspection_status) === "pending") return "waiting_inspection";
     if (day(item.completed_at) === today) return "completed_today";
     return null; // older history — the room detail modal owns it
   }
-  if (maintenanceBlocked && openTaskStatuses.concat("in_progress").includes(status)) return "blocked";
-  if (openTaskStatuses.includes(status) && (!item.assigned_user_id || (priorityRank[String(item.priority)] ?? 3) <= 1)) return "needs_attention";
-  if (userId && item.assigned_user_id === userId && [...openTaskStatuses, "in_progress"].includes(status)) return "my_tasks";
+  const open = openTaskStatuses.includes(status);
+  if (item.maintenance_blocked === true && (open || status === "in_progress")) return "blocked";
+  if (userId && item.assigned_user_id === userId && (open || status === "in_progress")) return "my_tasks";
+  if (open && (!item.assigned_user_id || (priorityRank[String(item.priority)] ?? 3) <= 1)) return "needs_attention";
   if (status === "in_progress") return "in_progress";
   return "other_open";
 }
@@ -119,23 +120,30 @@ export default function HousekeepingQueuePanel({ role, userId, items, allItems, 
       const group = groupQueueTask(item, mine, today);
       if (group) grouped[group].push(item);
     }
-    for (const key of Object.keys(grouped) as QueueGroup[]) grouped[key].sort(queueTaskOrder);
+    for (const key of Object.keys(grouped) as QueueGroup[]) {
+      grouped[key].sort(key === "my_tasks" ? (a, b) =>
+        Number(b.status === "in_progress") - Number(a.status === "in_progress") || queueTaskOrder(a, b)
+      : queueTaskOrder);
+    }
     return grouped;
   }, [queueItems, mine, today]);
   // Summary cards always describe the whole loaded queue — filters narrow the
   // sections below, never the snapshot above.
   const totals = useMemo(() => {
     const grouped: Record<QueueGroup, number> = { blocked: 0, needs_attention: 0, my_tasks: 0, in_progress: 0, waiting_inspection: 0, completed_today: 0, other_open: 0 };
+    let inProgress = 0;
     for (const item of allItems ?? items) {
       const group = groupQueueTask(item, mine, today);
       if (group) grouped[group] += 1;
+      if (item.status === "in_progress") inProgress += 1;
     }
-    return grouped;
+    return { ...grouped, in_progress: inProgress };
   }, [allItems, items, mine, today]);
 
+  const myTasks: GroupSpec = { key: "my_tasks", title: "My Tasks", hint: "Your assigned room work", icon: BedDouble };
   const specs: GroupSpec[] = [
+    ...(canHousekeep ? [myTasks] : []),
     { key: "needs_attention", title: "Needs attention", hint: "Unassigned or urgent open work — the next rooms to clean", icon: ClipboardCheck },
-    { key: "my_tasks", title: "My tasks", hint: "Assigned to you and not yet finished", icon: BedDouble },
     { key: "in_progress", title: "Cleaning in progress", hint: "Active work by the rest of the team", icon: BedDouble },
     { key: "waiting_inspection", title: "Waiting for inspection", hint: "Cleaned — the room is not sellable until inspection passes", icon: Sparkles },
     { key: "blocked", title: "Blocked by Maintenance", hint: "A work order holds these rooms; Maintenance owns the repair", icon: Wrench },
@@ -144,8 +152,9 @@ export default function HousekeepingQueuePanel({ role, userId, items, allItems, 
 
   // The first non-empty work group is the primary action target — rendered
   // with emphasis so active work dominates the page.
-  const primaryKey = (["needs_attention", "my_tasks", "in_progress"] as QueueGroup[]).find((key) => groups[key].length > 0) ?? null;
-  const actionable = specs.filter((spec) => groups[spec.key].length > 0);
+  const hasActiveFilters = Boolean(search.trim()) || workType !== "all" || workStatus !== "all";
+  const primaryKey = specs.find(({ key }) => ["my_tasks", "needs_attention", "in_progress"].includes(key) && groups[key].length > 0)?.key ?? null;
+  const actionable = specs.filter(({ key }) => groups[key].length > 0 || (key === "my_tasks" && !hasActiveFilters));
   const completed = groups.completed_today;
   // Cards collapsed behind the completed-today toggle are counted by the
   // queue but not visible: the footer reports visible-of-total so the two
@@ -153,24 +162,17 @@ export default function HousekeepingQueuePanel({ role, userId, items, allItems, 
   const visibleCount = queueItems.length - (showCompleted ? 0 : completed.length);
   const showGuestStrip = role === "housekeeping" && onOpenGuestRequests;
 
-  return <>
-    <div className="hk-hero">
-      <div><p className="hk-eyebrow">Hotel operations</p><h1>Housekeeping</h1><p>Live room-care queue from turnover through inspection and readiness. Tomorrow&apos;s workload forecast lives in Predictive Insights; plain-language explanations in HAVEN AI.</p></div>
-    </div>
+  const summary = <>
     <ModuleSummaryCards cards={[
       { label: "Needs attention", value: totals.needs_attention, hint: "Unassigned or urgent", icon: ClipboardCheck, tone: "attention" },
-      { label: "In progress", value: totals.in_progress, hint: "Being cleaned now", icon: BedDouble, tone: "today" },
+      { label: "In progress", value: totals.in_progress, hint: "Cleaning started", icon: BedDouble, tone: "today" },
       { label: "Waiting for inspection", value: totals.waiting_inspection, hint: "Not sellable until passed", icon: Sparkles, tone: "active" },
       { label: "Blocked by Maintenance", value: totals.blocked, hint: "Work order holds the room", icon: Wrench, tone: "attention" },
       { label: "Completed today", value: totals.completed_today, hint: "Finished this hotel day", icon: ClipboardCheck, tone: "done" },
     ]} ariaLabel="Housekeeping summary"/>
-    <p className="hk-scope-note">Summary counts cover all loaded tasks. Search and filters narrow the queue below — and the &ldquo;Showing N tasks&rdquo; footer counts that narrowed queue.</p>
-    {showGuestStrip && <section className="data-panel hk-guest-strip" aria-label="Guest service requests">
-      <span className="hk-guest-icon" aria-hidden="true"><Bell size={16} /></span>
-      <div><b>Guest service requests assigned to Housekeeping</b><small>{guestRequestOpen} open — start and complete them in Guest Requests</small></div>
-      <button type="button" className="table-action action-neutral" onClick={onOpenGuestRequests}>Open Guest Requests</button>
-    </section>}
-    {canSeeSuggestions && liveSuggestions.length > 0 && <div className="data-panel hk-queue" aria-label="Suggested assignments">
+    <p className="hk-scope-note">Summary counts cover all loaded tasks. Search and filters narrow the room-care queue.</p>
+  </>;
+  const suggestionsPanel = liveSuggestions.length > 0 && <div className="data-panel hk-queue" aria-label="Suggested assignments">
       <section className="hk-queue-group">
         <header><h3><Wand2 size={14} aria-hidden="true" />Suggested assignments<i>{liveSuggestions.length}</i></h3><p>Suggestion — you decide. A balanced plan from open tasks and current workloads; nothing is assigned automatically.</p></header>
         {liveSuggestions.map((suggestion) => <article key={suggestion.taskId} className="hk-queue-card">
@@ -189,27 +191,39 @@ export default function HousekeepingQueuePanel({ role, userId, items, allItems, 
           </div>
         </article>)}
       </section>
-    </div>}
+    </div>;
+  const filters = <>
+    <div className="haven-filter"><HavenSelect value={workType} onChange={setWorkType} ariaLabel="Filter by work type" options={[{ value: "all", label: "All work types" }, ...taskTypes.map((type) => ({ value: type, label: label(type) }))]} /></div>
+    <div className="haven-filter"><HavenSelect value={workStatus} onChange={setWorkStatus} ariaLabel="Filter by task status" options={[{ value: "all", label: "All task statuses" }, ...workStatuses.map((status) => ({ value: status, label: label(status) }))]} /></div>
+  </>;
+
+  const content = <>
+    <WorkforcePanel compact />
+    <div className="hk-hero">
+      <div><p className="hk-eyebrow">Hotel operations</p><h1>Housekeeping</h1><p>{canHousekeep ? "Find rooms to clean and inspect this shift." : <>Live room-care queue from turnover through inspection and readiness. Tomorrow&apos;s workload forecast lives in Predictive Insights; plain-language explanations in HAVEN AI.</>}</p></div>
+    </div>
+    {!canHousekeep && <>{summary}{suggestionsPanel}</>}
     <HavenDataToolbar
       label="Search and filter the room-care queue"
       filtersLayout="compact"
-      search={<HavenSearchInput value={search} onValueChange={setSearch} label="Search the room-care queue" placeholder="Search the room-care queue..." />}
-      advancedFilters={<>
-        <div className="haven-filter"><HavenSelect value={workType} onChange={setWorkType} ariaLabel="Filter by work type" options={[{ value: "all", label: "All work types" }, ...taskTypes.map((type) => ({ value: type, label: label(type) }))]} /></div>
-        <div className="haven-filter"><HavenSelect value={workStatus} onChange={setWorkStatus} ariaLabel="Filter by task status" options={[{ value: "all", label: "All task statuses" }, ...workStatuses.map((status) => ({ value: status, label: label(status) }))]} /></div>
-      </>}
-      resultCount={visibleCount}
+      search={<HavenSearchInput value={search} onValueChange={setSearch} label="Search the room-care queue" placeholder={canHousekeep ? "Search room or task" : "Search the room-care queue..."} />}
+      advancedFilters={canHousekeep ? <details className="hk-disclosure hk-filters">
+        <summary>Filters{workType !== "all" || workStatus !== "all" ? " (active)" : ""}</summary>
+        <div>{filters}</div>
+      </details> : filters}
+      resultCount={canHousekeep ? undefined : visibleCount}
       resultNoun={`task${visibleCount !== 1 ? "s" : ""} of ${queueItems.length}`}
-      hasActiveFilters={Boolean(search.trim()) || workType !== "all" || workStatus !== "all"}
+      hasActiveFilters={hasActiveFilters}
       onClearFilters={() => { setSearch(""); setWorkType("all"); setWorkStatus("all"); }}
     />
-    <ol className="hk-flow" aria-label="Typical room-care path">
+    {!canHousekeep && <ol className="hk-flow" aria-label="Typical room-care path">
       <li>Pending</li><li>In progress</li><li>Inspection</li><li>Ready</li>
-    </ol>
+    </ol>}
     <section className="data-panel hk-queue" aria-label="Room care queue">
       {queueItems.length === 0 && <div className="empty"><Search /><h3>No records found</h3><p>No matching operational records are available.</p></div>}
       {actionable.map(({ key, title, hint, icon: Icon }) => <section key={key} className={`hk-queue-group${key === primaryKey ? " hk-group-primary" : ""}`} aria-label={title}>
-        <header><h3><Icon size={14} aria-hidden="true" />{title}<i>{groups[key].length}</i></h3><p>{hint}</p></header>
+        <header><h3><Icon size={14} aria-hidden="true" />{title}<i>{groups[key].length}</i></h3>{(key !== "my_tasks" || groups[key].length > 0) && <p>{hint}</p>}</header>
+        {key === "my_tasks" && groups[key].length === 0 && <p className="hk-my-tasks-empty">No rooms assigned to you. Check Needs attention for work to pick up.</p>}
         {groups[key].map((item) => <QueueCard key={String(item.id)} item={item} userId={userId} canHousekeep={canHousekeep} canCoordinate={canCoordinate} housekeepingAction={housekeepingAction} coordinate={coordinate} onViewMaintenance={onViewMaintenance} onViewRoom={onViewRoom} onServiceOutcome={onServiceOutcome} onSetDnd={onSetDnd} />)}
       </section>)}
       {completed.length > 0 && <section className="hk-queue-group" aria-label="Completed today">
@@ -218,7 +232,26 @@ export default function HousekeepingQueuePanel({ role, userId, items, allItems, 
       </section>}
       {queueItems.length > 0 && <div className="table-footer">Showing {visibleCount} of {queueItems.length} task{queueItems.length !== 1 ? "s" : ""}<span>Readiness is decided by the audited housekeeping workflow, not by this view.</span></div>}
     </section>
+    {canHousekeep && <>
+      {showGuestStrip && <section className="data-panel hk-guest-strip" aria-label="Guest service requests">
+        <span className="hk-guest-icon" aria-hidden="true"><Bell size={16} /></span>
+        <div><b>Guest service requests assigned to Housekeeping</b><small>{guestRequestOpen} open — start and complete them in Guest Requests</small></div>
+        <button type="button" className="table-action action-neutral" onClick={onOpenGuestRequests}>Open Guest Requests</button>
+      </section>}
+      <details className="data-panel hk-disclosure hk-overview">
+        <summary>Queue overview</summary>
+        <div className="hk-overview-content">{summary}</div>
+      </details>
+      {suggestionsPanel && <details className="data-panel hk-disclosure hk-overview">
+        <summary>Suggested assignments ({liveSuggestions.length})</summary>
+        <div className="hk-overview-content">{suggestionsPanel}</div>
+      </details>}
+      <ol className="hk-flow" aria-label="Typical room-care path">
+        <li>Pending</li><li>In progress</li><li>Inspection</li><li>Ready</li>
+      </ol>
+    </>}
   </>;
+  return canHousekeep ? <div className="hk-worker-queue">{content}</div> : content;
 }
 
 function QueueCard({ item, userId, canHousekeep, canCoordinate, housekeepingAction, coordinate, onViewMaintenance, onViewRoom, onServiceOutcome, onSetDnd }: {
@@ -269,9 +302,9 @@ function QueueCard({ item, userId, canHousekeep, canCoordinate, housekeepingActi
     </div>
     <div className="hk-queue-actions">
       {canWork && status === "in_progress" && <button className="table-action action-primary" onClick={() => housekeepingAction(item, "complete")}>Complete Task</button>}
-      {canHousekeep && String(item.inspection_status) === "pending" && <button className="table-action" onClick={() => housekeepingAction(item, "inspect")}>Inspect</button>}
-      {canWork && openTaskStatuses.includes(status) && type !== "inspection" && <button className="table-action action-primary" onClick={() => housekeepingAction(item, "assign")}>{item.assigned_user_id ? "Reassign" : "Claim"}</button>}
+      {canHousekeep && String(item.inspection_status) === "pending" && <button className="table-action action-primary" onClick={() => housekeepingAction(item, "inspect")}>Inspect</button>}
       {canWork && openTaskStatuses.includes(status) && type !== "inspection" && !(dndActive && type === "stayover_cleaning") && <button className="table-action action-primary" onClick={() => housekeepingAction(item, "start")}>Start cleaning</button>}
+      {canWork && openTaskStatuses.includes(status) && type !== "inspection" && <button className="table-action" onClick={() => housekeepingAction(item, "assign")}>{item.assigned_user_id ? "Reassign" : "Claim"}</button>}
       {canWork && stayServiceTask && openTaskStatuses.includes(status) && !dndActive && item.active_reservation_id && onSetDnd && <button className="table-action" onClick={() => onSetDnd(item)}>Set DND</button>}
       {canWork && stayServiceTask && openTaskStatuses.includes(status) && !item.service_outcome && onServiceOutcome && <button className="table-action" onClick={() => onServiceOutcome(item, "service_declined")}>Guest declined</button>}
       {canWork && stayServiceTask && openTaskStatuses.includes(status) && !item.service_outcome && onServiceOutcome && <button className="table-action" onClick={() => onServiceOutcome(item, "late_service")}>Mark late</button>}

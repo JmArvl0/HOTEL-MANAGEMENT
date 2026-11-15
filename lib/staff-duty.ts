@@ -124,7 +124,8 @@ export function deriveStaffDuty(input: StaffDutyInput): Pick<StaffDutySnapshot, 
     const nextTask = activeTasks.find((task) => OPEN_TASK_STATUSES.includes(task.status));
     const nextOrder = activeOrders.find((order) => OPEN_ORDER_STATUSES.includes(order.status));
 
-    const inProgress = (workingTask ? 1 : 0) + (workingOrder ? 1 : 0);
+    const inProgress = activeTasks.filter((task) => task.status === "in_progress").length +
+      activeOrders.filter((order) => order.status === "in_progress").length;
     const assigned =
       activeTasks.filter((task) => OPEN_TASK_STATUSES.includes(task.status)).length +
       activeOrders.filter((order) => OPEN_ORDER_STATUSES.includes(order.status)).length;

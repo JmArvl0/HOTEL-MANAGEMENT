@@ -13,3 +13,49 @@
 .hotel-ops-tabs{display:flex;flex-wrap:wrap;gap:8px;border-bottom:1px solid var(--dl,var(--tail-border));padding-bottom:12px}.hotel-ops-banner{padding:12px 16px;border:1px solid var(--dl,var(--tail-border));border-radius:6px;margin-block:12px}
 @media(max-width:680px){.hotel-ops{padding:16px 0}.hotel-ops-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.hotel-ops-fields>label{flex-basis:100%}.hotel-ops input:not([type=checkbox]),.hotel-ops select,.hotel-ops .btn{min-height:44px}}
 @media(max-width:360px){.hotel-ops-metrics{grid-template-columns:1fr}}
+
+.finance-close-history {
+  margin-block: 12px 4px;
+  padding: 20px;
+  border: 1px solid var(--dl, var(--tail-border));
+  border-radius: 12px;
+  background: var(--ds, var(--tail-bg));
+}
+.finance-close-header { display: grid; gap: 4px; padding-bottom: 16px; }
+.finance-close-header p, .finance-close-empty, .finance-close-date span, .finance-close-totals dt {
+  color: var(--dm, var(--tail-muted));
+  font-size: .875rem;
+}
+.finance-close-list { list-style: none; padding: 0; margin: 0; }
+.finance-close-list > li {
+  display: grid;
+  grid-template-columns: minmax(10rem, 1.15fr) minmax(0, 2fr) minmax(9rem, auto);
+  gap: 18px;
+  align-items: center;
+  padding-block: 16px;
+  border-top: 1px solid var(--dl, var(--tail-border));
+}
+.finance-close-date { display: grid; gap: 4px; min-width: 0; }
+.finance-close-date time { font-weight: 650; font-variant-numeric: tabular-nums; }
+.finance-close-totals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.finance-close-totals dd { margin: 4px 0 0; font-weight: 600; overflow-wrap: anywhere; }
+.finance-close-download { min-width: 0; position: relative; }
+.finance-close-empty { border-top: 1px solid var(--dl, var(--tail-border)); padding-top: 16px; }
+
+@media (max-width: 720px) {
+  .finance-close-history { padding: 16px; }
+  .finance-close-list > li { grid-template-columns: minmax(0, 1fr) auto; gap: 12px; }
+  .finance-close-download { grid-column: 2; grid-row: 1; min-width: 7.75rem; max-width: 10rem; }
+  .finance-close-totals { grid-column: 1 / -1; }
+}
+
+@media (max-width: 560px) {
+  .finance-close-list > li { grid-template-columns: minmax(0, 1fr); }
+  .finance-close-download { grid-column: auto; grid-row: auto; min-width: 0; max-width: none; }
+}
