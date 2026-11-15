@@ -7,8 +7,10 @@ create table public.staff_roster (
  version integer not null default 1, created_by uuid not null references public.user_accounts(id),
  created_at timestamptz not null default now(), check(ends_at>starts_at and ends_at<=starts_at+interval '24 hours')
 );
-create index staff_roster_window on public.staff_roster(staff_user_id,starts_at) where status='scheduled';
-create table public.shift_handovers (
+create index if not exists staff_roster_window on public.staff_roster(staff_user_id,starts_at) where status='scheduled';
+-- Handovers were later split into 20261103090000_operational_handovers; keep this
+-- migration safe on databases that already applied that independent table.
+create table if not exists public.shift_handovers (
  id uuid primary key default gen_random_uuid(), department text not null,
  summary text not null check(length(summary) between 3 and 1000),
  source_type text not null check(source_type in('reservation','guest_request','housekeeping','maintenance','cash_shift')),
@@ -56,7 +58,7 @@ begin
  insert into audit_logs(user_id,action,entity_type,entity_id,after_data) values(p_actor,'roster_cancelled','staff_roster',p_id::text,jsonb_build_object('reason',p_reason));
 end$$;
 
-create function public.submit_shift_handover(p_actor uuid,p_id uuid,p_summary text,p_source_type text,p_source_id text,p_follow_up uuid)
+create or replace function public.submit_shift_handover(p_actor uuid,p_id uuid,p_summary text,p_source_type text,p_source_id text,p_follow_up uuid)
 returns uuid language plpgsql security definer set search_path=public as $$
 declare actor text; dept text; target text; previous shift_handovers%rowtype;
 begin
@@ -84,7 +86,7 @@ begin
  insert into audit_logs(user_id,action,entity_type,entity_id,after_data) values(p_actor,'handover_submitted','shift_handover',p_id::text,jsonb_build_object('department',dept,'sourceType',p_source_type,'sourceId',p_source_id));
  return p_id;
 end$$;
-create function public.act_shift_handover(p_actor uuid,p_id uuid,p_version integer,p_action text,p_resolution text)
+create or replace function public.act_shift_handover(p_actor uuid,p_id uuid,p_version integer,p_action text,p_resolution text)
 returns void language plpgsql security definer set search_path=public as $$
 declare h shift_handovers%rowtype; actor text;
 begin
