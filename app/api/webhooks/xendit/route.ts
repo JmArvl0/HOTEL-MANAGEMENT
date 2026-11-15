@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     console.warn("[xendit] webhook unauthorized");
     return NextResponse.json({ error: "Invalid callback token." }, { status: 401 });
   }
-  if (!supabase) return NextResponse.json({ error: "Database unavailable." }, { status: 503 });
+  if (!supabase) return NextResponse.json({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
   let input: unknown;
   try { input = await request.json(); } catch { return NextResponse.json({ error: "Invalid JSON." }, { status: 400 }); }
   try {

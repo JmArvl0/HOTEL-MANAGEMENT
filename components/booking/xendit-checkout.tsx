@@ -1,5 +1,8 @@
 "use client";
 
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { createContext, useContext, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -57,12 +60,12 @@ export function XenditCheckout({ holdToken, amount, retry = false }: { holdToken
     inFlight.current = true;
     setBusy(true); setError(""); setNotice("");
     try {
-      const response = await fetch("/api/booking/payments/xendit", { method: "POST", headers: { "content-type": "application/json" },
+      const response = await fetchPublic("/api/booking/payments/xendit", { method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ holdToken, channel, paymentChoice: payment?.choice }) });
-      const body = await response.json();
-      if (!response.ok) { setError(body.error ?? "Unable to open sandbox checkout. Please retry."); return; }
+      const body = await readResponse(response);
+      if (!response.ok) { setError(userMessage(body.error, "We couldn't open online checkout. Please try again shortly.")); return; }
       if (body.data?.checkoutUrl) { window.location.assign(body.data.checkoutUrl); return; }
-      setNotice(body.message ?? "Waiting for the payment provider. Your booking is still unpaid.");
+      setNotice(body.message ?? "We're waiting for payment confirmation. Check your reservation before making another payment.");
       if (!retry && body.data?.confirmationUrl) router.push(body.data.confirmationUrl);
       router.refresh();
     } catch { setError("Checkout could not be reached. Retry to check your existing attempt safely."); }
@@ -117,6 +120,6 @@ export function XenditCheckout({ holdToken, amount, retry = false }: { holdToken
       </button>
       <p className="xendit-secure-note"><LockKeyhole size={13} aria-hidden="true" />Secure checkout by Xendit</p>
     {notice && <p className="xendit-checkout-notice" role="status">{notice}</p>}
-    {error && <><HavenErrorAlert title="Sandbox checkout unavailable" body={error} variant="customer" /><p className="xendit-checkout-notice">Your reservation is not confirmed. Retry using the payment button above to check your existing attempt. The room is held only until its payment deadline; after expiry, check availability again. <Link href="/account/help">Contact Front Desk</Link> or <Link href="/account">return to My Stay</Link>.</p></>}
+    {error && <><HavenErrorAlert title="Payment needs attention" body={error} variant="customer" /><p className="xendit-checkout-notice">Check your reservation status before making another payment. Use the payment button above to reopen or check the existing attempt. A room hold ends at its payment deadline; if it has expired, check availability again. <Link href="/account/help">Contact Front Desk</Link> or <Link href="/account">return to My Stay</Link>.</p></>}
   </section>;
 }

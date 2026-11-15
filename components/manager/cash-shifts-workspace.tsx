@@ -1,5 +1,8 @@
 "use client";
 
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRight, Check, Circle, Clock3, RefreshCw, ShieldCheck, TriangleAlert } from "lucide-react";
 import CashCountPanel, { type CashCountPresentation } from "./cash-count-panel";
@@ -71,11 +74,11 @@ function ReconciliationDialog({ shift, onClose, onRefresh, onSaved }: { shift: C
     if (hasVariance && notes.trim().length < 3) { setError("Explain the recorded variance before reconciling this shift."); return; }
     setBusy(true); setError("");
     try {
-      const response = await fetch(`/api/accounting/cash-shifts/${shift.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reconcile", notes: notes.trim() || undefined }) });
-      const body = await response.json();
+      const response = await fetchPublic(`/api/accounting/cash-shifts/${shift.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reconcile", notes: notes.trim() || undefined }) });
+      const body = await readResponse(response);
       if (!response.ok) { if (response.status === 409) onRefresh(); throw new Error(body.error || "Unable to reconcile. Your note is preserved; retry."); }
       onSaved(`Shift #${shortId(shift)} reconciled. Its recorded variance remains ${cashMoney(shift.variance)}.`); onClose(); onRefresh();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to reconcile. Retry."); }
+    } catch (cause) { setError(userMessage(cause, "Unable to reconcile. Retry.")); }
     finally { setBusy(false); }
   }
   return <Modal isOpen onClose={() => { if (!busy) onClose(); }} title="Reconcile cash shift" description={`Shift #${shortId(shift)} · Accounting review`} initialFocusRef={input} className="cash-count-dialog" closeOnEscape={!busy} closeOnOverlayClick={!busy} showCloseButton={!busy}>
@@ -112,11 +115,11 @@ export default function CashShiftsWorkspace({ ledger, actorId, role, search, set
     let live = true;
     async function load() {
       try {
-        const response = await fetch("/api/staff/handovers", { cache: "no-store", signal: controller.signal });
-        const body = await response.json();
+        const response = await fetchPublic("/api/staff/handovers", { cache: "no-store", signal: controller.signal });
+        const body = await readResponse(response);
         if (!response.ok || !Array.isArray(body.data?.handovers) || !Array.isArray(body.data?.staff)) throw new Error(body.error || "Unable to load cash handovers.");
         if (live) { setHandovers(body.data); setHandoverError(""); }
-      } catch (cause) { if (live && !controller.signal.aborted) setHandoverError(cause instanceof Error ? cause.message : "Unable to load handovers."); }
+      } catch (cause) { if (live && !controller.signal.aborted) setHandoverError(userMessage(cause, "Unable to load handovers.")); }
     }
     void load();
     return () => { live = false; controller.abort(); };

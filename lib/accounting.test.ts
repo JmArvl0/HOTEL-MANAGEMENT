@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { adjustedFolioAmount, cashShiftVariance, folioState, isRefundActionable, reconciliationOutcome, reversibleAmount } from "@/lib/accounting";
+import { adjustedFolioAmount, cashShiftVariance, folioState, isRefundActionable, reconciliationOutcome, reversibleAmount, summarizeCollections } from "@/lib/accounting";
 import { canAcceptOverpayment, canAdjustFolio, canCollectPayment, canIssueFinancialDocument, canOperateCashShift, canPostFolioCharge, canProcessRefund, canReconcileFinancials, canViewAccountingLedger } from "@/lib/permissions";
 import type { Role } from "@/lib/types";
 
@@ -42,6 +42,18 @@ describe("cash shift variance", () => {
   it("records a shortage as a negative variance rather than editing a payment", () => expect(cashShiftVariance(2000, 5000, 0, 6800).variance).toBe(-200));
   it("records an overage as a positive variance", () => expect(cashShiftVariance(0, 1000, 0, 1050).variance).toBe(50));
   it("is exact on centavo counts", () => expect(cashShiftVariance(0, 0.3, 0.1, 0.2)).toEqual({ expected: 0.2, variance: 0 }));
+});
+
+describe("operational collections", () => {
+  it("counts settled deposits once, keeps refunds separate, and preserves a negative net", () => {
+    expect(summarizeCollections([
+      { status: "paid", purpose: "reservation_deposit", amount: "0.10" },
+      { status: "paid", purpose: "stay_payment", amount: "0.20" },
+      { status: "paid", purpose: "refund", amount: "0.31" },
+      { status: "pending_verification", purpose: "reservation_deposit", amount: 900 },
+      { status: "failed", purpose: "refund", amount: 300 },
+    ])).toEqual({ grossCollected: 0.3, refundsIssued: 0.31, netCollections: -0.01 });
+  });
 });
 
 describe("payment source reconciliation", () => {
@@ -240,17 +252,17 @@ describe("single open cash shift (20261024090000)", () => {
   // Open-action visibility is exercised against CashShiftsWorkspace in its component tests.
   // The property-wide locking and uniqueness assertions above remain the server backstop.
 
-  it("logs the raw RPC failure and maps unmapped database errors to operator messages", () => {
+  it("logs a redacted RPC failure and maps unmapped database errors to operator messages", () => {
     // Diagnosis (2026-10-03): a 409 with the bare fallback hid the real RPC
-    // error from every log surface. The raw code/message is now logged
+    // error from every log surface. An allowlisted code and correlation reference are now logged
     // server-side, and constraint/permission/function failures map to honest
     // messages instead of the fallback. Raw database text never reaches the client.
-    expect(shiftRoute).toContain('console.error("open cash shift failed"');
+    expect(shiftRoute).toContain('logServerError("open cash shift failed"');
     expect(shiftRoute).toContain('"duplicate key"');
     expect(shiftRoute).toContain('"permission denied"');
     expect(shiftRoute).toContain('"Could not find the function"');
     const patchRoute = read("app/api/accounting/cash-shifts/[id]/route.ts");
-    expect(patchRoute).toContain('console.error("update cash shift failed"');
+    expect(patchRoute).toContain('logServerError("update cash shift failed"');
     expect(patchRoute).toContain('"Could not find the function"');
   });
 });

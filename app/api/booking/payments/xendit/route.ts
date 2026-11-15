@@ -1,19 +1,21 @@
+import { publicJson } from "@/lib/server-errors";
+import { validationBody } from "@/lib/errors";
 import { getServerSession } from "next-auth";
-import { NextResponse } from "next/server";
+
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { createXenditSession, getXenditSession, testCheckoutUrl, XenditError, xenditChannel, xenditConfigured } from "@/lib/xendit";
-import { attachXenditSession } from "@/lib/xendit-store";
+import { attachXenditSession, settleKnownXenditSession } from "@/lib/xendit-store";
 
 const schema = z.object({ holdToken: z.string().uuid(), channel: xenditChannel.optional(), paymentChoice: z.enum(["deposit", "full"]).optional() }).strict();
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.disabled) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "guest") return NextResponse.json({ error: "Customer access required." }, { status: 403 });
-  if (!supabase || !xenditConfigured()) return NextResponse.json({ error: "Xendit sandbox is not configured. Contact the hotel." }, { status: 503 });
+  if (!session || session.user.disabled || session.user.otpPending) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
+  if (session.user.role !== "guest") return publicJson({ error: "Please sign in with a guest account to continue." }, { status: 403 });
+  if (!supabase || !xenditConfigured()) return publicJson({ error: "Online payment is unavailable right now. Please contact Front Desk for help with your booking.", code: "ONLINE_PAYMENT_UNAVAILABLE", outcome: "not_submitted" }, { status: 503 });
   const parsed = schema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "Select a valid payment amount and wallet for this booking." }, { status: 400 });
+  if (!parsed.success) return publicJson(validationBody(parsed.error, { error: "Select a valid payment amount and wallet for this booking." }), { status: 400 });
   const { data, error } = await supabase.rpc("hotel_begin_xendit_checkout", {
     p_token: parsed.data.holdToken, p_user_id: session.user.id, p_channel: parsed.data.channel ?? null,
     p_payment_choice: parsed.data.paymentChoice ?? null,
@@ -22,8 +24,8 @@ export async function POST(request: Request) {
     console.warn("[xendit] checkout rejected", { code: error.code });
     const message = error.message === "XENDIT_AMOUNT_ALREADY_SELECTED"
       ? "This booking already has a checkout with a different amount. Refresh to reopen the existing checkout."
-      : "This booking cannot start payment. Refresh availability and try again.";
-    return NextResponse.json({ error: message }, { status: 409 });
+      : "We couldn't confirm the payment setup. Check your reservation before trying again.";
+    return publicJson({ error: message, code: error.message === "XENDIT_AMOUNT_ALREADY_SELECTED" ? "XENDIT_AMOUNT_ALREADY_SELECTED" : "CHECKOUT_UNCONFIRMED", outcome: error.message === "XENDIT_AMOUNT_ALREADY_SELECTED" ? "rejected" : "unknown" }, { status: 409 });
   }
   const attempt = data as { paymentId: string; reservationId: string; status: string; reference: string; checkoutUrl: string | null; sessionId: string | null;
     expiresAt: string; amount: number; create: boolean; firstName: string; lastName: string; channel?: "GCASH" | "PAYMAYA"; paymentChoice: "deposit" | "full" };
@@ -32,33 +34,32 @@ export async function POST(request: Request) {
     try {
       const current = await getXenditSession(attempt.sessionId);
       if (current.reference_id !== attempt.reference || current.amount !== Number(attempt.amount)) throw new Error("XENDIT_SESSION_MISMATCH");
-      if (current.status === "ACTIVE") return NextResponse.json({ data: { checkoutUrl: testCheckoutUrl(attempt.checkoutUrl), confirmationUrl } });
-      if (current.status === "EXPIRED" || current.status === "CANCELED") {
-        const closed = await supabase.rpc("hotel_process_xendit_event", { p_event: "payment_session.expired", p_reference: current.reference_id,
-          p_session: current.payment_session_id, p_amount: current.amount, p_currency: current.currency, p_transaction: null, p_channel: null });
-        if (closed.error) throw new Error("XENDIT_CLOSE_RETRY_REQUIRED");
-      }
-      return NextResponse.json({ data: { confirmationUrl }, message: "Checkout status updated. A completed payment still awaits its verified notification." });
-    } catch { return NextResponse.json({ error: "Unable to check your existing sandbox checkout. Please retry shortly." }, { status: 503 }); }
+      if (current.status === "ACTIVE") return publicJson({ data: { checkoutUrl: testCheckoutUrl(attempt.checkoutUrl), confirmationUrl } });
+      const outcome = await settleKnownXenditSession(supabase, current);
+      const message = outcome.outcome === "review_required" ? "Accounting is reviewing this payment. Please avoid paying again." : undefined;
+      return publicJson({ data: { confirmationUrl }, message });
+    } catch { return publicJson({ error: "We couldn't check your existing payment attempt. Try again shortly to reopen it; please don't start another payment." }, { status: 503 }); }
   }
-  if (!attempt.create) return NextResponse.json({ data: { confirmationUrl }, message: "Your payment attempt is being checked. No duplicate checkout was created." });
+  if (!attempt.create) return publicJson({ data: { confirmationUrl }, message: "Your payment attempt is being checked. No duplicate checkout was created." });
   try {
     const checkout = await createXenditSession({ reference: attempt.reference, amount: Number(attempt.amount),
       reservationId: attempt.reservationId, expiresAt: attempt.expiresAt, firstName: attempt.firstName, lastName: attempt.lastName,
       channel: attempt.channel, paymentChoice: attempt.paymentChoice });
     await attachXenditSession(supabase, checkout);
-    return NextResponse.json({ data: { checkoutUrl: checkout.payment_link_url, confirmationUrl } });
+    return publicJson({ data: { checkoutUrl: checkout.payment_link_url, confirmationUrl } });
   } catch (failure) {
     const code = failure instanceof XenditError ? failure.code : "XENDIT_REQUEST_UNCERTAIN";
     console.warn("[xendit] session creation outcome", { paymentId: attempt.paymentId, code });
     if (failure instanceof XenditError && failure.definitive) {
       const reset = await supabase.rpc("hotel_xendit_creation_rejected", { p_payment: attempt.paymentId });
       if (reset.error) console.error("[xendit] creation reset failed", { paymentId: attempt.paymentId, code: reset.error.code });
-      return NextResponse.json({ error: code === "XENDIT_CHANNEL_UNAVAILABLE"
-        ? "Xendit cannot offer this wallet in the current sandbox account. Check channel availability in the Xendit Dashboard, or try the other wallet."
-        : "Xendit rejected sandbox checkout. Check test key permissions and sandbox setup, then retry." }, { status: 502 });
+      return publicJson({ error: code === "XENDIT_CHANNEL_UNAVAILABLE"
+        ? "This wallet is unavailable right now. Choose another available wallet or contact Front Desk."
+        : "We couldn't open online checkout. Please try again shortly or contact Front Desk.", code, outcome: "rejected" }, { status: 502 });
     }
     // A timeout may hide a created session. Never issue another chargeable link.
-    return NextResponse.json({ data: { confirmationUrl }, message: "Xendit has not confirmed checkout creation. We are keeping this attempt pending to prevent duplicates." });
+    const queued = await supabase.rpc("mark_xendit_session_uncertain", { p_payment: attempt.paymentId });
+    if (queued.error) console.error("[xendit] review queue will retry", { code: queued.error.code });
+    return publicJson({ data: { confirmationUrl }, message: "We're checking your payment attempt. Please don't start another payment. Check your reservation for updates." });
   }
 }

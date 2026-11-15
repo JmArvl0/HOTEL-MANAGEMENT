@@ -1,12 +1,16 @@
-import{NextResponse}from"next/server";import{z}from"zod";import{canOperateCashShift}from"@/lib/permissions";import{guardFailed,guardFinancial,invalid,rpcFailure}from"@/lib/financial-route";
-const schema=z.object({location:z.string().trim().min(2).max(80).optional(),openingAmount:z.coerce.number().min(0).max(10000000)});
+import { logServerError, publicJson } from "@/lib/server-errors";
+
+import { validationMessage } from "@/lib/errors";
+import { pesoAmount } from "@/lib/input-validation";
+import{z}from"zod";import{canOperateCashShift}from"@/lib/permissions";import{guardFailed,guardFinancial,invalid,rpcFailure}from"@/lib/financial-route";
+const schema=z.object({location:z.string().trim().min(2).max(80).optional(),openingAmount:pesoAmount(0, 10000000)});
 export async function GET(){const context=await guardFinancial(canOperateCashShift,"Cash handling access required.");if(guardFailed(context))return context;
  const{data:shift}=await context.client.from("cash_shifts").select("id,location,opening_amount,opened_at,staff_user_id").eq("status","open").order("opened_at",{ascending:true}).limit(1).maybeSingle();
  let staffName=null as string|null;if((shift as{staff_user_id?:unknown}|null)?.staff_user_id){const{data:opener}=await context.client.from("user_accounts").select("name").eq("id",(shift as{staff_user_id:string}).staff_user_id).maybeSingle();staffName=(opener as{name?:unknown}|null)?.name as string??null;}
  const mine=Boolean(shift&&(shift as{staff_user_id:string}).staff_user_id===context.actorId);
- return NextResponse.json({data:{open:Boolean(shift),mine,shift:shift?{...(shift as object),staff_name:staffName}:null}})}
+ return publicJson({data:{open:Boolean(shift),mine,shift:shift?{...(shift as object),staff_name:staffName}:null}})}
 export async function POST(request:Request){const context=await guardFinancial(canOperateCashShift,"Cash handling access required.");if(guardFailed(context))return context;
- const parsed=schema.safeParse(await request.json().catch(()=>null));if(!parsed.success)return invalid(parsed.error?.issues[0]?.message??"An opening float amount is required.");
+ const parsed=schema.safeParse(await request.json().catch(()=>null));if(!parsed.success)return invalid(validationMessage(parsed.error));
  const{data,error}=await context.client.rpc("accounting_open_cash_shift",{p_staff_user_id:context.actorId,p_location:parsed.data.location??null,p_opening_amount:parsed.data.openingAmount});
- if(error){const err=error as{message:string;code?:unknown;details?:unknown;hint?:unknown};console.error("open cash shift failed",{code:typeof err.code==="string"?err.code:null,message:err.message,details:typeof err.details==="string"?err.details:null,hint:typeof err.hint==="string"?err.hint:null});return rpcFailure(error,{CASH_SHIFT_ALREADY_OPEN:"A cash shift is already open. Close it before opening another.",INVALID_OPENING_AMOUNT:"The opening float cannot be negative.",CASH_SHIFT_FORBIDDEN:"Cash handling access required.","duplicate key":"A cash shift is already open. Close it before opening another.","permission denied":"Cash handling access required.","Could not find the function":"Cash shift service is unavailable. Ask an administrator to apply the pending migration."},"Unable to open a cash shift.");}
- return NextResponse.json({data})}
+ if(error){const err=error as{message:string;code?:unknown;details?:unknown;hint?:unknown};logServerError("open cash shift failed", err);return rpcFailure(error,{CASH_SHIFT_ALREADY_OPEN:"A cash shift is already open. Close it before opening another.",INVALID_OPENING_AMOUNT:"The opening float cannot be negative.",CASH_SHIFT_FORBIDDEN:"Cash handling access required.","duplicate key":"A cash shift is already open. Close it before opening another.","permission denied":"Cash handling access required.","Could not find the function":"Cash & Shifts is unavailable right now. Contact the system administrator if it continues."},"Unable to open a cash shift.");}
+ return publicJson({data})}

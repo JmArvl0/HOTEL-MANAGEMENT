@@ -6,6 +6,15 @@ import { XenditCheckout, XenditPaymentBreakdown, XenditPaymentChoice } from "./x
 const { push, refresh } = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push, refresh }) }));
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.clearAllMocks(); });
+it("keeps payment and reservation outcomes unconfirmed when the checkout response is lost", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("private provider connection details")));
+  render(<XenditCheckout holdToken="hold-placeholder" amount={100} retry />);
+  fireEvent.click(screen.getByRole("button", { name: "Retry payment" }));
+  expect(await screen.findByText(/We couldn't confirm the payment update/)).toBeTruthy();
+  expect(screen.getByText(/Check your reservation status before making another payment/)).toBeTruthy();
+  expect(screen.queryByText(/Your reservation is not confirmed/)).toBeNull();
+  expect(document.body.textContent).not.toContain("private provider connection details");
+});
 it("discloses sandbox mode, sends only a hold and selected wallet, and prevents repeated clicks", async () => {
   let finish!: (value: unknown) => void;
   const fetcher = vi.fn().mockImplementation(() => new Promise(resolve => { finish = resolve; }));
@@ -22,15 +31,15 @@ it("discloses sandbox mode, sends only a hold and selected wallet, and prevents 
   await waitFor(() => expect(push).toHaveBeenCalledWith("/booking/confirmation/RES-1"));
 });
 it("reports unavailable channels and leaves a retry action", async () => {
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, json: async () => ({ error: "Wallet unavailable in this sandbox" }) }));
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, json: async () => ({ error: "This wallet is unavailable right now. Choose another available wallet or contact Front Desk." }) }));
   render(<XenditCheckout holdToken="hold-placeholder" amount={100} retry />);
   fireEvent.click(screen.getByRole("button", { name: "Retry payment" }));
-  await screen.findByText("Wallet unavailable in this sandbox");
+  await screen.findByText("This wallet is unavailable right now. Choose another available wallet or contact Front Desk.");
   expect((screen.getByRole("button", { name: "Retry payment" }) as HTMLButtonElement).disabled).toBe(false);
   expect(push).not.toHaveBeenCalled();
 });
 it("updates the stay summary and submits only the selected payment choice with the wallet", async () => {
-  const fetcher = vi.fn().mockResolvedValue({ ok: false, json: async () => ({ error: "Sandbox unavailable" }) });
+  const fetcher = vi.fn().mockResolvedValue({ ok: false, json: async () => ({ error: "Online payment is unavailable right now. Please contact Front Desk for help with your booking." }) });
   vi.stubGlobal("fetch", fetcher);
   render(<XenditPaymentChoice deposit={1250.5} total={4100.75} balanceDue="At check-in">
     <XenditCheckout holdToken="hold-placeholder" amount={1250.5} />
@@ -46,6 +55,6 @@ it("updates the stay summary and submits only the selected payment choice with t
   fireEvent.click(screen.getByRole("radio", { name: "Pay in full" }));
   fireEvent.click(screen.getByRole("radio", { name: "Maya" }));
   fireEvent.click(screen.getByRole("button", { name: "Pay ₱4,100.75 with Maya" }));
-  await screen.findByText("Sandbox unavailable");
+  await screen.findByText("Online payment is unavailable right now. Please contact Front Desk for help with your booking.");
   expect(JSON.parse(fetcher.mock.calls[0][1].body)).toEqual({ holdToken: "hold-placeholder", channel: "PAYMAYA", paymentChoice: "full" });
 });

@@ -1,4 +1,5 @@
 .xendit-checkout {
+  container-type: inline-size;
   margin-top: 20px;
   padding: 26px;
   border: 1px solid var(--cp-line, var(--line));
@@ -91,11 +92,18 @@
 .xendit-checkout .xendit-sandbox-note { display: flex; align-items: flex-start; gap: 7px; margin: 14px 0 0; color: var(--cp-muted, var(--muted)); font-size: 13px; line-height: 1.6; }
 .xendit-sandbox-note svg { flex: 0 0 16px; margin-top: 2px; }
 
-.xendit-checkout .xendit-proceed { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 48px; margin-top: 22px; border-color: var(--cp-text, var(--ink)); background: var(--cp-text, var(--ink)); color: var(--cp-panel, #fff); font-size: 14px; font-weight: 600; }
+.xendit-checkout .xendit-proceed { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 10px; width: 100%; min-height: 48px; margin-top: 22px; padding: 12px; border-color: var(--cp-text, var(--ink)); background: var(--cp-text, var(--ink)); color: var(--cp-panel, #fff); font-size: 14px; font-weight: 600; }
 .xendit-checkout .xendit-proceed:hover:not(:disabled) { filter: brightness(.92); }
 .xendit-proceed svg { flex-shrink: 0; }
 .xendit-checkout .xendit-secure-note { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 12px 0 0; color: var(--cp-muted, var(--muted)); font-size: 12px; line-height: 1.5; }
 .xendit-checkout-notice { color: var(--cp-muted, var(--muted)); font-size: 14px; line-height: 1.6; }
+
+@container (max-width: 220px) {
+  .xendit-checkout .xendit-method { grid-template-columns: 16px minmax(0, 1fr); gap: 8px; padding: 12px 8px; }
+  .xendit-checkout .xendit-method-logo { grid-column: 2; width: 100%; }
+  .xendit-checkout .xendit-amount-option { grid-template-columns: 16px minmax(0, 1fr); }
+  .xendit-amount-option strong { grid-column: 2; white-space: normal; overflow-wrap: anywhere; }
+}
 
 @media (max-width: 600px) {
   .xendit-checkout { padding: 20px; }
