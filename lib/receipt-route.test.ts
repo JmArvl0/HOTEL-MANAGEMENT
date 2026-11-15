@@ -80,6 +80,33 @@ describe("the receipt download endpoint", () => {
     await expect(response.json()).resolves.toMatchObject({ data: { paymentReference: "pay-alfa", amount: 1740, documentNumber: "RCP-260918-A1B2C3" } });
   });
 
+  it("uses the issued stay details and tax even after live details change", async () => {
+    session();
+    fake.db.reservations[0].guest_name = "Edited guest";
+    fake.db.reservations[0].check_out = "2026-09-20";
+    fake.db.reservations[0].operational_policy_snapshot = { vatRateBp: 0, serviceChargeBp: 0 };
+    fake.db.financial_documents[0].snapshot = {
+      reservationId: "res-alfa", confirmationNumber: "HVN-alfa", guestName: "Original guest",
+      roomType: "Deluxe King", checkIn: "2026-09-15", checkOut: "2026-09-18",
+      taxBreakdown: { netSubtotal: 1500, serviceCharge: 0, vatAmount: 240, grossTotal: 1740, serviceChargeBp: 0, vatRateBp: 1600 },
+    };
+    const response = await get("pay-alfa");
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    await expect(response.json()).resolves.toMatchObject({
+      data: { guestName: "Original guest", checkOut: "2026-09-18", tax: { vatAmount: 240, vatRate: "16%" } },
+    });
+  });
+
+  it("preserves the lack of a tax breakdown on an older issued receipt", async () => {
+    session();
+    fake.db.reservations[0].operational_policy_snapshot = { vatRateBp: 1200 };
+    fake.db.financial_documents[0].snapshot = {
+      reservationId: "res-alfa", guestName: "Guest alfa", roomType: "Deluxe King",
+      checkIn: "2026-09-15", checkOut: "2026-09-18",
+    };
+    await expect((await get("pay-alfa")).json()).resolves.toMatchObject({ data: { tax: null } });
+  });
+
   it("answers 404 — not 403 — for another customer's id and says nothing about it", async () => {
     session();
     const response = await get("pay-bravo");

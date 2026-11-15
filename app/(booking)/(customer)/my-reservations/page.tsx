@@ -8,6 +8,7 @@ import { calculateFinancialState, calculateNights, formatPeso, getGuestReservati
 import {
   filterReservationHistory,
   formatStayRange,
+  getGuestSubmittedDeposits,
   groupReservations,
   reservationCategory,
   type ReservationCategory,
@@ -15,6 +16,7 @@ import {
 } from "@/lib/customer";
 import { requireCustomerSession } from "@/lib/customer-auth";
 import { roomPrimary } from "@/lib/room-images";
+import { BookingHoldsSection } from "@/components/customer/booking-holds-section";
 
 const statusFilters: { value: ReservationHistoryStatus; label: string; heading: string; category?: ReservationCategory }[] = [
   { value: "all", label: "All reservations", heading: "All reservations" },
@@ -49,6 +51,7 @@ export default async function MyReservationsPage({
   const page = Math.min(Math.max(1, Math.floor(requestedPage) || 1), pageCount);
   const offset = (page - 1) * PAGE_SIZE;
   const pageRows = visible.slice(offset, offset + PAGE_SIZE);
+  const submittedDeposits = await getGuestSubmittedDeposits(session.user.id, pageRows.filter((row) => row.status === "pending").map((row) => row.id));
   const totals = groupReservations(reservations);
   const hasActiveFilters = Boolean(query || status !== "all" || sort !== "recommended");
   const activeFilter = statusFilters.find((filter) => filter.value === status)!;
@@ -62,6 +65,8 @@ export default async function MyReservationsPage({
         </div>
         <Link className="btn btn-accent" href="/account/find-room">Book another stay</Link>
       </section>
+
+      <BookingHoldsSection userId={session.user.id} />
 
       {reservations.length === 0 ? (
         <HavenEmptyState
@@ -112,6 +117,7 @@ export default async function MyReservationsPage({
                         : calculateFinancialState(reservation.total, reservation.deposit ?? 0);
                       const photo = roomPrimary(undefined, reservation.room_type);
                       const nights = calculateNights(reservation.check_in, reservation.check_out);
+                      const submittedDeposit = submittedDeposits.get(reservation.id);
                       return (
                         <article className="customer-reservation-card" key={reservation.id}>
                           {photo && (
@@ -127,7 +133,9 @@ export default async function MyReservationsPage({
                           <div className="reservation-card-copy">
                             <div className="reservation-card-badges">
                               <StatusBadge status={reservation.status} size="sm" />
-                              <StatusBadge status={reservation.payment_status} size="sm" />
+                              {submittedDeposit === undefined
+                                ? <StatusBadge status={reservation.payment_status} size="sm" />
+                                : <StatusBadge status="pending_verification" label="Deposit awaiting verification" size="sm" />}
                             </div>
                             <p className="reservation-card-reference">{reservation.confirmation_number ?? reservation.id}</p>
                             <h3 className="room-title">{reservation.room_type}</h3>
@@ -135,6 +143,7 @@ export default async function MyReservationsPage({
                               <span><CalendarDays size={15} />{formatStayRange(reservation.check_in, reservation.check_out)}</span>
                               <span><Users size={15} />{reservation.guests} guest{reservation.guests !== 1 ? "s" : ""} · {nights} night{nights !== 1 ? "s" : ""}</span>
                             </div>
+                            {submittedDeposit !== undefined && <p className="reservation-card-submission">{formatPeso(submittedDeposit)} submitted for verification</p>}
                           </div>
                           <div className="reservation-card-finance">
                             <small>Stay total</small>

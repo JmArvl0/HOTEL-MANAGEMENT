@@ -1,3 +1,4 @@
+import { getBookingTimezone } from "@/lib/booking";
 import { BookingNoticeToast } from "@/components/booking/booking-notice-toast";
 import { BookingSearchForm } from "@/components/booking/booking-search-form";
 import { AvailabilityGuide } from "@/components/booking/availability-guide";
@@ -18,7 +19,7 @@ export default async function FindRoomPage({ searchParams }: { searchParams: Pro
   }
   // Intent mirrors /booking/search: valid dates → availability, otherwise the browse catalog,
   // with an optional ?roomType focus from a landing Featured Stay card.
-  const intent = parseSearchIntent(raw);
+  const intent = parseSearchIntent(raw, new Intl.DateTimeFormat("en-CA", { timeZone: await getBookingTimezone() }).format(new Date()));
   const depositPolicy = await getDepositPolicy();
   let rooms: (AvailableRoomType | RoomTypeSummary)[] = [];
   let lookupError: string | undefined;

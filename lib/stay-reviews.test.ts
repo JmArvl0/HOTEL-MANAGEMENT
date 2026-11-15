@@ -37,7 +37,7 @@ describe("stay review migration and surface contract", () => {
   );
   const route = readFileSync("app/api/account/reviews/route.ts", "utf8");
   const lib = readFileSync("lib/stay-reviews.ts", "utf8");
-  const landing = readFileSync("app/(landing-page)/page.tsx", "utf8");
+  const landing = readFileSync("components/landing/hotel-home.tsx", "utf8");
   const detailPage = readFileSync(
     "app/(booking)/(customer)/my-reservations/[id]/page.tsx",
     "utf8",

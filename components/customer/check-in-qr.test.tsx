@@ -94,7 +94,7 @@ describe("Digital Express Pass layout (Scenario A)", () => {
     expect(copy.querySelector(".customer-checkin-qr-note")).toBeTruthy();
     const action = strip.querySelector(":scope > .customer-checkin-qr-action")!;
     expect(action.querySelector(".customer-checkin-qr-status")).toBeTruthy();
-    expect(action.querySelector("button.btn")).toBeTruthy();
+    expect(action.querySelector('button[aria-haspopup="listbox"]')).toBeTruthy();
   });
 
   it("labels the pass card with its parts: hotel, scan hint, ready badge, download", async () => {

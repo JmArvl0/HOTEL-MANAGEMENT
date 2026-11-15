@@ -10,9 +10,10 @@
  * nothing else happens. Hotel operations never depend on this module.
  */
 import { supabase } from "@/lib/supabase";
-import { sendEmail, guestEmailHtml } from "@/lib/email";
+import { escapeEmailText, guestEmailHtml } from "@/lib/email";
 import { recordNotification, type NotificationType } from "@/lib/notifications";
-import { hotelDateWithin } from "@/lib/booking";
+import { deliverGuestEmail } from "@/lib/guest-email-delivery";
+import { getBookingTimezone, hotelDateWithin } from "@/lib/booking";
 
 export type ReminderKind = "pre_arrival" | "pre_departure";
 
@@ -41,35 +42,21 @@ export const isPreDepartureTarget = (r: ReminderReservation, tomorrow: string) =
 
 type Outcome = "sent" | "skipped" | "error";
 
-const duplicate = (error: { code?: string; message?: string } | null | undefined) =>
-  error?.code === "23505" || String(error?.message ?? "").includes("duplicate key");
-
 const policyTime = (snapshot: Record<string, unknown> | null, key: "checkInTime" | "checkOutTime") =>
   typeof snapshot?.[key] === "string" ? (snapshot[key] as string).slice(0, 5) : null;
 
 const peso = (value: number) => `PHP ${value.toLocaleString("en-PH")}`;
 
-async function claimDelivery(reservationId: string, kind: ReminderKind): Promise<"claimed" | "duplicate" | "error"> {
-  const { error } = await supabase!.from("guest_reminder_deliveries").insert({ reservation_id: reservationId, kind });
-  if (!error) return "claimed";
-  if (duplicate(error)) return "duplicate";
-  console.error("guest reminder claim failed", kind, reservationId, error.message);
-  return "error";
-}
-
-async function markFailed(reservationId: string, kind: ReminderKind, message: string) {
-  await supabase!.from("guest_reminder_deliveries").update({ status: "failed", error: message }).eq("reservation_id", reservationId).eq("kind", kind);
-}
-
 /**
  * Runs one reminder pass for `tomorrow` (hotel-local YYYY-MM-DD). Pure
  * selection + one claim per send; returns the summary the cron route reports.
  */
-export async function runGuestReminders(tomorrow = hotelDateWithin(1)): Promise<{
+export async function runGuestReminders(tomorrow: string | undefined = undefined, retryFailed = false): Promise<{
   tomorrow: string;
   preArrival: Record<Outcome, number>;
   preDeparture: Record<Outcome, number>;
 }> {
+  tomorrow ??= hotelDateWithin(1, await getBookingTimezone());
   const summary = { preArrival: { sent: 0, skipped: 0, error: 0 }, preDeparture: { sent: 0, skipped: 0, error: 0 } };
   if (!supabase) return { tomorrow, ...summary };
 
@@ -79,6 +66,7 @@ export async function runGuestReminders(tomorrow = hotelDateWithin(1)): Promise<
     supabase.from("reservations").select(columns).eq("status", "checked_in").eq("check_out", tomorrow),
     supabase.rpc("current_operational_policy_snapshot"),
   ]);
+  if (arrivals.error || departures.error || policy.error) throw new Error("Unable to read reminder targets");
   const arrivalRows = (arrivals.data ?? []) as ReminderReservation[];
   const departureRows = (departures.data ?? []) as ReminderReservation[];
   const currentPolicy = ((policy.data ?? {}) as Record<string, unknown>);
@@ -115,7 +103,7 @@ export async function runGuestReminders(tomorrow = hotelDateWithin(1)): Promise<
       heading: "We're looking forward to your arrival",
       bodyHtml: arrivalBody(row, currentPolicy, rides.get(row.id)),
       notification: { type: "pre_arrival_reminder", title: "Arriving tomorrow", detail: `${row.room_type} — ${row.confirmation_number}` },
-    });
+    }, tomorrow, retryFailed);
     summary.preArrival[outcome]++;
   }
   for (const row of departureRows) {
@@ -125,7 +113,7 @@ export async function runGuestReminders(tomorrow = hotelDateWithin(1)): Promise<
       heading: "Your checkout is tomorrow",
       bodyHtml: departureBody(row, currentPolicy, rides.get(row.id), balances.get(row.id) ?? 0),
       notification: { type: "pre_departure_reminder", title: "Checkout tomorrow", detail: `${row.room_type} — ${row.confirmation_number}` },
-    });
+    }, tomorrow, retryFailed);
     summary.preDeparture[outcome]++;
   }
   return { tomorrow, ...summary };
@@ -134,26 +122,30 @@ export async function runGuestReminders(tomorrow = hotelDateWithin(1)): Promise<
 async function sendReminder(
   row: ReminderReservation,
   kind: ReminderKind,
-  message: { subject: string; heading: string; bodyHtml: string; notification: { type: NotificationType; title: string; detail: string } }
+  message: { subject: string; heading: string; bodyHtml: string; notification: { type: NotificationType; title: string; detail: string } }, tomorrow: string, retryFailed: boolean
 ): Promise<Outcome> {
-  const claim = await claimDelivery(row.id, kind);
-  if (claim !== "claimed") return claim === "duplicate" ? "skipped" : "error";
-  // In-app notification always lands (never-throw); the email is a best-effort copy.
+  const checked = await supabase!.from("reservations").select("status,check_in,check_out,guest_email,room_type,room_number,early_check_in_approved_until")
+    .eq("id", row.id).maybeSingle();
+  if (checked.error) return "error";
+  const current = checked.data as ReminderReservation | null;
+  if (!current || current.guest_email !== row.guest_email || current.room_type !== row.room_type || current.room_number !== row.room_number || current.early_check_in_approved_until !== row.early_check_in_approved_until ||
+      !(kind === "pre_arrival" ? isPreArrivalTarget(current, tomorrow) : isPreDepartureTarget(current, tomorrow))) return "skipped";
+  const previous = await supabase!.from("guest_reminder_deliveries").select("id")
+    .eq("reservation_id", row.id).eq("kind", kind).eq("status", "sent")
+    .gte("sent_at", new Date(Date.now() - 86400000).toISOString()).maybeSingle();
+  if (previous.error) return "error";
+  if (previous.data) return "skipped";
   if (row.user_id) {
-    await recordNotification({ userId: row.user_id, type: message.notification.type, title: message.notification.title, detail: message.notification.detail, href: `/my-reservations/${row.id}` });
+    await recordNotification({ userId: row.user_id, type: message.notification.type, title: message.notification.title,
+      detail: message.notification.detail, href: `/my-reservations/${row.id}#${kind}-${tomorrow}` });
   }
-  if (row.guest_email) {
-    const result = await sendEmail({ to: row.guest_email, subject: message.subject, html: guestEmailHtml(message.heading, message.bodyHtml) });
-    if (!result.ok && result.reason === "failed") {
-      console.error("guest reminder email failed", kind, row.id, result.message);
-      await markFailed(row.id, kind, result.message);
-    }
-  }
-  return "sent";
+  if (!row.guest_email) return "skipped";
+  return deliverGuestEmail(`stay-reminder:${row.id}:${kind}:${tomorrow}`,
+    { to: row.guest_email, subject: message.subject, html: guestEmailHtml(message.heading, message.bodyHtml) }, retryFailed);
 }
 
 const rideLine = (ride?: { service_type: string; pickup_time: string | null }) =>
-  ride ? `<tr><td style="color:#8a8a8a">Transportation</td><td>${ride.service_type === "DROPOFF" ? "Hotel transfer" : "Airport pickup"}${ride.pickup_time ? ` scheduled at <strong>${ride.pickup_time}</strong>` : " scheduled"}</td></tr>` : "";
+  ride ? `<tr><td style="color:#8a8a8a">Transportation</td><td>${ride.service_type === "DROPOFF" ? "Hotel transfer" : "Airport pickup"}${ride.pickup_time ? ` scheduled at <strong>${escapeEmailText(ride.pickup_time)}</strong>` : " scheduled"}</td></tr>` : "";
 
 function arrivalBody(row: ReminderReservation, currentPolicy: Record<string, unknown>, ride?: { service_type: string; pickup_time: string | null }) {
   const checkInTime = policyTime(row.operational_policy_snapshot, "checkInTime") ?? policyTime(currentPolicy, "checkInTime") ?? "14:00";
@@ -162,10 +154,10 @@ function arrivalBody(row: ReminderReservation, currentPolicy: Record<string, unk
     : "";
   return `<p>See you tomorrow. Here is everything you need for a smooth arrival.</p>
 <table style="font-size:14px;line-height:1.8">
-<tr><td style="color:#8a8a8a">Confirmation</td><td><strong>${row.confirmation_number}</strong></td></tr>
-<tr><td style="color:#8a8a8a">Room</td><td>${row.room_type}</td></tr>
+<tr><td style="color:#8a8a8a">Confirmation</td><td><strong>${escapeEmailText(row.confirmation_number)}</strong></td></tr>
+<tr><td style="color:#8a8a8a">Room</td><td>${escapeEmailText(row.room_type)}</td></tr>
 <tr><td style="color:#8a8a8a">Stay</td><td>${row.check_in} to ${row.check_out} · ${row.guests} guest${row.guests !== 1 ? "s" : ""}</td></tr>
-<tr><td style="color:#8a8a8a">Check-in from</td><td><strong>${checkInTime}</strong></td></tr>
+<tr><td style="color:#8a8a8a">Check-in from</td><td><strong>${escapeEmailText(checkInTime)}</strong></td></tr>
 ${early}${rideLine(ride)}
 </table>`;
 }
@@ -177,9 +169,9 @@ function departureBody(row: ReminderReservation, currentPolicy: Record<string, u
     : "";
   return `<p>Thank you for staying with us. A quick note before you head out tomorrow.</p>
 <table style="font-size:14px;line-height:1.8">
-<tr><td style="color:#8a8a8a">Confirmation</td><td><strong>${row.confirmation_number}</strong></td></tr>
-<tr><td style="color:#8a8a8a">Room</td><td>${row.room_type}${row.room_number ? ` · Room ${row.room_number}` : ""}</td></tr>
-<tr><td style="color:#8a8a8a">Checkout by</td><td><strong>${checkOutTime}</strong> on ${row.check_out}</td></tr>
+<tr><td style="color:#8a8a8a">Confirmation</td><td><strong>${escapeEmailText(row.confirmation_number)}</strong></td></tr>
+<tr><td style="color:#8a8a8a">Room</td><td>${escapeEmailText(row.room_type)}${row.room_number ? ` · Room ${escapeEmailText(row.room_number)}` : ""}</td></tr>
+<tr><td style="color:#8a8a8a">Checkout by</td><td><strong>${escapeEmailText(checkOutTime)}</strong> on ${row.check_out}</td></tr>
 ${balanceLine}${rideLine(ride)}
 </table>`;
 }

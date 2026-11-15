@@ -55,7 +55,25 @@ export function folioMoney(record:FolioMoneyInput){const total=Number(record.inv
 export function financialPaymentState(record:FolioStateInput):FolioPaymentState{if(["cancelled","no_show"].includes(record.status)){if(record.invoice?.terminal_settlement&&folioMoney(record).balance>0)return"due";if(record.refunds.length>0)return"refund";return"settled"}if(record.payments.some((payment)=>payment.status==="pending_verification")||record.invoice?.status==="pending_verification")return"pending";if(folioMoney(record).balance>0)return"due";if(record.refunds.length>0)return"refund";return"settled"}
 export function filterFinancialRecords<T extends FolioStateInput>(records:T[],filters:{stay?:string|null;pay?:string|null},today=hotelToday()):T[]{const stay=FOLIO_STAY_FILTERS.includes(filters.stay as ReservationCategory)?(filters.stay as ReservationCategory):null;const pay=FOLIO_PAY_FILTERS.includes(filters.pay as FolioPaymentState)?(filters.pay as FolioPaymentState):null;return records.filter((record)=>(!stay||reservationCategory(record,today)===stay)&&(!pay||financialPaymentState(record)===pay))}
 
-const financialColumns="id,confirmation_number,room_type,room_number,check_in,check_out,guests,status,total,deposit,deposit_required,deposit_policy_snapshot,operational_policy_snapshot,payment_due_at,payment_status,cancellation_reason,identity_status";
+const financialColumns="id,confirmation_number,room_type,room_number,check_in,check_out,guests,status,total,deposit,deposit_required,deposit_policy_snapshot,operational_policy_snapshot,amenity_snapshot,payment_due_at,payment_status,cancellation_reason,identity_status";
+
+export async function getGuestSubmittedDeposits(userId: string, reservationIds: string[]) {
+  const deposits = new Map<string, number>();
+  if (!supabase || !reservationIds.length) return deposits;
+  const { data, error } = await supabase.from("payments")
+    .select("reservation_id,amount,reservations!inner(user_id)")
+    .eq("reservations.user_id", userId)
+    .in("reservation_id", reservationIds)
+    .eq("purpose", "reservation_deposit")
+    .eq("status", "pending_verification")
+    .in("method", ["manual_gcash", "manual_bank_transfer"]);
+  if (error) throw new Error("Could not load submitted deposits.", { cause: error });
+  for (const payment of data ?? []) {
+    deposits.set(payment.reservation_id, (deposits.get(payment.reservation_id) ?? 0) + Number(payment.amount));
+  }
+  return deposits;
+}
+
 export async function getCustomerFinancials(userId:string){
   if(!supabase)return[];await supabase.rpc("expire_booking_holds");
   const{data:reservations,error:reservationError}=await supabase.from("reservations").select(financialColumns).eq("user_id",userId).order("check_in",{ascending:false});if(reservationError)throw reservationError;
@@ -88,15 +106,27 @@ export async function getCustomerReceipt(userId:string,paymentId:string):Promise
   if(!reservation)return null;
   // A real RCP- number when Accounting has issued one, null otherwise. An
   // invented number would be fabricated data, so absent stays absent.
-  const{data:document}=await supabase.from("financial_documents").select("document_number").eq("payment_id",paymentId).eq("document_type","receipt").maybeSingle();
+  const{data:document,error:documentError}=await supabase.from("financial_documents").select("document_number,snapshot").eq("payment_id",paymentId).eq("document_type","receipt").order("created_at").order("id").limit(1).maybeSingle();
+  if(documentError)throw documentError;
+  const issued=document?.snapshot as {
+    reservationId:string; confirmationNumber:string|null; guestName:string|null;
+    roomType:string|null; checkIn:string; checkOut:string;
+    taxBreakdown?:NonNullable<ReturnType<typeof inclusiveTaxBreakdown>>;
+  }|null|undefined;
   // Frozen policy snapshot first, current policy as the fallback for reservations
   // created before tax configuration — unchanged from the original receipt page.
   const snapshot=(reservation.operational_policy_snapshot??{})as Record<string,unknown>;
-  const policy=await getOperationalPolicy();
-  const vatRateBp=typeof snapshot.vatRateBp==="number"?snapshot.vatRateBp:policy.vatRateBp;
-  const serviceChargeBp=typeof snapshot.serviceChargeBp==="number"?snapshot.serviceChargeBp:policy.serviceChargeBp;
-  const tax=inclusiveTaxBreakdown(payment.amount,vatRateBp,serviceChargeBp);
-  return buildReceiptDocument({payment,reservation,labels:{purpose:friendlyStatus(payment.purpose),method:friendlyStatus(payment.method)},tax:tax?{netSubtotal:tax.netSubtotal,serviceCharge:tax.serviceCharge,vatAmount:tax.vatAmount,grossTotal:tax.grossTotal,serviceChargeRate:ratePercent(tax.serviceChargeBp),vatRate:ratePercent(tax.vatRateBp)}:null,documentNumber:document?.document_number??null});
+  const policy=issued?null:await getOperationalPolicy();
+  const tax=issued?issued.taxBreakdown:inclusiveTaxBreakdown(
+    payment.amount,
+    typeof snapshot.vatRateBp==="number"?snapshot.vatRateBp:policy?.vatRateBp??0,
+    typeof snapshot.serviceChargeBp==="number"?snapshot.serviceChargeBp:policy?.serviceChargeBp??0,
+  );
+  const stay=issued?{
+    id:issued.reservationId,confirmation_number:issued.confirmationNumber,guest_name:issued.guestName,
+    room_type:issued.roomType,check_in:issued.checkIn,check_out:issued.checkOut,
+  }:reservation;
+  return buildReceiptDocument({payment,reservation:stay,labels:{purpose:friendlyStatus(payment.purpose),method:friendlyStatus(payment.method)},tax:tax?{netSubtotal:tax.netSubtotal,serviceCharge:tax.serviceCharge,vatAmount:tax.vatAmount,grossTotal:tax.grossTotal,serviceChargeRate:ratePercent(tax.serviceChargeBp),vatRate:ratePercent(tax.vatRateBp)}:null,documentNumber:document?.document_number??null});
 }
 export async function getCustomerRequests(userId:string){if(!supabase)return[];const{data:reservations,error}=await supabase.from("reservations").select("id,confirmation_number,room_type,status,guest_id").eq("user_id",userId);if(error)throw error;const ids=(reservations??[]).map((item)=>item.id);if(!ids.length)return[];const{data,error:requestError}=await supabase.from("guest_requests").select("id,version,reservation_id,request,request_type,batch_id,approval_status,approval_note,approved_at,department,priority,severity,escalation_status,status,created_at").in("reservation_id",ids).order("created_at",{ascending:false});if(requestError)throw requestError;return(data??[]).map((request)=>({...request,reservation:(reservations??[]).find((item)=>item.id===request.reservation_id)??null}))}
 export async function getCustomerOverview(userId:string){const[financials,requests,transportation]=await Promise.all([getCustomerFinancials(userId),getCustomerRequests(userId),getCustomerTransportation(userId)]);const groups=groupReservations(financials);const primary=groups.current[0]??groups.upcoming[0]??null;return{groups,primary,financial:primary,requests:requests.slice(0,3),notifications:buildNotifications(financials,requests,transportation).slice(0,5)}}
@@ -108,8 +138,17 @@ export function buildNotifications(financials:Awaited<ReturnType<typeof getCusto
 }
 export async function getCustomerReservationDetail(userId:string,id:string){
  if(!supabase)return null;await supabase.rpc("expire_booking_holds");
- const{data:reservation}=await supabase.from("reservations").select("id,confirmation_number,guest_id,guest_name,guest_email,room_type,room_number,check_in,check_out,guests,status,total,deposit,deposit_required,deposit_policy_snapshot,operational_policy_snapshot,amenity_snapshot,payment_due_at,payment_status,payment_method,source,special_requests,request_options,transport_lines,transportation_preferences,expected_arrival,cancellation_reason,identity_status,created_at").eq("id",id).eq("user_id",userId).maybeSingle();if(!reservation)return null;
- const[{data:invoice},{data:guest},{data:refunds},{data:changeRequests}]=await Promise.all([supabase.from("invoices").select("id,amount,paid,balance,credit_balance,terminal_settlement,status,method,due_date").eq("reservation_id",id).maybeSingle(),reservation.guest_id?supabase.from("guests").select("name,email,phone,nationality,address").eq("id",reservation.guest_id).maybeSingle():Promise.resolve({data:null}),supabase.from("refund_requests").select("id,reason,paid_deposit,refund_basis_points,eligible_amount,status,reference,processed_at,created_at").eq("reservation_id",id).order("created_at",{ascending:false}),supabase.from("reservation_change_requests").select("id,requested_check_in,requested_check_out,requested_room_type,requested_guests,requested_special_requests,calculated_total,payment_difference,execution_status,reason,status,created_at").eq("reservation_id",id).order("created_at",{ascending:false})]);
+ const{data:reservation,error:reservationError}=await supabase.from("reservations").select("id,confirmation_number,guest_id,guest_name,guest_email,room_type,room_number,check_in,check_out,guests,status,total,deposit,deposit_required,deposit_policy_snapshot,operational_policy_snapshot,amenity_snapshot,payment_due_at,payment_status,payment_method,source,special_requests,request_options,transport_lines,transportation_preferences,expected_arrival,cancellation_reason,identity_status,created_at").eq("id",id).eq("user_id",userId).maybeSingle();
+ if(reservationError)throw new Error("Could not load reservation details.",{cause:reservationError});
+ if(!reservation)return null;
+ const [invoiceResult,guestResult,refundResult,changeResult]=await Promise.all([supabase.from("invoices").select("id,amount,paid,balance,credit_balance,terminal_settlement,status,method,due_date").eq("reservation_id",id).maybeSingle(),reservation.guest_id?supabase.from("guests").select("name,email,phone,nationality,address").eq("id",reservation.guest_id).maybeSingle():Promise.resolve({data:null}),supabase.from("refund_requests").select("id,reason,paid_deposit,refund_basis_points,eligible_amount,status,reference,processed_at,created_at").eq("reservation_id",id).order("created_at",{ascending:false}),supabase.from("reservation_change_requests").select("id,requested_check_in,requested_check_out,requested_room_type,requested_guests,requested_special_requests,calculated_total,payment_difference,execution_status,reason,status,created_at").eq("reservation_id",id).order("created_at",{ascending:false})]);
+ for(const result of [invoiceResult,guestResult,refundResult,changeResult]){
+  if("error" in result&&result.error)throw new Error("Could not load reservation details.",{cause:result.error});
+ }
+ const {data:invoice}=invoiceResult,{data:guest}=guestResult,{data:refunds}=refundResult,{data:changeRequests}=changeResult;
  const [paymentResult,chargeResult,adjustmentResult]=invoice?await Promise.all([supabase.from("payments").select("id,amount,method,reference,purpose,status,submitted_at,verified_at,proof_original_name,created_at").eq("invoice_id",invoice.id).order("created_at",{ascending:false}),supabase.from("folio_charges").select("id,description,category,amount,status,created_at").eq("invoice_id",invoice.id).order("created_at",{ascending:false}),supabase.from("financial_adjustments").select("id,reason,direction,amount,created_at").eq("invoice_id",invoice.id).order("created_at",{ascending:false})]):[{data:[]},{data:[]},{data:[]}];
+ for(const result of [paymentResult,chargeResult,adjustmentResult]){
+  if("error" in result&&result.error)throw new Error("Could not load reservation details.",{cause:result.error});
+ }
  return{...reservation,invoice,guest,adjustments:adjustmentResult.data??[],payments:paymentResult.data??[],charges:chargeResult.data??[],refunds:refunds??[],changeRequests:changeRequests??[],nights:calculateNights(reservation.check_in,reservation.check_out)};
 }

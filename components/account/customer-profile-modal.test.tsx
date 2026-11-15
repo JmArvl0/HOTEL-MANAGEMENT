@@ -83,7 +83,7 @@ describe("CustomerProfileModal", () => {
     // Hero identity card
     expect(screen.getByText("Carl Garcia")).toBeTruthy();
     expect(screen.getByText("leovinoarevalo0@gmail.com")).toBeTruthy();
-    expect(screen.getByText("Verified Guest")).toBeTruthy();
+    expect(screen.getByText("Guest account")).toBeTruthy();
 
     // Form inputs populate from fetch
     await waitFor(() => {

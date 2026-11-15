@@ -1,4 +1,3 @@
-import { isLegacyGuestPayment } from "@/lib/payment-display";
 import { notFound } from "next/navigation";
 import { requireCustomerSession } from "@/lib/customer-auth";
 import { getCustomerReservationDetail } from "@/lib/customer";
@@ -7,6 +6,7 @@ import { getCustomerTransportation } from "@/lib/transportation";
 import { supabase } from "@/lib/supabase";
 import { ReservationDetailView } from "@/components/customer/reservation-detail-view";
 import { StayReviewCard } from "@/components/customer/stay-review-card";
+import { isLegacyGuestPayment } from "@/lib/payment-display";
 
 export default async function ReservationPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireCustomerSession();

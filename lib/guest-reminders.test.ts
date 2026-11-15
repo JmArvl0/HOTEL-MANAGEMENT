@@ -6,6 +6,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // (a second insert for the same reservation+kind raises 23505, exactly like the
 // real index), proving cron retries / redeploys never duplicate a send.
 const fake = vi.hoisted(() => ({ db: {} as Record<string, Record<string, unknown>[]> }));
+vi.mock("@/lib/guest-email-delivery", () => ({
+  deliverGuestEmail: async (key: string) => {
+    const rows = fake.db.guest_email_deliveries ??= [];
+    if (rows.some(row => row.event_key === key)) return "skipped";
+    rows.push({ event_key: key });
+    return "sent";
+  },
+}));
 vi.mock("@/lib/supabase", async () => {
   const { fakeSupabase } = await import("@/lib/fake-supabase");
   const client = fakeSupabase(fake.db);
@@ -90,10 +98,10 @@ describe("runGuestReminders", () => {
     });
     // One delivery claim + one in-app notification per target — nothing for the
     // wrong-status/wrong-date rows.
-    expect(fake.db.guest_reminder_deliveries).toHaveLength(2);
-    expect(fake.db.guest_reminder_deliveries).toEqual(expect.arrayContaining([
-      expect.objectContaining({ reservation_id: "RSV-ARRIVE", kind: "pre_arrival" }),
-      expect.objectContaining({ reservation_id: "RSV-DEPART", kind: "pre_departure" }),
+    expect(fake.db.guest_email_deliveries).toHaveLength(2);
+    expect(fake.db.guest_email_deliveries).toEqual(expect.arrayContaining([
+      { event_key: "stay-reminder:RSV-ARRIVE:pre_arrival:" + TOMORROW },
+      { event_key: "stay-reminder:RSV-DEPART:pre_departure:" + TOMORROW },
     ]));
     expect(fake.db.notifications).toEqual(expect.arrayContaining([
       expect.objectContaining({ type: "pre_arrival_reminder", user_id: "user-1" }),
@@ -110,8 +118,8 @@ describe("runGuestReminders", () => {
       preArrival: { sent: 0, skipped: 1, error: 0 },
       preDeparture: { sent: 0, skipped: 1, error: 0 },
     });
-    expect(fake.db.guest_reminder_deliveries).toHaveLength(2); // no new claims
-    expect(fake.db.notifications).toHaveLength(2); // no duplicate in-app events
+    expect(fake.db.guest_email_deliveries).toHaveLength(2); // no new claims
+    expect(new Set(fake.db.notifications.map(row => row.href)).size).toBe(2); // stable event links
   });
 
   it("records the in-app notification even without a guest account (front-desk booking)", async () => {
