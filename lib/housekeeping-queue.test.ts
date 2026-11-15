@@ -51,11 +51,11 @@ describe("housekeeping queue surface", () => {
   it("is a grouped card list, not a CRUD table", () => {
     expect(panel).toContain("hk-queue-card");
     expect(panel).not.toContain("<table");
-    for (const group of ["Needs attention", "My tasks", "Waiting for inspection", "Blocked by Maintenance", "Completed today"]) expect(panel).toContain(group);
+    for (const group of ["Needs attention", "My Tasks", "Waiting for inspection", "Blocked by Maintenance", "Completed today"]) expect(panel).toContain(group);
   });
   it("reuses the existing RPC action handlers and adds no write path of its own", () => {
     expect(panel).not.toContain("supabase");
-    expect(panel).not.toContain("fetch(");
+    expect(panel).not.toContain("fetchPublic(");
     expect(dashboard).toContain('housekeepingAction={operateHousekeeping}');
     expect(dashboard).toContain("HousekeepingQueuePanel");
     expect(panel).toContain('housekeepingAction(item, "start")');
@@ -102,7 +102,7 @@ describe("daily report housekeeping block", () => {
   it("renders in the report snapshot view and aggregates the authoritative table", () => {
     expect(reportsPanel).toContain("Room care turnover");
     expect(reportsPanel).toContain("snapshot.housekeeping");
-    expect(readFileSync("lib/front-desk-reports.ts", "utf8")).toContain('from("housekeeping_tasks")');
+    expect(readFileSync("supabase/migrations/20261115040000_audit_daily_reports_and_xendit_review.sql", "utf8")).toContain("from housekeeping_tasks");
   });
 });
 

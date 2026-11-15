@@ -1,3 +1,4 @@
+import { publicJson } from "@/lib/server-errors";
 import {NextResponse} from "next/server";
 import {hotelGuard,hotelStaff} from "@/lib/hotel-operations-route";
 import {readAllRows} from "@/lib/read-all-rows";
@@ -6,4 +7,4 @@ export async function GET(){const ctx=await hotelGuard(hotelStaff);if(ctx instan
  reservations?readAllRows(()=>ctx.client.from("reservations").select("id,confirmation_number").in("status",["pending","confirmed","checked_in"]).order("created_at",{ascending:false})):[],
  ["front_desk","manager","owner","housekeeping"].includes(ctx.role)?readAllRows(()=>ctx.client.from("housekeeping_tasks").select("id,room_number,task_type").in("status",["pending","assigned","in_progress","deferred"]).order("created_at",{ascending:false})):[],
  contacts?readAllRows(()=>ctx.client.from("guests").select("id,name").order("name")):[],
- ]);return NextResponse.json({data:{rooms:r,reservations:s,tasks:t,guests:g}});}catch{return NextResponse.json({error:"Unable to load handover links."},{status:503});}}
+ ]);return publicJson({data:{rooms:r,reservations:s,tasks:t,guests:g}});}catch{return publicJson({error:"Unable to load handover links."},{status:503});}}

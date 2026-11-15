@@ -1,4 +1,7 @@
 "use client";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { useCallback, useEffect, useState } from "react";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
 import type { MaintenanceAsset } from "@/lib/maintenance-assets";
@@ -9,9 +12,9 @@ export default function PreventiveWorkPanel({ assets, role, actorId, onServiceRe
   const [data, setData] = useState<{ links: Link[]; technicians: { id: string; name: string }[] } | null>(null);
   const [error, setError] = useState(""); const [busy, setBusy] = useState(false); const [message, setMessage] = useState("");
   const dialogs = useActionDialogs();
-  const load = useCallback(async (signal?: AbortSignal) => { try { const response = await fetch("/api/maintenance/asset-work", { cache: "no-store", signal }); const body = await response.json(); if (!response.ok) throw new Error(body.error); setData(body.data); setError(""); } catch (e) { if (!signal?.aborted) setError(e instanceof Error ? e.message : "Unable to load preventive work."); } }, []);
+  const load = useCallback(async (signal?: AbortSignal) => { try { const response = await fetchPublic("/api/maintenance/asset-work", { cache: "no-store", signal }); const body = await readResponse(response); if (!response.ok) throw new Error(body.error); setData(body.data); setError(""); } catch (e) { if (!signal?.aborted) setError(userMessage(e, "Unable to load preventive work.")); } }, []);
   useEffect(() => { const c = new AbortController(); queueMicrotask(() => { if (!c.signal.aborted) void load(c.signal); }); return () => c.abort(); }, [load]);
-  async function save(payload: Record<string, unknown>) { setBusy(true); setError(""); try { const response = await fetch("/api/maintenance/asset-work", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }); const body = await response.json(); if (!response.ok) throw new Error(body.error); setMessage(payload.action === "create" ? `Assigned work order ${body.data}. Continue in the Maintenance work queue.` : "Service linked and next service date updated."); await load(); onServiceRecorded(); } catch (e) { setError(e instanceof Error ? e.message : "Unable to save preventive work."); } finally { setBusy(false); } }
+  async function save(payload: Record<string, unknown>) { setBusy(true); setError(""); try { const response = await fetchPublic("/api/maintenance/asset-work", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }); const body = await readResponse(response); if (!response.ok) throw new Error(body.error); setMessage(payload.action === "create" ? `Assigned work order ${body.data}. Continue in the Maintenance work queue.` : "Service linked and next service date updated."); await load(); onServiceRecorded(); } catch (e) { setError(userMessage(e, "Unable to save preventive work.")); } finally { setBusy(false); } }
   async function create(asset: MaintenanceAsset) {
     let technicianId = actorId;
     if (role === "manager") { const selected = await dialogs.askSelect({ title: `Assign preventive service — ${asset.name}`, label: "Maintenance technician", required: true, options: (data?.technicians ?? []).map(t => ({ value: t.id, label: t.name })) }); if (!selected) return; technicianId = selected; }

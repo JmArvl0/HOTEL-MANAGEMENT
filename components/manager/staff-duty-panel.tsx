@@ -1,5 +1,8 @@
 "use client";
 
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Activity, BedDouble, Building2, Calculator, ChevronRight, CircleDollarSign, ClipboardCheck, ClipboardList, ConciergeBell, Eye, Info, Lightbulb, RefreshCw, Search, Settings, Users, Wrench, X, type LucideIcon } from "lucide-react";
@@ -10,6 +13,7 @@ import { HavenDataToolbar, HavenEmptyState, HavenSearchInput } from "@/component
 import { HavenSkeleton } from "@/components/ui/haven-skeleton";
 import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination";
 import { STAFF_DUTY_BASIS_NOTE, type StaffDutyMember, type StaffDutySnapshot, type StaffDutyStatus } from "@/lib/staff-duty";
+import WorkforcePanel from "@/components/manager/workforce-panel";
 
 /**
  * STAFF & DUTY — read-only operational workforce supervision for the Manager.
@@ -62,13 +66,13 @@ export default function StaffDutyPanel() {
 
   const load = useCallback(async () => {
     try {
-      const response = await fetch("/api/manager/staff-duty", { cache: "no-store" });
-      const body = await response.json();
+      const response = await fetchPublic("/api/manager/staff-duty", { cache: "no-store" });
+      const body = await readResponse(response);
       if (!response.ok) throw new Error(body?.error ?? "Unable to load staff duty.");
       setData(body.data);
       setError("");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to load staff duty.");
+      setError(userMessage(caught, "Unable to load staff duty."));
     } finally {
       setLoading(false);
     }
@@ -128,12 +132,13 @@ export default function StaffDutyPanel() {
     <>
       <div className="sd-hero">
         <div className="sd-hero-copy">
-          <p className="sd-hero-eyebrow">Staff operations</p>
           <h1>Staff &amp; Duty</h1>
-          <p>Who is on duty right now, department coverage, and what each team member is working on — across hotel operations.</p>
+          <p>Workforce availability, department activity, and each team member’s current operational workload.</p>
         </div>
         <div className="sd-hero-ring" aria-hidden="true" />
       </div>
+
+      <WorkforcePanel />
 
       {error ? (
         // A failed request must never read as "no staff" — the error state says so explicitly.
@@ -203,7 +208,7 @@ export default function StaffDutyPanel() {
                       <span className="sd-cov-icon" aria-hidden="true"><DeptIcon size={16} /></span>
                       <span className="sd-cov-body">
                         <span className="sd-cov-top"><span className="sd-cov-name">{dept.name}</span><ChevronRight size={14} aria-hidden="true" /></span>
-                        <span className="sd-cov-count"><i>{onDuty}</i> of {dept.total} on duty</span>
+                        <span className="sd-cov-count"><i>{onDuty}</i> of {dept.total} with active work</span>
                         <span className="sd-cov-act">{activity.length ? activity.map(([kind, count]) => `${count} ${kind.toLowerCase()}`).join(" · ") : "No active work"}</span>
                         <span className="sd-cov-meter-row"><span className="sd-cov-meter" aria-hidden="true"><span style={{ width: `${pct}%` }} /></span><span className="sd-cov-pct">{pct}%</span></span>
                       </span>

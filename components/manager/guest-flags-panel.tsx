@@ -1,4 +1,5 @@
 "use client";
+import { userMessage } from "@/lib/errors";
 import {useState} from "react";
 import {hotelRequest,useHotelResource} from "./hotel-operations-client";
 import type {Role} from "@/lib/types";
@@ -12,12 +13,12 @@ export default function GuestFlagsPanel({guestId,role}:{guestId:string;role:Role
  async function create(event:React.FormEvent){event.preventDefault();setBusy(true);setFailure("");setNotice("");
   try{await hotelRequest(`/api/staff/guests/${encodeURIComponent(guestId)}/flags`,{flagType,instructions:instructions.trim()||null,restrictedNote:restricted.trim()||null,expiresAt:expiry?new Date(expiry).toISOString():null,reason:reason.trim()});
    setInstructions("");setRestricted("");setExpiry("");setReason("");setNotice("Guest flag recorded.");await refresh();
-  }catch(e){setFailure(e instanceof Error?e.message:"Unable to record guest flag.");}finally{setBusy(false);}
+  }catch(e){setFailure(userMessage(e, "Unable to record guest flag."));}finally{setBusy(false);}
  }
  async function revoke(flag:GuestOperationalFlag){setBusy(true);setFailure("");setNotice("");
   try{await hotelRequest(`/api/staff/guests/${encodeURIComponent(guestId)}/flags`,{flagId:flag.id,version:flag.version,reason:revokeReason.trim()},"PATCH");
    setSelected(null);setRevokeReason("");setNotice("Guest flag revoked and logged.");await refresh();
-  }catch(e){setFailure(e instanceof Error?e.message:"Unable to revoke guest flag.");}finally{setBusy(false);}
+  }catch(e){setFailure(userMessage(e, "Unable to revoke guest flag."));}finally{setBusy(false);}
  }
  return <section className="hotel-ops guest-flags" aria-label="Guest operational flags">
   <h3>Operational guest flags</h3><p>Flags are visible only to authorized hotel staff. Restricted incident notes are shown to management only.</p>
@@ -49,11 +50,11 @@ export function ReservationDnrOverridePanel({reservationId}:{reservationId:strin
   if(!expiresAt){setFailure("Choose when this exception expires.");setBusy(null);return;}
   try{await hotelRequest(`/api/staff/reservations/${encodeURIComponent(reservationId)}/flag-overrides`,{flagId:flag.flagId,purpose,flagVersion:flag.flagVersion,reason:reason.trim(),expiresAt:new Date(expiresAt).toISOString()});
    setNotice("Reservation-specific Do Not Rent exception recorded.");setReason("");await refresh();
-  }catch(e){setFailure(e instanceof Error?e.message:"Unable to record exception.");}finally{setBusy(null);}
+  }catch(e){setFailure(userMessage(e, "Unable to record exception."));}finally{setBusy(null);}
  }
  async function revoke(id:string,version:number){setBusy(id);setFailure("");setNotice("");
   try{await hotelRequest(`/api/staff/reservations/${encodeURIComponent(reservationId)}/flag-overrides/${id}`,{version,reason:reason.trim()},"DELETE");setNotice("Reservation exception revoked.");setReason("");await refresh();}
-  catch(e){setFailure(e instanceof Error?e.message:"Unable to revoke exception.");}finally{setBusy(null);}
+  catch(e){setFailure(userMessage(e, "Unable to revoke exception."));}finally{setBusy(null);}
  }
  return <section className="hotel-ops" aria-label="Do Not Rent reservation review"><h3>Do Not Rent review</h3><p>Management exceptions apply to one reservation, one active flag version, one purpose and a stated expiry. They do not waive other arrival requirements.</p>
   {(error||failure)&&<p role="alert">{failure||error}</p>}{notice&&<p role="status">{notice}</p>}

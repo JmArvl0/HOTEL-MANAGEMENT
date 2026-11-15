@@ -1,4 +1,7 @@
 "use client";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { useCallback, useEffect, useState } from "react";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
 import { manilaInputToIso, type FoundEvent, type FoundItem } from "@/lib/operations";
@@ -11,14 +14,14 @@ export default function LostFoundPanel({ role }: { role: Role }) {
   const [busy, setBusy] = useState(false); const [filter, setFilter] = useState("active");
   const dialogs = useActionDialogs();
   const load = useCallback(async (signal?: AbortSignal) => {
-    try { const response = await fetch("/api/staff/lost-found", { cache: "no-store", signal }); const body = await response.json(); if (!response.ok) throw new Error(body.error); setData(body.data); setError(""); }
-    catch (e) { if (!signal?.aborted) setError(e instanceof Error ? e.message : "Unable to load. Try again."); }
+    try { const response = await fetchPublic("/api/staff/lost-found", { cache: "no-store", signal }); const body = await readResponse(response); if (!response.ok) throw new Error(body.error); setData(body.data); setError(""); }
+    catch (e) { if (!signal?.aborted) setError(userMessage(e, "Unable to load. Try again.")); }
   }, []);
   useEffect(() => { const c = new AbortController(); queueMicrotask(() => { if (!c.signal.aborted) void load(c.signal); }); return () => c.abort(); }, [load]);
   async function save(payload: Record<string, unknown>) {
     setBusy(true); setError(""); setMessage("");
-    try { const response = await fetch("/api/staff/lost-found", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }); const body = await response.json(); if (!response.ok) throw new Error(body.error); setMessage("Item history updated."); await load(); }
-    catch (e) { setError(e instanceof Error ? e.message : "Unable to save. Try again."); } finally { setBusy(false); }
+    try { const response = await fetchPublic("/api/staff/lost-found", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }); const body = await readResponse(response); if (!response.ok) throw new Error(body.error); setMessage("Item history updated."); await load(); }
+    catch (e) { setError(userMessage(e, "Unable to save. Try again.")); } finally { setBusy(false); }
   }
   async function record() {
     const value = await dialogs.askForm({ title: "Record a found item", description: "Describe the item and where it was found. Keep identity documents, card numbers and guest contact details out of the description.", fields: [
@@ -28,7 +31,7 @@ export default function LostFoundPanel({ role }: { role: Role }) {
     ], submitText: "Record item" });
     if (!value) return;
     try { await save({ ...value, action: "record", id: crypto.randomUUID(), foundAt: manilaInputToIso(String(value.foundAt)) }); }
-    catch (e) { setError(e instanceof Error ? e.message : "Check the found time."); }
+    catch (e) { setError(userMessage(e, "Check the found time.")); }
   }
   async function act(item: FoundItem, action: string) {
     const titles: Record<string, string> = { secure: "Secure item", claim: "Record claim", authorize_release: "Authorize release", reject_claim: "Decline claim", release: "Release to verified claimant", dispose: "Authorize disposition", take_custody: "Acknowledge physical custody" };

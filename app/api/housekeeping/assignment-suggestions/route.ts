@@ -1,11 +1,14 @@
+import { publicJson } from "@/lib/server-errors";
 import { getServerSession } from "next-auth";
-import { NextResponse } from "next/server";
+
 import { authOptions } from "@/lib/auth";
 import { demoStore } from "@/lib/demo-store";
 import { supabase } from "@/lib/supabase";
 import { getStaffDutySnapshot, hotelTodayKey } from "@/lib/staff-duty";
 import { SUGGESTION_BASIS_NOTE, suggestAssignments, type SuggestionStaff, type SuggestionTask } from "@/lib/housekeeping-suggestions";
 import type { Role } from "@/lib/types";
+import { workforceConfiguration } from "@/lib/workforce-contract";
+import type { WorkforceSnapshot } from "@/lib/workforce";
 
 // Roadmap Phase 6 — read-only assignment ASSISTANCE for the Housekeeping queue.
 // Returns an advisory plan (open unassigned tasks → teammates by current
@@ -40,9 +43,9 @@ function demoPlan() {
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.disabled) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!SUGGESTION_ROLES.includes(session.user.role as Role)) return NextResponse.json({ error: "Housekeeping suggestion access required." }, { status: 403 });
-  if (!supabase) return NextResponse.json({ data: demoPlan() });
+  if (!session || session.user.disabled) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
+  if (!SUGGESTION_ROLES.includes(session.user.role as Role)) return publicJson({ error: "Housekeeping suggestion access required." }, { status: 403 });
+  if (!supabase) return publicJson({ data: demoPlan() });
   try {
     const today = hotelTodayKey();
     // Open unassigned tasks (inspection workflow excluded by the pure planner).
@@ -68,11 +71,17 @@ export async function GET() {
     // records only). Housekeeping work already on their plate seeds the
     // round-robin; maintenance orders and cash shifts never influence it.
     const duty = await getStaffDutySnapshot(supabase);
+    let eligible: Set<string> | null = null;
+    if (workforceConfiguration()) {
+      const result = await supabase.rpc("hotel_workforce_snapshot", { p_actor: session.user.id });
+      if (result.error) throw result.error;
+      eligible = new Set((result.data as WorkforceSnapshot).staff.filter(member => member.status === "on_duty").map(member => member.userId));
+    }
     const staff: SuggestionStaff[] = duty.staff
-      .filter((member) => member.role === "housekeeping")
+      .filter((member) => member.role === "housekeeping" && (!eligible || eligible.has(member.id)))
       .map((member) => ({ id: member.id, name: member.name, openAssignments: member.activeWork.filter((work) => work.source === "housekeeping").length }));
-    return NextResponse.json({ data: { suggestions: suggestAssignments(tasks, staff), staff, basisNote: SUGGESTION_BASIS_NOTE, databaseMode: "supabase" } });
+    return publicJson({ data: { suggestions: suggestAssignments(tasks, staff), staff, basisNote: eligible ? "Suggestions use verified Workforce duty and current Hotel workload. A person confirms each suggestion." : SUGGESTION_BASIS_NOTE, databaseMode: "supabase" } });
   } catch {
-    return NextResponse.json({ error: "Unable to load assignment suggestions." }, { status: 500 });
+    return publicJson({ error: "Unable to load assignment suggestions." }, { status: 500 });
   }
 }

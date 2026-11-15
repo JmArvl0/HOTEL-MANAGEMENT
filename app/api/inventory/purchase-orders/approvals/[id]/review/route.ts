@@ -1,5 +1,7 @@
+import { publicJson } from "@/lib/server-errors";
+import { validationBody } from "@/lib/errors";
 import { getServerSession } from "next-auth";
-import { NextResponse } from "next/server";
+
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
@@ -10,19 +12,19 @@ const schema = z.object({ decision: z.enum(["approve", "reject"]), reason: z.str
 // Owner/Admin review of purchase-order exceptions (above the auto-approve threshold).
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.disabled) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!["owner", "admin"].includes(session.user.role as Role)) return NextResponse.json({ error: "Owner/Admin review authority required." }, { status: 403 });
-  const parsed = schema.safeParse(await request.json());
-  if (!parsed.success) return NextResponse.json({ error: "A decision and reason are required." }, { status: 400 });
-  if (!supabase) return NextResponse.json({ error: "Database unavailable." }, { status: 503 });
+  if (!session || session.user.disabled) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
+  if (!["owner", "admin"].includes(session.user.role as Role)) return publicJson({ error: "Owner/Admin review authority required." }, { status: 403 });
+  const parsed = schema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return publicJson(validationBody(parsed.error, { error: "A decision and reason are required." }), { status: 400 });
+  if (!supabase) return publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
   const { data, error } = await supabase.rpc("review_purchase_order_approval", {
     p_approval_id: (await params).id, p_staff_user_id: session.user.id, p_decision: parsed.data.decision, p_reason: parsed.data.reason
   });
   if (error) {
     const msg = error.message ?? "";
-    if (msg.includes("PO_APPROVAL_STALE") || msg.includes("PO_APPROVAL_NOT_FOUND")) return NextResponse.json({ error: "This request has already been reviewed." }, { status: 409 });
-    if (msg.includes("PO_REASON_REQUIRED")) return NextResponse.json({ error: "A reason is required to reject." }, { status: 400 });
-    return NextResponse.json({ error: "Unable to review the purchase order." }, { status: 409 });
+    if (msg.includes("PO_APPROVAL_STALE") || msg.includes("PO_APPROVAL_NOT_FOUND")) return publicJson({ error: "This request has already been reviewed." }, { status: 409 });
+    if (msg.includes("PO_REASON_REQUIRED")) return publicJson({ error: "A reason is required to reject." }, { status: 400 });
+    return publicJson({ error: "Unable to review the purchase order." }, { status: 409 });
   }
-  return NextResponse.json({ data });
+  return publicJson({ data });
 }

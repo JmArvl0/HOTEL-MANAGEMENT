@@ -1,4 +1,7 @@
 "use client";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { useCallback, useEffect, useState } from "react";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
 import { manilaInputToIso, type OperationalStaff, type RosterAssignment, type ShiftHandover } from "@/lib/operations";
@@ -19,21 +22,21 @@ export default function TeamOperationsPanel({ role, actorId, onOpenSource }: { r
   const manager = role === "manager";
   const load = useCallback(async (signal?: AbortSignal) => {
     try {
-      const response = await fetch(`/api/staff/operations?from=${from}`, { cache: "no-store", signal });
-      const body = await response.json();
+      const response = await fetchPublic(`/api/staff/operations?from=${from}`, { cache: "no-store", signal });
+      const body = await readResponse(response);
       if (!response.ok) throw new Error(body.error);
       setData(body.data); setError("");
-    } catch (e) { if (!signal?.aborted) setError(e instanceof Error ? e.message : "Unable to load. Try again."); }
+    } catch (e) { if (!signal?.aborted) setError(userMessage(e, "Unable to load. Try again.")); }
   }, [from]);
   useEffect(() => { const controller = new AbortController(); queueMicrotask(() => { if (!controller.signal.aborted) void load(controller.signal); }); return () => controller.abort(); }, [load]);
   async function save(payload: Record<string, unknown>) {
     setBusy(true); setError(""); setMessage("");
     try {
-      const response = await fetch("/api/staff/operations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      const body = await response.json();
+      const response = await fetchPublic("/api/staff/operations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const body = await readResponse(response);
       if (!response.ok) throw new Error(body.error);
       setMessage("Saved. The team view is updated."); await load();
-    } catch (e) { setError(e instanceof Error ? e.message : "Unable to save. Try again."); }
+    } catch (e) { setError(userMessage(e, "Unable to save. Try again.")); }
     finally { setBusy(false); }
   }
   async function schedule() {
@@ -45,7 +48,7 @@ export default function TeamOperationsPanel({ role, actorId, onOpenSource }: { r
     ], submitText: "Schedule shift" });
     if (!v) return;
     try { await save({ action: "schedule", id: crypto.randomUUID(), staffId: v.staffId, startsAt: manilaInputToIso(String(v.start)), endsAt: manilaInputToIso(String(v.end)), note: v.note ?? "" }); }
-    catch (e) { setError(e instanceof Error ? e.message : "Check date and time."); }
+    catch (e) { setError(userMessage(e, "Check date and time.")); }
   }
   async function handover() {
     const v = await dialogs.askForm({ title: "Submit a handover", description: "Link the existing record and assign follow-up. Keep the note within your department; omit payment credentials and guest identity documents.", fields: [

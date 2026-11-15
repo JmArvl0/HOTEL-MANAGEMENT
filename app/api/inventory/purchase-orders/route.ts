@@ -1,5 +1,7 @@
+import { publicJson } from "@/lib/server-errors";
+import { validationBody } from "@/lib/errors";
 import { getServerSession } from "next-auth";
-import { NextResponse } from "next/server";
+
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
@@ -19,14 +21,14 @@ const DRAFT_PO_ROLES: Role[] = ["manager", "owner", "admin"];
 /** Shortage suggestions from the same forecast the Predictive Insights panel uses. */
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.disabled) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "housekeeping" && !DRAFT_PO_ROLES.includes(session.user.role as Role)) return NextResponse.json({ error: "Replenishment suggestion access required." }, { status: 403 });
-  if (!supabase) return NextResponse.json({ error: "Database unavailable." }, { status: 503 });
+  if (!session || session.user.disabled) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
+  if (session.user.role !== "housekeeping" && !DRAFT_PO_ROLES.includes(session.user.role as Role)) return publicJson({ error: "Replenishment suggestion access required." }, { status: 403 });
+  if (!supabase) return publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
   if (session.user.role === "housekeeping") {
     const { data, error } = await supabase.from("purchase_orders").select("id,status,items,received_quantities,version,created_at,purchase_order_receipts(id,items,created_at)").in("status", ["approved", "partially_received"]).order("created_at").limit(100);
-    if (error) return NextResponse.json({ error: "Unable to load approved deliveries." }, { status: 503 });
+    if (error) return publicJson({ error: "Unable to load approved deliveries." }, { status: 503 });
     const drafts = (data ?? []).map(o => ({ ...o, items: (o.items as {itemId:string;name:string;quantity:number;unit:string}[]).map(l => ({ itemId:l.itemId,name:l.name,quantity:l.quantity,unit:l.unit })) }));
-    return NextResponse.json({ data: { suggestions: [], drafts, vendors: [], receivingOnly: true } });
+    return publicJson({ data: { suggestions: [], drafts, vendors: [], receivingOnly: true } });
   }
   const params = new URL(request.url).searchParams;
   try {
@@ -75,9 +77,9 @@ export async function GET(request: Request) {
           risk: item.risk
         };
       });
-    return NextResponse.json({ data: { suggestions, drafts: ordersResult.data ?? [], vendors: vendorResult.data ?? [], method: forecast.method, notes: forecast.notes, autoApproveThreshold: Number((policyResult.data as { po_auto_approve_threshold?: number } | null)?.po_auto_approve_threshold ?? 50000) } });
+    return publicJson({ data: { suggestions, drafts: ordersResult.data ?? [], vendors: vendorResult.data ?? [], method: forecast.method, notes: forecast.notes, autoApproveThreshold: Number((policyResult.data as { po_auto_approve_threshold?: number } | null)?.po_auto_approve_threshold ?? 50000) } });
   } catch {
-    return NextResponse.json({ error: "Unable to load replenishment suggestions." }, { status: 500 });
+    return publicJson({ error: "Unable to load replenishment suggestions." }, { status: 500 });
   }
 }
 
@@ -96,21 +98,21 @@ const schema = z.object({
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.disabled) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!DRAFT_PO_ROLES.includes(session.user.role as Role)) return NextResponse.json({ error: "Draft purchase order access required." }, { status: 403 });
-  if (!supabase) return NextResponse.json({ error: "Database unavailable." }, { status: 503 });
+  if (!session || session.user.disabled) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
+  if (!DRAFT_PO_ROLES.includes(session.user.role as Role)) return publicJson({ error: "Draft purchase order access required." }, { status: 403 });
+  if (!supabase) return publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
 
-  const parsed = schema.safeParse(await request.json());
-  if (!parsed.success) return NextResponse.json({ error: "Choose valid items and quantities." }, { status: 400 });
+  const parsed = schema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return publicJson(validationBody(parsed.error, { error: "Choose valid items and quantities." }), { status: 400 });
 
   // Server-side truth: unit cost (and name sanity) come from the inventory
   // rows themselves — the client payload only carries what to order.
   const ids = parsed.data.items.map((item) => item.itemId);
   const { data: inventoryRows, error: inventoryError } = await supabase.from("inventory").select("id,name,unit_cost,unit,vendor_id").in("id", ids);
-  if (inventoryError) return NextResponse.json({ error: "Unable to read inventory items." }, { status: 500 });
+  if (inventoryError) return publicJson({ error: "Unable to read inventory items." }, { status: 500 });
   const byId = new Map((inventoryRows ?? []).map((row) => [String(row.id), row]));
   for (const item of parsed.data.items) {
-    if (!byId.has(item.itemId)) return NextResponse.json({ error: `Item ${item.name} is no longer in inventory.` }, { status: 409 });
+    if (!byId.has(item.itemId)) return publicJson({ error: `Item ${item.name} is no longer in inventory.` }, { status: 409 });
   }
 
   // Optional vendor must exist and be active.
@@ -119,7 +121,7 @@ export async function POST(request: Request) {
     const { data: vendor } = await supabase.from("vendors").select("id,status").eq("id", parsed.data.vendorId).maybeSingle();
     vendorOk = Boolean(vendor) && vendor?.status === "active";
   }
-  if (!vendorOk) return NextResponse.json({ error: "Choose an active vendor or leave the vendor unassigned." }, { status: 409 });
+  if (!vendorOk) return publicJson({ error: "Choose an active vendor or leave the vendor unassigned." }, { status: 409 });
 
   const items: DraftPurchaseItem[] = parsed.data.items.map((item) => ({
     itemId: item.itemId,
@@ -134,24 +136,24 @@ export async function POST(request: Request) {
     draft = buildDraftPurchaseOrder({ items, vendorId: parsed.data.vendorId, orderedBy: session.user.id, note: parsed.data.note });
   } catch (error) {
     const code = error instanceof Error ? error.message : "";
-    return NextResponse.json({ error: code === "EMPTY_DRAFT" ? "Nothing to order — all quantities are zero." : "Choose valid unit costs." }, { status: 400 });
+    return publicJson({ error: code === "EMPTY_DRAFT" ? "Nothing to order — all quantities are zero." : "Choose valid unit costs." }, { status: 400 });
   }
 
   // Draft edit: only draft rows, version-guarded. Submit/receive/cancel have own routes.
   if (parsed.data.id) {
-    if (!parsed.data.version) return NextResponse.json({ error: "Version is required to edit a draft." }, { status: 400 });
+    if (!parsed.data.version) return publicJson({ error: "Reopen the latest purchase order draft before editing it." }, { status: 400 });
     const { data: updated, error: updateError } = await supabase.from("purchase_orders")
       .update({ vendor_id: draft.vendorId, items: draft.items, total: draft.total, version: parsed.data.version + 1 })
       .eq("id", parsed.data.id).eq("status", "draft").eq("version", parsed.data.version)
       .select("id,status,total").maybeSingle();
-    if (updateError) return NextResponse.json({ error: "Unable to update the draft purchase order." }, { status: 409 });
-    if (!updated) return NextResponse.json({ error: "Draft changed or already submitted — reload and retry.", code: "PO_STALE" }, { status: 409 });
+    if (updateError) return publicJson({ error: "Unable to update the draft purchase order." }, { status: 409 });
+    if (!updated) return publicJson({ error: "Draft changed or already submitted — reload and retry.", code: "PO_STALE" }, { status: 409 });
     await supabase.from("audit_logs").insert({
       user_id: session.user.id, action: "inventory_draft_purchase_order_updated",
       entity_type: "purchase_order", entity_id: String(updated.id),
       after_data: { status: "draft", vendorId: draft.vendorId, total: draft.total, items: draft.items, note: draft.note ?? null }
     });
-    return NextResponse.json({ data: updated });
+    return publicJson({ data: updated });
   }
 
   const { data, error } = await supabase.from("purchase_orders").insert({
@@ -161,7 +163,7 @@ export async function POST(request: Request) {
     total: draft.total,
     ordered_by: draft.orderedBy
   }).select("id,status,total").single();
-  if (error) return NextResponse.json({ error: "Unable to create the draft purchase order." }, { status: 409 });
+  if (error) return publicJson({ error: "Unable to create the draft purchase order." }, { status: 409 });
 
   await supabase.from("audit_logs").insert({
     user_id: session.user.id,
@@ -171,5 +173,5 @@ export async function POST(request: Request) {
     after_data: { status: "draft", vendorId: draft.vendorId, total: draft.total, items: draft.items, note: draft.note ?? null, submittedToVendor: false }
   });
 
-  return NextResponse.json({ data }, { status: 201 });
+  return publicJson({ data }, { status: 201 });
 }

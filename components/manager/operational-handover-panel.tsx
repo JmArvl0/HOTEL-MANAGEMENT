@@ -1,4 +1,7 @@
 "use client";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import type { OperationalStaff, ShiftHandover } from "@/lib/operations";
 import type { Role } from "@/lib/types";
@@ -9,14 +12,14 @@ export default function OperationalHandoverPanel({ role, actorId, onOpenSource, 
  const [filter, setFilter] = useState(focusId ? "all" : "open"); const [sourceType, setSourceType] = useState(initialSource?.type ?? "guest_request"); const [sourceId, setSourceId] = useState(initialSource?.id ?? ""); const [owner, setOwner] = useState(""); const [summary, setSummary] = useState(initialSource?.summary ?? ""); const [resolving, setResolving] = useState(""); const [resolution, setResolution] = useState("");
  const focused = useRef<string | null>(null);
  const retry = useRef<{ signature: string; id: string } | null>(null);
- const load = useCallback(async (signal?: AbortSignal) => { try { const res = await fetch("/api/staff/handovers", { cache: "no-store", signal }); const body = await res.json(); if (!res.ok) throw new Error(body.error); setData(body.data); setError(""); } catch (e) { if (!signal?.aborted) setError(e instanceof Error ? e.message : "Unable to load handovers. Retry."); } }, []);
+ const load = useCallback(async (signal?: AbortSignal) => { try { const res = await fetchPublic("/api/staff/handovers", { cache: "no-store", signal }); const body = await readResponse(res); if (!res.ok) throw new Error(body.error); setData(body.data); setError(""); } catch (e) { if (!signal?.aborted) setError(userMessage(e, "Unable to load handovers. Retry.")); } }, []);
  useEffect(() => { const c = new AbortController(); queueMicrotask(() => { if (!c.signal.aborted) void load(c.signal); }); return () => c.abort(); }, [load]);
  useEffect(() => {
   if (!focusId || focused.current === focusId || !data?.handovers.some(row => row.id === focusId)) return;
   const target = document.getElementById(`cash-follow-up-${focusId}`);
   if (target) { target.scrollIntoView?.({ block: "center" }); target.focus(); focused.current = focusId; }
  }, [data, focusId]);
- async function save(payload: Record<string, unknown>) { if (busy) return false; setBusy(true); setError(""); setMessage(""); try { const res = await fetch("/api/staff/handovers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }); const body = await res.json(); if (!res.ok) throw new Error(body.error); setMessage("Handover saved. The source record is unchanged."); await load(); return true; } catch (e) { setError(e instanceof Error ? e.message : "Unable to save. Your entries are preserved."); return false; } finally { setBusy(false); } }
+ async function save(payload: Record<string, unknown>) { if (busy) return false; setBusy(true); setError(""); setMessage(""); try { const res = await fetchPublic("/api/staff/handovers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }); const body = await readResponse(res); if (!res.ok) throw new Error(body.error); setMessage("Handover saved. The source record is unchanged."); await load(); return true; } catch (e) { setError(userMessage(e, "Unable to save. Your entries are preserved.")); return false; } finally { setBusy(false); } }
  async function create(e: FormEvent) { e.preventDefault(); const payload = { action: "handover", sourceType, sourceId, followUpId: owner, summary }; const signature = JSON.stringify(payload); if (retry.current?.signature !== signature) retry.current = { signature, id: crypto.randomUUID() }; if (await save({ ...payload, id: retry.current.id })) { retry.current = null; setSourceId(""); setSummary(""); } }
  const rows = data?.handovers.filter(h => filter === "all" || (filter === "resolved" ? h.resolved_at : filter === "unread" ? !h.acknowledged_at && !h.resolved_at : !h.resolved_at)) ?? [];
  const sourceTypes = role === "housekeeping" ? ["guest_request", "housekeeping"] : role === "maintenance" ? ["guest_request", "maintenance"] : role === "accounting" ? ["reservation", "guest_request", "cash_shift"] : ["reservation", "guest_request", "housekeeping", "maintenance", ...(role === "front_desk" ? ["cash_shift"] : [])];

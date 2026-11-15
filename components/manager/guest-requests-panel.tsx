@@ -1,4 +1,8 @@
 "use client";
+import { ToastStack, useToasts } from "@/components/ui/toast-stack";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { BedDouble, Bell, Boxes, ClipboardCheck, Search } from "lucide-react";
@@ -60,25 +64,25 @@ export default function GuestRequestsPanel({ role, onEscalate }: { role: Role; o
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [toast, setToast] = useState("");
+  const feedback = useToasts();
   const [queue, setQueue] = useState("all");
   const [search, setSearch] = useState("");
   const dialogs = useActionDialogs();
   const canReview = role === "front_desk";
   const canEscalate = role === "housekeeping" && Boolean(onEscalate);
   const showInventory = canAccess(role, "inventory");
-  const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 2600); };
+  const notify = (message: string, tone: "info" | "success" | "warning" | "error" = "success") => feedback.push({ title: message, tone, ...(tone === "error" || tone === "warning" ? { duration: 0 } : {}) });
 
   const load = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
     try {
-      const response = await fetch("/api/resources/guest_requests", { cache: "no-store" });
-      const body = await response.json();
+      const response = await fetchPublic("/api/resources/guest_requests", { cache: "no-store" });
+      const body = await readResponse(response);
       if (!response.ok) throw new Error(body.error ?? "Unable to load guest requests.");
       setRequests(body.data ?? []);
       setError("");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to load guest requests.");
+      setError(userMessage(cause, "Unable to load guest requests."));
     }
     if (!quiet) setLoading(false);
   }, []);
@@ -87,17 +91,17 @@ export default function GuestRequestsPanel({ role, onEscalate }: { role: Role; o
     if (!showInventory) return;
     let cancelled = false;
     (async () => {
-      const response = await fetch("/api/resources/inventory", { cache: "no-store" });
-      const body = await response.json();
+      const response = await fetchPublic("/api/resources/inventory", { cache: "no-store" });
+      const body = await readResponse(response);
       if (!cancelled && response.ok) setInventory(body.data ?? []);
     })();
     return () => { cancelled = true; };
   }, [showInventory]);
 
   async function review(batch: Batch, decision: "approve" | "reject", note?: string) {
-    const response = await fetch("/api/front-desk/guest-requests/review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ batchId: batch.key, decision, note }) });
-    const body = await response.json();
-    if (!response.ok) { notify(body.error ?? "Unable to review this submission."); return; }
+    const response = await fetchPublic("/api/front-desk/guest-requests/review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ batchId: batch.key, decision, note }) });
+    const body = await readResponse(response);
+    if (!response.ok) { notify(body.error ?? "Unable to review this submission.", body.outcome === "unknown" ? "warning" : "error"); return; }
     notify(decision === "approve" ? "Submission approved." : "Submission declined.");
     await load(true);
   }
@@ -107,7 +111,7 @@ export default function GuestRequestsPanel({ role, onEscalate }: { role: Role; o
       if (ok) await review(batch, "approve");
       return;
     }
-    const note = await dialogs.askPrompt({ title: "Decline submission", message: "The guest sees this reason, and every request in the submission is cancelled — including pending Housekeeping tasks.", label: "Reason", multiline: true, rows: 3, required: true, validation: (v: string | number | boolean) => (String(v ?? "").trim() ? null : "A reason is required.") });
+    const note = await dialogs.askPrompt({ title: "Decline submission", message: "The guest sees this reason, and every request in the submission is cancelled — including pending Housekeeping tasks.", label: "Reason", multiline: true, rows: 3, required: true, validation: (v: string | number | boolean) => (String(v ?? "").trim() ? null : "Please enter a reason.") });
     if (note) await review(batch, "reject", String(note).trim());
   }
   async function escalate(item: StaffRequest) {
@@ -121,9 +125,9 @@ export default function GuestRequestsPanel({ role, onEscalate }: { role: Role; o
     && item.department === role
     && ["housekeeping", "maintenance", "front_desk"].includes(role);
   async function progress(item: StaffRequest, action: "start" | "complete") {
-    const response = await fetch(`/api/guest-requests/${item.id}/progress`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
-    const body = await response.json();
-    if (!response.ok) { notify(body.error ?? "Unable to update this request."); return; }
+    const response = await fetchPublic(`/api/guest-requests/${item.id}/progress`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
+    const body = await readResponse(response);
+    if (!response.ok) { notify(body.error ?? "Unable to update this request.", body.outcome === "unknown" ? "warning" : "error"); return; }
     notify(action === "start" ? "Request started." : "Request completed.");
     await load(true);
   }
@@ -236,7 +240,7 @@ export default function GuestRequestsPanel({ role, onEscalate }: { role: Role; o
         </aside>}
       </div>
     </>)}
-    {toast && <div className="toast"><ClipboardCheck size={18} />{toast}</div>}
+    <ToastStack controller={feedback} />
     {dialogs.view}
   </div>;
 }

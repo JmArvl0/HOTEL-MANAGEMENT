@@ -1,5 +1,9 @@
+import { publicJson } from "@/lib/server-errors";
+import { validationBody } from "@/lib/errors";
+import { findAssetRoom } from "@/lib/asset-room";
+import { calendarDate } from "@/lib/input-validation";
 import { getServerSession } from "next-auth";
-import { NextResponse } from "next/server";
+
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
@@ -19,13 +23,13 @@ const hotelToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Mani
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.disabled) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!ASSET_ROLES.includes(session.user.role as Role)) return NextResponse.json({ error: "Asset registry access required." }, { status: 403 });
-  if (!supabase) return NextResponse.json({ error: "Database unavailable." }, { status: 503 });
+  if (!session || session.user.disabled) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
+  if (!ASSET_ROLES.includes(session.user.role as Role)) return publicJson({ error: "Asset registry access required." }, { status: 403 });
+  if (!supabase) return publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
   try {
     const { data, error } = await supabase
       .from("maintenance_assets")
-      .select("id,name,category,room_id,location,last_serviced_at,service_interval_days,next_service_date,notes,active,created_at,rooms(number)")
+      .select("id,name,category,room_id,location,last_serviced_at,service_interval_days,next_service_date,notes,active,created_at,updated_at,rooms(number)")
       .eq("active", true)
       .order("next_service_date", { ascending: true, nullsFirst: false })
       .limit(200);
@@ -46,12 +50,13 @@ export async function GET() {
       next_service_date: row.next_service_date ?? null,
       notes: row.notes ?? null,
       active: Boolean(row.active),
+      updated_at: row.updated_at,
       created_at: row.created_at
       };
     });
-    return NextResponse.json({ data: { assets, today: hotelToday() } });
+    return publicJson({ data: { assets, today: hotelToday() } });
   } catch {
-    return NextResponse.json({ error: "Unable to load the asset registry." }, { status: 500 });
+    return publicJson({ error: "Unable to load the asset registry." }, { status: 500 });
   }
 }
 
@@ -60,28 +65,29 @@ const schema = z.object({
   category: z.string().trim().min(2).max(80),
   roomId: z.string().trim().max(40).optional().nullable(),
   location: z.string().trim().max(120).optional().nullable(),
-  lastServicedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
+  lastServicedAt: calendarDate.optional().nullable(),
   serviceIntervalDays: z.number().int().min(1).max(3650),
   notes: z.string().trim().max(500).optional().nullable()
 });
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.disabled) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!ASSET_ROLES.includes(session.user.role as Role)) return NextResponse.json({ error: "Asset registry access required." }, { status: 403 });
-  if (!supabase) return NextResponse.json({ error: "Database unavailable." }, { status: 503 });
+  if (!session || session.user.disabled) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
+  if (!ASSET_ROLES.includes(session.user.role as Role)) return publicJson({ error: "Asset registry access required." }, { status: 403 });
+  if (!supabase) return publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
 
-  const parsed = schema.safeParse(await request.json());
-  if (!parsed.success) return NextResponse.json({ error: "Enter a valid asset name, category, and service interval (1–3650 days)." }, { status: 400 });
+  const parsed = schema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return publicJson(validationBody(parsed.error, { error: "Enter a valid asset name, category, and service interval (1–3650 days)." }), { status: 400 });
   const value = parsed.data;
-  if (value.lastServicedAt && value.lastServicedAt > hotelToday()) return NextResponse.json({ error: "The last service date cannot be in the future." }, { status: 400 });
+  if (value.lastServicedAt && value.lastServicedAt > hotelToday()) return publicJson({ error: "The last service date cannot be in the future." }, { status: 400 });
 
   // The staff-facing field is a room number or id — resolve it to the room id
   // the RPC expects (same id-or-number tolerance as work-order reporting).
   let roomId: string | null = null;
   if (value.roomId) {
-    const { data: room } = await supabase.from("rooms").select("id").or(`id.eq.${value.roomId},number.eq.${value.roomId}`).maybeSingle();
-    if (!room) return NextResponse.json({ error: "Choose a valid room or leave the room blank." }, { status: 409 });
+    const { data: room, error } = await findAssetRoom(supabase, value.roomId);
+    if (error) return publicJson({ error: "Could not look up the room." }, { status: 503 });
+    if (!room) return publicJson({ error: "Choose a valid room or leave the room blank." }, { status: 409 });
     roomId = String(room.id);
   }
 
@@ -97,7 +103,7 @@ export async function POST(request: Request) {
   });
   if (error) {
     const key = ["ASSET_REGISTRY_FORBIDDEN", "INVALID_ASSET", "ROOM_NOT_FOUND"].find((item) => error.message.includes(item));
-    return NextResponse.json({ error: key === "ROOM_NOT_FOUND" ? "Choose a valid room or leave the room blank." : "Unable to register this asset." }, { status: 409 });
+    return publicJson({ error: key === "ROOM_NOT_FOUND" ? "Choose a valid room or leave the room blank." : "Unable to register this asset." }, { status: 409 });
   }
-  return NextResponse.json({ data: { id: data } }, { status: 201 });
+  return publicJson({ data: { id: data } }, { status: 201 });
 }

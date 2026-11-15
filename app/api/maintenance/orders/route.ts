@@ -1,5 +1,7 @@
+import { publicJson } from "@/lib/server-errors";
+import { validationBody } from "@/lib/errors";
 import { getServerSession } from "next-auth";
-import { NextResponse } from "next/server";
+
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
@@ -21,11 +23,11 @@ const schema = z.object({
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!allowed.has(session.user.role)) return NextResponse.json({ error: "Maintenance reporting access required." }, { status: 403 });
-  if (!supabase) return NextResponse.json({ error: "Database unavailable." }, { status: 503 });
-  const parsed = schema.safeParse(await request.json());
-  if (!parsed.success) return NextResponse.json({ error: "Enter a valid issue, location, and priority." }, { status: 400 });
+  if (!session || session.user.disabled || session.user.otpPending) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
+  if (!allowed.has(session.user.role)) return publicJson({ error: "Maintenance reporting access required." }, { status: 403 });
+  if (!supabase) return publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
+  const parsed = schema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return publicJson(validationBody(parsed.error, { error: "Enter a valid issue, location, and priority." }), { status: 400 });
   const value = parsed.data;
   const { data, error } = await supabase.rpc("maintenance_create_work_order", {
     p_room_id: value.roomId ?? null,
@@ -41,6 +43,6 @@ export async function POST(request: Request) {
     p_idempotency_key: value.idempotencyKey,
     p_staff_user_id: session.user.id,
   });
-  if (error) return NextResponse.json({ error: error.message.includes("ROOM_NOT_FOUND") ? "Choose a valid room." : "Unable to create the work order." }, { status: 409 });
-  return NextResponse.json({ data: { id: data } }, { status: 201 });
+  if (error) return publicJson({ error: error.message.includes("ROOM_NOT_FOUND") ? "Choose a valid room." : "Unable to create the work order." }, { status: 409 });
+  return publicJson({ data: { id: data } }, { status: 201 });
 }
