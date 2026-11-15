@@ -3,8 +3,13 @@
 // geometry, cross-page links and the motion-aware return-to-top action.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { getSession } from "next-auth/react";
 import { LandingNav } from "./landing-nav";
 
+vi.mock("next-auth/react", () => ({ getSession: vi.fn() }));
+beforeEach(() => {
+  vi.mocked(getSession).mockResolvedValue(null);
+});
 afterEach(cleanup);
 
 // scope to the primary nav: the open drawer also exposes "Close menu" buttons
@@ -19,6 +24,33 @@ function drawer() {
 }
 
 describe("LandingNav", () => {
+  it("offers one Log in action per menu and leaves the homepage booking shortcut in the drawer", () => {
+    render(<LandingNav overHero />);
+    const primary = within(screen.getByRole("navigation", { name: "Primary" }));
+    expect(primary.getByRole("link", { name: "Log in" }).getAttribute("href")).toBe("/login");
+    expect(primary.queryByRole("link", { name: "Check availability" })).toBeNull();
+    fireEvent.click(menuButton());
+    const menu = within(screen.getByRole("dialog", { name: "Navigation menu" }));
+    expect(menu.getByRole("link", { name: "Log in" }).getAttribute("href")).toBe("/login");
+    expect(menu.getByRole("link", { name: "Check availability" }).getAttribute("href")).toBe("#book");
+  });
+
+  it.each([
+    { disabled: false, otpPending: false, label: "My account", href: "/account" },
+    { disabled: true, otpPending: false, label: "Log in", href: "/login" },
+    { disabled: false, otpPending: true, label: "Log in", href: "/login" },
+  ])("shows $label for a session with disabled=$disabled and otpPending=$otpPending", async ({ disabled, otpPending, label, href }) => {
+    vi.mocked(getSession).mockResolvedValue({
+      expires: "2099-01-01T00:00:00.000Z",
+      user: { id: "guest-id", role: "guest", disabled, otpPending },
+    });
+    await act(async () => { render(<LandingNav overHero />); });
+    const primary = within(screen.getByRole("navigation", { name: "Primary" }));
+    expect(primary.getByRole("link", { name: label }).getAttribute("href")).toBe(href);
+    fireEvent.click(menuButton());
+    expect(within(screen.getByRole("dialog")).getByRole("link", { name: label }).getAttribute("href")).toBe(href);
+  });
+
   it("shows the drawer closed by default", () => {
     render(<LandingNav />);
     expect(menuButton().getAttribute("aria-expanded")).toBe("false");

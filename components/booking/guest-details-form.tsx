@@ -9,10 +9,12 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, CarTaxiFront } from "lucide-react";
 import { preArrivalServices, type PreArrivalOptions } from "@/lib/inventory-request-options";
 import { HavenErrorAlert } from "@/components/ui/haven-data-controls";
+import type { BreakfastChoice } from "@/lib/breakfast";
+import { formatPeso } from "@/lib/format";
 
 type TransportationPreferences = { serviceType: "PICKUP" | "DROPOFF" | "ROUND_TRIP"; pickupLocation?: string; dropoffLocation?: string; pickupDate: string; pickupTime: string; returnLocation?: string; returnDate?: string; returnTime?: string; passengerCount: number; specialInstructions?: string };
 
-type Props = { roomId?: string; holdToken?: string; roomType: string; checkIn: string; checkOut: string; guests: number; checkInFrom: string; defaults: Record<string, string>; initialRequests?: string[]; initialArrival?: string; initialTransport?: TransportationPreferences | null; preArrival?: PreArrivalOptions };
+type Props = { roomId?: string; holdToken?: string; roomType: string; checkIn: string; checkOut: string; guests: number; checkInFrom: string; defaults: Record<string, string>; initialRequests?: string[]; initialArrival?: string; initialTransport?: TransportationPreferences | null; preArrival?: PreArrivalOptions; breakfast?: BreakfastChoice | null; initialBreakfast?: boolean };
 
 const SERVICE_OPTIONS = [
   { value: "PICKUP", label: "Pickup to Hotel (e.g. airport pickup)" },
@@ -20,7 +22,7 @@ const SERVICE_OPTIONS = [
   { value: "ROUND_TRIP", label: "Round Trip (pickup + return drop-off)" },
 ] as const;
 
-export function GuestDetailsForm({ roomId, holdToken, roomType, checkIn, checkOut, guests, checkInFrom, defaults, initialRequests = [], initialArrival = "", initialTransport = null, preArrival }: Props) {
+export function GuestDetailsForm({ roomId, holdToken, roomType, checkIn, checkOut, guests, checkInFrom, defaults, initialRequests = [], initialArrival = "", initialTransport = null, preArrival, breakfast, initialBreakfast }: Props) {
   const router = useRouter(); const [error, setError] = useState(""); const [loading, setLoading] = useState(false);
   const [fields, setFields] = useState<FormFieldErrors>({});
   const [noArrival, setNoArrival] = useState(false);
@@ -29,6 +31,7 @@ export function GuestDetailsForm({ roomId, holdToken, roomType, checkIn, checkOu
   const prefix = "booking-field";
   const fieldProps = (field: string) => formFieldProps(fields, field, prefix);
   const fieldError = (field: string) => <FormFieldError errors={fields} field={field} prefix={prefix} />;
+  const [withBreakfast, setWithBreakfast] = useState(Boolean(initialBreakfast || breakfast?.mode === "included"));
   // Amenities come from live Manager-linked inventory (server-supplied); services stay
   // structured constants. No hardcoded amenity fallback ever renders here.
   const amenities = preArrival?.amenities ?? [];
@@ -51,6 +54,7 @@ export function GuestDetailsForm({ roomId, holdToken, roomType, checkIn, checkOu
     const field = (key: string) => String(form.get(key) ?? "");
     const payload: Record<string, unknown> = {
       roomId, holdToken, roomType: field("roomType"), checkIn: field("checkIn"), checkOut: field("checkOut"),
+      breakfastOfferId: withBreakfast ? breakfast?.id : undefined,
       guests: Number(field("guests")), firstName: field("firstName"), lastName: field("lastName"),
       email: field("email"), mobile: field("mobile"), address: field("address"), nationality: field("nationality"),
       expectedArrival: field("expectedArrival"),
@@ -101,6 +105,17 @@ export function GuestDetailsForm({ roomId, holdToken, roomType, checkIn, checkOu
     finally { pending.current = false; setLoading(false); }
   }
   return <form className="booking-form-card" onSubmit={submit} onChange={event => { const name = (event.target as HTMLInputElement).dataset.errorField ?? (event.target as HTMLInputElement).name; if (fields[name]) { setFields(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== name))); if (Object.keys(fields).length === 1 && error === "Please check the highlighted details.") setError(""); } }}>
+    {breakfast && <fieldset className="booking-form-options breakfast-choice">
+      <legend>Breakfast</legend>
+      {breakfast.mode === "optional" && <div className="request-options-list">
+        <label className="request-option"><input type="radio" name="breakfast" checked={!withBreakfast} onChange={() => setWithBreakfast(false)} />Room only</label>
+        <label className="request-option"><input type="radio" name="breakfast" checked={withBreakfast} onChange={() => setWithBreakfast(true)} />Room with breakfast · +{formatPeso(breakfast.price)}</label>
+      </div>}
+      <div aria-live="polite">
+        {withBreakfast && <p>{breakfast.mode === "included" ? "Included in this offer. " : ""}{breakfast.guests} guests × {breakfast.mornings} {breakfast.mornings === 1 ? "morning" : "mornings"} at {breakfast.venue} · {breakfast.start}–{breakfast.end} hotel time.</p>}
+        <p><strong>Estimated total {formatPeso(withBreakfast ? breakfast.total : breakfast.roomTotal)}</strong> · Deposit {formatPeso(withBreakfast ? breakfast.deposit : breakfast.roomDeposit)} · Balance {formatPeso(withBreakfast ? breakfast.balance : breakfast.roomBalance)}</p>
+      </div>
+    </fieldset>}
     <input type="hidden" name="roomType" value={roomType}/><input type="hidden" name="checkIn" value={checkIn}/><input type="hidden" name="checkOut" value={checkOut}/><input type="hidden" name="guests" value={guests}/>
     <div className="booking-form-grid">
       <label>First name<input name="firstName" defaultValue={defaults.firstName} autoComplete="given-name" required maxLength={80} {...fieldProps("firstName")} />{fieldError("firstName")}</label>

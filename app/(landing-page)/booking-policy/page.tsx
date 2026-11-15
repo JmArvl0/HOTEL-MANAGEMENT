@@ -1,7 +1,21 @@
 import { getPublicBookingInformation } from "@/lib/public-booking-information-server";
-import { publicCancellationSummary, publicHotelTime } from "@/lib/public-booking-information";
-import { BookingPolicySummary } from "@/components/landing/hotel-information";
-import { WebsiteDocument } from "@/components/landing/website-document";
+import { BookingPolicyPage } from "@/components/landing/booking-policy-page";
+import { PublicWebsiteNav } from "@/components/landing/public-website-nav";
+import Link from "next/link";
+import { getPublishedWebsiteContent } from "@/lib/website-content-server";
 export const metadata = { title: "Deposit, cancellation & arrival policy" };
 export const revalidate = 300;
-export default async function PolicyPage() { const information = await getPublicBookingInformation(), p = information.operations; return <WebsiteDocument title="Booking policy"><BookingPolicySummary information={information} /><h2>Cancellation & refunds</h2><p>{publicCancellationSummary(p)}</p><p>Approved refunds follow hotel verification and processing. No-show and early-departure requests require review under the policy attached to your reservation.</p><h2>Arrival & departure</h2><p>Check-in from {publicHotelTime(p.checkInTime)}. Check-out by {publicHotelTime(p.checkOutTime)} ({p.hotelTimezone}). Early check-in and late checkout require confirmation and may carry a charge.</p><p>Lead guest minimum age: {p.minimumBookingAge}. {p.validIdRequired ? "Bring a valid government-issued ID and reservation details." : "Bring your reservation details."}</p><p>The policy shown at checkout is saved with your reservation. Changes made later do not rewrite that policy snapshot.</p></WebsiteDocument>; }
+export default async function PolicyPage() {
+  const [information, { content }] = await Promise.all([
+    getPublicBookingInformation(),
+    getPublishedWebsiteContent(),
+  ]);
+  return <main className="landing coastal-landing hotel-public hotel-booking-policy">
+    <PublicWebsiteNav />
+    <BookingPolicyPage information={information} content={content} />
+    <footer className="booking-policy-footer">
+      <small>© {new Date().getFullYear()} {content.identity.name}</small>
+      <nav aria-label="Policies"><Link href="/booking-policy" aria-current="page">Booking policy</Link></nav>
+    </footer>
+  </main>;
+}

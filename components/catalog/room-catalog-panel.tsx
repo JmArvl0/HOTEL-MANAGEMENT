@@ -20,6 +20,8 @@ import { RoomTypeBadge } from "@/components/ui/RoomTypeBadge";
 import type { Role } from "@/lib/types";
 import type { AvailableRoomType } from "@/lib/booking";
 import RoomRosterPanel from "@/components/manager/room-roster-panel";
+import { BreakfastOffers } from "@/components/catalog/breakfast-offers";
+import "@/components/customer/breakfast-pass.css";
 
 type Proposal = { id: string; proposed_rate: number; reason: string; status: string; created_at: string };
 type PlanDraft = { name: string; startDate: string; endDate: string; days: string[]; nightlyRate: string; reason: string };
@@ -453,6 +455,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
             <Plus size={16}/> Add room type
           </button>
         </div>} />
+      <BreakfastOffers role={role} rooms={items.filter(item => !item.archived_at)} />
       <HavenDataToolbar
         search={<HavenSearchInput value={search} onValueChange={setSearch} label="Search room types" placeholder="Search room types..." />}
         resultCount={visible.length}

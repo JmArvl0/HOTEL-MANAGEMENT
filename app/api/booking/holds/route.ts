@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { guestDetailsSchema, hotelToday, searchSchemaFor } from "@/lib/booking";
+import { hotelBreakfastEnabled } from "@/lib/breakfast-server";
 import { supabase } from "@/lib/supabase";
 import { findUnavailableSelections, getPreArrivalOptions, PRE_ARRIVAL_UNAVAILABLE_MESSAGE } from "@/lib/inventory-request-options";
 import { escapeEmailText, guestEmailHtml } from "@/lib/email";
@@ -54,8 +55,11 @@ export async function POST(request: Request) {
     if (findUnavailableSelections(details.requestOptions, live).length) {
       return publicJson({ error: PRE_ARRIVAL_UNAVAILABLE_MESSAGE, fields: { requestOptions: PRE_ARRIVAL_UNAVAILABLE_MESSAGE } }, { status: 400 });
     }
+    if (details.breakfastOfferId && (!details.roomId || !hotelBreakfastEnabled())) {
+      return publicJson({ error: "Breakfast is unavailable for this selection. Choose a room and review the current offer." }, { status: 409 });
+    }
     const { data, error } = await supabase.rpc("create_booking_hold_attempt", {
-      p_user: session.user.id, p_attempt: attempt.data.attemptId, p_details: details, p_breakfast_enabled: false,
+      p_user: session.user.id, p_attempt: attempt.data.attemptId, p_details: details, p_breakfast_enabled: hotelBreakfastEnabled(),
     });
     if (error) {
       const conflicts: Record<string, string> = {
@@ -67,6 +71,8 @@ export async function POST(request: Request) {
         DEPOSIT_AMOUNT_UNAVAILABLE: "This stay cannot be booked online. Please contact Front Desk for help.",
         DEPOSIT_POLICY_UNAVAILABLE: "Online checkout is unavailable. Contact Front Desk to book.",
         GUEST_DO_NOT_RENT: "Contact Front Desk for help with this reservation.",
+        BREAKFAST_OFFER_CHANGED: "The breakfast offer changed. Reload this page and review the current options.",
+        BREAKFAST_EXACT_ROOM_REQUIRED: "Choose an exact room to continue with this breakfast offer.",
       };
       const key = Object.keys(conflicts).find(code => error.message.includes(code));
       if (key) return publicJson({ error: conflicts[key], code: key }, { status: 409 });

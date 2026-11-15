@@ -48,6 +48,7 @@ export type ReservationDetailViewData = {
   checkInTime: string;
   checkOutTime: string;
   transportLines: { name: string; price: number; note?: string | null }[];
+  breakfastLines?: { label: string; amount: number }[];
   policyText: string;
   policyItems?: PolicyItem[];
   cancellationPolicy?: {
@@ -146,7 +147,7 @@ function TimelineDot({ tone }: { tone: "payment" | "refund" | "charge" | "change
   return <i className={`crd-activity-dot ${tone}`} aria-hidden="true" />;
 }
 
-export function ReservationDetailView({ data }: { data: ReservationDetailViewData }) {
+export function ReservationDetailView({ data, breakfast }: { data: ReservationDetailViewData; breakfast?: React.ReactNode }) {
   const [tab, setTab] = useState<TabKey>("stay");
   const [copied, setCopied] = useState(false);
   const [refundInfoOpen, setRefundInfoOpen] = useState(false);
@@ -314,7 +315,10 @@ export function ReservationDetailView({ data }: { data: ReservationDetailViewDat
       )}
       {(data.status === "checked_out" || terminal(data.status)) && <CheckInQrExpired completed={data.status === "checked_out"} />}
 
+      {breakfast}
+
       <section className="crd-folio-strip" aria-label="Payment summary">
+        {data.breakfastLines?.map(line => <p key={line.label}>{line.label} · {line.amount ? formatPeso(line.amount) : "Included"}</p>)}
         <div className="crd-folio-figures">
           <div><span>Paid</span><strong>{formatPeso(money.paid)}</strong></div>
           <div><span>Balance{money.balance > 0 ? " due" : ""}</span><strong className={money.balance > 0 ? "crd-balance-due" : "crd-balance-clear"}>{formatPeso(money.balance)}</strong></div>

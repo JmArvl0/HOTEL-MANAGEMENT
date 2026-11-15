@@ -11,10 +11,11 @@ import { getPublicBookingInformation } from "@/lib/public-booking-information-se
 import { PublicWebsiteNav } from "./public-website-nav";
 import { WebsiteFooter } from "./website-footer";
 import { BookingIntentProvider, FeaturedStays, HeroBookingForm } from "./booking-intent";
-import { HotelHero, HotelAmenities, HotelAmenitiesDecoration, HotelAmenitiesDivider, HotelGallery, HotelContact, HotelFaq, BookingPolicySummary } from "./hotel-information";
+import { HotelHero, HotelAmenities, HotelAmenitiesDecoration, HotelAmenitiesDivider, HotelGallery, HotelContact, HotelFaq } from "./hotel-information";
 import { WebsiteLocation } from "./website-location";
 import { LocationLoading } from "./location-sections";
 import { HotelArrivalDecoration, HotelArrivalDivider } from "./hotel-faq";
+import { HotelScrollReveal } from "./hotel-scroll-reveal";
 import "./hotel-rooms.css";
 
 export async function websiteHomeMetadata(): Promise<Metadata> {
@@ -30,17 +31,13 @@ export async function HotelHome() {
   const { content, images } = website;
   const rooms = result?.error ? [] : result?.data ?? [];
   const maxGuests = rooms.length ? Math.min(8, Math.max(...rooms.map(room => Number(room.max_guests)))) : 4;
-  return <main className="landing coastal-landing hotel-public hotel-home">
+  return <HotelScrollReveal>
     <PublicWebsiteNav rootLinks={false} bookingHref="#book" overHero />
     <BookingIntentProvider>
       <div className="hotel-hero-stage">
         <HotelHero content={content} images={images} />
         <section className="hotel-booking" id="book" aria-labelledby="booking-title">
           <HeroBookingForm maxGuests={maxGuests} timeZone={information.operations.hotelTimezone} />
-          <details className="hotel-booking-policy">
-            <summary>Booking policy</summary>
-            <BookingPolicySummary information={information} />
-          </details>
         </section>
       </div>
       {website.unavailable && <p className="hotel-demo-banner" role="status">Some hotel information is temporarily unavailable.</p>}
@@ -70,5 +67,5 @@ export async function HotelHome() {
       <div className="hotel-actions"><a href="#book" className="coast-button">Check availability</a></div>
     </section>
     <WebsiteFooter content={content} />
-  </main>;
+  </HotelScrollReveal>;
 }

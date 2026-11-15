@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
+import { getSession } from "next-auth/react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from "react";
-import { ArrowUp, CalendarDays, MapPin, Menu, UserRound, X } from "lucide-react";
+import { ArrowUp, MapPin, Menu, UserRound, X } from "lucide-react";
 import { HavenLogo } from "@/components/ui/haven-logo";
 
 const drawerLinks = [
@@ -24,6 +25,7 @@ export function LandingNav({ active, rootLinks = false, bookingHref, identity, c
   const [section, setSection] = useState("");
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [indicator, setIndicator] = useState({ left: 0, width: 0 });
+  const [signedIn, setSignedIn] = useState(false);
   const nav = useRef<HTMLElement>(null);
   const linkList = useRef<HTMLDivElement>(null);
   const links = useMemo(() => drawerLinks.flatMap(link => {
@@ -38,6 +40,17 @@ export function LandingNav({ active, rootLinks = false, bookingHref, identity, c
   }), [overHero, visibleSections?.amenities, visibleSections?.gallery, visibleSections?.faq, contact?.isDemo]);
   const destination = (href: string) => href === "#book" ? bookingHref ?? (rootLinks ? "/#book" : "#book") : rootLinks ? `/${href}` : href;
   const current = (link: typeof drawerLinks[number]) => active === link.label ? "page" : section === link.href ? "location" : undefined;
+  const accountHref = signedIn ? "/account" : "/login";
+  const accountLabel = signedIn ? "My account" : "Log in";
+
+  useEffect(() => {
+    let mounted = true;
+    // Resolve the account label in the browser so public pages remain cacheable.
+    void getSession({ broadcast: false }).then(session => {
+      if (mounted) setSignedIn(Boolean(session?.user?.id && !session.user.disabled && !session.user.otpPending));
+    });
+    return () => { mounted = false; };
+  }, []);
 
   function restoreAmenitiesScroll(event: MouseEvent<HTMLAnchorElement>, href: string) {
     if (href !== "#amenities" || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -174,13 +187,12 @@ export function LandingNav({ active, rootLinks = false, bookingHref, identity, c
         </div>
 
         <div className="landing-actions">
-          <Link href="/account" className="sign-in-link">
-            {overHero && <UserRound size={15} aria-hidden="true" />}{overHero ? "My Account" : "My account"}
+          <Link href={accountHref} className="sign-in-link">
+            {overHero && <UserRound size={15} aria-hidden="true" />}{accountLabel}
           </Link>
-          <a href={destination("#book")} className="btn btn-cream btn-nav-cta" aria-label="Check availability" aria-current={current({ href: "#book", label: "Check availability" })}>
-            {overHero && <CalendarDays size={15} aria-hidden="true" />}
+          {!overHero && <a href={destination("#book")} className="btn btn-cream btn-nav-cta" aria-label="Check availability" aria-current={current({ href: "#book", label: "Check availability" })}>
             <span className="nav-book-long">Check availability</span><span className="nav-book-short" aria-hidden="true">Book</span>
-          </a>
+          </a>}
           <button
             type="button"
             className="landing-menu-btn"
@@ -218,12 +230,9 @@ export function LandingNav({ active, rootLinks = false, bookingHref, identity, c
             ))}
           </nav>
           <div className="landing-drawer-actions">
-            <Link href={overHero ? "/account" : "/login"} className="btn btn-accent" onClick={() => setOpen(false)}>
-              {overHero ? "My Account" : "Sign in"}
+            <Link href={accountHref} className="btn btn-accent" onClick={() => setOpen(false)}>
+              {accountLabel}
             </Link>
-            <a href={destination("#book")} className="btn btn-cream" onClick={() => setOpen(false)}>
-              Check availability
-            </a>
           </div>
           <div className="landing-drawer-foot">{contact && !contact.isDemo ? <a href={`tel:${contact.phone.replace(/[^+0-9]/g, "")}`}>Call Front Desk · {contact.frontDeskHours}</a> : "Contact Front Desk for arrival and stay information."}</div>
         </div>

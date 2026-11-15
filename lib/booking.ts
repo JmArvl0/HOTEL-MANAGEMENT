@@ -100,6 +100,7 @@ export const transportationPreferencesSchema = z.object({
 export type TransportationPreferencesInput = z.infer<typeof transportationPreferencesSchema>;
 
 export const guestDetailsSchema = z.object({
+  breakfastOfferId: z.string().uuid().optional(),
   roomId: z.string().min(1).max(100).optional(),
   holdToken: z.string().uuid().optional(),
   roomType: z.string().min(1).max(100),

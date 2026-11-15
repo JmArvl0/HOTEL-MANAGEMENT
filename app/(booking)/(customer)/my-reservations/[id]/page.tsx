@@ -6,8 +6,9 @@ import { getCustomerTransportation } from "@/lib/transportation";
 import { supabase } from "@/lib/supabase";
 import { ReservationDetailView } from "@/components/customer/reservation-detail-view";
 import { StayReviewCard } from "@/components/customer/stay-review-card";
+import { BreakfastEntry } from "@/components/customer/breakfast-entry";
+import { breakfastLine } from "@/lib/breakfast";
 import { isLegacyGuestPayment } from "@/lib/payment-display";
-
 export default async function ReservationPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireCustomerSession();
   const { id } = await params;
@@ -19,7 +20,8 @@ export default async function ReservationPage({ params }: { params: Promise<{ id
   const folioTotal = Number(invoice?.amount ?? stayTotal);
   const paid = Number(invoice?.paid ?? reservation.deposit ?? 0) + Number(invoice?.credit_balance ?? 0);
   const balance = Number(invoice?.balance ?? Math.max(folioTotal - paid, 0));
-  const nightly = reservation.nights ? stayTotal / reservation.nights : stayTotal;
+  const breakfastLines = breakfastLine(reservation.breakfast_snapshot);
+  const nightly = reservation.nights ? (stayTotal - (breakfastLines[0]?.amount ?? 0)) / reservation.nights : stayTotal;
   const policy = operationalPolicyFromSnapshot(reservation.operational_policy_snapshot);
 
   const rawLines: unknown = reservation.transport_lines;
@@ -185,6 +187,7 @@ export default async function ReservationPage({ params }: { params: Promise<{ id
   return (
     <>
     <ReservationDetailView
+      breakfast={<BreakfastEntry id={id} snapshot={reservation.breakfast_snapshot} status={reservation.status} />}
       data={{
         id: reservation.id,
         confirmationNumber: String(reservation.confirmation_number ?? reservation.id),
@@ -208,6 +211,7 @@ export default async function ReservationPage({ params }: { params: Promise<{ id
         checkInTime: displayTime(policy.checkInTime),
         checkOutTime: displayTime(policy.checkOutTime),
         transportLines,
+        breakfastLines,
         pendingNotice: reservation.status === "pending"
           ? reservation.payments.some((payment) => payment.purpose === "reservation_deposit" && payment.status === "pending_verification" && isLegacyGuestPayment(payment.method))
             ? "Contact Front Desk with your original deposit reference before paying again."

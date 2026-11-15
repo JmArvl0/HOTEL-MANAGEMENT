@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { BookingPageFrame } from "@/components/booking/booking-page-frame";
 import { calculateFinancialState, calculateNights, formatPeso, policyFromSnapshot } from "@/lib/booking";
 import { friendlyStatus, getCustomerReservationDetail } from "@/lib/customer";
+import { BreakfastEntry } from "@/components/customer/breakfast-entry";
 import { CheckInQr } from "@/components/customer/check-in-qr";
 import { ProofThumbnail } from "@/components/booking/proof-thumbnail";
 import { ConfirmationActions } from "@/components/booking/confirmation-actions";
@@ -228,6 +229,7 @@ export default async function ConfirmationPage({
         {confirmed && (
           <CheckInQr reservationId={reservation.id} confirmationNumber={reservation.confirmation_number} />
         )}
+        <BreakfastEntry id={reservation.id} snapshot={reservation.breakfast_snapshot} status={reservation.status} />
         <AmenitySnapshot value={reservation.amenity_snapshot} /><ConfirmationActions reservationId={reservation.id} />
       </section>
     </BookingPageFrame>

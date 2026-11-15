@@ -351,11 +351,20 @@
 .hotel-public.hotel-home {
   --hotel-wave-height: clamp(64px, 8.6vw, 124px);
   --hotel-booking-height: 92px;
+  margin: 0;
   padding-top: 0;
 }
 
+.hotel-home .hotel-hero-stage {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+  padding-bottom: 24px;
+}
+.hotel-home .hotel-hero-stage > .hotel-hero { flex: 1 0 auto; }
+
 /* Brass doorway outlines sit behind the rooms and the full photo collection. */
-.hotel-home .hotel-section#stay { position: relative; }
+.hotel-home .hotel-section#stay { position: relative; --arch-top: 0px; }
 .hotel-public :where(.hotel-section#stay, .haven-gallery-collection, .hotel-closing) {
   --arch-width: clamp(152px, 28vw, 400px);
   --arch-rise: clamp(132px, 17vw, 248px);
@@ -497,15 +506,6 @@
   font-weight: 600;
   white-space: nowrap;
 }
-.hotel-home .landing-nav--hero .btn-nav-cta {
-  gap: 7px;
-  padding-inline: 15px;
-  border-color: rgba(251, 248, 243, .26);
-  background: var(--hotel-navy);
-  color: var(--hotel-cream);
-  font-size: 13px;
-  white-space: nowrap;
-}
 .hotel-home .landing-nav--hero .landing-menu-btn { border-color: color-mix(in srgb, currentColor 45%, transparent); background: transparent; color: inherit; }
 .hotel-home .landing-drawer-panel { background: var(--hotel-cream); }
 
@@ -573,6 +573,7 @@
 
 .hotel-home .hotel-booking {
   position: relative;
+  flex-shrink: 0;
   width: min(1220px, calc(100% - clamp(32px, 12vw, 216px)));
   /* Lift the bar 21px above the wave's midpoint. */
   margin: calc(var(--hotel-booking-height) / -2 - var(--hotel-wave-height) / 4 - 21px) auto 0;
@@ -666,11 +667,18 @@
 }
 .hotel-home .hero-booking-form .booking-party-help { max-width: none; margin: 12px 0 0; font-size: 13px; color: #4f463a; }
 .hotel-home .hero-booking-error { margin-top: 10px; color: #96271f; }
-.hotel-booking-policy { margin-top: 4px; }
-.hotel-booking-policy > summary { width: fit-content; min-height: 44px; padding-block: 9px; font-size: 13px; cursor: pointer; }
-.hotel-booking-policy > .hotel-policy-summary { margin: 0 0 18px; }
 .hotel-home .hotel-introduction { padding-top: 32px !important; }
 
+@media (min-width: 901px) {
+  .hotel-home .hotel-hero-stage > .hotel-hero {
+    min-height: 0;
+    padding-top: clamp(104px, 12svh, 124px);
+    padding-bottom: clamp(100px, 12svh, 136px);
+  }
+  .hotel-home .hotel-hero h1 { font-size: clamp(48px, 9svh, 94px); }
+  .hotel-home .hotel-place { margin-bottom: 22px; }
+  .hotel-home .hotel-hero-lead { margin-bottom: 18px; }
+}
 @media (max-width: 1240px) {
   .landing-nav--hero .landing-nav-place { display: none; }
 }
@@ -696,7 +704,7 @@
 }
 @media (max-width: 720px) {
   .hotel-home .landing-nav.landing-nav--hero { height: 74px; }
-  .hotel-home .landing-nav--hero .sign-in-link { display: none; }
+  .hotel-home .landing-nav--hero .sign-in-link { display: inline-flex; }
   .hotel-home .hotel-hero { min-height: 544px; padding: 114px clamp(22px, 6vw, 48px) 112px; }
   .hotel-home .hotel-hero-image { object-position: 56% 54%; }
   .hotel-home .hotel-hero::after {
@@ -723,7 +731,15 @@
 }
 @media (max-width: 480px) {
   .hotel-home .landing-nav.landing-nav--hero { padding-inline: 16px; gap: 10px; }
-  .hotel-home .landing-nav--hero .btn-nav-cta { display: none; }
+  .hotel-home .landing-nav--hero .sign-in-link { padding-inline: 10px; }
+  .hotel-home .landing-nav--hero .sign-in-link svg { display: none; }
   .hotel-home .landing-nav--hero .brand { font-size: 23px; }
+  .hotel-home .landing-nav--hero .brand small { font-size: 9px; }
   .hotel-home .hotel-hero { min-height: 512px; padding-bottom: 96px; }
+}
+@media (max-width: 360px) {
+  .hotel-home .landing-nav--hero .brand { gap: 6px; }
+  .hotel-home .landing-nav--hero .brand-mark { width: 28px; min-width: 28px; }
+  .hotel-home .landing-nav--hero .brand small { font-size: 8px; }
+  .hotel-home .landing-nav--hero .sign-in-link { padding-inline: 8px; font-size: 12px; }
 }

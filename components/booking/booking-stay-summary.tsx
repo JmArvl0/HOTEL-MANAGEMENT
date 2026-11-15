@@ -143,7 +143,7 @@ export function BookingStaySummary({
           )}
           {paymentBreakdown}
         </dl>
-        <small>Taxes and service charges are currently included at ₱0 under the configured hotel policy.</small>
+        <small>Rates include applicable taxes and service charges under the hotel policy.</small>
         {footnote && <div className="review-stay-footnote">{footnote}</div>}
       </div>
     </aside>

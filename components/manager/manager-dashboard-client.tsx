@@ -489,7 +489,7 @@ export function Overview({ data, setSection, allowed, role, onScan, onOpenRack, 
         <button className="btn btn-soft" onClick={onScan}>
           <QrCode size={17} /> Scan QR
         </button>
-
+        {["front_desk", "manager"].includes(role) && <Link className="btn btn-soft" href="/breakfast-service">Breakfast service</Link>}
         {allowed.includes("reservations") && <button className="btn btn-accent" onClick={() => (onNewReservation ? onNewReservation() : setSection("reservations"))}>
           <Plus size={17} /> New reservation
         </button>}

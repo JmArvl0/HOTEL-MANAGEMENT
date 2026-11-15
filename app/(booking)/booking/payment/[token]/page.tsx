@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { BookingPageFrame } from "@/components/booking/booking-page-frame";
 import { BookingStaySummary } from "@/components/booking/booking-stay-summary";
+import { breakfastLine } from "@/lib/breakfast";
 import { HoldCountdown } from "@/components/booking/hold-countdown";
 import { calculateNights, depositPolicyLabel, formatPeso, getOwnedHold, policyFromSnapshot, transportTotal } from "@/lib/booking";
 import { XenditCheckout, XenditPaymentBreakdown, XenditPaymentChoice } from "@/components/booking/xendit-checkout";
@@ -45,7 +46,7 @@ const stage = (
       rate={hold.nightly_rate == null ? null : Number(hold.nightly_rate)}
       total={total}
       nightly={parseFrozenRates(hold.nightly_rates)}
-      lines={[...(transport.length ? [{ label: "Hotel transfer", amount: transportTotal(transport) }] : [])]}
+      lines={[...breakfastLine(hold.breakfast_snapshot), ...(transport.length ? [{ label: "Hotel transfer", amount: transportTotal(transport) }] : [])]}
       photos={stayPhotos}
       depositDue={xenditReady ? undefined : { label: `Required reservation deposit - ${depositPolicyLabel(policy)}`, amount: deposit }}
       remainingBalance={xenditReady ? undefined : remaining}
