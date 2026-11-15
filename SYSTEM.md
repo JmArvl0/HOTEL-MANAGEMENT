@@ -723,24 +723,6 @@ reservations. Older stays without a snapshot show no captured amenity list.
 The room lifecycle migration and the follow-up booking/configuration mutex are
 applied through `20261111050000`. Both commit orders passed in local PostgreSQL.
 
-**Breakfast (2026-11-13, local implementation).** With `HAVEN_BREAKFAST_ENABLED=true`,
-Room Types offers breakfast configuration. Manager/Owner/Admin can propose,
-and Owner/Admin can publish or decline. One published offer per type covers
-the stated service dates and hotel-local hours. Optional breakfast requires
-selection, and included breakfast adds zero to the room rate. The exact-room
-hold records a meal snapshot and prices the booked guests for each morning,
-including checkout morning. The existing manual and gateway conversion paths
-use the combined total and deposit and create one entitlement per date.
-Legacy amendments that would reprice or invalidate the covered stay are blocked.
-
-Guests open the date-specific Breakfast Pass from confirmation or My Reservations
-and can save its PNG. Front Desk and Manager can check a pass and record meals
-in Breakfast service. The hotel database checks the service date, current stay
-and remaining meals, and applies redemptions once per accepted request. The
-separate outlet API remains disabled until restaurant onboarding. The migration
-`20261113030000_hotel_breakfast.sql` was replayed locally. Deployment and partner
-acceptance are pending. See `docs/integrations/RESTAURANT_BREAKFAST_HANDOFF.md`.
-
 **Location and nearby guide (2026-11-06, schema applied; hosted application release pending).**
 The public `#how-to-go` section pairs an area/property photo with the live map;
 `#nearby` contains three highlights and an Explore Nearby Places button that
@@ -805,14 +787,16 @@ and release limits: `docs/qa/location-content-implementation-2026-11-06.md`.
 
 ### 7.2 Guest booking flow (`/booking/*`)
 
-**Breakfast (2026-11-13, local implementation).** With `HAVEN_BREAKFAST_ENABLED=true`,
+**Breakfast (2026-11-15, reviewed implementation).** With `HAVEN_BREAKFAST_ENABLED=true`,
 Room Types offers breakfast configuration. Manager/Owner/Admin can propose,
 and Owner/Admin can publish or decline. One published offer per type covers
 the stated service dates and hotel-local hours. Optional breakfast requires
 selection, and included breakfast adds zero to the room rate. The exact-room
 hold records a meal snapshot and prices the booked guests for each morning,
-including checkout morning. The existing manual and gateway conversion paths
-use the combined total and deposit and create one entitlement per date.
+including checkout morning. The current `create_booking_hold_attempt` entry point
+retains actor-bound retries. Xendit checkout uses the combined total and deposit,
+preserves the meal snapshot, and creates one entitlement per date. New guest
+manual and PayMongo payments remain retired.
 Legacy amendments that would reprice or invalidate the covered stay are blocked.
 
 Guests open the date-specific Breakfast Pass from confirmation or My Reservations
@@ -820,8 +804,11 @@ and can save its PNG. Front Desk and Manager can check a pass and record meals
 in Breakfast service. The hotel database checks the service date, current stay
 and remaining meals, and applies redemptions once per accepted request. The
 separate outlet API remains disabled until restaurant onboarding. The migration
-`20261113030000_hotel_breakfast.sql` was replayed locally. Deployment and partner
-acceptance are pending. See `docs/integrations/RESTAURANT_BREAKFAST_HANDOFF.md`.
+`20261113030000_hotel_breakfast.sql` is already present on `origin/main` and the
+hosted ledger. This port adds no migration. Real local SQL verifies concurrent
+attempt retries, Xendit settlement, partial service and redemption replays.
+Breakfast sales default to disabled. Restaurant acceptance remains pending.
+See `docs/integrations/RESTAURANT_BREAKFAST_HANDOFF.md`.
 
 **Approved exact-room journey (2026-11-11):** Landing `Choose this type` retains
 the type/dates/party, then `/booking/rooms/[type]` lists that type's published

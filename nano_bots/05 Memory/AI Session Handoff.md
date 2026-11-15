@@ -1,25 +1,27 @@
 # AI Session Handoff
 
-## Remaining backup items port — 2026-11-15
+## Remaining port reviewed for release — 2026-11-15
 
-All missing earlier local history is now ported onto a local branch
-`codex/remaining-backup-items-20261115` (worktree `.tmp/remaining-backup-items-20261115`),
-a single commit `b1b97a2` on top of `origin/main` `794eca8`: 10 previously missing
-commits plus both missing `30512aa` DB-test scripts, with all 22 conflicts across
-14 files resolved. Every current main safeguard was kept (attempt-based holds,
-Xendit-only checkout, error microcopy, durable email, deposit gating); the old
-breakfast/policy/landing features were added on top and remain feature-flagged
-(`HAVEN_BREAKFAST_ENABLED`, default false). The old PayMongo/GCash manual
-payment UI was discarded. Verified on Node 22.22.2: typecheck, scoped ESLint
-(0 errors / 9 pre-existing-pattern warnings), full Vitest 2,637/265, production
-build, and real disposable-PostgreSQL suites — migration replay 25 PASS / 0 fail,
-breakfast 5 PASS, inventory replenishment PASS. No merge to main, no push, no
-hosted write, no browser QA available. See
-[[2026-11-15 - Remaining Backup Items Port]].
+The user authorized reviewing GLM's continuation and merging/pushing when it
+passes. `codex/remaining-backup-items-20261115` contains the ten missing old
+commits and missing parts of the two partial commits, on `794eca8`.
+Review fixed two genericized breakfast messages, added permission mapping and
+regression coverage, corrected the 320px policy tab, and removed duplicate system
+documentation. Node 22 verification passes 2,647 tests across 266 files,
+typecheck, scoped lint (zero errors), the final production build, 41 real local
+SQL checks and Edge desktop/mobile-emulation QA at 1440/768/390/320px. The
+homepage reveals ten elements once. Restaurant/POS acceptance remains pending.
+No migration or dependency change is needed. Breakfast flags default off.
+See [[2026-11-15 - Remaining Port Review and Release]] for evidence and limits.
 
 ## Scoped Git reconciliation — 2026-11-15
 
-Reconciled the 38-change series on top of `origin/main` without the 21 earlier local commits. Preserved the hosted Fleet version and the remote cash draft workflow. The verified plan and eight pending migrations are recorded in `docs/runbooks/reconciliation-release-2026-11-15.md`. All 2,625 app tests, the production build, a fresh 149-migration replay, and seven SQL suites passed. Production lacks the new booking and cash functions, so the production push remains gated on the coordinated database rollout.
+The prior 38-change series was pushed as `794eca8` using `ro-mee`. Its eight
+migrations were applied and verified in hosted Supabase, with 149 ledger
+entries. Hosted readiness and push evidence are in ignored
+`.tmp/commit-batches-20261115/approved-rollout-*.json`. The runbook is
+`docs/runbooks/reconciliation-release-2026-11-15.md`. The older sections below
+record the implementation-time state before that completed rollout.
 
 ## Latest work — error microcopy repairs (2026-11-15)
 

@@ -1,15 +1,15 @@
 # Current Status
 
-## Git reconciliation branches (2026-11-15)
+## Remaining port release review (2026-11-15)
 
-Two local branches now complete the scoped reconciliation: `codex/backup-nine-local-commits-20261115`
-(the 38-change series on `origin/main`) and `codex/remaining-backup-items-20261115`
-(the ported missing earlier history: 10 commits plus two `30512aa` DB-test
-scripts, all conflicts resolved, breakfast feature-flagged). Both are fully
-verified — full Vitest, production build, typecheck, scoped lint and the real
-disposable-PostgreSQL suites (25 migration-replay PASS, breakfast 5 PASS,
-inventory replenishment PASS). Neither is merged to main or pushed; both await
-the user's release decision. See [[2026-11-15 - Remaining Backup Items Port]].
+The published 38-change release is `794eca8`; all eight rollout migrations were
+applied and verified in hosted Supabase. The older local history remains on
+backup branches. GLM's scoped missing-history port was reviewed for the user's
+authorized merge/push. With the review repairs, all 2,647 tests, typecheck,
+production build, scoped lint, 41 local SQL checks and Edge desktop/mobile
+checks pass. Breakfast and Restaurant flags retain their defaults. No migration
+or dependency change accompanies this port. See
+[[2026-11-15 - Remaining Port Review and Release]].
 
 ## Error message and UX repairs (2026-11-15)
 
