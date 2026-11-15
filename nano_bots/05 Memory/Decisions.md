@@ -4,6 +4,28 @@ Lightweight decision log. Each entry records a choice that constrains future dev
 Trivial implementation details do not belong here. Historical sessions never override the
 current system or `SYSTEM.md` — see [[AI Session Handoff]] for the authority order.
 
+## D-039 — Existing-host Fleet joint tests and private credential exchange
+
+2026-11-13 user chose existing Haven/Fleet deployments for synthetic joint testing,
+without separate staging projects. Haven contact role is Lead Programmer. User
+delegated secure-channel choice; Fleet accepted Bitwarden Send Text with password,
+24-hour expiry and max access1, separate Send per credential, private verified
+contacts and password via a different verified channel. Three distinct server keys:
+Fleet-issued outbound, Haven-issued callback and separate photo signing. No keys
+in chat/repo. Acceptance of this process is not deployment, activation or sign-off;
+connection stays disabled until both teams agree the test window. PayMongo/fare
+posting remain deferred. See [[2026-11-13 - Fleet Revocation and Separate Credentials]].
+
+## D-038 — Guest chooses the exact physical room
+
+2026-11-11 user authorized implementation of the entire reviewed booking prototype.
+Landing chooses a type, a dedicated page lists numbered rooms, then Book Room
+retains the exact selection through account/details/review/deposit. Show all
+published rooms, available first and gray unavailable last. Use actual catalog,
+rates and policies; exact inventory claims must be enforced transactionally.
+Modern calendar and country/flag mobile field are included. See
+[[2026-11-11 - Exact Room Booking Implementation]].
+
 ## D-037 — Configurable public location guide with an explicit fictional demo
 
 2026-11-06 user approved the premium photo sections and live map, then said
@@ -15,20 +37,16 @@ Keep these labeled as demo; real client publication requires verification.
 Use existing Owner/Admin authority and separate content data, not transportation
 fare settings. No paid Google API. See [[2026-11-06 - Location Content Implementation]].
 
+## D-036 — Optional guest photos and Fleet-owned ride safety links
 
-## D-036 — Explicit refund cash source, saved counts and separate submissions
-
-Date: 2026-11-05. Status: User-approved; implemented locally, release pending.
-
-Accounting records the actual refund payout method; cash links to its open drawer
-and cannot exceed recorded available cash. Refunds serialize with close and retain
-policy/exception authority and historical records. Explicit count drafts persist
-separately with operator/role/version/activity guards, without posting final cash
-figures. Close guides staff to handover and reporting; neither submits automatically.
-This keeps drawer cash accountable and saved work recoverable without inventing
-cash custody transfers or premature hotel-day snapshots. See the approved
-`docs/plans/2026-11-05-cash-shifts-findings-recommendations.md` and
-[[2026-11-05 - Cash Findings Implementation]].
+2026-11-05 user direction: photo is optional throughout the guest/transport flow.
+Reuse saved registration contact data for a new pickup profile and let the guest
+edit the actual passenger. Collect ride preferences, luggage and notes. Fleet
+supplies the actual assigned plate and a shareable, expiring tracking page;
+Haven displays/opens/shares provider data. Fleet owns GPS and revocation of
+already-shared public links. This is feature direction, not partner sign-off.
+The connection stays off pending an accepted contract and real staging QA.
+See [[2026-11-05 - Fleet Ride Safety and Preferences]].
 
 ## D-035 — Separate Front Office modules; default room board to a guest calendar
 
@@ -1478,3 +1496,15 @@ credit. Independently posted transportation retains its Accounting reversal rule
 Approved refund exceptions create linked fee reversals at Accounting execution.
 No historical backfill or new tax treatment. Implemented locally in migration
 `20261103160000`; deployment pending. See [[2026-11-03 - Cancellation Folio Settlement]].
+
+## D-035 — Workforce supplies availability, Hotel assigns operational work
+
+Approved by the user on 2026-11-14 for Hotel integration preparation. Workforce
+Management owns official attendance, shifts and leave. Hotel consumes reviewed
+employee-ID mappings and short-lived availability evidence, retaining account
+governance, workload and room-readiness authority. Automatic checkout cleaning
+selects verified on-duty Housekeeping with the fewest unfinished tasks, random
+on ties. Missing/expired evidence leaves work unassigned. Both connection and
+automation default off pending partner contract agreement and sandbox setup.
+Preparation does not constitute partner acceptance or live activation.
+See [[2026-11-14 - Workforce Integration Preparation]].

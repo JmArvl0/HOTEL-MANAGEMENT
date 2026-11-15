@@ -1,5 +1,242 @@
 # Current Status
 
+## Error message and UX repairs (2026-11-15)
+
+The user-approved error audit is implemented locally with safe error messages, field validation, notification severity, stable retries, honest unknown outcomes, queue/polling recovery and redacted diagnostics. The follow-up verified that cancellation guidance and actions stay in view at 320 × 568 and 390 × 844 in Edge mobile emulation. Full Vitest passes 2,602 tests across 259 files. Typecheck, build and lint on touched files pass. The prior coordinated release remains pending. See [[2026-11-15 - Error Microcopy Repairs]], [[2026-11-15 - Cancellation Error Visibility]] and `docs/qa/error-microcopy-implementation-2026-11-15.md`.
+
+## Remaining validation repairs (2026-11-15)
+
+All 20 remaining findings have local repairs. Full Vitest passes 2,581 tests across 256 files. Build/typecheck, 118 real SQL checks and desktop/mobile Edge fixture checks pass. Forms have field-specific errors and responsive layouts; Xendit stays provider-settled with a separate exception queue. The application and six new migrations await production rollout. Production still runs `d95d14b`; no hosted writes occurred. New booking bounds are 365 nights and check-in within 730 days. See [[2026-11-15 - Remaining Validation Audit Repairs]].
+
+## Critical audit repairs (2026-11-15)
+
+F01 and F02 are live on the existing production site at commit17e7c55, with Supabase migration20261115010000 applied and verified. Generic guest-request writes are blocked and reservation amendments preserve rooms and folio charges. Vercel completed the deployment. Both hosted sandbox wallet confirmations and safe retries passed after deployment, as did the webhook checks. Xendit and shared payment SQL fingerprints match pre-deploy. Twenty audit findings remain open in the local follow-up. See [[2026-11-15 - F01 and F02 Critical Audit Fixes]].
+
+## Guest payment retirement (2026-11-15)
+
+Production retired PayMongo checkout and callbacks, guest manual payment submissions, and Accounting Verify/Reject at commit `d95d14b`. Xendit sandbox remains the only online checkout. Hosted GCash deposit, Maya full payment, safe retries, and webhook checks passed. Payment History retains four pending legacy manual records and any existing proof. The preflight found zero pending PayMongo payments. The release required no migration. F03, F05, and F10 are closed at the app boundary. Twenty findings remain open. See [[2026-11-15 - Guest Payment Retirement]].
+
+## Guest My Stay (2026-11-14)
+
+- Supplied account/booking redesign implemented locally, with current-origin
+  credentials redirects, inline arrival validation, unified stay/hold summary,
+  saved preferences, checkout recovery and a published-content stay guide.
+- Initial local Node22 build/full2628/lint passed. Follow-up configured local
+  Xendit and verified two user-completed sandbox bookings, paid receipts,
+  confirmed pages and account ownership through real provider/HTTP checks.
+- Guest-only release0f81105 has a passing production build and guest checks.
+  Full release2517pass/4fail, all4reproduced on clean prior main. User explicitly
+  approved push/deploy; commit0f81105 is now live on the existing Vercel site.
+  Vercel reports success; all17 authenticated live HTTP checks and flag assets
+  pass. Full visual/mobile/dark QA remains blocked by browser availability. See
+  [[2026-11-14 - My Stay Sandbox Completion and Release]].
+
+## Workforce integration preparation (2026-11-14)
+
+- Hotel-side proposed contract, secure availability receiver, reviewed employee
+  mapping, separate availability display and opt-in balanced checkout assignment
+  are implemented locally. Workforce remains attendance/schedule authority.
+  Connection and automation default off. Full2618 tests,13 real SQL scenarios,
+  typecheck, lint and production build pass. Hosted migration/deploy, partner
+  agreement and browser/mobile QA remain pending. See
+  [[2026-11-14 - Workforce Integration Preparation]].
+
+## Guest booking audit repairs (2026-11-14)
+
+- Local guest fixes cover search dates, hold recovery, deposit acknowledgement,
+  route recovery, mobile navigation, and guest-facing copy and validation.
+  The manual deposit journey passed on a disposable database in Edge.
+  Deployment and the separately deferred Xendit cutover are pending.
+  See [[2026-11-14 - Guest Booking Audit Repairs]].
+
+## Hosted schema sync (2026-11-14)
+
+- Second guest-page 42703 was `invoices.terminal_settlement`; applied that
+  migration, then backfilled all 14 remaining committed migrations. Hosted
+  ledger138; previously missing columns/tables/RPCs now match the code.
+  Real-login smoke on the Turbopack server (3001) passes guest pages and all
+  staff GET APIs with no 42703/42P01/42883. Xendit migrations remain local.
+  See [[2026-11-14 - Hosted Schema Drift Repair]].
+
+## Xendit sandbox deposits (2026-11-14)
+
+- Both Xendit migrations are applied to hosted Supabase. Scoped app release
+  `bbea22d` and webhook fix `6424807` are live on Vercel. Both Xendit Dashboard
+  test events returned 200, and the deployed guest checkout opened test sessions
+  at the correct deposit and full amounts. Xendit sandbox is active by request.
+  Both provider wallet simulations subsequently confirmed bookings by webhook.
+  GCash deposit left ₱8,960 due, and Maya full payment left ₱0 due.
+- Checkout now uses official wallet logos, a desktop side summary and mobile stacking;
+  keyboard, light/dark and320–1440px layouts verified locally.
+- GCash/Maya Xendit Payment Sessions, authenticated webhooks and guest retry/expiry
+  are implemented locally using existing booking/payment rules. Full2577/247,
+  Node22 typecheck/build, SQL and disposable browser checks pass. Migration and
+  hosted release remain pending; actual provider sandbox simulation needs the
+  user's test key, webhook token and public HTTPS origin. No real wallet/payment.
+  Setup: `docs/integrations/XENDIT_SANDBOX.md`; verified details:
+  [[2026-11-14 - Xendit Sandbox Payments]].
+
+## Forgot password (2026-11-13)
+
+- Recovery now replaces the form within the sign-in layout; return links keep
+  booking/callback context. Browser switch/return and desktop/small-phone recovery
+  fit pass. Typecheck, lint, 2,533 tests and production build pass. Preview3084.
+  No live recovery email sent. See [[2026-11-13 - Forgot Password Within Sign In]].
+
+## Auth layout and shared logo (2026-11-13)
+
+- Local login/register use compact height-aware layouts and the landing-page
+  logo throughout shared branding/browser icons. Typecheck, lint, full2533 and
+  production build pass. Rendered screen-fit QA is pending due browser access.
+  Preview3084. See [[2026-11-13 - Auth Screen Fit and Shared Logo]].
+
+## Homepage scroll reveals (2026-11-13)
+
+- Headings, rooms and supporting homepage content now fade/rise once on entry.
+  Follow-up uses a gentler 900ms/6px entrance starting before the viewport edge.
+  Reduced motion and keyboard access verified at four production Edge widths.
+  Full2533, build, typecheck and lint pass. Local preview3097. See
+  [[2026-11-13 - Homepage Scroll Reveals]].
+
+## Breakfast booking and pass (2026-11-13)
+
+- Haven breakfast offers, pricing, guest QR/PNG and hotel service are implemented
+  locally. Migration20261113030000 is applied to hosted Supabase; the follow-up
+  drift repair applied 14 more committed migrations (ledger138), including
+  invoices.terminal_settlement and the staff occupancy/housekeeping/roster/
+  lost-and-found/stock/refund schema. Feature flag and approved offer setup remain
+  pending in production. The earlier guest-page 42703s were this missing schema. Restaurant adapter is disabled pending
+  sandbox onboarding. See [[2026-11-13 - Hotel Breakfast Implementation]].
+- Signed-in Edge guest booking and actual dated PNG downloads pass on a local
+  disposable database, with QR decoding at 900/390px. Storage substitution and
+  other test limits: `docs/qa/breakfast-guest-browser-2026-11-13.md`.
+
+## Homepage and Rooms & suites (2026-11-13)
+
+- Home now has the hero and Plan your stay in a stage at least one viewport
+  tall. Rooms & suites and its arch begin afterward. The snapshot appears on
+  the dedicated policy page. Build, typecheck, lint, and 23 focused tests pass.
+  Preview at `http://127.0.0.1:3083/`. See [[2026-11-13 - Home and Rooms Separation]].
+
+## Booking policy (2026-11-13)
+
+- Supplied booking policy reference now fits tested desktop/laptop windows.
+  Narrow layouts use three keyboard tabs; all fit the user's631px preview.
+  Live policies remain connected; small phones retain readable scrolling.
+  Quick links/separate terms/privacy pages removed; public footers and landing
+  summary use one Booking policy destination. Old URLs redirect there.
+  Node22 build/typecheck/ESLint, focused19, full2528 and browser QA pass.
+  Preview3083. See [[2026-11-13 - Booking Policy Links]].
+
+## Amenities & dining (2026-11-12)
+
+- Supplied reference applied to the website: dynamic arrow-free facilities,
+  eight-item expandable list and photo dining card. Existing CMS stays connected
+  with icon/order and dining copy controls. Follow-up fits the section beneath
+  the nav in one viewport, with bounded keyboard/touch scrolling for overflow
+  and small screens. Node22 build/typecheck/ESLint, full2487 checkpoint, final22
+  focused tests and production11-size QA pass. Existing preview3078 updated.
+  See [[2026-11-12 - Amenities Screen Fit]] and
+  [[2026-11-12 - Amenities and Dining Reference]].
+
+## Public navigation (2026-11-12)
+
+- Current-section underline follows scrolling; FAQ is reachable from desktop
+  nav and the drawer marks the current location. Top button and consistent
+  anchor offsets verified on desktop/tablet/phone. Node22 build/typecheck/
+  ESLint, focused32 and full2480 checkpoint pass. See
+  [[2026-11-12 - Scroll Aware Public Navigation]].
+
+## Before you arrive FAQ (2026-11-12)
+
+- Reference-style arrival FAQ shares the existing ivory background. Live answers,
+  custom questions and configurable contacts stay connected. User requested mock
+  Contact Front Desk / Email us actions; Owner/Admin edit the phone/email in
+  Website Content → Contact & arrival. Follow-up build/typecheck/ESLint,
+  focused8 and desktop/390 QA pass; prior full2473/four-width layout pass.
+  Preview3069/#faq. See [[2026-11-12 - Before You Arrive FAQ]].
+
+## Rooms responsive mobile layout (2026-11-12)
+
+- Rooms stack vertically on phones and use two columns on tablets with normal
+  page scrolling. Ten-size Edge QA passed, including 320px and landscape.
+  Preview3062/#stay. See [[2026-11-12 - Rooms Responsive Mobile Layout]].
+
+## Landing mobile labels and startup (2026-11-12)
+
+- Homepage hero appears before the client bundle loads. Larger labels and
+  booking actions fit from 320px through desktop. Preview3061.
+  See [[2026-11-12 - Landing Mobile Labels and Startup]].
+
+## Landing background continuity (2026-11-12)
+
+- The public site shares the hero's ivory canvas, with brass architectural
+  accents, continuous Gallery linework and an overlapping booking panel.
+  Production Edge QA passed at 1440, 768, 390 and 320px. Preview3059.
+  See [[2026-11-12 - Landing Background Continuity]].
+
+## Full-screen Nearby Guide (2026-11-12)
+
+- Desktop map/results, phone list/map switch, searchable published places and
+  focus/scroll return are implemented. Node22 build/typecheck/lint, focused31,
+  full2467 and six-size production browser QA pass. Local preview3048. See
+  [[2026-11-12 - Full-Screen Nearby Guide]].
+
+## Full gallery collection (2026-11-12)
+
+- See full gallery opens the complete grid over the homepage. All nine demo
+  photos fit at seven tested screen sizes. Node22 build, typecheck, lint,
+  focused15, full2469 and production Edge/touch checks passed. Preview3052.
+  See [[2026-11-12 - Homepage Gallery Overlay]].
+
+## Location screen fit (2026-11-12)
+
+- Location overview fits one screen below the nav. Directions/live map, native
+  nearby swipe/keyboard access and expanded full guide remain functional.
+  Node22 build/typecheck/lint, focused14, full2463 and production ten-size
+  browser checks pass. Preview3046; no release. See
+  [[2026-11-12 - Location Screen Fit]].
+
+## Rooms and Gallery screen fit (2026-11-12)
+
+- Both nav targets fit one viewport below the header. Desktop rooms retain2×2;
+  phones use full swipeable cards. Node22 build/typecheck/lint, full2463 and final
+  production Rooms9/Gallery10 viewport checks pass. Preview3042; no release.
+  See [[2026-11-12 - Rooms and Gallery Screen Fit]].
+
+## Location reference recreation (2026-11-12)
+
+- Reference photo/map/highlights implemented; follow-up uses a full-card map
+  without an address/action footer. Final build/typecheck/lint and31 focused
+  tests pass; full2463 checkpoint pass. Responsive CUA checks pass. Local3026;
+  no hosted release. See [[2026-11-12 - Location Reference Recreation]].
+
+## Landing audit and configuration (2026-11-11)
+
+- All 34 findings mapped to actual app changes. Public Manila demo, property
+  content editor for Owner/Admin, room archive and amenity inheritance are in the
+  working tree. Hosted schema verified through 20261111050000.
+- Node22 production build, app HTTP smoke, browser calendar/landing and isolated
+  editor tests passed. Full staff authentication/private upload and hosted app
+  release remain pending. See [[2026-11-11 - Landing Audit Implementation]].
+
+## Exact-room booking (2026-11-11)
+
+- Approved prototype implemented in actual app: type page/numbered rooms, retained
+  selection through account/booking, gray unavailable last, calendar and mobile flags.
+- Exact-room migration applied separately; SQL23+9, HTTP16, full2434/229 checkpoint,
+  final55/7, typecheck/build pass. Browser visual/authenticated and Node22 release
+  verification pending. Local3014; no application deployment. See
+  [[2026-11-11 - Exact Room Booking Implementation]].
+
+## Landing room cards (2026-11-07)
+
+- Approved reference-style room grid implemented locally: two desktop columns,
+  responsive cards, room/bathroom gallery and existing admin-managed content/photos.
+- Typecheck/build, full2431/228 and production browser1440/768/390/320 pass. Local
+  app3013; no hosted release. Hosted admin upload/save and Node22 release QA remain.
+  See [[2026-11-07 - Landing Room Comparison Grid]].
+
 ## Location and nearby content (2026-11-06)
 
 - Approved premium landing additions and shared Admin/Owner content editor are
@@ -14,43 +251,98 @@
 - Integrated browser/mobile and live hosted Storage/admin QA pending because
   local browser control remains disabled. See [[2026-11-06 - Location Content Implementation]].
 
+## Fleet integration (2026-11-13)
 
-## Guest Management compatibility fix (2026-11-06)
+- Revocation and separate callback/photo/outbound authentication are implemented locally.
+  Guest withdrawal persists both attempted legs; staff can confirm/retry/review conflicts.
+- 137 migration replay/24 SQL, Fleet73 cases, focused114/5, full2522/241, typecheck/build/
+  lint0 and real local Edge desktop/390/320 light/dark/off-mode pass with synthetic Fleet.
+- Four Fleet migrations remain unapplied; official scoped dry-run lists exactly those four.
+  Hosted release/image verification, private credential exchange, agreed window and real
+  partner/device QA/sign-off remain. Connection off, origins blank, no PayMongo/fare posting.
+- Existing projects only; Haven contact Lead Programmer; Fleet accepted Bitwarden Send.
+  Task22 remains in progress. See [[2026-11-13 - Fleet Revocation and Separate Credentials]].
 
-- Fixed shared guest list/profile reads against the deployed pre-merge/removal
-  schema; upgraded aliases/canonical history/removal filters remain supported.
-  KI-027 fixed locally. New5regressions and targeted59pass; latest full2348pass /
-  2recorded failures. Browser confirmation stopped by Computer Use URL guard.
-- User authorized commit/push of all current changes. Cash QA findings and hosted
-  migration requirements remain; no hosted migration/business write performed.
-  `docs/qa/guest-management-load-fix-2026-11-06.md` and
-  [[2026-11-06 - Guest Loading Fix and Publication]].
+## Housekeeping mobile work queue (2026-11-05)
 
-## Cash delivery and frontend QA (2026-11-06, local)
+- My Tasks leads the Housekeeping queue and has a first-screen phone dashboard
+  shortcut. Active counts, touch targets, and dialog contrast corrected.
+- Local emulated touch verified cleaning through inspection at 320, 390 and
+  430 px, plus a 320 px reclean. Physical-device and iOS Safari QA remain
+  pending. See [[2026-11-05 - Housekeeping Mobile Work Queue]].
 
-- Actual Next.js/auth/PostgREST/DB flow:25checks,23pass/2fail. Draft/refund/close/
-  review/handover/report persistence passes; daily collections add refunds (KI-022)
-  and shared header controls clip (KI-023). Centavo display/caption/touch targets
-  are KI-024–026. Release acceptance withheld; findings not repaired in QA.
-- Fresh126-migration replay/SQL12/targeted156pass; typecheck/build pass;
-  lint0errors/6existing warnings; full2343pass/2recorded failures.
-  Linked ledger112remote/126local; new cash migration absent. No hosted write,
-  push or deployment. Actual local financial-write E2E now verified within the
-  report's scope; password/OTP/hosted E2E remain unverified.
-- `docs/qa/cash-delivery-ui-qa-2026-11-06.md` and
-  [[2026-11-06 - Cash Delivery and UI QA]].
+## Shared Download menus (2026-11-05)
 
-## Cash findings fixes (2026-11-05, local; release pending)
+- Consistent menus for existing export and print actions, with context-specific
+  output options. Local browser QA covered Finance, staff reports, guest
+  receipt and QR. No release. See [[2026-11-05 - Shared Download Menus]].
 
-- Approved explicit cash-refund/drawer linkage, durable operator count drafts and
-  guided post-close handover/report actions implemented. KI-021 fixed locally;
-  migration `20261105010000` not pushed. Accounting/submission boundaries retained.
-- Fresh126-migration replay and12real SQL checks pass, including competing payouts
-  and close;179scoped tests/typecheck/build pass. Full2343pass/2recorded failures;
-  touched lint0errors/6existing warnings. Sample-component browser QA passes;
-  authenticated financial-write E2E remains unverified. No hosted write/deploy.
-- See `docs/qa/cash-findings-implementation-2026-11-05.md` and
-  [[2026-11-05 - Cash Findings Implementation]].
+## Task 15 Finance review downloads (2026-11-04)
+
+- Closed-day history in Accounting offers CSV, Excel and PDF through one
+  dropdown. The files use matching batch identity and frozen close totals.
+- Actual Finance import mapping, acknowledgment and partner acceptance remain
+  Pending. Local work only. See [[2026-11-04 - Closed-day Finance Review Downloads]].
+
+## Tasks 12–14 local document, reporting and role verification (2026-11-04)
+
+- Private preview access is audited. Guest receipts preserve issued details.
+  Collections exclude refunds and use signed net totals. Front Desk open drawer
+  and Accounting collections display their source data.
+- Desktop and authenticated 390px browser checks passed on the scoped workflows.
+  SQL verifies DND across a room move and safe service refusal, versioned ID
+  replacement, and operating-day totals. Full Vitest 2,330 tests / 217 files.
+- Retention, actual fiscal policy, approved operating-policy effective dates,
+  hosted object recovery and release acceptance remain Pending. PayMongo
+  deferred and hosted rollout stopped. See
+  [[2026-11-04 - Hotel Document Reporting and Acceptance Tasks 12-14]].
+
+## Tasks 8–11 local boundary verification (2026-11-04)
+
+- Seven-area screen/authority map, local staff eligibility and stock/repair
+  handoff controls recorded. Fixed Staff & Duty workload undercount, false-zero
+  department metrics and duplicate/ended maintenance summary counts.
+- 2,327 tests / 217 files, typecheck/build and touched lint (0 errors, 5 existing
+  dashboard warnings) pass. 36 new real-SQL cases plus housekeeping/stock/receipt
+  regressions pass. Browser verified workload, stock issue/shortage, financial
+  refusal, existing-session disable and repair → cleanup → inspection/readiness.
+- Local work only, no new migration. HR/SCM/Facilities policy/partner acceptance
+  remains Pending. PayMongo deferred, hosted rollout stopped. See
+  [[2026-11-04 - Hotel Boundary Tasks 8-11]].
+
+## Task 3 workflow documentation (2026-11-04)
+
+- Proposed enterprise handoffs and six-partner readiness checklist prepared in
+  `docs/integrations/ENTERPRISE_CONTRACTS.md`. Content checks pass. Role/partner
+  acceptance remains Pending, with no runtime activation or hosted rollout.
+  PayMongo remains deferred. See [[2026-11-04 - Enterprise Workflow Contracts]].
+
+## Ownership register and Task 7 verification (2026-11-04)
+
+- Task 2 register uses 22 accountable/approver roles with Pending sign-off,
+  date/evidence and approval steps. Names can be added later; authorized role
+  confirmation remains pending. Task 7 manual-payment safeguards
+  verified on disposable PostgreSQL, including final-room races, atomic rollback,
+  stock and drawer races, frozen cancellation terms and immutable day close.
+  See [[2026-11-04 - Ownership Register and Task 7 Verification]].
+
+## KI-021 local repair (2026-11-04)
+
+- Accounting refund form distinguishes physical cash from noncash. A cash payout
+  links to the open drawer shown, with retry protection and a serialized close.
+  Local browser/SQL verified balanced count, reconciliation and operating-day
+  totals. Migration `20261104040000` and the app remain pending release.
+  See [[2026-11-04 - KI-021 Cash Refund Drawer Link]].
+
+## Enterprise architecture local repairs (2026-11-04)
+
+- Inventory PO partial receiving restored in app and additive migration
+  `20261104030000`; reservation history refresh verified from a browser folio
+  mutation. Full suite 2,316 pass, typecheck/build pass, touched lint zero errors.
+- Isolated browser and SQL verified the drawer, noncash refund and day-close
+  workflows. KI-021 remains open. PayMongo deferred. Hosted PO prerequisites and
+  the correction remain pending coordinated release. See
+  [[2026-11-04 - Enterprise Architecture Local Repairs and QA]].
 
 ## Commit/push sync verification (2026-11-04)
 

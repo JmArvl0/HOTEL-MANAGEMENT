@@ -1,66 +1,19 @@
 # Known Issues
 
-## KI-027 — Guest Management requires undeployed merge/removal schema
+## Validation audit repairs await production rollout
 
-Status: Fixed in local source (2026-11-06); browser confirmation unverified.
-Configured DB reads confirmed27base guests, missing `guest_aliases`,
-`guests.merged_into_guest_id` and `reservation_guests.removed_at`. Shared server
-list/dossier now support the deployed schema while retaining upgraded behavior
-and propagating unrelated errors. Five regression tests pass; targeted59pass.
-Computer Use stopped because the current browser URL could not be established.
-No hosted migration/business write. See `docs/qa/guest-management-load-fix-2026-11-06.md`.
-
-## KI-022 — Daily report adds outgoing refunds into collections
-
-Status: Open (2026-11-06); P1 release acceptance defect.
-Real local app: collect2000, refund250cash +100.25GCash; stored collections2350.25,
-Cash received2250 instead of2000. Drawer expected/count2750 and variance0 are
-correct. `summarizeDailyActivity` aggregates all paid purposes as incoming.
-Fix shared builder/UI to separate collections/refunds/net; preserve immutable
-old snapshots. Evidence: `docs/qa/cash-delivery-ui-qa-2026-11-06.md`, CD-01.
-
-## KI-023 — Staff header clips smaller-screen controls
-
-Status: Open (2026-11-06); P2.
-Actual rectangles: account menu clipped at1024px; notifications/account at390px;
-theme/notifications/account at320px. Pointer theme click at320 fails. Global
-overflow hiding masks the defect from a page-scroll-width assertion. Cash content
-itself reflows. Fix shared header sizing/menu priorities. See delivery QA, CD-02.
-
-## KI-024 — Daily report display rounds centavos away
-
-Status: Open (2026-11-06); P2.
-Report's `peso` formatter uses maximumFractionDigits0: stored100.25 displays100.
-Use exact financial formatting consistently in preview/history/export.
-See `docs/qa/cash-delivery-ui-qa-2026-11-06.md`, CD-03.
-
-## KI-025 — Closed drawer's own handover says Other cash shift
-
-Status: Open (2026-11-06); P3.
-Workspace caption compares source only to active drawer, ignoring displayed latest
-closed drawer. Stored source/navigation/count are correct. See delivery QA, CD-04.
-
-## KI-026 — Cash modal actions miss documented 44px touch target
-
-Status: Open (2026-11-06); P2.
-Count/refund buttons and close icon measure36px high; refund selectors40px.
-Mobile footer scrolling works. Review shared button/modal cascade. The20px payout
-checkbox has a larger label target and is not this defect. See delivery QA, CD-05.
+The remaining 20 validation findings are implemented and verified locally on 2026-11-15. Production still requires the coordinated application release and six migrations `20261115020000` through `20261115070000`, plus hosted Xendit checks. F01/F02 and PayMongo/manual guest-payment retirement are already deployed at `d95d14b`. Existing contact normalization collisions were identified read-only and were not automatically merged. See [[2026-11-15 - Remaining Validation Audit Repairs]].
 
 ## KI-021 — Normal refund workflow cannot link a physical cash payout to a drawer
 
-Status: Fixed in local source (2026-11-05); hosted migration/release pending.
-Original 4 November QA found `manual_refund` payments with NULL `cash_shift_id`,
-so an actual drawer payout could appear as a shortage despite a saved refund.
-Approved fix requires explicit Accounting payout method, atomic open-drawer link
-for cash, sufficient recorded funds and shared close/payout locking. Noncash stays
-outside the drawer; exact retries, policy caps and fee-waiver hooks are preserved.
-Existing historical refunds and recorded variances are not reclassified.
-New migration `20261105010000` passed a fresh replay and 12 real PostgreSQL checks;
-179 scoped tests pass. No hosted push or business write in this session.
-See `docs/qa/cash-findings-implementation-2026-11-05.md` and
-[[2026-11-05 - Cash Findings Implementation]]. Original evidence remains in
-`docs/qa/cash-shifts-data-flow-qa-2026-11-04.md`, CASH-DATA-01.
+Status: Fixed and verified locally (2026-11-04), pending coordinated release.
+Accounting selects the payout method. Migration `20261104040000` records a cash
+payout against the exact open drawer in the same transaction as the refund,
+serializes against drawer close and preserves retry and historical records.
+Browser and PostgreSQL confirmed that noncash stays outside the drawer and both
+payouts post to the operating day. The hosted workflow still has the original
+gap until the app and migration are released together. See
+[[2026-11-04 - KI-021 Cash Refund Drawer Link]].
 
 ## KI-018 — Physical stock count draft silently rebases on refresh
 
