@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { DEPOSIT_METHODS } from "@/lib/online-checkout";
 import { guardAdmin, adminGuardFailed, adminRpcFailure } from "@/lib/admin-route";
 
 const schema = z.object({
-  depositMethod: z.enum(["paymongo", "xendit", "manual", "off"]),
+  depositMethod: z.enum(DEPOSIT_METHODS),
   reason: z.string().trim().min(3, "Record why the deposit method is changing.").max(500),
   version: z.coerce.number().int().positive(),
 });
@@ -13,7 +14,7 @@ const schema = z.object({
 export async function PATCH(request: Request) {
   const context = await guardAdmin();
   if (adminGuardFailed(context)) return context;
-  const parsed = schema.safeParse(await request.json());
+  const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Check the deposit method." }, { status: 400 });
   const { data, error } = await context.client.rpc("admin_update_deposit_method", {
     p_deposit_method: parsed.data.depositMethod,

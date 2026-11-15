@@ -1,3 +1,4 @@
+import { isLegacyGuestPayment } from "@/lib/payment-display";
 import { notFound } from "next/navigation";
 import { requireCustomerSession } from "@/lib/customer-auth";
 import { getCustomerReservationDetail } from "@/lib/customer";
@@ -208,7 +209,9 @@ export default async function ReservationPage({ params }: { params: Promise<{ id
         checkOutTime: displayTime(policy.checkOutTime),
         transportLines,
         pendingNotice: reservation.status === "pending"
-          ? "This reservation is awaiting deposit verification and is not yet confirmed."
+          ? reservation.payments.some((payment) => payment.purpose === "reservation_deposit" && payment.status === "pending_verification" && isLegacyGuestPayment(payment.method))
+            ? "Contact Front Desk with your original deposit reference before paying again."
+            : "This reservation is awaiting payment confirmation."
           : null,
         policyText: `Valid government ID is ${policy.validIdRequired ? "required" : "not required by the current configuration"} at check-in. The remaining balance and incidental charges are due ${policy.incidentalsDue.toLowerCase()}. Deposit refund: 100% at least ${policy.cancellationFullRefundDays} days before arrival, ${policy.cancellationPartialRefundBasisPoints / 100}% at least ${policy.cancellationPartialRefundDays} days before arrival, otherwise non-refundable. Special requests are recorded but ${policy.specialRequestsGuaranteed ? "guaranteed" : "not guaranteed"}.`,
         policyItems,

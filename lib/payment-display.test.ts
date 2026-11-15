@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { canVerifyDeposit } from "@/lib/permissions";
 import {
   formatPaymentSubmittedAt,
   HOTEL_TIME_ZONE,
   paymentSearchText,
+  pendingPaymentLabel,
 } from "@/lib/payment-display";
 import type { RecordItem } from "@/lib/types";
 
@@ -22,7 +22,7 @@ const payment: RecordItem = {
   },
 } as unknown as RecordItem;
 
-describe("Accounting deposit verification presentation", () => {
+describe("Staff payment history", () => {
   it("searches the allowed guest, reservation, and payment reference identifiers", () => {
     const haystack = paymentSearchText(payment);
     expect(haystack).toContain("ana reyes");
@@ -38,19 +38,10 @@ describe("Accounting deposit verification presentation", () => {
     );
   });
 
-  it("keeps verification authority exclusive to Accounting", () => {
-    expect(canVerifyDeposit("accounting")).toBe(true);
-    for (const role of [
-      "owner",
-      "admin",
-      "manager",
-      "front_desk",
-      "housekeeping",
-      "maintenance",
-      "guest",
-    ] as const) {
-      expect(canVerifyDeposit(role)).toBe(false);
-    }
+  it("distinguishes unsettled legacy payments from Xendit awaiting confirmation", () => {
+    expect(pendingPaymentLabel("pending_verification", "manual_gcash")).toBe("Unsettled legacy payment");
+    expect(pendingPaymentLabel("pending_verification", "gateway_xendit")).toBe("Awaiting Xendit");
+    expect(pendingPaymentLabel("paid", "manual_gcash")).toBeNull();
   });
 
   it("loads reservation identity in the single payment query without unrelated guest PII", () => {
@@ -70,7 +61,7 @@ describe("Accounting deposit verification presentation", () => {
     expect(branch).not.toContain('from("reservations")');
   });
 
-  it("keeps status badges separate from explicit pending and read-only actions", () => {
+  it("keeps status badges with a read-only details action", () => {
     const source = readFileSync(
       "components/manager/manager-dashboard-client.tsx",
       "utf8",
@@ -80,8 +71,6 @@ describe("Accounting deposit verification presentation", () => {
       "Search by guest name, reservation code, or reference number...",
     );
     expect(source).toContain('className="payment-status"');
-    expect(source).toContain('className="table-action action-primary"');
-    expect(source).toContain('className="table-action action-danger"');
     expect(source).toContain("View details");
   });
 

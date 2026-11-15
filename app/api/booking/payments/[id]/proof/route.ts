@@ -10,7 +10,7 @@ import { PROOF_BUCKET } from "@/lib/payment-proof";
  * never URLs; each view mints a 60-second URL server-side.
  *
  * Access is deliberately narrower than payment listing: only the paying
- * guest (payment → reservation.user_id) and Accounting (the verifier).
+ * guest (payment → reservation.user_id) and Accounting.
  * Front Desk and Manager can list payments but never see the proof image;
  * housekeeping/maintenance have no route here at all.
  */
@@ -32,7 +32,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     if (!allowed) return NextResponse.json({ error: "Not found." }, { status: 404 });
     const { data, error } = await supabase.storage.from(PROOF_BUCKET).createSignedUrl(payment.proof_storage_path, 60);
     if (error || !data?.signedUrl) return NextResponse.json({ error: "Unable to load the payment proof." }, { status: 500 });
-    return NextResponse.json({ url: data.signedUrl, expiresInSeconds: 60 });
+    return NextResponse.json({ url: data.signedUrl, expiresInSeconds: 60 }, { headers: { "Cache-Control": "private, no-store" } });
   } catch {
     return NextResponse.json({ error: "Unable to load the payment proof." }, { status: 500 });
   }

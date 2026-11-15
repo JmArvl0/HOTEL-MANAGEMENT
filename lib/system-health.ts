@@ -1,3 +1,5 @@
+import type { DepositMethod } from "@/lib/online-checkout";
+
 // Admin System Health: shared types for /api/admin/data?section=system and the
 // dashboard view. Pure derivation only — all I/O lives in the route.
 //
@@ -41,9 +43,7 @@ export type SystemHealth = {
     lastRunLabel: string;
     lastStatus: AutomationRunStatus;
   }[];
-  // PayMongo gateway presence + mode, derived server-side from the secret-key
-  // prefix. Presence flags only — the key itself never leaves the server.
-  gateway?: { status: "listening_test" | "listening_live" | "not_configured"; hasSecretKey: boolean; hasWebhookSecret: boolean; xenditConfigured?: boolean; depositMethod?: string };
+  gateway?: { xenditConfigured: boolean };
   // Recent audit rows backing the Audit Trail tab. Safe columns only — no
   // payloads, no secrets, newest first, capped server-side. Actor is the
   // display name + role resolved from user_id, null for system rows.
@@ -67,19 +67,11 @@ export type SystemHealth = {
   };
   domain?: { status: "not_connected" };
   issues?: string[];
-  // Payment configuration health (Owner-controlled destination, read-only and
-  // masked here; technical integration status maintained by System
-  // Administration). Presence flags only — never secrets, never full numbers.
   payments?: {
     status: "Active" | "Inactive";
-    accountName: string;
-    mobileNumber: string;
-    qrImage: "Configured" | "Missing";
     configuredBy: string | null;
     lastUpdated: string | null;
-    qrStorage: "Healthy" | "Unavailable" | "Unknown";
-    configuration: "Complete" | "Incomplete" | "Disabled";
-    depositMethod: "paymongo" | "xendit" | "manual" | "off";
+    depositMethod: DepositMethod;
     version: number;
   };
 };

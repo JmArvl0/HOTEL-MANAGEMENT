@@ -16,12 +16,11 @@ describe("staff module badges — count definitions", () => {
     expect(data).toContain('String(item.approval_status) === "pending" && item.batch_id');
     expect(data).toContain('String(item.department) === role && ["open", "in_progress"]');
     expect(data).toContain('.eq("status", "REQUESTED")');
-    expect(data).toContain('item.status === "pending_verification"');
     expect(data).toContain('task.status !== "completed"');
     expect(data).toContain("activeMaintenanceStatuses");
   });
   it("exposes the new badge metrics on the dashboard payload contract", () => {
-    for (const metric of ["pendingRequestBatches", "departmentRequests", "transportationRequested", "pendingVerifications", "pendingRefundCount"]) {
+    for (const metric of ["pendingRequestBatches", "departmentRequests", "transportationRequested", "pendingRefundCount"]) {
       expect(types).toContain(metric);
       expect(data).toContain(metric);
     }
@@ -29,10 +28,8 @@ describe("staff module badges — count definitions", () => {
 });
 
 describe("staff module badges — role gating", () => {
-  it("gates Deposit Verification and Refunds badges to Accounting alone", () => {
-    // Front Desk sees the payments queue view but never gains verification
-    // authority from a badge; the badge count only exists for accounting.
-    expect(client).toContain('user.role === "accounting" && m.pendingVerifications');
+  it("gates refunds to Accounting and removes the retired review badge", () => {
+    expect(client).not.toContain("map.payments");
     expect(client).toContain('user.role === "accounting" && m.pendingRefundCount');
     expect(canAccess("accounting", "payments")).toBe(true);
   });

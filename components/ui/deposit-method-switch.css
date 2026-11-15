@@ -1,0 +1,55 @@
+.system-health-config > .deposit-method-switch {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+}
+
+.system-health-config > .deposit-method-switch > dd {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  text-align: start;
+}
+
+.deposit-method-options {
+  display: grid;
+  gap: 8px;
+}
+
+.deposit-method-options label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.deposit-method-options small {
+  display: block;
+  font-weight: normal;
+}
+
+.deposit-method-reason {
+  display: grid;
+  gap: 4px;
+}
+
+.deposit-method-reason textarea {
+  max-width: 38rem;
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--dl);
+  border-radius: 6px;
+  background: var(--ds, transparent);
+  color: inherit;
+  font: inherit;
+  resize: vertical;
+}
+
+.deposit-method-error {
+  margin: 0;
+  color: var(--danger);
+}
+
+.deposit-method-switch .btn {
+  justify-self: start;
+}

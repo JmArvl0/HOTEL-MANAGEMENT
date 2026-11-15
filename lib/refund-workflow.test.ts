@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { canExecuteManagerFinancialApproval, canProcessRefund, canReviewManagerApprovals, canVerifyDeposit } from "@/lib/permissions";
+import { canExecuteManagerFinancialApproval, canProcessRefund, canReviewManagerApprovals } from "@/lib/permissions";
 
 const read = (path: string) => readFileSync(path, "utf8");
 // The 2026-09-12 migration holds the newest authoritative request/review bodies
@@ -23,8 +23,6 @@ describe("D-006 refund authority split", () => {
   it("gives routine financial operations to Accounting alone", () => {
     expect(canProcessRefund("accounting")).toBe(true);
     for (const role of ["manager", "front_desk", "housekeeping", "maintenance", "guest"] as const) expect(canProcessRefund(role)).toBe(false);
-    expect(canVerifyDeposit("accounting")).toBe(true);
-    expect(canVerifyDeposit("manager")).toBe(false);
   });
   it("keeps exception review with the Manager and exception execution with Accounting", () => {
     expect(canReviewManagerApprovals("manager")).toBe(true);

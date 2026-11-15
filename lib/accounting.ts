@@ -105,7 +105,6 @@ export async function getAccountingLedger(role: Role): Promise<AccountingLedger 
     grossCollected: sum(gross, "amount"), refundsIssued: sum(back, "amount"),
     netRevenue: fromCentavos(Math.max(toCentavos(sum(gross, "amount")) - toCentavos(sum(back, "amount")), 0)),
     outstandingBalance: sum(invoices, "balance"), folioCredit: sum(invoices, "credit_balance"),
-    pendingVerification: transactions.filter((row) => row.status === "pending_verification").length,
     pendingRefunds: refunds.filter((row) => row.status === "pending").length,
     failedRefunds: refunds.filter((row) => row.status === "failed").length,
     openCashShifts: cashShifts.filter((shift) => shift.status === "open").length,

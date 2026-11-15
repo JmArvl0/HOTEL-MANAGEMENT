@@ -1,3 +1,4 @@
+// Historical PayMongo parser for audit reproduction.
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 /**
@@ -15,7 +16,6 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 export const GATEWAY_METHOD = "gateway_paymongo";
 
-const PAYMONGO_API_BASE = "https://api.paymongo.com";
 
 /** Signature timestamps older than this (seconds) are treated as replays. */
 const DEFAULT_SIGNATURE_TOLERANCE_SECONDS = 300;
@@ -125,82 +125,6 @@ export function verifyWebhookSignature(
   return modeAgnostic.some((candidate) => candidate !== undefined && safeEqualHex(expected, candidate));
 }
 
-export interface GatewaySession {
-  sessionId: string;
-  checkoutUrl: string;
-}
-
-export interface GCashCheckoutParams {
-  /** Whole centavos (₱1,500.00 → 150000). Use toCentavos() at the call site. */
-  amountInCentavos: number;
-  description: string;
-  /** Provider reference number (≤30 chars, sanitized). */
-  reservationReference: string;
-  redirectUrls: { success: string; cancel: string };
-  /** Defaults to GCash only; pass more to offer additional channels. */
-  paymentMethods?: string[];
-}
-
-/**
- * Creates a PayMongo hosted checkout session (v1 REST, server-side). Money
- * never moves here — only the signed webhook confirms a payment.
- */
-export async function createGCashCheckoutSource(params: GCashCheckoutParams): Promise<GatewaySession> {
-  const { secretKey } = resolveGatewaySecrets();
-  if (!secretKey) throw new Error("PAYMENT_GATEWAY_NOT_CONFIGURED");
-  if (!Number.isInteger(params.amountInCentavos) || params.amountInCentavos <= 0)
-    throw new Error("INVALID_AMOUNT");
-
-  const response = await fetch(`${PAYMONGO_API_BASE}/v1/checkout_sessions`, {
-    method: "POST",
-    headers: {
-      authorization: `Basic ${Buffer.from(secretKey).toString("base64")}`,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      data: {
-        attributes: {
-          line_items: [
-            {
-              name: params.description.slice(0, 100),
-              amount: params.amountInCentavos,
-              currency: "PHP",
-              quantity: 1,
-            },
-          ],
-          payment_method_types: params.paymentMethods ?? ["gcash"],
-          success_url: params.redirectUrls.success,
-          cancel_url: params.redirectUrls.cancel,
-          description: params.description.slice(0, 255),
-          reference_number: params.reservationReference.replace(/[^a-zA-Z0-9]/g, "").slice(0, 30),
-        },
-      },
-    }),
-  });
-  if (!response.ok) {
-    // Carry the provider's own diagnostics out to the caller: the HTTP status and
-    // error detail are the only things that distinguish a rejected request from a
-    // provider outage. Truncated, and never the request headers or the secret key.
-    const detail = await response.text().catch(() => "");
-    throw new Error(`GATEWAY_SESSION_FAILED — httpStatus=${response.status} detail=${detail.slice(0, 200)}`);
-  }
-  const payload = (await response.json()) as {
-    data?: { id?: string; attributes?: { checkout_url?: string } };
-  };
-  const sessionId = payload.data?.id;
-  const checkoutUrl = payload.data?.attributes?.checkout_url;
-  if (!sessionId || !checkoutUrl) throw new Error("GATEWAY_SESSION_FAILED");
-  return { sessionId, checkoutUrl };
-}
-
-/**
- * Extracts the provider checkout-session/reference id and the event id from a
- * webhook event payload. Handles the shapes PayMongo actually sends:
- * - checkout_session.* events: data.attributes.data.id is the session
- * - payment.paid (v1): data.attributes.data.attributes.checkout_session_id
- * - payment.paid (v2): data.attributes.data.attributes.checkout_session.id
- * - source-style fallbacks carry the reference number on attributes.
- */
 export function gatewayEventRef(event: unknown): { sessionId: string; eventId: string } | null {
   if (!event || typeof event !== "object") return null;
   const e = event as {

@@ -6,7 +6,7 @@ const read=(path:string)=>readFileSync(path,"utf8");
 const migration=read("supabase/migrations/20260903010000_system_integration_hardening.sql");
 const auth=read("lib/auth.ts");
 const password=read("app/api/account/password/route.ts");
-const customerRoutes=["app/api/account/profile/route.ts","app/api/account/requests/route.ts","app/api/account/reservations/[id]/cancel/route.ts","app/api/account/reservations/[id]/change-request/route.ts","app/api/account/reservations/[id]/payments/route.ts","app/api/booking/holds/route.ts","app/api/booking/holds/[token]/confirm/route.ts"].map(read);
+const customerRoutes=["app/api/account/profile/route.ts","app/api/account/requests/route.ts","app/api/account/reservations/[id]/cancel/route.ts","app/api/account/reservations/[id]/change-request/route.ts","app/api/account/reservations/[id]/payments/route.ts","app/api/booking/holds/route.ts"].map(read);
 
 describe("system-wide integration hardening",()=>{
   it("invalidates stale or disabled JWT authority and rotates sessions after password changes",()=>{

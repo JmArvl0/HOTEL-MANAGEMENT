@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { ReceiptText } from "lucide-react";
-import { PaymentSubmissionForm } from "@/components/customer/payment-submission-form";
 import { ReceiptAction } from "@/components/customer/receipt-action";
 import { PaymentsFolioPanel, type PaymentsFolioItem } from "@/components/customer/payments-folio-panel";
 import { requireCustomerSession } from "@/lib/customer-auth";
 import { emailConfigured } from "@/lib/email";
 import { formatPeso } from "@/lib/booking";
+import { pendingPaymentLabel } from "@/lib/payment-display";
 import { receiptEligible } from "@/lib/receipt";
 import {
   FOLIO_PAY_FILTERS,
@@ -78,18 +78,19 @@ function FolioCard({ record, emailAvailable }: { record: FinancialRecord; emailA
               <span>
                 <strong>{friendlyStatus(payment.purpose)}</strong>
                 <small>{new Date(payment.verified_at ?? payment.submitted_at ?? payment.created_at).toLocaleDateString("en-PH")} - {friendlyStatus(payment.method)}{payment.reference ? ` - Ref ${payment.reference}` : ""}</small>
-                {payment.status === "pending_verification" && <small className="payment-transaction-note">Payment proof submitted — awaiting verification.</small>}
               </span>
                 <span className="payment-transaction-summary">
                 <b>{payment.purpose === "refund" ? "-" : ""}{formatPeso(payment.amount)}</b>
                 <span className="payment-transaction-controls">
-                  <StatusBadge status={payment.status} label={friendlyStatus(payment.status)} size="sm" />
+                  <StatusBadge status={payment.status} label={pendingPaymentLabel(payment.status, payment.method) ?? friendlyStatus(payment.status)} size="sm" />
                   {receiptEligible(payment) && <ReceiptAction paymentId={payment.id} emailAvailable={emailAvailable} />}
                 </span>
               </span>
             </div>
           ))}
-          {["confirmed", "checked_in"].includes(record.status) && <PaymentSubmissionForm reservationId={record.id} balance={balance} />}
+          {balance > 0 && ["confirmed", "checked_in"].includes(record.status) && (
+            <p className="folio-note">Contact Front Desk to settle the remaining balance.</p>
+          )}
         </div>
       )}
       {record.refunds.length > 0 && (

@@ -5,7 +5,7 @@ import {
   canAccess, canAdjustFolio, canCollectPayment, canCoordinateOperations, canExecuteManagerApproval,
   canExecuteManagerFinancialApproval, canIssueFinancialDocument, canManageReservation,
   canOperateCashShift, canPerformHousekeeping, canPostFolioCharge, canProcessRefund,
-  canRequestManagerApproval, canReviewManagerApprovals, canVerifyDeposit, canViewAccountingLedger
+  canRequestManagerApproval, canReviewManagerApprovals, canViewAccountingLedger
 } from "@/lib/permissions";
 import type { Resource } from "@/lib/types";
 
@@ -32,7 +32,7 @@ describe("Owner authority hierarchy", () => {
     const resources: Resource[] = ["reservations", "rooms", "guests", "guest_requests", "housekeeping_tasks", "maintenance_orders", "invoices", "payments", "refunds", "inventory", "staff"];
     for (const resource of resources) expect(canAccess("owner", resource), resource).toBe(true);
     expect(canViewAccountingLedger("owner")).toBe(true);
-    for (const capability of [canManageReservation, canVerifyDeposit, canCollectPayment, canPostFolioCharge, canProcessRefund, canAdjustFolio, canOperateCashShift, canIssueFinancialDocument, canReviewManagerApprovals, canRequestManagerApproval, canExecuteManagerApproval, canExecuteManagerFinancialApproval, canCoordinateOperations, canPerformHousekeeping]) expect(capability("owner")).toBe(false);
+    for (const capability of [canManageReservation, canCollectPayment, canPostFolioCharge, canProcessRefund, canAdjustFolio, canOperateCashShift, canIssueFinancialDocument, canReviewManagerApprovals, canRequestManagerApproval, canExecuteManagerApproval, canExecuteManagerFinancialApproval, canCoordinateOperations, canPerformHousekeeping]) expect(capability("owner")).toBe(false);
   });
 
   it("removes Owner from every direct Front Desk and Maintenance route guard", () => {

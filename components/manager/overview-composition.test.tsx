@@ -36,8 +36,7 @@ const data = {
     escalatedIssues: 1, pendingApprovals: 2, collectionsToday: 50000,
     depositsReceived: 20000, refundSummary: 0, outstandingBalances: 15000,
     cashThisShift: 8000, shiftFloat: 5000, shiftOpen: true,
-    pendingVerifications: 2, pendingRefundCount: 1, depositSlaHours: 4,
-    oldestPendingVerificationMinutes: 90, pendingPastSla: 0,
+    pendingRefundCount: 1,
   },
   occupancyTrend: [{ day: "Mon", occupancy: 50 }, { day: "Tue", occupancy: 62 }],
   roomMix: [
@@ -80,7 +79,7 @@ describe("Overview role composition", () => {
 
   it("accounting gets financial cards and actions, no occupancy chart", () => {
     show("accounting", ["overview", "payments", "refunds", "reconciliation", "documents", "folios", "approvals"]);
-    expect(screen.getByText("Pending verifications")).toBeTruthy();
+    expect(screen.queryByText(/deposits awaiting verification/i)).toBeNull();
     expect(screen.getByText("Pending refunds")).toBeTruthy();
     expect(screen.getByText("Pending financial actions")).toBeTruthy();
     expect(screen.queryByText("Booked occupancy this week")).toBeNull();
@@ -90,7 +89,7 @@ describe("Overview role composition", () => {
     show("housekeeping", ["overview", "rooms", "housekeeping_tasks", "guest_requests"]);
     expect(screen.getByText("Priority tasks this shift")).toBeTruthy();
     expect(screen.queryByText("Booked occupancy this week")).toBeNull();
-    expect(screen.queryByText("Recent bookings")).toBeNull();
+    expect(screen.queryByText("Recent reservations")).toBeNull();
   });
 
   it("maintenance gets a work-order panel, no chart, and no room creation", () => {
@@ -105,8 +104,8 @@ describe("Overview role composition", () => {
     render(
       <Overview data={data} setSection={setSection} allowed={["overview", "payments", "refunds", "reconciliation"] as never} role="accounting" onScan={() => {}} />
     );
-    fireEvent.click(screen.getByText(/deposits awaiting verification/));
-    expect(setSection).toHaveBeenCalledWith("payments");
+    fireEvent.click(screen.getByText(/awaiting action/));
+    expect(setSection).toHaveBeenCalledWith("refunds");
   });
 
   it("front-desk queue buttons deep-link into the room reservations board tabs", () => {

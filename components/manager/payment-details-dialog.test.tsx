@@ -91,57 +91,17 @@ describe("payment details receipt", () => {
     expect(screen.queryByRole("button", { name: /verify|reject/i })).toBeNull();
   });
 
-  it.each([
-    { purpose: "reservation_deposit", effect: "and confirms the booking" },
-    { purpose: "stay_payment", effect: "and applies it to the folio" },
-  ])("lets authorized callers review a pending $purpose without changing the layout", ({ purpose, effect }) => {
-    const review = { busy: false, onConfirm: vi.fn(), onReject: vi.fn() };
-    render(<PaymentDetailsDialog item={{ ...payment, purpose, status: "pending_verification" }} proofMeta="" review={review} onClose={vi.fn()} />);
-    expect(screen.getByRole("heading", { name: "Payment Details" })).toBeTruthy();
-    expect(screen.getByText("Pending verification")).toBeTruthy();
-    expect(screen.getByText(new RegExp(effect))).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Verify & confirm" }));
-    expect(review.onConfirm).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole("button", { name: "Reject…" }));
-    expect(review.onReject).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole("button", { name: /^Close$/ })).toBeNull();
-  });
-
-  it("keeps pending records read-only without review capability", () => {
-    render(<PaymentDetailsDialog item={{ ...payment, status: "pending_verification" }} proofMeta="" onClose={vi.fn()} />);
-    expect(screen.getByText("Pending verification")).toBeTruthy();
+  it.each(["reservation_deposit", "stay_payment"])("displays a legacy %s and its proof without review controls", purpose => {
+    render(<PaymentDetailsDialog item={{ ...payment, purpose, method: "manual_gcash", status: "pending_verification" }} proofMeta="legacy.png" onClose={vi.fn()} />);
+    expect(screen.getByText("Unsettled legacy payment")).toBeTruthy();
+    expect(screen.getByText("legacy.png")).toBeTruthy();
     expect(screen.queryByRole("button", { name: /verify|reject/i })).toBeNull();
-    expect(screen.queryByText(/Verifying settles/)).toBeNull();
   });
 
-  it.each(["paid", "rejected", "failed"])("never offers review actions on a %s record", status => {
-    const review = { busy: false, onConfirm: vi.fn(), onReject: vi.fn() };
-    render(<PaymentDetailsDialog item={{ ...payment, status }} proofMeta="" review={review} onClose={vi.fn()} />);
+  it("shows that Xendit settles the payment automatically", () => {
+    render(<PaymentDetailsDialog item={{ ...payment, status: "pending_verification", method: "gateway_xendit" }} proofMeta="" onClose={vi.fn()} />);
+    expect(screen.getByText("Awaiting Xendit")).toBeTruthy();
+    expect(screen.getByText(/Xendit confirms payments automatically/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: /verify|reject/i })).toBeNull();
-    expect(review.onConfirm).not.toHaveBeenCalled();
-    expect(review.onReject).not.toHaveBeenCalled();
-  });
-
-  it("keeps provider-settled payments out of manual confirmation while allowing authorized rejection", () => {
-    const review = { busy: false, onConfirm: vi.fn(), onReject: vi.fn() };
-    render(<PaymentDetailsDialog item={{ ...payment, status: "pending_verification", method: "gateway_paymongo" }} proofMeta="" review={review} onClose={vi.fn()} />);
-    expect(screen.getByText(/confirm automatically once the provider settles/)).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Verify & confirm" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Reject…" }));
-    expect(review.onReject).toHaveBeenCalledTimes(1);
-    expect(review.onConfirm).not.toHaveBeenCalled();
-  });
-
-  it("disables review actions while verification is in flight", () => {
-    const review = { busy: true, onConfirm: vi.fn(), onReject: vi.fn() };
-    render(<PaymentDetailsDialog item={{ ...payment, status: "pending_verification" }} proofMeta="" review={review} onClose={vi.fn()} />);
-    const confirm = screen.getByRole("button", { name: "Verifying…" }) as HTMLButtonElement;
-    const reject = screen.getByRole("button", { name: "Reject…" }) as HTMLButtonElement;
-    expect(confirm.disabled).toBe(true);
-    expect(reject.disabled).toBe(true);
-    fireEvent.click(confirm);
-    fireEvent.click(reject);
-    expect(review.onConfirm).not.toHaveBeenCalled();
-    expect(review.onReject).not.toHaveBeenCalled();
   });
 });

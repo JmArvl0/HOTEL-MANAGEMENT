@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   canAccess, canAdjustFolio, canCollectPayment, canCoordinateOperations,
   canManageReservation, canPerformHousekeeping, canProcessRefund,
-  canReviewManagerApprovals, canVerifyDeposit
+  canReviewManagerApprovals
 } from "@/lib/permissions";
 import { ADMIN_ASSIGNABLE_ROLES, ROLE_CAPABILITIES, canAdministerSystem } from "@/lib/admin";
 import type { Resource } from "@/lib/types";
@@ -31,7 +31,7 @@ describe("Admin governance boundary", () => {
   it("keeps Admin out of operational resources and actions", () => {
     const resources: Resource[] = ["reservations", "rooms", "guests", "guest_requests", "housekeeping_tasks", "maintenance_orders", "invoices", "payments", "refunds", "inventory", "staff"];
     for (const resource of resources) expect(canAccess("admin", resource), resource).toBe(false);
-    for (const allowed of [canManageReservation, canVerifyDeposit, canCollectPayment, canProcessRefund, canAdjustFolio, canReviewManagerApprovals, canCoordinateOperations, canPerformHousekeeping]) expect(allowed("admin")).toBe(false);
+    for (const allowed of [canManageReservation, canCollectPayment, canProcessRefund, canAdjustFolio, canReviewManagerApprovals, canCoordinateOperations, canPerformHousekeeping]) expect(allowed("admin")).toBe(false);
     for (const path of [...filesBelow("app/api/front-desk"), ...filesBelow("app/api/maintenance")]) expect(read(path), path).not.toContain('"admin"');
   });
 

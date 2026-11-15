@@ -443,7 +443,7 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
                 <div><dt>Balance</dt><dd>{moneyExact(balance)}</dd></div>
                 <div><dt>Source</dt><dd>{human(reservation.source)}</dd></div>
               </div>
-              {websiteDepositRequired && !depositReady && <p className="arrival-notice warn">This website booking requires a verified deposit before check-in. Verify it in Deposit Verification first.</p>}
+              {websiteDepositRequired && !depositReady && <p className="arrival-notice warn">This website booking needs a settled deposit before check-in. See Payment history for its status.</p>}
               <div className="arrival-actions">
                 {Number(balance || 0) > 0 && <button className="btn btn-soft" onClick={doCollect} disabled={busy}><Wallet size={15} /> Collect {moneyExact(balance)}</button>}
               </div>

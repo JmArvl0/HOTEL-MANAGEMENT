@@ -1,3 +1,5 @@
+import { guestDepositsEnabled } from "@/lib/online-checkout";
+import { xenditConfigured } from "@/lib/xendit";
 import { readAllRows } from "@/lib/read-all-rows";
 import { NextResponse } from "next/server";
 import { getAccountingLedger } from "@/lib/accounting";
@@ -48,20 +50,10 @@ export async function GET(request: Request) {
     }
     if (section === "payments") {
       const { data: policy, error: policyError } = await db.from("hotel_operational_policies")
-        .select("gcash_account_name,gcash_mobile_number,gcash_qr_storage_path,gcash_enabled,deposit_method,version,updated_at")
+        .select("deposit_method,version,updated_at")
         .eq("key", "default").maybeSingle();
       if (policyError) throw policyError;
-      const row = (policy ?? {}) as Row;
-      let qrDataUrl: string | null = null;
-      if (typeof row.gcash_qr_storage_path === "string" && row.gcash_qr_storage_path) {
-        const { data: object } = await db.storage.from("payment-qr").download(String(row.gcash_qr_storage_path));
-        if (object) {
-          const bytes = Buffer.from(await object.arrayBuffer());
-          const mime = String(row.gcash_qr_storage_path).endsWith(".png") ? "image/png"
-            : String(row.gcash_qr_storage_path).endsWith(".webp") ? "image/webp" : "image/jpeg";
-          qrDataUrl = `data:${mime};base64,${bytes.toString("base64")}`;
-        }
-      }
+      if (!policy) return NextResponse.json({ error: "Payment settings unavailable." }, { status: 503 });
       const { data: trail } = await db.from("audit_logs")
         .select("id,user_id,action,created_at,after_data").eq("entity_type", "hotel_payment_destination")
         .order("created_at", { ascending: false }).limit(20);
@@ -71,20 +63,16 @@ export async function GET(request: Request) {
         : { data: [] };
       const latest = ((trail ?? []) as Row[])[0];
       return NextResponse.json({ data: {
-        destination: {
-          accountName: row.gcash_account_name ?? null,
-          mobileNumber: row.gcash_mobile_number ?? null,
-          qrStoragePath: row.gcash_qr_storage_path ?? null,
-          enabled: Boolean(row.gcash_enabled),
-          depositMethod: row.deposit_method === "paymongo" || row.deposit_method === "xendit" || row.deposit_method === "off" ? row.deposit_method : "manual",
-          version: row.version ?? 1,
-        },
-        qrDataUrl,
-        qrHealthy: qrDataUrl !== null || !row.gcash_qr_storage_path,
-        lastUpdated: latest?.created_at ?? row.updated_at ?? null,
+        depositMethod: guestDepositsEnabled(policy.deposit_method) ? "xendit" : "off",
+        version: policy.version,
+        xenditConfigured: xenditConfigured(),
+        lastUpdated: latest?.created_at ?? policy.updated_at ?? null,
         lastUpdatedBy: users?.find((u) => u.id === latest?.user_id)?.name ?? null,
         trail: (trail ?? []).map((entry) => ({
-          ...entry,
+          id: entry.id,
+          created_at: entry.created_at,
+          action: entry.action,
+          reason: entry.after_data?.reason ?? null,
           actorName: users?.find((u) => u.id === entry.user_id)?.name ?? "Unknown",
         })),
       } });

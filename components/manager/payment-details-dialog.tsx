@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { CalendarDays, CircleCheck, CircleDollarSign, Coins, FileText, type LucideIcon } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { HavenLogo } from "@/components/ui/haven-logo";
-import { formatPaymentSubmittedAt } from "@/lib/payment-display";
+import { formatPaymentSubmittedAt, isLegacyGuestPayment, pendingPaymentLabel } from "@/lib/payment-display";
 import type { RecordItem } from "@/lib/types";
 import "./payment-details-dialog.css";
 
@@ -40,19 +40,17 @@ function PaymentDetailRow({ label, value, icon: Icon, className = "" }: {
   </div>;
 }
 
-/** One presentation for payment records; review callbacks are supplied only by authorized callers. */
-export default function PaymentDetailsDialog({ item, proofMeta, proof, review, onClose }: {
+/** Read-only detail for staff payment records. */
+export default function PaymentDetailsDialog({ item, proofMeta, proof, onClose }: {
   item: RecordItem;
   proofMeta: string;
   proof?: ReactNode;
-  review?: { busy: boolean; onConfirm: () => void; onReject: () => void };
   onClose: () => void;
 }) {
   const reservation = item.reservation as RecordItem | null | undefined;
   const amount = money(item.amount);
   const status = String(item.status ?? "");
   const pending = status === "pending_verification";
-  const canReview = pending && Boolean(review);
   const stayPayment = item.purpose === "stay_payment";
   const gateway = ["gateway_paymongo", "gateway_xendit"].includes(String(item.method));
   const expected = Number(reservation?.deposit_required ?? 0);
@@ -66,16 +64,12 @@ export default function PaymentDetailsDialog({ item, proofMeta, proof, review, o
     ["Purpose", item.purpose === "reservation_deposit" || !item.purpose ? "Reservation deposit" : sentence(item.purpose)],
     ["Method", ["gcash", "manual_gcash"].includes(String(item.method).toLowerCase()) ? "GCash" : gateway ? (item.method === "gateway_xendit" ? "Xendit sandbox" : "Online payment (PayMongo)") : sentence(item.method)],
     ["Reference", text(item.reference)],
-    ["Status", <span key="status" className={`spr-status${statusClass}`}>{status === "paid" && <CircleCheck size={10} aria-hidden="true" />}{sentence(item.status)}</span>],
+    ["Status", <span key="status" className={`spr-status${statusClass}`}>{status === "paid" && <CircleCheck size={10} aria-hidden="true" />}{pendingPaymentLabel(item.status, item.method) ?? sentence(item.status)}</span>],
   ];
 
   return <Modal isOpen onClose={onClose} title="Payment Details"
-    description={canReview ? "Cross-reference the submitted payment against the reservation and your statement before deciding." : "Read-only payment record from the audited verification workflow."}
-    size="md" className="payment-receipt" headerBrand={<ReceiptBrand />}
-    footer={canReview && review ? <div className="spr-review-actions">
-      <button type="button" className="spr-review-button spr-review-reject" disabled={review.busy} onClick={review.onReject}>Reject…</button>
-      {!gateway && <button type="button" className="spr-review-button spr-review-confirm" disabled={review.busy} onClick={review.onConfirm}>{review.busy ? "Verifying…" : "Verify & confirm"}</button>}
-    </div> : undefined}>
+    description="Payment and reservation details"
+    size="md" className="payment-receipt" headerBrand={<ReceiptBrand />}>
     <div className="spr-record" role="region" aria-label="Payment record" tabIndex={0}>
     <dl className="spr-details">
       {rows.map(([term, value]) => <PaymentDetailRow key={term} label={term} value={value} />)}
@@ -89,11 +83,8 @@ export default function PaymentDetailsDialog({ item, proofMeta, proof, review, o
       </>} />}
     </dl>
     {proof && <div className="spr-proof-preview">{proof}</div>}
-    {canReview && <p className="spr-review-note">
-      {!gateway && <>Verifying settles the payment {stayPayment ? "and applies it to the folio" : "and confirms the booking"}. </>}
-      Rejecting keeps the submitted record for audit and {stayPayment ? "flags the proof as rejected" : "releases the reservation"}.
-    </p>}
-    {pending && gateway && <p className="spr-review-note">Online payments confirm automatically once the provider settles — manual verification is disabled for them.</p>}
+    {pending && isLegacyGuestPayment(item.method) && <p className="spr-review-note">Manual payment review has closed. This submission is retained in the payment record.</p>}
+    {pending && item.method === "gateway_xendit" && <p className="spr-review-note">Xendit confirms payments automatically after settlement.</p>}
     <div className="spr-total"><span>Total</span><strong>{amount}</strong></div>
     </div>
   </Modal>;

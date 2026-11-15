@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { gatewayEventRef, verifyWebhookSignature } from "@/lib/gateway";
-import { confirmGatewayEvent } from "@/lib/gateway-store";
+import { gatewayEventRef, verifyWebhookSignature } from "../docs/qa/fixtures/retired-paymongo";
+import { confirmGatewayEvent } from "../docs/qa/fixtures/retired-paymongo-store";
 
 const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 const SECRET = "whsec-test-123";

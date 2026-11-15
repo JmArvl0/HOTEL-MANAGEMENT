@@ -18,10 +18,6 @@ export const canAccess = (role: Role, resource: Resource) => access[role]?.inclu
 export const canViewGuestContact = (role: Role) => ["owner", "manager", "front_desk"].includes(role);
 export const canManageReservation = (role: Role) => role === "front_desk";
 export const canViewReservationFinancials = (role: Role) => ["owner", "manager", "front_desk", "accounting"].includes(role);
-// Proof review (deposits, guest-submitted stay payments) is Accounting's decision alone;
-// front desk collects money but never blesses the proof.
-export const canVerifyDeposit = (role: Role) => role === "accounting";
-
 const financialAuthority: Role[] = ["accounting"];
 const cashHandling: Role[] = ["front_desk", "accounting"];
 export const canCollectPayment = (role: Role) => cashHandling.includes(role);

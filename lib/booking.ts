@@ -116,17 +116,6 @@ export const guestDetailsSchema = z.object({
   transportationPreferences: transportationPreferencesSchema.optional(),
 });
 
-export const depositSubmissionSchema = z.object({
-  // GCash-only for new online reservation deposits (Owner decision): the
-  // portal stay-payment form keeps its own method list for settled stays.
-  paymentMethod: z.literal("manual_gcash"),
-  paymentReference: z.string().trim().min(4, "Enter the transfer reference supplied by your payment service.").max(120),
-  // Staged proof path minted by the proof upload route (pending/<token>/<uuid>.<ext>).
-  // All proof metadata is re-derived server-side from the stored object.
-  proofPath: z.string().regex(/^pending\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp)$/, "Upload a payment screenshot."),
-  proofOriginalName: z.string().max(120).optional(),
-});
-
 export type SearchInput = z.infer<typeof searchSchema>;
 export type GuestDetailsInput = z.infer<typeof guestDetailsSchema>;
 

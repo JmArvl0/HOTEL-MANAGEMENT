@@ -1,274 +1,86 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { StatusBadge } from "@/components/ui/StatusBadge";
-import { ImageUp, QrCode } from "lucide-react";
-import { useActionDialogs } from "@/components/ui/action-dialogs";
+import { useCallback, useEffect, useState } from "react";
+import { CreditCard } from "lucide-react";
 import { PageHeader } from "@/components/ui/Navigation";
-import { OwnerEmpty, OwnerSectionHead, OwnerTablePanel, formatOwnerDate } from "@/components/owner/owner-primitives";
-import { GCASH_QR_PATH_RE, normalizeGcashNumber } from "@/lib/payment-destination";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { DepositMethodSwitch } from "@/components/ui/deposit-method-switch";
+import { OwnerEmpty, OwnerTablePanel, formatOwnerDate } from "@/components/owner/owner-primitives";
+import type { DepositMethod } from "@/lib/online-checkout";
 
-type DepositMethod = "paymongo" | "xendit" | "manual" | "off";
-type Destination = { accountName: string | null; mobileNumber: string | null; qrStoragePath: string | null; enabled: boolean; depositMethod: DepositMethod; version: number };
-type TrailEntry = { id: number; created_at: string; actorName: string; action: string; after_data?: { accountName?: unknown; mobileNumber?: unknown; qrConfigured?: unknown; enabled?: unknown; reason?: unknown } | null };
-type Payload = { destination: Destination; qrDataUrl: string | null; qrHealthy: boolean; lastUpdated: string | null; lastUpdatedBy: string | null; trail: TrailEntry[] };
-
-const EMPTY: Destination = { accountName: null, mobileNumber: null, qrStoragePath: null, enabled: false, depositMethod: "manual", version: 1 };
-
-// The method radio is the single control: path + on/off. The toggle is gone;
-// "off" means deposits stop and the destination save re-syncs gcash_enabled.
-const METHOD_OPTIONS: [DepositMethod, string, string][] = [
-  ["xendit", "Xendit sandbox", "Hosted GCash or Maya test payments. No real money."],
-  ["paymongo", "PayMongo instant auto-pay", "Provider-hosted GCash checkout, confirmed automatically."],
-  ["manual", "Manual GCash verification", "Guest transfers, then staff verify the receipt."],
-  ["off", "Deposits off", "Guests see a temporarily-unavailable notice."],
-];
+type PaymentSettings = {
+  depositMethod: DepositMethod;
+  version: number;
+  xenditConfigured: boolean;
+  lastUpdated: string | null;
+  lastUpdatedBy: string | null;
+  trail: { id: number; created_at: string; actorName: string; action: string; reason: string | null }[];
+};
 
 export default function PaymentSettingsPanel({ notify }: { notify: (message: string) => void }) {
-  const dialogs = useActionDialogs();
-  const [loaded, setLoaded] = useState<Payload | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [name, setName] = useState("");
-  const [mobile, setMobile] = useState("");
-  const [depositMethod, setDepositMethod] = useState<DepositMethod>("manual");
-  const enabled = depositMethod !== "off";
-  const [qrPath, setQrPath] = useState<string | null>(null);
-  const [qrPreview, setQrPreview] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [data, setData] = useState<PaymentSettings | null>(null);
   const [error, setError] = useState("");
-  const fileInput = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
-    setLoading(true);
+    setError("");
     try {
       const response = await fetch("/api/owner/data?section=payments", { cache: "no-store" });
       const body = await response.json();
-      if (!response.ok) { notify(body.error ?? "Unable to load payment settings."); return; }
-      const data = body.data as Payload;
-      const dest = data.destination ?? EMPTY;
-      setLoaded(data);
-      setName(dest.accountName ?? "");
-      setMobile(dest.mobileNumber ?? "");
-      setDepositMethod(dest.depositMethod === "paymongo" || dest.depositMethod === "xendit" || dest.depositMethod === "off" ? dest.depositMethod : "manual");
-      setQrPath(dest.qrStoragePath);
-      setQrPreview(data.qrDataUrl);
-      setError("");
-    } finally {
-      setLoading(false);
+      if (!response.ok) {
+        setError(body.error ?? "Unable to load payment settings.");
+        return;
+      }
+      setData(body.data);
+    } catch {
+      setError("Unable to load payment settings.");
     }
-  }, [notify]);
+  }, []);
+
   useEffect(() => { void load(); }, [load]);
 
-  async function replaceQr(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-    setError("");
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) { setError("Upload the QR as a JPEG, PNG, or WebP image."); return; }
-    if (file.size > 5 * 1024 * 1024) { setError("QR image must be 5 MB or smaller."); return; }
-    const form = new FormData();
-    form.append("file", file);
-    const response = await fetch("/api/owner/payment-qr", { method: "POST", body: form });
-    const body = await response.json();
-    if (!response.ok) { setError(body.error ?? "QR upload failed."); return; }
-    if (typeof body.path === "string" && GCASH_QR_PATH_RE.test(body.path)) {
-      setQrPath(body.path);
-      setQrPreview(URL.createObjectURL(file));
-    }
-  }
+  const active = data?.depositMethod === "xendit" && data.xenditConfigured;
 
-  async function save() {
-    setError("");
-    const canonical = normalizeGcashNumber(mobile);
-    // Destination details are only required on the manual path — instant
-    // checkout never shows them, so PayMongo mode saves without them.
-    if (enabled && depositMethod === "manual") {
-      if (!name.trim()) { setError("Account name is required while manual GCash deposits are enabled."); return; }
-      if (!/^09\d{9}$/.test(canonical)) { setError("Enter a valid GCash mobile number (09XXXXXXXXX)."); return; }
-      if (!qrPath) { setError("Upload the official GCash QR while manual deposits are enabled."); return; }
-    }
-    // The deposit method and the destination share one optimistic-concurrency
-    // counter, so this single action commits both — the method first, then the
-    // destination with the version the method switch returned.
-    const methodChanged = depositMethod !== (loaded?.destination.depositMethod ?? depositMethod);
-    if ((depositMethod === "paymongo" || depositMethod === "xendit") && !methodChanged) return;
-    const destReason = await dialogs.askPrompt({
-      title: methodChanged ? "Switch deposit method" : "Confirm payment destination change",
-      message: methodChanged
-        ? "Only one deposit method is offered at a time. Changing it affects where customers send reservation deposits; pending payments on the previous path still finish honestly."
-        : "Changing the payment destination affects where customers send reservation deposits. Confirm that these details are correct.",
-      portal: true,
-      headerVariant: "branded",
-      label: "Reason for change",
-      placeholder: "Record the business reason — it is stored in the audit trail…",
-      multiline: true,
-      required: true,
-      validation: (value) => (typeof value === "string" && value.trim().length >= 3 ? null : "Record why this is changing (3+ characters)."),
-      submitText: "Save payment settings",
-      cancelText: "Review again",
-    });
-    if (!destReason) return;
-    setSaving(true);
-    try {
-      let version = loaded?.destination.version ?? 1;
-      if (methodChanged) {
-        const methodResponse = await fetch("/api/admin/deposit-method", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ depositMethod, reason: destReason.trim(), version }),
-        });
-        const methodBody = await methodResponse.json();
-        if (!methodResponse.ok) { setError(methodBody.error ?? "Unable to save the deposit method."); return; }
-        version = (methodBody.data as { version?: number } | null)?.version ?? version + 1;
-        // Instant checkout needs no destination or review.
-        if ((depositMethod === "paymongo" || depositMethod === "xendit")) {
-          notify("Deposit method switched to hosted checkout.");
-          await load();
-          return;
-        }
-      }
-      const response = await fetch("/api/owner/payment-destination", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accountName: name.trim(), mobileNumber: canonical, qrStoragePath: qrPath, enabled, reason: destReason.trim(), version }),
-      });
-      const body = await response.json();
-      if (!response.ok) { setError(body.error ?? "Unable to save payment settings."); return; }
-      notify(enabled ? "GCash payment destination is live for new deposits." : "GCash deposit acceptance is off. Guests see the unavailable notice.");
-      await load();
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [justPicked, setJustPicked] = useState<DepositMethod | null>(null);
-  function pickMethod(value: DepositMethod) {
-    setDepositMethod(value);
-    setJustPicked(value);
-    window.setTimeout(() => setJustPicked((current) => (current === value ? null : current)), 350);
-  }
-  const methodLabel = METHOD_OPTIONS.find(([value]) => value === depositMethod)?.[1] ?? depositMethod;
-  const paymongoSelected: boolean = (depositMethod === "paymongo" || depositMethod === "xendit");
-
-  if (loading || !loaded) return <OwnerEmpty icon={<QrCode size={22} />} title="Loading payment settings…" body="Fetching the authoritative payment destination." />;
-  const methodDirty = depositMethod !== loaded.destination.depositMethod;
-  const trailRows = (loaded.trail ?? []).map((entry) => ({ ...entry, id: String(entry.id) }));
-  const steps: { n: 1 | 2 | 3; label: string }[] = [
-    { n: 1, label: "Method" },
-    { n: 2, label: "Destination" },
-    { n: 3, label: "Review" },
-  ];
   return (
     <div className="owner-payment-settings">
       <PageHeader
         variant="default"
-        eyebrow="Business configuration"
         title="Payment Settings"
-        subtitle="You control where customers send reservation deposits. Changes apply to new deposits immediately and are audited."
-        actions={<StatusBadge status={enabled ? "paid" : "expired"} label={enabled ? "Active" : "Inactive"} />}
+        subtitle="Manage online checkout for new reservations."
+        actions={data && <StatusBadge status={active ? "paid" : "expired"} label={active ? "Active" : "Inactive"} />}
       />
-      {error && <p className="owner-form-error" role="alert">{error}</p>}
-      <OwnerSectionHead
-        title="Configuration"
-        note={loaded.lastUpdated ? `Last updated ${formatOwnerDate(loaded.lastUpdated)}${loaded.lastUpdatedBy ? ` by ${loaded.lastUpdatedBy}` : ""}` : "No destination changes recorded yet."}
-      />
-      <ol className="owner-wizard" aria-label="Payment setup progress">
-        {steps.map(({ n, label }) => {
-          const skipped = (depositMethod === "paymongo" || depositMethod === "xendit") && n > 1;
-          return (
-          <li key={n} className={step === n && !skipped ? "current" : step > n || skipped ? "done" : ""} aria-current={step === n && !skipped ? "step" : undefined}>
-            <button type="button" onClick={() => setStep(n)} disabled={skipped} aria-label={skipped ? `${label} — not needed for instant checkout` : `Go to step ${n}: ${label}`}>
-              <span className="owner-wizard-dot">{step > n || skipped ? "✓" : n}</span>
-              <span>{label}</span>
-            </button>
-          </li>
-          );
-        })}
-      </ol>
-      {(depositMethod === "paymongo" || depositMethod === "xendit") && <p className="owner-express-note">Instant checkout needs no destination or review — pick a provider, record the reason, activate.</p>}
-      <div className="owner-steps" key={`${step}-${depositMethod}`}>
-        {(step === 1 || (depositMethod === "paymongo" || depositMethod === "xendit")) && (
-        <section className="data-panel owner-panel owner-step-enter" aria-labelledby="pay-method">
-          <div className="panel-heading"><div><h3 id="pay-method">Step 1 — Deposit method</h3><p>The single method offered for new online reservation deposits.</p></div></div>
-          <div className="owner-method-grid" role="radiogroup" aria-label="Deposit method">
-            {METHOD_OPTIONS.map(([value, label, hint]) => (
-              <label key={value} className={`owner-method-card${depositMethod === value ? " active" : ""}${justPicked === value ? " picked" : ""}`}>
-                <input type="radio" name="deposit-method" checked={depositMethod === value} onChange={() => pickMethod(value)} />
-                <span><strong>{label}</strong><small>{hint}</small></span>
-              </label>
-            ))}
-          </div>
-          <div className="form-actions">{(depositMethod === "paymongo" || depositMethod === "xendit")
-            ? <button type="button" className="btn btn-accent" disabled={saving || !methodDirty} onClick={save}>{saving ? "Activating…" : (depositMethod === "xendit" ? "Activate Xendit sandbox" : "Activate PayMongo")}</button>
-            : <button type="button" className="btn btn-accent" disabled={saving} onClick={() => setStep(2)}>Continue to destination</button>}</div>
-        </section>
-        )}
-        {step === 2 && (depositMethod !== "paymongo" && depositMethod !== "xendit") && (
-        <section className="data-panel owner-panel owner-step-enter" aria-labelledby="pay-destination">
-          <div className="panel-heading"><div><h3 id="pay-destination">Step 2 — Payment destination</h3><p>{paymongoSelected ? "Not needed for instant checkout — only required if you switch back to manual. No PINs, passwords, or secrets belong here." : "Exactly what customers pay into. No PINs, passwords, or secrets belong here."}</p></div></div>
-          <div className="owner-dest-grid">
-            <div className="owner-dest-fields">
-              <label>Account / display name<input type="text" value={name} maxLength={80} onChange={(event) => setName(event.target.value)} placeholder="HAVEN Hotel & Residences" autoComplete="off" /></label>
-              <label>GCash mobile number<input type="tel" value={mobile} maxLength={30} onChange={(event) => setMobile(event.target.value)} placeholder="09XX XXX XXXX" autoComplete="off" inputMode="tel" /></label>
-            </div>
-            <div className="owner-qr-field">
-              <span>Official GCash QR</span>
-              {qrPreview
-                // eslint-disable-next-line @next/next/no-img-element -- Owner-uploaded QR preview, same rationale as receipt thumbnails
-                ? <div className="owner-qr-staged"><img className="owner-qr" src={qrPreview} alt="Official GCash QR preview" /><button type="button" className="btn btn-soft" onClick={() => fileInput.current?.click()}>Replace QR</button></div>
-                : <button type="button" className="owner-qr-upload" onClick={() => fileInput.current?.click()}><ImageUp size={18} aria-hidden="true" /><span><strong>Upload official QR</strong><small>JPEG, PNG, or WebP · up to 5 MB</small></span></button>}
-              <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" className="owner-qr-input" onChange={replaceQr} aria-label="Upload the official GCash QR" />
-              {!loaded.qrHealthy && <p className="owner-form-error" role="alert">The saved QR image is missing from storage. Upload it again before enabling deposits.</p>}
-              <div className="owner-live-preview" aria-live="polite">
-                <p><strong>{name.trim() || "—"}</strong></p>
-                <p className="owner-record-id">{mobile.trim() || "—"}</p>
-                <p className="owner-live-method">{methodLabel} · {enabled ? "Active" : "Inactive"}</p>
-              </div>
-            </div>
-          </div>
-          <div className="form-actions"><button type="button" className="btn btn-soft" onClick={() => setStep(1)}>Back</button><button type="button" className="btn btn-accent" onClick={() => setStep(3)}>Review changes</button></div>
-        </section>
-        )}
-        {step === 3 && (depositMethod !== "paymongo" && depositMethod !== "xendit") && (
-        <section className="data-panel owner-panel owner-step-enter" aria-labelledby="pay-review">
-          <div className="panel-heading"><div><h3 id="pay-review">Step 3 — Review & save</h3><p>Confirm exactly what guests will see before anything goes live.</p></div></div>
-          <dl className="owner-review-list">
-            <div><dt>Deposit method</dt><dd>{methodLabel}</dd></div>
-            <div><dt>Accepting deposits</dt><dd>{enabled ? "Active" : "Inactive"}</dd></div>
-            <div><dt>Account name</dt><dd>{name.trim() || "—"}</dd></div>
-            <div><dt>Mobile number</dt><dd className="owner-record-id">{mobile.trim() || "—"}</dd></div>
-            <div><dt>QR image</dt><dd>{qrPreview ? "Uploaded — preview updates live as you type." : "Missing"}</dd></div>
-            <div><dt>Reason</dt><dd>Recorded in the save confirmation.</dd></div>
-          </dl>
-          {qrPreview && (
-            // eslint-disable-next-line @next/next/no-img-element -- Owner-uploaded QR preview, same rationale as receipt thumbnails
-            <img className="owner-qr" src={qrPreview} alt="Final QR preview" />
-          )}
-          <div className="form-actions"><button type="button" className="btn btn-soft" onClick={() => setStep(2)}>Back</button></div>
-        </section>
-        )}
-      </div>
-      {(depositMethod !== "paymongo" && depositMethod !== "xendit") && (
-      <div className="form-actions owner-sticky-saves" aria-label="Save payment configuration">
-        <button type="button" className="btn btn-accent" disabled={saving} onClick={save}>{saving ? "Saving…" : "Save changes"}</button>
-      </div>
+      {error && (
+        <div className="owner-form-error" role="alert">
+          <p>{error}</p>
+          <button type="button" className="btn btn-soft" onClick={load}>Retry</button>
+        </div>
       )}
-      <OwnerSectionHead title="Governance" note="Every destination and method change is recorded." />
-      <OwnerTablePanel
-        title="Configuration history"
-        noun="changes"
-        note="Newest first · Executive source order retained."
-        rows={trailRows}
-        columns={[
-          { key: "created_at", header: "When", render: (row) => formatOwnerDate(row.created_at) },
-          { key: "actorName", header: "Changed by", render: (row) => String(row.actorName ?? "—") },
-          { key: "mobileNumber", header: "Number", render: (row) => { const v = (row.after_data as { mobileNumber?: unknown } | null)?.mobileNumber; return <span className="owner-record-id">{typeof v === "string" && v ? v : "—"}</span>; } },
-          { key: "enabled", header: "Status", render: (row) => <StatusBadge status={(row.after_data as { enabled?: unknown } | null)?.enabled ? "paid" : "expired"} label={(row.after_data as { enabled?: unknown } | null)?.enabled ? "Active" : "Inactive"} /> },
-        ]}
-        empty={<OwnerEmpty icon={<QrCode size={22} />} title="No destination changes" body="Recorded payment destination changes will appear here." />}
-      />
-      {dialogs.view}
+      {data ? (
+        <>
+          <section className="data-panel owner-panel">
+            <dl className="system-health-config">
+              <DepositMethodSwitch key={data.version} current={data.depositMethod} version={data.version} xenditOn={data.xenditConfigured} notify={notify} onRefresh={load} />
+              {data.lastUpdated && (
+                <div className="deposit-method-switch">
+                  <dt>Last updated</dt>
+                  <dd>{formatOwnerDate(data.lastUpdated)}{data.lastUpdatedBy ? ` by ${data.lastUpdatedBy}` : ""}</dd>
+                </div>
+              )}
+            </dl>
+          </section>
+          <OwnerTablePanel
+            title="Configuration history"
+            noun="changes"
+            rows={data.trail.map((entry) => ({ ...entry, id: String(entry.id) }))}
+            columns={[
+              { key: "created_at", header: "When", render: (row) => formatOwnerDate(row.created_at) },
+              { key: "actorName", header: "Changed by", render: (row) => String(row.actorName ?? "—") },
+              { key: "action", header: "Change", render: (row) => row.action === "admin_update_deposit_method" ? "Checkout mode" : "Payment destination" },
+              { key: "reason", header: "Reason", render: (row) => String(row.reason ?? "—") },
+            ]}
+            empty={<OwnerEmpty icon={<CreditCard size={22} />} title="No changes recorded" body="Payment configuration changes will appear here." />}
+          />
+        </>
+      ) : !error && <p role="status">Loading payment settings…</p>}
     </div>
   );
 }

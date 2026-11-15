@@ -39,7 +39,6 @@ function renderBilling(items: RecordItem[], search: string, resource: "invoices"
       resource={resource}
       items={items}
       allItems={all}
-      depositSlaHours={4}
       replenishment={replenishment}
       createDraftPo={noop}
       submitPo={noop}
@@ -53,8 +52,7 @@ function renderBilling(items: RecordItem[], search: string, resource: "invoices"
       open={noop}
       advance={noop}
       checkIn={noop}
-      verifyDeposit={noop}
-      rejectDeposit={noop}
+      viewPayment={noop}
       viewReservation={viewReservation}
       viewRoom={noop}
       viewGuest={noop}
@@ -74,7 +72,6 @@ function renderBilling(items: RecordItem[], search: string, resource: "invoices"
       canAssignOthers={false}
       canHousekeep={false}
       canCheckIn={false}
-      canVerify={false}
       canProcessRefund={false}
       canCreate={false}
       canAdvance={false}

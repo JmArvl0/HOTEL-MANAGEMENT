@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { canAccess, canManageReservation, canVerifyDeposit, canViewGuestContact, canViewReservationFinancials } from "@/lib/permissions";
+import { canAccess, canManageReservation, canViewGuestContact, canViewReservationFinancials } from "@/lib/permissions";
 import { accountingReservationFields, departmentRequestFields, operationalReservationFields } from "@/lib/staff-data";
 
 const resourceRoute = readFileSync("app/api/resources/[resource]/route.ts", "utf8");
@@ -17,14 +17,9 @@ describe("staff reservation RBAC", () => {
   });
   it("separates Owner oversight from Front Desk and Accounting execution", () => {
     expect(canManageReservation("owner")).toBe(false);
-    expect(canVerifyDeposit("owner")).toBe(false);
     expect(canManageReservation("front_desk")).toBe(true);
-    expect(canVerifyDeposit("front_desk")).toBe(false);
-    expect(canVerifyDeposit("accounting")).toBe(true);
     expect(canManageReservation("admin")).toBe(false);
-    expect(canVerifyDeposit("admin")).toBe(false);
     expect(canManageReservation("manager")).toBe(false);
-    expect(canVerifyDeposit("manager")).toBe(false);
   });
   it("limits Accounting to financial reservation context without guest profiles", () => {
     expect(canViewReservationFinancials("accounting")).toBe(true);

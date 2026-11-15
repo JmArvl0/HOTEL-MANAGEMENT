@@ -10,7 +10,7 @@ const active = { id: "current-drawer", staff_user_id: "maria", staff_name: "Mari
 const closed = { ...active, id: "previous-drawer", staff_name: "John Cruz", status: "closed", opened_at: "2026-11-03T07:00:00+08:00", closed_at: "2026-11-03T15:00:00+08:00", expected_cash: 34920, actual_cash: 34850, variance: -70, close_notes: "Count verified, shortage retained" };
 function ledger(shifts: CashRecord[] = [active, closed]): AccountingLedger {
   return {
-    metrics: { grossCollected: 28420, refundsIssued: 3500, netRevenue: 24920, outstandingBalance: 0, folioCredit: 0, pendingVerification: 0, pendingRefunds: 0, failedRefunds: 0, openCashShifts: shifts.filter(s => s.status === "open").length, unreconciledShifts: shifts.filter(s => s.status === "closed").length, cashVariance: -70, openReconciliationVariance: 0 },
+    metrics: { grossCollected: 28420, refundsIssued: 3500, netRevenue: 24920, outstandingBalance: 0, folioCredit: 0, pendingRefunds: 0, failedRefunds: 0, openCashShifts: shifts.filter(s => s.status === "open").length, unreconciledShifts: shifts.filter(s => s.status === "closed").length, cashVariance: -70, openReconciliationVariance: 0 },
     cashShifts: shifts, transactions: [{ id: "payment", cash_shift_id: "current-drawer", purpose: "stay_payment", amount: 28420, status: "paid", created_at: "2026-11-04T08:00:00+08:00", reservation_id: "HVN-0412", reference: "CASH-0412" }, { id: "refund", cash_shift_id: "current-drawer", purpose: "refund", amount: 3500, status: "paid", created_at: "2026-11-04T09:00:00+08:00", reservation_id: "HVN-0412", reference: "REF-0412" }], invoices: [], charges: [], adjustments: [], refunds: [], refundAttempts: [], reconciliations: [], documents: [],
   };
 }

@@ -11,8 +11,7 @@ export type Section = "overview" | "room_rack" | Resource | "reports" | Accounti
 // - Guest Requests: front_desk inbox (review), manager read-only,
 //   housekeeping fulfillment. Maintenance has no tab (its render path never
 //   existed); maintenance files work orders from its own queue.
-// - Deposit Verification queue is actionable by accounting only; front_desk
-//   keeps read-only status visibility (route + RPC re-check authority).
+// - Payment History gives staff access to recorded payment status.
 // - Approvals & Escalations: manager command center; filing roles
 //   (front_desk/housekeeping/maintenance/accounting) see filed-by-me scope.
 
@@ -47,7 +46,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Billing", section: "invoices", roles: ["front_desk", "accounting"], group: "finance" },
   { label: "Transactions", section: "transactions", roles: ["front_desk", "accounting"], group: "finance" },
   { label: "Guest Folios", section: "folios", roles: ["front_desk", "accounting"], group: "finance" },
-  { label: "Deposit Verification", section: "payments", group: "finance" },
+  { label: "Payment History", section: "payments", group: "finance" },
   { label: "Refunds", section: "refunds", roles: ["accounting"], group: "finance" },
   { label: "Cash & Shifts", section: "cash_shifts", roles: ["front_desk", "accounting"], group: "finance" },
   { label: "Reconciliation", section: "reconciliation", roles: ["accounting"], group: "finance" },

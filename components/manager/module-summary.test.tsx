@@ -75,42 +75,16 @@ describe("moduleSummary counts", () => {
     ]);
   });
 
-  it("splits refunds by policy vs Manager-approval basis and ignores processed exceptions", () => {
-    const chips = moduleSummary("refunds", rows([
-      { id: "1", status: "pending", exception_approval_id: null },
-      { id: "2", status: "pending", exception_approval_id: "ap-1", approval_status: "pending" },
-      { id: "3", status: "processed", exception_approval_id: "ap-2", approval_status: "approved" },
-      { id: "4", status: "failed", exception_approval_id: null },
-    ]), TODAY);
-    expect(chips.map(({ label, value }) => [label, value])).toEqual([
-      ["Within policy, to settle", 2],
-      ["Awaiting Manager approval", 1],
-      ["Processed", 1],
-      ["Failed", 1],
-    ]);
-  });
-
-  it("sums the outstanding balance across billing folios", () => {
-    const chips = moduleSummary("invoices", rows([
-      { id: "1", status: "unpaid", balance: 6400 },
-      { id: "2", status: "partial", balance: 3200.50 },
-      { id: "3", status: "paid", balance: 0 },
-    ]), TODAY);
-    expect(chips.find((chip) => chip.label === "Outstanding balance")?.value).toBe("₱9,601");
-    expect(chips.find((chip) => chip.label === "Unpaid")?.value).toBe(1);
-  });
-
-  it("counts deposit-queue SLA breaches against the policy threshold", () => {
-    const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60000).toISOString();
+  it("counts only Xendit payments as awaiting provider settlement", () => {
     const chips = moduleSummary("payments", rows([
-      { id: "1", status: "pending_verification", submitted_at: minutesAgo(30) },   // normal — not past SLA
-      { id: "2", status: "pending_verification", submitted_at: minutesAgo(90) },   // attention band, under 4h
-      { id: "3", status: "pending_verification", submitted_at: minutesAgo(300) },  // 5h — past 4h SLA
-      { id: "4", status: "paid", submitted_at: minutesAgo(300) },                  // settled — never counted
-    ]), TODAY, 4);
+      { id: "1", status: "pending_verification", method: "manual_gcash" },
+      { id: "2", status: "pending_verification", method: "gateway_xendit" },
+      { id: "3", status: "pending_verification", method: "gateway_paymongo" },
+      { id: "4", status: "paid", method: "gateway_xendit" },
+    ]), TODAY);
     expect(chips.map(({ label, value }) => [label, value])).toEqual([
-      ["Pending verification", 3],
-      ["Past SLA", 1],
+      ["Paid", 1],
+      ["Awaiting Xendit", 1],
       ["Failed or rejected", 0],
     ]);
   });

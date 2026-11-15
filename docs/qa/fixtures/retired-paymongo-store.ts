@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { gatewayEventAmountCentavos, gatewayEventRef } from "@/lib/gateway";
+import { gatewayEventAmountCentavos, gatewayEventRef } from "./retired-paymongo";
 
 /**
  * Webhook event handling (testable domain). Maps a provider event to the

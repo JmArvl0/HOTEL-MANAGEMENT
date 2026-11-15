@@ -29,7 +29,7 @@ describe("staff notification history wiring", () => {
     expect(client).toContain("markStaffRead");
     // Read tracking is per-user UI dismissal; sidebar badges keep their own metrics.
     expect(client).toContain("haven-staff-read:${user.id}");
-    expect(client).toContain('m.pendingVerifications');
+    expect(client).toContain('m.pendingRefundCount');
   });
 
   it("returns focus to the bell when the modal closes", () => {

@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { NAV_GROUPS, NAV_ITEMS, groupedNav } from "@/config/role-navigation";
-import { canAccess, canVerifyDeposit, canReviewManagerApprovals } from "@/lib/permissions";
+import { canAccess, canReviewManagerApprovals } from "@/lib/permissions";
 import type { Resource, Role } from "@/lib/types";
 
 const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
@@ -32,11 +32,11 @@ describe("role navigation structure", () => {
     expect(sectionsFor("accounting")).not.toContain("guest_requests");
   });
 
-  it("deposit verification is actionable by accounting alone", () => {
-    expect(canVerifyDeposit("accounting")).toBe(true);
-    for (const role of ["front_desk", "manager", "housekeeping", "maintenance", "owner"] as const) {
-      expect(canVerifyDeposit(role)).toBe(false);
-    }
+  it("keeps read-only payment history with Accounting and Front Desk", () => {
+    expect(NAV_ITEMS.find((item) => item.section === "payments")?.label).toBe("Payment History");
+    expect(canAccess("accounting", "payments")).toBe(true);
+    expect(canAccess("front_desk", "payments")).toBe(true);
+    expect(canAccess("manager", "payments")).toBe(false);
   });
 
   it("billing is scoped to collection roles only", () => {
@@ -94,8 +94,10 @@ describe("domain-separation surface contracts", () => {
     expect(panel).toContain('["open", "Open work"]');
   });
 
-  it("deposit queue states its read-only boundary for non-accounting roles", () => {
-    expect(read("components/manager/manager-dashboard-client.tsx")).toContain("other roles see status only");
+  it("exposes recorded payment details without the retired review actions", () => {
+    const client = read("components/manager/manager-dashboard-client.tsx");
+    expect(client).toContain("View reservation deposits, stay payments, and their settlement status.");
+    expect(client).not.toMatch(/verifyDeposit|rejectDeposit/);
   });
 
   it("filer approvals default to filed-by-me scope with an explicit toggle", () => {

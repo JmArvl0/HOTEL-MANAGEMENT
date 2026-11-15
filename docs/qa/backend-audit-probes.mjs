@@ -12,9 +12,9 @@ const compileUrl = (path, rewrite = (source) => source) => {
   });
   return `data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`;
 };
-const gatewayUrl = compileUrl("lib/gateway.ts");
-const { confirmGatewayEvent } = await import(compileUrl("lib/gateway-store.ts", (source) =>
-  source.replace('"@/lib/gateway"', JSON.stringify(gatewayUrl))));
+const gatewayUrl = compileUrl("docs/qa/fixtures/retired-paymongo.ts");
+const { confirmGatewayEvent } = await import(compileUrl("docs/qa/fixtures/retired-paymongo-store.ts", (source) =>
+  source.replace('"./retired-paymongo"', JSON.stringify(gatewayUrl))));
 const { evaluateSessionExpiry, DEFAULT_SECURITY_POLICY } = await import(compileUrl(
   "lib/security-policy.ts", (source) => source.replace(
     'import { supabase } from "@/lib/supabase";', "const supabase = null;")));

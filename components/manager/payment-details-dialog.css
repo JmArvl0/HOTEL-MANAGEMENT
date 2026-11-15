@@ -167,12 +167,6 @@ html:has(.payment-receipt) { scrollbar-gutter: auto; }
 .payment-receipt .spr-record { padding-bottom: clamp(20px, 2vw, 28px); }
 .payment-receipt .spr-review-note { margin: 14px 0; color: #584c40; font: 400 13px/1.5 Georgia, serif; }
 .dialog.payment-receipt .modal-footer { display: block; flex: none; padding: 0 var(--spr-inset) clamp(16px, 1.5vw, 24px); border: 0; border-radius: 0 0 16px 16px; background: var(--spr-paper); }
-.payment-receipt .spr-review-actions { display: flex; flex-wrap: wrap; gap: 12px; }
-.payment-receipt .spr-review-button { flex: 1 1 140px; min-height: 44px; padding: 10px 16px; border: 0; border-radius: 999px; cursor: pointer; font: 600 13px/1.4 var(--font-sans, Arial, sans-serif); }
-.payment-receipt .spr-review-reject { background: #f4ded2; color: #8c432f; }
-.payment-receipt .spr-review-confirm { background: linear-gradient(#c69a58, #ae7f40 55%, #a57438); color: #fff8ed; }
-.payment-receipt .spr-review-button:hover:not(:disabled) { filter: brightness(1.06); }
-.payment-receipt .spr-review-button:disabled { opacity: .55; cursor: not-allowed; }
 .dialog.payment-receipt button:focus-visible { outline: 2px solid #77603d; outline-offset: 3px; }
 .payment-receipt .spr-record:focus-visible { outline: 2px solid #77603d; outline-offset: -2px; }
 .payment-receipt ::selection { background: #d5e3ca; color: #293528; }

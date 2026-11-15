@@ -4,7 +4,6 @@ import { hotelToday } from "@/lib/booking";
 import { supabase } from "@/lib/supabase";
 import { bookedOccupancyTrend } from "@/lib/analytics/occupancy";
 import type { ReservationLike } from "@/lib/analytics/types";
-import { depositSlaSummary, DEFAULT_DEPOSIT_SLA_HOURS } from "@/lib/deposit-sla";
 import { maintenanceBlockedRoomIds, roomBoardState, type RackReservation, type RackRoom } from "@/lib/room-rack";
 import type { DashboardData, RecordItem, Resource, Role } from "@/lib/types";
 import { readAllRows } from "@/lib/read-all-rows";
@@ -84,13 +83,6 @@ export async function getDashboard(role: Role, userId?: string): Promise<Dashboa
   const ageMinutes=(value:unknown)=>value?Math.max((now-new Date(String(value)).getTime())/60000,0):0;
   const overdueGuestRequests=requests.filter(item=>item.status!=="completed"&&((item.due_at&&new Date(String(item.due_at)).getTime()<now)||ageMinutes(item.created_at)>Number(alertPolicy.guest_request_overdue_minutes)));
   const overdueHousekeeping=tasks.filter(item=>item.status!=="completed"&&ageMinutes(item.created_at)>Number(alertPolicy.housekeeping_turnover_overdue_minutes));
-  // Deposit-verification SLA (Phase 5): visibility only — aging metrics for the
-  // roles that work the deposit queue. depositSlaHours feeds the client-side age
-  // chips (financial roles); the aging aggregates are Accounting-only.
-  const slaResult=financialRole&&supabase?await supabase.from("hotel_operational_policies").select("deposit_sla_hours").eq("key","default").maybeSingle():{data:null};
-  const depositSlaHours=Number((slaResult.data as RecordItem|null)?.deposit_sla_hours??DEFAULT_DEPOSIT_SLA_HOURS);
-  const pendingAges=refundRole?payments.filter((item)=>item.status==="pending_verification").map((item)=>ageMinutes(item.submitted_at)):[];
-  const {oldestMinutes:oldestPendingVerificationMinutes,pastSla:pendingPastSla}=depositSlaSummary(pendingAges,depositSlaHours);
   // Daily front desk operations reports: the Manager reviews submissions,
   // Front Desk sees manager returns that need resubmission.
   const reportRoles=["manager","front_desk"].includes(role);
@@ -147,19 +139,6 @@ export async function getDashboard(role: Role, userId?: string): Promise<Dashboa
     for(const request of requests.filter(item=>item.status!=="completed").slice(0,5))notifications.push({id:`request-${request.id}`,title:"Guest request requires coordination",detail:`${request.department} - ${request.request}`,section:"guest_requests",createdAt:typeof request.created_at==="string"?request.created_at:undefined});
     for(const report of reportNotifications)notifications.push({id:`report-returned-${report.id}`,title:"Daily operations report returned by manager",detail:`${report.report_date}${report.review_note?` - ${report.review_note}`:""}`,section:"reports",createdAt:typeof report.submitted_at==="string"?report.submitted_at:undefined});
   }
-  if (refundRole) {
-    for (const payment of payments.filter((record) => record.status === "pending_verification").slice(0, 5)) {
-      notifications.push({
-        id: `payment-${payment.id}`,
-        title: "Reservation deposit needs verification",
-        detail: `${payment.reservation_id} - ${payment.reference || "Reference pending"}`,
-        section: "payments",
-        createdAt: typeof payment.submitted_at === "string" ? payment.submitted_at : undefined
-      });
-    }
-    // SLA breach alert (visibility only — nothing is auto-decided).
-    if (pendingPastSla > 0) notifications.push({ id: "deposit-sla-breach", title: "Deposit verification past SLA", detail: `${pendingPastSla} payment${pendingPastSla !== 1 ? "s" : ""} waiting ${depositSlaHours}h or longer`, section: "payments" });
-  }
   // Sidebar module badges — outstanding actionable workload per role, the same
   // domain predicates the module queues use. Counts exist only where the role
   // can act on them; the bell above stays a separate live-alert concept.
@@ -168,20 +147,19 @@ export async function getDashboard(role: Role, userId?: string): Promise<Dashboa
     ? requests.filter((item) => String(item.approval_status) === "approved" && String(item.department) === role && ["open", "in_progress"].includes(String(item.status))).length
     : 0;
   const transportationRequested = operationalRole && supabase ? pendingTrips.length : 0;
-  const pendingVerifications = refundRole ? payments.filter((item) => item.status === "pending_verification").length : 0;
   const pendingRefundCount = refundRole ? refunds.length : 0;
   if (refundRole) {
     for (const refund of refunds.slice(0, 5)) notifications.push({ id:`refund-${refund.id}`, title:refund.status==="failed"?"Refund attempt failed - retry required":"Refund awaiting Accounting", detail:`${refund.reservation_id} - ${new Intl.NumberFormat("en-PH",{style:"currency",currency:"PHP"}).format(Number(refund.eligible_amount||0))}`, section:"refunds", createdAt:typeof refund.created_at==="string"?refund.created_at:undefined });
   }  // Role-aware metric filtering: zero out metrics the role cannot see
   const forbiddenByRole: Record<Role, string[]> = {
     owner: [],
-    admin: ['refunds', 'reconciliation', 'pendingRefundCount', 'pendingPastSla', 'depositSlaHours', 'oldestPendingVerificationMinutes'],
-    manager: ['invoices', 'transactions', 'folios', 'payments', 'refunds', 'cash_shifts', 'reconciliation', 'documents', 'balancesAttention', 'pendingVerifications', 'pendingRefundCount', 'depositSlaHours', 'oldestPendingVerificationMinutes', 'pendingPastSla', 'cashThisShift', 'shiftFloat', 'shiftOpen', 'collectionsToday', 'depositsReceived', 'refundSummary', 'outstandingBalances'],
-    front_desk: ['refunds', 'reconciliation', 'staff_duty', 'room_types', 'transport_services', 'request_types', 'insights', 'ai', 'housekeeping_tasks', 'maintenance_orders', 'inventory', 'refunds', 'reconciliation', 'pendingRefundCount', 'pendingPastSla', 'depositSlaHours', 'oldestPendingVerificationMinutes', 'pendingPastSla', 'cashThisShift', 'shiftFloat', 'shiftOpen', 'collectionsToday', 'depositsReceived', 'refundSummary', 'outstandingBalances', 'pendingVerifications'],
-    housekeeping: ['room_rack', 'guests', 'guest_requests', 'transportation', 'maintenance_orders', 'inventory', 'reports', 'invoices', 'transactions', 'folios', 'payments', 'refunds', 'cash_shifts', 'reconciliation', 'documents', 'staff_duty', 'room_types', 'transport_services', 'request_types', 'insights', 'ai', 'occupancy', 'arrivals', 'departures', 'revenue', 'onlineBookings', 'inHouse', 'unassignedArrivals', 'dirtyRooms', 'outOfServiceRooms', 'openRequests', 'balancesAttention', 'roomsCleaning', 'roomsAwaitingInspection', 'overdueHousekeeping', 'openMaintenance', 'criticalMaintenance', 'overdueRequests', 'escalatedIssues', 'pendingApprovals', 'collectionsToday', 'depositsReceived', 'refundSummary', 'outstandingBalances', 'cashThisShift', 'shiftFloat', 'shiftOpen', 'pendingRequestBatches', 'departmentRequests', 'transportationRequested', 'pendingVerifications', 'pendingRefundCount', 'depositSlaHours', 'oldestPendingVerificationMinutes', 'pendingPastSla'],
-    maintenance: ['room_rack', 'guests', 'guest_requests', 'transportation', 'housekeeping_tasks', 'inventory', 'reports', 'invoices', 'transactions', 'folios', 'payments', 'refunds', 'cash_shifts', 'reconciliation', 'documents', 'staff_duty', 'room_types', 'transport_services', 'request_types', 'insights', 'ai', 'occupancy', 'arrivals', 'departures', 'revenue', 'onlineBookings', 'inHouse', 'unassignedArrivals', 'dirtyRooms', 'outOfServiceRooms', 'openRequests', 'balancesAttention', 'roomsCleaning', 'roomsAwaitingInspection', 'overdueHousekeeping', 'openMaintenance', 'criticalMaintenance', 'overdueRequests', 'escalatedIssues', 'pendingApprovals', 'collectionsToday', 'depositsReceived', 'refundSummary', 'outstandingBalances', 'cashThisShift', 'shiftFloat', 'shiftOpen', 'pendingRequestBatches', 'departmentRequests', 'transportationRequested', 'pendingVerifications', 'pendingRefundCount', 'depositSlaHours', 'oldestPendingVerificationMinutes', 'pendingPastSla'],
-    accounting: ['room_rack', 'guests', 'guest_requests', 'transportation', 'housekeeping_tasks', 'maintenance_orders', 'inventory', 'staff_duty', 'room_types', 'transport_services', 'request_types', 'insights', 'ai', 'occupancy', 'arrivals', 'departures', 'revenue', 'onlineBookings', 'inHouse', 'unassignedArrivals', 'dirtyRooms', 'outOfServiceRooms', 'openRequests', 'roomsCleaning', 'roomsAwaitingInspection', 'overdueHousekeeping', 'openMaintenance', 'criticalMaintenance', 'overdueRequests', 'escalatedIssues', 'pendingApprovals', 'collectionsToday', 'depositsReceived', 'cashThisShift', 'shiftFloat', 'shiftOpen', 'pendingRequestBatches', 'departmentRequests', 'transportationRequested'],
-    guest: ['occupancy', 'arrivals', 'departures', 'revenue', 'openTasks', 'availableRooms', 'onlineBookings', 'inHouse', 'unassignedArrivals', 'dirtyRooms', 'outOfServiceRooms', 'openRequests', 'balancesAttention', 'roomsCleaning', 'roomsAwaitingInspection', 'overdueHousekeeping', 'openMaintenance', 'criticalMaintenance', 'overdueRequests', 'escalatedIssues', 'pendingApprovals', 'collectionsToday', 'depositsReceived', 'refundSummary', 'outstandingBalances', 'cashThisShift', 'shiftFloat', 'shiftOpen', 'pendingRequestBatches', 'departmentRequests', 'transportationRequested', 'pendingVerifications', 'pendingRefundCount', 'depositSlaHours', 'oldestPendingVerificationMinutes', 'pendingPastSla'],
+    admin: ['refunds', 'reconciliation', 'pendingRefundCount'],
+    manager: ['invoices', 'transactions', 'folios', 'payments', 'refunds', 'cash_shifts', 'reconciliation', 'documents', 'balancesAttention', 'pendingRefundCount', 'cashThisShift', 'shiftFloat', 'shiftOpen', 'collectionsToday', 'depositsReceived', 'refundSummary', 'outstandingBalances'],
+    front_desk: ['refunds', 'reconciliation', 'staff_duty', 'room_types', 'transport_services', 'request_types', 'insights', 'ai', 'housekeeping_tasks', 'maintenance_orders', 'inventory', 'refunds', 'reconciliation', 'pendingRefundCount', 'collectionsToday', 'depositsReceived', 'refundSummary', 'outstandingBalances'],
+    housekeeping: ['room_rack', 'guests', 'guest_requests', 'transportation', 'maintenance_orders', 'inventory', 'reports', 'invoices', 'transactions', 'folios', 'payments', 'refunds', 'cash_shifts', 'reconciliation', 'documents', 'staff_duty', 'room_types', 'transport_services', 'request_types', 'insights', 'ai', 'occupancy', 'arrivals', 'departures', 'revenue', 'onlineBookings', 'inHouse', 'unassignedArrivals', 'openRequests', 'balancesAttention', 'openMaintenance', 'criticalMaintenance', 'overdueRequests', 'escalatedIssues', 'pendingApprovals', 'collectionsToday', 'depositsReceived', 'refundSummary', 'outstandingBalances', 'cashThisShift', 'shiftFloat', 'shiftOpen', 'pendingRequestBatches', 'transportationRequested', 'pendingRefundCount'],
+    maintenance: ['room_rack', 'guests', 'guest_requests', 'transportation', 'housekeeping_tasks', 'inventory', 'reports', 'invoices', 'transactions', 'folios', 'payments', 'refunds', 'cash_shifts', 'reconciliation', 'documents', 'staff_duty', 'room_types', 'transport_services', 'request_types', 'insights', 'ai', 'occupancy', 'arrivals', 'departures', 'revenue', 'onlineBookings', 'inHouse', 'unassignedArrivals', 'dirtyRooms', 'openRequests', 'balancesAttention', 'roomsCleaning', 'roomsAwaitingInspection', 'overdueHousekeeping', 'overdueRequests', 'escalatedIssues', 'pendingApprovals', 'collectionsToday', 'depositsReceived', 'refundSummary', 'outstandingBalances', 'cashThisShift', 'shiftFloat', 'shiftOpen', 'pendingRequestBatches', 'transportationRequested', 'pendingRefundCount'],
+    accounting: ['room_rack', 'guests', 'guest_requests', 'transportation', 'housekeeping_tasks', 'maintenance_orders', 'inventory', 'staff_duty', 'room_types', 'transport_services', 'request_types', 'insights', 'ai', 'occupancy', 'arrivals', 'departures', 'revenue', 'onlineBookings', 'inHouse', 'unassignedArrivals', 'dirtyRooms', 'outOfServiceRooms', 'openRequests', 'roomsCleaning', 'roomsAwaitingInspection', 'overdueHousekeeping', 'openMaintenance', 'criticalMaintenance', 'overdueRequests', 'escalatedIssues', 'pendingApprovals', 'cashThisShift', 'shiftFloat', 'shiftOpen', 'pendingRequestBatches', 'departmentRequests', 'transportationRequested'],
+    guest: ['occupancy', 'arrivals', 'departures', 'revenue', 'openTasks', 'availableRooms', 'onlineBookings', 'inHouse', 'unassignedArrivals', 'dirtyRooms', 'outOfServiceRooms', 'openRequests', 'balancesAttention', 'roomsCleaning', 'roomsAwaitingInspection', 'overdueHousekeeping', 'openMaintenance', 'criticalMaintenance', 'overdueRequests', 'escalatedIssues', 'pendingApprovals', 'collectionsToday', 'depositsReceived', 'refundSummary', 'outstandingBalances', 'cashThisShift', 'shiftFloat', 'shiftOpen', 'pendingRequestBatches', 'departmentRequests', 'transportationRequested', 'pendingRefundCount'],
   };
 
   const metrics: DashboardData["metrics"] = {
@@ -198,7 +176,7 @@ export async function getDashboard(role: Role, userId?: string): Promise<Dashboa
       outOfServiceRooms: blockedMaintenanceRoomIds.size,
       openRequests: requests.filter(item=>item.status!=="completed").length,
       balancesAttention: [...activeArrivals,...activeDepartures].filter(item=>Number(invoices.find(invoice=>invoice.reservation_id===item.id)?.balance||0)>0).length,
-      roomsCleaning:rooms.filter(item=>item.housekeeping==="cleaning").length,roomsAwaitingInspection:rooms.filter(item=>item.housekeeping==="inspection").length,overdueHousekeeping:overdueHousekeeping.length,openMaintenance:maintenance.filter(item=>activeMaintenanceStatuses.has(String(item.status))).length,criticalMaintenance:maintenance.filter(item=>activeMaintenanceStatuses.has(String(item.status))&&["urgent","critical"].includes(String(item.priority))).length,overdueRequests:overdueGuestRequests.length,escalatedIssues:requests.filter(item=>item.escalation_status==="escalated").length,pendingApprovals:approvals.filter(item=>item.status==="pending").length,collectionsToday,depositsReceived,refundSummary,outstandingBalances:financialRole?invoices.reduce((sum,item)=>sum+Number(item.balance||0),0):0,cashThisShift,shiftFloat,shiftOpen,pendingRequestBatches,departmentRequests,transportationRequested,pendingVerifications,pendingRefundCount,depositSlaHours,oldestPendingVerificationMinutes,pendingPastSla
+      roomsCleaning:rooms.filter(item=>item.housekeeping==="cleaning").length,roomsAwaitingInspection:rooms.filter(item=>item.housekeeping==="inspection").length,overdueHousekeeping:overdueHousekeeping.length,openMaintenance:maintenance.filter(item=>activeMaintenanceStatuses.has(String(item.status))).length,criticalMaintenance:maintenance.filter(item=>activeMaintenanceStatuses.has(String(item.status))&&["urgent","critical"].includes(String(item.priority))).length,overdueRequests:overdueGuestRequests.length,escalatedIssues:requests.filter(item=>item.escalation_status==="escalated").length,pendingApprovals:approvals.filter(item=>item.status==="pending").length,collectionsToday,depositsReceived,refundSummary,outstandingBalances:financialRole?invoices.reduce((sum,item)=>sum+Number(item.balance||0),0):0,cashThisShift,shiftFloat,shiftOpen,pendingRequestBatches,departmentRequests,transportationRequested,pendingRefundCount
   };
 
   // Zero out metrics the role cannot see (role-aware metric filtering).

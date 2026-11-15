@@ -1,54 +1,61 @@
-import { beforeEach, expect, it, vi } from "vitest";
+import { expect, it, vi } from "vitest";
+import { GET as readProof } from "@/app/api/booking/payments/[id]/proof/route";
+import { DELETE as deleteStagedProof, POST as uploadProof } from "@/app/api/booking/holds/[token]/proof/route";
+import { POST as submitDeposit } from "@/app/api/booking/holds/[token]/confirm/route";
+import { POST as submitStayPayment } from "@/app/api/account/reservations/[id]/payments/route";
+import { POST as startPayMongo } from "@/app/api/booking/payments/gateway/route";
+import { POST as receivePayMongo } from "@/app/api/webhooks/payments/route";
+import { PATCH as updateDestination } from "@/app/api/owner/payment-destination/route";
+import { POST as uploadQr, DELETE as deleteQr } from "@/app/api/owner/payment-qr/route";
+import { POST as verifyDeposit } from "@/app/api/front-desk/deposits/[id]/verify/route";
+import { POST as reviewStayPayment } from "@/app/api/accounting/payments/[id]/verify/route";
+import { POST as rejectDeposit } from "@/app/api/accounting/payments/[id]/reject/route";
 
-const state = vi.hoisted(() => ({ db: {} as Record<string, Record<string, unknown>[]>, objects: new Map<string, Uint8Array>(), submissions: [] as Record<string, unknown>[] }));
-vi.mock("next-auth", () => ({ getServerSession: async () => ({ user: { id: "guest-proof", role: "guest", disabled: false } }) }));
+const proof = vi.hoisted(() => ({
+  id: "11111111-1111-4111-8111-111111111111",
+  path: "pending/old-hold/legacy.png",
+  createSignedUrl: vi.fn(),
+}));
+
+vi.mock("next-auth", () => ({
+  getServerSession: async () => ({ user: { id: "proof-owner", role: "guest" } }),
+}));
 vi.mock("@/lib/supabase", async () => {
   const { fakeSupabase } = await import("./fake-supabase");
   return { supabase: {
-    ...fakeSupabase(state.db),
-    rpc: async (_name: string, args: Record<string, unknown>) => {
-      state.submissions.push(args);
-      state.db.payments.push({ id: "finalized-payment", proof_storage_path: args.p_proof_storage_path });
-      state.db.booking_holds[0].status = "payment_submitted";
-      return { data: [{ reservation_id: "offline-stay", confirmation_number: "offline", reservation_status: "pending", payment_status: "unpaid" }], error: null };
-    },
-    storage: { from: () => ({
-      remove: async (paths: string[]) => { for (const p of paths) state.objects.delete(p); return { error: null }; },
-      download: async (path: string) => ({ data: state.objects.has(path) ? new Blob([Uint8Array.from(state.objects.get(path)!)]) : null, error: null }),
-      upload: async (path: string, bytes: Uint8Array) => { state.objects.set(path, bytes); return { error: null }; },
-    }) },
+    ...fakeSupabase({
+      payments: [{ id: proof.id, proof_storage_path: proof.path, reservations: { user_id: "proof-owner" } }],
+      audit_logs: [],
+    }),
+    storage: { from: () => ({ createSignedUrl: proof.createSignedUrl }) },
   } };
 });
-const token = "11111111-1111-4111-8111-111111111111";
-const path = `pending/${token}/22222222-2222-4222-8222-222222222222.png`;
-beforeEach(() => {
-  for (const key of Object.keys(state.db)) delete state.db[key];
-  state.db.booking_holds = [{ token, user_id: "guest-proof", status: "payment_submitted" }];
-  state.db.payments = [{ id: "proof-payment", proof_storage_path: path }];
-  state.objects.clear(); state.objects.set(path, new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]));
-  state.submissions.length = 0;
+
+it.each([
+  ["manual booking deposit", submitDeposit],
+  ["manual stay balance", submitStayPayment],
+  ["staged proof upload", uploadProof],
+  ["staged proof deletion", deleteStagedProof],
+  ["PayMongo checkout", startPayMongo],
+  ["PayMongo webhook", receivePayMongo],
+  ["manual payment destination update", updateDestination],
+  ["payment QR upload", uploadQr],
+  ["payment QR deletion", deleteQr],
+  ["staff deposit verification", verifyDeposit],
+  ["Accounting stay payment review", reviewStayPayment],
+  ["Accounting deposit rejection", rejectDeposit],
+] as const)("returns gone for %s", async (_name, handler) => {
+  const response = handler();
+  expect(response.status).toBe(410);
+  expect(await response.json()).toHaveProperty("error", expect.any(String));
 });
 
-it("submits a verified copy that staging deletion cannot reach", async () => {
-  state.db.booking_holds[0].status = "active";
-  state.db.payments = [];
-  state.db.hotel_operational_policies = [{ key: "default", deposit_method: "manual", gcash_enabled: true, gcash_account_name: "Offline Hotel", gcash_mobile_number: "09171234567", gcash_qr_storage_path: "gcash/offline.png" }];
-  const { POST } = await import("@/app/api/booking/holds/[token]/confirm/route");
-  const response = await POST(new Request("http://localhost/confirm", {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ paymentMethod: "manual_gcash", paymentReference: "offline-reference", proofPath: path }),
-  }), { params: Promise.resolve({ token }) });
+it("keeps historical payment proof readable, even in the old staged namespace", async () => {
+  proof.createSignedUrl.mockResolvedValue({ data: { signedUrl: "https://example.test/legacy.png" }, error: null });
+  const response = await readProof(new Request("https://example.test/proof"), {
+    params: Promise.resolve({ id: proof.id }),
+  });
   expect(response.status).toBe(200);
-  const finalized = String(state.submissions[0].p_proof_storage_path);
-  expect(finalized).toMatch(new RegExp(`^submitted/${token}/`));
-  expect(state.objects.get(finalized)).toEqual(state.objects.get(path));
-});
-
-it("protects legacy submitted proof that still uses the pending namespace", async () => {
-  const { DELETE } = await import("@/app/api/booking/holds/[token]/proof/route");
-  const response = await DELETE(new Request("http://localhost/proof", {
-    method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path }),
-  }), { params: Promise.resolve({ token }) });
-  expect(response.status).toBe(409);
-  expect(state.objects.has(path)).toBe(true);
+  expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+  expect(proof.createSignedUrl).toHaveBeenCalledWith(proof.path, 60);
 });

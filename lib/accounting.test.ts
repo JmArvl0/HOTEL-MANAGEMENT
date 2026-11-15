@@ -78,7 +78,17 @@ describe("financial RBAC matrix", () => {
 });
 
 describe("server-side authorization", () => {
-  it("guards every accounting route before touching the database", () => { expect(accountingRoutes.length).toBeGreaterThanOrEqual(8); for (const path of accountingRoutes) expect(read(path)).toContain("guardFinancial"); });
+  it("guards every active accounting route before touching the database", () => {
+    expect(accountingRoutes.length).toBeGreaterThanOrEqual(8);
+    for (const path of accountingRoutes) {
+      const route = read(path);
+      if (/[\\/]payments[\\/]\[id\][\\/](verify|reject)[\\/]/.test(path)) {
+        expect(route).toContain("retiredPayment");
+      } else {
+        expect(route).toContain("guardFinancial");
+      }
+    }
+  });
   it("validates every accounting request body with zod", () => { const writers = accountingRoutes.filter((path) => /export async function (POST|PATCH|PUT)/.test(read(path))); expect(writers.length).toBeGreaterThanOrEqual(7); for (const path of writers) expect(read(path), path).toMatch(/z\.(object|union|discriminatedUnion)|hotelBody\(request,\s*(closeDaySchema|feeSchema)\)/); });
   it("re-checks overpayment authority server-side rather than trusting the client flag", () => expect(paymentRoute).toContain("canAcceptOverpayment(session.user.role as Role)"));
   it("keeps folio corrections out of the operational charge categories", () => { expect(chargeRoute).toContain('z.enum(["incidental","room_service","laundry","minibar","extension"])'); expect(chargeRoute).not.toContain('"adjustment"'); });

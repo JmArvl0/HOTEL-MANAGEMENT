@@ -27,7 +27,7 @@ export const EXECUTIVE_DIGEST_TASK = `Summarize HAVEN's Daily Front Desk Operati
 Rules:
 - Every figure must come from the snapshot. Do not invent or recompute numbers.
 - executiveOverview: 2-4 sentences on occupancy flow (arrivals/departures), collections, and the day's overall shape.
-- bottlenecks: housekeeping delays (awaiting inspection, turnaround), deposit verification backlogs, open maintenance, escalated requests — only ones visible in the snapshot; empty when the day is clean.
+- bottlenecks: housekeeping delays (awaiting inspection, turnaround), open maintenance, escalated requests — only ones visible in the snapshot; empty when the day is clean.
 - actionPlan: concrete next-shift priorities derived from the above; empty when nothing needs action.
 - The rooms section is a point-in-time snapshot at generation, not per-day history — treat it as such.`;
 

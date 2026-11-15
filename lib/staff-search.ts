@@ -3,7 +3,7 @@ import { paymentSearchText } from "@/lib/payment-display";
 
 /**
  * Staff workspace search predicate — the single rule behind every module's
- * search box. Deposit verification rows match guest/reservation/reference
+ * search box. Payment history rows match guest/reservation/reference
  * text; Billing (invoices) matches guest, booking, reference, and status
  * only, so a fragment living in some other column can never match the whole
  * ledger; every other module matches the JSON-serialized row. Extracted from

@@ -29,12 +29,12 @@ export default async function CustomerOverviewPage() {
   const primary: MyStayCardData | null = stay && financial ? {
     roomType: stay.room_type, roomNumber: stay.room_number, credit, photo: photo(stay.room_type), dates: formatStayRange(stay.check_in, stay.check_out),
     guests: stay.guests, reference: stay.confirmation_number ?? stay.id,
-    status: stage === "verification" ? "Verifying payment" : stage === "payment" ? "Awaiting payment" : friendlyStatus(stay.status), stage,
+    status: stage === "verification" ? "Unsettled legacy payment" : stage === "payment" ? "Awaiting payment" : friendlyStatus(stay.status), stage,
     total: financial.total, paid: financial.paid, balance: financial.balance, deposit: Number(stay.deposit_required ?? 0),
     submitted: stay.payments.filter((payment) => payment.status === "pending_verification" && ["manual_gcash", "manual_bank_transfer"].includes(payment.method)).reduce((sum, payment) => sum + Number(payment.amount), 0),
     due: financial.balance === 0 ? "Your stay balance is settled." : stay.payment_due_at && stage === "payment" ? `Pay by ${formatHotelDateTime(stay.payment_due_at, policy.hotelTimezone)} (hotel time).` : `Remaining balance due ${policyFromSnapshot(stay.deposit_policy_snapshot).remainingBalanceDue.toLowerCase()}.`,
-    nextTitle: stage === "verification" ? "Your deposit is being reviewed" : stage === "payment" ? "Complete your reservation payment" : stay.status === "checked_in" ? "Make yourself at home" : "Get ready for your arrival",
-    nextDetail: stage === "verification" ? "No need to pay again. Your stay is confirmed after the hotel verifies your deposit." : stage === "payment" ? "Your reservation is not confirmed yet. Open your booking to check or retry payment." : stay.status === "checked_in" ? "Your requests, transportation and hotel information are a click away." : "Review your arrival details, check-in QR and booking-time policies.",
+    nextTitle: stage === "verification" ? "Contact Front Desk about your deposit" : stage === "payment" ? "Complete your reservation payment" : stay.status === "checked_in" ? "Make yourself at home" : "Get ready for your arrival",
+    nextDetail: stage === "verification" ? "Have your payment reference ready so Front Desk can look up the transaction before you pay again." : stage === "payment" ? "Your reservation is not confirmed yet. Open your booking to check or retry payment." : stay.status === "checked_in" ? "Your requests, transportation and hotel information are a click away." : "Review your arrival details, check-in QR and booking-time policies.",
     action: stage === "payment" ? "Continue payment" : stage === "verification" ? "View booking status" : "Manage stay",
     href: stage === "payment" ? `/booking/confirmation/${stay.id}` : detailHref,
   } : null;
