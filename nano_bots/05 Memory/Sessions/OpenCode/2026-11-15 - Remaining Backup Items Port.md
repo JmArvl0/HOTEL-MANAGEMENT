@@ -60,3 +60,39 @@ Branch `codex/remaining-backup-items-20261115` is local only, clean tree. The
 main checkout remains on `codex/backup-nine-local-commits-20261115`. No merge to
 main, no push, no hosted database write, no deployment. Both reconciliation
 branches now await the user's release decision.
+
+## Double-check: old content in the port (2026-11-15)
+
+Follow-up audit (`audit-port-coverage.cjs`, report and script in ignored
+`.tmp/commit-batches-20261115/`) compared every file the 11 old commits touched
+against commit `b1b97a2`:
+
+- 70 old-touched files; 65 are in the port. **47 are byte-identical** to the old
+  chain (all breakfast libs/routes/pages, booking-policy and landing pages,
+  scroll reveals, breakfast DB test, docs, QA records, Codex session notes,
+  decor assets).
+- The 18 integrated files all preserve the old changes: 13 with zero missing
+  old lines; 5 whose only line-level differences are documented supersessions
+  with semantics kept — payment page (old PayMongo/GCash UI discarded by
+  decision, Xendit-only + breakfast line), rooms page (same breakfast actions
+  plus current `canPay` deposit gating), holds route (old direct RPCs replaced
+  by `create_booking_hold_attempt`; `BREAKFAST_OFFER_CHANGED`,
+  `BREAKFAST_EXACT_ROOM_REQUIRED` and the 400 transport mapping present),
+  guest-details-form (raw fetch upgraded to `fetchPublic` with attemptId;
+  breakfast fieldset and `breakfastOfferId` payload present) and
+  `lib/customer.ts` (`breakfast_snapshot` in the reservation select).
+- All 5 exclusions verified intentional: the breakfast migration is
+  byte-identical on remote; DESIGN.md and the two vault files are keep-ours;
+  `lib/transportation.test.ts` is keep-ours because remote's version already
+  regex-matches the current attempt-based route (old tweak targeted the old
+  route shape; full suite passes).
+- Both `30512aa` pieces are byte-identical in the port:
+  `components/manager/inventory-replenishment-panel.test.tsx` (absent on
+  remote) and `scripts/inventory-replenishment-db-test.mjs`. The latter
+  replaces remote's simpler version, which would fail against the port's
+  replay-idempotent receiving semantics; the ported version passed the real
+  disposable-PostgreSQL run.
+
+No old feature was lost; nothing beyond the old chain plus the two `30512aa`
+pieces was added.
+
