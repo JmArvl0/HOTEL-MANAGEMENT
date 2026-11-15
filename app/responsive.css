@@ -91,9 +91,28 @@ a, button, [role="button"]{ overflow-wrap: anywhere; }
 
 /* Scrollbar and safe-areas */
 @supports (padding: max(0px)){
-  .landing-nav, .app-shell .app-header, .customer-content-header{
+  .landing-nav, .app-shell .app-header{
     padding-left: max(var(--haven-gutter,16px), env(safe-area-inset-left));
     padding-right: max(var(--haven-gutter,16px), env(safe-area-inset-right));
+  }
+}
+
+@media (max-width: 900px) {
+  .customer-shell .customer-content-header {
+    padding-left: calc(max(17px, env(safe-area-inset-left)) + 54px);
+  }
+  .customer-shell .customer-mobile-menu {
+    left: max(17px, env(safe-area-inset-left));
+  }
+}
+
+@media (max-width: 480px) {
+  .customer-shell .customer-content-header {
+    gap: 8px;
+  }
+  .customer-shell .customer-content-header strong {
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 }
 

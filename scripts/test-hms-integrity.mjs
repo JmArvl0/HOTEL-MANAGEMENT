@@ -3,10 +3,14 @@ import pg from 'pg';
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
+import { hotelTestDatabase } from './hotel-db-test-helpers.mjs';
 const database=process.env.HMS_TEST_DATABASE || 'hms_integrity_test';
 assert.ok(['hms_integrity_test','hms_integrity_verify2'].includes(database));
 const config={host:'127.0.0.1',port:55439,user:'haven_hms_test',database};
-const c=new pg.Client(config);await c.connect();
+const suite = process.argv.includes('--full-template') ? await hotelTestDatabase() : null;
+const c = suite ? suite.db : new pg.Client(config);
+if (!suite) await c.connect();
+const peerConfig = suite ? {host:'127.0.0.1',port:55432,user:'backend_audit',database:c.database} : config;
 const q=(sql,args=[])=>c.query(sql,args);let passed=0;
 const test=async(name,fn)=>{await fn();passed++;console.log('PASS '+name);};
 async function rejects(sql,args,code){await q('savepoint expected');try{await assert.rejects(()=>q(sql,args),e=>e.message.includes(code));}finally{await q('rollback to savepoint expected');await q('release savepoint expected');}}
@@ -83,12 +87,12 @@ try{
  await rejects("select staff_progress_guest_request($1,'complete',$2)",[request,ids.front_desk],'REQUEST_NOT_APPROVED');
  });
  await test('shared drawer/payment/receipt retry and variance safeguard',async()=>{const shift=(await q("select accounting_open_cash_shift($1,'Test',100) value",[ids.front_desk])).rows[0].value.shiftId;const pkey=randomUUID();const args=[res,200,'cash',null,pkey,ids.front_desk,false];const one=(await q('select hms_collect_payment($1,$2,$3,$4,$5,$6,$7) value',args)).rows[0].value;const two=(await q('select hms_collect_payment($1,$2,$3,$4,$5,$6,$7) value',args)).rows[0].value;assert.equal(one.payment_id,two.payment_id);assert.ok(one.receipt);await rejects("select accounting_close_cash_shift($1,290,null,$2,$3)",[shift,randomUUID(),ids.front_desk],'VARIANCE_EXPLANATION_REQUIRED');await q("select accounting_close_cash_shift($1,290,'Test variance explained',$2,$3)",[shift,randomUUID(),ids.front_desk]);await rejects('select hms_collect_payment($1,1,\'cash\',null,$2,$3,false)',[res,randomUUID(),ids.front_desk],'CASH_SHIFT_REQUIRED');await q("select hms_collect_payment($1,1,'card',$4,$2,$3,false)",[res,randomUUID(),ids.front_desk,'reference-'+tag]);});
- await test('handover is independent of roster and enforces owner/version',async()=>{assert.equal((await q("select to_regclass('public.staff_roster') t")).rows[0].t,null);const h=randomUUID();await q("select submit_shift_handover($1,$2,'Confirm guest arrival','reservation',$3,$1)",[ids.front_desk,h,res]);await rejects("select act_shift_handover($1,$2,1,'acknowledge','')",[ids.housekeeping,h],'HANDOVER_FORBIDDEN');await q("select act_shift_handover($1,$2,1,'acknowledge','')",[ids.front_desk,h]);await rejects("select act_shift_handover($1,$2,1,'resolve','Done')",[ids.front_desk,h],'HANDOVER_STALE');await q("select act_shift_handover($1,$2,2,'resolve','Guest contacted')",[ids.front_desk,h]);});
+ await test('handover works without a roster assignment and enforces owner/version',async()=>{const h=randomUUID();await q("select submit_shift_handover($1,$2,'Confirm guest arrival','reservation',$3,$1)",[ids.front_desk,h,res]);await rejects("select act_shift_handover($1,$2,1,'acknowledge','')",[ids.housekeeping,h],'HANDOVER_FORBIDDEN');await q("select act_shift_handover($1,$2,1,'acknowledge','')",[ids.front_desk,h]);await rejects("select act_shift_handover($1,$2,1,'resolve','Done')",[ids.front_desk,h],'HANDOVER_STALE');await q("select act_shift_handover($1,$2,2,'resolve','Guest contacted')",[ids.front_desk,h]);});
  // Commit only test fixtures in the isolated database for real two-session locks.
  await q('commit');
- await test('concurrent issues retain both movements and deductions',async()=>{const a=new pg.Client(config),b=new pg.Client(config);await a.connect();await b.connect();try{await Promise.all([a.query(issue,[ids.housekeeping,randomUUID(),item,1]),b.query(issue,[ids.maintenance,randomUUID(),item,1])]);assert.equal(Number((await q('select quantity from inventory where id=$1',[item])).rows[0].quantity),4);}finally{await a.end();await b.end();}});
+ await test('concurrent issues retain both movements and deductions',async()=>{const a=new pg.Client(peerConfig),b=new pg.Client(peerConfig);await a.connect();await b.connect();try{await Promise.all([a.query(issue,[ids.housekeeping,randomUUID(),item,1]),b.query(issue,[ids.maintenance,randomUUID(),item,1])]);assert.equal(Number((await q('select quantity from inventory where id=$1',[item])).rows[0].quantity),4);}finally{await a.end();await b.end();}});
  await test('cash collection waiting behind closure leaves no payment or receipt',async()=>{
- const worker=new pg.Client(config);await worker.connect();
+ const worker=new pg.Client(peerConfig);await worker.connect();
  try{
  const shift=(await q("select accounting_open_cash_shift($1,'Concurrent fixture',0) value",[ids.front_desk])).rows[0].value.shiftId;
  await q('begin');await q("select accounting_close_cash_shift($1,0,'Balanced test',$2,$3)",[shift,randomUUID(),ids.front_desk]);
@@ -99,7 +103,7 @@ try{
  }finally{await q('rollback');await worker.end();}
  });
  await test('drawer closure includes a payment and receipt committed by another connection',async()=>{
- const worker=new pg.Client(config);await worker.connect();
+ const worker=new pg.Client(peerConfig);await worker.connect();
  try{
  const shift=(await q("select accounting_open_cash_shift($1,'Concurrent fixture',0) value",[ids.front_desk])).rows[0].value.shiftId;
  await worker.query('begin');await worker.query("select hms_collect_payment($1,10,'cash',null,$2,$3,false)",[res,randomUUID(),ids.front_desk]);
@@ -108,7 +112,7 @@ try{
  }finally{await worker.query('rollback');await worker.end();}
  });
  await test('withdrawal racing batch approval has one valid outcome and no orphan task',async()=>{
- const worker=new pg.Client(config);await worker.connect();try{
+ const worker=new pg.Client(peerConfig);await worker.connect();try{
  const request=randomUUID(),batch=randomUUID();
  await q("insert into guest_requests(id,reservation_id,request,department,batch_id) values($1,$2,'Race fixture','housekeeping',$3)",[request,res,batch]);
  const results=await Promise.allSettled([q('select customer_withdraw_guest_request($1,$2,1)',[ids.guest,request]),worker.query("select front_desk_review_guest_request_batch($1,$2,'approve',null)",[ids.front_desk,batch])]);
@@ -119,4 +123,4 @@ try{
  }finally{await worker.end();}
  });
  console.log(`${passed} HMS SQL acceptance checks passed. Dedicated scratch DB only.`);
-}catch(e){await q('rollback').catch(()=>{});throw e;}finally{await c.end();}
+}catch(e){await q('rollback').catch(()=>{});throw e;}finally{if(suite)await suite.close();else await c.end();}

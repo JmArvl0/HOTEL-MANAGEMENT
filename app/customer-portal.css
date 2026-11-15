@@ -476,6 +476,15 @@
 .customer-shell .reservation-card-facts{display:flex;flex-wrap:wrap;gap:9px 18px}
 .customer-shell .reservation-card-facts span{display:inline-flex;align-items:center;gap:7px;color:var(--cp-muted);font-size:11px}
 .customer-shell .reservation-card-facts svg{flex:none;color:var(--cp-green)}
+.customer-shell .reservation-card-submission{margin:10px 0 0;color:var(--cp-text);font-size:12px}
+.customer-active-holds{margin:0 0 20px;padding:18px 20px;border:1px solid var(--cp-line);border-radius:12px;background:var(--cp-panel)}
+.customer-active-holds h2{margin:0;font:500 24px var(--font-display)}
+.customer-active-holds ul{margin:8px 0 0;padding:0;list-style:none}
+.customer-active-holds li{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:12px 0;border-top:1px solid var(--cp-line)}
+.customer-active-holds li:last-child{padding-bottom:0}
+.customer-active-holds h3{margin:0;font-size:15px}
+.customer-active-holds p{margin:5px 0 0;color:var(--cp-muted);font-size:13px}
+.customer-active-hold-actions{display:flex;flex-wrap:wrap;gap:8px}
 .customer-shell .reservation-card-finance{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:4px;padding:24px 26px;border-left:1px solid var(--cp-line);background:var(--cp-panel-2);text-align:right}
 .customer-shell .customer-reservation-card .reservation-card-finance small{color:var(--cp-muted);font-size:10px;text-transform:uppercase;letter-spacing:.8px}
 .customer-shell .customer-reservation-card .reservation-card-finance strong{margin-bottom:7px;font-size:22px}
@@ -645,22 +654,6 @@
    free space, the buttons hold the right edge. */
 .receipt-footer{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:10px;width:100%}
 .receipt-footer-note{margin-right:auto;font-size:12px;color:var(--cp-muted,#5b6472)}
-.receipt-download{position:relative}
-.receipt-download-menu{
-  position:absolute;bottom:calc(100% + 8px);right:0;z-index:10;
-  min-width:236px;padding:6px;display:flex;flex-direction:column;gap:2px;
-  background:var(--cp-panel,#fff);border:1px solid var(--cp-line,#d1d5db);
-  border-radius:10px;box-shadow:0 18px 40px rgba(20,45,35,.2);
-}
-.receipt-download-menu button{
-  display:flex;flex-direction:column;gap:2px;text-align:left;min-height:44px;
-  padding:10px 12px;border:0;border-radius:7px;background:transparent;cursor:pointer;
-  color:var(--cp-text,#111827);
-}
-.receipt-download-menu button:hover{background:var(--cp-panel-2,#f3f3f3)}
-.receipt-download-menu button:focus-visible{outline:2px solid var(--cp-green,#047857);outline-offset:-2px}
-.receipt-download-menu b{font-size:13px;font-weight:600}
-.receipt-download-menu small{font-size:11px;color:var(--cp-muted,#5b6472)}
 
 .receipt-state{display:flex;align-items:center;justify-content:center;gap:10px;padding:40px 0;color:var(--cp-muted,#5b6472);font-size:13px}
 .receipt-spin{animation:receiptSpin 1s linear infinite}

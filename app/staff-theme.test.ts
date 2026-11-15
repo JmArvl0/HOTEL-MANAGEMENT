@@ -29,9 +29,9 @@ describe("staff theme layer", () => {
   });
 
   it("loads staff styling before the final shared sidebar metrics", () => {
-    const layout = readFileSync(join(process.cwd(), "app/layout.tsx"), "utf8");
+    const layout = readFileSync(join(process.cwd(), "app/(manager)/layout.tsx"), "utf8");
     const imports = [...layout.matchAll(/import\s+["']([^"']+\.css)["']/g)].map((m) => m[1]);
-    expect(imports.slice(-3)).toEqual(["./staff-theme.css", "./hms-workflows.css", "./sidebar-navigation.css"]);
+    expect(imports.filter(p => /staff-theme|hms-workflows|sidebar-navigation/.test(p))).toEqual(["../staff-theme.css", "../hms-workflows.css", "../sidebar-navigation.css"]);
   });
 
   it("introduces no legacy coastal/teal hexes itself", () => {

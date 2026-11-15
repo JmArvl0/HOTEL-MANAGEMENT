@@ -152,7 +152,7 @@ export function LandingNav({ active, rootLinks = false, bookingHref, identity, c
   }, [open]);
 
   const brand = <Link href="/" className="brand brand-light" aria-label={`${identity?.name ?? "Haven Hotel"} home`}>
-    <span className="brand-mark" aria-hidden="true"><HavenLogo size={40} small={overHero} /></span>
+    <span className="brand-mark" aria-hidden="true"><HavenLogo size={40} /></span>
     <span>{identity?.shortName ?? "HAVEN"}<small>HOTEL &amp; RESIDENCES</small></span>
   </Link>;
 

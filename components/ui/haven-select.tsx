@@ -121,7 +121,8 @@ export function HavenSelect({
           if (disabled) return;
           if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); if (!open) setOpen(true); else move(e.key === "ArrowDown" ? 1 : -1); }
           else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (!open) setOpen(true); else if (activeIndex >= 0) commit(activeIndex); }
-          else if (e.key === "Escape" && open) { e.preventDefault(); setOpen(false); }
+          else if (e.key === "Escape" && open) { e.preventDefault(); e.stopPropagation(); setOpen(false); }
+          else if (e.key === "Tab" && open) { setOpen(false); }
           else if (e.key === "Home" && open) { e.preventDefault(); setActiveIndex(enabledIndices[0] ?? -1); }
           else if (e.key === "End" && open) { e.preventDefault(); setActiveIndex(enabledIndices[enabledIndices.length - 1] ?? -1); }
         }}
@@ -139,7 +140,7 @@ export function HavenSelect({
           aria-activedescendant={activeIndex >= 0 ? `${triggerId}-opt-${activeIndex}` : undefined}
           className="haven-select-menu"
           onKeyDown={(e) => {
-            if (e.key === "Escape") { e.preventDefault(); setOpen(false); triggerRef.current?.focus(); }
+            if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setOpen(false); triggerRef.current?.focus(); }
           }}
         >
           {groups

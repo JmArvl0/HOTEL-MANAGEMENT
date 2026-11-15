@@ -56,6 +56,7 @@ export type AskPromptOptions = Pick<
   | "cancelText"
   | "portal"
   | "headerVariant"
+  | "className"
 >;
 export type AskSelectOptions = Pick<
   SelectDialogProps,
@@ -69,6 +70,7 @@ export interface AskFormOptions {
   submitText?: string;
   cancelText?: string;
   size?: "sm" | "md" | "lg" | "xl" | "full";
+  className?: string;
 }
 export interface AskMultiStepOptions extends AskFormOptions {
   steps: { title: string; description?: string; fields: FormField[] }[];

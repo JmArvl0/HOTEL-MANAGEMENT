@@ -1,23 +1,91 @@
 "use client";
-import {useId,useRef,useState} from 'react';
-import {Check,ChevronDown,Search} from 'lucide-react';
-import './mobile-number-field.css';
-const countries=[['PH','Philippines','63'],['AU','Australia','61'],['CA','Canada','1'],['JP','Japan','81'],['SG','Singapore','65'],['AE','United Arab Emirates','971'],['GB','United Kingdom','44'],['US','United States','1']];
-function parse(raw:string,selected='PH'){
- let digits=raw.replace(/\D/g,'');let country=countries.find(c=>c[0]===selected)!;
- if(raw.trim().startsWith('+')||raw.trim().startsWith('00')){if(raw.trim().startsWith('00'))digits=digits.slice(2);const matches=countries.filter(c=>digits.startsWith(c[2])).sort((a,b)=>b[2].length-a[2].length);const match=matches.find(c=>c[0]===selected)||matches.find(c=>c[0]==='US')||matches[0];if(match){country=match;digits=digits.slice(match[2].length)}}
- else if(country[0]==='PH'&&digits.startsWith('63')&&digits.length>=12)digits=digits.slice(2);
- if(country[0]==='PH'&&digits.startsWith('0'))digits=digits.slice(1);
- return {country,digits};
+import { useId, useRef, useState } from "react";
+import { Check, ChevronDown, Globe2, Search } from "lucide-react";
+import { normalizePhone } from "@/lib/input-validation";
+import "./mobile-number-field.css";
+
+const countries = [
+  ["PH", "Philippines", "63"], ["AU", "Australia", "61"], ["CA", "Canada", "1"], ["JP", "Japan", "81"],
+  ["SG", "Singapore", "65"], ["AE", "United Arab Emirates", "971"], ["GB", "United Kingdom", "44"], ["US", "United States", "1"],
+] as const;
+type Country = (typeof countries)[number];
+
+function parse(raw: string, selected: Country = countries[0]) {
+  const value = raw.trim();
+  const explicit = value.startsWith("+") || value.startsWith("00");
+  const cleanInternational = value.replace(/^00/, "+");
+  if (explicit && /^\+[0-9 ().-]*$/.test(cleanInternational)) {
+    const digits = cleanInternational.replace(/\D/g, "");
+    const match = [selected, ...countries].find(country => digits.startsWith(country[2]));
+    return match ? { country: match, text: digits.slice(match[2].length), international: false }
+      : { country: selected, text: cleanInternational, international: true };
+  }
+  if (explicit) return { country: selected, text: cleanInternational, international: true };
+  if (selected[0] === "PH" && /^639[0-9]{9}$/.test(value.replace(/[ ().-]/g, ""))) {
+    return { country: selected, text: value.replace(/[ ().-]/g, "").slice(2), international: false };
+  }
+  const text = selected[0] === "PH" && /^0?9[0-9 ()-]*$/.test(value) ? value.replace(/^0/, "") : raw;
+  return { country: selected, text, international: false };
 }
-export function MobileNumberField({name,defaultValue='',className=''}:{name:string;defaultValue?:string;className?:string}){
- const id=useId();const initial=parse(defaultValue);const [selected,setSelected]=useState(initial.country);const [digits,setDigits]=useState(initial.digits);const [open,setOpen]=useState(false);const [query,setQuery]=useState('');const [touched,setTouched]=useState(false);const root=useRef<HTMLDivElement>(null);const trigger=useRef<HTMLButtonElement>(null);
- const message=!digits?'Enter your mobile number.':selected[0]==='PH'&&digits.length!==10?'Enter 10 digits after +63, for example 917 000 0000.':digits.length<7||digits.length+selected[2].length>15?'Check the number for your country.':'';
- return <div className={`mobile-number-field ${className}`} ref={root} onBlur={e=>{if(!e.currentTarget.contains(e.relatedTarget as Node))setOpen(false)}}>
- <label htmlFor={id}>Mobile number</label><div className="mobile-number-control"><button ref={trigger} type="button" aria-label={`Country calling code, ${selected[1]} (+${selected[2]})`} aria-expanded={open} aria-controls={`${id}-countries`} onClick={()=>{setOpen(!open);setQuery('')}}><Flag code={selected[0]}/><span>+{selected[2]}</span><ChevronDown size={13}/></button>
- <input id={id} type="tel" inputMode="tel" autoComplete="tel-national" required maxLength={30} value={selected[0]==='PH'&&digits.length===10?`${digits.slice(0,3)} ${digits.slice(3,6)} ${digits.slice(6)}`:digits} placeholder="917 000 0000" aria-describedby={`${id}-hint`} aria-invalid={touched&&!!message} ref={node=>{node?.setCustomValidity(message)}} onInvalid={()=>setTouched(true)} onBlur={()=>setTouched(true)} onChange={e=>{const next=parse(e.target.value,selected[0]);setSelected(next.country);setDigits(next.digits)}}/><input type="hidden" name={name} value={digits?`+${selected[2]}${digits}`:''}/>
- {open&&<div className="mobile-country-picker" id={`${id}-countries`} onKeyDown={e=>{if(e.key==='Escape'){setOpen(false);trigger.current?.focus()}}}><label className="mobile-country-search"><Search size={16}/><input autoFocus type="search" aria-label="Search countries" placeholder="Search country or code" value={query} onChange={e=>setQuery(e.target.value)}/></label><div className="mobile-country-options">{countries.filter(c=>c.join(' ').toLowerCase().includes(query.toLowerCase().replace('+',''))).map(c=><button key={c[0]} type="button" aria-pressed={selected[0]===c[0]} onPointerDown={e=>e.preventDefault()} onClick={()=>{setSelected(c);setOpen(false);trigger.current?.focus()}}><Flag code={c[0]}/><span>{c[1]}</span><small>+{c[2]}</small>{selected[0]===c[0]&&<Check size={14}/>}</button>)}{!countries.some(c=>c.join(' ').toLowerCase().includes(query.toLowerCase().replace('+','')))&&<p>No matching countries.</p>}</div></div>}
- </div><small id={`${id}-hint`}>{touched&&message?message:'For reservation and arrival coordination.'}</small></div>;
+
+export function MobileNumberField({ name, defaultValue = "", className = "", error, errorId }: {
+  name: string; defaultValue?: string; className?: string; error?: string; errorId?: string;
+}) {
+  const id = useId();
+  const [number, setNumber] = useState(() => parse(defaultValue));
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [touched, setTouched] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const { country, text, international } = number;
+  const candidate = international ? text : `+${country[2]}${text}`;
+  const canonical = text ? normalizePhone(candidate) : null;
+  const validity = !text ? "Enter your mobile number." : !canonical ? "Check the number and country code." : "";
+  const visibleError = error || (touched ? validity : "");
+  const matching = countries.filter(item => item.join(" ").toLowerCase().includes(query.toLowerCase().replace("+", "")));
+
+  return <div className={`mobile-number-field ${className}`} onBlur={event => {
+    if (!event.currentTarget.contains(event.relatedTarget as Node)) setOpen(false);
+  }}>
+    <label htmlFor={id}>Mobile number</label>
+    <div className="mobile-number-control">
+      <button ref={trigger} type="button" aria-label={international ? "Country calling code, other international number"
+        : `Country calling code, ${country[1]} (+${country[2]})`} aria-expanded={open} aria-controls={`${id}-countries`}
+        onClick={() => { setOpen(!open); setQuery(""); }}>
+        {international ? <Globe2 size={18} aria-hidden="true" /> : <><Flag code={country[0]} /><span>+{country[2]}</span></>}
+        <ChevronDown size={13} aria-hidden="true"/>
+      </button>
+      <input id={id} type="tel" inputMode="tel" autoComplete={international ? "tel" : "tel-national"} required maxLength={40}
+        data-error-field={name} value={text} placeholder={international ? "+49 151 2345 6789" : "917 000 0000"}
+        aria-describedby={`${id}-hint${error && errorId ? " " + errorId : ""}`} aria-invalid={Boolean(visibleError) || undefined}
+        ref={node => node?.setCustomValidity(validity)} onInvalid={() => setTouched(true)} onBlur={() => setTouched(true)}
+        onChange={event => setNumber(parse(event.target.value, country))} />
+      <input type="hidden" name={name} value={canonical ?? ""} />
+      {open && <div className="mobile-country-picker" id={`${id}-countries`} onKeyDown={event => {
+        if (event.key === "Escape") { setOpen(false); trigger.current?.focus(); }
+      }}>
+        <label className="mobile-country-search"><Search size={16}/><input autoFocus type="search" aria-label="Search countries"
+          placeholder="Search country or code" value={query} onChange={event => setQuery(event.target.value)} /></label>
+        <div className="mobile-country-options">
+          {matching.map(item => <button key={item[0]} type="button" aria-pressed={!international && country[0] === item[0]}
+            onPointerDown={event => event.preventDefault()} onClick={() => {
+              setNumber(parse(international ? "" : text, item)); setOpen(false); trigger.current?.focus();
+            }}><Flag code={item[0]}/><span>{item[1]}</span><small>+{item[2]}</small>
+            {!international && country[0] === item[0] && <Check size={14}/>}
+          </button>)}
+          <button type="button" aria-pressed={international} onPointerDown={event => event.preventDefault()} onClick={() => {
+            setNumber({ country, text: international ? text : "+", international: true });
+            setOpen(false); document.getElementById(id)?.focus();
+          }}><Globe2 size={18}/><span>Other international number</span></button>
+        </div>
+      </div>}
+    </div>
+    <small id={`${id}-hint`}>{!error && visibleError ? visibleError : international ? "Enter the full number with its country code." : "For reservation and arrival coordination."}</small>
+    {error && errorId && <small className="form-field-error" id={errorId}>{error}</small>}
+  </div>;
 }
-// eslint-disable-next-line @next/next/no-img-element -- local SVG flag icons
-function Flag({code}:{code:string}){return <img src={`/flags/${code.toLowerCase()}.svg`} width={24} height={18} alt=""/>}
+
+function Flag({ code }: { code: string }) {
+  // eslint-disable-next-line @next/next/no-img-element -- local flag icons
+  return <img src={`/flags/${code.toLowerCase()}.svg`} width={24} height={18} alt="" />;
+}

@@ -231,6 +231,61 @@ body:has(.dialog-backdrop) {
   color: var(--modal-header-branded-muted, #93a0b4);
 }
 
+.hk-action-dialog .checkbox-option {
+  color: var(--st-text-primary);
+  background: var(--st-bg-surface-subtle);
+  border-color: var(--st-border-color);
+}
+
+.hk-action-dialog .checkbox-option:hover {
+  background: var(--st-bg-surface-hover);
+}
+
+@media (max-width: 680px) {
+  .dialog.hk-action-dialog {
+    padding-inline: 12px;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .hk-action-dialog .modal-content {
+    max-height: calc(100dvh - 24px - env(safe-area-inset-bottom));
+  }
+
+  .hk-action-dialog .modal-header {
+    padding: 16px 20px;
+  }
+
+  .hk-action-dialog .modal-close {
+    width: 44px;
+    height: 44px;
+  }
+
+  .hk-action-dialog .form-dialog {
+    gap: 8px;
+  }
+
+  .hk-action-dialog .checkbox-option {
+    min-height: 44px;
+  }
+
+  .app-shell .hk-action-dialog :is(.form-actions, .prompt-actions) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .app-shell .hk-action-dialog :is(.form-actions, .prompt-actions) .btn {
+    width: 100%;
+    min-height: 44px;
+    padding-inline: 8px;
+    white-space: normal;
+  }
+
+  .app-shell .hk-action-dialog .modal-content :is(textarea, select, input.form-input, .prompt-input) {
+    font-size: 16px;
+  }
+}
+
 .modal-branded .modal-close {
   border-color: var(--modal-header-branded-close-border, rgba(255, 255, 255, 0.17));
   background: var(--modal-header-branded-close-bg, rgba(255, 255, 255, 0.05));

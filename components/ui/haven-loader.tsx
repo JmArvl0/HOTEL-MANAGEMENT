@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Sparkles } from "lucide-react";
+import { HavenLogo } from "./haven-logo";
 import "./haven-loader.css";
 
 type Variant = "fullscreen" | "inline";
@@ -49,7 +49,7 @@ export function HavenLoader({
           <span className="haven-loader__ring" />
           <span className="haven-loader__ring haven-loader__ring--gold" />
           <span className="haven-loader__core">
-            <Sparkles size={18} />
+            <HavenLogo size={44} />
           </span>
           <span className="haven-loader__orbit" />
         </div>

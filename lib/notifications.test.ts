@@ -7,6 +7,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { type FakeDb } from "@/lib/fake-supabase";
 
 const fake = vi.hoisted(() => ({ db: {} as Record<string, Record<string, unknown>[]> }));
+vi.mock("@/lib/guest-email-delivery", () => ({
+  deliverGuestEmail: async (_key: string, message: { to: string; subject: string; html: string }) => {
+    const { sendEmail } = await import("@/lib/email");
+    return (await sendEmail(message)).ok ? "sent" : "error";
+  },
+}));
 vi.mock("@/lib/supabase", async () => {
   const { fakeSupabase: make } = await import("@/lib/fake-supabase");
   return { supabase: make(fake.db as FakeDb) };
@@ -107,7 +113,7 @@ describe("notifyWithOptionalEmail", () => {
 
   it("sends the email copy when configured, and skips silently without an address", async () => {
     process.env.RESEND_API_KEY = "re_test_key";
-    fetchMock.mockResolvedValue({ ok: true });
+    fetchMock.mockResolvedValue(Response.json({ id: "fixture-receipt" }));
     await notifyWithOptionalEmail({ userId: A, type: "deposit_rejected", title: "t" }, "guest@example.test", { subject: "s", heading: "h", bodyHtml: "<p>b</p>" });
     expect(fake.db.notifications).toHaveLength(1);
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -154,9 +160,9 @@ describe("sendEmail (lib/email)", () => {
   it("sends to the configured sender and never leaks the key in the response", async () => {
     process.env.RESEND_API_KEY = "re_secret_key";
     process.env.RESEND_FROM = "Haven <noreply@haven.example>";
-    fetchMock.mockResolvedValue({ ok: true });
+    fetchMock.mockResolvedValue(Response.json({ id: "fixture-receipt" }));
     const result = await sendEmail({ to: "x@example.test", subject: "s", html: "" });
-    expect(result).toEqual({ ok: true });
+    expect(result).toEqual({ ok: true, providerId: "fixture-receipt" });
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe("https://api.resend.com/emails");
     expect(init.headers.authorization).toBe("Bearer re_secret_key");

@@ -19,7 +19,9 @@ describe("shared profile popover wiring", () => {
     expect(read(file)).not.toContain('popover-gap"><div className="profile-popover">');
   });
 
-  it("loads the popover stylesheet from the root layout", () => {
-    expect(read("app/layout.tsx")).toContain('components/ui/profile-popover.css');
+  it("loads the popover stylesheet with staff and customer shells", () => {
+    expect(read("app/(manager)/layout.tsx")).toContain('components/ui/profile-popover.css');
+    expect(read("components/customer/customer-shell.tsx")).toContain('components/ui/profile-popover.css');
+    expect(read("app/layout.tsx")).not.toContain('components/ui/profile-popover.css');
   });
 });

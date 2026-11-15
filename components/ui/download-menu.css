@@ -1,0 +1,23 @@
+.download-menu { min-width: 0; max-width: 100%; }
+.download-menu .haven-select { width: 100%; }
+.download-menu .haven-select-trigger { width: 100%; min-height: 44px; }
+.download-menu .haven-select-value.is-placeholder { color: inherit; }
+.download-menu .haven-select-menu { left: auto; right: 0; min-width: max(100%, 10rem); }
+.download-menu-start .haven-select-menu { left: 0; right: auto; }
+.download-menu-up .haven-select-menu { top: auto; bottom: calc(100% + 5px); }
+.download-menu .haven-select-item { min-height: 44px; }
+.download-menu-feedback { display: block; max-width: 15rem; font-size: .8125rem; line-height: 1.4; }
+.download-menu-feedback:not(:empty) { margin-top: 6px; }
+.download-menu-feedback[role="alert"] { color: var(--select-error, #b91c1c); }
+
+@media (max-width: 560px) {
+  .download-menu { min-width: min(100%, 9rem); }
+  .download-menu .haven-select { display: flex; flex-direction: column; gap: 4px; }
+  .download-menu .haven-select-menu { position: static; width: 100%; min-width: 0; box-shadow: none; }
+  .download-menu .haven-select-label { white-space: normal; }
+  .download-menu-feedback { max-width: none; }
+}
+
+@media print {
+  .download-menu { display: none !important; }
+}

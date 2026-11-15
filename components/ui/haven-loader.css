@@ -69,6 +69,8 @@
 .haven-loader--inline .haven-loader__core{
   background:#fff; border-color:#d1d5db; color:#111827;
 }
+.haven-loader__core:has(.haven-logo-tile){width:54px;height:54px;background:transparent;border:0;backdrop-filter:none}
+.haven-loader--fullscreen .haven-logo-mark img{filter:grayscale(1) invert(1) sepia(1) saturate(1.6) brightness(.93)}
 .haven-loader__ring{
   position:absolute; inset:0;
   border-radius:999px;

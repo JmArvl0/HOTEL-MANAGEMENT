@@ -18,13 +18,15 @@ describe('Mobile number country field',()=>{
   fireEvent.change(screen.getByRole('searchbox'),{target:{value:'Singapore'}});
   fireEvent.click(screen.getByRole('button',{name:/Singapore/}));
   expect(screen.getByRole('button',{name:'Country calling code, Singapore (+65)'})).toBeTruthy();
-  expect((container.querySelector('[name=phone]') as HTMLInputElement).value).toBe('+659170000000');
+  expect((container.querySelector('[name=phone]') as HTMLInputElement).value).toBe('');
+  fireEvent.change(screen.getByLabelText('Mobile number'),{target:{value:'81234567'}});
+  expect((container.querySelector('[name=phone]') as HTMLInputElement).value).toBe('+6581234567');
   expect(container.querySelector('img')?.getAttribute('src')).toBe('/flags/sg.svg');
  });
  it('rejects an incomplete PH number and allows the complete number',()=>{
   render(<MobileNumberField name="phone"/>);const input=screen.getByLabelText('Mobile number') as HTMLInputElement;
   fireEvent.change(input,{target:{value:'917'}});fireEvent.blur(input);
-  expect(input.checkValidity()).toBe(false);expect(screen.getByText(/Enter 10 digits/)).toBeTruthy();
+  expect(input.checkValidity()).toBe(false);expect(screen.getByText(/Check the number/)).toBeTruthy();
   fireEvent.change(input,{target:{value:'9170000000'}});expect(input.checkValidity()).toBe(true);
  });
 });
