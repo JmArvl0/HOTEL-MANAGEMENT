@@ -1,7 +1,41 @@
 # Xendit sandbox reservation payments
 
-**TEST MODE ONLY**. No real wallet deductions are permitted.
+Implemented locally, **TEST MODE ONLY**. No real wallet deductions are permitted.
 The existing manual GCash and PayMongo history remain supported. Fleet code is unchanged.
+
+## Latest local and hosted verification — November 14, 2026
+
+The ignored local environment now has a validated Test Mode key, webhook token
+and HTTPS return origin. Both local and hosted webhooks accepted the configured
+token and safely ignored an unmatched health-check reference. Both Xendit
+migrations and the earlier Xendit application release are already hosted.
+
+Two new checkouts were created through the local app using a dedicated synthetic
+QA guest. The user completed both provider simulators. Independent provider reads
+and the existing webhook-driven records show:
+
+| Wallet / choice | Reservation | Verified paid | Balance | State |
+| --- | --- | ---: | ---: | --- |
+| GCash deposit | RSV-0D58789C | ₱3,840 | ₱8,960 | Confirmed |
+| Maya full payment | RSV-C843202B | ₱12,800 | ₱0 | Confirmed |
+
+Retry reopened each existing session with one deposit row. Both confirmations,
+reservation details, paid receipts and read-only cancellation previews were
+accessible through the actual QA guest's authenticated local session. No real
+wallet payment was made and neither booking was cancelled.
+
+For this local check, APP_BASE_URL points to the existing hosted HTTPS origin.
+After checkout the browser therefore returns to the hosted site. It must be
+signed in there as the same guest that owns the booking; another guest correctly
+cannot open that reservation. For a fully local end-to-end return, use a public
+HTTPS tunnel to the local app and align the auth origin with that tunnel.
+Never disable ownership checks or treat a return URL as proof of payment.
+
+The scoped guest redesign and account-switch recovery are now deployed as
+commit0f81105 after explicit user approval. Vercel reports success; both hosted
+confirmed bookings, receipts and account-access checks passed on the new release.
+Final visual browser checks remain separate from HTTP/provider/database evidence.
+Earlier setup and implementation records below are historical checkpoints.
 
 ## What you must configure later
 
@@ -39,9 +73,9 @@ Neither URL changes payment status. Only the authenticated webhook, cross-checke
 
 ## Database rollout
 
-Apply `supabase/migrations/20261114010000_xendit_sandbox_sessions.sql` before `supabase/migrations/20261114020000_xendit_payment_choice.sql`. Both migrations are additive. Check the current hosted ledger at rollout. Both migrations were applied to hosted Supabase on November 14, 2026.
+Apply `supabase/migrations/20261114010000_xendit_sandbox_sessions.sql` before `supabase/migrations/20261114020000_xendit_payment_choice.sql`. Both migrations are additive. Check the current hosted ledger at rollout. The Xendit migrations and app changes are local.
 
-Review the target ledger and `supabase db push --dry-run` before rollout, then use the official **`supabase db push`** workflow. Use the release branch and review the pending migration list before applying a database change. Use the repository's isolated/scoped CLI release procedure for the agreed app/schema baseline. Never run `npm run migrate`. Deploy the compatible app and schema together; verify PostgREST sees the new RPCs.
+Review the target ledger and `supabase db push --dry-run` before rollout, then use the official **`supabase db push`** workflow. The working tree contains other unapplied feature migrations, including breakfast: do not accidentally apply every pending migration. Use the repository's isolated/scoped CLI release procedure for the agreed app/schema baseline. Never run `npm run migrate`. Deploy the compatible app and schema together; verify PostgREST sees the new RPCs.
 
 The migration reuses `payments`, `reservations`, `invoices`, `booking_holds`, and immutable audit logs. It adds provider reference, checkout URL, expiry, creation-claim time, transaction ID, requested/actual channel and update time. Session IDs use the existing `gateway_reference_id`; paid time uses `verified_at`. Provider reference and external transaction IDs have uniqueness constraints. Existing payment states are reused: `pending_verification`, `paid`, `failed`, `expired`; no duplicate payment-status enum is introduced.
 
