@@ -4,6 +4,198 @@ The source-of-truth reference for the shipped UI. **Do not apply
 `design-system/haven-hotel/MASTER.md`** — it is superseded (see `DESIGN-STATUS.md` F2).
 This doc and `app/ui-primitives.css` are the current system.
 
+**Guest My Stay (2026-11-14, local).** The guest account uses warm ivory, navy ink
+and restrained brass accents. Compact page headings replace the navy banners.
+One photo-led booking surface carries the actual room, dates, guests, booking
+progress, next action, verified payments and saved preferences. Small linked rows
+replace repeated empty metric cards. Controls retain the shared six-pixel radius
+and 44px touch floor; room/card frames use 12px. The guest theme is scoped in
+`components/customer/my-stay.css`; semantic status colors remain independent.
+Narrow layouts stack the room/photo, use a two-column booking timeline and
+stack the next action and supporting sections. Guest detail forms stack their
+summary below the form at 1100px and optional requests/transport use disclosures.
+Booking-related auth shows the room photo and summary on desktop and a compact
+summary on mobile. Search and exact-room browsing use compact controls and
+deposit estimates; the hold remains the pricing authority.
+Desktop account and narrow hold/recovery renders were inspected. Final stay-guide,
+auth, dark-mode and full mobile-matrix visual QA remain pending after browser
+control became unavailable.
+
+**Reservation checkout (2026-11-14, local).** The Xendit payment step follows the
+user's supplied two-column checkout reference and Stripe's published payment
+selector examples: a rounded Haven canvas, two logo-led GCash/Maya rows, an
+explicit selected state, exact deposit and a wallet-specific continue action.
+The existing authoritative stay summary appears alongside it at desktop widths,
+with its room photo, dates, guests, total, deposit and remaining balance. Below
+900px it stacks beneath the controls. Official locally stored wallet wordmarks,
+native keyboard radios, 78px choice rows and a 48px action preserve usability.
+Peso values never split across lines. The surface consumes the customer light/
+dark tokens; sandbox labeling stays visible and no wallet/card credentials are
+collected on Haven. Styles are confined to Xendit and its payment-stage class.
+
+**Forgot password in sign-in (2026-11-13).** The login page swaps its form
+for the email/code/reset-link states through `?view=forgot-password`, retaining
+the photo, brand, header and compact policy footer. Back to sign in replaces the
+account tabs and preserves the callback/booking intent. Essential recovery copy
+sits outside the optional short-window description. Existing `/forgot-password`
+links redirect here. Browser fit and switch/return pass at desktop 1366×768,
+the default narrow preview and 320×568. Live email/recovery completion was not tested.
+
+**Account screen fit and logo (2026-11-13, local).** Login and registration
+use dynamic viewport spacing, paired name/password fields, a compact policy
+footer and one account-access tab row. The photo/story stays alongside the
+desktop form and is omitted at 900px and below; the narrow header carries the same
+transparent logo as the landing page. Short windows reduce optional supporting
+copy before reducing usable control sizes; targets remain at least 44px and
+inputs 16px. Errors, zoom and expanded booking context retain natural scrolling.
+The shared logo, loading mark, app header and browser icon use the cropped
+landing asset without a white tile. Rendered screen-fit QA remains pending.
+
+**Homepage scroll reveals (2026-11-13).** Below the hero, room cards, section
+headings and the amenities, location, FAQ and closing content enter once with
+a 900ms fade and 6px rise using the shared premium easing. The observer starts
+just before the viewport edge to avoid a visible reset. Gallery retains
+its own entrance. `HotelScrollReveal` observes section content within the
+existing main element, including streamed Location content. Content is visible
+by default. Reduced motion skips the effect and keyboard focus cancels an
+active entrance. Initially visible content appears immediately.
+
+**Breakfast pass (2026-11-13, local).** The guest reservation links to a dated
+breakfast pass. The forest and ivory ticket presents venue, hours, covered guests,
+current usage and the QR. The optional Download pass image action generates a
+separate PNG with the same date and QR. The image presents the booked allowance.
+Front Desk and Manager use a small service form with code entry or local PNG
+reading and a distinct confirmation for recording meals.
+
+**Homepage first screen (2026-11-13).** The photographic hero and Plan your
+stay form share a stage at least one viewport tall. The hero fills the space
+above the form. Rooms & suites and its decorative arch begin after this stage.
+Narrow layouts let the stage grow with the booking form. The live snapshot
+appears on the dedicated booking policy page, accessible from the footer.
+
+**Booking policy (2026-11-13).** The supplied reference extends the existing
+ivory/navy/gold Inter/Playfair system: centered title and italic subtitle,
+four-item snapshot, 250px overview sidebar, open editorial policy sections,
+thin gold dividers and a bell/flowers support panel. The screen-fit follow-up
+uses height-aware spacing/type and a compact footer. The follow-up removes
+Quick links and consolidates the three public policy links into one Booking
+policy destination in the footer. At-a-glance
+facts now use the freed sidebar space; short windows omit the repeated intro.
+All three sections fit the tested desktop/laptop windows.
+At 1100px and below, three keyboard-accessible tabs replace the section jump;
+the snapshot stays two columns and the repeated sidebar is omitted. The current
+631px-wide preview fits every tab without scrolling. Small phones/long content
+retain natural scrolling and 16px policy text. Decorative leaves are reused; the
+new still life has generation provenance in `public/decor/README.md`.
+Focus rings and reduced-motion feedback remain explicit. See
+`docs/qa/booking-policy-links-2026-11-13.md` and the screen-fit QA.
+
+**Amenities & dining (2026-11-12).** The supplied reference owns this section:
+centered Playfair heading, sprout divider, ivory/navy/gold palette, subtle
+botanical artwork and wave linework. Arrow-free facility cards use a growing
+two-column grid, stacking on phones; the forest-green dining photo card stays
+top-aligned on desktop and follows the facilities on narrower screens. The
+homepage section fills one viewport below the fixed nav, using height-aware
+heading/card spacing. Short screens omit the optional flourish, dining icon
+and, when needed, subtitle. Extra/long desktop facilities scroll within their
+pane; tablets/phones scroll the combined content below the section heading.
+The complete copy remains accessible by keyboard and native touch. Clicking
+Amenities resets the content panes and keeps its nav underline. The
+first eight enabled facilities are followed by a native View all disclosure
+when needed. Full availability/fee descriptions remain readable without text
+clamping. Dining imagery has a layered legibility scrim, and time values keep
+their AM/PM together. The optional demo art is disclosed. The same component
+fits the editor preview using container queries. See
+`docs/qa/amenities-dining-2026-11-12.md` and
+`docs/qa/amenities-screen-fit-2026-11-12.md`.
+
+**Public navigation (2026-11-12).** A single gold underline moves to the
+current section during page scrolling and anchor navigation. Desktop includes
+FAQ; the drawer uses the same current-location state. The demo omits its
+duplicate Contact shortcut. A navy Top button appears after scrolling and
+returns focus to the brand, with instant scrolling for reduced motion. All
+homepage nav targets reserve the header once through the root scroll padding.
+The homepage header pairs its section links with Log in or My account. Plan
+your stay carries the primary Check availability button.
+
+**Before you arrive FAQ (2026-11-12).** The supplied reference is adapted to
+the existing ivory canvas, with a centered Playfair heading, gold sprout divider,
+botanical shadow, doorway outline and two closing wave lines. Gold icon shortcuts
+open and focus native FAQ disclosures without filtering questions. The wide
+accordion and compact support strip use Inter, visible focus and reduced-motion
+fallbacks. Shortcuts scroll horizontally on phones; support actions stack.
+The Contact Front Desk and Email us actions use the configurable Website Content
+phone/email in both client and demo modes. Demo contacts are mock values, as
+explicitly requested by the user.
+
+**Homepage arrival and labels (2026-11-12).** The homepage skips the timed
+startup splash. The hero copy is readable before client hydration and uses a
+short position transition when motion is allowed. Booking labels use sentence
+case, and the affected room, gallery and location labels use at least 13px.
+The compact Rooms layout recovers space around the labels and actions.
+The homepage goes directly from the hero/booking panel to Rooms & suites;
+the former Make yourself at home introduction is removed. Rooms & suites and
+Amenities & dining center both their headings and supporting copy.
+
+**Public website backgrounds (2026-11-12).** The hero wave, homepage sections,
+full gallery and public policy pages use the same warm ivory canvas. Brass
+doorway outlines frame the room and gallery photography. Gallery linework can
+cross section boundaries while the carousel stays clipped horizontally. The
+closing availability panel overlaps the navy footer, echoing the hero booking
+bar. Background accents are decorative and never capture pointer events.
+
+**Location section (2026-11-12).** The supplied reference owns this scoped
+ivory/green/gold editorial layout: centered Inter/Playfair header, a 1.52:1
+photo/map pair, gold arc/chips/directions CTA and three photo-led highlights.
+The map fills its entire rounded card; the user removed the address/action
+footer. The homepage overview fits the viewport below the fixed header, sharing
+the remaining height between the photo/map and highlights. The main pair stays
+side by side above680px and stacks on phones; below1100px highlights use native
+horizontal snap scrolling. Compact screens omit optional chips/subtitle, while
+expanded photo notes and very short windows use normal page flow.
+The photo layers share a grid and use
+`overflow:clip`, preventing its oversized decorative arc from creating a
+scrollable card when links receive keyboard focus. Saved property images,
+client copy, native map controls and the full searchable guide remain connected.
+A centered Explore Nearby Places button opens the ivory full-screen guide.
+Desktop pairs a live area map with photo cards and a scrollable results pane.
+Phones lead with the list and use a bottom View map / View list action. The
+close control and Escape restore focus to the homepage button. Place cards with
+map targets show a Show on map action, use a gold outline when selected, and
+switch to the focused map on phones. Map reset restores the area overview.
+See `docs/qa/location-reference-2026-11-12.md` and
+`docs/qa/location-screen-fit-2026-11-12.md`.
+
+**Inside Haven gallery (2026-11-12).** The public gallery follows the supplied
+ivory/navy/gold reference: a 66% featured photo with side previews, category
+pills, five thumbnails and position controls, restrained wave linework and a
+centered full-gallery action. Exterior is selected first. The homepage gallery
+fits one viewport beneath the fixed nav; the image takes the remaining height
+after the heading and controls. At tablet widths the peeks narrow; phones use a
+taller central image, scrolling filters/thumbnails and swipe. Short phones omit
+the optional flourish/thumbnails; short landscape windows use normal page flow.
+See full gallery opens a full-screen overlay over the homepage. All Photos is
+selected initially, with three columns sized to show the nine demo photos
+together on common desktop and phone screens. The grid scrolls when more space
+is needed, and the close control stays visible. Category filters narrow the
+collection. A selected tile opens the uncropped photo viewer. Photo credits,
+Inter/Playfair, 44px controls, keyboard navigation, reduced motion and
+the focus-contained full-screen viewer are part of the component. The untouched
+fictional seed uses disclosed local concepts; edited/published client galleries
+use CMS photos, categories and supporting captions. See
+`docs/qa/landing-gallery-2026-11-12.md` and
+`docs/qa/full-gallery-grid-2026-11-12.md`.
+
+**Public hotel and Website Content (2026-11-11).** The hero places Playfair
+display copy over a representative photo. The light Inter booking form sits
+below the image. Its native dialog presents a date range without clipping, and
+the room cards retain the search intent. Location now follows the supplied
+photo/map/highlights reference described above. The account handoff
+places the room, dates and party size above the form, with secondary details in a
+disclosure. Owner/Admin Website Content pairs editor fields with a guest preview
+and shows the published and saved values side by side before publication. See
+`docs/qa/landing-audit-implementation-2026-11-11.md`.
+
 **Front Office workspaces (2026-11-04):** Separate Room Management, Reservations
 and Guest Management navigation entries. Room Management defaults to a full-width
 seven-day room/guest calendar, with Cards as an alternate format. Its room column
@@ -237,9 +429,8 @@ button is removed, with balanced paper padding below Total. Proof content expand
 scroll region. No scale transforms. Values remain live. The common title is
 Payment Details; Purpose distinguishes the payment type. The same detail-row
 component renders both sections. Deposits include Expected Deposit and over/under
-comparison. Pending records get review actions only when the caller has Accounting
-authority; these actions stay in a fixed footer. Gateway payments never offer manual
-confirmation. Other viewers and settled records use the same receipt in read-only mode.
+comparison. Payment Details is a read-only record. Pending Xendit payments show
+provider settlement status. Legacy manual submissions show their recorded status and proof.
 
 - `.form-actions` / `.multistep-actions` right-align with a 10px gap; the multi-step **Back** button
   sits alone on the left, Cancel + primary hug the right. No spacer elements — the old
@@ -256,6 +447,33 @@ confirmation. Other viewers and settled records use the same receipt in read-onl
   under `prefers-reduced-motion` (`responsive.css`).
 
 ## 8. Public booking search
+
+**Approved prototype implementation (2026-11-11):** Room-type selection opens a
+dedicated numbered-room page, preserving the neutral Inter/Playfair Haven identity.
+Three desktop room columns collapse to two at900 and one at480. Unavailable rooms
+remain gray, last and unbookable; details and full-photo access remain available.
+The account page carries the selected room beside sign-in/create account, stacking
+at900. Guest/review/payment/confirmation retain room identity. A shared searchable
+flag/calling-code mobile input defaults toPH+63 and preserves the normalized number
+in form submission. A keyboard-focusable range calendar supplements the editable
+stay dates. These are real catalog/availability screens, not the static sample data.
+Browser visual verification is pending; see the feature QA report.
+
+**Landing Featured Stays (approved 2026-11-07):** The supplied reference and
+reviewed prototype replace the horizontal four-card track with a two-column,
+two-row comparison for the four current active room types. Each white rounded
+card pairs 46% photography with 54% details: display heading, room facts,
+description, up to four warm neutral amenity chips, three image-selection
+thumbnails and the base-rate/Explore room row. Catalog content and photo order
+are admin-managed. The shared full-photo viewer shows uncropped room/bathroom
+images and the rest of a longer gallery. Above 900px the four desktop types fit
+the 2×2 comparison beneath the nav. At 681–900px the cards use two columns with
+photography above details. At 680px and below they form one vertical column.
+The section grows with its cards using normal page scrolling. Full descriptions,
+amenities, thumbnails and booking actions have natural space, with 16px description
+text. Extra desktop types remain scrollable inside the region; short desktop
+landscape/zoomed windows use normal flow. All image controls have visible focus
+and 44px minimum targets.
 
 The public room-discovery route (`/booking/search`) extends the landing-page identity instead of introducing a separate booking brand.
 
@@ -377,8 +595,8 @@ operations-report review (`FrontDeskReportsPanel`) renders below it as a
 visually distinct second workflow, never a competing page header.
 
 - **Header + decision KPIs.** One `page-title` row (eyebrow, title, plain-language
-  subtitle, `window.print()` Export — the single print entry point on this
-  surface) followed by exactly three KPI cards: money (role-aware label/figure),
+  subtitle, and the shared Download menu with Print / Save as PDF) followed by
+  exactly three KPI cards: money (role-aware label/figure),
   average occupancy with seven-day point change, operational readiness. Same
   card grammar as `ModuleSummaryCards` (label / strong value / hint / icon
   chip); numbers derive from the existing `DashboardData` payload only.

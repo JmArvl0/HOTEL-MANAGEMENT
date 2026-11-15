@@ -53,47 +53,13 @@ explicit dialog whose Cancel sends no request, including balanced shifts.
 Existing cash roles, routes, locking and financial RPCs are unchanged. No schema
 change or deployment accompanies this UI work. See
 `docs/qa/cash-shifts-ui-implementation-2026-11-04.md` for verification limits.
-Data-flow QA on 4 November verified local SQL persistence and identified KI-021:
-normal refunds lacked a payout method/drawer link, and unsaved counts existed
-only in component memory. That historical evidence remains in
-`docs/qa/cash-shifts-data-flow-qa-2026-11-04.md`.
-
-**Cash safeguards (2026-11-05, local; migration pending hosted release):**
-`20261105010000_cash_refunds_and_count_drafts.sql` adds explicit Accounting-recorded
-refund payout methods. Cash requires the selected open drawer and sufficient
-recorded cash; noncash cannot link to a drawer. The shared transaction preserves
-folio caps, approved-exception fee reversals, audit and retry protection. Payouts
-serialize with collection/close. Existing paid records and recorded variances are
-not reclassified. The payout dialog loads the current drawer directly, including
-when Refunds opens before any Accounting ledger view. This records an actual
-manual payout; it does not send a provider refund or introduce a separate
-Accounting-authorization/Front-Desk-disbursement workflow.
-
-Cash counts now support explicit **Save draft & return** through separate
-`cash_count_drafts`, scoped to drawer/user/role. Saved counts survive module leave,
-reload and authorized same-user device changes; typing alone is not autosave.
-Version checks prevent stale draft overwrites. An ordered paid-movement fingerprint
-detects activity changes even when the net amount is unchanged. Close consumes
-the saved version/key and checks the basis again under the shared drawer lock;
-successful close invalidates drafts while preserving retry recovery. Drafts never
-populate final shift counts or affect financial totals before Close. The direct
-legacy close/refund RPC entry points are revoked from the service role.
-
-Closed drawers expose explicit handover/report next steps. Follow-up reads cover
-the selected drawer's complete unresolved department scope; daily report status
-and its Manila close date are exposed only to authorized Front Desk. Handover
-prefill is separate from an existing follow-up ID. Close still creates neither
-a handover nor a daily report, and report snapshots remain immutable. Verification
-and hosted-release limits: `docs/qa/cash-findings-implementation-2026-11-05.md`.
-
-**Cash delivery QA (2026-11-06):** Actual local Next.js/PostgREST/PostgreSQL
-browser flows verify refund/drawer linkage, durable count drafts, close/review,
-handover receipt/resolution and explicit report submission. Release acceptance
-remains open: daily-report collections incorrectly add outgoing refunds (KI-022),
-and smaller-screen header controls clip (KI-023); report centavos, a handover
-caption and modal touch targets also need correction. The linked ledger still
-omits `20261105010000` (126 local / 112 remote). No hosted write or release.
-See `docs/qa/cash-delivery-ui-qa-2026-11-06.md` for evidence and exact limits.
+Data-flow QA verified local SQL persistence and identified KI-021. The local
+repair in migration `20261104040000` lets Accounting record a cash refund against
+the open drawer shown in Refunds. The payout and drawer close share a lock, so
+the payout enters that drawer's cash out exactly once or is rejected if the
+drawer closed first. Noncash refunds stay outside the drawer. Both enter the
+operating-day refund total. Unsubmitted count drafts remain in the form until saved.
+See `docs/qa/cash-shifts-data-flow-qa-2026-11-04.md` for field destinations.
 
 A **single-property hotel operations system** with a ~48-room sample property model
 (working brand: **Haven**). The user confirmed on 2026-11-06 that Haven is fictional
@@ -233,10 +199,11 @@ dev-only secret is used in non-production for zero-config demo runs), `NEXT_PUBL
 the innovation layer only — `GEMINI_API_KEY` + optional `GEMINI_MODEL` (server-side Gemini access;
 **never** a `NEXT_PUBLIC_` Gemini variable) and `CRON_SECRET` (Vercel cron bearer for
 `/api/analytics/generate`). Optional `RESEND_API_KEY` + `RESEND_FROM` enable transactional guest
-email copies; without them, durable in-app notifications continue to work. Optional
-`PAYMONGO_SECRET_KEY` + `PAYMONGO_WEBHOOK_SECRET` (legacy names `PAYMENT_GATEWAY_SECRET_KEY` /
-`PAYMENT_GATEWAY_WEBHOOK_SECRET` still work) enable the PayMongo GCash instant auto-pay deposit
-path (§7.2.1); without them only the manual GCash proof flow is offered. zod validates the app's
+email copies. Durable in-app notifications continue to work without them.
+The Xendit sandbox checkout (§7.2.2) uses server-only `XENDIT_SECRET_KEY`,
+`XENDIT_WEBHOOK_TOKEN`, and HTTPS-origin `APP_BASE_URL`; only `xnd_development_` secret keys and
+test-hosted checkout URLs are accepted. Unconfigured selected Xendit shows its unavailable
+state and never silently falls back to real wallet transfer. zod validates the app's
 required environment at boot. Transportation deliberately uses no external mapping/routing API
 (§7.11).
 
@@ -299,8 +266,28 @@ Key properties:
 
 ## 6. Auth, roles & RBAC
 
+**Account screen layout (2026-11-13, local).** Sign-in and registration use a
+height-aware flex panel with compact form spacing. At 900px and below the generic
+photo/story is omitted and the header carries the shared transparent landing-page
+logo. Registration pairs names and passwords; tabs preserve the callback and
+booking parameters. Short windows omit secondary description/security copy while
+keeping 44px controls. Errors, zoom, expanded stay details and keyboards can grow
+the document rather than clip fields. All shared logo callers, loader, app-header
+mark and browser icons use `haven-logo-small.png`. Registration screen-fit
+verification remains pending; the recovery follow-up is verified below.
+
+**Forgot password within sign-in (2026-11-13, local).**
+`/login?view=forgot-password` replaces the sign-in form inside the same auth shell.
+The account tabs become Back to sign in, preserving the safe callback and booking
+flag. Email request, code verification and the sent state use the shared form
+styles. Recovery instructions stay visible on short windows. `/forgot-password`
+redirects to this view for existing links. Reset APIs, code/link rules and selfie
+requirements are unchanged. Browser QA verifies the switch/return and recovery
+fit at 1366×768 and 320×568 without page scrolling; no live recovery email was sent.
+
 **No Supabase Auth.** next-auth v4 `CredentialsProvider` authenticates against the app's
-`user_accounts` table; sessions are stateless JWTs signed with `NEXTAUTH_SECRET`.
+`user_accounts` table; sessions use JWTs signed with `NEXTAUTH_SECRET` plus server-side
+role, policy and per-device activity enforcement.
 
 **Registration & recovery.** The public guest registers via `/api/register` →
 `register_guest_account` RPC (bcrypt cost 12; guest role). Staff accounts are minted by Admin
@@ -312,6 +299,13 @@ governance: suspended/inactive accounts need administrator assistance. An admini
 onboarding token may activate an inactive recovery-required account. `stage_recovery_selfie`
 binds uploaded evidence to the recovery token under its row lock; completion accepts only
 that bound path and a consumed token cannot have its accepted proof replaced.
+
+New registration, password changes, and recovery reject passwords over bcrypt's 72 UTF-8
+byte limit before hashing; existing sign-in hashes remain compatible. Public login,
+registration, and reset requests use atomic hashed email/IP budgets. Reset requests return
+the same public response and defer delivery; OTP challenges are purpose-bound so a reset
+code cannot complete login. Public registration never claims a historical guest record by
+an unverified email match. Conflicting contact email is retained separately for verification.
 
 **Guest-to-staff conversion.** A guest role is never changed to staff through the generic
 `admin_change_user_role` RPC. `admin_convert_guest_to_staff` is the only supported boundary:
@@ -354,15 +348,15 @@ hidden on `/login`, the header countdown hidden, and live Remember-Me sessions
 collapse to the idle window at the next validation — login itself keeps working.
 Cookie policy ON restores the full policy and the countdown resumes. Enforcement is live in the NextAuth `session` callback (which runs on every
 `getServerSession`; JWT revalidation also runs there): idle timeout against
-server-side `user_accounts.last_seen_at` (stamped at sign-in, throttled to one write per
-minute), absolute lifetime against immutable `loginIssuedAt` (legacy tokens pin their
+server-side `auth_session_activity.last_seen_at`, keyed by the individual signed-in device
+(activity writes throttled to one per minute), absolute lifetime against immutable `loginIssuedAt` (legacy tokens pin their
 original `iat` once), so cookie renewal cannot reset the login clock. Standard sign-in is bound by the
 inactivity window; Remember-Me opt-in extends
 to the configured maximum. Freshly minted cookies carry a policy-derived `maxAge`
 (absolute window when persistent, idle window otherwise; none when the cookie policy
 is off). Expired sessions are neutralized centrally (`disabled` + guest
-role + blank id). Never-stamped accounts are grandfathered once, so a policy deploy can
-never silently log everyone out; `SESSION_MAX_AGE` (24 h + 5 min) remains the hard
+role + blank id). Legacy device activity falls back to signed login issuance, never another
+device's activity. An unreadable activity authority fails closed; `SESSION_MAX_AGE` (24 h + 5 min) remains the hard
 ceiling. Cookie protections (`HttpOnly`, `Secure` in production, `SameSite=lax`) are hardcoded with no
 disable path. Mutation is System Administrator (`admin`) only, at both the route and the
 RPC (`SECURITY_ADMIN_ONLY`); Owner has no edit path.
@@ -371,7 +365,7 @@ Authenticated shells receive `sessionExpiresAt`, the earliest idle or absolute
 server deadline. Background dashboard polling and non-mutating
 `GET /api/auth/session-status` checks never extend inactivity; only the throttled
 `POST` made after explicit pointer or keyboard activity updates
-`user_accounts.last_seen_at`. Customer and staff headers display the deadline as a
+the current device's `auth_session_activity.last_seen_at`. Customer and staff headers display the deadline as a
 compact countdown. On expiry, the server neutralizes the session before the client
 shows a blocking Session Expired dialog whose only recovery is **Sign in again**.
 
@@ -399,7 +393,6 @@ closed. One-hour single-use recovery links are a separate, untouched flow.
 | `canManageReservation` (check-in, room change, extend, checkout) | `front_desk` |
 | `canViewGuestContact` | `owner`, `manager`, `front_desk` |
 | `canViewReservationFinancials` | `owner`, `manager`, `front_desk`, `accounting` |
-| `canVerifyDeposit` (deposit + stay-payment proof review) | `accounting` **only** — front desk collects money but never blesses the proof |
 | GCash payment-destination edit (account name, number, QR, enabled flag) | `owner` **only** — enforced in `owner_update_payment_destination` (`PAYMENT_DESTINATION_OWNER_ONLY`); System Administration is read-only, Accounting has no access |
 | `canCollectPayment` / `canOperateCashShift` / `canIssueFinancialDocument` | `front_desk`, `accounting` |
 | `canPostFolioCharge` | `front_desk` |
@@ -580,24 +573,182 @@ governance rules in §6, as is the **transfer vehicle-type catalogue**
 (`catalog/transport-vehicle-types-panel`: seats, base fare, per-km/per-minute rates, booking fee —
 the fare model behind §7.11).
 
-The public landing also carries a **Guest stories** reviews section (`#reviews`, between `#smarter`
-and `#location`): the latest stay reviews (rating 1–5 + comment, guest first name + last initial,
-room type, stay month, "Verified stay" badge), served server-side from `stay_reviews` with a static
-dummy fallback while no real review exists. The `#smarter` teaser tiles deliberately show only
-safe public facts (room count, amenity count, one connected account) — never live operations data.
+**Featured Stays (2026-11-07):** The landing displays all active room types in a
+two-column grid, with room photography beside catalog description, facts, the
+first four amenities and live base rate. Above 900px the four current types fit
+a 2×2 comparison below the fixed nav. At 681–900px, photo-over-details cards use
+two columns; at 680px and below they stack in one column. These layouts grow
+with their content in the normal page flow. Descriptions, amenities, photo
+thumbnails, rates and booking actions are shown in each card. Extra desktop
+types stay reachable through the region's own scrolling; short desktop
+landscape/zoomed windows use normal flow. The first three thumbnails, when shown,
+select the main image; the shared full-screen viewer exposes the complete
+gallery, including bathroom photos, with keyboard navigation and zoom. The hero's
+selected dates/guest count remain on room-search links. Existing Admin/Owner
+Room types & photos controls manage this content; no separate landing catalog or
+schema was added. Successful create/edit/photo saves and approved rate proposals
+invalidate `/` for the next visit. Uploaded `photo_urls` always override the
+illustrative fallback; Deluxe King's fallback now uses three approved generated
+whole-room/alternate-angle/bathroom samples in `public/room-samples/`.
 
-### 7.2 Guest booking flow (`/booking/*`)
+The **Guest experiences** section renders only when `stay_reviews` returns verified
+stays. It shows rating, comment, guest first name and last initial, room type and
+stay month. The landing prioritizes booking essentials, active room types,
+facilities, gallery, contact, the location guide and FAQ.
+
+**Public navigation (2026-11-12).** The shared `LandingNav` tracks section
+positions during scrolling instead of treating the URL hash as the current
+location. One gold underline moves between desktop links; the mobile drawer
+shares `aria-current="location"`. FAQ is a desktop shortcut and the demo omits
+the duplicate Contact/Location destination. Secondary pages retain their
+explicit current-page link. A floating Top button appears after scrolling,
+clears the old fragment while preserving query/history state, and returns
+keyboard focus to the brand. Reduced motion uses instant scrolling. Homepage
+anchor margins complement the root header padding instead of doubling it.
+The header and drawer show Log in for signed-out visitors and My account for
+authenticated visitors. On Home, Plan your stay is the primary booking action.
+The drawer retains its booking shortcut, and secondary pages retain the header CTA.
+
+**Homepage first screen (2026-11-13).** The hero and Plan your stay form fill a
+stage at least one viewport tall. Rooms & suites and its decorative arch start
+after that stage. Narrow windows and long booking copy can grow in normal flow.
+The homepage snapshot was removed at the user's request. The footer links to
+`/booking-policy`, which renders the four highlights from live settings.
+
+**Homepage scroll reveals (2026-11-13).** `HotelScrollReveal` provides one-time
+IntersectionObserver entrances below the hero through the Web Animations API.
+Headings, room cards, amenities, location, reviews when present, FAQ and closing
+content use the shared 900ms/6px/premium motion tokens. Entrances start just
+before the viewport edge to avoid a visible reset. It retains the existing
+main structure, observes streamed content and cancels active entrances on focus
+or reduced-motion changes. Visible content at hydration skips the entrance.
+The default markup has no animation hiding styles. Gallery owns its existing
+entrance independently.
+
+**Booking policy (2026-11-13).** `/booking-policy` uses a centered editorial
+header, four-item policy snapshot, overview/at-a-glance sidebar, three detailed
+policy sections and a support panel. Deposit amount/type/enabled state, hold,
+taxes, cancellation tiers, arrival times, timezone and identity requirements
+still come from the existing policy readers. Identity and the support email
+use published Website Content. The screen-fit follow-up compacts the title,
+spacing, sidebar and support panel, and replaces the large footer with one
+Booking policy link. Quick links and the separate public terms/privacy pages
+were removed at the user's request. `/terms` and `/privacy` redirect to
+`/booking-policy`. The shared public footer links to the dedicated Booking
+policy page. Legacy CMS legal drafts remain stored but no longer back public
+pages. At 1100px and below, keyboard-accessible tabs show one policy section at
+a time; desktop shows all three. Hash links select their matching tab. Without
+JavaScript all sections remain readable. Duplicated sidebar summaries and optional
+support copy are omitted when space is limited; long copy/small phones grow in
+normal flow rather than clipping text. Artwork is decorative and documented
+in `public/decor/README.md`. No new policy source, CMS schema or migration.
+See `docs/qa/booking-policy-links-2026-11-13.md` and the screen-fit/reference QA.
+
+**Before you arrive FAQ (2026-11-12).** The reference-style FAQ preserves
+policy-derived answers and Website Content custom questions. Five shortcuts open
+and focus the related native disclosure, retaining every question. The support
+strip always shows Contact Front Desk and Email us, using the published Website
+Content phone/email fields in both modes; demo values are explicitly approved
+mock contacts. Owner/Admin configure them in Contact & arrival, then save,
+review and publish through the existing editor. It shares the ivory background and adapts to
+tablet/phone widths without changing policy ownership or adding CMS fields.
+
+**Website Content (2026-11-11).** Owner → Catalog and System Administrator →
+Configuration expose the same versioned editor. Its eight areas cover identity,
+arrival, media, facilities, location, guest information, legal pages and section
+visibility. Saves stay private until an authorized editor reviews the diff and
+publishes with a reason. The public projection only returns published copy and
+referenced media. Uploads go to private `website-images`. Client publication
+requires reviewed information, verified non-demo location and uploaded property
+photos for hero and gallery. The default document is explicitly fictional.
+Room types/rates still come from the catalog, deposit and operating policies from
+the existing settings, and verified pin, nearby places and routes from Location &
+Places. Public `/booking-policy` and `/gallery` use these sources; legacy
+`/privacy` and `/terms` URLs now redirect to Booking policy. See
+`docs/qa/landing-audit-implementation-2026-11-11.md` and the later policy-link QA.
+
+**Amenities & dining (2026-11-12).** The homepage and editor preview share the
+published facilities and dining card. Enabled facilities retain their saved
+order; the first eight appear initially and a native disclosure exposes the
+rest (up to32). Cards are informational, without arrows or false actions.
+Owner/Admin can choose facility icons/order and edit the dining schedule,
+price caption and internal action text/path in the existing versioned JSON.
+Older documents retain their defaults. The dining card stays top-aligned as
+the facilities grow, uses the first Dining gallery photo, and links to booking
+search by default. Only the unchanged fictional gallery seed receives the
+disclosed generated breakfast concept; client profiles use their own gallery.
+The homepage frame fills the viewport beneath the fixed navigation. The six
+default facilities and dining fit together at common desktop/laptop sizes;
+extra or longer content scrolls inside the frame. Narrow screens use one
+keyboard/touch-scrollable content area. Amenities nav clicks reset its panes
+and retain the Amenities underline; the nested Dining card takes the underline
+on explicit Dining navigation. Editor previews keep natural height. No database
+migration is needed. See `docs/qa/amenities-dining-2026-11-12.md` and
+`docs/qa/amenities-screen-fit-2026-11-12.md`.
+
+**Inside Haven gallery (2026-11-12).** The homepage uses the manual editorial
+carousel in `components/landing/hotel-gallery.tsx`, initially filtered to Exterior.
+See full gallery opens a native dialog over the homepage, with the complete
+ordered collection, All Photos selected initially and category filters. Its
+three-column grid shows nine demo photos at once on common viewport sizes and
+scrolls as needed for the viewport and collection. The footer gallery link
+returns to the homepage section. Direct `/gallery` links use the shared grid.
+The homepage anchor reserves the fixed nav once and the
+gallery fills the remaining viewport height, with flexible image space. Short
+phones omit optional thumbnails/flourish; short landscape windows and expanded
+photo credits use normal page flow. Photo peeks, five-photo thumbnail/position windows,
+keyboard controls and touch swipe navigate the selected category. Clicking the
+featured photo or a full-gallery tile opens a focus-contained viewer with
+Escape/focus restoration and uncropped images. The grid viewer follows its
+selected category. Closing it returns to the tile and collection. Closing the
+collection restores the homepage position and trigger focus. The grid includes
+photo credits and demo disclosures.
+Optional `category` and `caption` gallery fields round-trip through the existing
+versioned Website Content JSON, with controls in the Owner/Admin editor and
+legacy-category inference. No schema migration is required. Only an unchanged
+fictional seed receives the nine-photo local concept journey from
+`lib/website-gallery.ts`; any gallery edit/removal or client mode uses the saved
+selection, and missing categories remain truthful empty states. Sample asset
+provenance is in `public/website-samples/gallery/README.md`.
+
+**Room configuration (2026-11-11).** Existing catalog workflows create, edit,
+activate and deactivate types. Owner/Admin may archive a type with a reason
+after resolving active rooms, live holds, future commitments and pending rate
+proposals. Rooms can be assigned to a non-archived type before publication.
+`room_types.amenities` contains standard amenities. `rooms.amenity_additions`
+and `rooms.amenity_exclusions` define per-room exceptions. Effective amenities
+are inherited defaults plus additions minus exclusions. Reviewed changes to
+upcoming commitments preserve the captured `amenity_snapshot` on holds and
+reservations. Older stays without a snapshot show no captured amenity list.
+The room lifecycle migration and the follow-up booking/configuration mutex are
+applied through `20261111050000`. Both commit orders passed in local PostgreSQL.
 
 **Location and nearby guide (2026-11-06, schema applied; hosted application release pending).**
-The approved additions follow reviews and precede the existing `#location`
-contact block: `#how-to-go` and `#nearby`. Public navigation adds both anchors;
-booking/catalog/contact/FAQ/footer retain their existing ownership. The
+The public `#how-to-go` section pairs an area/property photo with the live map;
+`#nearby` contains three highlights and an Explore Nearby Places button that
+opens a full-screen Nearby Guide. Desktop shows the configured Google area map
+and a scrollable results list side by side. Phones start on the list and switch
+between View map and View list. The guide retains search and category choices
+and restores focus to the opener when closed. Each published place retains its
+own Google Maps link. Clicking a place card also focuses the guide map on its
+reviewed coordinates or published demo search. Phones switch to the map view
+and keep the selection when returning to the list. Reset map restores the
+configured overview. Both views use Google's native map controls.
+The homepage overview fits one viewport beneath the fixed navigation. The
+photo/map pair stacks on phones; tablet/phone highlights scroll horizontally
+with native touch and keyboard access. Expanded photo notes and very short
+windows use normal page flow so the complete content remains reachable.
+Client contact details follow the guide; the fictional demo's contact anchor
+points to the location section without repeating its photo.
+The map and nearby guide use the published Location & Places records. The
 server-rendered published projection comes from `website_location_public()` via
 `lib/location-content-server.ts`; category/search/route selection live in the
 separate landing client. Retrieval failure is local to the guide, with retry;
 no location means no invented map/destination. Google Share/Embed uses an
 allowlisted HTTPS iframe, lazy loading, native gesture controls/fullscreen and a
-directions fallback. No paid Maps API, geocoding or travel-time estimates.
+directions fallback. The map fills its rounded card without an address/action
+footer (user correction, 2026-11-12); View Directions remains on the photo.
+No paid Maps API, application-side geocoding or calculated travel-time estimates.
 
 `website_hotel_location`, `website_place_categories`, `website_nearby_places`,
 `website_route_guides` and `website_location_images` are introduced by
@@ -622,13 +773,57 @@ admin authority. `/api/location/images/[id]` checks current publication on every
 non-cacheable public read; removal tombstones prevent attachment/cleanup races.
 Cached/downloaded copies already held by a visitor cannot be revoked.
 
-The explicitly requested initial demo uses Rizal Park, Manila, generic AI
-concept images and clearly labeled manual sample distances; it is not a real
-Haven property. Client mode requires verified coordinates/source/date and
-rejects sample images/category searches on publication. Route navigation uses
+The fictional Manila demo uses a Rizal Park landmark pin. It includes attributed
+real photographs of Rizal Park, the National Museum of Fine Arts and Pedro Gil
+LRT-1 station. Other concept photos are labeled. The unchanged demo highlights
+use the supplied reference's illustrative walking times, explained in the area
+guide disclosure, plus generated sunset/dining art. Edited demo records retain
+their saved copy; the full guide hides fictional-hotel distances. Client content
+uses reviewed distances without inventing walking times. Client location mode requires verified coordinates/source/date
+and rejects demo photos/category searches on publication. Route navigation uses
 each record's own origin and the centrally configured hotel destination. Public
 JSON-LD is emitted only for a verified, published, non-demo hotel. Verification
 and release limits: `docs/qa/location-content-implementation-2026-11-06.md`.
+
+### 7.2 Guest booking flow (`/booking/*`)
+
+**Breakfast (2026-11-13, local implementation).** With `HAVEN_BREAKFAST_ENABLED=true`,
+Room Types offers breakfast configuration. Manager/Owner/Admin can propose,
+and Owner/Admin can publish or decline. One published offer per type covers
+the stated service dates and hotel-local hours. Optional breakfast requires
+selection, and included breakfast adds zero to the room rate. The exact-room
+hold records a meal snapshot and prices the booked guests for each morning,
+including checkout morning. The existing manual and gateway conversion paths
+use the combined total and deposit and create one entitlement per date.
+Legacy amendments that would reprice or invalidate the covered stay are blocked.
+
+Guests open the date-specific Breakfast Pass from confirmation or My Reservations
+and can save its PNG. Front Desk and Manager can check a pass and record meals
+in Breakfast service. The hotel database checks the service date, current stay
+and remaining meals, and applies redemptions once per accepted request. The
+separate outlet API remains disabled until restaurant onboarding. The migration
+`20261113030000_hotel_breakfast.sql` was replayed locally. Deployment and partner
+acceptance are pending. See `docs/integrations/RESTAURANT_BREAKFAST_HANDOFF.md`.
+
+**Approved exact-room journey (2026-11-11):** Landing `Choose this type` retains
+the type/dates/party, then `/booking/rooms/[type]` lists that type's published
+physical rooms. Available rooms sort first; unavailable rooms stay gray and last,
+with booking disabled. The calendar supplements editable stay dates. Book Room
+preserves `roomId` through sign-in/register/OTP and into details, review, payment
+and confirmation. Account pages show the chosen room and stay; saved registration
+mobile prefills details. Shared phone input has SVG flags, country/code search,
+default PH+63 and PH local/international normalization (eight country choices).
+
+Migration `20261111010000_guest_exact_rooms` is applied. `create_exact_booking_hold`
+wraps the existing pricing/policy RPC under the same type advisory lock, checks
+the continuous room claim and saves `selected_room_id/number`. Owned hold edits
+replace the previous hold atomically. Manual/gateway conversion assigns that room
+in the conversion transaction; staff assignment writes honor active exact holds.
+Availability exposes only room ID/number/floor/availability through service-role
+server reads. Existing type-capacity RPCs remain for legacy/staff callers. The
+older focused-type search description below is superseded for landing type links.
+Implementation QA: `docs/qa/exact-room-booking-2026-11-11.md`; visual browser QA
+remains pending because Computer Use stopped on browser URL-confidence policy.
 
 A signed-in **guest** books online. Flow: **Search → Dates/Guest details → Review → Payment link →
 Confirmation**, wired through search-params → a server-issued **hold token** → reservation id.
@@ -695,61 +890,49 @@ Confirmation**, wired through search-params → a server-issued **hold token** �
    celebration stay structured service constants — see §7.7. The Review page's back link, breadcrumb, and "Edit details"
    action link here with `hold=<token>`; the page then prefills the form from that hold (same
    room/dates/guests, active and unexpired) so entered guest info, expected arrival, preparations,
-   and the transportation request survive the round-trip. Resubmitting creates a **new** hold —
-   the old one expires on its own timer. Flow pages share a compact back link
+   and the transportation request survive the round-trip. A stable actor-bound booking-attempt
+   key returns the same hold after a lost response. Changed details require a new attempt;
+   an explicitly replaced hold is released transactionally. Flow pages share a compact back link
    (`components/booking/booking-page-frame.tsx` + `BackButton`) that pushes deterministically to
    the previous breadcrumb step (never `router.back()`), labelled "Back to <step>".
 4. **Review** (`/booking/review/[token]`) — holds the reservation.
-5. **Payment link** (`/booking/payment/[token]`) — manual deposit (see below) or, when the
-   PayMongo env pair is configured, **GCash Instant Auto-Pay** (§7.2.1).
+5. **Payment link** (`/booking/payment/[token]`) — Xendit sandbox GCash or Maya, with deposit and full-payment options (§7.2.2).
 6. **Confirmation** (`/booking/confirmation/[id]`) — auto-refreshes when a gateway deposit settles.
+
+**Guest recovery.** Account overview and My Reservations show each active, unconverted room hold
+with its expiry in hotel time and a link back to Review. Guests can release their own unconverted
+hold. The release updates only an owned active row without a linked reservation, so the payment
+conversion and release cannot both succeed. My Reservations shows the recorded status of older
+manual deposits, with the submitted amount kept separate from the verified balance. A failed detail,
+confirmation, or folio read offers retry and a link to reservation history. Missing or unowned
+reservations still return the regular not-found response.
 
 Server-side, `POST /api/booking/holds` validates the guest details and the transportation
 preference (strict, service-type-conditional: the client never supplies the hotel side of the
-route — the filer fills it from `hotel_operational_policies`), then calls `create_booking_hold`,
+route — the filer fills it from `hotel_operational_policies`), then calls the actor-bound
+`create_booking_hold_attempt` wrapper around `create_booking_hold`,
 which prices the stay — per-night through `room_nightly_rates` (§6 rate plans), freezing the agreed
 nightly breakdown and total onto the hold — and takes a **15-minute booking hold** (`booking_holds`,
-`expires_at now() + hold_minutes`). The deposit policy (§8) fixes how much must be paid; the guest
-then submits a deposit proof (`POST …/[token]/confirm` → `submit_reservation_deposit`): new
-online reservation deposits are **GCash-only** (`manual_gcash`; the confirm route rejects any
-other method and refuses while the Owner's GCash destination is disabled or incomplete), and
-BOTH a transaction
-reference AND a payment-proof screenshot (JPEG/PNG/WebP, ≤5 MB) are required — the RPC rejects a
-manual submission without proof (`PROOF_REQUIRED`). No card/gateway. The proof workflow: the guest
-first stages the image (`POST …/[token]/proof` → private `payment-proofs` Supabase Storage bucket,
-path `pending/<token>/<uuid>.<ext>`; magic-byte-sniffed, never trusting the filename extension or
-browser MIME), then confirms with the staged path. The confirm route re-downloads the object,
-re-sniffs and re-measures it server-side, then copies verified bytes into the protected
-`submitted/<token>/<uuid>.<ext>` namespace before the RPC. DELETE only removes unreferenced
-staging objects for an active hold; legacy submitted proofs in `pending` are protected too.
-Finalized evidence is retained on ambiguous RPC failures because a timeout may hide a committed
-payment; cleanup must reconcile references first. An idempotent retry returns the existing
-reservation. Manual submissions require live `deposit_method = manual` at the route and
-transactional RPC boundary; `off` blocks new submissions. The payment row
-stores the storage **path** (plus original name, MIME, size, uploaded-at) — never a URL; proof
-images are served only through 60-second signed URLs minted server-side by
-`GET /api/booking/payments/[id]/proof`, viewable by **the paying guest and Accounting only**
-(Front Desk/Manager can list payments but never see the proof image; other guests get a 404).
-The deposit is **verified by Accounting** (§7.4), which is what turns the `pending`
-website reservation into `confirmed`. Holds expire defensively (`expire_booking_holds` is called at
-the top of every inventory recount); an unpaid website `pending` past its payment deadline releases
-its inventory and its hold/payment are expired. Payment proofs are never sent to the AI layer
-(Gemini reads only rooms/guest_requests/transportation aggregates).
+`expires_at now() + hold_minutes`). The deposit policy (§8) fixes the required amount. Guests pay through Xendit when checkout is enabled.
+Guests with an outstanding balance after booking can settle it through Front Desk.
 
-**§7.2.1 GCash Instant Auto-Pay (PayMongo, optional).** When `PAYMONGO_SECRET_KEY` +
-`PAYMONGO_WEBHOOK_SECRET` are set, the deposit page offers a highlighted instant option beside the
-manual form. The route prices from the hold (never the client), creates the hosted checkout session
-in centavos, and records the pending reservation + `pending_verification` payment via
-`submit_gateway_deposit` with the session id as `gateway_reference_id`. The webhook
-(`Paymongo-Signature`, HMAC-SHA256 over `"<t>.<raw body>"` with a 5-minute timestamp tolerance)
-confirms only paid events (`checkout_session.payment.paid`, `payment.paid`), verifies the payload
-amount against the pending payment when the event carries one, and settles through
-`confirm_gateway_payment` — one transaction that row-locks, re-verifies amount equality and
-inventory, flips payment→`paid` + reservation→`confirmed`, completes the hold, writes the audit
-row, and itemizes transport. Duplicate events replay idempotently by `webhook_event_id`; the same
-reference arriving on both checkout and payment channels settles once.
+Booking dates use real calendar dates and the configured hotel-local day. New online stays
+are bounded to 365 nights and check-in within 730 days, including a database guard before
+nightly expansion. These are implementation defaults chosen during the validation audit.
+Checkout requires a positive active deposit policy and configured Xendit before accepting
+guest details. Unknown arrival time is an explicit choice when policy permits it. Conditional
+transport legs must be ordered and fall within the stay, including checkout-day drop-off.
 
-**§7.2.2 Xendit sandbox (2026-11-14, test mode only).**
+**§7.2.1 Retired guest payment paths (2026-11-15).** PayMongo checkout and callbacks,
+guest proof upload and deposit submission, guest stay-balance submissions, and Owner QR
+configuration return HTTP 410. Prior payment records and proof remain available. The proof endpoint
+`GET /api/booking/payments/[id]/proof` issues 60-second signed URLs only to the paying guest
+and Accounting. The manual guest-payment approval and rejection routes also return HTTP 410.
+Payment History shows the recorded status and proof. Guests with unsettled legacy attempts are
+directed to Front Desk with their original payment reference before paying again. Staff collection
+and refund workflows continue through their existing routes.
+
+**§7.2.2 Xendit sandbox (GCash and Maya).**
 Owner/Admin may select `deposit_method='xendit'`. `POST /api/booking/payments/xendit`
 requires the authenticated guest's own hold and accepts that token, an optional
 `GCASH`/`PAYMAYA` selection, and an optional `deposit`/`full` choice. `hotel_begin_xendit_checkout` reuses the established atomic gateway
@@ -783,37 +966,39 @@ states with sandbox labeling and a transaction reference when paid. Legacy manua
 records remain intact. The Xendit checkout presents official GCash/Maya logo choices
 alongside the server-priced stay summary, which updates the amount due today and remaining balance
 as the guest selects deposit or full payment. Narrow screens stack the summary below the checkout controls.
-The Xendit session and payment choice migrations are applied to hosted Supabase.
-Provider-hosted GCash/Maya simulation and Dashboard delivery require the configured test credentials
-and HTTPS webhook. See `docs/integrations/XENDIT_SANDBOX.md` for setup and verification limits.
+Normal provider-verified payments settle automatically. The local audit repairs add
+`xendit_payment_reviews` for uncertain session creation and captures after inventory release.
+Accounting's paginated reconciliation panel can check a provider session and record an
+evidenced resolution; this does not restore guest manual-payment Verify/Reject. Checkout
+retry and a bounded scheduled sweep reconcile independently verified completed sessions.
+Unresolved attempts block a second checkout and retain their references for recovery.
+The base Xendit checkout is deployed and has hosted sandbox verification. These new audit
+repairs and their six migrations remain local pending rollout. See
+`docs/integrations/XENDIT_SANDBOX.md` for setup and verification limits.
 
-**GCash payment destination (Owner-controls-where).** The deposit page shows the
-Owner-configured destination — account name, mobile number with Copy, official QR
-(220–280px, `object-contain`), exact deposit amount, and an 8-step how-to-pay guide —
-read live from `hotel_operational_policies` (`gcash_account_name`,
-`gcash_mobile_number`, `gcash_qr_storage_path`, `gcash_enabled`; nothing hardcoded in
-the page). The Owner manages it in Owner → Governance → **Payment Settings**
-(`PATCH /api/owner/payment-destination`, `POST/DELETE /api/owner/payment-qr`):
-staged QR upload (magic-sniffed, 5 MB) goes live only on Save behind an explicit
-"changing the destination affects where customers send deposits" confirmation;
-replacing the QR retires the old object; every change is audited as
-`owner_update_payment_destination` with the number masked (`09******8211`).
-Writes run through the `owner_update_payment_destination` RPC, which refuses
-non-Owner actors (`PAYMENT_DESTINATION_OWNER_ONLY`) — the System Administrator
-sees the same values masked and read-only plus technical health (QR storage,
-completeness, webhook/provider `Not configured`, auto-verify `Disabled`) in
-Admin → System Health → **Payment configuration**. The same panel's Step 1 radio is the
-exclusive method control: exactly one of PayMongo instant auto-pay, manual GCash
-verification (the destination above), or off is offered for *new* deposits, stored as
-`hotel_operational_policies.deposit_method` and switched through
-`PATCH /api/admin/deposit-method` (`admin_update_deposit_method`, Owner + Admin, audited).
-One **Save changes** commits the method (when it changed) and the destination together —
-method first, then the destination at the version the switch returned — so the radio
-cannot report success while `deposit_method` stays on the old path. Historical `manual_bank_transfer`
-rows and the portal stay-payment form (remaining balance on settled stays) keep
-both method labels; only *new* online deposits are GCash-only.
+**Checkout configuration.** Owner Payment Settings and Admin System Health offer
+`xendit` and `off` for new online payments. Both use `PATCH /api/admin/deposit-method`
+and the existing versioned `admin_update_deposit_method` RPC with a required audit reason.
+Legacy modes show checkout unavailable. Previously selected Xendit continues to use its
+configured credentials and webhook.
 
-### 7.3 Customer self-service portal (`/my-reservations`, `/account/*`)
+**My Stay (2026-11-14, deployed guest release `0f81105`).** The account overview leads with the current/upcoming
+reservation or active owned room holds, then the next action, verified payment
+summary, stay shortcuts and recent updates. A hold never renders the no-stay
+empty state. Saved preferences remain explicitly subject to confirmation and
+are also visible from Requests before conversion. Submitted manual proofs are
+separate from verified paid money; gateway sessions awaiting payment are not
+described as verified. The booking timeline is shared with reservation details.
+The authenticated `/account/stay-guide` uses published property/location content
+and operational policy; reservation details retain booking-time policy authority.
+Front Desk contacts are available before confirmation, with demo contacts labeled.
+Credentials navigation uses an internal callback path on the current browser
+origin. Expected arrival is visibly required with an inline error. Unavailable
+checkout offers refresh/retry, support and hold-expiry guidance. No payment,
+inventory, confirmation or cancellation authority changed.
+Confirmation access failures retain the private 404 boundary and provide a
+destination-preserving sign-in link, Front Desk help and advice to check a
+successful payment before paying again. The return URL never confirms payment.
 
 A guest sees only their own data (every query filters `user_id`). Reservations are grouped into
 **current / upcoming / past / cancelled** (`lib/customer.groupReservations`). Each reservation shows
@@ -842,24 +1027,28 @@ Self-service actions and their constraints:
 - **Change request** — one complete modal (new dates via date pickers, requested room type via
   HavenSelect over live inventory for the chosen dates through `GET
   /api/account/reservations/[id]/room-options`, required reason ≤500 chars). Self-executes when
-  the change is far enough ahead (> `selfServiceModificationDays` by the hotel's local day) and
-  inventory permits; otherwise it files a **manager approval** (`reservation_modification`,
-  Manager authorizes, Front Desk executes — approval never executes). A reservation carrying
-  priced **transport** cannot be self-modified (`TRANSPORT_REQUIRES_STAFF`) because a silent
-  recompute would drop the charge. **One unresolved request per reservation** (`pending` /
+  the change is far enough ahead (> `selfServiceModificationDays` by the hotel's local day),
+  inventory permits, and the existing physical room can be kept. A change close to arrival
+  or requiring a replacement room files a **manager approval** (`reservation_modification`).
+  Manager authorizes the change and Front Desk selects any required replacement with the guest.
+  Notes-only changes preserve the exact room, rates, and all folio amounts. Date or type changes
+  preserve the rates on retained nights of the same room type and apply only the lodging delta
+  to the existing folio. Date, room-type, and guest-count changes wait until pending online
+  checkout settles. An amendment that conflicts with transport dates or includes legacy bundled
+  transport requires Front Desk coordination. **One unresolved request per reservation** (`pending` /
   `approved`): the RPC refuses a second open request (`CHANGE_ALREADY_OPEN`, 409), the UI
   replaces the button with a non-action "Change request under review" state plus a status panel,
   and submission carries one idempotency key per modal with a double-submit guard. Success
   records a `reservation_change_submitted` notification (per-request deduped) and a centered
   success toast.
-- **Payments** — submit a stay-payment proof; Accounting verifies it.
+- **Payments** — view transactions, balances and receipts. Front Desk collects balances after booking.
 - **Guest requests** — submitted as a **batch** (§7.7): up to 12 structured picks per submission,
   routed to departments only after Front Desk approves the batch.
 - **Transportation** (`/account/transportation`) — request a pickup/drop-off/round-trip against an
   active reservation (locations are free text; hotel-side endpoints come from policy), and cancel a
   pending request with a reason.
-- **Notifications** — durable, user-scoped event rows from deposit/stay-payment review,
-  guest-request review, and transportation schedule/cancellation actions. The bell is
+- **Notifications** — durable, user-scoped event rows for guest-request review and transportation
+  schedule/cancellation actions, plus historical payment notices. The bell is
   **click-to-open** (hover shows only the tooltip/header highlight) and shows one aggregate unread
   badge (exact 1–99, `99+` above, hidden at 0). The dropdown previews at most 7 events from the
   same authoritative source as the modal — unread first (newest), then an "Earlier" read group —
@@ -886,8 +1075,11 @@ Self-service actions and their constraints:
   ~24 h before check-in (confirmation, room type, stay + guests, check-in time from the policy
   snapshot, approved early check-in, scheduled transportation) and a **pre-departure** reminder
   ~24 h before checkout (checkout time, outstanding balance when > 0, scheduled transportation).
-  One delivery per reservation per kind — `guest_reminder_deliveries` unique index makes cron
-  retries, redeploys, and manual re-runs no-ops.
+  `guest_email_deliveries` stores delivery outcomes by reservation, reminder kind, and stay
+  date; current eligibility is rechecked before dispatch. A provider receipt is required for
+  sent status. Explicit failed-delivery retries reuse the provider idempotency key, with at
+  most three attempts inside 23 hours. Historic `guest_reminder_deliveries` remains readable;
+  rescheduling a stay can generate its new dated reminder.
 - **Receipts** — the customer-facing receipt surface (2026-09-18). A payment row on
   `/account/payments` shows its settlement state and, when settled, a **View Receipt** action;
   the receipt opens in a **modal** (no navigation) with `Email receipt` / `Print` / `Download`
@@ -906,7 +1098,8 @@ Self-service actions and their constraints:
   door; `POST .../email` sends to `session.user.email` only (no address is read from the request
   body) with the PDF attached, and reports `EMAIL_UNAVAILABLE` rather than faking a send when
   `RESEND_API_KEY` is unset. `/account/receipts/[id]` remains the canonical linkable/printable
-  route and renders the same component. Route-level ownership and unwrapped page navigation are
+  route and renders the same component. The receipt preview groups PDF, PNG and Print receipt
+  in the shared Download menu. Route-level ownership and unwrapped page navigation are
   asserted in `lib/receipt-route.test.ts` and `lib/customer-ownership.test.ts`. Profile/password/
   settings and a public find-room view live alongside.
 - **Stay reviews** — after checkout (`checked_out` only), the reservation detail page offers one
@@ -920,7 +1113,7 @@ The one connected spine everything else hangs off. Reservation statuses:
 `pending → confirmed → checked_in → checked_out`, plus terminal `cancelled` and `no_show`.
 
 ```
-website guest books ──hold 15 min──> deposit submitted ──accounting verifies──> confirmed
+website guest books ──room hold──> Xendit checkout ──verified settlement──> confirmed
                                                                                │
 walk-in / phone (front desk create) ────────────────────────────────────────> confirmed
                                                                                │  (identity verified, zero balance,
@@ -941,6 +1134,13 @@ amount (validated ≤ settled deposit − already refunded; the approved amount 
 `eligible_amount` with `normal_policy_amount` as baseline), and Accounting then executes exactly that
 approved amount. The refund queue badges each row "Within policy" vs "Approved exception" so the
 distinction is visible at settlement time.
+
+Accounting records the payout method and transaction reference. The refund form
+checks the current shared drawer before offering cash and sends that drawer's ID
+when saving. A replacement drawer requires a new confirmation. Settled cash
+refund links are immutable. The legacy three-argument `process_refund` call
+retains manual noncash behavior during rollout. The updated app requires the
+matching refund migration, after the operating-day and cancellation settlement migrations.
 
 **Explicit cancellation/no-show settlements (local implementation, migration `20261103160000`).**
 No-show fees equal settled reservation deposits after the frozen local cutoff. Pending proofs
@@ -982,24 +1182,17 @@ Staff operations (each a named RPC with row locks + audit, §10):
   `FOLIO_BALANCE_REQUIRED`; closes assignment, room dirty, creates a typed `checkout_cleaning`
   housekeeping task), **verify identity**, **record payment / post folio charge**, **review guest
   request batches** (§7.7).
-- **Deposit / stay-payment verification is Accounting-only** (`canVerifyDeposit`; the RPC guards
-  re-check `accounting`), and **staff verification has no time limit** — the 15-minute window is
-  strictly the *customer's* payment-submission window on the hold; once proof is submitted it stays
-  verifiable until resolved. `verify_reservation_deposit` re-checks the rounded amount, confirms the
-  reservation, posts any legacy transport lines as folio charges (deterministic idempotency keys),
-  and files the booking's transportation preference as a live request (§7.11). `accounting_reject_deposit`
-  returns a proof with a reason.
-- **Payment Details** uses one shared `PaymentDetailsDialog` receipt for deposit
-  and stay-payment records, including pending review. The selected payment supplies the
-  amount, guest/stay, method/reference, status, proof metadata and Manila timestamp;
-  existing signed proof previews remain available. The fluid receipt keeps its
-  header and X close control visible above a keyboard-accessible scrolling record;
-  there is no duplicate bottom Close button. Escape also dismisses the modal.
-  Purpose identifies the payment type; only deposits include the expected amount
-  and over/under comparison. Only pending records with Accounting review capability
-  expose the existing Verify/Reject callbacks in a persistent footer. PayMongo
-  payments never expose manual confirmation; authorized rejection remains. The
-  existing endpoints, signed proof access and server-side authorization are unchanged.
+- **Payment History** gives Accounting and Front Desk payment status and details.
+  Legacy manual submissions retain their recorded status, amount, reference, and proof.
+  Signed proof remains accessible to Accounting and the paying guest. Staff record actual
+  collections through the existing collection workflow. Xendit confirms online payments
+  through verified provider settlement.
+
+- **Payment Details** shows the guest and reservation, payment amount, method, reference,
+  status, Manila timestamp, and proof when available. Deposits include their expected amount
+  and over/under comparison. The record scrolls under a persistent header with a close
+  control and supports Escape.
+
 - **Housekeeping owns the dirty→ready leg** (§7.5); **Maintenance owns serviceability** (§7.6).
 
 ### 7.5 Housekeeping workflow
@@ -1037,10 +1230,15 @@ self-serve, **the person who cleaned may inspect their own work** — a delibera
 separation-of-duties trade-off, kept after review.
 
 **Operational queue.** All roles see the Housekeeping section as a grouped card queue
-(`components/manager/housekeeping-queue-panel.tsx`), not a CRUD table: Needs attention (unassigned or
-urgent/high) → My tasks → Cleaning in progress → Waiting for inspection → Blocked by Maintenance →
-Scheduled open work → Completed today (collapsed). Cards sort by the stored priority, then next
-arrival, then age, and show the room's recorded state — never a derived "available" claim. Actions
+(`components/manager/housekeeping-queue-panel.tsx`). For Housekeeping, room search and **My Tasks**
+come first, with active assigned work ahead of assignments waiting to start. On phones, **Open My
+Tasks** on the dashboard goes straight to this queue. The remaining groups are Needs attention
+(unassigned or urgent/high), Cleaning in progress, Waiting for inspection, Blocked by Maintenance,
+Scheduled open work, and Completed today (collapsed). The Housekeeping view places the queue overview
+and assignment suggestions in expandable sections after the room cards. The overview's In progress
+metric counts every loaded task with that status, including active work grouped under My Tasks or a
+maintenance hold. Within each stage, cards sort by stored priority, next arrival, then age. They show
+the room's recorded state. Actions
 reuse the exact RPC handlers and role gates as before: housekeeping acts, manager Prioritizes,
 front desk views. Readiness is decided by the audited workflow, not by the view.
 
@@ -1055,7 +1253,37 @@ being open unassigned work. Applying one still routes through the audited
 `housekeeping_assign_task` RPC via `POST /api/housekeeping/tasks/[id]/assign`: Housekeeping
 self-assigns ("Assign to me" — the RPC's `SELF_ASSIGNMENT_ONLY` rule unchanged), the Owner assigns
 the suggested teammate, and the Manager — who has no assign authority — sees the plan read-only and
-acts through Prioritize. Nothing anywhere auto-assigns; the system suggests, a person confirms.
+acts through Prioritize. This suggestion endpoint remains advisory. The separate,
+explicitly enabled Workforce checkout-assignment path below can assign checkout
+cleaning automatically.
+
+**Workforce integration preparation (2026-11-14, local).** Workforce Management
+owns official shift, attendance, leave and employment evidence. Hotel Admin/Owner
+map immutable source/property/employee IDs to existing Hotel accounts. Protected
+`POST /api/integrations/workforce/availability` accepts the proposed
+`haven-workforce-v1` contract with a dedicated bearer credential, event UUID,
+monotonic employee version, complete attendance/shift evidence and expiry of at
+most 15 minutes. Exact replay never refreshes validity. Wrong property, unmapped
+employees and conflicting replay are rejected. Cached facts never grant roles
+or reactivate an account. RLS/service-only RPCs protect all writes.
+
+With the separate database assignment setting enabled, checkout task creation
+atomically picks active, recovered Housekeeping accounts whose mapped Workforce
+evidence is fresh, clocked in, in the current scheduled shift, and employment/
+department eligible. Lowest unfinished Housekeeping workload wins, random on
+ties. Automatic selections serialize, preserve existing assignments and audit
+system method/source version without impersonating staff. No eligible worker
+leaves pending checkout cleaning unassigned. Accepted new evidence or explicit
+activation distributes up to 200 pending checkout tasks by priority/age.
+Cleaning/inspection/readiness rules remain authoritative. Clock-out or expiry
+prevents new automatic work and preserves existing tasks for handover.
+
+`GET/POST /api/staff/workforce` provides DB-scoped personal/team evidence and
+Admin/Owner-only reviewed configuration/mapping writes. The Admin Users & Staff,
+Manager Staff & Duty, and Housekeeping queue show this separately from operational
+activity. Both the inbound receiver and assignment default off. Migration
+`20261114030000` is local, not applied to hosted. Partner agreement, credentials
+and deployment remain pending. See `docs/integrations/WORKFORCE_MANAGEMENT.md`.
 
 ### 7.6 Maintenance workflow
 
@@ -1106,6 +1334,8 @@ rejected}` (+ `approved_by/at/note`). A customer submission (or a booking's auto
 (`front_desk_review_guest_request_batch` — approve or reject the whole batch; rejection requires a
 note). Only approved requests enter the departmental lane. Live staff routing from the Front Desk
 uses the same lane (`components/manager/guest-requests-panel.tsx`).
+The generic `/api/resources/guest_requests` route lists requests. Creation, review, and fulfillment
+use the respective guest or staff workflow endpoints.
 
 ### 7.8 Manager approvals & exceptions
 
@@ -1118,9 +1348,11 @@ would overrule. Optimistic versioning (`version` + partial-unique "one pending p
 
 **Review** (`review_manager_approval`, owner/admin/manager; self-approval forbidden) re-feasibility-
 checks each approve *at review time*: the upgrade needs a same-type-away + target room free, a
-modification re-counts inventory under the advisory lock (its execution reprices only the room
-component — current target rate × new nights — while preserving every posted folio charge;
-balances settle through `sync_invoice_financials`, never an invoice rewrite), late checkout checks the assignment
+modification checks nightly inventory and the existing room under the booking locks. Execution
+rechecks the amendment before committing, keeps the booked nightly prices where applicable,
+and adds the lodging delta to the existing folio. The application keeps the quote recorded on a
+guest request even when catalog rates change during approval.
+Late checkout checks the assignment
 conflict, compensation ≤ folio, refund exception ≤ settled deposit. **Execution is separated from
 approval**: the front desk (`front_desk_execute_manager_approval`) executes the approved operational
 exception, accounting executes the financial one (`accounting_execute_manager_financial_approval`,
@@ -1223,10 +1455,10 @@ are unchanged. Workspaces offered per role:
 | Role | Sections offered |
 |---|---|
 | Manager | Dashboard (risk command centre), reservations, rooms (+ **Manage rooms** roster, §6), guests, guest requests, **Transportation**, **Room Types & Photos**, **Transfer Vehicles**, housekeeping, maintenance, inventory, **Approvals & Escalations**, **Reports** (performance center + daily-report review, §7.12) |
-| Front Desk | Dashboard (arrivals/departures/in-house/rooms ready), reservations, rooms, guests, guest requests, **Transportation**, housekeeping, billing, Deposit verification (queue view — verification itself is Accounting's), **Transactions · Guest folios · Cash & shifts · Financial documents**, Approvals, **Reports** (daily operations report, §7.12) |
+| Front Desk | Dashboard (arrivals/departures/in-house/rooms ready), reservations, rooms, guests, guest requests, **Transportation**, housekeeping, billing, Payment History, **Transactions · Guest folios · Cash & shifts · Financial documents**, Approvals, **Reports** (daily operations report, §7.12) |
 | Housekeeping | Dashboard, rooms, guest requests, housekeeping tasks, inventory, Approvals |
 | Maintenance | Dashboard, rooms, guest requests, maintenance orders, inventory, Approvals |
-| Accounting | Dashboard, reservations, billing, **Deposit verification** (the only role that can act on it), Refunds, **Transactions · Folios · Cash & shifts · Reconciliation · Documents**, Reports, Approvals |
+| Accounting | Dashboard, reservations, billing, **Payment History**, Refunds, **Transactions · Folios · Cash & shifts · Reconciliation · Documents**, Reports, Approvals |
 
 **Front Office modules (2026-11-04).** Staff navigation separates Room Management
 (`room_rack`), Reservations (`reservations`), and Guest Management (`guests`).
@@ -1300,16 +1532,10 @@ health, and governance records are not repurposed as notifications.
    maintenance: approved requests routed to their department, status open/in-progress),
    Transportation (`REQUESTED` rides awaiting review; front desk/manager), Approvals & Escalations
    (pending approvals; manager only), Housekeeping (open tasks — the pre-existing meaning,
-   unchanged), Maintenance (open work orders), Deposit Verification (`pending_verification`
-   payments; **accounting only** — Front Desk's queue view never gains a badge, matching its
-   read-only authority), and Refunds (pending + failed; accounting only). A collapsed category
-   header sums its modules' badges. Counts come from `getDashboard`'s new metrics
-   (`pendingRequestBatches`, `departmentRequests`, `transportationRequested`, `pendingVerifications`,
-   `pendingRefundCount`) computed server-side with the same domain predicates the module queues use —
-   never from notification counts, and never a total record count. Phase 5 added the deposit-SLA
-   metrics (`depositSlaHours`, `oldestPendingVerificationMinutes`, `pendingPastSla` — accounting
-   aging aggregates; the threshold is fetched for financial roles so Front Desk's read-only queue
-   can render the same aging chips).
+   unchanged), Maintenance (open work orders), and Refunds (pending + failed, Accounting only).
+   Collapsed categories sum their module badges. Counts come from the corresponding
+   workload metrics in `getDashboard`. Payment History has no manual review backlog.
+
 2. **Header bell = live derived alerts.** The shared `HavenNotificationBell` and
    `HavenNotificationPopover` render `dashboard.notifications` —
    role-scoped alerts computed per request in `getDashboard` (§5). Deliberately *not* a persistent
@@ -1460,12 +1686,10 @@ collapsed and mobile views); rules live in `app/sidebar-navigation.css`.
   keys or URLs), **Email** (`RESEND_API_KEY` presence → Configured/Not configured; delivery
   history untracked → `Unknown`), **Scheduled automations** (the two real `vercel.json`
   crons — guest reminders daily 01:05 UTC, analytics generation daily 18:35 UTC — with a
-  **real last run** read from the table each job already writes: latest
-  `guest_reminder_deliveries.sent_at`, latest `analytics_model_runs.generated_at`. The
-  per-job label names what the timestamp means: `guest_reminder_deliveries` is unique per
-  `(reservation_id, kind)` and only inserts on an actual send, so that row is the last
-  **send**, not the last attempt, and is labelled "Last send". No row at all reads "No
-  sends recorded" / "No runs recorded" — never a fabricated success. Both tables are
+  delivery state read from `guest_email_deliveries` (last attempt, confirmed sends,
+  failures and explicit bounded reminder retry), and latest
+  `analytics_model_runs.generated_at`. A failed delivery stays visible and does not become
+  a confirmed send. Missing evidence remains unknown. These tables are
   RLS-enabled, revoked from anon/authenticated and granted to `service_role`, which
   `guardAdmin()` provides. A failed query degrades that one job to `unknown` rather than
   failing the payload), **Deployment** (two tiers. Tier 1, always available: Vercel injects
@@ -1504,10 +1728,9 @@ a room, or settlement, the retired ArrivalLane strip's blocker logic — with Ar
 Departures / In-house clickable onto the queue filters; manager oversight panel: Attention
 Required — the authoritative `needsAttention` definition from `lib/manager-attention.ts` —
 plus Arrivals / Departures / In-house, all clickable), the seven status modules
-(Maintenance, Rooms, Inventory, Deposit Verification, Refunds, Billing, and the
+(Maintenance, Rooms, Inventory, Payment History, Refunds, Billing, and the
 Housekeeping/Maintenance view of Guest Requests — informational, via one shared
-`moduleSummary` helper in the generic `ResourceView`; Deposit Verification's cards include
-**Past SLA** — pending payments waiting past the policy's `depositSlaHours`), **Transportation** (its KPI cards
+`moduleSummary` helper in the generic `ResourceView`), **Transportation** (its KPI cards
 migrated onto the shared component, still queue-clickable), the **Accounting**
 sections (Transactions/Folios/Cash/Reconciliation/Documents, informational),
 **Approvals & Escalations** (Pending — clickable onto the status pills — plus High priority,
@@ -1529,10 +1752,10 @@ none. The "needs attention" count is intentionally absent from the front-desk Re
 queue itself — no authoritative definition exists there; arrival readiness is the
 "Arrivals needing prep" card.
 
-### 7.11 Transportation service (standalone)
+### 7.11 Transportation service and Fleet preparation
 
-Guest pickup, drop-off, and round-trip rides as a first-class operational queue — **no external
-APIs**: locations are plain validated text, and `lib/transportation.test.ts` enforces that no
+Guest pickup, drop-off, and round-trip rides as a first-class operational queue. Local operations
+remain the default. Locations are plain validated text, and `lib/transportation.test.ts` enforces that no
 `api.tomtom.com` / `TOMTOM_API_KEY` code ships anywhere (a TomTom-priced variant was built and then
 deliberately removed; `docs/TRANSPORTATION_FUTURE_ENHANCEMENTS.md` records what was deferred).
 
@@ -1561,30 +1784,100 @@ deliberately removed; `docs/TRANSPORTATION_FUTURE_ENHANCEMENTS.md` records what 
   reservation's stay window; the staff workspace (`components/manager/transportation-panel.tsx`)
   offers queue filters (needs review / today / active / completed / closed), service-type and search
   filters, and auto-refreshes every 30 s.
+- **Pickup profiles (local unreleased).** Guest Transportation → Passenger details and staff
+  Transportation → Pickup & Fleet collect the actual lead traveler's name, normalized mobile,
+  optional email and optional dedicated pickup photo. Per-ride sharing permission is explicit.
+  Private `transport-pickup-photos` objects are separate from identity/recovery documents.
+  Owners and authorized transport staff can read through server-scoped routes; the guest
+  owner and Front Desk can edit with optimistic version checks. Link issuance is audited,
+  uses a 60-second lifetime and no-store responses. Revocation stops future partner links;
+  an issued URL can remain valid until expiry and downloaded copies need partner handling.
+- **Ride preferences and guest safety (local unreleased).** Photo remains optional; no
+  registration/ride gate requires it. A new ride profile starts with the guest account's saved
+  name/email and unambiguous guest mobile, editable for another actual passenger. Per-ride
+  requests include quiet ride, luggage assistance and cool cabin, luggage count/details and
+  notes. Migration `20261105020000_transport_ride_preferences_and_safety.sql` adds these
+  fields and attaches them to every prepared leg. Fleet acknowledgment must confirm both
+  pickup_profile_accepted and ride_details_accepted. Preferences are requests, not promises.
+  Valid ordered callbacks atomically project Fleet's current plate/driver/vehicle and optional
+  assignment-bound tracking snapshot. Guest-only `/api/account/transportation/[id]/ride-safety`
+  rechecks ownership, active identity/stay/trip and projection authority, excludes raw evidence,
+  and returns no-store data. Only HTTPS tracking URLs from HAVEN_FLEET_TRACKING_ORIGINS with
+  the current assignment, plate and unexpired timestamp become guest links. Guest cards refresh
+  every 30 seconds/foreground and hide expired links locally. Track opens Fleet's page;
+  Share uses the native share sheet with clipboard fallback. Reassignment replaces old fields;
+  completion, cancellation, sharing/local-detail/stay changes clear the projection. Fleet must
+  separately revoke already-shared public tokens. Haven hosts no map/GPS service or SOS dispatch.
+  Partner instructions: `docs/integrations/FLEET_TEAM_RIDE_SAFETY_INSTRUCTIONS.md`.
+- **Fleet adapter (local unreleased; supplied schema received 2026-11-13).**
+  `docs/integrations/contracts/fleet-haven-2026-11-06.schema.json` is Fleet's supplied
+  local contract; its metadata includes uncommitted partner implementation, not hosted proof.
+  Migration `20261113010000_fleet_wire_and_tracking_renewal.sql` persists flat guest fields,
+  envelope `round_trip_reference`/lowercase `leg_kind`, and source HAVEN. Staging requires
+  explicit `fleet-haven-2026-11-06`, distinct directional credentials and an HTTPS intake;
+  defaults stay off with blank tracking origins, no production mode or scheduled sender.
+  Wrapped ACKs require a complete versioned HAVEN snapshot and both stored acceptance
+  flags. Reference, status and inbox evidence commit atomically. Public callbacks use
+  the same complete plain snapshot, dedicated inbound credential and matching
+  Idempotency-Key; immutable wire evidence is retained. New PMS callbacks are rejected;
+  previously stored identical legacy events can replay. Journey, leg and external revision
+  must match the saved create. Changed repeats conflict; stale versions do not regress
+  projections. PHP-centavo fare/correction evidence never posts folio charges or local status.
+  Photo signing requires external request ID, photo reference/version and current assignment
+  UUID, permission and active trip/stay. It returns url/expires_at with a 60-second private
+  HTTPS URL. Explicit Front Desk tracking renewal saves a durable command with original
+  version/assignment, lease and bounded retries; uncertain retries retain the same event ID.
+  Wrapped outcome:renewed must carry a higher version and replaced unexpired tracking URL.
+  No automatic renewal runs. Consent, current assignment and stay/trip are rechecked before
+  sending. Older responses cannot resurrect completed/cleared rides. Fleet enforces public
+  revocation. Fleet supplied its DELETE contract at published commit
+  `3cf85b5b193d2953a183fd0656678284646b1abf`. Migration20261113020000 adds durable
+  per-leg tracking withdrawals. Guest consent withdrawal queues attempted legs atomically;
+  Front Desk can explicitly revoke/retry one leg, including a terminal leg. DELETE keeps
+  its saved version through uncertainty and accepts current-snapshot already_revoked.
+  Unknown initial versions use authenticated source lookup;409 stops for explicit current-
+  version review/confirmation. Retry-After, leases, backoff and an eight-attempt bound apply.
+  Withdrawal intent prevents later callbacks/re-consent from restoring public tracking or
+  renewing it. No-attempt legs have no remote operation. Disabled/outage delivery stays
+  pending for Front Desk follow-up; local save alone does not imply public-token invalidation.
+  This does not implement Fleet booking cancellation or general source reconciliation.
+  Callback/photo authentication now requires two distinct purpose-specific Haven keys,
+  plus a distinct Fleet-issued outbound key; the legacy shared inbound key is ignored.
+  Existing projects are used for testing: Haven at https://haven-hotel-management-ten.vercel.app,
+  Fleet/base/tracking at https://fleet-transpo.vercel.app. Four local Fleet migrations have
+  a scoped Supabase dry-run, but no hosted apply/release. Last hosted route probes404;
+  no hosted readiness claim. Lead Programmer is the Haven contact role; Fleet accepted
+  Bitwarden Send (separate password-protected text sends,24h,max access1, verified private
+  recipients/passwords through another channel). No real credentials/Send exchanged here.
+  See `docs/integrations/FLEET_HOSTED_READINESS_2026-11-13.md`. Hosted deployment,
+  actual image-origin verification, credential exchange, agreed window, joint QA and
+  authorized sign-offs remain prerequisites. Connection/allowlist stay off/blank.
+  See `docs/integrations/HAVEN_FLEET_PREPARATION.md` for the wire and manual QA.
 
 ### 7.12 Daily Front Desk Operations Report
 
-The centralized reporting surface for Front Desk (§7.9). Per-module "Export" print buttons were
-removed from the operational modules; the Reports page is now the one place reports live.
-Legitimate document downloads — receipts/folios via `generateDocument`, and the `exportToCSV` kit in
-`components/ui/DataTable.tsx` — are untouched; the Reports page's Export is the single
-`window.print()` in the operational dashboard.
+The centralized reporting surface for Front Desk (§7.9). The shared Download
+menu groups each screen's supported output. Reports, operating-day assessment,
+the restricted in-house register and room placards offer Print / Save as PDF
+through the browser. The guest express pass downloads its PNG. Staff receipt and
+folio issuance remains a separate financial-document workflow.
 
-- **Generation.** `lib/front-desk-reports.buildDailyReport(date)` aggregates a hotel day (exact UTC
-  window `[dateT00:00+08:00, +24h)`, matching the Asia/Manila policy) across reservations
+- **Generation.** `lib/front-desk-reports.buildDailyReport(date)` calls a single SQL snapshot
+  aggregation over the configured hotel timezone's day window, without API row limits, across reservations
   (created/by-source, arrivals, departures, cancellations + no-shows from audit actions), guest
   requests (opened, escalated, open by department), collections (settled payments, count/total/by
   purpose — front-desk scope only), **room-care turnover** (completed housekeeping tasks: count, by
   type, awaiting inspection, average turnaround minutes — aggregated from the authoritative
   `housekeeping_tasks` table, not a duplicate), rooms, transportation, and manager approvals. The
   default date is the hotel's local today.
-- **Submission.** `POST /api/front-desk/reports` builds the snapshot **server-side** (the browser
-  never supplies snapshot content — the preview the user saw is exactly the immutable evidence
-  stored) and calls `submit_front_desk_report` (front-desk-guarded, future dates refused,
+- **Submission.** `POST /api/front-desk/reports` supplies the preview's snapshot version to
+  `submit_front_desk_report`. SQL builds the snapshot and compares its version in the same
+  transaction. Changed totals return 409 and require a refreshed preview; the browser never
+  supplies snapshot content. The RPC is front-desk-guarded, future dates refused,
   `front_desk_reports` row with id/timestamps/submitter/status, one **live submission per hotel day**
-  via a partial unique index).
-- **Export ≠ submit.** The Export button prints the preview and is explicitly labeled as never
-  submitting anything to the Manager.
+  via a partial unique index.
+- **Downloads and review.** The report's Download menu prints the selected preview or saved
+  snapshot. Submit to Manager stores a snapshot for review through the submission route.
 - **Review.** The Manager (only) acknowledges or returns a submitted report
   (`review_front_desk_report`, optimistic-`version` guarded; a return requires a note). A returned
   report can be **resubmitted** with `p_supersedes` — the original stays in history, the new
@@ -1690,6 +1983,11 @@ invalid/expired/revoked/unauthorized states. All manual workflows remain fully i
 
 ### 7.14 Manager Staff & Duty (operational supervision)
 
+The internal module name **Hotel Supplies & Team Operations** retains the official
+Inventory & Staff Management alias. Its seven-area screen/source/role map is in
+`docs/ENTERPRISE_BOUNDARIES.md` (Task 8). Supplies, operational workload and account
+governance remain separate responsibilities, with existing navigation labels.
+
 `GET /api/manager/staff-duty` (`canViewStaffDuty`, manager-only, enforced at the route — sidebar
 visibility is never the gate) serves a **read-only** workforce snapshot derived by
 `lib/staff-duty.ts` from the operational tables that already exist. It is supervision, not HR:
@@ -1704,6 +2002,14 @@ visibility is never the gate) serves a **read-only** workforce snapshot derived 
   **assigned** = open (not-yet-started) task/order; **no active work** = neither. No shift times,
   break states or attendance are inferred. The planned roster never overrides these activity
   signals or proves that somebody is physically present.
+- **Workload counts.** In-progress workload counts every active task/order, while
+  Working now and department coverage count each person once. Multiple repairs
+  assigned to one technician must not collapse into a single workload item.
+- **Department metrics.** Housekeeping sees cleaning/inspection and technical-block
+  coordination totals. Maintenance sees active/urgent repair and blocked-room totals.
+  Financial metrics remain restricted. Maintenance queue blocked-room cards count
+  distinct active room identities, including out-of-service diagnosis, and ended
+  orders do not inflate active repair severity/block totals.
 - **Data sources.** One batched parallel query set (no per-member queries): active `user_accounts`
   (name + role only — no contact, credential, or account-security columns), open + completed-today
   `housekeeping_tasks`, open + resolved-today `maintenance_orders`, and open `cash_shifts`.
@@ -1754,6 +2060,13 @@ atomic cumulative receipts/stock movements, partial status, receipt history, and
 deliveries-only Housekeeping queue. Omitted lines are not assumed delivered. Retry identity is
 the PO/version plus actor and payload. Partially received orders cannot be cancelled or edited
 into different orders. Completed orders remain immutable; historical quantities are not inferred.
+
+The local Inventory workspace loads the PO queue alongside stock balances for eligible roles.
+Receiving offers each line's outstanding quantity and refreshes both the order and stock views.
+Migration `20261104030000` restores the partial receipt and replay behavior overwritten by
+`20261104020000`, while retaining its stock-status update. The updated workspace requires the
+matching PO schema and remains pending a coordinated release. See
+`docs/qa/enterprise-architecture-acceptance-2026-11-04.md` for local verification.
 
 ### 7.16 Hotel operations implementation candidate (2026-11-03)
 
@@ -1822,6 +2135,19 @@ staff walkthrough that preceded it.
   stamped period receipts. Missing rates produce a blocker rather than an estimate.
   Reports can show live assessment and immutable recent closes; formal Front Desk
   daily report submissions remain independent.
+- **Collections reporting** treats paid non-refund payments as gross collected and
+  paid refunds as outflows. Owner and Accounting display signed net collections in
+  centavos. Front Desk's Manila calendar-day report excludes refunds from its
+  collection totals and preserves previously submitted snapshots. These operating
+  totals use a separate basis from Finance-recognized revenue. The reporting and
+  fiscal decisions pending approval are in `docs/integrations/ENTERPRISE_CONTRACTS.md`.
+- **Closed-day Finance review downloads** are in Accounting → Hotel Operations →
+  Operating day & close. Each saved close offers CSV, Excel and PDF from one
+  stable batch reference and its immutable night-audit totals. The
+  Accounting-only `GET /api/accounting/exports` checks the date and format,
+  serves a private attachment, and audits issuance. The CSV uses integer
+  centavos. The review package excludes guest data and carries no confirmation
+  of Finance import or journal posting.
 - **Optional fee templates** are Accounting-maintained with no seeded property fees.
   Front Desk obtains a server quote and posts its version/quantity through the
   existing reservation charge route. The existing `folio_charges` ledger freezes
@@ -1932,7 +2258,7 @@ Provisional defaults (`docs/PROVISIONAL_BUSINESS_POLICIES.md`, `lib/hotel-policy
 | Minimum booking age | 18 (data source for the actual age check is a gap — §15) |
 | Email verification | required: **off** |
 | VAT / service charge | **VAT-inclusive**: 12% VAT + 10% service charge (`vat_rate_bp` 1200, `service_charge_bp` 1000, basis points 0–10000, Owner/Admin-editable) — displayed prices are the full amount guests pay; documents derive the breakdown (net = gross ÷ ((1+sc)×(1+vat)), VAT line absorbs rounding). Rates freeze into `operational_policy_snapshot` per reservation; settled documents are never recomputed |
-| Deposit verification SLA | **4 hours** (`deposit_sla_hours`, 0–72, 0 = tracking off; Owner/Admin-editable, migration `20260931010000`). **Visibility only**: pending-deposit rows in the Deposit Verification queue show an aging chip (amber ≥1 h, red at the SLA), the module's summary cards include a Past-SLA count, and Accounting's bell gains a "past SLA" alert when any deposit has waited too long. Nothing anywhere auto-approves or auto-rejects a payment (`lib/deposit-sla.ts`) |
+| Historical deposit verification SLA | Stored with prior policy snapshots and carried through policy updates. The application retired the review queue and its SLA controls on 2026-11-15. |
 
 Percentages are **integer basis points 0–10000** in the DB; deposit/refund math is computed in
 integer centavos in TS (`lib/booking.ts`) and `round(…,2)` pesos in SQL. Money is stored as
@@ -1989,8 +2315,8 @@ availability/room-state counts, and write `audit_logs` rows. Grouped by workflow
 
 | Workflow | Functions (purpose) |
 |---|---|
-| Booking & availability | `room_nightly_rates` (**the one pricing resolver** — per-night winning rate for a type/window, §6), `create_booking_hold` (price + hold; validates request options + transportation preferences; `ROOM_TYPE_UNAVAILABLE`), `submit_reservation_deposit` (pending res + invoice + pending deposit + proof metadata; `PROOF_REQUIRED` for manual methods; idempotent by token; per-night `RATE_CHANGED` re-check), `verify_reservation_deposit` (**accounting-guarded** confirm + transport/transportation filing), `expire_booking_holds`, `front_desk_create_reservation`, `file_booking_guest_requests` (+ batch trigger), `file_booking_transportation_request` (+ confirmation trigger) |
-| Front desk | `front_desk_room_is_eligible`, `front_desk_eligible_room_inventory`, `front_desk_assign_room`, `front_desk_check_in`, `front_desk_change_room`, `front_desk_extend_stay` (the one extension implementation — also performed by approved `stay_extension` execution), `front_desk_extend_stay_preview` (read-only dialog preview; nights/rate/totals/conflict), `front_desk_checkout`, `front_desk_update_guest`, `verify_guest_identity`, `record_staff_payment`, `post_folio_charge`, `customer_submit_stay_payment` / `verify_customer_stay_payment` (**accounting-guarded**) |
+| Booking & availability | `room_nightly_rates` (**the one pricing resolver** — per-night winning rate for a type/window, §6), `create_booking_hold` (price + hold; validates request options + transportation preferences; `ROOM_TYPE_UNAVAILABLE`), `submit_reservation_deposit` (pending res + invoice + pending deposit + proof metadata; `PROOF_REQUIRED` for manual methods; idempotent by token; per-night `RATE_CHANGED` re-check), `verify_reservation_deposit` (historical manual workflow), `expire_booking_holds`, `front_desk_create_reservation`, `file_booking_guest_requests` (+ batch trigger), `file_booking_transportation_request` (+ confirmation trigger) |
+| Front desk | `front_desk_room_is_eligible`, `front_desk_eligible_room_inventory`, `front_desk_assign_room`, `front_desk_check_in`, `front_desk_change_room`, `front_desk_extend_stay` (the one extension implementation — also performed by approved `stay_extension` execution), `front_desk_extend_stay_preview` (read-only dialog preview; nights/rate/totals/conflict), `front_desk_checkout`, `front_desk_update_guest`, `verify_guest_identity`, `record_staff_payment`, `post_folio_charge`, `customer_submit_stay_payment` / `verify_customer_stay_payment` (historical manual workflow) |
 | Guest requests | `customer_submit_guest_requests` (batch), `front_desk_review_guest_request_batch` (approve/reject whole batch; note required on reject), `guest_request_route` (single department-routing table), request/task-creation triggers, `link_housekeeping_tasks_to_assigned_room` |
 | Housekeeping | `housekeeping_assign_task`, `housekeeping_start_task`, `housekeeping_complete_task`, `housekeeping_inspect_task`, `housekeeping_defer_task`, `housekeeping_report_maintenance`, task-creation triggers, assignment backfill |
 | Maintenance | `maintenance_create_work_order`, `maintenance_assign_work_order`, `maintenance_start_work_order`, `maintenance_record_diagnosis`, `maintenance_defer_work_order`, `maintenance_add_progress`, `maintenance_resolve_work_order`, `maintenance_close_work_order`, `maintenance_cancel_work_order`, `maintenance_room_is_blocked`, `maintenance_restore_room_state` |
@@ -2048,8 +2374,7 @@ configured, `409 NO_ACCOUNT_EMAIL` when the account has none); **Transportation*
 `GET reservations/[id]/eligible-rooms`, `POST reservations/[id]/assign`, `…/change-room`,
 `…/charge`, `…/checkout`, `…/extend`, `GET …/extend-preview` (server-calculated extension figures
 for the dialog), `PATCH …/guest`, `POST …/identity`, `POST …/payment`,
-`POST …/requests`; **`POST deposits/[id]/verify`** (accounting-only guard — the handler lives under
-front-desk for queue symmetry, but `permitted = {"accounting"}`); `POST guest-requests/review`
+`POST …/requests`; `POST guest-requests/review`
 (batch approve/reject); **Reports**: `GET /front-desk/reports?date=` (preview) / `?page=` (history),
 `POST /front-desk/reports` (submit), `POST /front-desk/reports/[id]/review` (manager
 acknowledge/return).
@@ -2076,10 +2401,8 @@ cancel, reject — optimistic version).
 financial-execute | escalate-owner`, `POST housekeeping/[id]/prioritize`,
 `POST maintenance/[id]/escalate`.
 
-**Accounting** (`/api/accounting`): `GET ledger`; `POST payments/[id]/verify | reject`;
-`POST refunds/[id]/process | fail`; `POST cash-shifts`; `GET/PUT cash-shifts/[id]`
-(authorized count context / explicit draft save); `PATCH cash-shifts/[id]`
-(close saved version / reconcile); `GET cash-shifts/[id]/follow-up`;
+**Accounting** (`/api/accounting`): `GET ledger`;
+`POST refunds/[id]/process | fail`; `POST cash-shifts` / `PATCH cash-shifts/[id]`;
 `POST reconciliations`; `POST adjustments`; `POST charges/[id]/reverse`; `POST documents`.
 
 **Admin** (`/api/admin`): `POST users`, `POST users/[id]/action`, `PATCH policy`,
@@ -2125,6 +2448,41 @@ Error conventions: RPC failures are mapped to friendly messages and status codes
 guards (`admin-route.ts` etc. — `PROTECTED_ROLE_FORBIDDEN`→403, `*_STALE`/version→409, etc.); raw
 database error text is never echoed to the client.
 
+**Error feedback repairs (2026-11-15, local; release pending).** Human-facing routes use
+`lib/server-errors.ts` (`publicJson`) with the registered public copy and field-aware formatters in
+`lib/errors.ts` / `lib/error-messages.ts`. Existing HTTP statuses, success bodies, machine error
+discriminators and flattened field contracts remain compatible. Safe optional code/category/outcome
+and full-path field metadata supplement them. Exception objects, SQL details/hints, stacks, parser
+text and unknown provider messages do not become public error copy. Internal reference/version
+validation prompts reopening the latest record rather than entering a UUID or retry key. Machine
+Fleet/Workforce/webhook contracts retain their separate boundaries.
+
+Browser callers use `lib/client-errors.ts` (`fetchPublic`, `readResponse`). Rejected fetches and
+malformed responses become safe feedback; writes with an unknown result instruct the user to check
+the authoritative record before submitting again. Explicit provider rejection remains distinct
+from an unconfirmed payment. The walk-in and guest request/transport forms preserve retry identity
+for unchanged details, and busy state is released on failure. Walk-in's optional arrival value is
+empty, matching the current time-only API schema. A confirmed collection retains its receipt even
+when refreshing the ledger fails. Guest checkout feedback does not assert an unconfirmed
+reservation outcome. Guest reset/receipt delivery copy is separate from Admin SMTP setup guidance.
+
+Existing field-error and dialog primitives provide input associations and focus. Dashboard
+notification callers carry severity explicitly. Toast expiry promotes queued items, queued IDs are
+deduplicated before sound, and toast children own their announcements without a nested live parent.
+Catalog mutation errors stay visible inside their dialog. Payment-status polling stops after its
+bounded attempts even when reads reject; it retains recovery guidance and a read-only status retry.
+Guest cancellation submission errors appear in the review dialog footer above the action buttons,
+outside the scrolling refund details and reason field.
+Sensitive logging paths now use allowlisted codes and correlation references rather than raw
+exception objects or database row details.
+
+The approved audit and local verification are recorded in
+`docs/qa/error-microcopy-audit-2026-11-15.md` and
+`docs/qa/error-microcopy-implementation-2026-11-15.md`. The full suite passes 2,601 tests across 259
+files on Node 22.22.2; typecheck/build and scoped lint (zero errors, 41 warnings) pass. Edge fixture
+checks cover error feedback at desktop/tablet/mobile widths, not every hosted role/provider flow.
+This repair adds no migration or dependency and has not been deployed.
+
 ## 12. Testing & verification
 
 **Command gates (run 2026-09-09):** `npm run typecheck` and `npm run build` pass. `npm run lint`
@@ -2169,7 +2527,7 @@ fixtures (role actors + a private room type), runs **savepointed RPC assertions*
 inside SAVEPOINTs so the run continues), and **always rolls back** — no data is left behind
 (attested at the end). RPC arguments are introspected from the **live schema** (identity argument
 names, invoked positionally with parameter binding) so signature drift never breaks a call. Lanes:
-Guest (far-out booking: deposit → verify → requests → self-change → full-refund cancel), Front Desk +
+Guest (far-out booking: Xendit payment → provider confirmation → requests → self-change → full-refund cancel), Front Desk +
 Maintenance (interleaved: walk-in lifecycle on one room while the spare is maintenance-blocked,
 proving availability math), Housekeeping (turnover lifecycle, **then the full inspection cycle**:
 policy flipped on via the Owner RPC — completion parks the room at `inspection`/pending and it is
@@ -2227,9 +2585,16 @@ of CI/tests), `migrate.mjs` (legacy; **not** the supported migration path).
   upload AND again at confirm), stored in the policy-less private `payment-proofs` bucket, served
   only via 60-second signed URLs to the paying guest or Accounting (§7.2), never sent to the AI
   layer, never public.
-- **No third-party API keys.** The transportation service runs entirely on local data — a test
-  enforces that no external mapping/routing code is present. The sole external dependency is the
-  **server-side Gemini client** (§7.13): `GEMINI_API_KEY` is never exposed to browser JavaScript
+- **Private document reads**: payment-proof and uploaded guest ID routes record
+  the actor and document reference before returning a non-cacheable signed link.
+  The ID route is Front Desk only. Guest receipt access checks current ownership
+  and settled payment eligibility, then uses issue-time stay details and tax
+  when a stored receipt exists. See the private document register in
+  `docs/ENTERPRISE_BOUNDARIES.md` for retention, hold and recovery decisions.
+- **Server-only provider credentials.** Transportation uses local data by default, with an
+  unreleased opt-in staging Fleet candidate (§7.11). Fleet credentials are separate per
+  direction and never public. A test enforces no external mapping/routing code. The
+  **server-side Gemini client** (§7.13) also keeps `GEMINI_API_KEY` out of browser JavaScript
   (no `NEXT_PUBLIC_` variant exists), never logged, and never returned by any route; routes only
   report whether AI is configured.
 - **AI is advisory and read-only** (§7.13). Server-side RBAC (manager/owner/admin) before any data
@@ -2263,22 +2628,9 @@ pipeline config in the repo at this tree.
 Honest inventory of what is **not** wired up yet (not prescriptions). Full split notes:
 `docs/lacking-of-the-system/`.
 
-- **Payments/refunds other than the GCash gateway deposit are manual.** Stay payments and refunds
-  are staff-verified proof-of-transfer; refunds are recorded attempts with a transaction
-  reference. The one automated money path is the PayMongo GCash deposit (§7.2.1, migrations
-  `20261016010000` + `20261021010000`): when the PayMongo env pair is configured, the deposit page
-  offers **GCash Instant Auto-Pay** (`POST /api/booking/payments/gateway` → PayMongo hosted
-  checkout, GCash-only by default) and the webhook route
-  `POST /api/webhooks/payments` verifies the `Paymongo-Signature` header (HMAC-SHA256 over
-  `"<t>.<raw body>"`, timestamp-tolerance replay guard, `te`/`li` mode selection) BEFORE any
-  database read, then settles only through the service-role `confirm_gateway_payment` RPC
-  (webhook-event idempotency via the unique `payments.webhook_event_id`, amount equality re-checked
-  in-transaction, audit row, transport itemization). The confirmation page polls the guest-scoped
-  `GET /api/account/reservations/[id]/payments` and flips to "Payment Confirmed!" without a reload.
-  Without the env pair nothing gateway shows and the manual-only statement remains true
-  (contract-tested in `lib/ota-readiness.test.ts` + `lib/paymongo.test.ts`). A gateway integration
-  beyond this deposit path still adds a real provider module only when the hotel selects one — no
-  provider abstraction was created speculatively.
+- **Guest online checkout uses Xendit sandbox (§7.2.2).** Guests can choose a deposit or full stay payment
+  during booking. Front Desk collects later balances. Staff record refunds with the transaction reference.
+  The guest-scoped payment status endpoint continues to support confirmation polling.
 - **OTA/channel-manager integration is column-ready, nothing more (roadmap Phase 9B, 2026-09-30).**
   `reservations.external_channel` / `external_reference` / `external_synced_at` are nullable,
   start NULL on every row, and are read/written by **nothing** in the app (partial unique index on
@@ -2303,10 +2655,12 @@ Honest inventory of what is **not** wired up yet (not prescriptions). Full split
 - **Minimum-age enforcement is not deployed.** The local unreleased occupant register now supports
   Front Desk DOB or exact-age evidence recorded from official ID, without inferring unknown ages;
   active enforcement still requires the matching migration/app release and explicit policy dates.
-- **Transportation is deliberately local.** Locations are free text, fares are flat per vehicle
+- **Transportation remains local by default.** Locations are free text, fares are flat per vehicle
   type, and there is no external mapping/routing — the TomTom-priced variant was removed.
   `docs/TRANSPORTATION_FUTURE_ENHANCEMENTS.md` records the deliberately deferred work (route
-  pricing, distance validation, fleet integrations).
+  pricing and distance validation). The local Fleet preparation candidate in §7.11 needs
+  partner contract acceptance and staging QA before activation; automatic status/fare authority,
+  machine update/cancel and recovery lookup remain deferred.
 - **`schema.sql` is a deployed-database snapshot, not a hand-maintained source of truth**
   (memory: `schema-sql-lags-behind-migrations`). It is regenerated with
   `npx supabase db dump -f supabase/schema.sql` when Docker and the linked database are available.

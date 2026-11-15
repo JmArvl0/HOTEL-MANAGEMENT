@@ -35,6 +35,10 @@ NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=YOUR_LONG_RANDOM_SECRET
 ```
 
+Use the same origin in `NEXTAUTH_URL` and the browser. For example, if you run
+`npm run dev -- --port 3001`, set `NEXTAUTH_URL=http://localhost:3001` in
+`.env.local` and use that port when testing registration, sign-in, and sign-out.
+
 Never expose `SUPABASE_SERVICE_ROLE_KEY` in browser code or commit `.env.local`. The supplied SQL enables row-level security and the server-only service role performs database access after NextAuth authorization.
 
 The tracked migrations create the eight role accounts **inactive, with no usable password** — this repository is public, so no hash is committed to it. Activate an account by setting its password:
