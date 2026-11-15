@@ -1,4 +1,9 @@
 "use client";
+import { FormFieldError, formFieldProps, type FormFieldErrors } from "@/components/ui/form-field-errors";
+import { ToastStack, useToasts } from "@/components/ui/toast-stack";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { BedDouble, Building2, CalendarRange, Check, Eye, ImagePlus, Images, Loader2, Pencil, Plus, RefreshCw, Search, Trash2, Upload, Users, X } from "lucide-react";
@@ -104,8 +109,11 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
   const [planDraft, setPlanDraft] = useState<PlanDraft | null>(null);
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [toast, setToast] = useState("");
+  const feedback = useToasts();
   const [error, setError] = useState("");
+  const [fields, setFields] = useState<FormFieldErrors>({});
+  const [dialogError, setDialogError] = useState("");
+  const fieldError = (field: string, message: string, id: string) => { setFields({ [field]: message }); requestAnimationFrame(() => document.getElementById(id)?.focus()); };
   const fileRef = useRef<HTMLInputElement>(null);
   const createFileRef = useRef<HTMLInputElement>(null);
   const [createPhotos, setCreatePhotos] = useState<string[]>([]);
@@ -113,11 +121,11 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
   const [createDragOver, setCreateDragOver] = useState(false);
   const keepCreatePhotos = useRef(false); // true after a successful create — the photos belong to the new type now
 
-  const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 3000); };
+  const notify = (message: string, tone: "info" | "success" | "warning" | "error" = "success") => { if ((tone === "error" || tone === "warning") && (draft || planType || photoType)) { setDialogError(message); return; } feedback.push({ title: message, tone, ...(tone === "error" || tone === "warning" ? { duration: 0 } : {}) }); };
   const load = async () => {
-    const response = await fetch("/api/catalog/room-types", { cache: "no-store" });
-    const body = await response.json();
-    if (!response.ok) { setError(body.error ?? "Unable to load the room catalog."); setLoading(false); return; }
+    const response = await fetchPublic("/api/catalog/room-types", { cache: "no-store" });
+    const body = await readResponse(response);
+    if (!response.ok) { setError(userMessage(body.error, "Unable to load the room catalog.")); setLoading(false); return; }
     setItems(body.data ?? []);
     setError("");
     setLoading(false);
@@ -125,8 +133,8 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
   useEffect(() => { void load(); }, []);
 
   const visible = useMemo(() => items.filter((item) => JSON.stringify(item).toLowerCase().includes(search.toLowerCase())), [items, search]);
-  const openEditor = (item: RoomType) => { setEditing(item); setDraft(draftFrom(item)); };
-  const openCreate = () => { setEditing(null); setDraft(emptyDraft()); setCreatePhotos([]); setPhotoError(false); keepCreatePhotos.current = false; };
+  const openEditor = (item: RoomType) => { setDialogError(""); setFields({});  setEditing(item); setDraft(draftFrom(item)); };
+  const openCreate = () => { setDialogError(""); setFields({});  setEditing(null); setDraft(emptyDraft()); setCreatePhotos([]); setPhotoError(false); keepCreatePhotos.current = false; };
   // Closing the create modal: if the type was never created, its uploaded photos
   // are orphans in storage — remove them best-effort. After a successful create
   // keepCreatePhotos suppresses the cleanup so attached photos survive.
@@ -135,33 +143,34 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
     if (!editing) { setCreatePhotos([]); setPhotoError(false); keepCreatePhotos.current = false; }
     setEditing(null); setDraft(null);
   };
-  const openPhotos = (item: RoomType) => { setPhotoType(item); setPhotoDraft(Array.isArray(item.photo_urls) ? [...item.photo_urls] : []); };
+  const openPhotos = (item: RoomType) => { setDialogError(""); setFields({});  setPhotoType(item); setPhotoDraft(Array.isArray(item.photo_urls) ? [...item.photo_urls] : []); };
   const closePhotos = () => { setPhotoType(null); setPhotoDraft(null); };
 
   // Rate plans: dated overlays on base rate — weekend/seasonal/holiday pricing.
   // Manager proposes, Owner/Admin approve, anyone here can retire. Plans price
   // FUTURE bookings only; confirmed bookings keep their agreed rates.
-  const openPlans = async (item: RoomType) => {
+  const openPlans = async (item: RoomType) => { setDialogError(""); setFields({});
     setPlanType(item); setPlans(null); setPlanDraft(null);
-    const response = await fetch(`/api/catalog/room-types/${item.id}/rate-plans`, { cache: "no-store" });
-    const body = await response.json();
-    if (!response.ok) { notify(body.error ?? "Unable to load rate plans."); setPlans([]); return; }
+    const response = await fetchPublic(`/api/catalog/room-types/${item.id}/rate-plans`, { cache: "no-store" });
+    const body = await readResponse(response);
+    if (!response.ok) { notify(body.error ?? "Unable to load rate plans.", body.outcome === "unknown" ? "warning" : "error"); setPlans([]); return; }
     setPlans(body.data ?? []);
   };
   const loadPlans = async (id: string) => {
-    const response = await fetch(`/api/catalog/room-types/${id}/rate-plans`, { cache: "no-store" });
-    const body = await response.json();
+    const response = await fetchPublic(`/api/catalog/room-types/${id}/rate-plans`, { cache: "no-store" });
+    const body = await readResponse(response);
     if (response.ok) setPlans(body.data ?? []);
   };
   const proposePlan = async () => {
     if (!planType || !planDraft) return;
-    if (planDraft.name.trim().length < 3) { notify("Enter a plan name (at least 3 characters)."); return; }
-    if (!planDraft.days.length) { notify("Choose at least one day of the week."); return; }
-    if (!Number.isFinite(Number(planDraft.nightlyRate)) || Number(planDraft.nightlyRate) < 0) { notify("Enter a valid nightly rate."); return; }
-    if (planDraft.reason.trim().length < 3) { notify("Enter a reason (at least 3 characters)."); return; }
+    setFields({});
+    if (planDraft.name.trim().length < 3) { fieldError("planName", "Please enter a plan name with at least 3 characters.", "rp-name"); return; }
+    if (!planDraft.days.length) { notify("Choose at least one day of the week.", "warning"); return; }
+    if (!Number.isFinite(Number(planDraft.nightlyRate)) || Number(planDraft.nightlyRate) < 0) { fieldError("planRate", "Please enter a valid nightly rate.", "rp-rate"); return; }
+    if (planDraft.reason.trim().length < 3) { fieldError("planReason", "Please enter a reason with at least 3 characters.", "rp-reason"); return; }
     setBusy(true);
     try {
-      const response = await fetch(`/api/catalog/room-types/${planType.id}/rate-plans`, {
+      const response = await fetchPublic(`/api/catalog/room-types/${planType.id}/rate-plans`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -169,8 +178,8 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
           days: planDraft.days, nightlyRate: Number(planDraft.nightlyRate), reason: planDraft.reason.trim(),
         }),
       });
-      const body = await response.json();
-      if (!response.ok) { notify(body.error ?? "Unable to submit the rate plan."); return; }
+      const body = await readResponse(response);
+      if (!response.ok) { notify(body.error ?? "Unable to submit the rate plan.", body.outcome === "unknown" ? "warning" : "error"); return; }
       notify(`Rate plan for ${planType.name} sent for approval.`);
       setPlanDraft(null);
       await loadPlans(planType.id);
@@ -187,13 +196,13 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
       validation: reasonCheck,
     });
     if (reason == null || reason.trim() === "") return;
-    const response = await fetch(`/api/catalog/rate-plans/${plan.id}/review`, {
+    const response = await fetchPublic(`/api/catalog/rate-plans/${plan.id}/review`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ decision, reason: reason.trim() }),
     });
-    const body = await response.json();
-    if (!response.ok) { notify(body.error ?? "Unable to review the rate plan."); return; }
+    const body = await readResponse(response);
+    if (!response.ok) { notify(body.error ?? "Unable to review the rate plan.", body.outcome === "unknown" ? "warning" : "error"); return; }
     notify(decision === "approve" ? `${plan.name} is live — it prices future bookings from ${plan.start_date}.` : `${plan.name} rejected.`);
     await loadPlans(planType.id);
   };
@@ -208,13 +217,13 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
       validation: reasonCheck,
     });
     if (reason == null || reason.trim() === "") return;
-    const response = await fetch(`/api/catalog/rate-plans/${plan.id}/retire`, {
+    const response = await fetchPublic(`/api/catalog/rate-plans/${plan.id}/retire`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ reason: reason.trim() }),
     });
-    const body = await response.json();
-    if (!response.ok) { notify(body.error ?? "Unable to retire the rate plan."); return; }
+    const body = await readResponse(response);
+    if (!response.ok) { notify(body.error ?? "Unable to retire the rate plan.", body.outcome === "unknown" ? "warning" : "error"); return; }
     notify(`${plan.name} retired.`);
     await loadPlans(planType.id);
   };
@@ -224,7 +233,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
 
   const addUrl = async () => {
     if (photoDraft == null) return;
-    if (photoDraft.length >= 24) { notify("A room type can hold up to 24 photos."); return; }
+    if (photoDraft.length >= 24) { notify("A room type can hold up to 24 photos.", "warning"); return; }
     const url = await dialogs.askPrompt({
       title: "Add photo URL",
       message: "Paste an image URL to add it to the photo gallery.",
@@ -240,26 +249,26 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
   };
 
   // Best-effort storage cleanup for a photo abandoned before the type existed.
-  const deletePhoto = (url: string) => { void fetch("/api/catalog/photos", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }) }).catch(() => {}); };
+  const deletePhoto = (url: string) => { void fetchPublic("/api/catalog/photos", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }) }).catch(() => {}); };
 
   // Shared upload — same rules the server enforces (JPEG/PNG/WebP, ≤5 MB).
   const uploadPhoto = async (file: File): Promise<string | null> => {
-    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { notify("Only JPEG, PNG, or WebP images are supported."); return null; }
-    if (file.size > 5 * 1024 * 1024) { notify("Image must be 5 MB or smaller."); return null; }
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { notify("Only JPEG, PNG, or WebP images are supported.", "warning"); return null; }
+    if (file.size > 5 * 1024 * 1024) { notify("Image must be 5 MB or smaller.", "warning"); return null; }
     setUploading(true);
     try {
       const form = new FormData();
       form.append("file", file);
-      const response = await fetch("/api/catalog/photos", { method: "POST", body: form });
-      const body = await response.json();
-      if (!response.ok) { notify(body.error ?? "Upload failed."); return null; }
+      const response = await fetchPublic("/api/catalog/photos", { method: "POST", body: form });
+      const body = await readResponse(response);
+      if (!response.ok) { notify(body.error ?? "Upload failed.", body.outcome === "unknown" ? "warning" : "error"); return null; }
       return body.url as string;
     } finally { setUploading(false); }
   };
 
   const onPickFile = async (file: File | undefined) => {
     if (!file || photoDraft == null) return;
-    if (photoDraft.length >= 24) { notify("A room type can hold up to 24 photos."); return; }
+    if (photoDraft.length >= 24) { notify("A room type can hold up to 24 photos.", "warning"); return; }
     const url = await uploadPhoto(file);
     if (url) setPhotos([...photoDraft, url]);
     if (fileRef.current) fileRef.current.value = "";
@@ -271,7 +280,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
     if (!files?.length) return;
     let next = [...createPhotos];
     for (const file of Array.from(files)) {
-      if (next.length >= 24) { notify("A room type can hold up to 24 photos."); break; }
+      if (next.length >= 24) { notify("A room type can hold up to 24 photos.", "warning"); break; }
       const url = await uploadPhoto(file);
       if (url) { next = [...next, url]; setCreatePhotos(next); }
     }
@@ -303,7 +312,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
     if (reason == null || reason.trim() === "") return;
     setBusy(true);
     try {
-      const response = await fetch(`/api/catalog/room-types/${photoType.id}`, {
+      const response = await fetchPublic(`/api/catalog/room-types/${photoType.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -320,8 +329,8 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
           version: photoType.version,
         }),
       });
-      const body = await response.json();
-      if (!response.ok) { notify(body.error ?? "Unable to save the photo changes."); await load(); return; }
+      const body = await readResponse(response);
+      if (!response.ok) { notify(body.error ?? "Unable to save the photo changes.", body.outcome === "unknown" ? "warning" : "error"); await load(); return; }
       notify(`Photos for ${photoType.name} saved.`);
       closePhotos();
       await load();
@@ -331,10 +340,10 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
   const save = async () => {
     if (!draft) return;
     const creating = !editing;
-    if (creating && draft.name.trim().length < 3) { notify("Enter a room type name (at least 3 characters)."); return; }
-    if (creating && !draft.badgeColorKey) { notify("Choose a badge color for this room type."); return; }
-    if (creating && createPhotos.length === 0) { setPhotoError(true); notify("At least one room photo is required."); return; }
-    if (draft.reason.trim().length < 3) { notify("Enter a reason for this change."); return; }
+    if (creating && draft.name.trim().length < 3) { fieldError("name", "Please enter a room type name with at least 3 characters.", "rt-name"); return; }
+    if (creating && !draft.badgeColorKey) { notify("Choose a badge color for this room type.", "warning"); return; }
+    if (creating && createPhotos.length === 0) { setPhotoError(true); notify("At least one room photo is required.", "warning"); return; }
+    if (draft.reason.trim().length < 3) { fieldError("reason", "Please enter a reason for this change.", "rt-reason"); return; }
     setBusy(true);
     try {
       const payload = {
@@ -351,13 +360,13 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
         reason: draft.reason.trim(),
         ...(!creating ? { version: editing!.version } : {}),
       };
-      const response = await fetch(creating ? "/api/catalog/room-types" : `/api/catalog/room-types/${editing!.id}`, {
+      const response = await fetchPublic(creating ? "/api/catalog/room-types" : `/api/catalog/room-types/${editing!.id}`, {
         method: creating ? "POST" : "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const body = await response.json();
-      if (!response.ok) { notify(body.error ?? (creating ? "Unable to create the room type." : "Unable to save the room type.")); return; }
+      const body = await readResponse(response);
+      if (!response.ok) { notify(body.error ?? (creating ? "Unable to create the room type." : "Unable to save the room type."), body.outcome === "unknown" ? "warning" : "error"); return; }
       notify(creating ? `${draft.name.trim()} created.` : `${editing!.name} updated.`);
       if (creating) keepCreatePhotos.current = true; // photos now belong to the type — skip abandon cleanup
       closeEditor();
@@ -385,13 +394,13 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
       validation: reasonCheck,
     });
     if (reason == null || reason.trim() === "") return;
-    const response = await fetch(`/api/catalog/room-types/${item.id}/rate-proposal`, {
+    const response = await fetchPublic(`/api/catalog/room-types/${item.id}/rate-proposal`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ rate: amount, reason: reason.trim(), version: item.version }),
     });
-    const body = await response.json();
-    if (!response.ok) { notify(body.error ?? "Unable to submit the rate proposal."); return; }
+    const body = await readResponse(response);
+    if (!response.ok) { notify(body.error ?? "Unable to submit the rate proposal.", body.outcome === "unknown" ? "warning" : "error"); return; }
     notify(`Rate proposal for ${item.name} sent for approval.`);
     await load();
   };
@@ -400,11 +409,11 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
     const reason = await dialogs.askPrompt({ title: `Archive ${item.name}`, message: "This removes the type from future booking choices while preserving its history. Reassign or retire active physical rooms and resolve upcoming commitments first.", label: "Reason for archiving", required: true, inputType: "text", validation: reasonCheck });
     if (!reason?.trim()) return;
     try {
-      const response = await fetch(`/api/catalog/room-types/${item.id}/archive`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version: item.version, reason: reason.trim() }) });
-      const result = await response.json();
-      notify(response.ok ? `${item.name} archived. History has been retained.` : result.error ?? "Unable to archive this type.");
+      const response = await fetchPublic(`/api/catalog/room-types/${item.id}/archive`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version: item.version, reason: reason.trim() }) });
+      const result = await readResponse(response);
+      notify(response.ok ? `${item.name} archived. History has been retained.` : result.error ?? "Unable to archive this type.", response.ok ? "success" : "error");
       if (response.ok) await load();
-    } catch { notify("Unable to reach the room catalog. Try again."); }
+    } catch { notify("Unable to reach the room catalog. Try again.", "warning"); }
   };
 
   const reviewProposal = async (item: RoomType, proposal: Proposal, decision: "approve" | "reject") => {
@@ -419,13 +428,13 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
       validation: reasonCheck,
     });
     if (reason == null || reason.trim() === "") return;
-    const response = await fetch(`/api/catalog/room-types/rate-proposals/${proposal.id}/review`, {
+    const response = await fetchPublic(`/api/catalog/room-types/rate-proposals/${proposal.id}/review`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ decision, reason: reason.trim() }),
     });
-    const body = await response.json();
-    if (!response.ok) { notify(body.error ?? "Unable to review the rate proposal."); return; }
+    const body = await readResponse(response);
+    if (!response.ok) { notify(body.error ?? "Unable to review the rate proposal.", body.outcome === "unknown" ? "warning" : "error"); return; }
     notify(decision === "approve"
       ? (item.active ? `Rate for ${item.name} set to ${peso(proposal.proposed_rate)}.` : `${item.name} published with its ${colorName(item.badge_color_key)} badge — rate set to ${peso(proposal.proposed_rate)}.`)
       : `Rate proposal for ${item.name} rejected.`);
@@ -437,7 +446,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
       <PageHeader variant="band" eyebrow="Customer-facing catalog" title="Room types & photos" subtitle={canPropose
         ? "Create and maintain the rooms shown to guests on Find a Room — details, photos, availability. Rate changes go to Owner/Admin for approval."
         : "Create and maintain the rooms shown to guests on Find a Room — details, rate, availability, and photo gallery (URL or upload)."} actions={<div className="btn-row">
-          <button className="btn btn-soft" onClick={() => { if (error) void load(); else notify("Choose a room type below to edit its details and photos."); }} title="Refresh catalog">
+          <button className="btn btn-soft" onClick={() => { if (error) void load(); else notify("Choose a room type below to edit its details and photos.", "warning"); }} title="Refresh catalog">
             <RefreshCw size={16}/> Refresh
           </button>
           <button className="btn btn-accent" onClick={openCreate}>
@@ -508,7 +517,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
           {visible.length === 0 && <div className="empty"><Search/><h3>No room types match</h3><p>Try a different search, or add a room type.</p></div>}
         </div>
       )}
-      {toast && <div className="toast" role="status"><Building2 size={18}/>{toast}</div>}
+      <ToastStack controller={feedback} />
       {dialogs.view}
       {rosterType !== null && <RoomRosterPanel initialType={rosterType} onClose={() => { setRosterType(null); void load(); }} />}
 
@@ -516,7 +525,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
         <Modal isOpen onClose={() => setPreview(null)} title={preview.name}
           description={`Rooms & suites · up to ${preview.max_guests} guest${preview.max_guests !== 1 ? "s" : ""}`}
           size="full" headerVariant="branded" className="room-details-modal"
-          footer={<span className="rd-foot-rate"><small>Nightly base rate</small><strong>{peso(preview.base_rate)}</strong></span>}>
+          footer={<span className="rd-foot-rate"><small>Nightly base rate</small><strong>{peso(preview.base_rate)}</strong></span>}>{dialogError && <p className="booking-error" role="alert">{dialogError}</p>}
           {!preview.active && <strong className="rd-draft-banner">DRAFT — not visible to guests{pendingOf(preview) ? " (rate approval pending)" : ""}</strong>}
           <RoomTypeDetailsBody
             room={previewRoom(preview)}
@@ -529,7 +538,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
       {planType && (
         <Modal isOpen onClose={() => { setPlanType(null); setPlans(null); setPlanDraft(null); }} title={`Rate plans — ${planType.name}`}
           description={`Dated overlays on the ${peso(planType.base_rate)} base rate: weekends, seasons, holidays. A live plan prices future bookings only — confirmed bookings keep their agreed rates. When plans overlap, the narrowest date range wins.`}
-          size="lg" headerVariant="branded">
+          size="lg" headerVariant="branded">{dialogError && <p className="booking-error" role="alert">{dialogError}</p>}
           {plans == null ? (
             <div className="empty"><Loader2 className="spin"/><h3>Loading rate plans…</h3></div>
           ) : (
@@ -563,7 +572,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
                   <div className="form-field">
                     <div className="form-field-wrapper">
                       <label htmlFor="rp-name" className="form-label">Plan name <span className="required">*</span></label>
-                      <input id="rp-name" className="form-input" type="text" value={planDraft.name} onChange={(e) => setPlanDraft({ ...planDraft, name: e.target.value })} placeholder="Holy Week peak"/>
+                      <input id="rp-name" className="form-input" type="text" value={planDraft.name} onChange={(e) => setPlanDraft({ ...planDraft, name: e.target.value })} placeholder="Holy Week peak" {...formFieldProps(fields, "planName", "catalog")} /><FormFieldError errors={fields} field="planName" prefix="catalog" />
                       <small className="muted">Shown to approvers and in the audit trail, never to guests.</small>
                     </div>
                   </div>
@@ -578,7 +587,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
                     </div>
                     <div className="form-field-wrapper">
                       <label htmlFor="rp-rate" className="form-label">Rate / night (₱) <span className="required">*</span></label>
-                      <input id="rp-rate" className="form-input" type="number" min={0} value={planDraft.nightlyRate} onChange={(e) => setPlanDraft({ ...planDraft, nightlyRate: e.target.value })} placeholder={String(planType.base_rate)}/>
+                      <input id="rp-rate" className="form-input" type="number" min={0} value={planDraft.nightlyRate} onChange={(e) => setPlanDraft({ ...planDraft, nightlyRate: e.target.value })} placeholder={String(planType.base_rate)} {...formFieldProps(fields, "planRate", "catalog")} /><FormFieldError errors={fields} field="planRate" prefix="catalog" />
                     </div>
                   </div>
                   <div className="form-field">
@@ -598,7 +607,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
                   <div className="form-field">
                     <div className="form-field-wrapper">
                       <label htmlFor="rp-reason" className="form-label">Reason <span className="required">*</span></label>
-                      <input id="rp-reason" className="form-input" type="text" value={planDraft.reason} onChange={(e) => setPlanDraft({ ...planDraft, reason: e.target.value })} placeholder="Audited with the proposal"/>
+                      <input id="rp-reason" className="form-input" type="text" value={planDraft.reason} onChange={(e) => setPlanDraft({ ...planDraft, reason: e.target.value })} placeholder="Audited with the proposal" {...formFieldProps(fields, "planReason", "catalog")} /><FormFieldError errors={fields} field="planReason" prefix="catalog" />
                     </div>
                   </div>
                   <div className="form-actions">
@@ -619,7 +628,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
       {photoType && photoDraft != null && (
         <Modal isOpen onClose={closePhotos} title={`Manage photos — ${photoType.name}`}
           description="The first photo is the cover on the landing page and booking catalog. Add whole-room, alternate-angle, and bathroom photos; reorder them, add by URL, or upload."
-          size="lg" headerVariant="branded">
+          size="lg" headerVariant="branded">{dialogError && <p className="booking-error" role="alert">{dialogError}</p>}
           <div className="form-dialog">
             <div className="form-field">
               <div className="form-field-wrapper">
@@ -663,13 +672,13 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
             : canPropose
               ? "New room types start inactive. As Manager, your rate goes to Owner/Admin for approval before the type can go live."
               : "Create a guest-facing room type. It appears on Find a Room once active."}
-          size="lg" headerVariant="branded">
+          size="lg" headerVariant="branded">{dialogError && <p className="booking-error" role="alert">{dialogError}</p>}
           <div className="form-dialog">
             {!editing && (
               <div className="form-field">
                 <div className="form-field-wrapper">
                   <label htmlFor="rt-name" className="form-label">Room type name <span className="required">*</span></label>
-                  <input id="rt-name" className="form-input" type="text" value={draft.name} onChange={(e) => set("name", e.target.value)} placeholder="Garden Twin Deluxe"/>
+                  <input id="rt-name" className="form-input" type="text" value={draft.name} onChange={(e) => set("name", e.target.value)} placeholder="Garden Twin Deluxe" {...formFieldProps(fields, "name", "catalog")} /><FormFieldError errors={fields} field="name" prefix="catalog" />
                   <small className="muted">Names are permanent — physical rooms and past reservations reference them.</small>
                 </div>
               </div>
@@ -795,7 +804,7 @@ export default function RoomCatalogPanel({ role }: { role: Role }) {
               <div className="form-field-wrapper">
                 {editing && draft.amenities !== amenityList(editing.amenities) && <label className="checkbox-option"><input type="checkbox" checked={draft.acknowledgeAmenities} onChange={event => set("acknowledgeAmenities", event.target.checked)} /><span>I reviewed this standard-amenity change for all assigned rooms and upcoming stays. Existing booking snapshots remain unchanged.</span></label>}
                 <label htmlFor="rt-reason" className="form-label">Reason for change <span className="required">*</span></label>
-                <input id="rt-reason" className="form-input" type="text" value={draft.reason} onChange={(e) => set("reason", e.target.value)} placeholder="Audited with every save"/>
+                <input id="rt-reason" className="form-input" type="text" value={draft.reason} onChange={(e) => set("reason", e.target.value)} placeholder="Audited with every save" {...formFieldProps(fields, "reason", "catalog")} /><FormFieldError errors={fields} field="reason" prefix="catalog" />
               </div>
             </div>
             <div className="form-actions">

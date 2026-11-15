@@ -1,26 +1,29 @@
-import { NextResponse } from "next/server";
+import { publicJson } from "@/lib/server-errors";
+import { validationBody } from "@/lib/errors";
+import { numericInput } from "@/lib/input-validation";
+
 import { z } from "zod";
 import { guardCatalog, adminGuardFailed, adminRpcFailure } from "@/lib/admin-route";
 
 const schema = z.object({
   name: z.string().trim().min(1).max(120),
   description: z.string().trim().max(500).optional().default(""),
-  seats: z.coerce.number().int().min(1).max(20).optional().default(4),
-  baseFare: z.coerce.number().min(0).max(10000000).optional().default(0),
-  perKm: z.coerce.number().min(0).max(10000000).optional().default(0),
-  perMinute: z.coerce.number().min(0).max(10000000).optional().default(0),
-  bookingFee: z.coerce.number().min(0).max(10000000).optional().default(0),
+  seats: numericInput(z.number().int().min(1).max(20)).optional().default(4),
+  baseFare: numericInput(z.number().min(0).max(10000000)).optional().default(0),
+  perKm: numericInput(z.number().min(0).max(10000000)).optional().default(0),
+  perMinute: numericInput(z.number().min(0).max(10000000)).optional().default(0),
+  bookingFee: numericInput(z.number().min(0).max(10000000)).optional().default(0),
   active: z.boolean(),
-  sort: z.coerce.number().int().min(0).max(1000).optional().default(0),
+  sort: numericInput(z.number().int().min(0).max(1000)).optional().default(0),
   reason: z.string().trim().min(3, "Enter a reason for this change.").max(500),
-  version: z.coerce.number().int().positive(),
+  version: numericInput(z.number().int().positive()),
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const c = await guardCatalog();
   if (adminGuardFailed(c)) return c;
-  const p = schema.safeParse(await request.json());
-  if (!p.success) return NextResponse.json({ error: p.error.issues[0]?.message ?? "Enter valid transfer vehicle rate details and a reason." }, { status: 400 });
+  const p = schema.safeParse(await request.json().catch(() => null));
+  if (!p.success) return publicJson(validationBody(p.error, { error: p.error.issues[0]?.message ?? "Enter valid transfer vehicle rate details and a reason." }), { status: 400 });
   const v = p.data;
   const { data, error } = await c.client.rpc("upsert_transport_vehicle_type", {
     p_id: (await params).id,
@@ -38,5 +41,5 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     p_actor_user_id: c.actorId,
   });
   if (error) return adminRpcFailure(error, "Unable to update the transfer vehicle.");
-  return NextResponse.json({ data });
+  return publicJson({ data });
 }

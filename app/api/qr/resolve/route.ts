@@ -1,5 +1,6 @@
+import { publicJson } from "@/lib/server-errors";
 import { getServerSession } from "next-auth";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { findQrToken, logQrScan, type QrScanResult, type QrTokenRow } from "@/lib/qr/tokens";
@@ -16,7 +17,7 @@ import { findQrToken, logQrScan, type QrScanResult, type QrTokenRow } from "@/li
 const RESERVATION_STAFF = new Set(["front_desk", "manager", "owner", "admin"]);
 const ROOM_STAFF = new Set(["front_desk", "manager", "owner", "admin", "housekeeping", "maintenance"]);
 
-const fail = (status: number, result: string, message: string) => NextResponse.json({ result, message }, { status });
+const fail = (status: number, result: string, message: string) => publicJson({ result, message }, { status });
 
 // Hotel-local date (Asia/Manila) seven days out, YYYY-MM-DD — the due-soon
 // window for room assets surfaced on a maintenance scan.
@@ -27,14 +28,14 @@ const dueCutoff = () => {
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.disabled) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!supabase) return NextResponse.json({ error: "Database unavailable." }, { status: 503 });
+  if (!session || session.user.disabled) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
+  if (!supabase) return publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+    return publicJson({ error: "Please check the details and try again." }, { status: 400 });
   }
   const token = body && typeof body === "object" && "token" in body ? String((body as { token: unknown }).token).trim() : "";
   if (!token || token.length > 200) return fail(400, "invalid", "That code is not a valid HAVEN QR code.");
@@ -101,7 +102,7 @@ async function resolveReservation(record: QrTokenRow, userId: string, role: stri
   const inHouse = reservation.status === "checked_in";
   await auditor("authorized", "check_in");
   if (isOwner) {
-    return NextResponse.json({
+    return publicJson({
       result: "authorized",
       resourceType: "reservation",
       action: "reservation",
@@ -114,7 +115,7 @@ async function resolveReservation(record: QrTokenRow, userId: string, role: stri
         : "Your check-in QR is valid. Present it to the Front Desk on arrival."
     });
   }
-  return NextResponse.json({
+  return publicJson({
     result: "authorized",
     resourceType: "reservation",
     action: "check_in",
@@ -170,7 +171,7 @@ async function resolveRoom(record: QrTokenRow, userId: string, role: string, aud
         : Promise.resolve(null)
     ]);
     if (role === "housekeeping") {
-      return NextResponse.json({
+      return publicJson({
         result: "authorized", resourceType: "room", action: "room_tasks",
         room: { id: room.id, number: room.number, floor: room.floor, status: room.status, housekeeping: room.housekeeping },
         openTasks: tasks?.count ?? 0,
@@ -179,7 +180,7 @@ async function resolveRoom(record: QrTokenRow, userId: string, role: string, aud
       });
     }
     if (role === "maintenance") {
-      return NextResponse.json({
+      return publicJson({
         result: "authorized", resourceType: "room", action: "work_orders",
         room: { id: room.id, number: room.number, floor: room.floor, status: room.status },
         openOrders: orders?.count ?? 0,
@@ -188,7 +189,7 @@ async function resolveRoom(record: QrTokenRow, userId: string, role: string, aud
         message: `Room ${room.number} opened — the Maintenance module is filtered to this room.`
       });
     }
-    return NextResponse.json({
+    return publicJson({
       result: "authorized", resourceType: "room", action: "room_summary",
       room: { id: room.id, number: room.number, floor: room.floor, type: room.type, status: room.status, housekeeping: room.housekeeping },
       currentStay: stay?.data ? { guestName: stay.data.guest_name, checkIn: stay.data.check_in, checkOut: stay.data.check_out } : null,
@@ -203,7 +204,7 @@ async function resolveRoom(record: QrTokenRow, userId: string, role: string, aud
       .eq("user_id", userId).eq("room_id", room.id).eq("status", "checked_in");
     if ((count ?? 0) > 0) {
       await auditor("authorized", "guest_request");
-      return NextResponse.json({
+      return publicJson({
         result: "authorized", resourceType: "room", action: "guest_request",
         room: { number: room.number },
         message: `Room ${room.number} — open Guest Requests to ask for anything you need.`

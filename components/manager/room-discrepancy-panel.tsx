@@ -1,4 +1,6 @@
 "use client";
+
+import { userMessage } from "@/lib/errors";
 import {useRef,useState} from "react";
 import {hotelRequest,useHotelResource} from "./hotel-operations-client";
 import type {RoomDiscrepancy,RoomDiscrepancyList} from "@/lib/room-discrepancies";
@@ -17,7 +19,7 @@ export function RoomDiscrepancyPanel({role}:{role:string}){
    retries.current.delete(item.id);
    setNotice(action==="investigate"?`Room ${item.roomNumber} snapshot refreshed for investigation.`:`Room ${item.roomNumber} discrepancy resolved.`);
    setReasons(current=>({...current,[item.id]:""}));await refresh();
-  }catch(e){setFailure(e instanceof Error?e.message:"Unable to update discrepancy.");}
+  }catch(e){setFailure(userMessage(e, "Unable to update discrepancy."));}
   finally{setBusy(null);}
  }
  return <section className="hotel-ops" aria-label="Room discrepancy investigation">
@@ -43,7 +45,7 @@ export function RoomDiscrepancyReporter({roomId,roomNumber,taskId,role}:{roomId:
   const payload={observedOccupancy:observed,reason:reason.trim(),taskId:taskId??null},body=JSON.stringify(payload),prior=retry[0];
   const request=prior?.body===body?prior:{body,key:crypto.randomUUID()};if(request!==prior)retry[1](request);
   try{await hotelRequest(`/api/housekeeping/rooms/${encodeURIComponent(roomId)}/discrepancies`,{...payload,idempotencyKey:request.key});setNotice(`Occupancy observation for room ${roomNumber} sent to Front Desk.`);setReason("");retry[1](null);}
-  catch(e){setError(e instanceof Error?e.message:"Unable to report room discrepancy.");}
+  catch(e){setError(userMessage(e, "Unable to report room discrepancy."));}
   finally{setBusy(false);}
  }
  return <form className="hotel-ops room-discrepancy-report" onSubmit={submit}>

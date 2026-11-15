@@ -1,4 +1,6 @@
-import { NextResponse } from "next/server";
+import { publicJson } from "@/lib/server-errors";
+import { validationBody } from "@/lib/errors";
+
 import { z } from "zod";
 import { guardCatalog, adminGuardFailed, adminRpcFailure } from "@/lib/admin-route";
 
@@ -9,13 +11,13 @@ const schema = z.object({ reason: z.string().trim().min(3).max(1000) });
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const c = await guardCatalog();
   if (adminGuardFailed(c)) return c;
-  const p = schema.safeParse(await request.json());
-  if (!p.success) return NextResponse.json({ error: "Enter a reason for retiring the plan." }, { status: 400 });
+  const p = schema.safeParse(await request.json().catch(() => null));
+  if (!p.success) return publicJson(validationBody(p.error, { error: "Enter a reason for retiring the plan." }), { status: 400 });
   const { data, error } = await c.client.rpc("manager_retire_room_rate_plan", {
     p_plan_id: (await params).id,
     p_reason: p.data.reason,
     p_actor_user_id: c.actorId,
   });
   if (error) return adminRpcFailure(error, "Unable to retire the rate plan.");
-  return NextResponse.json({ data });
+  return publicJson({ data });
 }

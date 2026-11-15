@@ -1,4 +1,7 @@
 "use client";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 // Walk-in booking: a staged creation flow for a guest who arrives at the desk
 // without a reservation. This is NOT a second reservation engine — it only
 // gathers input, reads server-side availability/pricing (the same
@@ -37,6 +40,8 @@ export default function WalkInDialog({ guests, hotelToday, onClose, onCreated }:
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const creating = useRef(false);
+  const retry = useRef<{ signature: string; key: string } | null>(null);
 
   // Step 1 — guest identity. Picking an existing profile prefills the contact
   // fields; the RPC still dedups by normalized email at creation.
@@ -70,9 +75,9 @@ export default function WalkInDialog({ guests, hotelToday, onClose, onCreated }:
     const key = `${hotelToday}:${nextCheckOut}:${nextGuests}`;
     availRef.current = key;
     try {
-      const res = await fetch(`/api/front-desk/availability?checkIn=${hotelToday}&checkOut=${nextCheckOut}&guests=${nextGuests}`, { cache: "no-store" });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) { setAvailability([]); setError(body.error ?? "Unable to check availability right now."); return; }
+      const res = await fetchPublic(`/api/front-desk/availability?checkIn=${hotelToday}&checkOut=${nextCheckOut}&guests=${nextGuests}`, { cache: "no-store" });
+      const body = await readResponse(res).catch(() => ({}));
+      if (!res.ok) { setAvailability([]); setError(userMessage(body.error, "Unable to check availability right now.")); return; }
       if (availRef.current !== key) return; // a newer edit superseded this response
       setAvailability((body.data ?? []) as AvailableRoomType[]);
     } finally { setBusy(false); }
@@ -103,20 +108,24 @@ export default function WalkInDialog({ guests, hotelToday, onClose, onCreated }:
   // Step 3 — create via the atomic RPC. The idempotency key is minted once per
   // attempt and kept stable across any retry so a network replay cannot double-book.
   const submit = async () => {
+    if (creating.current) return;
+    creating.current = true;
     setBusy(true); setError("");
-    const idempotencyKey = crypto.randomUUID();
+    const signature = JSON.stringify([draft, selectedType, hotelToday, checkOut, guestCount]);
+    if (retry.current?.signature !== signature) retry.current = { signature, key: crypto.randomUUID() };
+    const idempotencyKey = retry.current.key;
     try {
-      const res = await fetch("/api/front-desk/reservations", {
+      const res = await fetchPublic("/api/front-desk/reservations", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           guestName: draft.guestName.trim(), email: draft.email.trim(), phone: draft.phone.trim(),
           roomType: selectedType, checkIn: hotelToday, checkOut, guests: guestCount,
-          source: "Walk-In", expectedArrival: "Walk-in (at the desk)", idempotencyKey,
+          source: "Walk-In", expectedArrival: "", idempotencyKey,
         }),
       });
-      const body = await res.json().catch(() => ({}));
+      const body = await readResponse(res).catch(() => ({}));
       if (!res.ok) {
-        if (res.status === 409) {
+        if (body.code === "ROOM_TYPE_UNAVAILABLE") {
           // Stale room selection (or sold out between steps) — re-check and go back.
           setError("That room type is no longer available for those dates. Review the updated availability.");
           setSelectedType("");
@@ -124,13 +133,16 @@ export default function WalkInDialog({ guests, hotelToday, onClose, onCreated }:
           setStep(1);
           await fetchAvailability(checkOut, guestCount);
         } else {
-          setError(body.error ?? "Unable to create the walk-in reservation.");
+          setError(userMessage(body.error, "Unable to create the walk-in reservation."));
         }
         return;
       }
       const row = body.data ?? {};
+      if (!row.reservation_id && !row.id) throw new Error("Missing reservation result");
+      retry.current = null;
       onCreated({ id: String(row.reservation_id ?? row.id ?? ""), guest_name: String(row.guest_name ?? draft.guestName.trim()), total: row.total ?? selected?.subtotal ?? 0, confirmation_number: row.confirmation_number ?? null });
-    } finally { setBusy(false); }
+    } catch { setError("We couldn't confirm this reservation. Check Reservations before creating another booking for this guest."); }
+    finally { creating.current = false; setBusy(false); }
   };
 
   // Escape closes unless a request is in flight — handled by the shared Modal

@@ -42,7 +42,7 @@ describe("room detail RBAC", () => {
 
 describe("room details modal", () => {
   it("is view-only — the only fetch is a GET and navigation reuses the reservation modal", () => {
-    expect(modal).toContain("fetch(`/api/staff/rooms/${room.id}`, { cache: \"no-store\" })");
+    expect(modal).toContain("fetchPublic(`/api/staff/rooms/${room.id}`, { cache: \"no-store\" })");
     expect(modal).not.toContain("method:");
     expect(dashboard).toContain("onViewReservation={(id)=>{setRoomDetail(null);viewReservation({id})}}");
   });

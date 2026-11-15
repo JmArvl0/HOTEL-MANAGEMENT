@@ -1,6 +1,12 @@
 "use client";
+
+import { ToastStack, useToasts } from "@/components/ui/toast-stack";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { useCallback, useEffect, useState } from "react";
-import { CalendarDays, ClipboardCheck, Download, FileText, Send, Sparkles, X } from "lucide-react";
+import { CalendarDays, ClipboardCheck, FileText, Send, Sparkles, X } from "lucide-react";
+import { DownloadMenu, printDownload } from "@/components/ui/download-menu";
 import { AI_DISCLOSURE } from "@/lib/ai/prompts";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -10,6 +16,7 @@ import { HavenSkeletonCard, HavenErrorAlert } from "@/components/ui/haven-data-c
 import { canGenerateFrontDeskReport, canReviewFrontDeskReports } from "@/lib/permissions";
 import { REPORT_PAGE_SIZE } from "@/lib/front-desk-reports";
 import type { DailyReportSnapshot } from "@/lib/front-desk-reports";
+
 import type { Role } from "@/lib/types";
 
 // Centralized daily operations reporting. Front Desk previews, exports
@@ -84,16 +91,16 @@ function ExecutiveDigestCard({ reportDate }: { reportDate: string }) {
     setLoading(true);
     setMessage("");
     try {
-      const response = await fetch("/api/ai/report-summary", {
+      const response = await fetchPublic("/api/ai/report-summary", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ date: reportDate, mode: "digest" })
       });
-      const body = await response.json();
+      const body = await readResponse(response);
       if (!response.ok) throw new Error(body.error ?? "Unable to build the digest.");
       if (!body.data) { setDigest(null); setMessage(body.message ?? "AI assistance is temporarily unavailable."); return; }
       setDigest(body.data);
     } catch (cause) {
-      setMessage(cause instanceof Error ? cause.message : "Unable to build the digest.");
+      setMessage(userMessage(cause, "Unable to build the digest."));
     }
     setLoading(false);
   }
@@ -121,6 +128,8 @@ function ExecutiveDigestCard({ reportDate }: { reportDate: string }) {
 export default function FrontDeskReportsPanel({ role, initialDate }: { role: Role; initialDate?: string }) {
   const [date, setDate] = useState(() => initialDate ?? new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date()));
   const [preview, setPreview] = useState<DailyReportSnapshot | null>(null);
+  const [supersedes, setSupersedes] = useState<string>();
+  const [submitting, setSubmitting] = useState(false);
   const [viewing, setViewing] = useState<ReportRow | null>(null);
   const [rows, setRows] = useState<ReportRow[]>([]);
   const [page, setPage] = useState(0);
@@ -130,50 +139,62 @@ export default function FrontDeskReportsPanel({ role, initialDate }: { role: Rol
   const [loading, setLoading] = useState(true);
   const [building, setBuilding] = useState(false);
   const [error, setError] = useState("");
-  const [toast, setToast] = useState("");
+  const feedback = useToasts();
   const dialogs = useActionDialogs();
   const canGenerate = canGenerateFrontDeskReport(role);
   const canReview = canReviewFrontDeskReports(role);
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
-  const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 2600); };
+  const notify = (message: string, tone: "info" | "success" | "warning" | "error" = "success") => feedback.push({ title: message, tone, ...(tone === "error" || tone === "warning" ? { duration: 0 } : {}) });
 
   const load = useCallback(async (nextPage = page) => {
     try {
-      const response = await fetch(`/api/front-desk/reports?page=${nextPage}`, { cache: "no-store" });
-      const body = await response.json();
+      const response = await fetchPublic(`/api/front-desk/reports?page=${nextPage}`, { cache: "no-store" });
+      const body = await readResponse(response);
       if (!response.ok) throw new Error(body.error ?? "Unable to load report history.");
       setRows(body.data.rows ?? []); setPage(body.data.page ?? 0); setPageCount(body.data.pageCount ?? 1); setTotal(body.data.total ?? 0);
       setError("");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to load report history.");
+      setError(userMessage(cause, "Unable to load report history."));
     }
   }, [page]);
   useEffect(() => { void load(); setLoading(false); }, [load]);
 
-  async function generate() {
+  async function generate(reportDate = date, returnedId?: string) {
+    setPreview(null);
     setBuilding(true);
     try {
-      const response = await fetch(`/api/front-desk/reports?date=${date}`, { cache: "no-store" });
-      const body = await response.json();
+      const response = await fetchPublic(`/api/front-desk/reports?date=${reportDate}`, { cache: "no-store" });
+      const body = await readResponse(response);
       if (!response.ok) throw new Error(body.error ?? "Unable to build this report.");
-      setPreview(body.data); setViewing(null); setError("");
+      setPreview(body.data); setViewing(null); setError(""); setDate(reportDate); setSupersedes(returnedId);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to build this report.");
+      setError(userMessage(cause, "Unable to build this report."));
     }
     setBuilding(false);
   }
 
-  async function submit(reportDate: string, supersedes?: string) {
+  async function submit(snapshot: DailyReportSnapshot) {
+    const { reportDate, previewVersion } = snapshot;
+    if (!previewVersion || submitting) return;
     const ok = await dialogs.askConfirm({
       title: supersedes ? "Resubmit report to Manager" : "Submit report to Manager",
       message: `This stores an immutable snapshot of the ${formatDate(reportDate)} report and notifies the Manager for review. Exporting beforehand never submits anything.`,
       confirmText: "Submit to Manager", cancelText: "Not yet"
     });
     if (!ok) return;
-    const response = await fetch("/api/front-desk/reports", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reportDate, supersedes }) });
-    const body = await response.json();
-    if (!response.ok) { notify(body.error ?? "Unable to submit this report."); return; }
-    notify(supersedes ? "Report resubmitted to the Manager." : "Report submitted to the Manager."); await load();
+    setSubmitting(true);
+    try {
+      const response = await fetchPublic("/api/front-desk/reports", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reportDate, previewVersion, supersedes }) });
+      const body = await readResponse(response);
+      if (!response.ok) { setError(userMessage(body.error, "Unable to submit this report.")); return; }
+      setPreview(null);
+      notify(supersedes ? "Report resubmitted to the Manager." : "Report submitted to the Manager.");
+      await load();
+    } catch {
+      setError("Could not confirm submission. Check report history before retrying.");
+      await load();
+    } finally { setSubmitting(false); }
   }
 
   async function review(row: ReportRow, decision: "acknowledge" | "return") {
@@ -190,25 +211,25 @@ export default function FrontDeskReportsPanel({ role, initialDate }: { role: Rol
       const ok = await dialogs.askConfirm({ title: "Acknowledge report", message: `Acknowledge the ${formatDate(row.report_date)} daily operations report from ${row.submitted_by_name ?? "Front Desk"}?`, confirmText: "Acknowledge", cancelText: "Cancel" });
       if (!ok) return;
     }
-    const response = await fetch(`/api/front-desk/reports/${row.id}/review`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision, note, version: row.version }) });
-    const body = await response.json();
-    if (!response.ok) { notify(body.error ?? "Unable to review this report."); return; }
+    const response = await fetchPublic(`/api/front-desk/reports/${row.id}/review`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision, note, version: row.version }) });
+    const body = await readResponse(response);
+    if (!response.ok) { notify(body.error ?? "Unable to review this report.", body.outcome === "unknown" ? "warning" : "error"); return; }
     notify(decision === "acknowledge" ? "Report acknowledged." : "Report returned to Front Desk."); await load();
   }
 
   const visible = rows.filter((row) => status === "all" || row.status === status);
   return <>
-    <PageHeader variant="band" eyebrow={canGenerate ? "Hotel operations" : "Management control"} title={canGenerate ? "Daily operations report" : "Front desk reports"} subtitle={canGenerate ? "One daily snapshot of front desk operations. Export prints or saves the preview — it never submits. Submitting stores an immutable snapshot for Manager review." : "Daily front desk operations snapshots submitted for review. Acknowledge to close, or return with a note for resubmission."} actions={canGenerate && <div className="report-tools"><label>Report date<input type="date" value={date} max={today} onChange={(event) => setDate(event.target.value)}/></label><button className="btn btn-accent" onClick={() => void generate()} disabled={building}>{building ? "Building…" : "Generate preview"}</button></div>} />
+    <PageHeader variant="band" eyebrow={canGenerate ? "Hotel operations" : "Management control"} title={canGenerate ? "Daily operations report" : "Front desk reports"} subtitle={canGenerate ? "One daily snapshot of front desk operations. Download a copy for your records. Submit the current preview for Manager review." : "Daily front desk operations snapshots submitted for review. Acknowledge to close, or return with a note for resubmission."} actions={canGenerate && <div className="report-tools"><label>Report date<input type="date" value={date} max={today} onChange={(event) => setDate(event.target.value)}/></label><button className="btn btn-accent" onClick={() => void generate()} disabled={building}>{building ? "Building…" : "Generate preview"}</button></div>} />
     {error && <HavenErrorAlert title="Reports unavailable" body={error} variant="internal" />}
     {canReview && <ExecutiveDigestCard reportDate={viewing ? viewing.report_date.slice(0, 10) : date} />}
     {(preview || viewing) && <article className="panel report-preview">
       <div className="panel-heading"><div><h3>{viewing ? `Submitted snapshot · ${formatDate(viewing.report_date)}` : "Preview"}</h3><p>{viewing ? `Submitted by ${viewing.submitted_by_name ?? "Front Desk"} · ${formatStamp(viewing.submitted_at)}` : "Auto-generated from live hotel records for the selected hotel day."}</p></div>
       <div className="report-actions">
-        <button className="btn btn-soft" onClick={() => window.print()}><Download size={16}/> Export</button>
-        {canGenerate && preview && <button className="btn btn-accent" onClick={() => void submit(date)}><Send size={16}/> Submit to Manager</button>}
+        <DownloadMenu label="Download daily operations report" actions={[printDownload]} />
+        {canGenerate && preview && <button className="btn btn-accent" disabled={submitting} onClick={() => void submit(preview)}><Send size={16}/> {submitting ? "Submitting…" : supersedes ? "Resubmit to Manager" : "Submit to Manager"}</button>}
         {viewing && <button className="btn btn-soft" onClick={() => setViewing(null)}><X size={16}/> Close</button>}
       </div></div>
-      <p className="export-note">Export prints or saves this preview. It does not submit anything to the Manager.</p>
+      <p className="export-note">{viewing ? "Downloads use this saved snapshot." : "Use Submit to Manager when this report is ready for review."}</p>
       <ReportSnapshotView snapshot={viewing ? viewing.snapshot : preview!}/>
     </article>}
     <ModuleSummaryCards cards={[
@@ -227,14 +248,14 @@ export default function FrontDeskReportsPanel({ role, initialDate }: { role: Rol
         <td>{row.review_note ? <small>{row.review_note}<br/>{label(row.reviewed_by_name)} · {formatStamp(row.reviewed_at)}</small> : "—"}</td>
         <td><div className="reservation-actions">
           <button className="table-action action-neutral" onClick={() => { setViewing(row); setPreview(null); window.scrollTo({ top: 0, behavior: "smooth" }); }}>View snapshot</button>
-          {canGenerate && row.status === "returned" && <button className="table-action" onClick={() => void submit(row.report_date, row.id)}>Resubmit</button>}
+          {canGenerate && row.status === "returned" && <button className="table-action" disabled={building} onClick={() => void generate(row.report_date, row.id)}>Generate revised preview</button>}
           {canReview && row.status === "submitted" && <><button className="table-action action-primary" onClick={() => void review(row, "acknowledge")}>Acknowledge</button><button className="table-action" onClick={() => void review(row, "return")}>Return</button></>}
         </div></td>
       </tr>)}</tbody></table></div>
       {!visible.length && <div className="empty"><FileText/><h3>No reports</h3><p>{status === "all" ? "No daily operations reports have been submitted yet." : `No ${label(status)} reports.`}</p></div>}
       <TablePagination page={page + 1} pageCount={pageCount} start={rows.length ? page * REPORT_PAGE_SIZE + 1 : 0} end={page * REPORT_PAGE_SIZE + rows.length} total={total} onPageChange={(next) => void load(next - 1)} noun="reports" note="Submitted snapshots are immutable evidence — they are never edited after submission." /></div>
     {loading && <HavenSkeletonCard hasHeader />}
-    {toast && <div className="toast"><ClipboardCheck size={18}/>{toast}</div>}
+    <ToastStack controller={feedback} />
     {dialogs.view}
   </>;
 }

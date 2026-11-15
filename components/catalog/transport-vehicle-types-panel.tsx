@@ -1,4 +1,9 @@
 "use client";
+import { FormFieldError, formFieldProps, type FormFieldErrors } from "@/components/ui/form-field-errors";
+import { ToastStack, useToasts } from "@/components/ui/toast-stack";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { useEffect, useMemo, useState } from "react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { CarTaxiFront, Loader2, Pencil, Plus, Search } from "lucide-react";
@@ -34,14 +39,17 @@ export default function TransportVehicleTypesPanel() {
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState("");
+  const feedback = useToasts();
   const [error, setError] = useState("");
+  const [fields, setFields] = useState<FormFieldErrors>({});
+  const [saveError, setSaveError] = useState("");
+  const fieldError = (field: string, message: string, id: string) => { setFields({ [field]: message }); requestAnimationFrame(() => document.getElementById(id)?.focus()); };
 
-  const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 3000); };
+  const notify = (message: string, tone: "info" | "success" | "warning" | "error" = "success") => feedback.push({ title: message, tone, ...(tone === "error" || tone === "warning" ? { duration: 0 } : {}) });
   const load = async () => {
-    const response = await fetch("/api/catalog/transport-vehicle-types", { cache: "no-store" });
-    const body = await response.json();
-    if (!response.ok) { setError(body.error ?? "Unable to load the transfer vehicle rates."); setLoading(false); return; }
+    const response = await fetchPublic("/api/catalog/transport-vehicle-types", { cache: "no-store" });
+    const body = await readResponse(response);
+    if (!response.ok) { setError(userMessage(body.error, "Unable to load the transfer vehicle rates.")); setLoading(false); return; }
     setItems(body.data ?? []);
     setError("");
     setLoading(false);
@@ -51,18 +59,19 @@ export default function TransportVehicleTypesPanel() {
   const visible = useMemo(() => sortTableRows(items.filter((item) => JSON.stringify(item).toLowerCase().includes(search.toLowerCase())), (item) => item.name), [items, search]);
   const page = useTablePagination(visible);
   const set = <K extends keyof Draft,>(key: K, value: Draft[K]) => setDraft((prev) => (prev ? { ...prev, [key]: value } : prev));
-  const openCreate = () => { setCreating(true); setEditing(null); setDraft(emptyDraft()); };
-  const openEdit = (item: Vehicle) => { setEditing(item); setCreating(false); setDraft(draftFrom(item)); };
+  const openCreate = () => { setFields({}); setCreating(true); setEditing(null); setDraft(emptyDraft()); };
+  const openEdit = (item: Vehicle) => { setFields({}); setEditing(item); setCreating(false); setDraft(draftFrom(item)); };
   const close = () => { setEditing(null); setCreating(false); setDraft(null); };
 
   const save = async () => {
     if (!draft) return;
+    setSaveError("");
     const seats = Number(draft.seats);
     const fares = [draft.baseFare, draft.perKm, draft.perMinute, draft.bookingFee].map(Number);
-    if (!Number.isInteger(seats) || seats < 1 || seats > 20) { notify("Seats must be a whole number from 1 to 20."); return; }
-    if (!fares.every((value) => Number.isFinite(value) && value >= 0)) { notify("Fares must be zero or greater."); return; }
-    if (draft.name.trim().length < 1) { notify("Enter a vehicle name."); return; }
-    if (editing && draft.reason.trim().length < 3) { notify("Enter a reason for this change."); return; }
+    if (!Number.isInteger(seats) || seats < 1 || seats > 20) { fieldError("seats", "Please enter a whole number of seats from 1 to 20.", "tv-seats"); return; }
+    if (!fares.every((value) => Number.isFinite(value) && value >= 0)) { fieldError(["baseFare", "perKm", "perMinute", "bookingFee"][fares.findIndex(value => !Number.isFinite(value) || value < 0)], "Please enter a fare of zero or greater.", ["tv-base", "tv-km", "tv-min", "tv-fee"][fares.findIndex(value => !Number.isFinite(value) || value < 0)]); return; }
+    if (draft.name.trim().length < 1) { fieldError("name", "Please enter a vehicle name.", "tv-name"); return; }
+    if (editing && draft.reason.trim().length < 3) { fieldError("reason", "Please enter a reason for this change.", "tv-reason"); return; }
     setSaving(true);
     const body = {
       name: draft.name.trim(),
@@ -76,14 +85,14 @@ export default function TransportVehicleTypesPanel() {
       active: draft.active,
       ...(editing ? { reason: draft.reason.trim(), version: editing.version } : {}),
     };
-    const response = await fetch(editing ? `/api/catalog/transport-vehicle-types/${editing.id}` : "/api/catalog/transport-vehicle-types", {
+    const response = await fetchPublic(editing ? `/api/catalog/transport-vehicle-types/${editing.id}` : "/api/catalog/transport-vehicle-types", {
       method: editing ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    const result = await response.json();
+    const result = await readResponse(response);
     setSaving(false);
-    if (!response.ok) { notify(result.error ?? "Unable to save this transfer vehicle."); return; }
+    if (!response.ok) { setFields(result.fieldErrors ?? result.fields ?? {}); setSaveError(userMessage(result.error, "Unable to save this transfer vehicle.")); return; }
     notify(editing ? `${draft.name} updated.` : `${draft.name} added to the fare table.`);
     close();
     await load();
@@ -130,7 +139,7 @@ export default function TransportVehicleTypesPanel() {
           {visible.length === 0 && <div className="empty"><Search/><h3>No transfer vehicles match</h3><p>Try a different search, or add a vehicle above.</p></div>}
         </div>
       )}
-      {toast && <div className="toast"><CarTaxiFront size={18}/>{toast}</div>}
+      <ToastStack controller={feedback} />
 
       {(editing || creating) && draft && (
         <Modal isOpen onClose={close} title={editing ? `Edit ${editing.name}` : "Add a transfer vehicle"} description={editing ? "Changes are audited and apply to new bookings at checkout." : "Offer a vehicle type for guest pickup transfers at booking checkout."} size="md" headerVariant="branded">
@@ -138,7 +147,7 @@ export default function TransportVehicleTypesPanel() {
             <div className="form-field">
               <div className="form-field-wrapper">
                 <label htmlFor="tv-name" className="form-label">Vehicle name <span className="required">*</span></label>
-                <input id="tv-name" className="form-input" type="text" value={draft.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. 4-seater"/>
+                <input id="tv-name" className="form-input" type="text" value={draft.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. 4-seater" {...formFieldProps(fields, "name", "transfer")} /><FormFieldError errors={fields} field="name" prefix="transfer" />
               </div>
             </div>
             <div className="form-field">
@@ -150,7 +159,7 @@ export default function TransportVehicleTypesPanel() {
             <div className="form-row">
               <div className="form-field-wrapper">
                 <label htmlFor="tv-seats" className="form-label">Seats</label>
-                <input id="tv-seats" className="form-input" type="number" min={1} max={20} step={1} value={draft.seats} onChange={(e) => set("seats", e.target.value)}/>
+                <input id="tv-seats" className="form-input" type="number" min={1} max={20} step={1} value={draft.seats} onChange={(e) => set("seats", e.target.value)} {...formFieldProps(fields, "seats", "transfer")} /><FormFieldError errors={fields} field="seats" prefix="transfer" />
               </div>
               <div className="form-field-wrapper">
                 <label htmlFor="tv-sort" className="form-label">Display order</label>
@@ -161,21 +170,21 @@ export default function TransportVehicleTypesPanel() {
             <div className="form-row">
               <div className="form-field-wrapper">
                 <label htmlFor="tv-base" className="form-label">Base fare <span className="required">*</span></label>
-                <input id="tv-base" className="form-input" type="number" min={0} step={0.01} value={draft.baseFare} onChange={(e) => set("baseFare", e.target.value)}/>
+                <input id="tv-base" className="form-input" type="number" min={0} step={0.01} value={draft.baseFare} onChange={(e) => set("baseFare", e.target.value)} {...formFieldProps(fields, "baseFare", "transfer")} /><FormFieldError errors={fields} field="baseFare" prefix="transfer" />
               </div>
               <div className="form-field-wrapper">
                 <label htmlFor="tv-km" className="form-label">Per km <span className="required">*</span></label>
-                <input id="tv-km" className="form-input" type="number" min={0} step={0.01} value={draft.perKm} onChange={(e) => set("perKm", e.target.value)}/>
+                <input id="tv-km" className="form-input" type="number" min={0} step={0.01} value={draft.perKm} onChange={(e) => set("perKm", e.target.value)} {...formFieldProps(fields, "perKm", "transfer")} /><FormFieldError errors={fields} field="perKm" prefix="transfer" />
               </div>
             </div>
             <div className="form-row">
               <div className="form-field-wrapper">
                 <label htmlFor="tv-min" className="form-label">Per minute <span className="required">*</span></label>
-                <input id="tv-min" className="form-input" type="number" min={0} step={0.01} value={draft.perMinute} onChange={(e) => set("perMinute", e.target.value)}/>
+                <input id="tv-min" className="form-input" type="number" min={0} step={0.01} value={draft.perMinute} onChange={(e) => set("perMinute", e.target.value)} {...formFieldProps(fields, "perMinute", "transfer")} /><FormFieldError errors={fields} field="perMinute" prefix="transfer" />
               </div>
               <div className="form-field-wrapper">
                 <label htmlFor="tv-fee" className="form-label">Booking fee <span className="required">*</span></label>
-                <input id="tv-fee" className="form-input" type="number" min={0} step={0.01} value={draft.bookingFee} onChange={(e) => set("bookingFee", e.target.value)}/>
+                <input id="tv-fee" {...formFieldProps(fields, "bookingFee", "transfer")} className="form-input" type="number" min={0} step={0.01} value={draft.bookingFee} onChange={(e) => set("bookingFee", e.target.value)}/><FormFieldError errors={fields} field="bookingFee" prefix="transfer" />
               </div>
             </div>
             <div className="form-field">
@@ -188,10 +197,11 @@ export default function TransportVehicleTypesPanel() {
               <div className="form-field">
                 <div className="form-field-wrapper">
                   <label htmlFor="tv-reason" className="form-label">Reason for change <span className="required">*</span></label>
-                  <input id="tv-reason" className="form-input" type="text" value={draft.reason} onChange={(e) => set("reason", e.target.value)} placeholder="Audited with every save"/>
+                  <input id="tv-reason" className="form-input" type="text" value={draft.reason} onChange={(e) => set("reason", e.target.value)} placeholder="Audited with every save" {...formFieldProps(fields, "reason", "transfer")} /><FormFieldError errors={fields} field="reason" prefix="transfer" />
                 </div>
               </div>
             )}
+            {saveError && <p className="booking-error" role="alert">{saveError}</p>}
             <div className="form-actions">
               <button type="button" className="btn btn-soft" onClick={close}>Cancel</button>
               <button type="button" className="btn btn-accent" disabled={saving} onClick={save}>{saving ? <Loader2 className="spin" size={16}/> : editing ? <Pencil size={16}/> : <Plus size={16}/>} {saving ? "Saving…" : editing ? "Save changes" : "Add vehicle"}</button>

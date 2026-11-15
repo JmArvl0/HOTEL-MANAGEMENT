@@ -1,5 +1,8 @@
+import { publicJson } from "@/lib/server-errors";
+import { validationBody } from "@/lib/errors";
+import { numericInput } from "@/lib/input-validation";
 import { getServerSession } from "next-auth";
-import { NextResponse } from "next/server";
+
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { readAllRows } from "@/lib/read-all-rows";
@@ -9,7 +12,7 @@ const allowed = new Set(["front_desk", "manager", "owner"]);
 
 const query = z.object({
   from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  days: z.coerce.number().int().min(1).max(14).default(7),
+  days: numericInput(z.number().int().min(1).max(14)).default(7),
 });
 
 /**
@@ -21,12 +24,12 @@ const query = z.object({
  */
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.disabled) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!allowed.has(session.user.role)) return NextResponse.json({ error: "Front Office access required." }, { status: 403 });
-  if (!supabase) return NextResponse.json({ error: "Database unavailable." }, { status: 503 });
+  if (!session || session.user.disabled) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
+  if (!allowed.has(session.user.role)) return publicJson({ error: "Front Office access required." }, { status: 403 });
+  if (!supabase) return publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
 
   const parsed = query.safeParse(Object.fromEntries(new URL(request.url).searchParams));
-  if (!parsed.success) return NextResponse.json({ error: "Invalid date window." }, { status: 400 });
+  if (!parsed.success) return publicJson(validationBody(parsed.error, { error: "Invalid date window." }), { status: 400 });
   const from = parsed.data.from ?? new Date().toISOString().slice(0, 10);
   const toDate = new Date(`${from}T00:00:00Z`);
   toDate.setUTCDate(toDate.getUTCDate() + parsed.data.days);
@@ -66,7 +69,7 @@ export async function GET(request: Request) {
     ])
   );
 
-  const blockedRoomIds = [...maintenanceBlockedRoomIds(((orders ?? []) as Record<string, unknown>[]).map((row) => ({ room_id: row.room_id, room_number: row.room_number, status: row.status, serviceability_impact: row.serviceability_impact })), ((rooms ?? []) as Record<string, unknown>[]).map((row) => ({ id: String(row.id), number: row.number })))];  return NextResponse.json({
+  const blockedRoomIds = [...maintenanceBlockedRoomIds(((orders ?? []) as Record<string, unknown>[]).map((row) => ({ room_id: row.room_id, room_number: row.room_number, status: row.status, serviceability_impact: row.serviceability_impact })), ((rooms ?? []) as Record<string, unknown>[]).map((row) => ({ id: String(row.id), number: row.number })))];  return publicJson({
     data: {
       from,
       assignments,
@@ -83,6 +86,6 @@ export async function GET(request: Request) {
     },
   });
   } catch {
-    return NextResponse.json({ error: "Room availability is temporarily unavailable." }, { status: 503 });
+    return publicJson({ error: "Room availability is temporarily unavailable." }, { status: 503 });
   }
 }

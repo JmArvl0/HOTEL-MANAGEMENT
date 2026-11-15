@@ -1,5 +1,7 @@
+import { publicJson } from "@/lib/server-errors";
+import { validationBody } from "@/lib/errors";
 import { getServerSession } from "next-auth";
-import { NextResponse } from "next/server";
+
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
@@ -29,12 +31,12 @@ const FRIENDLY: Record<string, string> = {
  */
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.disabled) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "guest") return NextResponse.json({ error: "Customer access required." }, { status: 403 });
-  if (!supabase) return NextResponse.json({ error: "Database unavailable." }, { status: 503 });
+  if (!session || session.user.disabled) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
+  if (session.user.role !== "guest") return publicJson({ error: "Please sign in with a guest account to continue." }, { status: 403 });
+  if (!supabase) return publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
 
   const parsed = schema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "A QR code is required." }, { status: 400 });
+  if (!parsed.success) return publicJson(validationBody(parsed.error, { error: "A QR code is required." }), { status: 400 });
 
   const { data, error } = await supabase.rpc("express_qr_self_check_in", {
     p_qr_token_hash: hashQrToken(parsed.data.qrToken),
@@ -43,9 +45,9 @@ export async function POST(request: Request) {
   if (error) {
     const code = error.message.split(":")[0].trim();
     if (code === "SELF_CHECKIN_FORBIDDEN")
-      return NextResponse.json({ error: "This QR code does not belong to your reservation." }, { status: 403 });
-    if (code in FRIENDLY) return NextResponse.json({ error: FRIENDLY[code], ...(code==="GUEST_DO_NOT_RENT"?{}:{code}) }, { status: 409 });
-    return NextResponse.json({ error: "Self check-in is unavailable. Please see the Front Desk." }, { status: 500 });
+      return publicJson({ error: "This QR code does not belong to your reservation." }, { status: 403 });
+    if (code in FRIENDLY) return publicJson({ error: FRIENDLY[code], ...(code==="GUEST_DO_NOT_RENT"?{}:{code}) }, { status: 409 });
+    return publicJson({ error: "Self check-in is unavailable. Please see the Front Desk." }, { status: 500 });
   }
   const row = (Array.isArray(data) ? data[0] : data) as {
     reservation_id: string;
@@ -53,7 +55,7 @@ export async function POST(request: Request) {
     room_floor: string;
     digital_key: string;
   };
-  return NextResponse.json({
+  return publicJson({
     data: {
       reservationId: row.reservation_id,
       roomNumber: row.room_number,

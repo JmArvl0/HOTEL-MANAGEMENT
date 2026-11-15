@@ -1,5 +1,8 @@
 "use client";
 
+import { userMessage } from "@/lib/errors";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
 import { useEffect, useMemo, useState } from "react";
 import { BedDouble, CalendarDays, DoorOpen, Plus, QrCode, LogOut, Users, ClipboardCheck } from "lucide-react";
 import { Modal, ConfirmDialog } from "@/components/ui/Modal";
@@ -44,7 +47,7 @@ function BoardDateRange({ from, days, onRange, notify }: {
   from: string;
   days: number;
   onRange: (from: string, days: number) => void;
-  notify: (message: string) => void;
+  notify: (message: string, tone?: "info" | "success" | "warning" | "error") => void;
 }) {
   const [open, setOpen] = useState(false);
   const [draftFrom, setDraftFrom] = useState(from);
@@ -55,10 +58,10 @@ function BoardDateRange({ from, days, onRange, notify }: {
     if (!ISO_DAY.test(nextFrom) || !ISO_DAY.test(nextTo)) return;
     const span = Math.round((Date.parse(`${nextTo}T00:00:00Z`) - Date.parse(`${nextFrom}T00:00:00Z`)) / 86_400_000) + 1;
     if (span < 1) {
-      notify("End date must be on or after the start date.");
+      notify("End date must be on or after the start date.", "warning");
       return;
     }
-    if (span > 14) notify("Window capped at 14 days.");
+    if (span > 14) notify("Window capped at 14 days.", "warning");
     onRange(nextFrom, Math.min(14, span));
   };
   return (
@@ -189,10 +192,10 @@ export default function FrontOfficeRack({
   // Never substitute window rows for a failed full-history read.
   useEffect(() => {
     let live = true;
-    fetch("/api/resources/reservations", { cache: "no-store" })
+    fetchPublic("/api/resources/reservations", { cache: "no-store" })
       .then(async res => {
         if (!res.ok) throw new Error("Reservation history could not be loaded.");
-        return res.json();
+        return readResponse(res);
       })
       .then((body) => {
         if (!Array.isArray(body?.data)) throw new Error("Reservation history could not be loaded.");
@@ -297,12 +300,12 @@ export default function FrontOfficeRack({
     setBusy(true);
     setNotice("");
     try {
-      const res = await fetch(`/api/front-desk/reservations/${reservation.id}/assign`, {
+      const res = await fetchPublic(`/api/front-desk/reservations/${reservation.id}/assign`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ room: room.number, reason: "Assigned from Room Rack" }),
       });
-      const body = (await res.json()) as { error?: string };
+      const body = (await readResponse(res)) as { error?: string };
       if (!res.ok) throw new Error(body.error ?? "Unable to assign room.");
       setConfirm(null);
       setArrivalPick(null);
@@ -311,7 +314,7 @@ export default function FrontOfficeRack({
       setHistoryVersion(v => v + 1);
       onCheckIn(reservation.id);
     } catch (cause) {
-      say(cause instanceof Error ? cause.message : "Unable to assign room.", "error");
+      say(userMessage(cause, "Unable to assign room."), "error");
       setConfirm(null);
     } finally {
       setBusy(false);
@@ -322,7 +325,7 @@ export default function FrontOfficeRack({
     setBusy(true);
     setNotice("");
     try {
-      const res = await fetch("/api/resources/housekeeping_tasks", {
+      const res = await fetchPublic("/api/resources/housekeeping_tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -333,14 +336,14 @@ export default function FrontOfficeRack({
           status: "pending",
         }),
       });
-      const body = (await res.json()) as { error?: string };
+      const body = (await readResponse(res)) as { error?: string };
       if (!res.ok) throw new Error(body.error ?? "Unable to dispatch housekeeping.");
       setDispatchRoom(null);
       setActiveRoom(null);
       say(`Reclean dispatched for room ${room.number}.`, "success");
       await reload();
     } catch (cause) {
-      say(cause instanceof Error ? cause.message : "Unable to dispatch housekeeping.", "error");
+      say(userMessage(cause, "Unable to dispatch housekeeping."), "error");
     } finally {
       setBusy(false);
     }

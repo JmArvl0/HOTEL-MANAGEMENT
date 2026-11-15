@@ -34,7 +34,7 @@ describe("room-type badge colors", () => {
     expect(panel).toContain("{owner && <small>{owner.name}</small>}");
   });
   it("requires a badge color before creation — no neutral escape hatch", () => {
-    expect(panel).toContain('if (creating && !draft.badgeColorKey) { notify("Choose a badge color for this room type."); return; }');
+    expect(panel).toContain('if (creating && !draft.badgeColorKey) { notify("Choose a badge color for this room type.", "warning"); return; }');
     expect(panel).toContain('<label className="form-label">Badge color <span className="required">*</span></label>');
     expect(panel).not.toContain('onClick={() => set("badgeColorKey", null)}');
   });
@@ -110,14 +110,14 @@ describe("room-type catalog card hybrid", () => {
     expect(panel).toContain("Nightly rate required");
   });
   it("keeps every action on existing audited endpoints — no new writes", () => {
-    expect(panel).toContain("fetch(`/api/catalog/room-types/${photoType.id}`");
-    expect(panel).toContain("fetch(\"/api/catalog/photos\"");
+    expect(panel).toContain("fetchPublic(`/api/catalog/room-types/${photoType.id}`");
+    expect(panel).toContain("fetchPublic(\"/api/catalog/photos\"");
     expect(panel).not.toContain("supabase");
     // The only DELETE is best-effort cleanup of orphaned create-modal uploads —
     // catalog data still moves exclusively through the audited RPC routes.
     const deletes = panel.match(/method: "DELETE"/g) ?? [];
     expect(deletes.length).toBe(1);
-    expect(panel).toContain('fetch("/api/catalog/photos", { method: "DELETE"');
+    expect(panel).toContain("fetchPublic(\"/api/catalog/photos\", { method: \"DELETE\"");
     // Photo saves ride the same versioned, reasoned update as every other edit.
     expect(panel).toContain("version: photoType.version");
     expect(panel).toContain("reason: reason.trim()");
@@ -160,10 +160,10 @@ describe("creation requires a photo", () => {
   });
   it("cleans up abandoned uploads through a guarded storage-only DELETE", () => {
     expect(photosRoute).toContain("export async function DELETE");
-    expect(photosRoute).toContain("OBJECT_PATH");
+    expect(photosRoute).toContain("catalog_request_room_photo_deletion");
     expect(photosRoute).toContain("remove([path])");
     // Only bare <uuid>.<jpg|png|webp> objects this flow creates are deletable.
-    expect(photosRoute).toContain("Not a room photo managed by this catalog.");
+    expect(photosRoute).toContain("Choose a photo uploaded through this catalog.");
   });
 });
 
@@ -208,7 +208,7 @@ describe("landing page room cards are DB-driven", () => {
 
 describe("intent-aware room discovery", () => {
   it("derives the search mode from the URL and browses the same DB catalog", () => {
-    expect(searchPage).toContain("parseSearchIntent(raw)");
+    expect(searchPage).toContain("parseSearchIntent(raw,");
     expect(searchPage).toContain("getRoomCatalog()");
     expect(searchPage).toContain("getAvailability(");
     expect(searchPage).toContain("focusRoomType");

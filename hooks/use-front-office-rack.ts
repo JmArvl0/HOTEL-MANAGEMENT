@@ -1,5 +1,7 @@
 "use client";
 
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+import { userMessage } from "@/lib/errors";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { RackAssignment, RackReservation, RackRoom } from "@/lib/room-rack";
 
@@ -40,13 +42,13 @@ export function useFrontOfficeRack() {
         setError("");
       }
       try {
-        const res = await fetch(`/api/rack?from=${from}&days=${days}`, { cache: "no-store" });
-        const body = (await res.json()) as { data?: RackSnapshot; error?: string };
+        const res = await fetchPublic(`/api/rack?from=${from}&days=${days}`, { cache: "no-store" });
+        const body = (await readResponse(res)) as { data?: RackSnapshot; error?: string };
         if (!res.ok) throw new Error(body.error ?? "Unable to load the room rack.");
         setSnapshot(body.data ?? null);
         setError("");
       } catch (cause) {
-        if (!quiet) setError(cause instanceof Error ? cause.message : "Unable to load the room rack.");
+        if (!quiet) setError(userMessage(cause, "Unable to load the room rack."));
       } finally {
         if (!quiet) setLoading(false);
       }

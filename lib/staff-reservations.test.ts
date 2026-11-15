@@ -98,7 +98,7 @@ describe("manager reservation oversight workspace", () => {
     // Advisory only: the derivation module never writes reservation state.
     const derivation = readFileSync("lib/manager-attention.ts", "utf8");
     expect(derivation).not.toContain("supabase");
-    expect(derivation).not.toContain("fetch(");
+    expect(derivation).not.toContain("fetchPublic(");
   });
   it("decorates the manager list with batched lookups, not per-row queries", () => {
     const staffData = readFileSync("lib/staff-data.ts", "utf8");

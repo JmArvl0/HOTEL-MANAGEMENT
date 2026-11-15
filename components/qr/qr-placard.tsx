@@ -1,7 +1,10 @@
 "use client";
 
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
 import { useState } from "react";
-import { Printer, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
+import { DownloadMenu, printDownload } from "@/components/ui/download-menu";
 import "./qr-placard.css";
 
 /**
@@ -21,8 +24,8 @@ export function QrPlacard({
     setRotating(true);
     setNote(null);
     try {
-      const response = await fetch(`/api/qr/room/${room.id}/rotate`, { method: "POST" });
-      const body = await response.json();
+      const response = await fetchPublic(`/api/qr/room/${room.id}/rotate`, { method: "POST" });
+      const body = await readResponse(response);
       if (response.ok && body?.data?.dataUrl) {
         setCurrent(body.data.dataUrl);
         setNote("Rotated. Print the new placard — the old one is now invalid.");
@@ -52,9 +55,7 @@ export function QrPlacard({
         </footer>
       </div>
       <div className="qr-placard-actions">
-        <button type="button" className="btn btn-primary" onClick={() => window.print()}>
-          <Printer size={16} /> Print placard
-        </button>
+        <DownloadMenu label="Download room placard" actions={[printDownload]} alignStart />
         {canRotate && (
           <button type="button" className="btn btn-secondary" onClick={rotate} disabled={rotating}>
             <RefreshCw size={16} /> {rotating ? "Rotating…" : "Rotate QR"}

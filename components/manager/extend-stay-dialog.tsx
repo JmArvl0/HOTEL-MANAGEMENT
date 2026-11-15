@@ -1,4 +1,7 @@
 "use client";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 // Extend stay (extra nights, checkout DATE changes — deliberately not "late
 // checkout", which is a same-day time exception). Every figure shown here comes
 // from the server preview RPC (front_desk_extend_stay_preview) — the client never
@@ -46,10 +49,10 @@ export default function ExtendStayDialog({ reservation, transportation, onClose,
       const key = String(reservation.id) + ":" + checkOut;
       previewRef.current = key;
       try {
-        const res = await fetch(`/api/front-desk/reservations/${reservation.id}/extend-preview?checkOut=${checkOut}`, { cache: "no-store" });
-        const body = await res.json().catch(() => ({}));
+        const res = await fetchPublic(`/api/front-desk/reservations/${reservation.id}/extend-preview?checkOut=${checkOut}`, { cache: "no-store" });
+        const body = await readResponse(res).catch(() => ({}));
         if (previewRef.current !== key) return; // a newer date superseded this response
-        if (!res.ok) { setPreviewError(body.error ?? "Unable to preview this extension."); return; }
+        if (!res.ok) { setPreviewError(userMessage(body.error, "Unable to preview this extension.")); return; }
         setPreview(body.data as Preview);
       } catch { setPreviewError("Unable to preview this extension."); }
     }, 350);
@@ -64,13 +67,13 @@ export default function ExtendStayDialog({ reservation, transportation, onClose,
     setBusy(true); setError(""); setConflict(false);
     const idempotencyKey = crypto.randomUUID();
     try {
-      const res = await fetch(`/api/front-desk/reservations/${reservation.id}/extend`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ checkOut, reason: reason.trim(), idempotencyKey }) });
-      const body = await res.json().catch(() => ({}));
+      const res = await fetchPublic(`/api/front-desk/reservations/${reservation.id}/extend`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ checkOut, reason: reason.trim(), idempotencyKey }) });
+      const body = await readResponse(res).catch(() => ({}));
       if (!res.ok) {
         // The normal path refuses only when the room conflicts with a future stay —
         // that is exactly what the Manager exception exists for.
-        if (String(body.error ?? "").includes("conflicts with a future stay")) { setConflict(true); setError(body.error); }
-        else setError(body.error ?? "Unable to extend stay.");
+        if (String(body.error ?? "").includes("conflicts with a future stay")) { setConflict(true); setError(userMessage(body.error)); }
+        else setError(userMessage(body.error, "Unable to extend stay."));
         return;
       }
       onClose(); await onDone(`Stay extended. Additional lodging: ${money(body.data?.additional_amount)}.`);
@@ -80,9 +83,9 @@ export default function ExtendStayDialog({ reservation, transportation, onClose,
   const requestException = async () => {
     setBusy(true); setError("");
     try {
-      const res = await fetch("/api/manager/approvals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "stay_extension", relatedEntityType: "reservation", relatedEntityId: String(reservation.id), reservationId: String(reservation.id), department: "front_desk", severity: "normal", reason: reason.trim(), requestedAction: { requestedCheckOut: checkOut } }) });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) { setError(body.error ?? "Unable to request Manager approval."); return; }
+      const res = await fetchPublic("/api/manager/approvals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "stay_extension", relatedEntityType: "reservation", relatedEntityId: String(reservation.id), reservationId: String(reservation.id), department: "front_desk", severity: "normal", reason: reason.trim(), requestedAction: { requestedCheckOut: checkOut } }) });
+      const body = await readResponse(res).catch(() => ({}));
+      if (!res.ok) { setError(userMessage(body.error, "Unable to request Manager approval.")); return; }
       setRequested(String(body.data?.id ?? ""));
       await onDone("Manager exception requested — it now awaits Manager review.");
     } finally { setBusy(false); }

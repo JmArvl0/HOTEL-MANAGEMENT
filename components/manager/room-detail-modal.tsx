@@ -1,5 +1,8 @@
 "use client";
 
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { useEffect, useRef, useState } from "react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { BedDouble, CalendarDays, ClipboardCheck, DoorOpen, Wrench } from "lucide-react";
@@ -59,8 +62,8 @@ export default function RoomDetailModal({ room, role, onClose, onViewReservation
   // fresh for every room; the effect only owns the fetch lifecycle.
   useEffect(() => {
     let active = true;
-    fetch(`/api/staff/rooms/${room.id}`, { cache: "no-store" })
-      .then(async (response) => { const body = await response.json(); if (!active) return; response.ok ? setDetail(body.data) : setError(body.error ?? "Unable to load room details."); })
+    fetchPublic(`/api/staff/rooms/${room.id}`, { cache: "no-store" })
+      .then(async (response) => { const body = await readResponse(response); if (!active) return; response.ok ? setDetail(body.data) : setError(userMessage(body.error, "Unable to load room details.")); })
       .catch(() => { if (active) setError("Unable to load room details."); });
     return () => { active = false; };
   }, [room.id]);

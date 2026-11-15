@@ -1,5 +1,7 @@
 "use client";
 
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
 import { Camera, CameraOff, RefreshCw, ShieldCheck } from "lucide-react";
@@ -80,12 +82,12 @@ export function QrScannerModal({ onClose, onCta }: { onClose: () => void; onCta:
     resolvingRef.current = true;
     setResolving(true);
     try {
-      const response = await fetch("/api/qr/resolve", {
+      const response = await fetchPublic("/api/qr/resolve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token })
       });
-      const body = await response.json();
+      const body = await readResponse(response);
       setOutcome(response.ok
         ? body
         : { result: body.result ?? "invalid", message: body.error ?? body.message ?? "Unable to validate this code." });

@@ -1,5 +1,6 @@
+import { publicJson } from "@/lib/server-errors";
 import { getServerSession } from "next-auth";
-import { NextResponse } from "next/server";
+
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 
@@ -24,9 +25,9 @@ const room = (item: InventoryRow, colorKeys: Map<string, string | null>) => ({
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!allowed.has(session.user.role)) return NextResponse.json({ error: "Front Desk access required." }, { status: 403 });
-  if (!supabase) return NextResponse.json({ error: "Database unavailable." }, { status: 503 });
+  if (!session || session.user.disabled || session.user.otpPending) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
+  if (!allowed.has(session.user.role)) return publicJson({ error: "Only Front Desk can perform this action. Ask Front Desk for help." }, { status: 403 });
+  if (!supabase) return publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
 
   const id = (await params).id;
   const { data: reservation } = await supabase
@@ -34,10 +35,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     .select("id,room_type,check_in,check_out,status")
     .eq("id", id)
     .maybeSingle();
-  if (!reservation) return NextResponse.json({ error: "Reservation not found." }, { status: 404 });
+  if (!reservation) return publicJson({ error: "Reservation not found." }, { status: 404 });
 
   const { data, error } = await supabase.rpc("front_desk_eligible_room_inventory", { p_reservation_id: id });
-  if (error) return NextResponse.json({ error: "Unable to load eligible room inventory." }, { status: 500 });
+  if (error) return publicJson({ error: "Unable to load eligible room inventory." }, { status: 500 });
   const inventory = (data ?? []) as InventoryRow[];
   // Room-type badge colors, one small lookup for the whole list.
   const { data: roomTypes } = await supabase.from("room_types").select("name,badge_color_key");
@@ -48,7 +49,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   if (roomTypeId) {
     const selected = inventory.filter((item) => item.room_type_id === roomTypeId && item.room_type_name !== reservation.room_type);
-    if (selected.length === 0) return NextResponse.json({ error: "Room inventory changed. No eligible rooms remain for that room type." }, { status: 409 });
+    if (selected.length === 0) return publicJson({ error: "Room inventory changed. No eligible rooms remain for that room type." }, { status: 409 });
     const { data: type } = await supabase.from("room_types").select("base_rate").eq("id", roomTypeId).maybeSingle();
     // Per-night resolver rates for this reservation's window — a weekend/seasonal
     // plan can price the nights differently from base_rate. Preview only; the
@@ -56,7 +57,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const { data: nights } = await supabase.rpc("room_nightly_rates", {
       p_room_type: selected[0].room_type_name, p_from: reservation.check_in, p_to: reservation.check_out,
     });
-    return NextResponse.json({
+    return publicJson({
       data: selected.map((item) => room(item, colorKeys)),
       selectedRoomType: { roomTypeId: selected[0].room_type_id, roomTypeName: selected[0].room_type_name, eligibleRoomCount: selected.length },
       typeRate: type?.base_rate ?? null,
@@ -85,7 +86,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const { data: type } = approvedTypeId
       ? await supabase.from("room_types").select("base_rate").eq("id", approvedTypeId).eq("active", true).maybeSingle()
       : await supabase.from("room_types").select("base_rate").eq("name", approvedType).eq("active", true).maybeSingle();
-    return NextResponse.json({
+    return publicJson({
       data: approvedRows.map((item) => room(item, colorKeys)),
       exceptionApproved: Boolean(approved && approvedType === exceptionType),
       exceptionType: approved ? approvedType : null,
@@ -114,7 +115,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   // legitimate exception even while reserved-type rooms remain (the server gates decide —
   // hotel-caused reasons are rejected with ROOM_TYPE_EXCEPTION_NOT_NEEDED when the reserved
   // type still has an eligible room, and the dialog warns before submitting).
-  return NextResponse.json({
+  return publicJson({
     data: reservedRooms.map((item) => room(item, colorKeys)),
     reservedRoomTypeId: reservedTypeId,
     alternativeRoomTypes,

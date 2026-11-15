@@ -27,7 +27,7 @@ describe("physical room roster surface", () => {
   it("never writes operational state", () => {
     // Everything the roster sends is in this one literal; status and
     // housekeeping are read for display and never appear in it.
-    const payload = roster.slice(roster.indexOf("const payload = {"), roster.indexOf("const response = await fetch(creating"));
+    const payload = roster.slice(roster.indexOf("const payload = {"), roster.indexOf("const response = await fetchPublic(creating"));
     expect(payload).not.toContain("status");
     expect(payload).not.toContain("housekeeping");
     expect(roster).not.toContain("supabase");
@@ -168,8 +168,8 @@ describe("room-inventory permission boundary", () => {
     // rooms included — hits the protected-workflow refusal.
     expect(resources).toContain('(role==="maintenance"&&resource==="maintenance_orders")');
     expect(resources).toContain("!departmentWriteAllowed(");
-    expect(resources).toContain("must be created through its protected workflow");
-    expect(resources).toContain("cannot change those fields");
+    expect(resources).toContain("Open the relevant module and use its create action");
+    expect(resources).toContain("permission to change these details");
   });
   it("keeps maintenance workflows and front-desk assignment wired", () => {
     expect(dashboard).toContain('canMaintain={user.role === "maintenance"}');

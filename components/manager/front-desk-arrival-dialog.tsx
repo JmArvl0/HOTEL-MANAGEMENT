@@ -1,4 +1,7 @@
 "use client";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 // Guided Front Desk arrival → room assignment → check-in.
 // Self-sufficient: fetches the reservation detail, eligible rooms, and any
 // approved room-type exception itself, so both the Reservations row action and
@@ -106,9 +109,9 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
   const fetchDetail = useCallback(async () => {
     setBusy(true); setError("");
     try {
-      const res = await fetch(`/api/staff/reservations/${reservationId}`, { cache: "no-store" });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) { setError(body.error ?? "Unable to load the reservation."); setDetail(null); return; }
+      const res = await fetchPublic(`/api/staff/reservations/${reservationId}`, { cache: "no-store" });
+      const body = await readResponse(res).catch(() => ({}));
+      if (!res.ok) { setError(userMessage(body.error, "Unable to load the reservation.")); setDetail(null); return; }
       setDetail(body.data as Detail);
     } finally { setBusy(false); }
   }, [reservationId]);
@@ -116,9 +119,9 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
   // Returns the mapped rooms so the caller can validate a resumed selection.
   const loadRooms = useCallback(async (mode: string | null): Promise<EligibleRoom[]> => {
     const q = mode ? `?exceptionType=${encodeURIComponent(mode)}` : "";
-    const res = await fetch(`/api/front-desk/reservations/${reservationId}/eligible-rooms${q}`, { cache: "no-store" });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) { setError(body.error ?? "Unable to load eligible rooms."); setRooms([]); setAlternatives([]); return []; }
+    const res = await fetchPublic(`/api/front-desk/reservations/${reservationId}/eligible-rooms${q}`, { cache: "no-store" });
+    const body = await readResponse(res).catch(() => ({}));
+    if (!res.ok) { setError(userMessage(body.error, "Unable to load eligible rooms.")); setRooms([]); setAlternatives([]); return []; }
     const mapped = ((body.data ?? []) as EligibleRoom[]).map((room) => ({ ...room, number: String(room.number) }));
     setRooms(mapped);
     setAlternatives(((body.alternativeRoomTypes ?? []) as AlternativeRoomType[]));
@@ -132,9 +135,9 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
   }, [reservationId]);
 
   const checkApprovals = useCallback(async () => {
-    const res = await fetch("/api/manager/approvals", { cache: "no-store" });
+    const res = await fetchPublic("/api/manager/approvals", { cache: "no-store" });
     if (!res.ok) return;
-    const body = await res.json().catch(() => ({}));
+    const body = await readResponse(res).catch(() => ({}));
     const rows = (body.data ?? []) as (RecordItem & { requested_action?: Record<string, unknown> | null })[];
     const latest = rows
       .filter((row) => String(row.reservation_id) === reservationId && row.request_type === "room_type_exception")
@@ -157,11 +160,11 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
   const loadTargetRooms = useCallback(async (roomTypeId: string) => {
     setRequestedRoomId(""); setTargetRooms([]); setTargetRoomsLoading(true); setError("");
     try {
-      const res = await fetch(`/api/front-desk/reservations/${reservationId}/eligible-rooms?roomTypeId=${encodeURIComponent(roomTypeId)}`, { cache: "no-store" });
-      const body = await res.json().catch(() => ({}));
+      const res = await fetchPublic(`/api/front-desk/reservations/${reservationId}/eligible-rooms?roomTypeId=${encodeURIComponent(roomTypeId)}`, { cache: "no-store" });
+      const body = await readResponse(res).catch(() => ({}));
       if (!res.ok) {
         setTargetTypeId("");
-        setError(body.error ?? "Room inventory changed. Please refresh and choose again.");
+        setError(userMessage(body.error, "Room inventory changed. Please refresh and choose again."));
         await loadRooms(null);
         await checkApprovals();
         return;
@@ -255,9 +258,9 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
   const doVerify = async () => {
     setBusy(true); setError("");
     try {
-      const res = await fetch(`/api/front-desk/reservations/${reservationId}/identity`, { method: "POST" });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) { setError(body.error ?? "Identity verification is not permitted for this reservation."); return; }
+      const res = await fetchPublic(`/api/front-desk/reservations/${reservationId}/identity`, { method: "POST" });
+      const body = await readResponse(res).catch(() => ({}));
+      if (!res.ok) { setError(userMessage(body.error, "Identity verification is not permitted for this reservation.")); return; }
       setNotice("Guest identity verified.");
       await fetchDetail();
     } finally { setBusy(false); }
@@ -273,9 +276,9 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
     if (requestedReason.trim().length < 3) { setError("Explain why the exception is required."); return; }
     setBusy(true); setError("");
     try {
-      const res = await fetch("/api/manager/approvals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "room_type_exception", relatedEntityType: "reservation", relatedEntityId: reservationId, reservationId, department: "front_desk", severity: "normal", reason: requestedReason.trim(), requestedAction: { reasonCode: requestedReasonCode, roomType: alternative.roomTypeName, requestedRoomTypeId: alternative.roomTypeId, requestedRoomId: room.id, requestedRoomNumber: String(room.number), originalRoomTypeId: reservedRoomTypeId, originalRoomType: reservation?.room_type ?? "" } }) });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) { setError(body.error ?? "Unable to request the Manager exception."); return; }
+      const res = await fetchPublic("/api/manager/approvals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "room_type_exception", relatedEntityType: "reservation", relatedEntityId: reservationId, reservationId, department: "front_desk", severity: "normal", reason: requestedReason.trim(), requestedAction: { reasonCode: requestedReasonCode, roomType: alternative.roomTypeName, requestedRoomTypeId: alternative.roomTypeId, requestedRoomId: room.id, requestedRoomNumber: String(room.number), originalRoomTypeId: reservedRoomTypeId, originalRoomType: reservation?.room_type ?? "" } }) });
+      const body = await readResponse(res).catch(() => ({}));
+      if (!res.ok) { setError(userMessage(body.error, "Unable to request the Manager exception.")); return; }
       setRequestSent(true); setExceptionStatus("pending"); clearAlternativeSelection(); setRequestedReason(""); setRequestedReasonCode(""); setShowAlternativeForm(false);
     } finally { setBusy(false); }
   };
@@ -287,9 +290,9 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
     if (!approvedException) return;
     setBusy(true); setError("");
     try {
-      const res = await fetch(`/api/manager/approvals/${approvedException.id}/record-acceptance`, { method: "POST" });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) { setError(body.error ?? "Unable to record guest acceptance."); return; }
+      const res = await fetchPublic(`/api/manager/approvals/${approvedException.id}/record-acceptance`, { method: "POST" });
+      const body = await readResponse(res).catch(() => ({}));
+      if (!res.ok) { setError(userMessage(body.error, "Unable to record guest acceptance.")); return; }
       setNotice("Guest acceptance recorded — the upgrade charge is now on the folio.");
       await checkApprovals();
       await fetchDetail();
@@ -299,10 +302,10 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
   const doCheckIn = async () => {
     setBusy(true); setError("");
     try {
-      const res = await fetch("/api/front-desk/check-in", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reservationId, room: selected }) });
+      const res = await fetchPublic("/api/front-desk/check-in", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reservationId, room: selected }) });
       if (res.ok) { onCheckedIn(); return; }
-      const body = await res.json().catch(() => ({}));
-      setError(body.error ?? "Unable to complete check-in.");
+      const body = await readResponse(res).catch(() => ({}));
+      setError(userMessage(body.error, "Unable to complete check-in."));
     } finally { setBusy(false); }
   };
 

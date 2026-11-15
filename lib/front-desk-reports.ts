@@ -1,3 +1,4 @@
+import { isCalendarDate } from "@/lib/input-validation";
 import { supabase } from "@/lib/supabase";
 import type { RecordItem } from "@/lib/types";
 
@@ -9,6 +10,8 @@ import type { RecordItem } from "@/lib/types";
 export type DailyReportSnapshot = {
   reportDate: string;
   generatedAt: string;
+  previewVersion?: string;
+  hotelTimezone?: string;
   reservations: { created: number; bySource: Record<string, number>; arrivals: number; departures: number; cancelled: number; noShow: number };
   guestRequests: { opened: number; escalated: number; openByDepartment: Record<string, number> };
   collections: { count: number; total: number; byPurpose: Record<string, number>; byMethod?: Record<string, number> };
@@ -61,7 +64,8 @@ const sumBy = (rows: { [key: string]: unknown }[], key: string, amountKey: strin
 export function summarizeDailyActivity(rows: DailyReportRows, reportDate: string): Omit<DailyReportSnapshot, "generatedAt"> {
   const cancelled = rows.reservationAuditEvents.filter((event) => event.action === "cancel_reservation").length;
   const noShow = rows.reservationAuditEvents.filter((event) => event.action === "reservation_no_show").length;
-  const total = rows.settledPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+  const collections = rows.settledPayments.filter((payment) => payment.purpose !== "refund");
+  const total = collections.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
   const shiftTotal = (key: "expected_cash" | "actual_cash" | "variance") =>
     Math.round(rows.cashShiftsClosed.reduce((sum, shift) => sum + Number(shift[key] || 0), 0) * 100) / 100;
   // Turnaround averages minutes from start to completion, rounded to whole
@@ -80,7 +84,7 @@ export function summarizeDailyActivity(rows: DailyReportRows, reportDate: string
     reportDate,
     reservations: { created: rows.reservationsCreated.length, bySource: countBy(rows.reservationsCreated, "source"), arrivals: rows.checkedIn.length, departures: rows.checkedOut.length, cancelled, noShow },
     guestRequests: { opened: rows.guestRequestsOpened.length, escalated: rows.guestRequestsEscalated.length, openByDepartment: countBy(rows.openRequests, "department") },
-    collections: { count: rows.settledPayments.length, total: Math.round(total * 100) / 100, byPurpose: countBy(rows.settledPayments, "purpose"), byMethod: sumBy(rows.settledPayments, "method", "amount") },
+    collections: { count: collections.length, total: Math.round(total * 100) / 100, byPurpose: countBy(collections, "purpose"), byMethod: sumBy(collections, "method", "amount") },
     cashShifts: { closed: rows.cashShiftsClosed.length, counted: shiftTotal("actual_cash"), expected: shiftTotal("expected_cash"), variance: shiftTotal("variance") },
     housekeeping,
     rooms: countBy(rows.rooms, "status"),
@@ -92,53 +96,18 @@ export function summarizeDailyActivity(rows: DailyReportRows, reportDate: string
 // A hotel day (Asia/Manila, UTC+8, no DST) expressed as a UTC window so
 // PostgREST range filters match the local calendar exactly.
 export const hotelDayWindow = (date: string) => {
+  if (!isReportDate(date)) throw new RangeError("Invalid report date");
   const start = new Date(`${date}T00:00:00+08:00`);
   return { start: start.toISOString(), end: new Date(start.getTime() + 86400000).toISOString() };
 };
 
-export const isReportDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value));
+export const isReportDate = isCalendarDate;
 
 export async function buildDailyReport(date: string): Promise<DailyReportSnapshot> {
-  if (!supabase) throw new Error("Database unavailable.");
-  const { start, end } = hotelDayWindow(date);
-  const [reservationsCreated, checkedIn, checkedOut, reservationAuditEvents, guestRequestsOpened, guestRequestsEscalated, openRequests, settledPayments, cashShiftsClosed, housekeepingCompleted, rooms, transportation, approvals] = await Promise.all([
-    supabase.from("reservations").select("source").gte("created_at", start).lt("created_at", end),
-    supabase.from("reservations").select("id").not("checked_in_at", "is", null).gte("checked_in_at", start).lt("checked_in_at", end),
-    supabase.from("reservations").select("id").not("checked_out_at", "is", null).gte("checked_out_at", start).lt("checked_out_at", end),
-    supabase.from("audit_logs").select("action").eq("entity_type", "reservation").in("action", ["cancel_reservation", "reservation_no_show"]).gte("created_at", start).lt("created_at", end),
-    supabase.from("guest_requests").select("id").gte("created_at", start).lt("created_at", end),
-    supabase.from("guest_requests").select("id").not("escalated_at", "is", null).gte("escalated_at", start).lt("escalated_at", end),
-    supabase.from("guest_requests").select("department").neq("status", "completed"),
-    // Settled payments count on their verification time, falling back to the
-    // record time for payments settled without a separate verification step.
-    supabase.from("payments").select("purpose,method,amount").eq("status", "paid").or(`and(verified_at.gte.${start},verified_at.lt.${end}),and(verified_at.is.null,created_at.gte.${start},created_at.lt.${end})`),
-    // Shift close-outs for the day: counted vs expected cash and the recorded variance.
-    supabase.from("cash_shifts").select("expected_cash,actual_cash,variance").not("closed_at", "is", null).gte("closed_at", start).lt("closed_at", end),
-    // Room-care turnover from the authoritative task rows: everything completed
-    // in the window (by completed_at), plus the current inspection backlog.
-    supabase.from("housekeeping_tasks").select("task_type,started_at,completed_at,inspection_status,status").eq("status", "completed").gte("completed_at", start).lt("completed_at", end),
-    supabase.from("rooms").select("status").eq("administratively_active", true),
-    supabase.from("transportation_requests").select("status").gte("created_at", start).lt("created_at", end),
-    supabase.from("manager_approval_requests").select("status").gte("requested_at", start).lt("requested_at", end)
-  ] as const);
-  for (const result of [reservationsCreated, checkedIn, checkedOut, reservationAuditEvents, guestRequestsOpened, guestRequestsEscalated, openRequests, settledPayments, cashShiftsClosed, housekeepingCompleted, rooms, transportation, approvals] as const) {
-    if (result.error) throw result.error;
-  }
-  return { ...summarizeDailyActivity({
-    reservationsCreated: reservationsCreated.data ?? [],
-    checkedIn: checkedIn.data ?? [],
-    checkedOut: checkedOut.data ?? [],
-    reservationAuditEvents: reservationAuditEvents.data ?? [],
-    guestRequestsOpened: guestRequestsOpened.data ?? [],
-    guestRequestsEscalated: guestRequestsEscalated.data ?? [],
-    openRequests: openRequests.data ?? [],
-    settledPayments: settledPayments.data ?? [],
-    cashShiftsClosed: cashShiftsClosed.data ?? [],
-    housekeepingCompleted: housekeepingCompleted.data ?? [],
-    rooms: rooms.data ?? [],
-    transportation: transportation.data ?? [],
-    approvals: approvals.data ?? []
-  }, date), generatedAt: new Date().toISOString() };
+  if (!supabase || !isReportDate(date)) throw new Error("Invalid report request.");
+  const { data, error } = await supabase.rpc("preview_front_desk_daily_report", { p_date: date });
+  if (error || !data) throw new Error("Unable to generate the report.");
+  return data as DailyReportSnapshot;
 }
 
 export const REPORT_PAGE_SIZE = 10;
@@ -149,7 +118,7 @@ export type FrontDeskReportRecord = RecordItem & {
 };
 
 export async function listFrontDeskReports(page: number): Promise<{ rows: FrontDeskReportRecord[]; page: number; pageCount: number; total: number }> {
-  if (!supabase) throw new Error("Database unavailable.");
+  if (!supabase) throw new Error("This service is temporarily unavailable. Please try again shortly.");
   const safePage = Math.max(0, page);
   const { data, error, count } = await supabase
     .from("front_desk_reports")

@@ -1,5 +1,7 @@
 "use client";
 
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
 import { HavenSkeleton } from "@/components/ui/haven-skeleton";
@@ -35,12 +37,12 @@ export function ExpressKiosk() {
     setWorking(true);
     setFailure(null);
     try {
-      const response = await fetch("/api/qr/express-checkin", {
+      const response = await fetchPublic("/api/qr/express-checkin", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ qrToken: token.trim() }),
       });
-      const payload = (await response.json()) as { data?: Success; error?: string };
+      const payload = (await readResponse(response)) as { data?: Success; error?: string };
       if (!response.ok) {
         setFailure(payload.error ?? "Self check-in is unavailable. Please see the Front Desk.");
         return;

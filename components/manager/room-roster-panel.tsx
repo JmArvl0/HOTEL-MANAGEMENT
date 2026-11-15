@@ -1,4 +1,8 @@
 "use client";
+import { ToastStack, useToasts } from "@/components/ui/toast-stack";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { useEffect, useState } from "react";
 import { DoorClosed, Loader2, Pencil, Plus } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
@@ -49,15 +53,15 @@ export default function RoomRosterPanel({ onClose, initialType }: { onClose: () 
   const [editing, setEditing] = useState<Room | null>(null); // null + open draft = create mode
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState(false);
-  const [toast, setToast] = useState("");
+  const feedback = useToasts();
 
-  const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 3000); };
+  const notify = (message: string, tone: "info" | "success" | "warning" | "error" = "success") => feedback.push({ title: message, tone, ...(tone === "error" || tone === "warning" ? { duration: 0 } : {}) });
   const load = async () => {
     setLoading(true);
     try {
-    const response = await fetch("/api/catalog/rooms", { cache: "no-store" });
-    const body = await response.json();
-    if (!response.ok) { setError(body.error ?? "Unable to load the physical room roster."); setLoading(false); return; }
+    const response = await fetchPublic("/api/catalog/rooms", { cache: "no-store" });
+    const body = await readResponse(response);
+    if (!response.ok) { setError(userMessage(body.error, "Unable to load the physical room roster.")); setLoading(false); return; }
     setRooms(body.data ?? []);
     setTypes(body.roomTypes ?? []);
     setError("");
@@ -87,11 +91,11 @@ export default function RoomRosterPanel({ onClose, initialType }: { onClose: () 
   const save = async () => {
     if (!draft) return;
     const creating = !editing;
-    if (creating && draft.number.trim() === "") { notify("Enter a room number."); return; }
-    if (draft.type.trim() === "") { notify("Choose a room type."); return; }
-    if (draft.floor.trim() === "" || Number(draft.floor) < 0) { notify("Enter a floor."); return; }
-    if (!creating && draft.reason.trim().length < 3) { notify("Enter a reason for this change (at least 3 characters)."); return; }
-    if (hasConflictingAmenities(amenityView?.additions, draft.amenityExclusions)) { notify("An amenity cannot be both added and excluded."); return; }
+    if (creating && draft.number.trim() === "") { notify("Enter a room number.", "warning"); return; }
+    if (draft.type.trim() === "") { notify("Choose a room type.", "warning"); return; }
+    if (draft.floor.trim() === "" || Number(draft.floor) < 0) { notify("Enter a floor.", "warning"); return; }
+    if (!creating && draft.reason.trim().length < 3) { notify("Enter a reason for this change (at least 3 characters).", "warning"); return; }
+    if (hasConflictingAmenities(amenityView?.additions, draft.amenityExclusions)) { notify("An amenity cannot be both added and excluded.", "warning"); return; }
     setBusy(true);
     try {
       const payload = {
@@ -106,13 +110,13 @@ export default function RoomRosterPanel({ onClose, initialType }: { onClose: () 
         acknowledgeAmenities: draft.acknowledgeAmenities,
         ...(editing ? { reason: draft.reason.trim(), version: editing.configuration_version } : {}),
       };
-      const response = await fetch(creating ? "/api/catalog/rooms" : `/api/catalog/rooms/${editing!.id}`, {
+      const response = await fetchPublic(creating ? "/api/catalog/rooms" : `/api/catalog/rooms/${editing!.id}`, {
         method: creating ? "POST" : "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const body = await response.json();
-      if (!response.ok) { notify(body.error ?? (creating ? "Unable to add the physical room." : "Unable to save the room configuration.")); return; }
+      const body = await readResponse(response);
+      if (!response.ok) { notify(body.error ?? (creating ? "Unable to add the physical room." : "Unable to save the room configuration."), body.outcome === "unknown" ? "warning" : "error"); return; }
       notify(creating ? `Room ${draft.number.trim()} added.` : `Room ${editing!.number} updated.`);
       closeEditor();
       await load();
@@ -163,7 +167,7 @@ export default function RoomRosterPanel({ onClose, initialType }: { onClose: () 
         )}
       </Modal>
 
-      {toast && <div className="toast"><DoorClosed size={18}/>{toast}</div>}
+      <ToastStack controller={feedback} />
 
       {draft && (
         <Modal isOpen onClose={closeEditor} size="lg" headerVariant="branded"

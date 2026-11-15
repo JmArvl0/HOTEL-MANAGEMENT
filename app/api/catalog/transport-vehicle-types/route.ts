@@ -1,4 +1,7 @@
-import { NextResponse } from "next/server";
+import { publicJson } from "@/lib/server-errors";
+import { validationBody } from "@/lib/errors";
+import { numericInput } from "@/lib/input-validation";
+
 import { z } from "zod";
 import { guardCatalog, adminGuardFailed, adminRpcFailure } from "@/lib/admin-route";
 
@@ -13,28 +16,28 @@ export async function GET() {
     .order("active", { ascending: false })
     .order("sort", { ascending: true })
     .order("name", { ascending: true });
-  if (error) return NextResponse.json({ error: "Unable to load the transfer vehicle rates." }, { status: 500 });
-  return NextResponse.json({ data });
+  if (error) return publicJson({ error: "Unable to load the transfer vehicle rates." }, { status: 500 });
+  return publicJson({ data });
 }
 
 const transportVehicleTypeSchema = z.object({
   name: z.string().trim().min(1).max(120),
   description: z.string().trim().max(500).optional().default(""),
-  seats: z.coerce.number().int().min(1).max(20).optional().default(4),
-  baseFare: z.coerce.number().min(0).max(10000000).optional().default(0),
-  perKm: z.coerce.number().min(0).max(10000000).optional().default(0),
-  perMinute: z.coerce.number().min(0).max(10000000).optional().default(0),
-  bookingFee: z.coerce.number().min(0).max(10000000).optional().default(0),
+  seats: numericInput(z.number().int().min(1).max(20)).optional().default(4),
+  baseFare: numericInput(z.number().min(0).max(10000000)).optional().default(0),
+  perKm: numericInput(z.number().min(0).max(10000000)).optional().default(0),
+  perMinute: numericInput(z.number().min(0).max(10000000)).optional().default(0),
+  bookingFee: numericInput(z.number().min(0).max(10000000)).optional().default(0),
   active: z.boolean().optional().default(true),
-  sort: z.coerce.number().int().min(0).max(1000).optional().default(0),
+  sort: numericInput(z.number().int().min(0).max(1000)).optional().default(0),
   reason: z.string().trim().min(3).max(500).optional().default(""),
 });
 
 export async function POST(request: Request) {
   const c = await guardCatalog();
   if (adminGuardFailed(c)) return c;
-  const p = transportVehicleTypeSchema.safeParse(await request.json());
-  if (!p.success) return NextResponse.json({ error: "Enter valid transfer vehicle rate details." }, { status: 400 });
+  const p = transportVehicleTypeSchema.safeParse(await request.json().catch(() => null));
+  if (!p.success) return publicJson(validationBody(p.error, { error: "Enter valid transfer vehicle rate details." }), { status: 400 });
   const v = p.data;
   const { data, error } = await c.client.rpc("upsert_transport_vehicle_type", {
     p_id: null,
@@ -52,5 +55,5 @@ export async function POST(request: Request) {
     p_actor_user_id: c.actorId,
   });
   if (error) return adminRpcFailure(error, "Unable to create the transfer vehicle.");
-  return NextResponse.json({ data }, { status: 201 });
+  return publicJson({ data }, { status: 201 });
 }

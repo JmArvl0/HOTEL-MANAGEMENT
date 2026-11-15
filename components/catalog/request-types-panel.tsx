@@ -1,4 +1,8 @@
 "use client";
+import { ToastStack, useToasts } from "@/components/ui/toast-stack";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff, ListChecks, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
@@ -28,15 +32,15 @@ export default function RequestTypesPanel() {
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState("");
+  const feedback = useToasts();
   const [error, setError] = useState("");
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
 
-  const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 3000); };
+  const notify = (message: string, tone: "info" | "success" | "warning" | "error" = "success") => feedback.push({ title: message, tone, ...(tone === "error" || tone === "warning" ? { duration: 0 } : {}) });
   const load = async () => {
-    const response = await fetch("/api/catalog/request-types", { cache: "no-store" });
-    const body = await response.json();
-    if (!response.ok) { setError(body.error ?? "Unable to load the request types."); setLoading(false); return; }
+    const response = await fetchPublic("/api/catalog/request-types", { cache: "no-store" });
+    const body = await readResponse(response);
+    if (!response.ok) { setError(userMessage(body.error, "Unable to load the request types.")); setLoading(false); return; }
     setItems(body.data ?? []);
     setError("");
     setLoading(false);
@@ -44,8 +48,8 @@ export default function RequestTypesPanel() {
   useEffect(() => { void load(); }, []);
   // Inventory names for the pre-arrival link picker (quantities shown for context only).
   useEffect(() => {
-    void fetch("/api/resources/inventory", { cache: "no-store" })
-      .then((response) => response.json())
+    void fetchPublic("/api/resources/inventory", { cache: "no-store" })
+      .then((response) => readResponse(response))
       .then((body) => {
         if (Array.isArray(body?.data)) {
           setInventory(
@@ -64,34 +68,34 @@ export default function RequestTypesPanel() {
   const inventoryName = (id: string | null) => inventory.find((item) => item.id === id)?.name ?? id ?? "—";
 
   const save = async () => {
-    if (!draft || draft.label.trim().length < 2) { notify("Enter a request type label."); return; }
+    if (!draft || draft.label.trim().length < 2) { notify("Enter a request type label.", "warning"); return; }
     setSaving(true);
-    const response = await fetch(editing ? `/api/catalog/request-types/${editing.id}` : "/api/catalog/request-types", {
+    const response = await fetchPublic(editing ? `/api/catalog/request-types/${editing.id}` : "/api/catalog/request-types", {
       method: editing ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(editing ? { label: draft.label.trim(), department: draft.department, active: draft.active, inventory_item_id: draft.inventory_item_id, pre_arrival_requestable: draft.pre_arrival_requestable } : { label: draft.label.trim(), department: draft.department }),
     });
-    const body = await response.json();
+    const body = await readResponse(response);
     setSaving(false);
-    if (!response.ok) { notify(body.error ?? "Unable to save this request type."); return; }
+    if (!response.ok) { notify(body.error ?? "Unable to save this request type.", body.outcome === "unknown" ? "warning" : "error"); return; }
     notify(editing ? `${draft.label} updated.` : `${draft.label} added to the request list.`);
     close();
     await load();
   };
 
   const toggleActive = async (item: RequestType) => {
-    const response = await fetch(`/api/catalog/request-types/${item.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ active: !item.active }) });
-    const body = await response.json();
-    if (!response.ok) { notify(body.error ?? "Unable to change this request type."); return; }
+    const response = await fetchPublic(`/api/catalog/request-types/${item.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ active: !item.active }) });
+    const body = await readResponse(response);
+    if (!response.ok) { notify(body.error ?? "Unable to change this request type.", body.outcome === "unknown" ? "warning" : "error"); return; }
     notify(`${item.label} is now ${item.active ? "hidden from guests" : "offered to guests"}.`);
     await load();
   };
 
   const remove = async (item: RequestType) => {
     if (!window.confirm(`Delete "${item.label}"? Guests can no longer request it; past submissions keep their history.`)) return;
-    const response = await fetch(`/api/catalog/request-types/${item.id}`, { method: "DELETE" });
-    const body = await response.json();
-    if (!response.ok) { notify(body.error ?? "Unable to delete this request type."); return; }
+    const response = await fetchPublic(`/api/catalog/request-types/${item.id}`, { method: "DELETE" });
+    const body = await readResponse(response);
+    if (!response.ok) { notify(body.error ?? "Unable to delete this request type.", body.outcome === "unknown" ? "warning" : "error"); return; }
     notify(`${item.label} deleted.`);
     await load();
   };
@@ -140,7 +144,7 @@ export default function RequestTypesPanel() {
           {visible.length === 0 && <div className="empty"><Search/><h3>No request types match</h3><p>Try a different search, or add a request type above.</p></div>}
         </div>
       )}
-      {toast && <div className="toast"><ListChecks size={18}/>{toast}</div>}
+      <ToastStack controller={feedback} />
 
       {(editing || creating) && draft && (
         <Modal isOpen onClose={close} title={editing ? `Edit ${editing.label}` : "Add a request type"} description={editing ? "Guests see the updated label immediately; the form key never changes, so history stays intact." : "The new type appears in the guest Requests module once it is offered."} size="sm" headerVariant="branded">
