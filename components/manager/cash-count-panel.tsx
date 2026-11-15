@@ -1,4 +1,6 @@
 "use client";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+import { userMessage } from "@/lib/errors";
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { cashMoney, cashNumber, cashExpected, cashCountVariance, canCloseDrawer, cashDate } from "@/lib/cash-shift-display";
@@ -57,15 +59,15 @@ function DrawerCount({ ledger, actorId, role, onSaved, onStale, renderWorkspace 
     if (!mayClose) return;
     setLoading(true);
     try {
-      const response = await fetch("/api/accounting/cash-shifts/" + shiftId, { cache: "no-store", signal });
-      const body = await response.json();
+      const response = await fetchPublic("/api/accounting/cash-shifts/" + shiftId, { cache: "no-store", signal });
+      const body = await readResponse(response);
       if (!response.ok || typeof body.data?.basis !== "string" || typeof body.data?.status !== "string") throw new Error(body.error || "Saved count unavailable. Reload before saving or closing.");
       if (signal?.aborted) return;
       setContext(body.data);
       if (!countStarted.current) setCountBasis(body.data.basis);
       if (body.data.status !== "open") { setMessage("This drawer is already closed. Refresh to view its recorded count."); onStale?.(); }
     } catch (cause) {
-      if (!signal?.aborted) { setContext(null); setError(cause instanceof Error ? cause.message : "Unable to load the saved count."); }
+      if (!signal?.aborted) { setContext(null); setError(userMessage(cause, "Unable to load the saved count.")); }
     } finally { if (!signal?.aborted) setLoading(false); }
   }, [mayClose, shiftId, onStale]);
   useEffect(() => {
@@ -97,12 +99,16 @@ function DrawerCount({ ledger, actorId, role, onSaved, onStale, renderWorkspace 
     if (!context || context.status !== "open") throw new Error("Reload the drawer before saving or closing.");
     if (stale) throw new Error("Cash activity changed. Start a fresh physical count before saving or closing.");
     if (!dirty && saved) return saved;
-    const response = await fetch("/api/accounting/cash-shifts/" + shiftId, {
+    const response = await fetchPublic("/api/accounting/cash-shifts/" + shiftId, {
       method: "PUT", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ actualCash: counted, notes: note.trim(), basis: countBasis, version })
     });
-    const body = await response.json();
-    if (!response.ok) { if (response.status === 409) void load(); throw new Error(body.error || "Unable to save. Your entries are preserved."); }
+    const body = await readResponse(response);
+    if (!response.ok) {
+      if (response.status === 409) void load();
+      if (body.outcome === "unknown") throw new Error("We couldn't confirm the save. Reload the drawer to check your saved count.");
+      throw new Error(body.error || "Unable to save. Your entries are preserved.");
+    }
     if (!body.data?.closeKey || !body.data?.version) throw new Error("Save result unavailable. Reload the saved draft before continuing.");
     const draft = body.data as SavedCount;
     setContext(current => current && { ...current, draft }); setVersion(draft.version); setChosen(true);
@@ -112,7 +118,7 @@ function DrawerCount({ ledger, actorId, role, onSaved, onStale, renderWorkspace 
     if (busy) return;
     setBusy(true); setError("");
     try { await saveDraft(); setReviewOpen(false); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to save. Your entries are preserved."); }
+    catch (cause) { setError(userMessage(cause, "Unable to save. Your entries are preserved.")); }
     finally { setBusy(false); }
   }
   async function submit(event: FormEvent) {
@@ -124,19 +130,20 @@ function DrawerCount({ ledger, actorId, role, onSaved, onStale, renderWorkspace 
     try {
       const draft = pending.current ?? await saveDraft();
       pending.current = draft; setUncertain(true);
-      const response = await fetch("/api/accounting/cash-shifts/" + shiftId, {
+      const response = await fetchPublic("/api/accounting/cash-shifts/" + shiftId, {
         method: "PATCH", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "close", draftVersion: draft.version, idempotencyKey: draft.closeKey })
       });
-      const body = await response.json();
+      const body = await readResponse(response);
       if (!response.ok) {
         if (response.status === 409 || response.status === 403) { pending.current = null; setUncertain(false); void load(); onStale?.(); }
+        if (body.outcome === "unknown") throw new Error("Close result unavailable. Retry the same saved count.");
         throw new Error(body.error || "Close result unavailable. Retry the same saved count.");
       }
       const result = "Drawer closed. Expected " + cashMoney(body.data.expectedCash) + "; counted " + cashMoney(body.data.actualCash) + "; variance " + cashMoney(body.data.variance) + ".";
       pending.current = null; setUncertain(false); setMessage(result);
       setReviewOpen(false); setCount(""); setNote(""); setContext(null); onSaved(result);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Close result unavailable. Retry the same saved count."); }
+    } catch (cause) { setError(userMessage(cause, "Close result unavailable. Retry the same saved count.")); }
     finally { setBusy(false); }
   }
   const draftStatus = dirty ? "Unsaved changes. Save draft before leaving this module." : chosen && saved && !count && !note ? "Fresh count not saved. The previous saved draft remains available." : saved ? "Draft saved at " + cashDate(saved.updatedAt) : loading ? "Loading saved count…" : "No saved count draft.";

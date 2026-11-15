@@ -24,7 +24,7 @@ describe("explicit refund payout", () => {
   it("uses the session actor and selected drawer, never a client supplied refund amount", async () => {
     const response = await process({ method: "cash", cashShiftId: drawer, reference: " voucher ", amount: 9999, actorId: "forged" });
     expect(response.status).toBe(200);
-    expect(state.rpc).toHaveBeenCalledExactlyOnceWith("process_refund", { p_refund_id: "refund", p_staff_user_id: "accountant", p_reference: "voucher", p_method: "cash", p_cash_shift_id: drawer });
+    expect(state.rpc).toHaveBeenCalledExactlyOnceWith("process_refund_with_payout", { p_refund_id: "refund", p_staff_user_id: "accountant", p_reference: "voucher", p_method: "cash", p_cash_shift_id: drawer });
   });
   it("records an external method without any drawer", async () => {
     expect((await process({ method: "gcash", reference: "external-ref" })).status).toBe(200);

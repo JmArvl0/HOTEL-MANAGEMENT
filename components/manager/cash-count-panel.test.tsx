@@ -46,7 +46,8 @@ describe("saved physical cash counts", () => {
     setup(); vi.stubGlobal("fetch", vi.fn(async (_url: string, init?: RequestInit) => init?.method ? response("Save unavailable", 503) : response({ status: "open", basis, expectedCash: 3000, draft: null })));
     render(<CashCountPanel {...props()} />); await enterCount();
     fireEvent.click(screen.getByRole("button", { name: "Save draft & return" }));
-    await screen.findByText("Save unavailable");
+    await screen.findByText("We couldn't confirm the save. Reload the drawer to check your saved count.");
+    expect(screen.queryByText("Save unavailable")).toBeNull();
     expect((screen.getByLabelText("Physical cash counted (PHP)") as HTMLInputElement).value).toBe("3000");
     expect(screen.getByText(/Unsaved changes/)).toBeTruthy();
   });
@@ -59,7 +60,8 @@ describe("saved physical cash counts", () => {
     });
     const p = props(); render(<CashCountPanel {...p} />); await enterCount();
     fireEvent.click(screen.getByRole("button", { name: "Close shared drawer" }));
-    await screen.findByText(/Connection lost/);
+    await screen.findByText("Close result unavailable. Retry the same saved count.");
+    expect(screen.queryByText("Connection lost")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Retry closing drawer" }));
     await waitFor(() => expect(p.onSaved).toHaveBeenCalled());
     const writes = fetch.mock.calls.filter(([, init]) => init?.method === "PATCH");
