@@ -1,0 +1,9 @@
+# Error microcopy browser retest — 2026-11-15
+
+The user requested a fresh test and specifically asked for browser testing. Installed Edge passed the 29-check local matrix for booking, registration, checkout, password, vehicle and notifications at 1440, 768, 390 and 320 px, with payment polling, dark mode and 200% CSS zoom checks. The preview rendered actual app components against synthetic service responses. The browser reported zero runtime errors.
+
+A targeted cancellation check on the fresh local build simulated a connection drop on submit. At both 1440 × 900 and 390 × 844 px, the app preserved the cancellation reason, showed accurate unconfirmed status guidance and displayed no success notification. At 390 × 844 px the guidance was fully outside the dialog's visible scroll area until scrolling. The footer's Continue to cancellation button stayed visible. The alert is rendered below the reason in `components/customer/reservation-actions.tsx`. The open mobile visibility issue was recorded as a test finding.
+
+The full suite passed 2,601 tests across 259 files, fresh TypeScript and isolated webpack production build passed, and scoped ESLint reported 0 errors and 41 warnings. The initial suite run accidentally set synthetic database variables intended for the browser preview and timed out in five cases. Removing those settings restored the standard offline test environment and the rerun passed. Automatic approval review initially could not process the build because of its usage limit. The subsequent approved build completed successfully.
+
+All 1,180 checked source, configuration and migration fingerprints matched the pretest snapshot. Logs, browser results and before/after scroll screenshots are in ignored `.tmp/error-ux-implementation/retest-20261115/`. No hosted services or real transactions were used.

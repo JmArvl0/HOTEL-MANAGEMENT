@@ -1,0 +1,7 @@
+# Guest Booking Audit Repairs
+
+- Set the ignored local NextAuth origin to `http://localhost:3001` and documented matching the browser origin with the app port. Hosted settings were left as found.
+- Booking dates persist through native edits and party-size changes. Public and signed-in search share the same room-catalog capacity rule. Account and reservation history expose resumable, releasable unpaid holds.
+- Reservation cards distinguish submitted manual deposits from verified amounts. Confirmation acknowledges submissions without an artificial staff verification deadline. Booking detail, confirmation and folio have retry views for data errors. Fixed guest request, password, mobile header, currency, profile and repeated policy copy issues.
+- Node 22 typecheck and production webpack build passed. ESLint reported zero errors and two existing profile warnings. Edge with a disposable real PostgreSQL/PostgREST database verified registration and sign-in/out, signed-in date edits, mobile header clearance, hold resume/release and ownership, conditional request copy, currency at 320/390/1440px, synthetic deposit proof submission, confirmation reload, Manage stay, cancellation preview and Payments & Folio. Storage was substituted locally. No money, hosted writes, deployment or Xendit cutover.
+- Vitest ran 2,573 passing tests across 246 files. The remaining Admin Users file timed out before its fork started and all seven tests passed when run separately with the thread pool.
