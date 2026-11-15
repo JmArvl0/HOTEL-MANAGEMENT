@@ -1,5 +1,9 @@
+import { logServerError, publicJson } from "@/lib/server-errors";
+
+import { reconcileXenditAttempts } from "@/lib/xendit-store";
+import { xenditConfigured } from "@/lib/xendit";
 import { getServerSession } from "next-auth";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { runGuestReminders } from "@/lib/guest-reminders";
@@ -21,8 +25,9 @@ const AUTHORIZED_ROLES = new Set(["manager", "owner", "admin"]);
 async function authorized(request: NextRequest): Promise<boolean> {
   const secret = process.env.CRON_SECRET?.trim();
   if (secret && request.headers.get("authorization") === `Bearer ${secret}`) return true;
+  if (request.method === "GET") return false;
   const session = await getServerSession(authOptions);
-  return Boolean(session && !session.user.disabled && AUTHORIZED_ROLES.has(session.user.role));
+  return Boolean(session && !session.user.disabled && !session.user.otpPending && AUTHORIZED_ROLES.has(session.user.role));
 }
 
 export async function GET(request: NextRequest) {
@@ -34,13 +39,17 @@ export async function POST(request: NextRequest) {
 }
 
 async function run(request: NextRequest) {
-  if (!(await authorized(request))) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!supabase) return NextResponse.json({ error: "Database unavailable." }, { status: 503 });
+  if (!(await authorized(request))) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
+  if (!supabase) return publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
   try {
-    const summary = await runGuestReminders();
-    return NextResponse.json({ data: summary });
+    const summary = await runGuestReminders(undefined, request.method === "POST" && request.nextUrl.searchParams.get("retryFailed") === "1");
+    if (request.method === "GET") {
+      if (xenditConfigured()) await reconcileXenditAttempts(supabase).catch(() => console.error("Xendit reconciliation sweep failed"));
+      await supabase.rpc("cleanup_auth_request_budgets");
+    }
+    return publicJson({ data: summary });
   } catch (error) {
-    console.error("guest reminder pass failed", error);
-    return NextResponse.json({ error: "Unable to run guest reminders." }, { status: 500 });
+    logServerError("guest reminder pass failed", error);
+    return publicJson({ error: "Unable to run guest reminders." }, { status: 500 });
   }
 }

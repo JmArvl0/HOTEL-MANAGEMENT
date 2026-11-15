@@ -1,5 +1,6 @@
+import { publicJson } from "@/lib/server-errors";
 import { getServerSession } from "next-auth";
-import { NextResponse } from "next/server";
+
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 
@@ -10,9 +11,9 @@ import { supabase } from "@/lib/supabase";
  */
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.disabled) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "guest") return NextResponse.json({ error: "Customer access required." }, { status: 403 });
-  if (!supabase) return NextResponse.json({ error: "Database unavailable." }, { status: 503 });
+  if (!session || session.user.disabled) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
+  if (session.user.role !== "guest") return publicJson({ error: "Please sign in with a guest account to continue." }, { status: 403 });
+  if (!supabase) return publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
   const { id } = await params;
   const { data, error } = await supabase.rpc("cancel_gateway_attempt", {
     p_reservation_id: id,
@@ -20,12 +21,12 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   });
   if (error) {
     if (error.message.includes("GATEWAY_ATTEMPT_NOT_FOUND"))
-      return NextResponse.json({ error: "Reservation not found." }, { status: 404 });
+      return publicJson({ error: "Reservation not found." }, { status: 404 });
     if (error.message.includes("GATEWAY_ALREADY_SETTLED"))
-      return NextResponse.json({ error: "This payment already went through — nothing to cancel." }, { status: 409 });
+      return publicJson({ error: "This payment has already been confirmed and cannot be cancelled here. Please contact Front Desk if you need help." }, { status: 409 });
     if (error.message.includes("GATEWAY_ATTEMPT_NOT_GATEWAY") || error.message.includes("GATEWAY_ATTEMPT_NOT_PENDING"))
-      return NextResponse.json({ error: "Only an unsettled online payment can be cancelled." }, { status: 409 });
-    return NextResponse.json({ error: "Unable to cancel this payment attempt." }, { status: 500 });
+      return publicJson({ error: "Only an online payment that is still awaiting confirmation can be cancelled here." }, { status: 409 });
+    return publicJson({ error: "Unable to cancel this payment attempt." }, { status: 500 });
   }
-  return NextResponse.json({ data: Array.isArray(data) ? data[0] : data });
+  return publicJson({ data: Array.isArray(data) ? data[0] : data });
 }

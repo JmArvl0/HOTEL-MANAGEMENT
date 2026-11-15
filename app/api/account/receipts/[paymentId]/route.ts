@@ -1,5 +1,6 @@
+import { publicJson } from "@/lib/server-errors";
 import { getServerSession } from "next-auth";
-import { NextResponse } from "next/server";
+
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { getCustomerReceipt } from "@/lib/customer";
@@ -13,18 +14,18 @@ import { getCustomerReceipt } from "@/lib/customer";
  */
 export async function GET(_request: Request, { params }: { params: Promise<{ paymentId: string }> }) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.disabled) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "guest") return NextResponse.json({ error: "Customer access required." }, { status: 403 });
-  if (!supabase) return NextResponse.json({ error: "Database unavailable." }, { status: 503 });
+  if (!session || session.user.disabled) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
+  if (session.user.role !== "guest") return publicJson({ error: "Please sign in with a guest account to continue." }, { status: 403 });
+  if (!supabase) return publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
 
   const { paymentId } = await params;
   try {
     const data = await getCustomerReceipt(session.user.id, paymentId);
     // Another guest's payment, an unsettled one and a refund all answer the same
     // way as a missing one — the response is not a probing oracle.
-    if (!data) return NextResponse.json({ error: "Receipt not found." }, { status: 404 });
-    return NextResponse.json({ data });
+    if (!data) return publicJson({ error: "Receipt not found." }, { status: 404 });
+    return publicJson({ data }, { headers: { "Cache-Control": "private, no-store" } });
   } catch {
-    return NextResponse.json({ error: "Unable to load this receipt." }, { status: 500 });
+    return publicJson({ error: "Unable to load this receipt." }, { status: 500 });
   }
 }

@@ -1,5 +1,7 @@
+import { publicJson } from "@/lib/server-errors";
+import { validationBody } from "@/lib/errors";
 import { getServerSession } from "next-auth";
-import { NextResponse } from "next/server";
+
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
@@ -24,19 +26,19 @@ const BodySchema = z.object({
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session || session.user.disabled)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return publicJson({ error: "Please sign in to continue." }, { status: 401 });
   if (session.user.role !== "guest")
-    return NextResponse.json({ error: "Customer access required." }, { status: 403 });
+    return publicJson({ error: "Please sign in with a guest account to continue." }, { status: 403 });
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+    return publicJson({ error: "Please check the details and try again." }, { status: 400 });
   }
   const parsed = BodySchema.safeParse(body);
   if (!parsed.success)
-    return NextResponse.json({ error: "A question is required (3-600 characters)." }, { status: 400 });
+    return publicJson(validationBody(parsed.error, { error: "Please enter a question with 3 to 600 characters." }), { status: 400 });
 
   // Ownership isolation: reservationId must belong to the caller.
   if (parsed.data.reservationId && supabase) {
@@ -46,17 +48,17 @@ export async function POST(request: Request) {
       .eq("id", parsed.data.reservationId)
       .eq("user_id", session.user.id)
       .maybeSingle();
-    if (!data) return NextResponse.json({ error: "Reservation not found." }, { status: 403 });
+    if (!data) return publicJson({ error: "Reservation not found." }, { status: 403 });
   }
 
   if (!aiConfigured())
-    return NextResponse.json({ data: null, message: GUEST_CONCIERGE_UNAVAILABLE_MESSAGE }, { status: 200 });
+    return publicJson({ data: null, message: GUEST_CONCIERGE_UNAVAILABLE_MESSAGE }, { status: 200 });
 
   if (await aiRateLimited(session.user.id, "guest_concierge", 20, 60)) {
     await recordAiInteraction({
       userId: session.user.id, role: "guest", feature: "guest_concierge", toolCalls: [], status: "rate_limited",
     });
-    return NextResponse.json(
+    return publicJson(
       { error: "Concierge limit reached (20 per hour). Please try again later." },
       { status: 429 }
     );
@@ -71,7 +73,7 @@ export async function POST(request: Request) {
       status: result.reason === "rate_limited" ? "rate_limited" : "unavailable",
       model: geminiModel(),
     });
-    return NextResponse.json({ data: null, message: GUEST_CONCIERGE_UNAVAILABLE_MESSAGE }, { status: 200 });
+    return publicJson({ data: null, message: GUEST_CONCIERGE_UNAVAILABLE_MESSAGE }, { status: 200 });
   }
 
   // Drafts are advisory: restrict to live catalog values so Confirm always submits.
@@ -86,5 +88,5 @@ export async function POST(request: Request) {
     toolCalls: data.actionDraft ? ["request_draft"] : [],
     status: "ok", model: result.model, latencyMs: result.latencyMs,
   });
-  return NextResponse.json({ data, model: result.model, disclosure: GUEST_CONCIERGE_DISCLOSURE });
+  return publicJson({ data, model: result.model, disclosure: GUEST_CONCIERGE_DISCLOSURE });
 }

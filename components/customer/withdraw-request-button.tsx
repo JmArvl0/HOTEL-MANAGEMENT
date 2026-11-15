@@ -1,4 +1,7 @@
 "use client";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -10,11 +13,11 @@ export function WithdrawRequestButton({ id, version }: { id: string; version: nu
   async function withdraw() {
     setBusy(true); setError("");
     try {
-      const response = await fetch(`/api/account/requests/${id}/withdraw`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version }) });
-      const body = await response.json();
+      const response = await fetchPublic(`/api/account/requests/${id}/withdraw`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version }) });
+      const body = await readResponse(response);
       if (!response.ok) throw new Error(body.error ?? "Unable to withdraw. Try again.");
       router.refresh(); setConfirming(false);
-    } catch (e) { setError(e instanceof Error ? e.message : "Unable to withdraw. Try again."); }
+    } catch (e) { setError(userMessage(e, "Unable to withdraw. Try again.")); }
     finally { setBusy(false); }
   }
   return <div className="btn-row">

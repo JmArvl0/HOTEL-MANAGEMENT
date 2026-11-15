@@ -74,7 +74,7 @@ describe("one unresolved request per reservation", () => {
     expect(rpc).toContain("status in('pending','approved')");
     expect(rpc).toContain("CHANGE_ALREADY_OPEN");
     expect(route).toContain("CHANGE_ALREADY_OPEN");
-    expect(route).toContain('"A reservation change is already awaiting review or execution."');
+    expect(route).toContain("\"A change to this reservation is already being reviewed or completed. Check its status before requesting another change.\"");
   });
   it("serializes concurrent submissions on the reservation row lock", () => {
     expect(rpc).toContain("where id=p_reservation_id and user_id=p_user_id for update");

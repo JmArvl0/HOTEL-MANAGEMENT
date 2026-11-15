@@ -1,7 +1,10 @@
 "use client";
 
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
 import { useEffect, useState } from "react";
-import { QrCode, Download } from "lucide-react";
+import { QrCode } from "lucide-react";
+import { DownloadMenu } from "@/components/ui/download-menu";
 import { HavenSkeleton } from "@/components/ui/haven-skeleton";
 
 /**
@@ -22,8 +25,8 @@ export function CheckInQr({ reservationId, confirmationNumber }: { reservationId
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/qr/reservation/${reservationId}`, { cache: "no-store" })
-      .then((response) => (response.ok ? response.json() : Promise.reject(new Error("unavailable"))))
+    fetchPublic(`/api/qr/reservation/${reservationId}`, { cache: "no-store" })
+      .then((response) => (response.ok ? readResponse(response) : Promise.reject(new Error("unavailable"))))
       .then((body) => { if (!cancelled && body?.data) setQr(body.data); else if (!cancelled) setFailed(true); })
       .catch(() => { if (!cancelled) setFailed(true); });
     return () => { cancelled = true; };
@@ -67,7 +70,7 @@ export function CheckInQr({ reservationId, confirmationNumber }: { reservationId
       </div>
       <div className="customer-checkin-qr-action">
         <p className="customer-checkin-qr-status"><i aria-hidden="true" /> Ready for Express Check-In</p>
-        <button type="button" className="btn btn-soft" onClick={download}><Download size={14} aria-hidden="true" />Download QR</button>
+        <DownloadMenu label="Download QR" actions={[{ value: "png", label: "PNG image", run: download }]} />
         <a className="btn btn-soft" href="/checkin/kiosk">Use Express kiosk</a>
       </div>
     </div>

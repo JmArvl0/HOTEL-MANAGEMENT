@@ -1,5 +1,6 @@
+import { publicJson } from "@/lib/server-errors";
 import { getServerSession } from "next-auth";
-import { NextResponse } from "next/server";
+
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { countUnreadNotifications, getCustomerNotifications, hotelDayKey } from "@/lib/notifications";
@@ -12,9 +13,9 @@ import { countUnreadNotifications, getCustomerNotifications, hotelDayKey } from 
 // modal never combines a date filter with a server offset.
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.disabled) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "guest") return NextResponse.json({ error: "Customer access required." }, { status: 403 });
-  if (!supabase) return NextResponse.json({ error: "Database unavailable." }, { status: 503 });
+  if (!session || session.user.disabled) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
+  if (session.user.role !== "guest") return publicJson({ error: "Please sign in with a guest account to continue." }, { status: 403 });
+  if (!supabase) return publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
   try {
     const url = new URL(request.url);
     const rawLimit = Number(url.searchParams.get("limit") ?? "100");
@@ -23,15 +24,15 @@ export async function GET(request: Request) {
     const offset = Number.isFinite(rawOffset) ? Math.max(Math.floor(rawOffset), 0) : 0;
     const date = url.searchParams.get("date");
     if (date !== null && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return NextResponse.json({ error: "Invalid date. Use YYYY-MM-DD." }, { status: 400 });
+      return publicJson({ error: "Please choose a valid date." }, { status: 400 });
     }
     const [rows, unreadCount] = await Promise.all([
       getCustomerNotifications(session.user.id, limit, offset),
       countUnreadNotifications(session.user.id),
     ]);
     const data = date ? rows.filter((row) => hotelDayKey(row.createdAt) === date) : rows;
-    return NextResponse.json({ data, unreadCount });
+    return publicJson({ data, unreadCount });
   } catch {
-    return NextResponse.json({ error: "Unable to load notifications." }, { status: 500 });
+    return publicJson({ error: "Unable to load notifications." }, { status: 500 });
   }
 }

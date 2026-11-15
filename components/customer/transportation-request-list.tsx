@@ -1,10 +1,15 @@
 "use client";
 
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { useState } from "react";
 import { HavenErrorAlert } from "@/components/ui/haven-data-controls";
 import { useRouter } from "next/navigation";
 import { CarTaxiFront, Hotel, MapPin, Users, X } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/Modal";
+import { TransportPickupProfile } from "@/components/customer/transport-pickup-profile";
+import { FleetRideSafety } from "@/components/customer/fleet-ride-safety";
 import { formatPeso } from "@/lib/format";
 import { isAssignmentVisible, isCustomerCancellable, isTerminalStatus, SERVICE_TYPE_LABELS, TRANSPORTATION_STATUS_LABELS, type CustomerTransportationRequest, type TransportationStatus } from "@/lib/transportation-display";
 
@@ -70,10 +75,10 @@ export function TransportationRequestList({ requests }: { requests: CustomerTran
 
   async function cancel(request: CustomerTransportationRequest) {
     setBusy(request.id); setError("");
-    const response = await fetch(`/api/account/transportation/${request.id}/cancel`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ expectedVersion: request.version }) });
-    const body = await response.json().catch(() => ({}));
+    const response = await fetchPublic(`/api/account/transportation/${request.id}/cancel`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ expectedVersion: request.version }) });
+    const body = await readResponse(response).catch(() => ({}));
     setBusy(null);
-    if (!response.ok) { setError(body.error ?? "Unable to cancel this request."); return; }
+    if (!response.ok) { setError(userMessage(body.error, "Unable to cancel this request.")); return; }
     setConfirming(null);
     router.refresh();
   }
@@ -89,7 +94,7 @@ export function TransportationRequestList({ requests }: { requests: CustomerTran
           </button>
         ))}
       </div>
-      {error && <HavenErrorAlert title="Cancellation failed" body={error} variant="customer" />}
+      {error && <HavenErrorAlert title="Cancellation needs attention" body={error} variant="customer" />}
       <div className="customer-request-list ctr-cards">
         {visible.map((request) => {
           const terminal = isTerminalStatus(request.status);
@@ -132,6 +137,8 @@ export function TransportationRequestList({ requests }: { requests: CustomerTran
               {request.fare_amount != null && <p className="ctr-note"><b>Vehicle fare</b>{formatPeso(request.fare_amount)} · added to your stay folio</p>}
               {request.customer_visible_notes && <p className="ctr-note"><b>Front Desk</b>{request.customer_visible_notes}</p>}
               {request.special_instructions && <p className="ctr-note"><b>Your notes</b>{request.special_instructions}</p>}
+              <TransportPickupProfile requestId={request.id} requestVersion={request.version} />
+              <FleetRideSafety requestId={request.id} active={!terminal} />
 
               {terminal
                 ? <p className={`ctr-terminal-notice customer-status ${request.status.toLowerCase()}`}>{TERMINAL_COPY[request.status]}{request.cancellation_reason ? ` ${request.cancellation_reason}` : ""}</p>

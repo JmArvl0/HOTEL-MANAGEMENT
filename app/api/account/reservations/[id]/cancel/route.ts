@@ -1,5 +1,7 @@
+import { publicJson } from "@/lib/server-errors";
+import { validationBody } from "@/lib/errors";
 import { getServerSession } from "next-auth";
-import { NextResponse } from "next/server";
+
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
@@ -14,10 +16,10 @@ const schema = z.object({ reason: z.string().trim().min(3).max(500) });
 
 async function guestSession() {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.disabled) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  if (!session || session.user.disabled) return { error: publicJson({ error: "Please sign in to continue." }, { status: 401 }) };
   if (session.user.role !== "guest")
-    return { error: NextResponse.json({ error: "Customer access required." }, { status: 403 }) };
-  if (!supabase) return { error: NextResponse.json({ error: "Database unavailable." }, { status: 503 }) };
+    return { error: publicJson({ error: "Please sign in with a guest account to continue." }, { status: 403 }) };
+  if (!supabase) return { error: publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 }) };
   return { session, db: supabase };
 }
 
@@ -36,9 +38,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     .eq("id", (await params).id)
     .maybeSingle();
   if (!reservation || reservation.user_id !== session.user.id)
-    return NextResponse.json({ error: "Reservation not found." }, { status: 404 });
+    return publicJson({ error: "Reservation not found." }, { status: 404 });
   if (!["pending", "confirmed"].includes(String(reservation.status)))
-    return NextResponse.json({ error: "This reservation can no longer be cancelled." }, { status: 409 });
+    return publicJson({ error: "This reservation can no longer be cancelled online. Please contact Front Desk for help." }, { status: 409 });
   const [paymentResult, chargeResult, adjustmentResult, invoiceResult] = await Promise.all([
     db.from("payments").select("amount,purpose").eq("reservation_id", reservation.id).eq("status", "paid"),
     db.from("folio_charges").select("id,amount,status").eq("reservation_id", reservation.id).eq("category", "transportation"),
@@ -46,7 +48,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     db.from("invoices").select("amount").eq("reservation_id", reservation.id).maybeSingle(),
   ]);
   if (paymentResult.error || chargeResult.error || adjustmentResult.error || invoiceResult.error || !invoiceResult.data)
-    return NextResponse.json({ error: "Unable to calculate the cancellation settlement. Please retry." }, { status: 503 });
+    return publicJson({ error: "We couldn't load the cancellation charges and refund details. Please try again before confirming the cancellation." }, { status: 503 });
   const deposits = paymentResult.data;
   const retainedCharges = Math.min(Number(invoiceResult.data.amount), (chargeResult.data ?? []).reduce((sum, charge) => {
     if (charge.status === "reversed") return sum;
@@ -63,7 +65,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     retainedCharges,
     netPaid: (deposits ?? []).reduce((sum, row) => sum + (row.purpose === "refund" ? -1 : 1) * Number(row.amount || 0), 0),
   });
-  return NextResponse.json({ data: preview });
+  return publicJson({ data: preview });
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -71,8 +73,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if ("error" in gate) return gate.error;
   const { session, db } = gate;
   const id = (await params).id;
-  const parsed = schema.safeParse(await request.json());
-  if (!parsed.success) return NextResponse.json({ error: "A cancellation reason is required." }, { status: 400 });
+  const parsed = schema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return publicJson(validationBody(parsed.error, { error: "Please enter a reason for cancelling." }), { status: 400 });
   const { data, error } = await db.rpc("cancel_reservation", {
     p_reservation_id: id,
     p_actor_user_id: session.user.id,
@@ -82,9 +84,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const message = error.message.includes("OWNERSHIP")
       ? "Reservation not found."
       : error.message.includes("NOT_CANCELLABLE")
-        ? "This reservation can no longer be cancelled."
+        ? "This reservation can no longer be cancelled online. Please contact Front Desk for help."
         : "Unable to cancel this reservation.";
-    return NextResponse.json(
+    return publicJson(
       { error: message },
       { status: error.message.includes("OWNERSHIP") ? 404 : 409 },
     );
@@ -114,5 +116,5 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           : "Your reservation has been cancelled. No refund is due under the policy that applied to this reservation.",
     },
   );
-  return NextResponse.json({ data: row });
+  return publicJson({ data: row });
 }

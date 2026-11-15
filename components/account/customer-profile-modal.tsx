@@ -1,5 +1,10 @@
 "use client";
 
+import { focusFirstFormError } from "@/components/ui/form-field-errors";
+import { FormFieldError, formFieldProps, type FormFieldErrors } from "@/components/ui/form-field-errors";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { useEffect, useState, type FormEvent, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -13,7 +18,6 @@ import {
   Save,
   Shield,
   Loader2,
-  Check,
 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import "./customer-profile-modal.css";
@@ -50,6 +54,7 @@ export function CustomerProfileModal({
   const [fetching, setFetching] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [fields, setFields] = useState<FormFieldErrors>({});
 
   // Sync when dialog opens and fetch latest profile from database
   useEffect(() => {
@@ -63,8 +68,8 @@ export function CustomerProfileModal({
     let active = true;
     setFetching(true);
 
-    fetch("/api/account/profile")
-      .then((res) => (res.ok ? res.json() : null))
+    fetchPublic("/api/account/profile")
+      .then((res) => (res.ok ? readResponse(res) : null))
       .then((data) => {
         if (!active || !data?.profile) return;
         const p = data.profile;
@@ -86,12 +91,14 @@ export function CustomerProfileModal({
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const form = e.currentTarget;
+    setFields({});
     setLoading(true);
     setMessage("");
     setError("");
 
     try {
-      const response = await fetch("/api/account/profile", {
+      const response = await fetchPublic("/api/account/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -102,11 +109,13 @@ export function CustomerProfileModal({
         }),
       });
 
-      const body = await response.json();
+      const body = await readResponse(response);
       setLoading(false);
 
       if (!response.ok) {
-        setError(body.error ?? "Unable to update profile. Please try again.");
+        setFields(body.fields ?? {});
+        focusFirstFormError(form, body.fields ?? {});
+        setError(Object.keys(body.fields ?? {}).length ? "Please check the highlighted details." : userMessage(body.error, "Unable to update profile. Please try again."));
         return;
       }
 
@@ -116,7 +125,7 @@ export function CustomerProfileModal({
       setMessage("Profile updated successfully.");
     } catch {
       setLoading(false);
-      setError("Network error while saving profile. Please check your connection.");
+      setError("We couldn't confirm your profile update. Reopen your profile to check it before trying again.");
     }
   }
 
@@ -132,7 +141,7 @@ export function CustomerProfileModal({
       isOpen={isOpen}
       onClose={onClose}
       title="My Profile"
-      description="Manage your guest details, verified contacts, and stay preferences."
+      description="Manage your guest details, contact information, and stay preferences."
       size="md"
       headerVariant="branded"
       portal={true}
@@ -144,14 +153,11 @@ export function CustomerProfileModal({
         <div className="cpm-hero-card">
           <div className="cpm-avatar" aria-hidden="true">
             <span>{initials}</span>
-            <div className="cpm-avatar-badge" title="Verified Guest">
-              <Check size={11} strokeWidth={3} />
-            </div>
           </div>
           <div className="cpm-hero-info">
             <h3 className="cpm-hero-name">{name || "Haven Guest"}</h3>
-            <p className="cpm-hero-email">{email || "Guest account"}</p>
-            <span className="cpm-hero-tag">Verified Guest</span>
+            {email && <p className="cpm-hero-email">{email}</p>}
+            <span className="cpm-hero-tag">Guest account</span>
           </div>
         </div>
 
@@ -187,8 +193,7 @@ export function CustomerProfileModal({
                   placeholder="Your full legal name"
                   required
                   maxLength={120}
-                  autoComplete="name"
-                />
+                  autoComplete="name" {...formFieldProps(fields, "name", "profile")} /><FormFieldError errors={fields} field="name" prefix="profile" />
               </div>
               <span className="cpm-hint">As printed on your passport or ID.</span>
             </div>
@@ -221,12 +226,12 @@ export function CustomerProfileModal({
                 <input
                   id="cpm-mobile"
                   name="mobile"
+                  type="tel"
                   value={mobile}
                   onChange={(e) => setMobile(e.target.value)}
                   placeholder="+63 900 000 0000"
                   maxLength={30}
-                  autoComplete="tel"
-                />
+                  autoComplete="tel" {...formFieldProps(fields, "mobile", "profile")} /><FormFieldError errors={fields} field="mobile" prefix="profile" />
               </div>
               <span className="cpm-hint">For urgent arrival coordination &amp; SMS.</span>
             </div>
@@ -244,10 +249,9 @@ export function CustomerProfileModal({
                   value={nationality}
                   onChange={(e) => setNationality(e.target.value)}
                   placeholder="e.g. Filipino, American, etc."
-                  maxLength={80}
-                />
+                  maxLength={80} {...formFieldProps(fields, "nationality", "profile")} /><FormFieldError errors={fields} field="nationality" prefix="profile" />
               </div>
-              <span className="cpm-hint">Required for local hotel registry records.</span>
+              <span className="cpm-hint">Optional here. Front Desk may ask for it at check-in.</span>
             </div>
 
             <div className="cpm-field cpm-wide">
@@ -264,8 +268,7 @@ export function CustomerProfileModal({
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="Street, City, Province, Country"
                   maxLength={300}
-                  rows={2}
-                />
+                  rows={2} {...formFieldProps(fields, "address", "profile")} /><FormFieldError errors={fields} field="address" prefix="profile" />
               </div>
             </div>
           </div>

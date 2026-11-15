@@ -1,5 +1,8 @@
 "use client";
 
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -45,17 +48,17 @@ export function ActiveBookingHolds({ holds, featured = false }: { holds: Hold[];
     setBusy(hold.token);
     setError("");
     try {
-      const response = await fetch(`/api/booking/holds/${hold.token}`, { method: "DELETE" });
+      const response = await fetchPublic(`/api/booking/holds/${hold.token}`, { method: "DELETE" });
       if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        setError(body.error ?? "Could not release this hold. Please try again.");
+        const body = await readResponse(response).catch(() => ({}));
+        setError(userMessage(body.error, "We couldn't confirm whether the hold was released. Refresh your bookings to check its status."));
         if (response.status === 409) router.refresh();
         return;
       }
       setReleased((tokens) => [...tokens, hold.token]);
       router.refresh();
     } catch {
-      setError("Could not release this hold. Please try again.");
+      setError("We couldn't confirm whether the hold was released. Refresh your bookings to check its status.");
     } finally {
       setBusy(null);
     }

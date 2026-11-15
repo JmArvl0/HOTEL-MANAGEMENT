@@ -1,5 +1,6 @@
+import { publicJson } from "@/lib/server-errors";
 import { getServerSession } from "next-auth";
-import { NextResponse } from "next/server";
+
 import { authOptions } from "@/lib/auth";
 import { emailConfigured, guestEmailHtml, sendEmail } from "@/lib/email";
 import { supabase } from "@/lib/supabase";
@@ -40,20 +41,20 @@ function receiptEmailBody(receipt: ReceiptDocument): string {
  */
 export async function POST(_request: Request, { params }: { params: Promise<{ paymentId: string }> }) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.disabled) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "guest") return NextResponse.json({ error: "Customer access required." }, { status: 403 });
-  if (!supabase) return NextResponse.json({ error: "Database unavailable." }, { status: 503 });
+  if (!session || session.user.disabled) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
+  if (session.user.role !== "guest") return publicJson({ error: "Please sign in with a guest account to continue." }, { status: 403 });
+  if (!supabase) return publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
   if (!emailConfigured()) {
-    return NextResponse.json({ error: "EMAIL_UNAVAILABLE", message: "Email receipt is currently unavailable." }, { status: 503 });
+    return publicJson({ error: "EMAIL_UNAVAILABLE", message: "Email receipt is currently unavailable." }, { status: 503 });
   }
 
   const to = session.user.email;
-  if (!to) return NextResponse.json({ error: "NO_ACCOUNT_EMAIL", message: "Your account has no email address." }, { status: 409 });
+  if (!to) return publicJson({ error: "NO_ACCOUNT_EMAIL", message: "Your account has no email address." }, { status: 409 });
 
   const { paymentId } = await params;
   try {
     const receipt = await getCustomerReceipt(session.user.id, paymentId);
-    if (!receipt) return NextResponse.json({ error: "Receipt not found." }, { status: 404 });
+    if (!receipt) return publicJson({ error: "Receipt not found." }, { status: 404 });
 
     const result = await sendEmail({
       to,
@@ -61,9 +62,9 @@ export async function POST(_request: Request, { params }: { params: Promise<{ pa
       html: guestEmailHtml("Payment receipt", receiptEmailBody(receipt)),
       attachments: [{ filename: receiptFileName(receipt, "pdf"), content: receiptPdfBase64(receipt) }]
     });
-    if (!result.ok) return NextResponse.json({ error: "EMAIL_FAILED", message: result.message }, { status: 502 });
-    return NextResponse.json({ ok: true, to });
+    if (!result.ok) return publicJson({ error: "EMAIL_FAILED", message: "We couldn't send the receipt email right now. You can download your receipt instead.", outcome: "rejected" }, { status: 502 });
+    return publicJson({ ok: true, to });
   } catch {
-    return NextResponse.json({ error: "EMAIL_FAILED", message: "The receipt could not be emailed." }, { status: 500 });
+    return publicJson({ error: "EMAIL_FAILED", message: "We couldn't confirm that the receipt email was sent. Check your inbox before trying again." }, { status: 500 });
   }
 }

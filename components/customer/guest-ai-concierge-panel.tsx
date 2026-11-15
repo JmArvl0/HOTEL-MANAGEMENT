@@ -1,5 +1,8 @@
 "use client";
 
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { useEffect, useRef, useState } from "react";
 import { Sparkles } from "lucide-react";
 import AiMarkdown from "@/components/manager/ai-markdown";
@@ -59,7 +62,7 @@ export default function GuestAiConciergePanel({ reservationId }: { reservationId
     setInput("");
     setLoading(true);
     try {
-      const response = await fetch("/api/account/ai/concierge", {
+      const response = await fetchPublic("/api/account/ai/concierge", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -68,8 +71,8 @@ export default function GuestAiConciergePanel({ reservationId }: { reservationId
           reservationId,
         }),
       });
-      const payload = (await response.json()) as { data?: Reply; message?: string; error?: string };
-      if (!response.ok) throw new Error(payload.error ?? "Request failed.");
+      const payload = (await readResponse(response)) as { data?: Reply; message?: string; error?: string };
+      if (!response.ok) throw new Error(payload.error ?? "We couldn't complete this request. Please try again.");
       if (!payload.data) {
         // eslint-disable-next-line react-hooks/purity -- display-only timestamp captured once per reply, never rendered from
         setTurns([...next, { role: "assistant", text: payload.message ?? "AI assistance is temporarily unavailable.", at: Date.now() }]);
@@ -78,7 +81,7 @@ export default function GuestAiConciergePanel({ reservationId }: { reservationId
       // eslint-disable-next-line react-hooks/purity -- display-only timestamp captured once per reply, never rendered from
       setTurns([...next, { role: "assistant", text: payload.data.replyText, draft: payload.data.actionDraft, at: Date.now() }]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to reach the concierge.");
+      setError(userMessage(err, "Unable to reach the concierge."));
     } finally {
       setLoading(false);
     }
@@ -88,7 +91,7 @@ export default function GuestAiConciergePanel({ reservationId }: { reservationId
     setConfirming(true);
     setError(null);
     try {
-      const response = await fetch("/api/account/requests", {
+      const response = await fetchPublic("/api/account/requests", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -98,11 +101,11 @@ export default function GuestAiConciergePanel({ reservationId }: { reservationId
           idempotencyKey: crypto.randomUUID(),
         }),
       });
-      const payload = (await response.json()) as { error?: string };
+      const payload = (await readResponse(response)) as { error?: string };
       if (!response.ok) throw new Error(payload.error ?? "Unable to submit your request.");
       setConfirmed("Request submitted — the team has been notified.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to submit your request.");
+      setError(userMessage(err, "Unable to submit your request."));
     } finally {
       setConfirming(false);
     }

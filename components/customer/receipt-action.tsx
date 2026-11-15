@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Download, Loader2, Mail, Printer, ReceiptText } from "lucide-react";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { useRef, useState } from "react";
+import { Loader2, Mail, ReceiptText } from "lucide-react";
+import { DownloadMenu, printDownload } from "@/components/ui/download-menu";
 import { Modal } from "@/components/ui/Modal";
 import { HavenButton } from "@/components/ui/haven-button";
 import { ReceiptDocumentView } from "@/components/customer/receipt-document-view";
@@ -26,46 +29,16 @@ export function ReceiptAction({ paymentId, emailAvailable }: { paymentId: string
   const [receipt, setReceipt] = useState<ReceiptDocument | null>(null);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
-  const menu = useRef<HTMLDivElement>(null);
-  const menuButton = useRef<HTMLButtonElement>(null);
-
-  // Menu dismissal, modelled on the customer shell's account popover. Escape is
-  // handled here rather than by the Modal — `closeOnEscape={!menuOpen}` below
-  // hands the key to the menu while it is open, so one press closes one layer.
-  useEffect(() => {
-    if (!menuOpen) return;
-    const outside = (event: Event) => {
-      if (menu.current && !menu.current.contains(event.target as Node)) setMenuOpen(false);
-    };
-    const escape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      setMenuOpen(false);
-      menuButton.current?.focus();
-    };
-    document.addEventListener("pointerdown", outside);
-    document.addEventListener("keydown", escape);
-    return () => {
-      document.removeEventListener("pointerdown", outside);
-      document.removeEventListener("keydown", escape);
-    };
-  }, [menuOpen]);
-
-  function close() {
-    setOpen(false);
-    setMenuOpen(false);
-  }
-
   async function openReceipt() {
     setOpen(true);
     if (receipt || loading) return;
     setLoading(true);
     setFailed(false);
     try {
-      const response = await fetch(`/api/account/receipts/${paymentId}`, { cache: "no-store" });
-      const body = await response.json().catch(() => null);
+      const response = await fetchPublic(`/api/account/receipts/${paymentId}`, { cache: "no-store" });
+      const body = await readResponse(response).catch(() => null);
       if (response.ok && body?.data) setReceipt(body.data as ReceiptDocument);
       else setFailed(true);
     } catch {
@@ -76,7 +49,6 @@ export function ReceiptAction({ paymentId, emailAvailable }: { paymentId: string
   }
 
   async function download(kind: "pdf" | "png") {
-    setMenuOpen(false);
     if (!receipt) return;
     const name = receiptFileName(receipt, kind);
     try {
@@ -92,13 +64,14 @@ export function ReceiptAction({ paymentId, emailAvailable }: { paymentId: string
   async function emailReceipt() {
     setSending(true);
     try {
-      const response = await fetch(`/api/account/receipts/${paymentId}/email`, { method: "POST" });
-      const body = await response.json().catch(() => null);
+      const response = await fetchPublic(`/api/account/receipts/${paymentId}/email`, { method: "POST" });
+      const body = await readResponse(response).catch(() => null);
       if (response.ok && body?.ok) toast({ title: "Receipt emailed.", detail: `Sent to ${body.to}.`, tone: "success" });
       else if (body?.error === "EMAIL_UNAVAILABLE") toast({ title: "Email receipt is currently unavailable.", tone: "warning" });
-      else toast({ title: "The receipt could not be emailed.", detail: "Please try again.", tone: "error" });
+      else if (body?.outcome === "unknown") toast({ title: "We couldn't confirm that the receipt email was sent.", detail: "Check your inbox before trying again.", tone: "warning", duration: 0 });
+      else toast({ title: "We couldn't send the receipt email right now.", detail: "You can download your receipt instead.", tone: "error" });
     } catch {
-      toast({ title: "The receipt could not be emailed.", detail: "Please try again.", tone: "error" });
+      toast({ title: "We couldn't confirm that the receipt email was sent.", detail: "Check your inbox before trying again.", tone: "warning", duration: 0 });
     } finally {
       setSending(false);
     }
@@ -121,13 +94,12 @@ export function ReceiptAction({ paymentId, emailAvailable }: { paymentId: string
       </HavenButton>
       <Modal
         isOpen={open}
-        onClose={close}
+        onClose={() => setOpen(false)}
         title="Payment receipt"
         description="Official payment record · HAVEN Hotel & Residences"
         headerVariant="branded"
         size="md"
         portal
-        closeOnEscape={!menuOpen}
         returnFocusRef={trigger}
         footer={
           <div className="receipt-footer">
@@ -146,43 +118,16 @@ export function ReceiptAction({ paymentId, emailAvailable }: { paymentId: string
                 Email receipt is currently unavailable.
               </span>
             )}
-            <HavenButton
-              variant="secondary"
-              density="customer"
-              icon={<Printer size={16} />}
+            <DownloadMenu
+              label="Download receipt"
+              opensUp
               disabled={disabled}
-              onClick={() => window.print()}
-            >
-              Print
-            </HavenButton>
-            <div className="receipt-download" ref={menu}>
-              <HavenButton
-                ref={menuButton}
-                variant="primary"
-                density="customer"
-                icon={<Download size={16} />}
-                className="receipt-download-trigger"
-                disabled={disabled}
-                aria-haspopup="menu"
-                aria-expanded={menuOpen}
-                onClick={() => setMenuOpen((value) => !value)}
-              >
-                Download
-                <ChevronDown size={15} aria-hidden="true" />
-              </HavenButton>
-              {menuOpen && (
-                <div className="receipt-download-menu" role="menu" aria-label="Receipt download format">
-                  <button type="button" role="menuitem" onClick={() => download("pdf")}>
-                    <b>PDF document</b>
-                    <small>Best for printing and records</small>
-                  </button>
-                  <button type="button" role="menuitem" onClick={() => download("png")}>
-                    <b>PNG image</b>
-                    <small>Best for saving or sharing</small>
-                  </button>
-                </div>
-              )}
-            </div>
+              actions={[
+                { value: "pdf", label: "PDF document", run: () => download("pdf") },
+                { value: "png", label: "PNG image", run: () => download("png") },
+                { ...printDownload, label: "Print receipt" },
+              ]}
+            />
           </div>
         }
       >

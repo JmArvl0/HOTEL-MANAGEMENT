@@ -58,7 +58,7 @@ function renderShell(items: typeof seed = seed, fetchResult: unknown = { data: i
     },
     clear: () => store.clear(),
   });
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ json: async () => fetchResult }));
+  vi.stubGlobal("fetch", vi.fn(async () => Response.json(fetchResult)));
   return render(
     <CustomerShell user={{ name: "Guest", email: "guest@example.test" }} notifications={items}>
       <div>Stay content</div>
@@ -222,7 +222,7 @@ describe("CustomerShell notification bell", () => {
     // Skeleton first, then the empty state once the fetch resolves.
     expect(document.querySelector(".customer-notif-skeleton")).toBeTruthy();
     expect(await screen.findByText("You're all caught up")).toBeTruthy();
-    expect(screen.getByText("No new notifications right now.")).toBeTruthy();
+    expect(await screen.findByText("No new notifications right now.")).toBeTruthy();
   });
 
   it("shows the error state with retry when the history fetch fails", async () => {

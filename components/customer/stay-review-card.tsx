@@ -1,5 +1,8 @@
 "use client";
 
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { useState } from "react";
 import { Star, MessageSquareHeart } from "lucide-react";
 
@@ -43,16 +46,16 @@ export function StayReviewCard({
     setBusy(true);
     setError("");
     try {
-      const response = await fetch("/api/account/reviews", {
+      const response = await fetchPublic("/api/account/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reservationId, rating, comment: comment.trim() }),
       });
-      const body = await response.json();
+      const body = await readResponse(response);
       if (!response.ok) throw new Error(body.error ?? "Unable to save your review.");
       setSaved({ rating, comment: comment.trim() });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to save your review.");
+      setError(userMessage(cause, "Unable to save your review."));
     } finally {
       setBusy(false);
     }

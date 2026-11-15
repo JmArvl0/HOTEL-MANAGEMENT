@@ -1,5 +1,7 @@
+import { publicJson } from "@/lib/server-errors";
+import { validationBody } from "@/lib/errors";
 import { getServerSession } from "next-auth";
-import { NextResponse } from "next/server";
+
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
@@ -15,21 +17,21 @@ const schema = z.union([
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.disabled) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "guest") return NextResponse.json({ error: "Customer access required." }, { status: 403 });
-  if (!supabase) return NextResponse.json({ error: "Database unavailable." }, { status: 503 });
+  if (!session || session.user.disabled) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
+  if (session.user.role !== "guest") return publicJson({ error: "Please sign in with a guest account to continue." }, { status: 403 });
+  if (!supabase) return publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
   try {
-    const parsed = schema.safeParse(await request.json());
-    if (!parsed.success) return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+    const parsed = schema.safeParse(await request.json().catch(() => null));
+    if (!parsed.success) return publicJson(validationBody(parsed.error, { error: "Please check the highlighted details." }), { status: 400 });
     if ("all" in parsed.data) {
       await markAllNotificationsRead(session.user.id);
-      return NextResponse.json({ data: { all: true }, unreadCount: 0 });
+      return publicJson({ data: { all: true }, unreadCount: 0 });
     }
     const ids = [...new Set(parsed.data.ids)];
     await markNotificationsRead(session.user.id, ids);
     const unreadCount = await countUnreadNotifications(session.user.id);
-    return NextResponse.json({ data: { read: ids.length }, unreadCount });
+    return publicJson({ data: { read: ids.length }, unreadCount });
   } catch {
-    return NextResponse.json({ error: "Unable to update notifications." }, { status: 500 });
+    return publicJson({ error: "Unable to update notifications." }, { status: 500 });
   }
 }

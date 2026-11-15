@@ -1,5 +1,8 @@
 "use client";
 
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -414,8 +417,8 @@ export default function LoyaltyCardPanel() {
     const controller = new AbortController();
     async function load() {
       try {
-        const response = await fetch("/api/account/loyalty", { cache: "no-store", signal: controller.signal });
-        const body: unknown = await response.json();
+        const response = await fetchPublic("/api/account/loyalty", { cache: "no-store", signal: controller.signal });
+        const body: unknown = await readResponse(response);
         const payload = body && typeof body === "object" ? body as Record<string, unknown> : {};
         const parsed = parseLoyaltyData(payload.data);
         if (!response.ok || !parsed) throw new Error(typeof payload.error === "string" ? payload.error : "Unable to load loyalty rewards.");
@@ -423,7 +426,7 @@ export default function LoyaltyCardPanel() {
         setError("");
       } catch (reason) {
         if (controller.signal.aborted) return;
-        setError(reason instanceof Error ? reason.message : "Unable to load loyalty rewards.");
+        setError(userMessage(reason, "Unable to load loyalty rewards."));
       }
     }
     void load();
