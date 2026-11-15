@@ -1,0 +1,11 @@
+.customer-shell .fleet-ride-safety { padding:20px 0; margin-top:18px; border-top:1px solid var(--cp-line); color:var(--cp-text); }
+.fleet-ride-safety h3 { display:flex; align-items:center; gap:9px; margin:0 0 16px; font-size:16px; }
+.fleet-safety-leg { display:grid; gap:14px; }
+.fleet-safety-leg+.fleet-safety-leg { margin-top:20px; padding-top:18px; border-top:1px solid var(--cp-line); }
+.fleet-safety-vehicle>div { display:grid; gap:6px; overflow-wrap:anywhere; }
+.fleet-safety-vehicle small,.fleet-safety-leg p,.fleet-ride-safety>p { font-size:13px; line-height:1.6; color:var(--cp-muted); margin:0; }
+.fleet-safety-vehicle strong { font-size:21px; font-weight:700; letter-spacing:.025em; }
+.fleet-safety-vehicle span { font-size:14px; }
+.fleet-safety-actions { display:flex; flex-wrap:wrap; gap:10px; }
+.customer-shell .fleet-ride-safety .btn { min-height:44px; }
+@media(max-width:480px) { .fleet-safety-actions .btn { flex:1; justify-content:center; } }

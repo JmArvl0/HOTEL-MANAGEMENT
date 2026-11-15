@@ -1,0 +1,32 @@
+{
+  "success": true,
+  "data": {
+    "contract_version": 2,
+    "source_system": "HAVEN",
+    "event_id": "b4d454fd-cf3b-49a8-a704-5643e1a20643",
+    "external_request_id": "haven:test:outbound",
+    "external_booking_id": "haven:test:outbound",
+    "external_revision": 1,
+    "id": "123",
+    "fleet_reference": "123",
+    "fleet_request_id": 123,
+    "fleet_trip_id": null,
+    "request_version": 1,
+    "status": "RECEIVED",
+    "occurred_at": "2026-11-06T02:00:00Z",
+    "confirmed_pickup_datetime": null,
+    "pickup_profile_accepted": true,
+    "ride_details_accepted": true,
+    "assignment_active": false,
+    "assignment_reference": null,
+    "assignment": null,
+    "driver": null,
+    "vehicle": null,
+    "tracking": null,
+    "cancellation_outcome": null,
+    "cancellation_reason": null,
+    "round_trip_reference": "test",
+    "leg_kind": "outbound",
+    "fare": null
+  }
+}

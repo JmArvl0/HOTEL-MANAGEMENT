@@ -1,0 +1,1734 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "urn:fleet:haven:local-contract:2026-11-06",
+  "title": "Current implemented Fleet–Haven contract — 6 November 2026",
+  "description": "Current user-selected local wire: flat guest input/envelope journey fields preferred; new source success response {success:true,data:{source_system:HAVEN,...}}, plain versioned HAVEN callback, photo signing photo_reference/photo_version. Internal authentication/storage remain HAVEN. Runtime invariants apply. No hosted origin exists.",
+  "definitions": {
+    "InboundEnvelope": {
+      "type": "object",
+      "properties": {
+        "external_request_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[A-Za-z0-9._:-]+$"
+        },
+        "event_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[A-Za-z0-9._:-]+$"
+        },
+        "external_revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "expected_request_version": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2147483647
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "round_trip_reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255,
+              "pattern": "^[A-Za-z0-9._:-]+$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "leg_kind": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "outbound",
+                "return"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cancellation_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "guest_request",
+                "schedule_change",
+                "duplicate",
+                "other"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "contract_version": {
+          "const": 2
+        },
+        "event_kind": {
+          "enum": [
+            "create",
+            "update",
+            "cancel"
+          ]
+        },
+        "source_system": {
+          "type": "string",
+          "description": "Ignored for authentication; the dedicated credential binds internal HAVEN."
+        },
+        "external_booking_id": {
+          "type": "string",
+          "description": "If supplied, must equal external_request_id."
+        },
+        "request": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/FlatBooking"
+            },
+            {
+              "$ref": "#/definitions/TravelerBooking"
+            }
+          ]
+        }
+      },
+      "required": [
+        "external_request_id",
+        "event_id",
+        "external_revision",
+        "contract_version",
+        "event_kind"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "event_kind": {
+                "const": "create"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "request"
+            ],
+            "properties": {
+              "external_revision": {
+                "const": 1
+              },
+              "expected_request_version": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "event_kind": {
+                "const": "update"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "request",
+              "expected_request_version"
+            ],
+            "properties": {
+              "expected_request_version": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 2147483647
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "event_kind": {
+                "const": "cancel"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "expected_request_version"
+            ],
+            "not": {
+              "required": [
+                "request"
+              ]
+            },
+            "properties": {
+              "expected_request_version": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 2147483647
+              },
+              "round_trip_reference": {
+                "type": "null"
+              },
+              "leg_kind": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "round_trip_reference"
+            ],
+            "properties": {
+              "round_trip_reference": {
+                "type": "string"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "leg_kind"
+            ],
+            "properties": {
+              "leg_kind": {
+                "enum": [
+                  "outbound",
+                  "return"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "leg_kind"
+            ],
+            "properties": {
+              "leg_kind": {
+                "type": "string"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "round_trip_reference"
+            ],
+            "properties": {
+              "round_trip_reference": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255
+              }
+            }
+          }
+        }
+      ]
+    },
+    "FlatBooking": {
+      "type": "object",
+      "properties": {
+        "booking_reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "guest_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "pickup_location": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "dropoff_location": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "pickup_datetime": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?(?:Z|[+-]\\d{2}:\\d{2})$"
+        },
+        "special_requests": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 2000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requested_vehicle_type": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "priority": {
+          "default": "Normal",
+          "type": "string",
+          "enum": [
+            "Low",
+            "Normal",
+            "High",
+            "Urgent"
+          ]
+        },
+        "booking_status": {
+          "const": "Pending",
+          "default": "Pending"
+        },
+        "is_vip": {
+          "default": false,
+          "type": "boolean"
+        },
+        "is_emergency": {
+          "default": false,
+          "type": "boolean"
+        },
+        "pickup_location_code": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dropoff_location_code": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pickup_location_proposal": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "address": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "latitude": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "minimum": -90,
+                      "maximum": 90
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "longitude": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "minimum": -180,
+                      "maximum": 180
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dropoff_location_proposal": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "address": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "latitude": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "minimum": -90,
+                      "maximum": 90
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "longitude": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "minimum": -180,
+                      "maximum": 180
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "load_type": {
+          "const": "Passenger"
+        },
+        "service_code": {
+          "type": "string",
+          "enum": [
+            "GUEST_TRANSPORT",
+            "VIP_GUEST_TRANSPORT"
+          ]
+        },
+        "passenger_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "cargo_weight_kg": {
+          "type": "null"
+        },
+        "cargo_description": {
+          "type": "null"
+        },
+        "source_department": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "guest_reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255,
+              "pattern": "^[A-Za-z0-9._:-]+$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "guest_phone": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "guest_email": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 254,
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "guest_photo_reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255,
+              "pattern": "^[A-Za-z0-9._:-]+$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "guest_photo_version": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ride_preferences": {
+          "default": [],
+          "maxItems": 3,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "QUIET_RIDE",
+              "HELP_WITH_LUGGAGE",
+              "COOL_CABIN"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "luggage": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "count": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 20
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "notes": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 300
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "passenger_notes": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 500
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "pickup_location",
+        "pickup_datetime",
+        "load_type",
+        "service_code",
+        "guest_name",
+        "guest_phone",
+        "dropoff_location",
+        "passenger_count"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "guest_photo_reference"
+            ],
+            "properties": {
+              "guest_photo_reference": {
+                "type": "string"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "guest_photo_version"
+            ],
+            "properties": {
+              "guest_photo_version": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 2147483647
+              }
+            }
+          }
+        }
+      ]
+    },
+    "TravelerBooking": {
+      "type": "object",
+      "properties": {
+        "booking_reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pickup_location": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "dropoff_location": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "pickup_datetime": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?(?:Z|[+-]\\d{2}:\\d{2})$"
+        },
+        "special_requests": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 2000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requested_vehicle_type": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "priority": {
+          "default": "Normal",
+          "type": "string",
+          "enum": [
+            "Low",
+            "Normal",
+            "High",
+            "Urgent"
+          ]
+        },
+        "booking_status": {
+          "const": "Pending",
+          "default": "Pending"
+        },
+        "is_vip": {
+          "default": false,
+          "type": "boolean"
+        },
+        "is_emergency": {
+          "default": false,
+          "type": "boolean"
+        },
+        "pickup_location_code": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dropoff_location_code": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pickup_location_proposal": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "address": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "latitude": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "minimum": -90,
+                      "maximum": 90
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "longitude": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "minimum": -180,
+                      "maximum": 180
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dropoff_location_proposal": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "address": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "latitude": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "minimum": -90,
+                      "maximum": 90
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "longitude": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "minimum": -180,
+                      "maximum": 180
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "load_type": {
+          "const": "Passenger"
+        },
+        "service_code": {
+          "type": "string",
+          "enum": [
+            "GUEST_TRANSPORT",
+            "VIP_GUEST_TRANSPORT"
+          ]
+        },
+        "passenger_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "cargo_weight_kg": {
+          "type": "null"
+        },
+        "cargo_description": {
+          "type": "null"
+        },
+        "source_department": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ride_preferences": {
+          "default": [],
+          "maxItems": 3,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "QUIET_RIDE",
+              "HELP_WITH_LUGGAGE",
+              "COOL_CABIN"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "luggage": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "count": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 20
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "notes": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 300
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "passenger_notes": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 500
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "traveler": {
+          "$ref": "#/definitions/Traveler"
+        },
+        "journey_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[A-Za-z0-9._:-]+$"
+        },
+        "leg": {
+          "enum": [
+            "OUTBOUND",
+            "RETURN"
+          ]
+        }
+      },
+      "required": [
+        "pickup_location",
+        "pickup_datetime",
+        "load_type",
+        "service_code",
+        "dropoff_location",
+        "passenger_count",
+        "traveler"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "journey_reference"
+            ],
+            "properties": {
+              "journey_reference": {
+                "type": "string"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "leg"
+            ],
+            "properties": {
+              "leg": {
+                "enum": [
+                  "OUTBOUND",
+                  "RETURN"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "leg"
+            ],
+            "properties": {
+              "leg": {
+                "type": "string"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "journey_reference"
+            ],
+            "properties": {
+              "journey_reference": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Traveler": {
+      "type": "object",
+      "properties": {
+        "guest_reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255,
+              "pattern": "^[A-Za-z0-9._:-]+$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "phone": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "email": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 254,
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "photo_reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255,
+              "pattern": "^[A-Za-z0-9._:-]+$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "photo_version": {
+          "default": 0,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "display_name",
+        "phone"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "photo_reference"
+            ],
+            "properties": {
+              "photo_reference": {
+                "type": "string"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "photo_version"
+            ],
+            "properties": {
+              "photo_version": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 2147483647
+              }
+            }
+          }
+        }
+      ]
+    },
+    "StatusSnapshot": {
+      "type": "object",
+      "properties": {
+        "contract_version": {
+          "type": "number",
+          "const": 2
+        },
+        "source_system": {
+          "type": "string",
+          "const": "HAVEN"
+        },
+        "event_id": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+        },
+        "external_request_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "external_revision": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "fleet_request_id": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "fleet_trip_id": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "request_version": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "RECEIVED",
+            "SCHEDULED",
+            "ASSIGNED",
+            "IN_TRANSIT",
+            "COMPLETED",
+            "CANCELLED",
+            "REJECTED"
+          ]
+        },
+        "occurred_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "confirmed_pickup_datetime": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pickup_profile_accepted": {
+          "type": "boolean"
+        },
+        "ride_details_accepted": {
+          "type": "boolean"
+        },
+        "assignment_active": {
+          "type": "boolean"
+        },
+        "assignment_reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "assignment": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "driver_reference": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "vehicle_reference": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "vehicle_plate": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 50
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "vehicle_model": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "driver_name": {
+                  "type": "string",
+                  "maxLength": 201
+                },
+                "vehicle_description": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 510
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "driver_reference",
+                "vehicle_reference",
+                "vehicle_plate",
+                "vehicle_model",
+                "driver_name",
+                "vehicle_description"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tracking": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "format": "uri",
+                  "pattern": "^https://"
+                },
+                "expires_at": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "assignment_reference": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                }
+              },
+              "required": [
+                "url",
+                "expires_at",
+                "assignment_reference"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "vehicle": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "plate_number": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 50
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "description": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 510
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "plate_number",
+                "description"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cancellation_outcome": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cancellation_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "round_trip_reference": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "leg_kind": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fare": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "fare_amount_minor": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "currency": {
+                  "type": "string",
+                  "const": "PHP"
+                },
+                "fare_version": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "fare_reference": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "fare_revision_id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "previous_fare_revision_id": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "previous_fare_version": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "correction_reason": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 500
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "fare_amount_minor",
+                "currency",
+                "fare_version",
+                "fare_reference",
+                "fare_revision_id",
+                "previous_fare_revision_id",
+                "previous_fare_version",
+                "correction_reason"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[1-9]\\d*$"
+        },
+        "fleet_reference": {
+          "type": "string",
+          "pattern": "^[1-9]\\d*$"
+        },
+        "external_booking_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "driver": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "maxLength": 201
+                }
+              },
+              "required": [
+                "name"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "contract_version",
+        "source_system",
+        "event_id",
+        "external_request_id",
+        "external_revision",
+        "fleet_request_id",
+        "fleet_trip_id",
+        "request_version",
+        "status",
+        "occurred_at",
+        "confirmed_pickup_datetime",
+        "pickup_profile_accepted",
+        "ride_details_accepted",
+        "assignment_active",
+        "assignment_reference",
+        "assignment",
+        "tracking",
+        "vehicle",
+        "cancellation_outcome",
+        "cancellation_reason",
+        "round_trip_reference",
+        "leg_kind",
+        "fare",
+        "id",
+        "fleet_reference",
+        "external_booking_id",
+        "driver"
+      ],
+      "additionalProperties": false
+    },
+    "Acceptance": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/SuccessResponse"
+        },
+        {
+          "properties": {
+            "data": {
+              "properties": {
+                "pickup_profile_accepted": {
+                  "const": true
+                },
+                "ride_details_accepted": {
+                  "const": true
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Fare": {
+      "type": "object",
+      "properties": {
+        "fare_amount_minor": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "currency": {
+          "type": "string",
+          "const": "PHP"
+        },
+        "fare_version": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "fare_reference": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+        },
+        "fare_revision_id": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+        },
+        "previous_fare_revision_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "previous_fare_version": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "correction_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 500
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "fare_amount_minor",
+        "currency",
+        "fare_version",
+        "fare_reference",
+        "fare_revision_id",
+        "previous_fare_revision_id",
+        "previous_fare_version",
+        "correction_reason"
+      ],
+      "additionalProperties": false
+    },
+    "TrackingRenewal": {
+      "type": "object",
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+        },
+        "expected_request_version": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 2147483647
+        },
+        "assignment_reference": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+        }
+      },
+      "required": [
+        "event_id",
+        "expected_request_version",
+        "assignment_reference"
+      ],
+      "additionalProperties": false
+    },
+    "PhotoSigningRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "external_request_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "assignment_reference": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "photo_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "photo_version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "external_request_id",
+        "photo_reference",
+        "photo_version",
+        "assignment_reference"
+      ]
+    },
+    "PhotoSigningResponse": {
+      "type": "object",
+      "required": [
+        "url",
+        "expires_at"
+      ],
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "SuccessResponse": {
+      "type": "object",
+      "required": [
+        "success",
+        "data"
+      ],
+      "properties": {
+        "success": {
+          "const": true
+        },
+        "data": {
+          "$ref": "#/definitions/StatusSnapshot"
+        },
+        "outcome": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "RenewalSuccess": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/SuccessResponse"
+        },
+        {
+          "required": [
+            "outcome"
+          ],
+          "properties": {
+            "outcome": {
+              "const": "renewed"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "x-endpoints": {
+    "intake": "POST /api/integration/transport-requests",
+    "lookup": "GET /api/integration/transport-requests/source/{externalRequestId}",
+    "renewal": "POST /api/integration/transport-requests/source/{externalRequestId}/tracking/renew",
+    "revocation": "DELETE /api/integration/transport-requests/source/{externalRequestId}/tracking",
+    "callback": "POST /api/integrations/fleet/transport-status",
+    "photo_signing": "POST /api/integrations/fleet/pickup-photo"
+  },
+  "x-runtime-invariants": [
+    "Canonical schemas intentionally reject unknown request properties; runtime strips some unknown fields. Authentication source is bound by credential, never caller JSON.",
+    "IDs cannot be literal . or ... Phones are normalized to E.164. Trimmed required text is well formed, nonempty and control-free; notes reject NUL.",
+    "Null photo reference means unavailable. A present reference requires a positive version. Version 0 and higher removal revisions are valid with null reference.",
+    "Fleet stores the supplied photo version and does not auto-increment on contact updates. Client must increase it for photo changes/removal; monotonic profile photo versions are not currently enforced by Fleet.",
+    "Do not mix nested traveler and flat guest fields, or request journey/leg and envelope round_trip_reference/leg_kind. Journey/leg are paired; existing identity cannot change.",
+    "Both acceptance flags describe committed storage. New source successes wrap a HAVEN snapshot under data. Old immutable responses/events, including plain PMS bodies, replay exactly; use current source lookup for recovery.",
+    "id and fleet_reference equal original fleet_request_id as a string; both external IDs match; driver.name equals assignment.driver_name.",
+    "Tracking needs active current assignment, actual nonblank plate, approved HTTPS origin, finite expiry and matching assignment references. No passenger contacts/photos are public.",
+    "Renewal rotates old token and queues a higher request_version, preserves assignment UUID and cannot revive revoked/terminal sharing. Exact event replay returns its saved result.",
+    "Signing uses a server-derived assignment UUID. Haven authorizes guest photo permission; returned URL must match approved origin and expire within 120 seconds."
+  ],
+  "x-source": {
+    "base_commit": "bf752a850eb40cd179fbea52ac0e3cc4c4d1843a",
+    "includes_uncommitted_implementation": true,
+    "sha256": {
+      "src/lib/integration/haven-contract.js": "2104d403b42a109dff45bb4505af1e10eae4845b988a457663131a762ac780cf",
+      "src/lib/integration/haven-wire.js": "23ee093ba4a93bad2d33ec0d4268b4714667eb9f48087888367a478818299c4c",
+      "src/lib/integration/haven-status-contract.js": "75e0d1170c445611d44a82be56c25ab24e0e34ee5fe21f01e340a6667f6927fc",
+      "src/lib/integration/haven-pickup-photo.js": "eef4fcc0daa0f0b8214845682fa16fe08350993f2890cf6428cfd22e01d904a3",
+      "supabase/migrations/179_haven_tracking_plate_guard.sql": "963986b88b0e94a2843eb9fd33ae4c888f92a55d47976fbe028afefdbef584d0",
+      "supabase/migrations/180_haven_wrapped_wire.sql": "34c761f29d5ad1f19b4b9bb395afd4a471f9cca389cb21bdba102b851e1908f3",
+      "src/services/haven-requests.service.js": "1412f9df72a6ddedfca66f6c3e46ac499093c6bdde8528955fbcb6eae360ce4c",
+      "src/lib/integration/source-contract.js": "c18eaa26f66c13ae616faab359f552851e4fdb44c4e05c155baf1c62579cce11",
+      "src/services/haven-tracking.service.js": "676252f3ee9b01852486105847e8a8d2257c479a34d2beea84b4d9028d43bb6c",
+      "src/app/api/integration/transport-requests/source/[externalRequestId]/tracking/renew/route.js": "e4e925e927ca71459413c752de7cf18b5fb51ec8a79a8d913c2115b29277b172",
+      "src/app/api/integration/transport-requests/source/[externalRequestId]/tracking/route.js": "731d17e77d9ee3ab6ea79d50b5e1b0055afea3e65db2818322c73812eebb2b2d"
+    }
+  }
+}

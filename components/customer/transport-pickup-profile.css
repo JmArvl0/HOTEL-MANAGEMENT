@@ -1,0 +1,30 @@
+.haven-modal-portal .pickup-profile-dialog .modal-content .modal-body { background:var(--cp-panel,#fff); color:var(--cp-text,#111827); color-scheme:light; }
+.pickup-profile { color:var(--cp-text,var(--ink)); }
+.pickup-profile fieldset { border:0; padding:0; margin:0; min-width:0; display:grid; gap:18px; }
+.pickup-profile label { display:grid; gap:7px; font-size:14px; font-weight:600; }
+.pickup-profile small,.pickup-profile-help,.pickup-profile-fleet>p { font-size:13px; font-weight:400; color:var(--cp-muted,var(--muted)); line-height:1.6; }
+.pickup-profile input:not([type=checkbox]),.pickup-profile textarea { width:100%; min-width:0; min-height:44px; padding:10px 12px; border:1px solid var(--cp-line,var(--line)); border-radius:8px; background:var(--cp-panel,#fff); color:inherit; font:inherit; }
+.pickup-profile input[type=file] { font-size:13px; }
+.pickup-profile-photo { display:flex; align-items:start; gap:20px; }
+.pickup-profile-photo>img,.pickup-profile-photo>span { width:96px; height:112px; flex-shrink:0; object-fit:cover; border-radius:8px; background:var(--cp-panel-2,#f3f3f3); }
+.pickup-profile-photo>span { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; text-align:center; }
+.pickup-profile-photo>div { display:grid; gap:10px; min-width:0; }
+.pickup-profile .pickup-profile-consent { display:flex; align-items:start; gap:12px; font-size:13px; line-height:1.6; cursor:pointer; }
+.pickup-profile-consent input { width:20px; height:20px; flex-shrink:0; margin:2px 0; accent-color:var(--accent); }
+.pickup-profile-help { margin:0; }
+.modal-content .pickup-profile button.btn { min-height:44px; justify-self:start; }
+.pickup-profile-fleet { margin-top:28px; padding-top:24px; border-top:1px solid var(--cp-line,var(--line)); }
+.pickup-profile-fleet h3 { margin:0 0 8px; font-size:17px; }
+.pickup-profile-fleet>p { margin:0 0 18px; }
+.pickup-profile-leg { padding:18px 0; display:grid; gap:8px; border-bottom:1px solid var(--cp-line,var(--line)); overflow-wrap:anywhere; }
+.pickup-profile-leg>span { font-size:14px; }
+.pickup-profile-leg>p { font-size:14px; margin:0; }
+.pickup-profile-coordination { display:grid; gap:12px; margin-top:20px; }
+.pickup-ride-preferences { display:grid; gap:12px; padding-top:20px; border-top:1px solid var(--cp-line); }
+.pickup-ride-preferences h3 { margin:0; font-size:17px; }
+.pickup-profile .pickup-preference-option { display:flex; align-items:center; gap:12px; min-height:48px; cursor:pointer; }
+.pickup-preference-option input { width:20px; height:20px; flex-shrink:0; margin:0; accent-color:var(--cp-green); }
+.pickup-preference-option span { display:grid; gap:3px; }
+.pickup-profile-error { color:var(--danger,#b42318); }
+.pickup-profile-message { font-size:14px; }
+@media(max-width:480px) { .pickup-profile-photo { flex-direction:column; gap:12px; } .pickup-profile .btn { width:100%; } }
