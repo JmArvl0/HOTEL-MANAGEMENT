@@ -213,7 +213,7 @@ describe("preview endpoint (read-only by construction)", () => {
   it("fetches the preview from the cancel endpoint the route actually serves", () => {
     // Regression: the client called .../cancel/preview, which never existed,
     // so every preview 404'd and the Cancel button stayed disabled.
-    expect(actions()).toContain("fetch(`/api/account/reservations/${id}/cancel`");
+    expect(actions()).toContain("fetchPublic(`/api/account/reservations/${id}/cancel`");
     expect(actions()).not.toContain("cancel/preview");
   });
 });

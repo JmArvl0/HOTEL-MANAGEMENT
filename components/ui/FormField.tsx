@@ -322,7 +322,7 @@ export interface ErrorSummaryProps {
   className?: string;
 }
 
-export function ErrorSummary({ errors, title = "There are errors in the form", onFocusField, className = "" }: ErrorSummaryProps) {
+export function ErrorSummary({ errors, title = "Please check the highlighted details.", onFocusField, className = "" }: ErrorSummaryProps) {
   const summaryId = useId();
 
   if (!errors.length) return null;

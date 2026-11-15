@@ -47,8 +47,11 @@ export interface ToastController {
 // on resume.
 export function useToasts(): ToastController {
   const [toasts, setToasts] = useState<ActiveToast[]>([]);
+  const active = useRef<ActiveToast[]>([]);
   const queue = useRef<ToastOptions[]>([]);
+  const known = useRef(new Set<string>());
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const expire = useRef<(id: string) => void>(() => {});
 
   const clearTimer = useCallback((id: string) => {
     const timer = timers.current.get(id);
@@ -60,44 +63,52 @@ export function useToasts(): ToastController {
     clearTimer(toast.id);
     if (toast.remaining <= 0) return; // duration 0 = manual dismiss only
     toast.startedAt = Date.now();
-    timers.current.set(toast.id, setTimeout(() => { clearTimer(toast.id); setToasts((current) => current.filter((item) => item.id !== toast.id)); }, toast.remaining));
+    timers.current.set(toast.id, setTimeout(() => expire.current(toast.id), toast.remaining));
   }, [clearTimer]);
 
   const push = useCallback((options: ToastOptions) => {
+    const id = options.id ?? crypto.randomUUID();
+    if (known.current.has(id)) return;
+    known.current.add(id);
     if (!options.silent) playNotificationTone(options.tone ?? "info");
-    setToasts((current) => {
-      if (current.some((existing) => existing.id === (options.id ?? ""))) return current;
-      const toast: ActiveToast = { ...options, id: options.id ?? crypto.randomUUID(), remaining: options.duration ?? TOAST_DURATION[options.tone ?? "info"], startedAt: 0 };
-      if (current.length < MAX_VISIBLE) { arm(toast); return [...current, toast]; }
-      queue.current.push(options);
-      return current;
-    });
+    const toast: ActiveToast = { ...options, id, remaining: options.duration ?? TOAST_DURATION[options.tone ?? "info"], startedAt: 0 };
+    if (active.current.length < MAX_VISIBLE) {
+      active.current = [...active.current, toast]; arm(toast); setToasts(active.current);
+    } else queue.current.push({ ...options, id });
   }, [arm]);
 
   const dismiss = useCallback((id: string) => {
     clearTimer(id);
-    setToasts((current) => {
-      const next = current.filter((toast) => toast.id !== id);
+    known.current.delete(id);
+    if (!active.current.some(toast => toast.id === id)) {
+      queue.current = queue.current.filter(toast => toast.id !== id);
+      return;
+    }
+      const next = active.current.filter((toast) => toast.id !== id);
       // Retiring a toast frees a stack slot — promote the oldest queued one.
       const queued = queue.current.shift();
       if (queued) {
         const promoted: ActiveToast = { ...queued, id: queued.id ?? crypto.randomUUID(), remaining: queued.duration ?? TOAST_DURATION[queued.tone ?? "info"], startedAt: 0 };
         arm(promoted);
-        return [...next, promoted];
+        active.current = [...next, promoted];
+      } else {
+        active.current = next;
       }
-      return next;
-    });
+      setToasts(active.current);
   }, [arm, clearTimer]);
+  useEffect(() => { expire.current = dismiss; }, [dismiss]);
 
   const pause = useCallback((id: string) => {
     const timer = timers.current.get(id);
     if (!timer) return;
     clearTimer(id);
-    setToasts((current) => current.map((toast) => toast.id === id ? { ...toast, remaining: Math.max(toast.remaining - (Date.now() - toast.startedAt), 0) } : toast));
+    active.current = active.current.map((toast) => toast.id === id ? { ...toast, remaining: Math.max(toast.remaining - (Date.now() - toast.startedAt), 0) } : toast);
+    setToasts(active.current);
   }, [clearTimer]);
 
   const resume = useCallback((id: string) => {
-    setToasts((current) => current.map((toast) => toast.id === id ? (arm(toast), toast) : toast));
+    const toast = active.current.find(toast => toast.id === id);
+    if (toast) arm(toast);
   }, [arm]);
 
   return { toasts, push, dismiss, pause, resume };
@@ -105,7 +116,7 @@ export function useToasts(): ToastController {
 
 export function ToastStack({ controller }: { controller: ToastController }) {
   const { toasts, dismiss, pause, resume } = controller;
-  return <div className="toast-stack" role="log" aria-live="polite" aria-label="Notifications">
+  return <div className="toast-stack" role="region" aria-label="Notifications">
     {toasts.map((toast) => {
       const Icon = TONE_ICONS[toast.tone ?? "info"];
       return <div className={`toast-card ${toast.tone ?? "info"}`} key={toast.id} role={toast.tone === "error" ? "alert" : "status"}

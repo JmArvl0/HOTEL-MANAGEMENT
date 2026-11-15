@@ -1,3 +1,4 @@
+import { publicJson } from "@/lib/server-errors";
 export const DEPOSIT_METHODS = ["xendit", "off"] as const;
 
 export type DepositMethod = (typeof DEPOSIT_METHODS)[number];
@@ -7,5 +8,5 @@ export function guestDepositsEnabled(value: unknown): boolean {
 }
 
 export function retiredPayment(error: string): Response {
-  return Response.json({ error }, { status: 410 });
+  return publicJson({ error }, { status: 410 });
 }

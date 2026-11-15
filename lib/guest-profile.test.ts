@@ -91,7 +91,7 @@ describe("getStaffGuestProfile", () => {
 
 describe("guest profile route contract", () => {
   it("gates the endpoint on guest-contact visibility, GET only", () => {
-    expect(routeSource).toContain('if (!canViewGuestContact(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });');
+    expect(routeSource).toContain("if (!canViewGuestContact(session.user.role)) return publicJson({ error: \"You don't have permission to perform this action. Ask your system administrator if you need access.\" }, { status: 403 });");
     expect(routeSource).toContain("getStaffGuestProfile");
     expect(routeSource).not.toContain("PATCH");
     expect(routeSource).not.toContain("POST");

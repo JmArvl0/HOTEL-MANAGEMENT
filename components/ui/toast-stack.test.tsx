@@ -110,8 +110,8 @@ describe("toast stack", () => {
     render(<Harness options={[{ id: "t1", title: "Quiet notice" }]} />);
     fireEvent.click(screen.getByRole("button", { name: "push" }));
     const region = screen.getByLabelText("Notifications");
-    expect(region.getAttribute("aria-live")).toBe("polite");
-    expect(screen.getByRole("status")).toBeTruthy();
+    expect(region.getAttribute("aria-live")).toBeNull();
+    expect(screen.getByRole("status")).toBeTruthy(); // one live owner, rather than nested live regions
   });
 
   it("keeps a duration-0 toast until manually dismissed", async () => {
@@ -121,6 +121,25 @@ describe("toast stack", () => {
     expect(screen.getByText("Needs attention")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Dismiss: Needs attention" }));
     expect(screen.queryByText("Needs attention")).toBeNull();
+  });
+
+  it("promotes queued feedback when a visible toast expires automatically", async () => {
+    render(<Harness options={[1, 2, 3, 4].map(n => ({ id: `auto-${n}`, title: `Queued ${n}`, duration: n === 1 ? 1000 : 10000 }))} />);
+    fireEvent.click(screen.getByRole("button", { name: "push" }));
+    expect(screen.queryByText("Queued 4")).toBeNull();
+    await advance(1000);
+    expect(screen.queryByText("Queued 1")).toBeNull();
+    expect(screen.getByText("Queued 4")).toBeTruthy();
+  });
+
+  it("deduplicates a queued event before it is promoted", () => {
+    render(<Harness options={[1, 2, 3, 4].map(n => ({ id: `repeat-${n}`, title: `Repeated ${n}` }))} />);
+    const push = screen.getByRole("button", { name: "push" });
+    fireEvent.click(push); fireEvent.click(push);
+    for (const n of [1, 2, 3]) fireEvent.click(screen.getByRole("button", { name: `Dismiss: Repeated ${n}` }));
+    expect(screen.getAllByText("Repeated 4")).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss: Repeated 4" }));
+    expect(screen.queryByText("Repeated 4")).toBeNull();
   });
 
   it("keeps an error toast 8 seconds like a warning", async () => {

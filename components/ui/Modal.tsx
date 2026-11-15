@@ -126,7 +126,7 @@ export function Modal({
   });
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    if (!latest.current.closeOnEscape || event.key !== "Escape") return;
+    if (event.defaultPrevented || !latest.current.closeOnEscape || event.key !== "Escape") return;
     event.preventDefault();
     latest.current.onClose();
   }, []);
@@ -374,6 +374,7 @@ export interface PromptDialogProps {
   rows?: number;
   portal?: boolean;
   headerVariant?: "branded" | "plain";
+  className?: string;
 }
 
 export function PromptDialog({
@@ -398,6 +399,7 @@ export function PromptDialog({
   rows = 4,
   portal = true,
   headerVariant = "plain",
+  className,
 }: PromptDialogProps) {
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
   const [value, setValue] = useState(defaultValue);
@@ -414,7 +416,7 @@ export function PromptDialog({
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (required && !value.trim()) {
-      setError("This field is required");
+      setError("Please complete this field.");
       return;
     }
     if (validation) {
@@ -437,6 +439,7 @@ export function PromptDialog({
       size="sm"
       portal={portal}
       headerVariant={headerVariant}
+      className={className}
       initialFocusRef={inputRef}
     >
       <form onSubmit={handleSubmit} className="prompt-dialog">
@@ -543,7 +546,7 @@ export function SelectDialog({
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (required && !value) {
-      setError("Please select an option");
+      setError("Please choose an option.");
       return;
     }
     setError("");

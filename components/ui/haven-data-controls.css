@@ -198,7 +198,7 @@
   --error-bg:#ef444414;--error-fg:#b91c1c;--error-border:#ef444440
 }
 .customer-shell .haven-error-alert{
-  --error-bg:#ef444414;--error-fg:#b91c1c;--error-border:#ef444440
+  --error-bg:#ef444414;--error-fg:var(--cp-danger,#b91c1c);--error-border:#ef444440
 }
 .app-shell .haven-error-alert{
   --error-bg:#ef44441f;--error-fg:#ef4444;--error-border:#b91c1c
@@ -231,3 +231,7 @@
 }
 @keyframes haven-skeleton-pulse{0%,100%{opacity:.5}50%{opacity:1}}
 @media(prefers-reduced-motion:reduce){.haven-skeleton{animation:none}}
+
+/* Recovery instructions must remain readable at narrow widths and enlarged text. */
+.haven-error-alert,.haven-error-content,.toast-copy,.booking-error,.arrival-error,.form-error{min-width:0;overflow-wrap:anywhere}
+.haven-error-content p,.toast-copy strong,.toast-copy small{white-space:normal;overflow-wrap:anywhere}

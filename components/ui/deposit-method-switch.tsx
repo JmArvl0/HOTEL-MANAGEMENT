@@ -1,5 +1,7 @@
 "use client";
 
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
 import { useId, useState } from "react";
 import type { DepositMethod } from "@/lib/online-checkout";
 import "./deposit-method-switch.css";
@@ -19,7 +21,7 @@ export function DepositMethodSwitch({
   current: DepositMethod;
   version: number;
   xenditOn?: boolean;
-  notify?: (message: string) => void;
+  notify?: (message: string, tone?: "info" | "success" | "warning" | "error") => void;
   onRefresh?: () => void;
 }) {
   const [method, setMethod] = useState<DepositMethod>(current);
@@ -32,12 +34,12 @@ export function DepositMethodSwitch({
     if (reason.trim().length < 3) { setError("Record why the deposit method is changing (3+ characters)."); return; }
     setSaving(true);
     try {
-      const response = await fetch("/api/admin/deposit-method", {
+      const response = await fetchPublic("/api/admin/deposit-method", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ depositMethod: method, reason: reason.trim(), version }),
       });
-      const body = await response.json().catch(() => null);
+      const body = await readResponse(response).catch(() => null);
       if (!response.ok) { setError((body as { error?: string } | null)?.error ?? "Unable to switch the deposit method."); return; }
       notify?.(`Deposit method switched to ${method === "xendit" ? "Xendit sandbox" : "off"}.`);
       setReason("");

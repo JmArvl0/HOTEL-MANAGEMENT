@@ -1,5 +1,7 @@
+import { logServerError } from "@/lib/server-errors";
+import { deliverGuestEmail } from "@/lib/guest-email-delivery";
 import { supabase } from "@/lib/supabase";
-import { sendEmail, guestEmailHtml } from "@/lib/email";
+import { guestEmailHtml } from "@/lib/email";
 import {
   Bell,
   BedDouble,
@@ -281,7 +283,7 @@ export async function recordNotification(input: NotificationInput): Promise<void
       detail: input.detail ?? "",
       href: input.href ?? ""
     });
-    if (error) console.error("notification insert failed", input.type, error.message);
+    if (error) logServerError("notification insert failed", error);
   } catch {
     // ponytail: swallow-and-log is deliberate — the notification is a side
     // channel; failing the already-committed business action here would be
@@ -297,8 +299,13 @@ export async function notifyWithOptionalEmail(
 ): Promise<void> {
   await recordNotification(input);
   if (!email) return;
-  const result = await sendEmail({ to: email, subject: message.subject, html: guestEmailHtml(message.heading, message.bodyHtml) });
-  if (!result.ok && result.reason === "failed") console.error("guest email failed", input.type, result.message);
+  try {
+  const content = new TextEncoder().encode(JSON.stringify([input.userId, input.type, input.href, input.detail]));
+  const hash = await globalThis.crypto.subtle.digest("SHA-256", content);
+  const event = Array.from(new Uint8Array(hash), byte => byte.toString(16).padStart(2, "0")).join("");
+  const result = await deliverGuestEmail(`notification:${event}`, { to: email, subject: message.subject, html: guestEmailHtml(message.heading, message.bodyHtml) });
+  if (result === "error") console.error("guest email failed", input.type);
+  } catch { console.error("guest email failed", input.type); }
 }
 
 export async function getCustomerNotifications(userId: string, limit = 50, offset = 0): Promise<CustomerNotification[]> {

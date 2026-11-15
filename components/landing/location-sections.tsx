@@ -1,5 +1,7 @@
 "use client";
 
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
 import Image from "next/image";
 import { useId, useRef, useState, type ReactNode } from "react";
 import { ArrowRight, ArrowUpRight, List, Map as MapIcon, MapPin, RotateCw, Search, X } from "lucide-react";
@@ -59,7 +61,7 @@ export function LocationSections({ content: initialContent, unavailable: initial
   const selectedPlace = places.find(place => place.id === selectedPlaceId);
   const placeEmbed = selectedPlace && hotel ? nearbyPlaceMap(selectedPlace, hotel) : null;
   const guideEmbed = placeEmbed ?? embed;
-  async function retry() { setRetrying(true); try { const response = await fetch("/api/location", { cache: "no-store" }); const body = await response.json(); if (!response.ok) throw new Error(); setRecovered({ original: initialContent, content: body.data ?? EMPTY_LOCATION, unavailable: false }); } catch { setRecovered({ original: initialContent, content: initialContent, unavailable: true }); } finally { setRetrying(false); } }
+  async function retry() { setRetrying(true); try { const response = await fetchPublic("/api/location", { cache: "no-store" }); const body = await readResponse(response); if (!response.ok) throw new Error(); setRecovered({ original: initialContent, content: body.data ?? EMPTY_LOCATION, unavailable: false }); } catch { setRecovered({ original: initialContent, content: initialContent, unavailable: true }); } finally { setRetrying(false); } }
   function openGuide() {
     if (!guide.current || guide.current.open) return;
     setMapView(false);
