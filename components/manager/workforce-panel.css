@@ -1,0 +1,24 @@
+.app-shell .workforce-panel { min-width: 0; margin-block: 20px; color: var(--dt, var(--tail-text)); }
+.app-shell .workforce-panel .panel-heading { flex-wrap: wrap; gap: 12px; }
+.app-shell .workforce-panel h3 { margin: 0 0 6px; }
+.app-shell .workforce-panel p { line-height: 1.6; max-width: 75ch; }
+.app-shell .workforce-summary, .app-shell .workforce-own, .app-shell .workforce-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.app-shell .workforce-notice { padding-block: 12px; font-weight: 500; }
+.app-shell .workforce-panel details { padding-block: 14px; border-block-start: 1px solid var(--dl, var(--tail-border)); }
+.app-shell .workforce-panel summary { cursor: pointer; font-weight: 600; min-height: 44px; padding-block: 12px; }
+.app-shell .workforce-table-scroll { overflow-x: auto; margin-block: 12px; }
+.app-shell .workforce-panel table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.app-shell .workforce-panel th, .app-shell .workforce-panel td { padding: 12px; text-align: start; vertical-align: top; border-block-end: 1px solid var(--dl, var(--tail-border)); overflow-wrap: anywhere; min-width: 125px; }
+.app-shell .workforce-panel small { display: block; margin-block-start: 6px; font-size: 14px; }
+.app-shell .workforce-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: end; gap: 16px; margin-block: 16px 28px; }
+.app-shell .workforce-form label { display: grid; gap: 8px; min-width: 0; font-size: 14px; }
+.app-shell .workforce-form input:not([type="checkbox"]), .app-shell .workforce-form select { width: 100%; min-height: 44px; font-size: 16px; }
+.app-shell .workforce-form .workforce-check { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.app-shell .workforce-check input { width: 20px; height: 20px; flex-shrink: 0; }
+.app-shell .workforce-footnote { font-size: 14px; margin-block-end: 0; }
+@media (max-width: 680px) {
+  .app-shell .workforce-form { grid-template-columns: minmax(0, 1fr); }
+  .app-shell .workforce-actions { flex-direction: column; align-items: stretch; }
+  .app-shell .workforce-own { align-items: start; flex-direction: column; }
+  .app-shell .workforce-panel .panel-heading .btn { min-height: 44px; }
+}

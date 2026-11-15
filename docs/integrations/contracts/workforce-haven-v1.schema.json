@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:haven:workforce:v1",
+  "title": "Proposed Haven Workforce availability snapshot v1",
+  "description": "Proposed contract pending partner agreement. Cross-field time and ordering constraints are documented in WORKFORCE_MANAGEMENT.md and enforced by Haven.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract", "eventId", "sourceSystem", "propertyId", "employeeId", "version", "observedAt", "validUntil", "employmentActive", "department", "attendance", "shift"],
+  "properties": {
+    "contract": { "const": "haven-workforce-v1" },
+    "eventId": { "type": "string", "format": "uuid" },
+    "sourceSystem": { "$ref": "#/$defs/identifier" },
+    "propertyId": { "$ref": "#/$defs/identifier" },
+    "employeeId": { "$ref": "#/$defs/identifier" },
+    "version": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+    "observedAt": { "type": "string", "format": "date-time" },
+    "validUntil": { "type": "string", "format": "date-time", "description": "After observedAt and at most 15 minutes later." },
+    "employmentActive": { "type": "boolean" },
+    "department": { "enum": ["manager", "front_desk", "housekeeping", "maintenance", "accounting"] },
+    "attendance": { "enum": ["clocked_in", "clocked_out", "on_break", "on_leave"] },
+    "shift": {
+      "anyOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["startsAt", "endsAt"],
+          "properties": {
+            "startsAt": { "type": "string", "format": "date-time" },
+            "endsAt": { "type": "string", "format": "date-time", "description": "After startsAt, at most 24 hours later." }
+          }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "identifier": { "type": "string", "minLength": 1, "maxLength": 120, "pattern": "\\S" }
+  }
+}
