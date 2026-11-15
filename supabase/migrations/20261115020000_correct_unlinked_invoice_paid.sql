@@ -8,18 +8,12 @@
 
 do $$
 declare v_actor uuid;
+        inv record;
 begin
   select id into v_actor from public.user_accounts where role='accounting' and active limit 1;
   if v_actor is null then
     select id into v_actor from public.user_accounts where active limit 1;
   end if;
-
-  update public.invoices
-  set paid = 0,
-      balance = amount,
-      status = 'unpaid'
-  where id in ('INV-7799', 'INV-7800', 'INV-7801')
-    and paid > 0;
 
   insert into public.audit_logs(user_id, action, entity_type, entity_id, after_data)
   select v_actor,
@@ -36,6 +30,13 @@ begin
   from public.invoices i
   where i.id in ('INV-7799', 'INV-7800', 'INV-7801')
     and i.paid > 0;
+
+  update public.invoices
+  set paid = 0,
+      balance = amount,
+      status = 'unpaid'
+  where id in ('INV-7799', 'INV-7800', 'INV-7801')
+    and paid > 0;
 
   -- Recompute linked reservation payment status through the authoritative helper.
   for inv in select id from public.invoices where id in ('INV-7799', 'INV-7800', 'INV-7801') loop

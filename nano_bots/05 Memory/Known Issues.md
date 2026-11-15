@@ -2,14 +2,18 @@
 
 ## KI-029 — Billing paid totals lack linked payment history
 
-Status: Fixed in local source (2026-11-15); P1 financial data integrity. Three live
+Status: Fixed in local migration, pending hosted application (2026-11-15); P1 financial data integrity. Three live
 invoices (`INV-7799`, `INV-7800`, `INV-7801`) had nonzero applied payments but no
 linked paid transactions in `payments`. Verified against live Transactions — no
 matching rows exist for any of the three reservations. Correction migration
 `20261115020000_correct_unlinked_invoice_paid.sql` sets `paid=0`, `balance=amount`,
 and `status='unpaid'` on each affected invoice, with audit log entries. No payment
-records were created, modified, or deleted; no folio amounts were changed. The `paid`
-field is now derived from linked payments via `sync_invoice_financials` as intended.
+records are created, modified, or deleted; no folio amounts are changed. The
+migration's loop declaration and audit order were corrected after a failed
+fresh replay. All 131 local migrations replayed, and a real-PostgreSQL fixture
+corrected three fictional invoices with three audit rows. The configured ledger
+still shows this migration pending; live invoice values have not been changed
+by this QA pass.
 See `docs/qa/billing-qa-2026-11-15.md`, BILL-01.
 
 ## KI-030 — Pending deposit disappears from Billing payment filter
@@ -30,12 +34,11 @@ fabricating an adjustment. See `docs/qa/billing-qa-2026-11-15.md`, BILL-04.
 
 ## KI-028 — Current Drawer headline briefly lags after cash activity
 
-Status: Open (2026-11-15); P2 presentation issue. In isolated browser-to-DB QA,
-a ₱250 cash refund appeared in Cash payouts while Expected cash briefly still
-showed ₱3,000 instead of ₱2,750. The headline corrected after the separate
-count-context GET completed. Stored shift/payment values and close basis were
-correct. The display prefers `CashCountPanel`'s previous context until its
-effect reloads on ledger activity. See
+Status: Fixed in source and isolated browser/database QA (2026-11-15); P2.
+The earlier ₱250 cash refund briefly paired payouts with stale ₱3,000 expected
+cash. Current Drawer now shows ₱2,750 from the refreshed ledger even while the
+count-context GET is held, and Save/Close wait for a matching context. Component
+tests also cover same-net paid movement changes and retained count inputs. See
 `docs/qa/cash-shifts-pre-push-qa-2026-11-15.md`.
 
 ## KI-027 — Guest Management requires undeployed merge/removal schema
@@ -50,12 +53,11 @@ No hosted migration/business write. See `docs/qa/guest-management-load-fix-2026-
 
 ## KI-022 — Daily report adds outgoing refunds into collections
 
-Status: Open (2026-11-06); P1 release acceptance defect.
-Real local app: collect2000, refund250cash +100.25GCash; stored collections2350.25,
-Cash received2250 instead of2000. Drawer expected/count2750 and variance0 are
-correct. `summarizeDailyActivity` aggregates all paid purposes as incoming.
-Fix shared builder/UI to separate collections/refunds/net; preserve immutable
-old snapshots. Evidence: `docs/qa/cash-delivery-ui-qa-2026-11-06.md`, CD-01.
+Status: Fixed in source and isolated browser/database QA (2026-11-15); P1.
+The real report API now returns ₱2,000 collections, ₱350.25 paid refunds and
+₱1,649.75 net for the original repro. New snapshots separate incoming and
+outgoing amounts. Immutable old snapshots remain unchanged and mixed legacy
+totals receive an explicit label. See `docs/qa/cash-shifts-pre-push-qa-2026-11-15.md`.
 
 ## KI-023 — Staff header clips smaller-screen controls
 
@@ -67,10 +69,11 @@ itself reflows. Fix shared header sizing/menu priorities. See delivery QA, CD-02
 
 ## KI-024 — Daily report display rounds centavos away
 
-Status: Open (2026-11-06); P2.
-Report's `peso` formatter uses maximumFractionDigits0: stored100.25 displays100.
-Use exact financial formatting consistently in preview/history/export.
-See `docs/qa/cash-delivery-ui-qa-2026-11-06.md`, CD-03.
+Status: Fixed in source and isolated browser/database QA (2026-11-15); P2.
+Report money now displays two decimal places in the shared preview, submitted
+snapshot, Manager view, history summary and print markup. The real Front Desk
+preview showed ₱100.25 and ₱1,649.75. See
+`docs/qa/cash-shifts-pre-push-qa-2026-11-15.md`.
 
 ## KI-025 — Closed drawer's own handover says Other cash shift
 

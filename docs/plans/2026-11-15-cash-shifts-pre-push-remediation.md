@@ -8,7 +8,7 @@
 
 **Tech stack:** Next.js 16 App Router, React, TypeScript, Supabase/PostgreSQL, Vitest, Playwright and the existing local PostgreSQL QA harness.
 
-**Status:** Draft for review. The fixes below have not been applied. Baseline and reproduction: [Cash & Shifts pre-push QA](../qa/cash-shifts-pre-push-qa-2026-11-15.md).
+**Status:** Implemented and verified locally on 2026-11-15. See the later verification section in [Cash & Shifts pre-push QA](../qa/cash-shifts-pre-push-qa-2026-11-15.md). Concurrent repository activity pushed the shared source in commit `386cd49`; the separately discovered Billing migration repair and this verification record remain local.
 
 ---
 

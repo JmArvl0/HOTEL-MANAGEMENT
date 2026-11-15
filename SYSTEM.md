@@ -92,14 +92,17 @@ prefill is separate from an existing follow-up ID. Close still creates neither
 a handover nor a daily report, and report snapshots remain immutable. Verification
 and hosted-release limits: `docs/qa/cash-findings-implementation-2026-11-05.md`.
 
-**Cash delivery QA (2026-11-06):** Actual local Next.js/PostgREST/PostgreSQL
-browser flows verify refund/drawer linkage, durable count drafts, close/review,
-handover receipt/resolution and explicit report submission. Release acceptance
-remains open: daily-report collections incorrectly add outgoing refunds (KI-022),
-and smaller-screen header controls clip (KI-023); report centavos, a handover
-caption and modal touch targets also need correction. The linked ledger still
-omits `20261105010000` (126 local / 112 remote). No hosted write or release.
-See `docs/qa/cash-delivery-ui-qa-2026-11-06.md` for evidence and exact limits.
+While the count context refreshes after paid cash activity, Current Drawer
+displays expected cash from the latest ledger. Save and Close require a count
+context for that exact paid-movement and collected-value fingerprint; a changed
+count basis requires a fresh physical count.
+
+**Cash delivery QA (2026-11-06, historical):** That run found refund/report,
+centavo and smaller-screen issues; see
+`docs/qa/cash-delivery-ui-qa-2026-11-06.md`. On 2026-11-15, the refund/report
+and centavo fixes passed isolated browser/database QA and the configured
+migration ledger showed `20261105010000` applied. The shared-header, handover
+caption and touch-target findings remain tracked separately in Known Issues.
 
 A **single-property hotel operations system** with a ~48-room sample property model
 (working brand: **Haven**). The user confirmed on 2026-11-06 that Haven is fictional
@@ -1607,8 +1610,12 @@ Legitimate document downloads — receipts/folios via `generateDocument`, and th
 - **Generation.** `lib/front-desk-reports.buildDailyReport(date)` aggregates a hotel day (exact UTC
   window `[dateT00:00+08:00, +24h)`, matching the Asia/Manila policy) across reservations
   (created/by-source, arrivals, departures, cancellations + no-shows from audit actions), guest
-  requests (opened, escalated, open by department), collections (settled payments, count/total/by
-  purpose — front-desk scope only), **room-care turnover** (completed housekeeping tasks: count, by
+  requests (opened, escalated, open by department), incoming collections (paid non-refund payments,
+  count/total/by purpose and method), paid refund outflows (count/total/by method), and net receipts
+  (collections minus refunds). Cash collections and cash refunds are shown separately; external
+  refunds do not change drawer cash. New snapshots retain centavos. Submitted older snapshots stay
+  immutable; if a legacy snapshot mixed refunds into collections, the UI labels its stored total
+  as legacy settled payments and does not invent a corrected amount. **Room-care turnover** (completed housekeeping tasks: count, by
   type, awaiting inspection, average turnaround minutes — aggregated from the authoritative
   `housekeeping_tasks` table, not a duplicate), rooms, transportation, and manager approvals. The
   default date is the hotel's local today.

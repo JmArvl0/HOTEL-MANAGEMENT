@@ -1,5 +1,24 @@
 # Current Status
 
+## Cash & Shifts remediation (2026-11-15, verified locally)
+
+- Daily report previews now separate paid collections, refund outflows and net
+  receipts, retain centavos, and label immutable mixed legacy snapshots.
+  Original repro passed through the real report API and UI: ₱2,000 received,
+  ₱350.25 refunded, ₱1,649.75 net.
+- Current Drawer shows the latest ledger amount during count-context refresh;
+  Save/Close require a matching activity basis. Both cash roles passed isolated
+  browser/database QA at 1440/390/320px, with drawer writes and post-close
+  links read back. SQL checks 12/12, full Vitest 2,451/2,451, isolated Webpack
+  build passed. KI-022, KI-024 and KI-028 are fixed locally.
+- A concurrent Billing session committed and pushed the shared source as
+  `386cd49`. The pending Billing migration `20261115020000` failed a fresh
+  replay; its loop declaration and audit order are repaired locally, with all
+  131 migrations replaying successfully. The configured ledger was read-only:
+  cash migration `20261105010000` applied, Billing correction pending. No
+  further push or hosted business write in this pass. See
+  `docs/qa/cash-shifts-pre-push-qa-2026-11-15.md`.
+
 ## Billing QA (2026-11-15, local)
 
 - Front Desk desktop/390px QA validated the integrated Billing navigation,

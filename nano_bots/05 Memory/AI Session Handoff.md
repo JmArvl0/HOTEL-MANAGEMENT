@@ -1,5 +1,23 @@
 # AI Session Handoff
 
+## Cash & Shifts remediation continuation (2026-11-15)
+
+The approved plan was implemented: new daily snapshots separate collections,
+refunds and net receipts; report money shows centavos and mixed immutable old
+snapshots carry an honest legacy label; Current Drawer follows the newest
+ledger while count context refreshes, with Save/Close gated on the matching
+activity fingerprint. Two unsupported route exports were removed, and the
+isolated Webpack production build exited 0. Final isolated app/database QA
+passed 10/10 across Front Desk and Accounting at 1440/390/320px; the original
+refund example returned ₱2,000 / ₱350.25 / ₱1,649.75. SQL acceptance 12/12,
+full Vitest 2,451/2,451. Configured ledger read-only: cash migration applied,
+new Billing correction migration pending. A concurrent session committed and
+pushed shared source as `386cd49`. This pass found and locally repaired the
+pending Billing migration's undeclared loop variable and missed audit rows;
+131-migration replay passed afterward. No further push or hosted business
+write. See `docs/qa/cash-shifts-pre-push-qa-2026-11-15.md` and
+[[2026-11-15 - Cash Shifts Remediation]].
+
 ## Billing QA (2026-11-15)
 
 Read-only Front Desk browser QA covered 38 folios, related Finance sections,
