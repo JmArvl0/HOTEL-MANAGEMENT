@@ -64,8 +64,8 @@ describe("migration 20260928010000 contract", () => {
     expect(migration).toContain("to service_role");
   });
   it("validates the new rates at the route boundary", () => {
-    expect(policyRoute).toContain("vatRateBp:z.coerce.number().int().min(0).max(10000)");
-    expect(policyRoute).toContain("serviceChargeBp:z.coerce.number().int().min(0).max(10000)");
+    expect(policyRoute).toContain("vatRateBp:integerInput(0, 10000)");
+    expect(policyRoute).toContain("serviceChargeBp:integerInput(0, 10000)");
     expect(policyRoute).toContain("p_vat_rate_bp:v.vatRateBp,p_service_charge_bp:v.serviceChargeBp");
   });
 });

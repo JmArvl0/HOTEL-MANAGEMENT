@@ -67,6 +67,22 @@ const DOCUMENT_FIELDS = "id,document_number,document_type,reservation_id,payment
 
 const sum = (rows: Row[], key: string) => fromCentavos(rows.reduce((total, row) => total + toCentavos(Number(row[key] || 0)), 0));
 
+export function summarizeCollections(payments: Row[]) {
+  let collected = 0;
+  let refunded = 0;
+  for (const payment of payments) {
+    if (payment.status !== "paid") continue;
+    const amount = toCentavos(Number(payment.amount || 0));
+    if (payment.purpose === "refund") refunded += amount;
+    else collected += amount;
+  }
+  return {
+    grossCollected: fromCentavos(collected),
+    refundsIssued: fromCentavos(refunded),
+    netCollections: fromCentavos(collected - refunded),
+  };
+}
+
 export async function getAccountingLedger(role: Role): Promise<AccountingLedger | null> {
   // Cash-handling staff (front_desk) get the ledger for their sections; the refund
   // queue, refund attempts, and payment reconciliations stay Accounting-only.
@@ -97,13 +113,9 @@ export async function getAccountingLedger(role: Role): Promise<AccountingLedger 
     const amount = row.purpose === "refund" ? -toCentavos(Number(row.amount || 0)) : toCentavos(Number(row.amount || 0));
     collectedByShift.set(key, (collectedByShift.get(key) ?? 0) + amount);
   }
-  const settled = transactions.filter((row) => row.status === "paid");
-  const gross = settled.filter((row) => row.purpose !== "refund");
-  const back = settled.filter((row) => row.purpose === "refund");
   const closedShifts = cashShifts.filter((shift) => shift.status === "closed" || shift.status === "reconciled");
   const metrics: AccountingMetrics = {
-    grossCollected: sum(gross, "amount"), refundsIssued: sum(back, "amount"),
-    netRevenue: fromCentavos(Math.max(toCentavos(sum(gross, "amount")) - toCentavos(sum(back, "amount")), 0)),
+    ...summarizeCollections(transactions),
     outstandingBalance: sum(invoices, "balance"), folioCredit: sum(invoices, "credit_balance"),
     pendingRefunds: refunds.filter((row) => row.status === "pending").length,
     failedRefunds: refunds.filter((row) => row.status === "failed").length,
