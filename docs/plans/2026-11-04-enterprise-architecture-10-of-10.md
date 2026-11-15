@@ -12,6 +12,18 @@
 
 **Status:** PLAN CREATED; Tasks 1–25 are not executed by this document. This planning request does not deploy code, activate policies, grant partner access or transfer existing ownership. Earlier implementation/QA evidence remains credited with its original scope and environment.
 
+**Execution update, 4 November 2026:** Tasks 1, 4 and 5 have local verification.
+Task 2's ownership register uses accountable/approver roles while names are pending;
+authorized role sign-off remains pending. Task 3's workflow document and six-partner
+readiness checklist are prepared for role review, with partner acceptance pending.
+Task 7's manual-payment transaction checks pass on isolated
+PostgreSQL, including final-room races, stock, receipt/refund rollback and
+day-close invariants. Tasks 8–11 have completed local review, scoped metric repairs,
+real-SQL and browser verification. Role/partner policy acceptance remains separate.
+Task 6 remains deferred at the user's request. Hosted rollout
+is stopped. See `docs/qa/enterprise-architecture-acceptance-2026-11-04.md` for
+exact scope, commands and evidence. This update does not complete other tasks.
+
 ---
 
 ## 1. What 10/10 means
@@ -142,7 +154,7 @@ Migrations: draft unnumbered SQL under `docs/sql/` if needed; allocate a new add
 
 **Files:** Modify `docs/ENTERPRISE_BOUNDARIES.md`; record results in the acceptance register. Update `Decisions.md` only for decisions actually accepted. No runtime change.
 
-1. Add an acceptance column to each ownership row: proposed/accepted, accountable role/person, date and evidence reference.
+1. Add sign-off fields to each ownership row: accountable/approver role, Pending sign-off/Accepted, date and evidence reference. Use roles while names are pending; an authorized representative must confirm the reviewed scope before Accepted is recorded.
 2. For each shared record list the final owner, originating requester, permitted writer, immutable ID, copied fields and correction authority. Split combined facts such as “hotel payment” vs “Finance journal”.
 3. Assign document bytes to shared storage but record access/retention decisions to the source domain; assign principal authentication separately from employee master and Hotel permissions.
 4. Record retained local authority and effective handoff condition for stock/POs, maintenance and transport. No removal or simultaneous dual authority.
@@ -163,6 +175,13 @@ Migrations: draft unnumbered SQL under `docs/sql/` if needed; allocate a new add
 5. Give every unavailable API a controlled local/manual alternative and adoption trigger. No implementation of the other teams' work-order, HR or procurement systems inside Haven.
 
 **Validation:** G1 has complete process definitions and accepted local boundaries. Partner inputs may remain pending; their runtime tasks stay conditional. The proposed event names are not advertised as active integrations.
+
+**Preparation result, 4 November 2026:** [Enterprise contracts](../integrations/ENTERPRISE_CONTRACTS.md)
+now records the proposed workflows, clock rules, controlled fallbacks, adoption
+triggers, six-partner readiness checklist and 15 future acceptance scenarios.
+Content checks are recorded in the QA register. All partner checklist entries
+and authorized role confirmation remain Pending. G1 is not yet accepted and no
+runtime adapter or hosted release is included.
 
 ## Phase 2 — Stabilize existing Hotel behavior
 
@@ -271,6 +290,11 @@ it("reads the business event type from the provider envelope", () => {
 
 **Validation:** Seven areas map to real behavior; no workflow disappears and no additional HR/SCM/GL authority is implied. If TSX changed, run its existing component/navigation tests, touched-file ESLint and typecheck; verify the changed text in a browser.
 
+**Local result, 4 November 2026:** Completed screen/source/authority/role map in
+`docs/ENTERPRISE_BOUNDARIES.md`, preserving official aliases and navigation.
+Runtime metric gaps found during Tasks 9/11 were repaired and tested. No new
+module screen or external authority was introduced. Evidence in the QA register.
+
 ### Task 9: Establish staff identity and Hotel permission boundaries
 
 **Owner:** Hotel Admin/security owner; HR lead supplies future eligibility. **Depends on:** 2, 8; external synchronization remains Task 19.
@@ -284,6 +308,13 @@ it("reads the business event type from the provider envelope", () => {
 5. Define temporary local provisioning while HR is absent, emergency disable ownership and maximum acceptable eligibility staleness for a future adapter. Use configurable/approved policy, not an invented indefinite grace period.
 
 **Validation:** `npx vitest run lib/auth-authorize-policy.test.ts lib/security-policy.test.ts lib/staff-duty.test.ts lib/guest-staff-conversion.test.ts lib/guest-staff-conversion-with-history.test.ts` passes. Signed-in disable/reload and forbidden financial action are verified in the intended isolated browser environment. No payroll/attendance capability is introduced.
+
+**Local result, 4 November 2026:** Local identity/provisioning boundaries documented.
+Existing-session disable, assignment refusal, local grants and protected history
+conversion pass real callback/SQL/HTTP checks. Browser disable/reload redirects to
+login, and Housekeeping is refused Finance access. Fixed multiple-work-item
+undercount in Staff & Duty. Future HR mapping/staleness/outage acceptance remains
+Pending, so no HR eligibility adapter is activated.
 
 ### Task 10: Establish one stock authority and a safe SCM transition
 
@@ -299,6 +330,12 @@ it("reads the business event type from the provider envelope", () => {
 
 **Validation:** Existing real-stock cases from Task 7 pass; cutover worksheet has totals and reversal/fallback ownership. Use local authority until actual SCM acceptance. A documented mapping does not claim an SCM connection.
 
+**Local result, 4 November 2026:** Installed stock writers traced, retained local
+authority recorded, SCM opening/cutover/outage worksheet prepared. Real SQL passes
+retry, shortage, stale count, failed consumption, stock races and partial receipt.
+Browser issue/shortage saved one movement and preserved the expected balance.
+SCM mapping/totals/operating limits and transfer remain Pending under Task 20.
+
 ### Task 11: Separate Facilities repair from Hotel readiness
 
 **Owner:** Hotel room operations + Facilities lead. **Depends on:** 2–3, 7; external adapter is Task 21.
@@ -312,6 +349,14 @@ it("reads the business event type from the provider envelope", () => {
 5. Record existing local work-order authority and open incident mapping needed for Facilities handoff. Vehicle maintenance remains Fleet, not a second Facilities ledger.
 
 **Validation:** `npx vitest run lib/maintenance-operations.test.ts lib/housekeeping-workflow.test.ts lib/housekeeping-action-routes.test.ts lib/hotel-operations-route.test.ts` plus the relevant real-SQL incident/inspection/release scenario. No new preventive-assets module is needed solely for Hotel scope.
+
+**Local result, 4 November 2026:** Independent room dimensions and local repair
+authority documented. SQL verifies local blocking, occupied-room preservation,
+two repairs, separate discrepancy/inspection, linked recurring fault and
+preventive work preserving sold assignments. Browser exercised repair → cleanup
+→ inspection → clean/sellable. Corrected false-zero department dashboards and
+active distinct-room/severity counters. No new migration. Versioned Facilities
+callbacks and external ownership remain conditional on Task 21.
 
 ### Task 12: Govern private documents and retention without building another archive
 
@@ -472,6 +517,41 @@ These tasks are independent after their listed prerequisites; execute one at a t
 
 ### Task 22: Connect Fleet request/dispatch/fare without duplicate billing
 
+**Latest local follow-up,13 November:** Fleet accepted Bitwarden Send. Haven now
+implements three distinct purpose keys and durable tracking withdrawal with
+same-version lost-response retry, explicit409 review and initial-version lookup.
+Migration20261113020000 is unapplied. Fleet SQL73, full2522/241, focused114/5,
+build/typecheck/lint and local Edge/off checks pass. Scoped Supabase dry-run lists
+four Fleet files only. Hosted release, credentials/image origin, agreed test window
+and real joint acceptance remain; Task22 is not complete.
+
+
+**13 November local alignment:** Fleet supplied its exact local schema and complete
+sample. Haven now uses flat guest fields, HAVEN wrapped ACK/plain snapshots,
+strict photo/version/assignment signing and explicit durable Front Desk tracking
+renewal. Local SQL/browser/full-suite/build checks pass. Connection stays off;
+new migration20261113010000 is unapplied. This does not complete Task22: real hosting,
+approved origins, secure credentials, deployed partner revision, revocation contract,
+read/update/cancel/recovery, approved fare adapter and joint QA/sign-offs remain.
+Current contract/manual checks: `docs/integrations/HAVEN_FLEET_PREPARATION.md`.
+
+
+**5 November local preparation:** User authorized Haven-side preparation while
+Fleet changes are pending. Added ride-specific passenger contact/private photo,
+explicit sharing, per-leg mappings and durable create delivery/callback records.
+Connection defaults off; only an opt-in staging candidate exists. Partner statuses
+remain advisory and cannot post a fare or advance the local state machine.
+Real PostgreSQL and synthetic-partner browser QA passed. See
+`docs/integrations/HAVEN_FLEET_PREPARATION.md` for the exact candidate and limits.
+Follow-up adds optional-photo/contact autofill, ride preferences/luggage/notes,
+and current Fleet plate plus approved, assignment-bound Track/Share links.
+Local SQL and Edge verify projection/reassignment/expiry/revocation handling;
+Fleet still owns actual GPS/public-page token revocation. Send the updated
+`docs/integrations/FLEET_TEAM_RIDE_SAFETY_INSTRUCTIONS.md` to the partner team.
+**Task remains in progress:** partner-approved contract/sandbox, machine read and
+update/cancel, recovery/automatic reconciliation, fare/correction handling and
+operational cutover/sign-off are still pending.
+
 **Owner:** Fleet/provider owner + Hotel guest-service/Billing adapter owner. **Depends on:** 3, 7, accepted Fleet contract/sandbox and current fare policy mapping; delivery from 18 if required.
 
 **Files:** Conditional create `lib/fleet-integration.ts`, `lib/fleet-integration.test.ts`, `app/api/integrations/fleet/events/route.ts`; minimally extend `lib/transportation.ts`, current transportation transition routes, `components/manager/transportation-panel.tsx` and related guest status views if needed.
@@ -583,5 +663,22 @@ No hard requirement to implement optional groups, OTA, digital locks, enterprise
 Start with **1 → 2–3 → 4–7 → 8–14**. Begin Task 23's runbook as soon as owners are defined. Then **15–18** for ready Finance/Restaurant counterparts; **19–22** in actual counterparty-readiness order; finish recovery, release and rescore through **23–25**. One unavailable partner does not halt independent work or justify creating its ERP inside Hotel.
 
 For each completed task record: task ID, exact changed files/commit, fresh checks, real browser/SQL/partner evidence, accepted policy/cutover status and unresolved owner/dependency. Update this plan's status only with verified outcomes. Preserve existing audit and memory work; session notes remain small and link the accumulating evidence.
+
+### Tasks 12–14 checkpoint
+
+| Task | Verified local status | Pending acceptance |
+|---|---|---|
+| 12 | Private document register and recovery worksheet. Proof/ID link authorization and access audit verified with real app/DB and a local object fixture. Customer receipts render stored issue details. | Approved retention, legal-hold operations, actual provider and recovery rehearsal. |
+| 13 | Operational collections totals and labels fixed. Closed-day source totals and owner/guest reports checked. Finance metric and fiscal definitions documented. | Actual Finance approval of fiscal issuer/tax policy, deposit/AR recognition and proposed POS-origin sales model. |
+| 14 | Scoped role journeys verified on desktop and 390px, with fresh SQL and explicitly reused browser evidence where appropriate. | G3 operational role sign-off, approved policy effective dates and remaining release-device checks. |
+
+Evidence, scope and exact manual checks are in the
+[acceptance register](../qa/enterprise-architecture-acceptance-2026-11-04.md#tasks-1214-local-acceptance).
+PayMongo remains deferred and the hosted release remains on hold.
+
+**Task 15 download checkpoint.** Accounting can download one closed-day review
+package as CSV, Excel or PDF. It uses immutable night-audit totals and a stable
+versioned batch ID. Line-level Finance mapping, approved import and actual
+acknowledgment remain pending. See the acceptance register for verification.
 
 **Plan creation verification:** This document is planning only. File references, numbered tasks, dependencies, phase gates and ownership criteria are checked when delivered. No new application test/build/SQL/browser/provider/deployment result is claimed from creating the plan; the audit's earlier results above remain historical checkpoints.
