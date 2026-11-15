@@ -59,6 +59,7 @@ function table(name: string) {
   return chain;
 }
 
+vi.mock("@/lib/auth-request-budget", () => ({ authRequestBudget: vi.fn(async () => "allowed") }));
 vi.mock("@/lib/supabase", () => ({
   supabase: { from: (name: string) => table(name), rpc: vi.fn(async () => ({ data: null, error: null })) },
 }));
@@ -81,6 +82,10 @@ const creds = { email: "ada@example.com", password: "correct horse" };
 
 beforeEach(() => {
   state.updates.length = 0;
+  state.userRow = {
+    id: "u-1", email: "ada@example.com", name: "Ada", role: "admin",
+    active: true, auth_version: 3, recovery_required: false,
+  };
   state.policyError = null;
   state.policyRow = {
     persistent_session_enabled: false, idle_timeout_minutes: 30,
@@ -122,5 +127,39 @@ describe("authorize() when the policy cannot be read", () => {
   it("fails closed on a query error", async () => {
     state.policyError = { code: "42P01", message: "relation does not exist" };
     await expect(authorize(creds)).resolves.toBeNull();
+  });
+});
+
+describe("existing staff session revalidation", () => {
+  type Callback = NonNullable<NonNullable<typeof authOptions.callbacks>["jwt"]>;
+  const revalidate = (update?: Record<string, unknown>) => authOptions.callbacks!.jwt!({
+    token: { sub: "u-1", role: "admin", authVersion: 3, loginIssuedAt: Math.floor(Date.now() / 1000) },
+    ...(update ? { trigger: "update", session: update } : {}),
+  } as Parameters<Callback>[0]);
+
+  it.each([
+    { active: false },
+    { recovery_required: true },
+    { auth_version: 4 },
+  ])("neutralizes a previously signed-in account after %j", async (change) => {
+    state.userRow = { ...state.userRow, ...change };
+    expect(await revalidate()).toMatchObject({ disabled: true, role: "guest" });
+  });
+
+  it("neutralizes a removed account", async () => {
+    state.userRow = null;
+    expect(await revalidate()).toMatchObject({ disabled: true, role: "guest" });
+  });
+
+  it("uses the current local role instead of a stale or client-requested grant", async () => {
+    state.userRow = { ...state.userRow, role: "housekeeping" };
+    expect(await revalidate({ role: "accounting", active: true, authVersion: 3 }))
+      .toMatchObject({ disabled: false, role: "housekeeping" });
+  });
+
+  it("cannot reactivate a disabled account through a client session update", async () => {
+    state.userRow = { ...state.userRow, active: false };
+    expect(await revalidate({ disabled: false, role: "admin", active: true }))
+      .toMatchObject({ disabled: true, role: "guest" });
   });
 });

@@ -163,8 +163,8 @@ describe("session enforcement decisions (admin login-lockout regression)", () =>
   it("a query error fails open — it proves nothing about the account", () => {
     // The 2026-10-09 lockout: last_seen_at did not exist yet, every select
     // errored, and the callback neutralized every session. Errors allow.
-    expect(resolveSessionEnforcement({ queryError: true, hasRow: false, verdict: "active" })).toBe("allow");
-    expect(resolveSessionEnforcement({ queryError: true, hasRow: true, verdict: "idle" })).toBe("allow");
+    expect(resolveSessionEnforcement({ queryError: true, hasRow: false, verdict: "active" })).toBe("neutralize");
+    expect(resolveSessionEnforcement({ queryError: true, hasRow: true, verdict: "idle" })).toBe("neutralize");
   });
 
   it("a cleanly absent row neutralizes (deleted account, forged id)", () => {
@@ -316,10 +316,10 @@ describe("enforcement surface contracts", () => {
     }
   });
 
-  it("the callback routes through the error-aware decision (never blank id on error)", () => {
+  it("the callback checks per-session activity and rejects an unreadable authority", () => {
     const auth = read("lib/auth.ts");
-    expect(auth).toMatch(/resolveSessionEnforcement/);
-    expect(auth).toMatch(/queryError/);
+    expect(auth).toContain('from("auth_session_activity")');
+    expect(auth).toContain('if (seen.error || !policy) throw');
     expect(auth).not.toMatch(/if \(!seen\)/);
   });
 

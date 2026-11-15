@@ -16,7 +16,7 @@ describe("authenticated session countdown contract", () => {
     const route = read(path);
     expect(route).toContain("export async function GET");
     expect(route).toContain("export async function POST");
-    expect(route).toContain("touchSecuritySeen");
+    expect(route).toContain("auth_session_activity");
   });
 
   it("mounts the shared guard in customer, operational, admin, and owner header groups", () => {

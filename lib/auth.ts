@@ -1,11 +1,12 @@
+import { authRequestBudget } from "@/lib/auth-request-budget";
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { env } from "@/lib/env";
 import { supabase } from "@/lib/supabase";
 import type { Role } from "@/lib/types";
-import { evaluateSessionExpiry, getSecurityPolicy, loadSecurityPolicyFresh, resolveSessionEnforcement, sessionExpiryDeadline, touchSecuritySeen } from "@/lib/security-policy";
+import { evaluateSessionExpiry, loadSecurityPolicyFresh, sessionExpiryDeadline } from "@/lib/security-policy";
 import { generateOtpCode, otpCodeVerifier, otpIssuable } from "@/lib/auth-otp";
 import { sendOtpEmail, smtpConfigured } from "@/lib/otp-transport";
 import { otpTtlMinutes } from "@/lib/security-policy";
@@ -17,18 +18,6 @@ import { otpTtlMinutes } from "@/lib/security-policy";
 export const SESSION_MAX_AGE = 24 * 60 * 60 + 300;
 export const sessionCookieName = () => (env.isProduction ? "__Secure-haven.session-token" : "haven.session-token");
 export const sessionCookieOptions = () => ({ httpOnly: true as const, sameSite: "lax" as const, path: "/", secure: env.isProduction });
-
-/** Failed-password lockout: DB-backed, per account, no in-memory counters. */
-const LOGIN_FAIL_WINDOW_MINUTES = 15;
-const LOGIN_FAIL_LIMIT = 10;
-
-async function loginFailuresRecent(email: string): Promise<number> {
-  if (!supabase) return 0;
-  const since = new Date(Date.now() - LOGIN_FAIL_WINDOW_MINUTES * 60_000).toISOString();
-  const { count } = await supabase.from("audit_logs").select("id", { count: "exact", head: true })
-    .eq("action", "auth_login_failed").eq("entity_id", email).gte("created_at", since);
-  return count ?? 0;
-}
 
 async function recordLoginFailure(email: string) {
   if (!supabase) return;
@@ -45,10 +34,10 @@ export const authOptions: NextAuthOptions = {
   providers: [CredentialsProvider({
     name: "Credentials",
     credentials: { email: { label: "Email", type: "email" }, password: { label: "Password", type: "password" }, remember: { label: "Remember me", type: "text" } },
-    async authorize(credentials) {
+    async authorize(credentials, request) {
       if (!credentials?.email || !credentials.password || !supabase) return null;
       const email = credentials.email.trim().toLowerCase();
-      if (await loginFailuresRecent(email) >= LOGIN_FAIL_LIMIT) return null;
+      if (email.length > 200 || await authRequestBudget("login", email, request?.headers) !== "allowed") return null;
       const { data } = await supabase.from("user_accounts").select("id,email,name,role,password_hash,active,auth_version,recovery_required").eq("email", email).maybeSingle();
       if (!data?.active || data.recovery_required || !(await bcrypt.compare(credentials.password, data.password_hash))) {
         await recordLoginFailure(email);
@@ -90,7 +79,7 @@ export const authOptions: NextAuthOptions = {
         // A fresh code is cooling down: fall through to the still-valid
         // challenge already in flight instead of failing the login.
         const { data: active } = await supabase.from("auth_otp_challenges")
-          .select("id,expires_at,resend_available_at").eq("user_id", data.id)
+          .select("id,expires_at,resend_available_at").eq("user_id", data.id).eq("purpose", "login")
           .is("consumed_at", null).is("invalidated_at", null).gt("expires_at", new Date().toISOString())
           .order("created_at", { ascending: false }).limit(1).maybeSingle();
         if (!active) return null;
@@ -108,6 +97,7 @@ export const authOptions: NextAuthOptions = {
       if (typeof token.loginIssuedAt !== "number") token.loginIssuedAt = typeof token.iat === "number" ? token.iat : Math.floor(Date.now() / 1000);
       if (user) {
         token.loginIssuedAt = Math.floor(Date.now() / 1000);
+        token.activityId = randomUUID();
         const signedIn=user as typeof user&{role:Role;authVersion:number;persistent?:boolean;otpPending?:boolean;challengeId?:string};
         if (signedIn.otpPending === true && signedIn.challengeId) {
           // Stage-1 login OTP token: deliberately carries NO role and NO user
@@ -123,6 +113,7 @@ export const authOptions: NextAuthOptions = {
         if (!data?.active || data.recovery_required || token.authVersion !== databaseVersion) { token.disabled=true;token.role="guest"; }
         else { token.disabled=false;token.role=data.role as Role; }
       }
+      if (!token.activityId && token.sub) token.activityId = createHash("sha256").update(`${token.sub}:${token.jti ?? token.loginIssuedAt}`).digest("hex");
       if (trigger === "update" && typeof session?.name === "string") token.name = session.name;
       if (typeof token.loginIssuedAt === "number" && Date.now() / 1000 - token.loginIssuedAt > SESSION_MAX_AGE) {
         token.disabled = true;
@@ -139,38 +130,20 @@ export const authOptions: NextAuthOptions = {
       // the same verdict without touching any route.
       if (session.user && !session.user.disabled && session.user.id && supabase) {
         try {
+          if (!token.activityId || issuedAtSec == null) throw new Error("Session activity unavailable");
           const [policy, seen] = await Promise.all([
-            getSecurityPolicy(),
-            supabase.from("user_accounts").select("last_seen_at").eq("id", session.user.id).maybeSingle().then((row) => ({ data: row.data, queryError: row.error != null })),
+            loadSecurityPolicyFresh(),
+            supabase.from("auth_session_activity").select("last_seen_at")
+              .eq("session_id", token.activityId).eq("user_id", session.user.id).maybeSingle(),
           ]);
-          const lastSeen = seen.data && typeof seen.data.last_seen_at === "string" ? seen.data.last_seen_at : null;
-          const decision = resolveSessionEnforcement({
-            queryError: seen.queryError,
-            hasRow: seen.data != null,
-            verdict: evaluateSessionExpiry({
-              issuedAtSec,
-              lastSeenAt: lastSeen,
-              persistent: token.persistent === true,
-              policy,
-            }),
-          });
-          if (decision === "allow") {
-            // Session reads and dashboard polling are not user activity. Only
-            // grandfather a pre-policy account here; subsequent extensions
-            // come from the explicit meaningful-activity endpoint.
-            const effectiveLastSeen = !seen.queryError && lastSeen == null
-              ? await touchSecuritySeen(session.user.id, null)
-              : lastSeen;
-            if (!seen.queryError) session.sessionExpiresAt = sessionExpiryDeadline({
-              issuedAtSec,
-              lastSeenAt: effectiveLastSeen,
-              persistent: token.persistent === true,
-              policy,
-            });
-          }
-          else { session.user.disabled=true;session.user.role="guest";session.user.id=""; }
+          if (seen.error || !policy) throw new Error("Session activity unavailable");
+          const lastSeenAt = seen.data?.last_seen_at ?? new Date(issuedAtSec * 1000).toISOString();
+          const basis = { issuedAtSec, lastSeenAt, persistent: token.persistent === true, policy };
+          if (evaluateSessionExpiry(basis) !== "active") throw new Error("Session expired");
+          session.activityId = token.activityId;
+          session.sessionExpiresAt = sessionExpiryDeadline(basis);
         } catch {
-          // Fail-open: a probe failure must never lock every user out at once.
+          session.user.disabled = true; session.user.role = "guest"; session.user.id = "";
         }
       }
       return session;

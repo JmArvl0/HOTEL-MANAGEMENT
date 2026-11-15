@@ -116,6 +116,7 @@ for (const account of targets) {
   }
 
   // Cost 12 matches app/api/register/route.ts so staff and guest hashes are comparable.
+  if (Buffer.byteLength(password, "utf8") > 72) throw new Error("Use at most 72 UTF-8 bytes for a password.");
   const passwordHash = await bcrypt.hash(password, 12);
   const { error } = await supabase
     .from("user_accounts")

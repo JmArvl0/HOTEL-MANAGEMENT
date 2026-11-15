@@ -190,3 +190,7 @@
  .haven-vault--booking .haven-vault__mobile-stay .booking-account-context>h2 { margin:0; font-size:18px; }
  .haven-vault--booking .haven-vault__mobile-stay .booking-account-context>p { margin:6px 0 0; font-size:13px; }
 }
+
+@media (max-width: 480px) {
+  .haven-vault .haven-vault__row { grid-template-columns: minmax(0, 1fr); }
+}
