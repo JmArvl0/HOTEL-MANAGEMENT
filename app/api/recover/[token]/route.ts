@@ -1,5 +1,9 @@
+import { publicJson } from "@/lib/server-errors";
+import { validationBody } from "@/lib/errors";
+import { isDecodableEvidenceImage } from "@/lib/location-image";
+import { bcryptPassword } from "@/lib/input-validation";
 import { createHash } from "node:crypto";
-import { NextResponse } from "next/server";
+
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { supabase } from "@/lib/supabase";
@@ -7,10 +11,10 @@ import { sniffProofKind } from "@/lib/payment-proof";
 
 const SELFIE_PATH = /^recovery-selfies\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp)$/;
 const schema = z.object({
-  password: z.string().min(12).max(128),
+  password: bcryptPassword(12),
   confirmPassword: z.string().min(12).max(128),
   selfiePath: z.string().trim().regex(SELFIE_PATH, "An identity selfie is required."),
-}).refine((v) => v.password === v.confirmPassword, { message: "Passwords do not match.", path: ["confirmPassword"] });
+}).refine((v) => v.password === v.confirmPassword, { message: "Please enter the same password in both fields.", path: ["confirmPassword"] });
 
 /**
  * Recovery completion with a blocking identity-selfie proof. The staged
@@ -19,16 +23,16 @@ const schema = z.object({
  * upload alone never completes a reset.
  */
 export async function POST(request: Request, { params }: { params: Promise<{ token: string }> }) {
-  if (!supabase) return NextResponse.json({ error: "Recovery is unavailable." }, { status: 503 });
+  if (!supabase) return publicJson({ error: "Recovery is unavailable." }, { status: 503 });
   const p = schema.safeParse(await request.json().catch(() => null));
-  if (!p.success) return NextResponse.json({ error: p.error.issues[0]?.message ?? "Invalid password." }, { status: 400 });
+  if (!p.success) return publicJson(validationBody(p.error, { error: p.error.issues[0]?.message ?? "Please check the password requirements." }), { status: 400 });
   const token = (await params).token;
   const hash = createHash("sha256").update(token).digest("hex");
 
   const { data: object, error: objectError } = await supabase.storage.from("recovery-selfies").download(p.data.selfiePath);
-  if (objectError || !object) return NextResponse.json({ error: "The identity selfie could not be verified. Upload it again." }, { status: 409 });
+  if (objectError || !object) return publicJson({ error: "The identity selfie could not be verified. Upload it again." }, { status: 409 });
   const bytes = new Uint8Array(await object.arrayBuffer());
-  if (!sniffProofKind(bytes)) return NextResponse.json({ error: "The identity selfie could not be verified. Upload it again." }, { status: 409 });
+  if (!sniffProofKind(bytes) || !(await isDecodableEvidenceImage(bytes))) return publicJson({ error: "The identity selfie could not be verified. Upload it again." }, { status: 409 });
 
   const passwordHash = await bcrypt.hash(p.data.password, 12);
   const { error } = await supabase.rpc("complete_account_recovery", {
@@ -36,13 +40,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   });
   if (error) {
     if (error.message.includes("SELFIE_REQUIRED"))
-      return NextResponse.json({ error: "An identity selfie is required before the new password is accepted." }, { status: 409 });
+      return publicJson({ error: "An identity selfie is required before the new password is accepted." }, { status: 409 });
     if (error.message.includes("RECOVERY_ACCOUNT_INACTIVE"))
-      return NextResponse.json({ error: "This account needs administrator assistance before it can be activated." }, { status: 403 });
+      return publicJson({ error: "This account needs administrator assistance before it can be activated." }, { status: 403 });
     const { data: tok } = await supabase.from("account_recovery_tokens").select("id").eq("token_hash", hash).maybeSingle();
     const tokenId = (tok as { id: string } | null)?.id;
     if (tokenId) await supabase.from("password_reset_logs").update({ status: "failed" }).eq("token_id", tokenId).neq("status", "completed");
-    return NextResponse.json({ error: "This recovery link is invalid or expired." }, { status: 409 });
+    return publicJson({ error: "This recovery link is invalid or expired." }, { status: 409 });
   }
-  return NextResponse.json({ ok: true });
+  return publicJson({ ok: true });
 }

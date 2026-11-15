@@ -1,5 +1,7 @@
 "use client";
 
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { signOut } from "next-auth/react";
@@ -63,8 +65,8 @@ export function SessionExpiryGuard({ expiresAt }: { expiresAt?: string | null })
 
   useEffect(() => {
     let live = true;
-    fetch("/api/security-policy/public", { cache: "no-store" })
-      .then((response) => (response.ok ? response.json() : null))
+    fetchPublic("/api/security-policy/public", { cache: "no-store" })
+      .then((response) => (response.ok ? readResponse(response) : null))
       .then((body) => { if (live) setCookieOn(body?.data?.cookieEnabled !== false); })
       .catch(() => {});
     return () => { live = false; };
@@ -74,10 +76,10 @@ export function SessionExpiryGuard({ expiresAt }: { expiresAt?: string | null })
     let active = true;
     const sync = async () => {
       try {
-        const response = await fetch("/api/auth/session-status", { cache: "no-store" });
+        const response = await fetchPublic("/api/auth/session-status", { cache: "no-store" });
         if (!active) return;
         if (response.status === 401) { setDeadline(new Date(0).toISOString()); return; }
-        const next = deadlineFromBody(await response.json().catch(() => null));
+        const next = deadlineFromBody(await readResponse(response).catch(() => null));
         if (next) setDeadline(next);
       } catch { /* A network failure never invents a new deadline. */ }
     };
@@ -94,10 +96,10 @@ export function SessionExpiryGuard({ expiresAt }: { expiresAt?: string | null })
       if (expired || occurredAt - lastActivitySentAt.current < ACTIVITY_THROTTLE_MS) return;
       lastActivitySentAt.current = occurredAt;
       try {
-        const response = await fetch("/api/auth/session-status", { method: "POST" });
+        const response = await fetchPublic("/api/auth/session-status", { method: "POST" });
         if (!active) return;
         if (response.status === 401) { setDeadline(new Date(0).toISOString()); return; }
-        const next = deadlineFromBody(await response.json().catch(() => null));
+        const next = deadlineFromBody(await readResponse(response).catch(() => null));
         if (next) setDeadline(next);
       } catch { /* Keep the last server-provided deadline when offline. */ }
     };

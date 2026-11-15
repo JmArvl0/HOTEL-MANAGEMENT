@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 // The route's only writer is the register_guest_account RPC, so the mock records
 // what it is handed. That is what proves the password never leaves as plaintext.
 const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }));
+vi.mock("@/lib/auth-request-budget", () => ({ authRequestBudget: vi.fn(async () => "allowed") }));
 vi.mock("@/lib/supabase", () => ({ supabase: { rpc } }));
 
 const { POST } = await import("@/app/api/register/route");
@@ -84,8 +85,13 @@ describe("registration rejects bad input without a 500", () => {
   it("reports mismatched confirmation before hashing anything", async () => {
     const response = await post({ ...valid, confirmPassword: `${PASSWORD}-different` });
     expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({ error: "Passwords do not match." });
+    await expect(response.json()).resolves.toMatchObject({ error: "Please enter the same password in both fields.", field: "confirmPassword", fields: { confirmPassword: "Please enter the same password in both fields." } });
     expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("identifies the password field in the minimum-length error", async () => {
+    const response = await post({ ...valid, password: "abc" });
+    await expect(response.json()).resolves.toMatchObject({ error: "Use at least 8 characters for your password.", field: "password", fields: { password: "Use at least 8 characters for your password." } });
   });
 
   it("treats an RPC-side validation refusal as 400, not a server fault", async () => {
@@ -99,7 +105,7 @@ describe("duplicate registration is a conflict, not a crash", () => {
     rpc.mockResolvedValue({ data: null, error: { code: "P0001", message: "ACCOUNT_EXISTS" } });
     const response = await post(valid);
     expect(response.status).toBe(409);
-    await expect(response.json()).resolves.toEqual({ error: "An account with this email already exists." });
+    await expect(response.json()).resolves.toMatchObject({ error: "An account with this email already exists." });
   });
 
   it("maps a unique-violation race to the same 409", async () => {
@@ -116,7 +122,7 @@ describe("an unexpected database failure is safe and diagnosable", () => {
     const response = await post(valid);
     expect(response.status).toBe(500);
     const body = JSON.stringify(await response.json());
-    expect(body).toBe(JSON.stringify({ error: "We could not create your account. Please try again." }));
+    expect(JSON.parse(body)).toMatchObject({ error: "We could not create your account. Please try again.", category: "service", outcome: "unknown" });
     expect(body).not.toContain(PASSWORD);
     expect(body).not.toContain("$2");
     expect(body).not.toContain("audit_logs");

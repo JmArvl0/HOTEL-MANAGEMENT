@@ -92,7 +92,7 @@ describe("LoyaltyRedemptionSelector", () => {
   it("surfaces the server refusal through the alert", async () => {
     vi.stubGlobal("fetch", vi.fn(async (url: string) => {
       if (String(url) === "/api/account/loyalty") return { ok: true, json: async () => ({ data: { points: 2450 } }) };
-      return { ok: false, json: async () => ({ error: "Not enough points for this folio." }) };
+      return { ok: false, json: async () => ({ error: "Not enough points for that redemption." }) };
     }));
     render(<LoyaltyRedemptionSelector reservationId="res-1" folioBalance={1800} />);
 
@@ -100,7 +100,7 @@ describe("LoyaltyRedemptionSelector", () => {
     fireEvent.click(screen.getByRole("button", { name: "Apply 1,800 pts" }));
 
     const alert = await screen.findByRole("alert");
-    expect(alert.textContent).toBe("Not enough points for this folio.");
+    expect(alert.textContent).toBe("Not enough points for that redemption.");
     expect(reload).not.toHaveBeenCalled();
   });
 });

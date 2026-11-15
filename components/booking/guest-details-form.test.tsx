@@ -48,10 +48,10 @@ describe("expected arrival — simple time input", () => {
     expect(input.getAttribute("type")).toBe("time");
     expect(input.getAttribute("name")).toBe("expectedArrival");
     const label = container.querySelector('label[for="expected-arrival"]')!;
-    expect(label.textContent).toBe("Expected arrival (required)");
+    expect(label.textContent).toBe("Expected arrival");
     expect(label.getAttribute("for")).toBe(input.id);
     // The long note stays outside the label, so it never becomes the accessible name.
-    expect(screen.getByText(/Early check-in is a separate request/).tagName).toBe("SMALL");
+    expect(screen.getByText(/Front Desk can confirm an earlier arrival/).tagName).toBe("SMALL");
   });
 
   it("has no radial clock, wheel or popover left in the DOM", () => {
@@ -61,7 +61,7 @@ describe("expected arrival — simple time input", () => {
     expect(container.querySelector(".arrival-clock,.arrival-trigger,.arrival-popover,.arrival-wheels,.arrival-face,.arrival-wheel")).toBeNull();
     // The grid cell survives, but holds exactly the label, the input and the note.
     const cell = container.querySelector(".arrival-field")!;
-    expect(cell.querySelectorAll("input").length).toBe(1);
+    expect(cell.querySelectorAll('input[type="time"]').length).toBe(1);
     expect(cell.querySelectorAll("svg").length).toBe(0);
   });
 
@@ -114,10 +114,11 @@ describe("expected arrival — simple time input", () => {
     const { container } = renderForm();
     submitForm(container);
     const alert = await screen.findByRole("alert");
-    expect(alert.textContent).toContain("Choose your expected arrival time.");
+    expect(alert.textContent).toContain("Please check the highlighted details.");
+    expect(screen.getByText("Choose an arrival time or select that you do not know it yet.")).toBeTruthy();
     expect(arrival().getAttribute("aria-invalid")).toBe("true");
     expect(arrival().required).toBe(true);
-    expect(document.activeElement).toBe(arrival());
+    await vi.waitFor(() => expect(document.activeElement).toBe(arrival()));
     fireEvent.change(arrival(), { target: { value: "15:00" } });
     expect(screen.queryByRole("alert")).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
@@ -137,7 +138,7 @@ describe("expected arrival — simple time input", () => {
 
 describe("guest details — untouched contracts", () => {
   it("keeps the early check-in disclosure and policy wording verbatim", () => {
-    expect(formSource).toContain("Helps Front Desk prepare — your room follows check-in from {checkInFrom}, not this time. Early check-in is a separate request.");
+    expect(formSource).toContain("Standard check-in starts at {checkInFrom}. Front Desk can confirm an earlier arrival when the room is ready.");
     expect(formSource).toContain("checkInFrom");
     // No auto-approval of early check-in was introduced anywhere in the form.
     expect(formSource.toLowerCase()).not.toContain("earlycheckin");
@@ -164,4 +165,25 @@ describe("guest details — untouched contracts", () => {
     // The time input carries no bespoke width — it inherits the shared grid rule.
     expect(bookingCss).not.toMatch(/\.arrival-field\s+input\s*\{/);
   });
+});
+
+it("keeps one attempt identity when a booking response is lost", async () => {
+  const {container} = renderForm({initialArrival:"15:00"});
+  fetchMock.mockRejectedValueOnce(new Error("offline"));
+  submitForm(container);
+  await screen.findByText("We couldn't confirm your room hold. Try again with the same details to check this booking attempt.");
+  const first = payloadOf().attemptId;
+  expect(first).toMatch(/^[0-9a-f-]{36}$/);
+  submitForm(container);
+  await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+  expect(JSON.parse(String(fetchMock.mock.calls[1][1].body)).attemptId).toBe(first);
+});
+
+it("lets the guest explicitly leave the arrival time unknown", async () => {
+  const {container} = renderForm();
+  fireEvent.click(screen.getByRole("checkbox", {name:/know my arrival time/}));
+  expect(arrival().required).toBe(false);
+  submitForm(container);
+  await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+  expect(payloadOf().expectedArrival).toBe("");
 });

@@ -1,4 +1,6 @@
 "use client";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -24,8 +26,8 @@ export default function VerifyForm({ callbackUrl = "/manager_dashboard" }: { cal
   const errorRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
-    const response = await fetch("/api/auth/otp/challenge", { cache: "no-store" });
-    const body = await response.json().catch(() => null);
+    const response = await fetchPublic("/api/auth/otp/challenge", { cache: "no-store" });
+    const body = await readResponse(response).catch(() => null);
     if (response.ok && body?.data) {
       setMeta(body.data);
       setDead(null);
@@ -53,12 +55,12 @@ export default function VerifyForm({ callbackUrl = "/manager_dashboard" }: { cal
     }
     setBusy(true);
     setError("");
-    const response = await fetch("/api/auth/otp/verify", {
+    const response = await fetchPublic("/api/auth/otp/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code: code.trim() }),
     });
-    const body = await response.json().catch(() => null);
+    const body = await readResponse(response).catch(() => null);
     setBusy(false);
     if (response.ok) {
       router.push(callbackUrl);
@@ -79,8 +81,8 @@ export default function VerifyForm({ callbackUrl = "/manager_dashboard" }: { cal
   async function resend() {
     setResending(true);
     setError("");
-    const response = await fetch("/api/auth/otp/resend", { method: "POST" });
-    const body = await response.json().catch(() => null);
+    const response = await fetchPublic("/api/auth/otp/resend", { method: "POST" });
+    const body = await readResponse(response).catch(() => null);
     setResending(false);
     if (response.ok && body?.expiresAt) {
       setMeta((prev) => (prev ? { ...prev, expiresAt: body.expiresAt, resendAvailableAt: body.resendAvailableAt } : prev));
@@ -98,7 +100,7 @@ export default function VerifyForm({ callbackUrl = "/manager_dashboard" }: { cal
             Haven portal
           </p>
           <h1>Verify your identity</h1>
-          <p>{dead === "expired" ? "This verification code has expired." : "This code is no longer valid."}</p>
+          <p>{dead === "expired" ? "This verification code has expired. Request a new code." : "This code is no longer valid. Please sign in again."}</p>
         </div>
         <p role="status" className="haven-vault__notice">
           {dead === "expired" ? "Request a new code, or sign in again for a fresh one." : "Sign in again to receive a fresh code."}

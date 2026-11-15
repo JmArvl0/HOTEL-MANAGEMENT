@@ -1,4 +1,6 @@
 "use client";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
 import { useEffect, useState } from "react";
 
 /** Read-only payment-proof thumbnail for the paying guest. Fetches a
@@ -8,8 +10,8 @@ export function ProofThumbnail({ paymentId, alt }: { paymentId: string; alt: str
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/booking/payments/${paymentId}/proof`)
-      .then((response) => (response.ok ? response.json() : Promise.reject(new Error("failed"))))
+    fetchPublic(`/api/booking/payments/${paymentId}/proof`)
+      .then((response) => (response.ok ? readResponse(response) : Promise.reject(new Error("failed"))))
       .then((body: { url?: string }) => { if (!cancelled && body.url) setUrl(body.url); })
       .catch(() => {});
     return () => { cancelled = true; };

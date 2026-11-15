@@ -1,14 +1,91 @@
-import{getServerSession}from"next-auth";import{NextResponse}from"next/server";import{authOptions}from"@/lib/auth";import{guestDetailsSchema,searchSchema}from"@/lib/booking";import{supabase}from"@/lib/supabase";import{findUnavailableSelections,getPreArrivalOptions,PRE_ARRIVAL_UNAVAILABLE_MESSAGE}from"@/lib/inventory-request-options";import{sendEmail,guestEmailHtml}from"@/lib/email";
-export async function POST(request:Request){const session=await getServerSession(authOptions);if(!session||session.user.disabled)return NextResponse.json({error:"Sign in to continue your reservation."},{status:401});if(session.user.role!=="guest")return NextResponse.json({error:"Customer access required."},{status:403});if(!supabase)return NextResponse.json({error:"Booking is temporarily unavailable."},{status:503});try{const parsed=guestDetailsSchema.safeParse(await request.json());if(!parsed.success)return NextResponse.json({error:parsed.error.issues[0]?.message??"Check your guest details."},{status:400});const search=searchSchema.safeParse({checkIn:parsed.data.checkIn,checkOut:parsed.data.checkOut,guests:parsed.data.guests});if(!search.success)return NextResponse.json({error:search.error.issues[0]?.message??"Invalid stay dates."},{status:400});const p=parsed.data;
-  // Pre-arrival options are rechecked against the live offering: a checkbox rendered
-  // at page load may have gone disabled or out of stock since. Never trust the render.
-  {const live=await getPreArrivalOptions();if(findUnavailableSelections(p.requestOptions,live).length)return NextResponse.json({error:PRE_ARRIVAL_UNAVAILABLE_MESSAGE},{status:400});}
-  // Transport is no longer sold at checkout (replaced by the standalone Transportation
-  // Service). The RPC still accepts transport_lines; existing reservations keep theirs.
-  // An optional transportation ride REQUEST (preferences) may ride along, though — filed
-  // as a REQUESTED row once the reservation is confirmed.
-  const{data,error}=p.roomId?await supabase.rpc("create_exact_booking_hold",{p_user_id:session.user.id,p_room_id:p.roomId,p_details:p,p_replace_token:p.holdToken??null}):await supabase.rpc("create_booking_hold",{p_user_id:session.user.id,p_room_type:p.roomType,p_check_in:p.checkIn,p_check_out:p.checkOut,p_guest_count:p.guests,p_first_name:p.firstName,p_last_name:p.lastName,p_email:p.email,p_mobile:p.mobile,p_address:p.address||null,p_nationality:p.nationality||null,p_expected_arrival:p.expectedArrival||null,p_request_options:p.requestOptions,p_transport_lines:[],p_transportation_preferences:p.transportationPreferences??null,p_special_requests:p.specialRequests||null});if(error){if(error.message.includes("ROOM_TYPE_UNAVAILABLE")||error.message.includes("EXACT_ROOM_UNAVAILABLE")||error.message.includes("HOLD_NOT_FOUND"))return NextResponse.json({error:"Availability changed while you were booking. Please choose another available room."},{status:409});if(error.message.includes("INVALID_TRANSPORTATION_PREFERENCES"))return NextResponse.json({error:"Check your transportation request details and try again."},{status:400});throw error;}
- // Payment-link email (the hold token IS the payment link credential). Pure
- // side channel — an email failure never fails the hold.
- if(p.email){const base=process.env.NEXTAUTH_URL??"http://localhost:3000";await sendEmail({to:p.email,subject:"Your Haven booking is held for 15 minutes",html:guestEmailHtml("Your room is held — 15 minutes to pay",`<p>We are holding your ${p.roomType} from ${p.checkIn} to ${p.checkOut} for 15 minutes.</p><p>Submit your deposit to secure the booking:</p><p style="margin:24px 0"><a href="${base}/booking/payment/${data}" style="display:inline-block;background:#8a7a55;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none">Submit your deposit</a></p><p>If the link no longer works, the hold has expired — simply search your dates again.</p>`)});}
-return NextResponse.json({token:data},{status:201});}catch{return NextResponse.json({error:"We could not hold this room. Please try again."},{status:500})}}
+import { publicJson } from "@/lib/server-errors";
+import { validationBody } from "@/lib/errors";
+import { getServerSession } from "next-auth";
+
+import { z } from "zod";
+import { authOptions } from "@/lib/auth";
+import { guestDetailsSchema, hotelToday, searchSchemaFor } from "@/lib/booking";
+import { supabase } from "@/lib/supabase";
+import { findUnavailableSelections, getPreArrivalOptions, PRE_ARRIVAL_UNAVAILABLE_MESSAGE } from "@/lib/inventory-request-options";
+import { escapeEmailText, guestEmailHtml } from "@/lib/email";
+import { deliverGuestEmail } from "@/lib/guest-email-delivery";
+import { xenditConfigured } from "@/lib/xendit";
+
+function invalid(error: z.ZodError, fallback: string) {
+  const fields = Object.fromEntries(error.issues.filter(issue => issue.path.length)
+    .map(issue => [issue.path.filter(part => typeof part === "string").at(-1), issue.message]));
+  return publicJson(validationBody(error, { error: error.issues[0]?.message ?? fallback, fields }), { status: 400 });
+}
+
+export async function POST(request: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session || session.user.disabled || session.user.otpPending) {
+    return publicJson({ error: "Sign in to continue your reservation." }, { status: 401 });
+  }
+  if (session.user.role !== "guest") return publicJson({ error: "Please sign in with a guest account to continue." }, { status: 403 });
+  if (!supabase) return publicJson({ error: "Booking is temporarily unavailable." }, { status: 503 });
+  const input = await request.json().catch(() => null);
+  const parsed = guestDetailsSchema.safeParse(input);
+  if (!parsed.success) return invalid(parsed.error, "Check your guest details.");
+  const attempt = z.object({ attemptId: z.string().uuid() }).safeParse(input);
+  if (!attempt.success) return invalid(attempt.error, "Reload the page to start a new booking attempt.");
+  const details = parsed.data;
+
+  try {
+    const prior = await supabase.rpc("read_booking_hold_attempt", {
+      p_user: session.user.id, p_attempt: attempt.data.attemptId, p_details: details,
+    });
+    if (prior.error) {
+      const code = ["HOLD_ATTEMPT_EXPIRED", "RETRY_PAYLOAD_CONFLICT"].find(item => prior.error!.message.includes(item));
+      if (code) return publicJson({ error: "Start a new attempt with the current booking details.", code }, { status: 409 });
+      throw prior.error;
+    }
+    if (prior.data?.token) return publicJson({ token: prior.data.token });
+
+    const policy = await supabase.from("hotel_operational_policies").select("deposit_method,hotel_timezone").eq("key", "default").single();
+    if (policy.error) throw policy.error;
+    if (policy.data.deposit_method !== "xendit" || !xenditConfigured()) {
+      return publicJson({ error: "Online checkout is unavailable. Contact Front Desk for help booking this stay." }, { status: 409 });
+    }
+    const search = searchSchemaFor(hotelToday(policy.data.hotel_timezone)).safeParse(details);
+    if (!search.success) return invalid(search.error, "Please choose valid check-in and check-out dates.");
+
+    const live = await getPreArrivalOptions();
+    if (findUnavailableSelections(details.requestOptions, live).length) {
+      return publicJson({ error: PRE_ARRIVAL_UNAVAILABLE_MESSAGE, fields: { requestOptions: PRE_ARRIVAL_UNAVAILABLE_MESSAGE } }, { status: 400 });
+    }
+    const { data, error } = await supabase.rpc("create_booking_hold_attempt", {
+      p_user: session.user.id, p_attempt: attempt.data.attemptId, p_details: details, p_breakfast_enabled: false,
+    });
+    if (error) {
+      const conflicts: Record<string, string> = {
+        ROOM_TYPE_UNAVAILABLE: "This room is no longer available for your selected dates. Please choose another room.",
+        EXACT_ROOM_UNAVAILABLE: "This room is no longer available for your selected dates. Please choose another room.",
+        HOLD_NOT_FOUND: "The previous hold expired. Choose an available room.",
+        HOLD_ATTEMPT_EXPIRED: "This booking attempt expired. Start a new booking.",
+        RETRY_PAYLOAD_CONFLICT: "These details differ from your earlier booking attempt. Review your bookings before starting again.",
+        DEPOSIT_AMOUNT_UNAVAILABLE: "This stay cannot be booked online. Please contact Front Desk for help.",
+        DEPOSIT_POLICY_UNAVAILABLE: "Online checkout is unavailable. Contact Front Desk to book.",
+        GUEST_DO_NOT_RENT: "Contact Front Desk for help with this reservation.",
+      };
+      const key = Object.keys(conflicts).find(code => error.message.includes(code));
+      if (key) return publicJson({ error: conflicts[key], code: key }, { status: 409 });
+      if (/INVALID_TRANSPORTATION_PREFERENCES|INVALID_DATES|INVALID_GUEST_COUNT/.test(error.message)) {
+        return publicJson({ error: "Check the stay and transportation details." }, { status: 400 });
+      }
+      throw error;
+    }
+    const hold = data as { token: string; expiresAt: string; replayed: boolean; roomType: string };
+    if (details.email && Date.parse(hold.expiresAt) > Date.now()) {
+      const base = new URL(process.env.NEXTAUTH_URL ?? request.url).origin;
+      const expires = new Intl.DateTimeFormat("en-PH", { timeZone: policy.data.hotel_timezone, timeStyle: "short" }).format(new Date(hold.expiresAt));
+      await deliverGuestEmail(`hold-payment:${hold.token}`, {
+        to: details.email, subject: "Your Haven booking hold",
+        html: guestEmailHtml("Your room is held", `<p>We are holding your ${escapeEmailText(hold.roomType)} from ${details.checkIn} to ${details.checkOut} until ${escapeEmailText(expires)} hotel time.</p><p><a href="${base}/booking/payment/${hold.token}">Open Haven checkout</a></p>`),
+      }, hold.replayed);
+    }
+    return publicJson({ token: hold.token }, { status: hold.replayed ? 200 : 201 });
+  } catch {
+    return publicJson({ error: "We couldn't confirm your room hold. Try again with the same details to check this booking attempt." }, { status: 503 });
+  }
+}

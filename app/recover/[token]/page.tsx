@@ -1,4 +1,7 @@
 "use client";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -81,10 +84,10 @@ export default function RecoverPage() {
       const compressed = await compressSelfie(blob);
       const form = new FormData();
       form.append("file", compressed, "selfie.jpg");
-      const response = await fetch(`/api/recover/${token}/selfie`, { method: "POST", body: form });
-      const body = await response.json().catch(() => null);
+      const response = await fetchPublic(`/api/recover/${token}/selfie`, { method: "POST", body: form });
+      const body = await readResponse(response).catch(() => null);
       if (!response.ok) {
-        setError(body?.error ?? "Selfie upload failed. Please try again.");
+        setError(userMessage(body?.error, "Selfie upload failed. Please try again."));
         return;
       }
       setSelfiePath(String(body.path ?? ""));
@@ -93,6 +96,8 @@ export default function RecoverPage() {
         return URL.createObjectURL(compressed);
       });
       stopCamera();
+    } catch {
+      setError("Could not upload your selfie. Check your connection and retry.");
     } finally {
       setUploadBusy(false);
     }
@@ -116,6 +121,7 @@ export default function RecoverPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (busy) return;
     if (!selfiePath) {
       setError("Upload an identity selfie before setting the new password.");
       return;
@@ -123,18 +129,20 @@ export default function RecoverPage() {
     setBusy(true);
     setError("");
     const form = new FormData(event.currentTarget);
-    const response = await fetch(`/api/recover/${token}`, {
+    try {
+    const response = await fetchPublic(`/api/recover/${token}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ password: form.get("password"), confirmPassword: form.get("confirmPassword"), selfiePath }),
     });
-    const body = await response.json().catch(() => null);
-    setBusy(false);
+    const body = await readResponse(response).catch(() => null);
     if (!response.ok) {
-      setError(body?.error ?? "Unable to reset access.");
+      setError(userMessage(body?.error, "Unable to reset access."));
       return;
     }
     router.push("/login?recovered=1");
+    } catch { setError("Could not confirm the reset. Try signing in with the new password before sending another request."); }
+    finally { setBusy(false); }
   }
 
   const cameraError = typeof camera === "object" ? camera.error : null;

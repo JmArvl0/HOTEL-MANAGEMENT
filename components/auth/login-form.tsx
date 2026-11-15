@@ -1,4 +1,6 @@
 "use client";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { getSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -27,8 +29,8 @@ export default function LoginForm({
 
   useEffect(() => {
     let live = true;
-    fetch("/api/security-policy/public", { cache: "no-store" })
-      .then((response) => (response.ok ? response.json() : null))
+    fetchPublic("/api/security-policy/public", { cache: "no-store" })
+      .then((response) => (response.ok ? readResponse(response) : null))
       .then((body) => {
         if (live) setRememberOffered(body?.data?.cookieEnabled !== false);
       })
@@ -40,10 +42,11 @@ export default function LoginForm({
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (loading) return;
     setLoading(true);
     setError("");
+    try {
     const result = await signIn("credentials", { email, password, remember: rememberOffered && remember ? "1" : "0", callbackUrl, redirect: false });
-    setLoading(false);
     if (result?.error) {
       setError("That email or password doesn’t match our records.");
       requestAnimationFrame(() => errorRef.current?.focus());
@@ -58,6 +61,10 @@ export default function LoginForm({
       router.push(authDestination(callbackUrl));
       router.refresh();
     }
+    } catch {
+      setError("Could not connect to Haven. Try signing in again.");
+      requestAnimationFrame(() => errorRef.current?.focus());
+    } finally { setLoading(false); }
   }
 
   return (

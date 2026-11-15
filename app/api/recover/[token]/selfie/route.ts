@@ -1,5 +1,7 @@
+import { publicJson } from "@/lib/server-errors";
+import { isDecodableEvidenceImage, readLocationUpload } from "@/lib/location-image";
 import { createHash } from "node:crypto";
-import { NextResponse } from "next/server";
+
 import { supabase } from "@/lib/supabase";
 import { PROOF_MAX_BYTES, proofExt, proofMime, sanitizeProofName, sniffProofKind } from "@/lib/payment-proof";
 
@@ -17,28 +19,28 @@ function clientIp(request: Request): string | null {
  * re-checks the object from storage and the RPC enforces the path shape.
  */
 export async function POST(request: Request, { params }: { params: Promise<{ token: string }> }) {
-  if (!supabase) return NextResponse.json({ error: "Recovery is unavailable." }, { status: 503 });
+  if (!supabase) return publicJson({ error: "Recovery is unavailable." }, { status: 503 });
   const { token } = await params;
   const hash = createHash("sha256").update(token).digest("hex");
   const { data: tok } = await supabase.from("account_recovery_tokens")
     .select("id,user_id").eq("token_hash", hash).is("used_at", null).gt("expires_at", new Date().toISOString()).maybeSingle();
   const live = tok as { id: string; user_id: string } | null;
-  if (!live) return NextResponse.json({ error: "This recovery link is invalid or expired." }, { status: 409 });
+  if (!live) return publicJson({ error: "This recovery link is invalid or expired." }, { status: 409 });
 
   try {
-    const form = await request.formData();
-    const file = form.get("file");
-    if (!(file instanceof File)) return NextResponse.json({ error: "Choose a selfie photo to upload." }, { status: 400 });
+    const form = await readLocationUpload(request).catch(() => null);
+    const file = form?.get("file");
+    if (!(file instanceof File)) return publicJson({ error: "Choose a selfie photo to upload." }, { status: 400 });
     const bytes = new Uint8Array(await file.arrayBuffer());
     if (bytes.byteLength === 0 || bytes.byteLength > PROOF_MAX_BYTES)
-      return NextResponse.json({ error: "Selfie photo must be 5 MB or smaller." }, { status: 400 });
+      return publicJson({ error: "Selfie photo must be 5 MB or smaller." }, { status: 400 });
     const kind = sniffProofKind(bytes);
-    if (!kind) return NextResponse.json({ error: "Only JPEG, PNG, or WebP images are supported." }, { status: 400 });
+    if (!kind || !(await isDecodableEvidenceImage(bytes))) return publicJson({ error: "Only JPEG, PNG, or WebP images are supported." }, { status: 400 });
 
     const path = `recovery-selfies/${crypto.randomUUID()}.${proofExt(kind)}`;
     const { error: uploadError } = await supabase.storage
       .from(BUCKET).upload(path, bytes, { contentType: proofMime(kind), upsert: false });
-    if (uploadError) return NextResponse.json({ error: "Upload failed. Please try again." }, { status: 500 });
+    if (uploadError) return publicJson({ error: "Upload failed. Please try again." }, { status: 500 });
 
     const { error: stageError } = await supabase.rpc("stage_recovery_selfie", {
       p_token_hash: hash, p_path: path, p_ip_address: clientIp(request),
@@ -46,10 +48,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     });
     if (stageError) {
       await supabase.storage.from(BUCKET).remove([path]);
-      return NextResponse.json({ error: "This recovery link changed or expired. Request a new link." }, { status: 409 });
+      return publicJson({ error: "This recovery link changed or expired. Request a new link." }, { status: 409 });
     }
-    return NextResponse.json({ path, originalName: sanitizeProofName(file.name) }, { status: 201 });
+    return publicJson({ path, originalName: sanitizeProofName(file.name) }, { status: 201 });
   } catch {
-    return NextResponse.json({ error: "Upload failed. Please try again." }, { status: 500 });
+    return publicJson({ error: "Upload failed. Please try again." }, { status: 500 });
   }
 }

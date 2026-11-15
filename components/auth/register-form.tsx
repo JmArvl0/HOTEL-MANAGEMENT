@@ -1,4 +1,8 @@
 "use client";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
+import { FormFieldError, focusFirstFormError, formFieldProps, type FormFieldErrors } from "@/components/ui/form-field-errors";
 import { FormEvent, useRef, useState } from "react";
 import { getSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -8,6 +12,8 @@ import { authDestination } from "@/lib/auth-destination";
 
 export function RegisterForm({ callbackUrl }: { callbackUrl: string }) {
   const router = useRouter();
+  const [fields, setFields] = useState<FormFieldErrors>({});
+  const pending = useRef(false);
   const [error, setError] = useState("");
   const [passwordError, setPasswordError] = useState<{ field: "password" | "confirmPassword"; message: string } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -16,39 +22,46 @@ export function RegisterForm({ callbackUrl }: { callbackUrl: string }) {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setLoading(true);
+    if (pending.current) return;
     setError("");
+    setFields({});
     setPasswordError(null);
     const form = event.currentTarget;
     const values = Object.fromEntries(new FormData(form)) as Record<string, string>;
     if (values.password !== values.confirmPassword) {
       setLoading(false);
-      setPasswordError({ field: "confirmPassword", message: "Passwords do not match." });
+      setPasswordError({ field: "confirmPassword", message: "Please enter the same password in both fields." });
       requestAnimationFrame(() => form.querySelector<HTMLInputElement>('[name="confirmPassword"]')?.focus());
       return;
     }
-    const response = await fetch("/api/register", {
+    setLoading(true); pending.current = true;
+    let created = false;
+    try {
+    const response = await fetchPublic("/api/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(values),
     });
-    const body = await response.json().catch(() => ({}));
+    const body = await readResponse(response).catch(() => ({}));
     if (!response.ok) {
       setLoading(false);
-      if (body.field === "password" || body.field === "confirmPassword") {
+      setFields(body.fields ?? {});
+      if (body.field && body.field !== "password" && body.field !== "confirmPassword") focusFirstFormError(form, body.fields ?? {});
+      else if (body.field === "password" || body.field === "confirmPassword") {
         const field = body.field as "password" | "confirmPassword";
         setPasswordError({ field, message: body.error });
         requestAnimationFrame(() => form.querySelector<HTMLInputElement>(`[name="${field}"]`)?.focus());
       } else {
-        setError(body.error ?? "Registration failed.");
+        setError(userMessage(body.error, "We couldn't create your account. Please check the details and try again."));
         requestAnimationFrame(() => errorRef.current?.focus());
       }
       return;
     }
+    created = true;
     const result = await signIn("credentials", { email: values.email, password: values.password, callbackUrl, redirect: false });
     setLoading(false);
-    if (result?.error) {
-      setError("Account created, but sign-in failed. Please sign in.");
+    if (!result || result.error) {
+      setError("Your account is ready. Please sign in to continue.");
       return;
     }
     const fresh = await getSession();
@@ -59,6 +72,10 @@ export function RegisterForm({ callbackUrl }: { callbackUrl: string }) {
     }
     router.push(authDestination(callbackUrl));
     router.refresh();
+    } catch {
+      setError(created ? "Account created. Go to sign in to continue." : "Could not confirm registration. If the account was created, you can sign in with these details.");
+      requestAnimationFrame(() => errorRef.current?.focus());
+    } finally { pending.current = false; setLoading(false); }
   }
 
   return (
@@ -79,17 +96,20 @@ export function RegisterForm({ callbackUrl }: { callbackUrl: string }) {
         <div className="haven-vault__row">
           <label className="haven-vault__field">
             First name
-            <input name="firstName" required maxLength={80} autoComplete="given-name" placeholder="Ava" />
+            <input name="firstName" required maxLength={80} autoComplete="given-name" placeholder="Ava" {...formFieldProps(fields, "firstName", "register-field")} />
+            <FormFieldError errors={fields} field="firstName" prefix="register-field" />
           </label>
           <label className="haven-vault__field">
             Last name
-            <input name="lastName" required maxLength={80} autoComplete="family-name" placeholder="Reyes" />
+            <input name="lastName" required maxLength={80} autoComplete="family-name" placeholder="Reyes" {...formFieldProps(fields, "lastName", "register-field")} />
+            <FormFieldError errors={fields} field="lastName" prefix="register-field" />
           </label>
         </div>
-        <MobileNumberField name="phone" className="haven-vault__field" />
+        <MobileNumberField name="phone" className="haven-vault__field" error={fields.phone} errorId="register-field-phone-error" />
         <label className="haven-vault__field">
           Email
-          <input name="email" type="email" required maxLength={200} autoComplete="email" placeholder="you@haven.com" />
+          <input name="email" type="email" required maxLength={200} autoComplete="email" placeholder="you@haven.com" {...formFieldProps(fields, "email", "register-field")} />
+          <FormFieldError errors={fields} field="email" prefix="register-field" />
         </label>
         <div className="haven-vault__row">
           <label className="haven-vault__field">

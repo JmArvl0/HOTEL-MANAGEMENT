@@ -113,8 +113,8 @@ export function validateSecurityPolicyValues(values: {
   if (!ABSOLUTE_SESSION_OPTIONS.includes(absolute)) return "Maximum session lifetime must be one of 5, 10, 15, 30 minutes or 1, 2, 4, 8, 12, or 24 hours.";
   if (absolute < idle) return "Maximum session lifetime must not be shorter than the inactivity timeout.";
   if (typeof values.loginOtpEnabled !== "boolean") return "Login OTP must be on or off.";
-  if (!OTP_TTL_OPTIONS.includes(values.otpTtlSeconds as number)) return "OTP validity must be 3, 5, or 10 minutes.";
-  if (!OTP_COOLDOWN_OPTIONS.includes(values.otpResendCooldownSeconds as number)) return "Resend cooldown must be 30, 60, or 120 seconds.";
+  if (!OTP_TTL_OPTIONS.includes(values.otpTtlSeconds as number)) return "Choose a verification code validity of 3, 5 or 10 minutes.";
+  if (!OTP_COOLDOWN_OPTIONS.includes(values.otpResendCooldownSeconds as number)) return "Choose a wait of 30, 60 or 120 seconds between verification emails.";
   if (!OTP_ATTEMPTS_OPTIONS.includes(values.otpMaxAttempts as number)) return "Maximum attempts must be 3, 5, or 10.";
   return null;
 }
@@ -198,18 +198,14 @@ export function sessionCookieMaxAgeSeconds(input: {
 }
 
 /**
- * Single decision point for the session callback. A query ERROR (missing
- * column/table, unreachable DB) must fail open — it proves nothing about the
- * account — while a cleanly absent row or an expired verdict neutralizes.
- * Collapsing error and absence into one branch once locked every user out
- * when the policy migration was not yet applied.
+ * An unreadable activity record requires a fresh authenticated session.
  */
 export function resolveSessionEnforcement(input: {
   queryError: boolean;
   hasRow: boolean;
   verdict: SessionExpiry;
 }): SessionEnforcement {
-  if (input.queryError) return "allow";
+  if (input.queryError) return "neutralize";
   if (!input.hasRow) return "neutralize";
   return input.verdict === "active" ? "allow" : "neutralize";
 }

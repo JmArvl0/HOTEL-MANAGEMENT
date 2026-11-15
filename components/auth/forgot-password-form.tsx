@@ -1,4 +1,7 @@
 "use client";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, KeyRound, Mail } from "lucide-react";
@@ -21,15 +24,16 @@ export function ForgotPasswordForm({ loginHref }: { loginHref: string }) {
 
   async function requestCode(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (busy) return;
     setBusy(true);
     setError("");
-    const response = await fetch("/api/password-reset/request", {
+    try {
+    const response = await fetchPublic("/api/password-reset/request", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }),
     });
-    const body = await response.json().catch(() => null);
-    setBusy(false);
+    const body = await readResponse(response).catch(() => null);
     if (!response.ok) {
-      setError(body?.error ?? "Unable to start the reset. Please try again.");
+      setError(userMessage(body?.error, "Unable to start the reset. Please try again."));
       return;
     }
     setMasked(typeof body?.masked === "string" ? body.masked : "");
@@ -41,22 +45,27 @@ export function ForgotPasswordForm({ loginHref }: { loginHref: string }) {
       // response still confirms without revealing anything.
       setStep("sent");
     }
+    } catch { setError("Could not confirm the request. Check your connection and try again."); }
+    finally { setBusy(false); }
   }
 
   async function verifyCode(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (busy) return;
     setBusy(true);
     setError("");
-    const response = await fetch("/api/password-reset/verify", {
+    try {
+    const response = await fetchPublic("/api/password-reset/verify", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ challengeId, code }),
     });
-    const body = await response.json().catch(() => null);
-    setBusy(false);
+    const body = await readResponse(response).catch(() => null);
     if (!response.ok) {
-      setError(body?.error ?? "Verification failed. Please try again.");
+      setError(userMessage(body?.error, "Verification failed. Please try again."));
       return;
     }
     setStep("sent");
+    } catch { setError("Could not confirm verification. Check your email for a reset link before retrying."); }
+    finally { setBusy(false); }
   }
 
   return (
@@ -76,7 +85,7 @@ export function ForgotPasswordForm({ loginHref }: { loginHref: string }) {
         )}
         {step === "code" && (
           <>
-            <p className="haven-vault__recovery-copy">A 6-digit code was sent to {masked || "your email"}. It expires in minutes and can be used once.</p>
+            <p className="haven-vault__recovery-copy">If your account matches, a 6-digit code is on its way to {masked || "your email"}.</p>
             <form onSubmit={verifyCode}>
               <label className="haven-vault__field">Verification code<input className="haven-vault__otp" name="code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} required /></label>
               {error && <p className="haven-vault__error" role="alert">{error}</p>}

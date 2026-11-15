@@ -1,5 +1,7 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { publicJson } from "@/lib/server-errors";
+import { validationBody } from "@/lib/errors";
+
+import { type NextRequest } from "next/server";
 import { z } from "zod";
 import { supabase } from "@/lib/supabase";
 import type { Role } from "@/lib/types";
@@ -16,7 +18,7 @@ const rpcMessage = (message: string) => {
   if (message.includes("OTP_EXPIRED")) return { status: 401, error: "This verification code has expired. Request a new code.", expired: true };
   if (message.includes("OTP_TOO_MANY_ATTEMPTS") || message.includes("OTP_INVALIDATED") || message.includes("OTP_ALREADY_USED"))
     return { status: 403, error: "This code is no longer valid. Sign in again." };
-  return { status: 400, error: "Verification session not found. Sign in again." };
+  return { status: 400, error: "Please sign in again to request a verification code." };
 };
 
 /**
@@ -27,23 +29,24 @@ const rpcMessage = (message: string) => {
  */
 export async function POST(request: NextRequest) {
   const pending = await pendingToken(request);
-  if (!pending) return NextResponse.json({ error: "Verification session not found. Sign in again." }, { status: 401 });
+  if (!pending) return publicJson({ error: "Please sign in again to request a verification code." }, { status: 401 });
   const parsed = schema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "Enter the 6-digit code." }, { status: 400 });
-  if (!supabase) return NextResponse.json({ error: "Database unavailable." }, { status: 503 });
+  if (!parsed.success) return publicJson(validationBody(parsed.error, { error: "Enter the 6-digit code." }), { status: 400 });
+  if (!supabase) return publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
 
   const policy = await getSecurityPolicy();
 
   const verifier = otpCodeVerifier(pending.challengeId, parsed.data.code);
-  if (!verifier) return NextResponse.json({ error: "Enter the 6-digit code." }, { status: 400 });
+  if (!verifier) return publicJson({ error: "Enter the 6-digit code." }, { status: 400 });
 
-  const { data, error } = await supabase.rpc("auth_otp_verify", {
+  const { data, error } = await supabase.rpc("auth_otp_verify_for_purpose", {
+    p_purpose: "login",
     p_challenge_id: pending.challengeId, p_code_verifier: verifier, p_max_attempts: policy.otpMaxAttempts,
   });
   const failure = (data as { error?: string } | null)?.error;
   if (error || !data || failure) {
     const mapped = rpcMessage(failure ?? error?.message ?? "");
-    return NextResponse.json({ error: mapped.error, expired: "expired" in mapped ? true : undefined }, { status: mapped.status });
+    return publicJson({ error: mapped.error, expired: "expired" in mapped ? true : undefined }, { status: mapped.status });
   }
 
   // Challenge consumed — bind the session to the verified account, re-checked
@@ -53,7 +56,7 @@ export async function POST(request: NextRequest) {
     .select("id,email,name,role,active,auth_version,recovery_required").eq("id", userId ?? "").maybeSingle();
   if (!account?.active || account.recovery_required) {
     // No session is minted: the code is spent, so a fresh sign-in is required.
-    return NextResponse.json({ error: "This account is unavailable. Sign in again." }, { status: 401 });
+    return publicJson({ error: "This account is unavailable. Sign in again." }, { status: 401 });
   }
 
   await supabase.from("user_accounts").update({ last_seen_at: new Date().toISOString() }).eq("id", account.id);
@@ -65,5 +68,5 @@ export async function POST(request: NextRequest) {
     id: account.id, email: account.email, name: account.name,
     role: account.role as Role, authVersion: account.auth_version ?? 1, persistent, policy,
   });
-  return NextResponse.json({ ok: true });
+  return publicJson({ ok: true });
 }

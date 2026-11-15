@@ -1,87 +1,70 @@
+import { publicJson } from "@/lib/server-errors";
+import { validationBody } from "@/lib/errors";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { NextResponse } from "next/server";
+import { after } from "next/server";
 import { z } from "zod";
 import { supabase } from "@/lib/supabase";
 import { getSecurityPolicy, otpTtlMinutes } from "@/lib/security-policy";
 import { generateOtpCode, otpCodeVerifier, otpIssuable } from "@/lib/auth-otp";
 import { buildPasswordResetOtpEmail, maskEmail } from "@/lib/otp-email";
 import { sendAccountEmail, smtpConfigured } from "@/lib/otp-transport";
+import { authRequestBudget } from "@/lib/auth-request-budget";
 
-const schema = z.object({ email: z.string().trim().toLowerCase().email("Enter a valid email address.") });
+const schema = z.object({ email: z.string().trim().toLowerCase().email().max(200) });
 
-const RESET_REQUEST_LIMIT = 5;
-
-function clientIp(request: Request): string | null {
-  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return forwarded || request.headers.get("x-real-ip")?.trim() || null;
-}
-
-/**
- * Self-service password-reset request. Always returns a generic OK so the
- * response never reveals whether an address holds an account. When the
- * account exists, a one-hour recovery token is staged and an OTP code is
- * emailed; the link itself is only sent after the code is verified.
- */
 export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
-  if (!supabase) return NextResponse.json({ error: "Password reset is temporarily unavailable." }, { status: 503 });
-  const email = parsed.data.email;
-  const ip = clientIp(request);
-  const userAgent = request.headers.get("user-agent")?.slice(0, 300) ?? null;
-
-  const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-  const { count: recent } = await supabase.from("password_reset_logs")
-    .select("id", { count: "exact", head: true }).eq("email", email).gte("created_at", since);
-  if ((recent ?? 0) >= RESET_REQUEST_LIMIT) return NextResponse.json({ ok: true, masked: maskEmail(email) });
-
-  const { data: account } = await supabase.from("user_accounts").select("id,email,active").eq("email", email).maybeSingle();
-  if (!account || !account.active) {
-    await supabase.from("password_reset_logs").insert({ user_id: null, email, ip_address: ip, user_agent: userAgent, status: "requested" });
-    return NextResponse.json({ ok: true, masked: maskEmail(email) });
-  }
-
-  if (otpIssuable().ok !== true || !smtpConfigured()) {
-    await supabase.from("password_reset_logs").insert({ user_id: account.id, email, ip_address: ip, user_agent: userAgent, status: "failed" });
-    return NextResponse.json({ error: "Verification email is unavailable right now. Please try again later." }, { status: 503 });
-  }
-
-  const rawToken = randomBytes(32).toString("hex");
-  const tokenHash = createHash("sha256").update(rawToken).digest("hex");
-  const { data: tokenRow, error: tokenError } = await supabase.from("account_recovery_tokens")
-    .insert({ user_id: account.id, token_hash: tokenHash, created_by: null, expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString() })
-    .select("id").maybeSingle();
-  if (tokenError || !tokenRow) return NextResponse.json({ error: "Password reset is temporarily unavailable." }, { status: 500 });
-
-  const policy = await getSecurityPolicy();
+  if (!parsed.success) return publicJson(validationBody(parsed.error, { error: "Enter a valid email address." }), { status: 400 });
+  if (!supabase) return publicJson({ error: "Password reset is temporarily unavailable." }, { status: 503 });
+  const { email } = parsed.data;
   const challengeId = randomUUID();
+  const budget = await authRequestBudget("password_reset", email, request.headers);
+  if (budget === "allowed") {
+    const client = supabase;
+    const ip = request.headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() ?? null;
+    const userAgent = request.headers.get("user-agent")?.slice(0, 300) ?? null;
+    after(async () => {
+      try { await issueReset(client, email, challengeId, ip, userAgent); }
+      catch { console.error("Password reset delivery failed"); }
+    });
+  }
+  return publicJson({ ok: true, masked: maskEmail(email), challengeId });
+}
+
+async function issueReset(client: NonNullable<typeof supabase>, email: string, challengeId: string, ip: string | null, userAgent: string | null) {
+  const { data: account, error } = await client.from("user_accounts").select("id,email,active").eq("email", email).maybeSingle();
+  if (error) throw error;
+  const log = { user_id: account?.id ?? null, email, ip_address: ip, user_agent: userAgent };
+  if (!account?.active) {
+    await client.from("password_reset_logs").insert({ ...log, status: "requested" });
+    return;
+  }
+  if (otpIssuable().ok !== true || !smtpConfigured()) {
+    await client.from("password_reset_logs").insert({ ...log, status: "failed" });
+    return;
+  }
+  const policy = await getSecurityPolicy();
   const code = generateOtpCode();
   const verifier = otpCodeVerifier(challengeId, code);
-  if (!verifier) {
-    await supabase.from("account_recovery_tokens").delete().eq("id", tokenRow.id);
-    return NextResponse.json({ error: "Verification email is unavailable right now." }, { status: 503 });
-  }
-  const { error: issueError } = await supabase.rpc("auth_otp_issue", {
-    p_user_id: account.id, p_challenge_id: challengeId, p_code_verifier: verifier,
+  if (!verifier) return;
+  const issue = await client.rpc("auth_otp_issue_for_purpose", {
+    p_purpose: "password_reset", p_user_id: account.id, p_challenge_id: challengeId, p_code_verifier: verifier,
     p_ttl_seconds: policy.otpTtlSeconds, p_cooldown_seconds: policy.otpResendCooldownSeconds,
   });
-  if (issueError) {
-    await supabase.from("account_recovery_tokens").delete().eq("id", tokenRow.id);
-    return NextResponse.json({ error: "A code could not be issued. Please try again later." }, { status: 429 });
+  if (issue.error) return;
+  const tokenHash = createHash("sha256").update(randomBytes(32)).digest("hex");
+  const token = await client.from("account_recovery_tokens").insert({ user_id: account.id, token_hash: tokenHash, created_by: null,
+    expires_at: new Date(Date.now() + 3600000).toISOString() }).select("id").single();
+  const audit = token.data && !token.error ? await client.from("password_reset_logs").insert({
+    ...log, token_id: token.data.id, challenge_id: challengeId, status: "requested",
+  }) : null;
+  const sent = audit && !audit.error
+    ? await sendAccountEmail({ to: email, message: buildPasswordResetOtpEmail({ code, ttlMinutes: otpTtlMinutes(policy) }) })
+    : null;
+  if (!sent?.ok) {
+    if (token.data) await client.from("account_recovery_tokens").delete().eq("id", token.data.id);
+    await client.from("auth_otp_challenges").update({ invalidated_at: new Date().toISOString() }).eq("id", challengeId);
+    if (audit && !audit.error) await client.from("password_reset_logs").update({ status: "failed" }).eq("challenge_id", challengeId);
+    else await client.from("password_reset_logs").insert({ ...log, status: "failed" });
   }
-  await supabase.from("auth_otp_challenges").update({ purpose: "password_reset" }).eq("id", challengeId);
-
-  const sent = await sendAccountEmail({ to: email, message: buildPasswordResetOtpEmail({ code, ttlMinutes: otpTtlMinutes(policy) }) });
-  if (!sent.ok) {
-    await supabase.from("account_recovery_tokens").delete().eq("id", tokenRow.id);
-    await supabase.from("auth_otp_challenges").update({ invalidated_at: new Date().toISOString() }).eq("id", challengeId);
-    await supabase.from("password_reset_logs").insert({ user_id: account.id, email, ip_address: ip, user_agent: userAgent, status: "failed" });
-    return NextResponse.json({ error: sent.message }, { status: 503 });
-  }
-
-  await supabase.from("password_reset_logs").insert({
-    user_id: account.id, token_id: tokenRow.id, challenge_id: challengeId,
-    email, ip_address: ip, user_agent: userAgent, status: "requested",
-  });
-  return NextResponse.json({ ok: true, masked: maskEmail(email), challengeId });
 }

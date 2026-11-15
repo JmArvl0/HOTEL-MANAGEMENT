@@ -1,3 +1,5 @@
+import { validationMessage } from "@/lib/errors";
+import { calendarDate, isCalendarDate, integerInput, phoneInput, localTimePattern } from "@/lib/input-validation";
 import { z } from "zod";
 import { formatPeso } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
@@ -29,8 +31,6 @@ export const rangesOverlap = (existingCheckIn: string, existingCheckOut: string,
 export const isBlockingReservationStatus = (status: string) =>
   (BLOCKING_RESERVATION_STATUSES as readonly string[]).includes(status);
 
-const datePattern = /^\d{4}-\d{2}-\d{2}$/;
-const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
 export const hotelToday = (timeZone = "Asia/Manila") => {
   let zone = timeZone;
   try { Intl.DateTimeFormat("en-US", { timeZone: zone }); } catch { zone = "Asia/Manila"; }
@@ -41,23 +41,28 @@ export const hotelToday = (timeZone = "Asia/Manila") => {
   return `${value.year}-${value.month}-${value.day}`;
 };
 // Today + n days in hotel time, as YYYY-MM-DD (mirrors hotelToday's timezone rule).
-export const hotelDateWithin = (days: number) => {
-  const target = new Date(Date.now() + days * 86400000);
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit"
-  }).formatToParts(target);
-  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  return `${value.year}-${value.month}-${value.day}`;
+export const hotelDateWithin = (days: number, zone?: string) => {
+  return new Date(Date.parse(hotelToday(zone)) + days * 86400000).toISOString().slice(0, 10);
 };
 
-export const searchSchema = z.object({
-  checkIn: z.string().regex(datePattern, "Choose a valid check-in date."),
-  checkOut: z.string().regex(datePattern, "Choose a valid check-out date."),
-  guests: z.coerce.number().int().min(1).max(8),
+export async function getBookingTimezone() {
+  if (!supabase) return "Asia/Manila";
+  const { data } = await supabase.from("hotel_operational_policies").select("hotel_timezone").eq("key", "default").maybeSingle();
+  return typeof data?.hotel_timezone === "string" ? data.hotel_timezone : "Asia/Manila";
+}
+
+export const searchSchemaFor = (today = hotelToday()) => z.object({
+  checkIn: calendarDate,
+  checkOut: calendarDate,
+  guests: integerInput(1, 8),
 }).superRefine((value, ctx) => {
-  if (value.checkIn < hotelToday()) ctx.addIssue({ code: "custom", path: ["checkIn"], message: "Check-in cannot be in the past." });
+  if (value.checkIn < today) ctx.addIssue({ code: "custom", path: ["checkIn"], message: "Check-in cannot be in the past." });
+  if (Date.parse(value.checkIn) - Date.parse(today) > 730 * 86400000) ctx.addIssue({ code: "custom", path: ["checkIn"], message: "Choose a check-in within the next 730 days." });
+  if (Date.parse(value.checkOut) - Date.parse(value.checkIn) > 365 * 86400000) ctx.addIssue({ code: "custom", path: ["checkOut"], message: "Choose a stay of up to 365 nights." });
   if (value.checkOut <= value.checkIn) ctx.addIssue({ code: "custom", path: ["checkOut"], message: "Check-out must be after check-in." });
 });
+
+export const searchSchema = z.lazy(() => searchSchemaFor());
 
 // Historical transport_lines on existing reservations are still read (transportTotal below);
 // new transfers are no longer sold at checkout — see the standalone Transportation Service.
@@ -70,12 +75,12 @@ export const transportationPreferencesSchema = z.object({
   serviceType: z.enum(["PICKUP", "DROPOFF", "ROUND_TRIP"]),
   pickupLocation: z.string().trim().min(5, "Enter the pickup location.").max(200).optional(),
   dropoffLocation: z.string().trim().min(5, "Enter the destination.").max(200).optional(),
-  pickupDate: z.string().regex(datePattern, "Choose a valid pickup date."),
-  pickupTime: z.string().regex(timePattern, "Choose a valid pickup time."),
+  pickupDate: calendarDate,
+  pickupTime: z.string().regex(localTimePattern, "Choose a valid pickup time."),
   returnLocation: z.string().trim().min(5, "Enter the departure destination.").max(200).optional(),
-  returnDate: z.string().regex(datePattern).optional(),
-  returnTime: z.string().regex(timePattern).optional(),
-  passengerCount: z.coerce.number().int().min(1, "At least one passenger is required.").max(20, "Transportation accommodates at most 20 passengers."),
+  returnDate: calendarDate.optional(),
+  returnTime: z.string().regex(localTimePattern).optional(),
+  passengerCount: integerInput(1, 20),
   specialInstructions: z.string().trim().max(500).optional(),
 }).superRefine((value, ctx) => {
   if (value.serviceType === "PICKUP" && !value.pickupLocation)
@@ -87,8 +92,8 @@ export const transportationPreferencesSchema = z.object({
     if (!value.returnLocation) ctx.addIssue({ code: "custom", path: ["returnLocation"], message: "Enter the departure destination." });
     if (!value.returnDate) ctx.addIssue({ code: "custom", path: ["returnDate"], message: "Choose the return date." });
     if (!value.returnTime) ctx.addIssue({ code: "custom", path: ["returnTime"], message: "Choose the return time." });
-    if (value.returnDate && value.returnDate < value.pickupDate)
-      ctx.addIssue({ code: "custom", path: ["returnDate"], message: "The return must be on or after the arrival pickup." });
+    if (value.returnDate && value.returnTime && `${value.returnDate}T${value.returnTime}` <= `${value.pickupDate}T${value.pickupTime}`)
+      ctx.addIssue({ code: "custom", path: ["returnDate"], message: "The return must follow the arrival pickup." });
   }
 });
 
@@ -98,22 +103,29 @@ export const guestDetailsSchema = z.object({
   roomId: z.string().min(1).max(100).optional(),
   holdToken: z.string().uuid().optional(),
   roomType: z.string().min(1).max(100),
-  checkIn: z.string().regex(datePattern),
-  checkOut: z.string().regex(datePattern),
-  guests: z.coerce.number().int().min(1).max(8),
+  checkIn: calendarDate,
+  checkOut: calendarDate,
+  guests: integerInput(1, 8),
   firstName: z.string().trim().min(1).max(80),
   lastName: z.string().trim().min(1).max(80),
   email: z.string().trim().email().max(200),
-  mobile: z.string().trim().min(7).max(30),
+  mobile: phoneInput,
   address: z.string().trim().min(1, "Provide your home address.").max(300),
   nationality: z.string().trim().max(80).optional().default(""),
-  expectedArrival: z.string().trim().regex(timePattern, "Select a valid arrival time.").max(40),
+  expectedArrival: z.union([z.literal(""), z.string().trim().regex(localTimePattern, "Select a valid arrival time.")]).optional().default(""),
   // Values are validated against the live pre-arrival offering in the holds
   // route (Manager-linked inventory + service allowlist) — the enum here only
   // enforces shape so Manager-configured custom types are accepted.
   requestOptions: z.array(z.string().trim().min(1).max(40)).max(12).optional().default([]),
   specialRequests: z.string().trim().max(1000).optional().default(""),
   transportationPreferences: transportationPreferencesSchema.optional(),
+}).superRefine((value, ctx) => {
+  const ride = value.transportationPreferences;
+  if (!ride) return;
+  for (const key of ["pickupDate", "returnDate"] as const) {
+    const date = ride[key];
+    if (date && (date < value.checkIn || date > value.checkOut)) ctx.addIssue({ code: "custom", path: ["transportationPreferences", key], message: "Choose a transportation date within your stay." });
+  }
 });
 
 export type SearchInput = z.infer<typeof searchSchema>;
@@ -145,19 +157,20 @@ export type SearchIntent =
   | { mode: "availability"; checkIn: string; checkOut: string; guests: number; roomType?: string }
   | { mode: "browse"; roomType?: string; notice?: string };
 
-export function parseSearchIntent(raw: Record<string, string | string[] | undefined>): SearchIntent {
+export function parseSearchIntent(raw: Record<string, string | string[] | undefined>, today = hotelToday()): SearchIntent {
   const single = (key: string) => (typeof raw[key] === "string" ? (raw[key] as string) : undefined);
   const roomType = single("roomType");
   const checkIn = single("checkIn");
   const checkOut = single("checkOut");
   if (!checkIn || !checkOut) return { mode: "browse", roomType };
-  const parsed = searchSchema.safeParse({ checkIn, checkOut, guests: Number(single("guests")) || 2 });
+  const parsed = searchSchemaFor(today).safeParse({ checkIn, checkOut, guests: single("guests") ?? 2 });
   if (parsed.success) return { mode: "availability", ...parsed.data, roomType };
   // Invalid dates/guests fall back to a safe browse state; the first issue becomes the notice.
-  return { mode: "browse", roomType, notice: parsed.error.issues[0]?.message };
+  return { mode: "browse", roomType, notice: validationMessage(parsed.error) };
 }
 
 export function calculateNights(checkIn: string, checkOut: string) {
+  if (!isCalendarDate(checkIn) || !isCalendarDate(checkOut)) return 0;
   return Math.round((Date.parse(`${checkOut}T00:00:00Z`) - Date.parse(`${checkIn}T00:00:00Z`)) / 86_400_000);
 }
 
@@ -288,25 +301,20 @@ export function countAvailableUnits(
 }
 
 export async function getAvailability(input: SearchInput, retryTransientAuth = true): Promise<AvailableRoomType[]> {
-  const parsed = searchSchema.safeParse(input);
-  if (!parsed.success || !supabase) return [];
+  if (!supabase) return [];
+  const hotelTz = await getBookingTimezone();
+  const parsed = searchSchemaFor(hotelToday(hotelTz)).safeParse(input);
+  if (!parsed.success) return [];
   const { checkIn, checkOut, guests } = parsed.data;
   const now = new Date().toISOString();
-  const [{ data: types, error: typeError }, { data: rooms, error: roomError }, { data: reservations, error: reservationError }, { data: holds, error: holdError }, { data: maintenance, error: maintenanceError }, { data: plans, error: planError }, { data: policyRow }] = await Promise.all([
+  const [{ data: types, error: typeError }, { data: rooms, error: roomError }, { data: reservations, error: reservationError }, { data: holds, error: holdError }, { data: maintenance, error: maintenanceError }, { data: plans, error: planError }] = await Promise.all([
     supabase.from("room_types").select("id,name,description,max_guests,beds,size_sqm,amenities,base_rate,photo_urls").eq("active", true).gte("max_guests", guests),
     supabase.from("rooms").select("id,type,status,housekeeping,administratively_active"),
     supabase.from("reservations").select("room_type,check_in,check_out,status,source,payment_due_at").in("status", [...BLOCKING_RESERVATION_STATUSES]).lt("check_in", checkOut).gt("check_out", checkIn),
     supabase.from("booking_holds").select("room_type,check_in,check_out,status,expires_at,reservation_id").in("status", ["active","payment_submitted"]).gt("expires_at", now).lt("check_in", checkOut).gt("check_out", checkIn),
     supabase.from("maintenance_orders").select("room_id").in("status", ["open","assigned","in_progress","waiting_parts","deferred"]).in("serviceability_impact", ["blocked","out_of_service"]),
     supabase.from("room_rate_plans").select("id,room_type_id,name,start_date,end_date,days_of_week,nightly_rate,status,decided_at").eq("status", "active"),
-    // Hotel timezone is Owner-configurable: the same-day housekeeping rule must use
-    // the policy day, not a hardcoded zone, to match room_is_sellable. A failed
-    // read falls back to the default rather than failing the whole search.
-    supabase.from("hotel_operational_policies").select("hotel_timezone").eq("key", "default").maybeSingle(),
   ]);
-  const hotelTz = typeof (policyRow as { hotel_timezone?: unknown } | null)?.hotel_timezone === "string" && (policyRow as { hotel_timezone: string }).hotel_timezone
-    ? (policyRow as { hotel_timezone: string }).hotel_timezone
-    : "Asia/Manila";
   const queryError = typeError || roomError || reservationError || holdError || maintenanceError || planError;
   if (queryError) {
     if (retryTransientAuth && queryError.code === "PGRST303") {

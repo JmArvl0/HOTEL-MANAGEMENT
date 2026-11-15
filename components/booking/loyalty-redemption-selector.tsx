@@ -1,4 +1,6 @@
 "use client";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
 import { Coins } from "lucide-react";
 import { useEffect, useState } from "react";
 import { formatPeso } from "@/lib/format";
@@ -14,8 +16,8 @@ export default function LoyaltyRedemptionSelector({ reservationId, folioBalance 
   const [message, setMessage] = useState("");
   useEffect(() => {
     let live = true;
-    fetch("/api/account/loyalty", { cache: "no-store" })
-      .then(async (res) => ({ ok: res.ok, body: await res.json() }))
+    fetchPublic("/api/account/loyalty", { cache: "no-store" })
+      .then(async (res) => ({ ok: res.ok, body: await readResponse(res) }))
       .then(({ ok, body }) => { if (live && ok) setPoints(Number(body.data?.points ?? 0)); })
       .catch(() => {});
     return () => { live = false; };
@@ -31,11 +33,11 @@ export default function LoyaltyRedemptionSelector({ reservationId, folioBalance 
     if (applied <= 0) return;
     setBusy(true);
     setMessage("");
-    const res = await fetch("/api/account/loyalty/redeem", {
+    const res = await fetchPublic("/api/account/loyalty/redeem", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ reservationId, points: applied, idempotencyKey: crypto.randomUUID() })
     });
-    const body = await res.json();
+    const body = await readResponse(res);
     setBusy(false);
     if (!res.ok) { setMessage(body.error ?? "Unable to redeem points."); return; }
     window.location.reload();

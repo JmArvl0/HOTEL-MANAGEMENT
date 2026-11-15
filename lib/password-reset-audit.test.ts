@@ -65,20 +65,20 @@ describe("selfie-gated recovery routes", () => {
 
 describe("self-service reset request and verification", () => {
   it("never reveals whether an address holds an account", () => {
-    expect(requestRoute).toContain("return NextResponse.json({ ok: true, masked: maskEmail(email) })");
+    expect(requestRoute).toContain("return publicJson({ ok: true, masked: maskEmail(email), challengeId })");
     expect(requestRoute).not.toMatch(/account (not found|does not exist)/i);
   });
   it("rate-limits requests per email per hour", () => {
-    expect(requestRoute).toContain("RESET_REQUEST_LIMIT");
+    expect(requestRoute).toContain('authRequestBudget("password_reset"');
     expect(requestRoute).toContain("password_reset_logs");
   });
   it("issues the code through the audited OTP challenge RPC", () => {
-    expect(requestRoute).toContain('rpc("auth_otp_issue"');
+    expect(requestRoute).toContain('rpc("auth_otp_issue_for_purpose"');
     expect(requestRoute).toContain("purpose: \"password_reset\"");
     expect(requestRoute).toContain("buildPasswordResetOtpEmail");
   });
   it("rotates the pre-verification token and emails only the fresh link", () => {
-    expect(verifyRoute).toContain('rpc("auth_otp_verify"');
+    expect(verifyRoute).toContain('rpc("auth_otp_verify_for_purpose"');
     expect(verifyRoute).toContain("delete().eq(\"id\", row.token_id)");
     expect(verifyRoute).toContain("buildRecoveryLinkEmail");
     expect(verifyRoute).toContain("otp_verified: true");
@@ -93,7 +93,7 @@ describe("admin reset audit surface", () => {
   });
   it("returns an empty list when the ledger table is not yet deployed", () => {
     expect(adminDataRoute).toContain('error.code==="42P01"');
-    expect(adminDataRoute).toContain("return NextResponse.json({data:[]})");
+    expect(adminDataRoute).toContain("return publicJson({data:[]})");
   });
   it("inspects selfies through short-lived signed URLs only", () => {
     expect(adminSelfieRoute).toContain("guardAdmin");
