@@ -2,7 +2,7 @@
 // Request-a-Change is one complete modal (dates + HavenSelect room type +
 // required reason textarea); a reservation with an unresolved request shows a
 // non-action pending state instead of an active button.
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ReservationActions } from "./reservation-actions";
 
@@ -41,6 +41,31 @@ function mockFetch(impl: (url: string, init?: RequestInit) => unknown) {
 
 beforeEach(() => {
   vi.stubGlobal("crypto", { randomUUID: () => "11111111-1111-1111-1111-111111111111" });
+});
+
+describe("ReservationActions cancellation", () => {
+  it("keeps unconfirmed cancellation guidance beside the actions and preserves the reason", async () => {
+    const fetch = vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init?.method === "POST") throw new TypeError("Connection lost");
+      return Response.json({ data: { eligibility: "none", depositPaid: 0, netPaid: 0, feeAmount: 0, retainedCharges: 0, eligibleAmount: 0 } });
+    });
+    vi.stubGlobal("fetch", fetch);
+    render(<ReservationActions {...base} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel reservation" }));
+    await screen.findByRole("region", { name: "Cancellation and refund" });
+    fireEvent.change(screen.getByLabelText(/Reason for cancellation/), { target: { value: "Travel plans changed." } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue to cancellation" }));
+    fireEvent.click(screen.getByRole("button", { name: "Yes, cancel reservation" }));
+
+    const review = await screen.findByRole("dialog", { name: "Cancel Reservation" });
+    const alert = within(review).getByRole("alert");
+    expect(alert.textContent).toContain("We couldn't confirm the cancellation. Check the reservation status before trying again.");
+    const continueButton = within(review).getByRole("button", { name: "Continue to cancellation" });
+    expect(alert.closest(".modal-footer")).toBe(continueButton.closest(".modal-footer"));
+    expect(within(review).getByDisplayValue("Travel plans changed.")).toBeTruthy();
+    expect(screen.queryByText("Reservation cancelled", { exact: true })).toBeNull();
+  });
 });
 
 describe("ReservationActions change modal", () => {

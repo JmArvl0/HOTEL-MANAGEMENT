@@ -1,5 +1,8 @@
 "use client";
 
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { useEffect, useRef, useState } from "react";
 import { HavenErrorAlert, HavenSkeletonCard } from "@/components/ui/haven-data-controls";
 import { useRouter } from "next/navigation";
@@ -82,8 +85,8 @@ export function ReservationActions({
     if (!/^\d{4}-\d{2}-\d{2}$/.test(newCheckIn) || !/^\d{4}-\d{2}-\d{2}$/.test(newCheckOut)) return;
     const timer = window.setTimeout(() => {
       setOptionsNote("");
-      fetch(`/api/account/reservations/${id}/room-options?checkIn=${newCheckIn}&checkOut=${newCheckOut}`, { cache: "no-store" })
-        .then((res) => res.json())
+      fetchPublic(`/api/account/reservations/${id}/room-options?checkIn=${newCheckIn}&checkOut=${newCheckOut}`, { cache: "no-store" })
+        .then((res) => readResponse(res))
         .then((body) => {
           if (Array.isArray(body?.data)) {
             const options = (body.data as { name: string; availableUnits: number }[]).filter(
@@ -121,8 +124,8 @@ export function ReservationActions({
     setCancelConfirmOpen(false);
     setPreview({ status: "loading" });
     setCancelOpen(true);
-    fetch(`/api/account/reservations/${id}/cancel`, { cache: "no-store" })
-      .then((response) => response.json().then((body) => ({ response, body })))
+    fetchPublic(`/api/account/reservations/${id}/cancel`, { cache: "no-store" })
+      .then((response) => readResponse(response).then((body) => ({ response, body })))
       .then(({ response, body }) => {
         if (!response.ok || !body?.data) {
           setPreview({ status: "failed", error: body?.error ?? "Refund eligibility could not be loaded." });
@@ -150,14 +153,14 @@ export function ReservationActions({
     setBusy(true);
     setCancelError("");
     try {
-      const response = await fetch(`/api/account/reservations/${id}/cancel`, {
+      const response = await fetchPublic(`/api/account/reservations/${id}/cancel`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reason: trimmedReason }),
       });
-      const body = await response.json();
+      const body = await readResponse(response);
       if (!response.ok) {
-        setCancelError(body.error ?? "Unable to cancel.");
+        setCancelError(userMessage(body.error, "Unable to cancel."));
         return;
       }
       const refund = Number(body.data?.eligible_refund ?? 0);
@@ -172,6 +175,8 @@ export function ReservationActions({
       setCancelOpen(false);
       setCancelReason("");
       router.refresh();
+    } catch {
+      setCancelError("We couldn't confirm the cancellation. Check My reservations before trying again.");
     } finally {
       cancelling.current = false;
       setBusy(false);
@@ -199,7 +204,7 @@ export function ReservationActions({
     setBusy(true);
     setError("");
     try {
-      const response = await fetch(`/api/account/reservations/${id}/change-request`, {
+      const response = await fetchPublic(`/api/account/reservations/${id}/change-request`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -210,9 +215,9 @@ export function ReservationActions({
           idempotencyKey: idempotencyKey.current,
         }),
       });
-      const body = await response.json();
+      const body = await readResponse(response);
       if (!response.ok) {
-        setError(body.error ?? "Unable to request changes.");
+        setError(userMessage(body.error, "Unable to request changes."));
         return;
       }
       setChangeOpen(false);
@@ -231,6 +236,8 @@ export function ReservationActions({
         });
       }
       router.refresh();
+    } catch {
+      setError("We couldn't confirm your change request. Check your reservation and request status before trying again.");
     } finally {
       submitting.current = false;
       setBusy(false);
@@ -277,18 +284,21 @@ export function ReservationActions({
         size="lg"
         headerVariant="branded"
         footer={
-          <div className="prompt-actions">
-            <button type="button" className="btn btn-soft" disabled={busy} onClick={() => setCancelOpen(false)}>
-              Keep reservation
-            </button>
-            <button
-              type="button"
-              className="btn btn-accent danger-action"
-              disabled={busy || !cancelReasonValid || preview.status === "loading"}
-              onClick={() => setCancelConfirmOpen(true)}
-            >
-              Continue to cancellation
-            </button>
+          <div className="cancel-dialog-footer">
+            {cancelError && <HavenErrorAlert title="Cancellation needs attention" body={cancelError} variant="customer" />}
+            <div className="prompt-actions">
+              <button type="button" className="btn btn-soft" disabled={busy} onClick={() => setCancelOpen(false)}>
+                Keep reservation
+              </button>
+              <button
+                type="button"
+                className="btn btn-accent danger-action"
+                disabled={busy || !cancelReasonValid || preview.status === "loading"}
+                onClick={() => setCancelConfirmOpen(true)}
+              >
+                Continue to cancellation
+              </button>
+            </div>
           </div>
         }
       >
@@ -296,7 +306,7 @@ export function ReservationActions({
           {preview.status === "loading" && <div role="status" aria-label="Calculating your refund eligibility"><HavenSkeletonCard hasHeader /></div>}
           {preview.status === "failed" && (
             <p className="booking-error" role="alert">
-              {preview.error} You can still cancel — the server always recalculates eligibility before committing.
+              {preview.error} Contact Front Desk if you would like to review the refund details before confirming cancellation.
             </p>
           )}
           {preview.status === "ready" && (
@@ -355,7 +365,6 @@ export function ReservationActions({
               onChange={(event) => setCancelReason(event.target.value)}
             />
           </div>
-          {cancelError && <HavenErrorAlert title="Cancellation failed" body={cancelError} variant="customer" />}
         </div>
       </Modal>
 
@@ -457,7 +466,7 @@ export function ReservationActions({
               onChange={(e) => setReason(e.target.value)}
             />
           </div>
-          {error && <HavenErrorAlert title="Change request failed" body={error} variant="customer" />}
+          {error && <HavenErrorAlert title="Change request needs attention" body={error} variant="customer" />}
         </div>
       </Modal>
     </div>

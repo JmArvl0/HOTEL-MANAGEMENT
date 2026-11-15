@@ -1214,6 +1214,8 @@ button.customer-inline-action:focus-visible{outline:2px solid var(--cp-green);ou
 @media(max-width:540px){.crd-refund-tiers-mini{grid-template-columns:1fr}.crd-refund-summary-grid{grid-template-columns:1fr}}
 /* Cancel modal consequence panel — snapshot-derived preview before commit. */
 .cancel-consequence{display:grid;gap:14px}
+.cancel-dialog-footer{display:grid;gap:10px;width:100%;min-width:0}
+.cancel-dialog-footer>.prompt-actions{margin-top:0}
 .cancel-consequence-panel{border:1px solid var(--cp-line,#d1d5db);border-radius:12px;background:var(--cp-panel-2,#f3f3f3);padding:16px 18px}
 .cancel-consequence-panel h3{margin:0 0 4px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--cp-text,#111827)}
 .cancel-consequence-panel dl{margin:0;display:grid;gap:0}
@@ -1317,3 +1319,14 @@ body:has(.booking-page) .toast-layer{top:96px}
 .booking-form-card .gcash-details dt{font-size:12px}
 .booking-form-card .deposit-verification-note{font-size:12px!important}
 .booking-form-card .byp-note{font-size:12px!important}
+
+
+@media (max-width: 600px) {
+  .booking-form-card .booking-form-grid { grid-template-columns: minmax(0, 1fr); }
+  .booking-form-card .booking-form-grid > * { min-width: 0; }
+  .booking-form-card .booking-form-grid .wide { grid-column: 1 / -1; }
+  .booking-form-card .mobile-number-control { min-width: 0; width: 100%; }
+  .booking-form-card .mobile-number-control input { min-width: 0; flex: 1; }
+  .booking-form-card .arrival-field .request-option { display: flex; align-items: flex-start; gap: .5rem; line-height: 1.5; text-transform: none; }
+  .booking-form-card .arrival-field .request-option input { width: 1rem; min-height: 1rem; margin: .2rem 0 0; }
+}
