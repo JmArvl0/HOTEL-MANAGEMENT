@@ -58,11 +58,8 @@ describe("guest request progress route", () => {
     for (const code of ["REQUEST_DEPARTMENT_FORBIDDEN", "GUEST_REQUEST_NOT_FOUND", "REQUEST_NOT_APPROVED", "REQUEST_ALREADY_CLOSED", "REQUEST_NOT_STARTABLE"])
       expect(route).toContain(code);
   });
-  it("leaves the generic CRUD guards exactly as they were", () => {
-    // Housekeeping still cannot PATCH guest_requests directly; Front Desk
-    // still cannot complete specialist-department items that way.
-    expect(resourcesRoute).toContain('role==="housekeeping"&&["rooms","guest_requests","housekeeping_tasks"].includes(resource)');
-    expect(resourcesRoute).toContain("The assigned specialist department must complete this request.");
+  it("requires the dedicated guest-request workflow for generic creates and updates", () => {
+    expect(resourcesRoute.match(/Use the guest request workflow to create or update requests/g)).toHaveLength(2);
   });
 });
 

@@ -113,7 +113,7 @@ describe("approval authorizes, Front Desk executes", () => {
   it("keeps the transport restriction with its Front Desk message", () => {
     expect(rpc).toContain("TRANSPORT_REQUIRES_STAFF");
     expect(route).toContain("TRANSPORT_REQUIRES_STAFF");
-    expect(route).toContain("message Front Desk");
+    expect(route).toContain("Contact Front Desk to coordinate your hotel transport");
   });
 });
 

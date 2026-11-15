@@ -22,7 +22,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!session || session.user.disabled) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (session.user.role !== "guest") return NextResponse.json({ error: "Customer access required." }, { status: 403 });
   if (!supabase) return NextResponse.json({ error: "Database unavailable." }, { status: 503 });
-  const parsed = schema.safeParse(await request.json());
+  const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid change request." }, { status: 400 });
   const id = (await params).id;
   const { data: owned } = await supabase
@@ -45,11 +45,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     p_idempotency_key: parsed.data.idempotencyKey,
   });
   if (error) {
+    if (error.message.includes("MODIFICATION_PAYMENT_IN_PROGRESS")) return NextResponse.json({ error: "Finish the active checkout before changing the stay dates, room type, or guest count." }, { status: 409 });
+    if (error.message.includes("AMENDMENT_BUSY") || error.message.includes("AMENDMENT_QUOTE_CHANGED")) return NextResponse.json({ error: "Availability or pricing changed while saving. Refresh your reservation and try again." }, { status: 409 });
+    if (error.message.includes("PARTY_CAPACITY")) return NextResponse.json({ error: "The guest count cannot be lower than the number of guests already on the reservation." }, { status: 409 });
+    if (error.message.includes("BREAKFAST_AMENDMENT_UNAVAILABLE")) return NextResponse.json({ error: "This stay includes breakfast. Contact Front Desk for help changing the booking." }, { status: 409 });
     if (error.message.includes("RESERVATION_NOT_FOUND")) return NextResponse.json({ error: "Reservation not found." }, { status: 404 });
     if (error.message.includes("MODIFICATION_INVENTORY_UNAVAILABLE") || error.message.includes("ROOM_TYPE_UNAVAILABLE")) return NextResponse.json({ error: "The requested room type or dates are no longer available." }, { status: 409 });
     if (error.message.includes("CHANGE_ALREADY_OPEN")) return NextResponse.json({ error: "A reservation change is already awaiting review or execution." }, { status: 409 });
     if (error.message.includes("RESERVATION_NOT_MODIFIABLE")) return NextResponse.json({ error: "This reservation cannot be modified." }, { status: 409 });
-    if (error.message.includes("TRANSPORT_REQUIRES_STAFF")) return NextResponse.json({ error: "This reservation has hotel transport charged to its folio, which cannot be recalculated automatically. Please message Front Desk to change your dates or room." }, { status: 409 });
+    if (error.message.includes("TRANSPORT_REQUIRES_STAFF")) return NextResponse.json({ error: "Contact Front Desk to coordinate your hotel transport before changing the stay." }, { status: 409 });
     return NextResponse.json({ error: "Unable to process the reservation change." }, { status: 409 });
   }
   // Bell entry, addressed per change request so replays of the same
