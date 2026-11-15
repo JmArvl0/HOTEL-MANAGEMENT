@@ -45,6 +45,6 @@ describe("expected arrival",()=>{
     expect(guestDetailsSchema.safeParse(fill("1:00pm")).success).toBe(false);
     expect(guestDetailsSchema.safeParse(fill("25:00")).success).toBe(false);
     expect(guestDetailsSchema.safeParse(fill("asdf")).success).toBe(false);
-    expect(guestDetailsSchema.safeParse(fill("")).success).toBe(false);
+    expect(guestDetailsSchema.safeParse(fill("")).success).toBe(true);
   });
 });

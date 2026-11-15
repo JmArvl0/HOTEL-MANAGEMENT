@@ -17,6 +17,17 @@ describe("Booking search", () => {
     expect((screen.getByLabelText("Check out") as HTMLInputElement).validity.rangeUnderflow).toBe(true);
     expect((screen.getByRole("form") as HTMLFormElement).noValidate).toBe(false);
   });
+  it("submits native input edits after the guest count changes", () => {
+    render(<BookingSearchForm compact initial={{ checkIn: "2099-09-06", checkOut: "2099-09-08", guests: 2 }} />);
+    fireEvent.input(screen.getByLabelText("Check in"), { target: { value: "2099-09-10" } });
+    fireEvent.input(screen.getByLabelText("Check out"), { target: { value: "2099-09-13" } });
+    fireEvent.change(screen.getByLabelText("Guests"), { target: { value: "3" } });
+    expect(Object.fromEntries(new FormData(screen.getByRole<HTMLFormElement>("form")))).toEqual({
+      checkIn: "2099-09-10",
+      checkOut: "2099-09-13",
+      guests: "3",
+    });
+  });
   it("keeps repeated search forms uniquely labelled and preserves the selected room", () => {
     render(<><BookingSearchForm initial={{ roomType: "Ocean Suite" }}/><BookingSearchForm compact/></>);
     const inputs = screen.getAllByLabelText("Check in");

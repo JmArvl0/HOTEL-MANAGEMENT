@@ -46,8 +46,8 @@ describe("in-stay independence", () => {
 
 describe("submit-time revalidation wiring", () => {
   it("rechecks the live offering in the holds route before the RPC", () => {
-    expect(holdsRoute).toContain("findUnavailableSelections(p.requestOptions,live)");
+    expect(holdsRoute).toContain("findUnavailableSelections(details.requestOptions, live)");
     expect(holdsRoute).toContain("PRE_ARRIVAL_UNAVAILABLE_MESSAGE");
-    expect(holdsRoute.indexOf("getPreArrivalOptions()")).toBeLessThan(holdsRoute.indexOf("create_booking_hold"));
+    expect(holdsRoute.indexOf("getPreArrivalOptions()")).toBeLessThan(holdsRoute.indexOf('rpc("create_booking_hold_attempt"'));
   });
 });

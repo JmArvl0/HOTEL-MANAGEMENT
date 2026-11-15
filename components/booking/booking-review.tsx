@@ -124,8 +124,8 @@ export function ReviewGuestCard({
               <BedDouble size={16} />
             </span>
             <div>
-              <h3>Stay preparations</h3>
-              <p>We&rsquo;ll have these ready for your stay.</p>
+              <h3>Stay requests</h3>
+              <p>Requests are subject to availability and hotel confirmation.</p>
             </div>
           </div>
           <div className="review-values">
@@ -136,7 +136,7 @@ export function ReviewGuestCard({
                 ))}
               </ul>
             ) : (
-              <p className="review-none">No stay preparations selected.</p>
+              <p className="review-none">No stay requests selected.</p>
             )}
           </div>
         </div>

@@ -102,7 +102,7 @@ export function BookingStaySummary({
                   <dt>
                     <Tag size={14} aria-hidden="true" /> {night.date}
                   </dt>
-                  <dd>{formatPeso(night.rate)}</dd>
+                  <dd className="review-stay-amount">{formatPeso(night.rate)}</dd>
                 </div>
               ))
             : rate != null && (
@@ -110,7 +110,7 @@ export function BookingStaySummary({
                   <dt>
                     <Tag size={14} aria-hidden="true" /> Nightly rate
                   </dt>
-                  <dd>{formatPeso(rate)}</dd>
+                  <dd className="review-stay-amount">{formatPeso(rate)}</dd>
                 </div>
               )}
           {(lines ?? []).map((line) => (
@@ -118,19 +118,19 @@ export function BookingStaySummary({
               <dt>
                 <ReceiptText size={14} aria-hidden="true" /> {line.label}
               </dt>
-              <dd>{formatPeso(line.amount)}</dd>
+              <dd className="review-stay-amount">{formatPeso(line.amount)}</dd>
             </div>
           ))}
           <div className="review-stay-total">
             <dt>Stay total</dt>
-            <dd>{formatPeso(total)}</dd>
+            <dd className="review-stay-amount">{formatPeso(total)}</dd>
           </div>
           {depositDue && (
             <div className="review-stay-deposit">
               <dt>
                 <CreditCard size={14} aria-hidden="true" /> {depositDue.label}
               </dt>
-              <dd>{formatPeso(depositDue.amount)}</dd>
+              <dd className="review-stay-amount">{formatPeso(depositDue.amount)}</dd>
             </div>
           )}
           {remainingBalance != null && (
@@ -138,7 +138,7 @@ export function BookingStaySummary({
               <dt>
                 <Wallet size={14} aria-hidden="true" /> Remaining balance
               </dt>
-              <dd>{formatPeso(remainingBalance)}</dd>
+              <dd className="review-stay-amount">{formatPeso(remainingBalance)}</dd>
             </div>
           )}
           {paymentBreakdown}

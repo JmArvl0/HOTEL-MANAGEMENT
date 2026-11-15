@@ -54,6 +54,8 @@ export default async function ConfirmationPage({
   const depositPayment =
     reservation.payments.find((payment) => payment.purpose === "reservation_deposit") ?? null;
   const xendit = reservation.payment_method === "gateway_xendit";
+  const review = xendit && supabase ? await supabase.rpc("guest_xendit_review_status", { p_reservation: reservation.id, p_guest: session.user.id }) : null;
+  const paymentUnderReview = review?.data === true;
   const paidInFull = xendit && finance.paid > 0 && finance.balance === 0;
   const terminal = reservation.status === "cancelled";
   const manualDepositPending = !xendit && !terminal && depositPayment?.status === "pending_verification" &&
@@ -96,7 +98,7 @@ export default async function ConfirmationPage({
   return (
     <BookingPageFrame
       session={session}
-      step={confirmed ? "Confirmed" : xendit && terminal ? "Checkout expired" : "Verification pending"}
+      step={confirmed ? "Confirmed" : terminal ? xendit ? "Checkout expired" : "Cancelled" : "Verification pending"}
       breadcrumb={breadcrumb}
     >
       <section className="confirmation-card deposit-confirmation">
@@ -105,31 +107,36 @@ export default async function ConfirmationPage({
         <h1>
           {confirmed
             ? "Your Haven stay is reserved."
-            : xendit && terminal
-            ? "This checkout has expired."
+            : terminal
+            ? xendit ? "This checkout has expired." : "This reservation was cancelled."
             : xendit && returned === "cancelled"
             ? "Checkout was not completed."
             : xendit
             ? "Waiting for payment verification."
             : gatewayPending
             ? "This online checkout has closed."
-            : manualDepositPending ? "Your previous payment is still unsettled." : "Your reservation is pending."}
+            : manualDepositPending ? "Contact Front Desk about your deposit." : "Your reservation is awaiting payment."}
         </h1>
         <p>
           {confirmed
             ? paidInFull ? "Haven verified your full stay payment." : "Haven verified your reservation deposit."
             : xendit && terminal
             ? "Your reservation is not confirmed and its temporary room hold has been released. Choose an available room to try again. Contact the hotel if you completed a simulated payment."
+            : terminal
+            ? "View your reservation for its cancellation and payment details."
             : xendit
             ? "Returning from checkout does not confirm payment. This page updates after Haven verifies Xendit’s notification. You can safely retry to reopen an existing checkout."
             : gatewayPending
             ? "If you attempted payment, ask Front Desk to check the transaction before paying again."
-            : manualDepositPending ? "Contact Front Desk to check the status of your previous payment before paying again." : "Contact Front Desk for help with your reservation."}
+            : manualDepositPending
+            ? "Have your original payment reference ready so Front Desk can look up the transaction before you pay again."
+            : "Check your reservation for the latest payment status and available actions."}
         </p>
         {manualDepositPending && <Link className="btn btn-soft" href="/account/help">Contact Front Desk</Link>}
         {!confirmed && !terminal && !manualDepositPending && <PaymentStatusPoller reservationId={reservation.id} status={reservation.status} />}
-        {xenditHold && <XenditCheckout holdToken={xenditHold} amount={checkoutAmount} retry />}
-        {xendit && terminal && <Link className="btn btn-accent" href={`/account/find-room?${new URLSearchParams({ checkIn: reservation.check_in, checkOut: reservation.check_out, guests: String(reservation.guests) })}`}>Retry payment with a new room hold</Link>}
+        {paymentUnderReview && <p role="status" className="booking-error">Accounting is reviewing your Xendit payment. Contact Front Desk with your booking reference before paying again.</p>}
+        {xenditHold && !paymentUnderReview && <XenditCheckout holdToken={xenditHold} amount={checkoutAmount} retry />}
+        {xendit && terminal && !paymentUnderReview && <Link className="btn btn-accent" href={`/account/find-room?${new URLSearchParams({ checkIn: reservation.check_in, checkOut: reservation.check_out, guests: String(reservation.guests) })}`}>Retry payment with a new room hold</Link>}
         {gatewayPending && (
           <GatewayPendingActions
             reservationId={reservation.id}
@@ -183,6 +190,7 @@ export default async function ConfirmationPage({
             <dt>Required reservation deposit</dt>
             <dd>{formatPeso(reservation.deposit_required ?? 0)}</dd>
           </div>
+          {manualDepositPending && <div><dt>Previously submitted</dt><dd>{formatPeso(depositPayment.amount)}</dd></div>}
           <div>
             <dt>{xendit ? "Amount paid" : "Deposit paid"}</dt>
             <dd>{formatPeso(finance.paid)}</dd>
@@ -197,7 +205,7 @@ export default async function ConfirmationPage({
           </div>
           <div>
             <dt>Payment</dt>
-            <dd>{friendlyStatus(reservation.invoice?.status ?? reservation.payment_status)}</dd>
+            <dd>{manualDepositPending ? "Unsettled legacy payment" : friendlyStatus(reservation.invoice?.status ?? reservation.payment_status)}</dd>
           </div>
           {xendit && depositPayment && <div><dt>{depositPayment.status === "paid" ? "Transaction reference" : "Payment reference"}</dt><dd>{depositPayment.reference}</dd></div>}
           {xendit && !confirmed && !terminal && reservation.payment_due_at && <div><dt>Sandbox checkout deadline</dt><dd>{new Date(reservation.payment_due_at).toLocaleString("en-PH", { timeZone: "Asia/Manila", dateStyle: "medium", timeStyle: "short" })} (Philippine time)</dd></div>}

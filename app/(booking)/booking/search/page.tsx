@@ -1,3 +1,4 @@
+import { getBookingTimezone } from "@/lib/booking";
 import { getServerSession } from "next-auth";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -25,7 +26,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   if (session?.user.role === "guest") redirect(`/account/find-room${forwarded.size ? `?${forwarded}` : ""}`);
 
   // Intent comes from the URL (see parseSearchIntent): valid dates → availability, otherwise browse.
-  const intent = parseSearchIntent(raw);
+  const intent = parseSearchIntent(raw, new Intl.DateTimeFormat("en-CA", { timeZone: await getBookingTimezone() }).format(new Date()));
   const depositPolicy = await getDepositPolicy();
   let rooms: (AvailableRoomType | RoomTypeSummary)[] = [];
   let lookupError: string | undefined;

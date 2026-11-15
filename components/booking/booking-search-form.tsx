@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useId, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useId, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 import Link from "next/link";
 import { StayCalendar } from "./stay-calendar";
 import { ArrowRight, CalendarDays, ChevronDown, UsersRound } from "lucide-react";
@@ -60,6 +60,16 @@ export function BookingSearchForm({
   const earliestCheckout = Number.isNaN(nextDate.getTime()) ? tomorrow : nextDate.toISOString().slice(0, 10);
   const stale = searched !== undefined
     && (checkIn !== searched.checkIn || checkOut !== searched.checkOut || guests !== searched.guests);
+
+  function changeCheckIn(event: ChangeEvent<HTMLInputElement>) {
+    const value = event.currentTarget.value;
+    setCheckIn(value);
+    if (value && checkOut <= value) {
+      const next = new Date(`${value}T00:00:00Z`);
+      next.setUTCDate(next.getUTCDate() + 1);
+      setCheckOut(next.toISOString().slice(0, 10));
+    }
+  }
 
   function submit(event: FormEvent<HTMLFormElement>) {
     if (hero && (checkIn < today || checkOut <= checkIn)) {
@@ -130,15 +140,8 @@ export function BookingSearchForm({
           type="date"
           min={today}
           value={checkIn}
-          onChange={(event) => {
-            const value = event.target.value;
-            setCheckIn(value);
-            if (value && checkOut <= value) {
-              const next = new Date(`${value}T00:00:00Z`);
-              next.setUTCDate(next.getUTCDate() + 1);
-              setCheckOut(next.toISOString().slice(0, 10));
-            }
-          }}
+          onInput={changeCheckIn}
+          onChange={changeCheckIn}
           required
           aria-required="true"
         />
@@ -151,7 +154,8 @@ export function BookingSearchForm({
           type="date"
           min={earliestCheckout}
           value={checkOut}
-          onChange={(event) => setCheckOut(event.target.value)}
+          onInput={(event) => setCheckOut(event.currentTarget.value)}
+          onChange={(event) => setCheckOut(event.currentTarget.value)}
           required
           aria-required="true"
         />

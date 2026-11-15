@@ -6,6 +6,7 @@ import { createRequire } from "node:module";
 import ts from "typescript";
 import { hotelFixture, hotelTestDatabase, rpc } from "./hotel-db-test-helpers.mjs";
 
+const manualOnly = process.argv.includes("--manual-only");
 const testDb = await hotelTestDatabase();
 const { db } = testDb;
 const migration = "supabase/migrations/20261103130000_hotel_nightly_availability.sql";
@@ -17,9 +18,10 @@ const test = async (name, run) => {
 };
 try {
   const beforeHousekeeping = (await db.query("select pg_get_functiondef('housekeeping_complete_task(text,jsonb,text,uuid)'::regprocedure) body")).rows[0].body;
-  if (!process.argv.includes("--baseline")) {
+  const amendmentPlanner = (await db.query("select to_regprocedure('hotel_reservation_amendment(reservations,date,date,text,integer,text,text,uuid,text,boolean,jsonb)') fn")).rows[0].fn;
+  if (!process.argv.includes("--baseline") && !amendmentPlanner) {
     await db.query(fs.readFileSync(migration, "utf8"));
-  } else if ((await db.query("select to_regprocedure('hotel_available_units(text,date,date,jsonb,text,uuid,timestamptz)') fn")).rows[0].fn) {
+  } else if (process.argv.includes("--baseline") && (await db.query("select to_regprocedure('hotel_available_units(text,date,date,jsonb,text,uuid,timestamptz)') fn")).rows[0].fn) {
     throw new Error("--baseline requires a template replayed before the nightly-availability migration");
   }
   const { start, mid, end } = (await db.query("select (hotel_today()+60)::text start,(hotel_today()+61)::text mid,(hotel_today()+62)::text end")).rows[0];
@@ -54,7 +56,7 @@ try {
     assert.equal((await db.query("select status from reservations where id=$1", [reservation])).rows[0].status, "confirmed");
     assert.equal((await manual(f, token))[0].reservation_id, reservation);
   });
-  await test("gateway submission and settlement agree on staggered stays", async () => {
+  if (!manualOnly) await test("gateway submission and settlement agree on staggered stays", async () => {
     const f = await hotelFixture(db); const token = await hold(f); await stagger(f);
     const reference = `test-${randomUUID()}`;
     const reservation = (await rpc(db, "submit_gateway_deposit", { p_token: token, p_user_id: f.users.guest, p_gateway_ref: reference }))[0].reservation_id;
@@ -68,6 +70,7 @@ try {
       const results = await Promise.allSettled([hold(f), hold(f, other)]);
       assert.equal(results.filter(result => result.status === "fulfilled").length, 1);
       assert.match(results.find(result => result.status === "rejected").reason.message, /ROOM_TYPE_UNAVAILABLE/);
+      assert.equal((await db.query("select count(*)::int n from booking_holds where room_type=$1 and status='active'", [f.type])).rows[0].n, 1);
     } finally { await other.end(); }
   });
   await test("Front Desk and website cannot both claim the final unit", async () => {
@@ -76,11 +79,44 @@ try {
       const results = await Promise.allSettled([rpc(db, "front_desk_create_reservation", staffArgs(f)), hold(f, other)]);
       assert.equal(results.filter(result => result.status === "fulfilled").length, 1);
       assert.match(results.find(result => result.status === "rejected").reason.message, /ROOM_TYPE_UNAVAILABLE/);
+      const claimCount = (await db.query("select (select count(*) from booking_holds where room_type=$1 and status='active') + (select count(*) from reservations where room_type=$1 and status in ('confirmed','checked_in')) as n", [f.type])).rows[0].n;
+      assert.equal(Number(claimCount), 1);
     } finally { await other.end(); }
+  });
+  await test("two Front Desk bookings commit one reservation and invoice for the final room", async () => {
+    const f = await hotelFixture(db, 1);
+    const other = await testDb.connect();
+    try {
+      const results = await Promise.allSettled([
+        rpc(db, "front_desk_create_reservation", staffArgs(f)),
+        rpc(other, "front_desk_create_reservation", staffArgs(f)),
+      ]);
+      assert.equal(results.filter(result => result.status === "fulfilled").length, 1);
+      assert.match(results.find(result => result.status === "rejected").reason.message, /ROOM_TYPE_UNAVAILABLE/);
+      const reservations = (await db.query("select id from reservations where room_type=$1", [f.type])).rows;
+      assert.equal(reservations.length, 1);
+      assert.equal((await db.query("select count(*)::int n from invoices where reservation_id=$1", [reservations[0].id])).rows[0].n, 1);
+      assert.equal((await db.query("select count(*)::int n from payments where reservation_id=$1", [reservations[0].id])).rows[0].n, 0);
+    } finally { await other.end(); }
+  });
+  await test("manual transfer proof remains reviewable if capacity is lost before verification", async () => {
+    const f = await hotelFixture(db, 1);
+    const token = await hold(f);
+    const reservation = (await manual(f, token))[0].reservation_id;
+    await db.query("update reservations set payment_due_at=now()-interval '1 minute' where id=$1", [reservation]);
+    await db.query("update booking_holds set expires_at=now()-interval '1 minute' where token=$1", [token]);
+    await rpc(db, "front_desk_create_reservation", staffArgs(f));
+    const before = (await db.query("select id,status,proof_storage_path,reference from payments where reservation_id=$1", [reservation])).rows[0];
+    assert.ok(before.proof_storage_path);
+    await assert.rejects(rpc(db, "verify_reservation_deposit", { p_payment_id: before.id, p_staff_user_id: f.users.accounting }), /ROOM_TYPE_UNAVAILABLE/);
+    assert.deepEqual((await db.query("select id,status,proof_storage_path,reference from payments where id=$1", [before.id])).rows[0], before);
+    assert.equal(before.status, "pending_verification");
+    assert.equal((await db.query("select status from reservations where id=$1", [reservation])).rows[0].status, "pending");
+    assert.equal((await db.query("select count(*)::int n from payments where reservation_id=$1 and status='paid'", [reservation])).rows[0].n, 0);
   });
   for (const managerReview of [false, true]) await test(`reservation modification ${managerReview ? "request/review/execution" : "self-service"} uses nightly capacity`, async () => {
     const f = await hotelFixture(db);
-    const reservation = await stay(f, start, end);
+    const reservation = await stay(f, start, mid);
     await db.query("insert into invoices(reservation_id,guest_name,amount,paid,balance,status) values($1,'Test',100,0,100,'unpaid')", [reservation]);
     if (managerReview) await db.query("update reservations set operational_policy_snapshot=jsonb_set(operational_policy_snapshot,'{selfServiceModificationDays}','999') where id=$1", [reservation]);
     await stagger(f);
@@ -101,8 +137,13 @@ try {
     // are isolated; the arithmetic and its date/status predicates are production.
     const actualRequire = createRequire(import.meta.url);
     const compiled = ts.transpileModule(fs.readFileSync("lib/booking.ts", "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+    const validation = {};
+    const validationCode = ts.transpileModule(fs.readFileSync("lib/input-validation.ts", "utf8"),
+      { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+    new Function("exports", "require", validationCode)(validation, actualRequire);
     const exports = {};
-    new Function("exports", "require", compiled)(exports, name => name.startsWith("@/") ? { supabase: null } : actualRequire(name));
+    new Function("exports", "require", compiled)(exports, name => name === "@/lib/input-validation"
+      ? validation : name.startsWith("@/") ? { supabase: null } : actualRequire(name));
     const scenarios = [
       { name: "empty demand", reservations: [], holds: [], expected: 2 },
       { name: "staggered stays", reservations: [[start, mid], [mid, end]], holds: [], expected: 1 },
@@ -135,7 +176,7 @@ try {
       for (const [check_in, check_out, status = "active", expiration = "live", converted] of scenario.holds) {
         const expires_at = expiry(expiration);
         const reservation_id = converted ? reservationIds[0] : null;
-        await db.query("insert into booking_holds(user_id,room_type,check_in,check_out,guest_count,nightly_rate,subtotal,total,first_name,last_name,email,mobile,status,expires_at,reservation_id) values($1,$2,$3,$4,1,100,100,100,'Test','Guest','parity@example.invalid','09123456789',$5,$6,$7)", [f.users.guest, f.type, check_in, check_out, status, expires_at, reservation_id]);
+        await db.query("insert into booking_holds(user_id,room_type,check_in,check_out,guest_count,nightly_rate,subtotal,total,deposit_required,first_name,last_name,email,mobile,status,expires_at,reservation_id) values($1,$2,$3,$4,1,100,100,100,30,'Test','Guest','parity@example.invalid','09123456789',$5,$6,$7)", [f.users.guest, f.type, check_in, check_out, status, expires_at, reservation_id]);
         holds.push({ room_type: f.type, check_in, check_out, status, expires_at, reservation_id });
       }
       const checkOut = scenario.checkOut ?? end;
@@ -145,13 +186,27 @@ try {
     });
     await test("migration preserves Housekeeping, caller grants and is replayable", async () => {
       assert.equal((await db.query("select pg_get_functiondef('housekeeping_complete_task(text,jsonb,text,uuid)'::regprocedure) body")).rows[0].body, beforeHousekeeping);
-      const targets = ["create_booking_hold", "front_desk_create_reservation", "submit_reservation_deposit", "submit_gateway_deposit", "verify_reservation_deposit", "confirm_gateway_payment", "customer_request_reservation_change", "review_manager_approval", "front_desk_execute_manager_approval"];
+      const targets = ["create_booking_hold", "front_desk_create_reservation", "submit_reservation_deposit", "verify_reservation_deposit", "customer_request_reservation_change", "review_manager_approval", "front_desk_execute_manager_approval"];
+      if (!manualOnly) targets.push("submit_gateway_deposit", "confirm_gateway_payment");
       const rows = (await db.query("select p.proname,p.prosrc,has_function_privilege('anon',p.oid,'EXECUTE') anon,has_function_privilege('authenticated',p.oid,'EXECUTE') authenticated,has_function_privilege('service_role',p.oid,'EXECUTE') service from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname=any($1)", [targets])).rows;
       assert.equal(rows.length, targets.length);
-      for (const row of rows) { assert.match(row.prosrc, /hotel_available_units\(/); assert.equal(row.anon, false); assert.equal(row.authenticated, false); assert.equal(row.service, true); }
-      await db.query(fs.readFileSync(migration, "utf8"));
+      const amendmentCallers = new Set(["customer_request_reservation_change", "review_manager_approval", "front_desk_execute_manager_approval"]);
+      for (const row of rows) {
+        assert.match(row.prosrc, amendmentPlanner && amendmentCallers.has(row.proname)
+          ? /hotel_reservation_amendment\(/ : /hotel_available_units\(/);
+        assert.equal(row.anon, false);
+        assert.equal(row.authenticated, false);
+        assert.equal(row.service, true);
+      }
+      if (amendmentPlanner) {
+        const [{ body }] = (await db.query("select pg_get_functiondef($1::regprocedure) as body", [amendmentPlanner])).rows;
+        assert.match(body, /hotel_available_units\(/);
+      } else {
+        await db.query(fs.readFileSync(migration, "utf8"));
+      }
     });
   }
   console.log(`Availability SQL: ${passed} passed, ${failed} failed`);
+  if (manualOnly) console.log("DEFERRED gateway settlement case per --manual-only; no provider acceptance claimed.");
   if (failed) process.exitCode = 1;
 } finally { await testDb.close(); }

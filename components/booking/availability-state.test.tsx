@@ -8,9 +8,9 @@ vi.mock("@/lib/auth", () => ({ authOptions: {} }));
 vi.mock("@/components/landing/public-website-nav", () => ({ PublicWebsiteNav: () => null }));
 vi.mock("@/components/booking/booking-search-form", () => ({ BookingSearchForm: () => <form aria-label="Stay search" /> }));
 vi.mock("@/components/booking/back-button", () => ({ BackButton: () => null }));
-vi.mock("@/lib/booking", async () => ({ ...(await vi.importActual("@/lib/booking")), getAvailability: lookup.availability, getRoomCatalog: lookup.catalog }));
+vi.mock("@/lib/booking", async () => ({ ...(await vi.importActual("@/lib/booking")), getBookingTimezone: async () => "Asia/Manila", getAvailability: lookup.availability, getRoomCatalog: lookup.catalog }));
 const { default: SearchPage } = await import("@/app/(booking)/booking/search/page");
-const search = { checkIn: "2099-11-10", checkOut: "2099-11-12", guests: "2" };
+const search = { checkIn: "2026-12-10", checkOut: "2026-12-12", guests: "2" };
 const show = async () => render(await SearchPage({ searchParams: Promise.resolve(search) }));
 beforeEach(() => {
   vi.clearAllMocks();
@@ -27,7 +27,7 @@ describe("public search distinguishes failed inventory from sold out", () => {
     expect(screen.queryByRole("heading", { name: "Choose different dates" })).toBeNull();
     expect(screen.getByText("Availability unavailable")).toBeTruthy();
     const retry = screen.getByRole("link", { name: "Retry availability" });
-    expect(retry.getAttribute("href")).toBe("/booking/search?checkIn=2099-11-10&checkOut=2099-11-12&guests=2");
+    expect(retry.getAttribute("href")).toBe("/booking/search?checkIn=2026-12-10&checkOut=2026-12-12&guests=2");
   });
   it("shows sold out only after a successful empty lookup", async () => {
     await show();

@@ -67,7 +67,7 @@ describe("ReviewGuestCard", () => {
   it("handles an empty special request with a clean empty state", () => {
     render(<ReviewGuestCard {...guest} specialRequests={null} requested={[]} />);
     expect(screen.getByText("No additional request.")).toBeTruthy();
-    expect(screen.getByText("No stay preparations selected.")).toBeTruthy();
+    expect(screen.getByText("No stay requests selected.")).toBeTruthy();
   });
   it("keeps a single Edit details link to the details step", () => {
     render(<ReviewGuestCard {...guest} />);
