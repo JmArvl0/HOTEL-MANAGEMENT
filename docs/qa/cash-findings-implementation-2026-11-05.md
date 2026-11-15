@@ -97,7 +97,7 @@ and browser behavior were verified separately.
 ## Release boundary
 
 New additive migration:
-[20261105010000_cash_refunds_and_count_drafts.sql](../../supabase/migrations/20261105010000_cash_refunds_and_count_drafts.sql).
+[20261115080000_cash_count_drafts.sql](../../supabase/migrations/20261115080000_cash_count_drafts.sql). The earlier version was already assigned to Fleet in the hosted ledger.
 The linked hosted migration ledger was read before numbering. No `supabase db push`
 was performed. The new refund function retains the local cancellation-settlement
 contract, so release must account for its existing pending prerequisite
