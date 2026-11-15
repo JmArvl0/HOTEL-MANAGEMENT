@@ -34,11 +34,12 @@ it("leaves ambiguous provider failures claimed and returns a pending confirmatio
   vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("timeout")));
   const result = await POST(request()); expect(result.status).toBe(200);
   expect(await result.json()).toMatchObject({ data: { confirmationUrl: "/booking/confirmation/RES-1" } });
-  expect(rpc).toHaveBeenCalledTimes(1);
+  expect(rpc).toHaveBeenCalledWith("mark_xendit_session_uncertain", { p_payment: attempt.paymentId });
 });
-it("never treats a completed session found during retry as a paid booking", async () => {
+it("settles an independently verified completed session found during retry", async () => {
   rpc.mockResolvedValue({ data: { ...attempt, checkoutUrl: "https://dev.xen.to/test", sessionId: "ps-test" } });
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ payment_session_id: "ps-test", reference_id: "reference", amount: 100,
     session_type: "PAY", mode: "PAYMENT_LINK", currency: "PHP", country: "PH", status: "COMPLETED", payment_id: "py-test", expires_at: "2026-12-01T10:16:00Z" })));
-  expect((await POST(request())).status).toBe(200); expect(rpc).toHaveBeenCalledTimes(1);
+  expect((await POST(request())).status).toBe(200);
+  expect(rpc).toHaveBeenCalledWith("hotel_process_xendit_event", expect.objectContaining({ p_transaction: "py-test", p_event: "payment_session.completed" }));
 });

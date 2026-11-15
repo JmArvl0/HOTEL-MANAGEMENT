@@ -35,7 +35,7 @@ describe("migration contract (20260931010000_deposit_sla.sql)", () => {
 describe("surface contracts", () => {
   it("the policy route validates depositSlaHours 0–72 and passes it to the RPC", () => {
     const route = read("app/api/admin/policy/route.ts");
-    expect(route).toMatch(/depositSlaHours:z\.coerce\.number\(\)\.int\(\)\.min\(0\)\.max\(72\)/);
+    expect(route).toMatch(/depositSlaHours:integerInput\(0, 72\)/);
     expect(route).toMatch(/p_deposit_sla_hours:v\.depositSlaHours/);
   });
 

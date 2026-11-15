@@ -45,7 +45,7 @@ const stage = (
       rate={hold.nightly_rate == null ? null : Number(hold.nightly_rate)}
       total={total}
       nightly={parseFrozenRates(hold.nightly_rates)}
-      lines={transport.length ? [{ label: "Hotel transfer", amount: transportTotal(transport) }] : undefined}
+      lines={[...(transport.length ? [{ label: "Hotel transfer", amount: transportTotal(transport) }] : [])]}
       photos={stayPhotos}
       depositDue={xenditReady ? undefined : { label: `Required reservation deposit - ${depositPolicyLabel(policy)}`, amount: deposit }}
       remainingBalance={xenditReady ? undefined : remaining}

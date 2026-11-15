@@ -1,0 +1,30 @@
+.app-shell .xendit-review-panel {
+  min-width: 0;
+  margin-block: 1rem;
+  padding: 1.25rem;
+}
+.app-shell .xendit-review-panel .panel-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  justify-content: space-between;
+}
+.app-shell .xendit-review-panel .panel-heading > div { min-width: 0; }
+.app-shell .xendit-review-panel .panel-heading h3 { margin: 0; font-size: 1.125rem; }
+.app-shell .xendit-review-panel .panel-heading p { margin: .5rem 0 1rem; font-size: .875rem; line-height: 1.5; }
+.app-shell .xendit-review-panel .panel-heading > button { white-space: nowrap; flex-shrink: 0; }
+.app-shell .xendit-review-item { border-top: 1px solid var(--line, #d6e3e2); padding-block: 1rem; }
+.app-shell .xendit-review-item summary { cursor: pointer; overflow-wrap: anywhere; }
+.app-shell .xendit-review-summary { display: inline-grid; width: calc(100% - 1.5rem); grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: .5rem 1rem; vertical-align: top; }
+.app-shell .xendit-review-summary > span { font-size: .875rem; }
+.app-shell .xendit-review-item dl { display: flex; flex-wrap: wrap; gap: .75rem 1.5rem; overflow-wrap: anywhere; font-size: .875rem; line-height: 1.5; }
+.app-shell .xendit-review-item dt { font-weight: 600; }
+.app-shell .xendit-review-item dd { margin: .25rem 0 0; }
+.app-shell .xendit-review-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: 1.25rem; margin-top: 1rem; }
+.app-shell .xendit-review-actions form { display: grid; gap: .75rem; align-content: end; justify-items: start; min-width: 0; }
+.app-shell .xendit-review-actions label { display: grid; width: 100%; gap: .5rem; font-size: .875rem; font-weight: 500; }
+.app-shell .xendit-review-actions input { box-sizing: border-box; min-width: 0; width: 100%; min-height: 44px; padding: .65rem .75rem; font: inherit; border: 1px solid var(--line, #cddbd9); border-radius: 8px; }
+@media (max-width: 600px) {
+  .app-shell .xendit-review-summary { grid-template-columns: minmax(0, 1fr); }
+  .app-shell .xendit-review-panel { padding: 1rem; }
+}
