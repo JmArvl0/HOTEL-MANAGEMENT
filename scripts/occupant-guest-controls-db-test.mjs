@@ -97,6 +97,19 @@ try {
   await call("hotel_housekeeping_service_outcome", { p_task_id: lateTask.id, p_outcome: "late_service", p_note: "Guest requested service later", p_version: lateTask.version, p_key: randomUUID(), p_actor: f.users.housekeeping });
   const late = (await q("select status,priority,service_outcome,service_due_at from housekeeping_tasks where id=$1", [lateTask.id]))[0];
   check("late service is prioritized and gets a due time", late.status === "pending" && late.priority === "high" && late.service_outcome === "late_service" && late.service_due_at !== null);
+  const beforeMove = (await q("select id from reservation_service_conditions where reservation_id=$1 and status='active'", [reservation]))[0];
+  await call("front_desk_change_room", { p_reservation_id: reservation, p_new_room_id: discrepancyRoom.id, p_reason: "Synthetic in-house move with DND", p_staff_user_id: f.users.front_desk });
+  const afterMove = (await q(`select r.room_id,r.status,d.id as condition_id from reservations r
+    join reservation_service_conditions d on d.reservation_id=r.id and d.status='active' where r.id=$1`, [reservation]))[0];
+  check("active DND follows the same checked-in stay across a room move", afterMove?.room_id === discrepancyRoom.id && afterMove.status === "checked_in" && afterMove.condition_id === beforeMove.id);
+  const movedTask = (await q(`insert into housekeeping_tasks(room_id,room_number,task,task_type,status,reservation_id)
+    values($1,$2,'Stayover in moved room','stayover_cleaning','pending',$3) returning id`, [discrepancyRoom.id, discrepancyRoom.number, reservation]))[0];
+  await call("housekeeping_assign_task", { p_task_id: movedTask.id, p_assigned_user_id: f.users.housekeeping, p_reason: "Assigned service in moved room", p_staff_user_id: f.users.owner });
+  const movedTaskState = "select t.status,r.housekeeping from housekeeping_tasks t join rooms r on r.id=t.room_id where t.id=$1";
+  const beforeStart = await q(movedTaskState, [movedTask.id]);
+  await assert.rejects(call("housekeeping_start_task", { p_task_id: movedTask.id, p_staff_user_id: f.users.housekeeping }), /ROOM_SERVICE_DND/);
+  assert.deepEqual(await q(movedTaskState, [movedTask.id]), beforeStart);
+  check("DND refuses start without advancing the new room's task or housekeeping state", beforeStart[0].status !== "in_progress");
   await call("front_desk_checkout", { p_reservation_id: reservation, p_staff_user_id: f.users.front_desk });
   check("checkout clears DND while preserving its history", (await q("select status,clear_reason from reservation_service_conditions where reservation_id=$1 order by set_at desc limit 1", [reservation]))[0].status === "cleared");
 

@@ -1,4 +1,5 @@
 "use client";
+import { DownloadMenu, printDownload } from "@/components/ui/download-menu";
 import {useHotelResource} from "./hotel-operations-client";
 type Occupant={name:string;type:string;status:string};
 type InHouse={reservationId:string;confirmationNumber:string|null;roomId:string|null;roomNumber:string|null;checkIn:string;checkOut:string;declaredCount:number;registeredCount:number;registerComplete:boolean;occupants:Occupant[]};
@@ -6,7 +7,7 @@ type InHouseRegister={assessedAt:string;items:InHouse[]};
 export default function EmergencyOccupancyPanel(){
  const{data,error,loading,refresh}=useHotelResource<InHouseRegister>("/api/staff/occupants/in-house");
  return <section className="hotel-ops" aria-label="In-house occupant register">
-  <div className="hotel-ops-fields"><div><h3>In-house occupant register</h3><p>Recorded occupants and attendance for current room assignments. Incomplete or unknown entries need Front Desk confirmation.</p></div><button type="button" className="btn btn-soft" onClick={()=>window.print()} disabled={!data?.items.length}>Print list</button></div>
+  <div className="hotel-ops-fields"><div><h3>In-house occupant register</h3><p>Recorded occupants and attendance for current room assignments. Incomplete or unknown entries need Front Desk confirmation.</p></div><DownloadMenu label="Download in-house register" actions={[printDownload]} disabled={!data?.items.length}/></div>
   {error&&<p role="alert">{error}</p>}{loading&&!data?<p role="status">Loading in-house register…</p>:data?.items.length?<ul className="hotel-ops-list">{data.items.map(stay=><li key={stay.reservationId}>
    <strong>Room {stay.roomNumber??"Unassigned"}</strong><span>{stay.confirmationNumber??stay.reservationId}</span>
    <span>{stay.registeredCount} / {stay.declaredCount} names recorded{stay.registerComplete?"":" · incomplete"}</span>

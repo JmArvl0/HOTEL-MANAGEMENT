@@ -67,8 +67,8 @@ describe("report storage and lifecycle", () => {
 describe("report generation and submission wiring", () => {
   it("builds the snapshot server-side and never accepts one from the browser", () => {
     expect(submitRoute).toContain("buildDailyReport");
-    expect(submitRoute).toContain("const snapshot = await buildDailyReport(parsed.data.reportDate)");
-    expect(submitRoute).toContain("p_snapshot: snapshot");
+    expect(submitRoute).toContain('rpc("submit_front_desk_daily_snapshot"');
+    expect(submitRoute).toContain("p_preview_version: parsed.data.previewVersion");
     expect(submitRoute).not.toMatch(/p_snapshot:\s*parsed\.data/);
   });
   it("routes review through the manager-guarded RPC", () => {
@@ -88,7 +88,7 @@ describe("report generation and submission wiring", () => {
       guestRequestsOpened: [{}, {}, {}],
       guestRequestsEscalated: [{}],
       openRequests: [{ department: "front_desk" }, { department: "front_desk" }, { department: "housekeeping" }],
-      settledPayments: [{ purpose: "reservation_deposit", method: "gcash", amount: 2670 }, { purpose: "stay_payment", method: "cash", amount: 6230 }, { purpose: "reservation_deposit", method: "cash", amount: "1000.50" }],
+      settledPayments: [{ purpose: "reservation_deposit", method: "gcash", amount: 2670 }, { purpose: "stay_payment", method: "cash", amount: 6230 }, { purpose: "reservation_deposit", method: "cash", amount: "1000.50" }, { purpose: "refund", method: "cash", amount: 300 }],
       cashShiftsClosed: [{ expected_cash: 7230.50, actual_cash: 7200, variance: -30.50 }],
       housekeepingCompleted: [{ task_type: "checkout_cleaning", started_at: "2026-09-05T09:00:00Z", completed_at: "2026-09-05T09:45:00Z", inspection_status: "passed", status: "completed" }],
       rooms: [{ status: "occupied" }, { status: "occupied" }, { status: "available" }],
@@ -144,9 +144,9 @@ describe("cash payment collection", () => {
   });});
 
 describe("centralized reporting replaces scattered module exports", () => {
-  it("keeps exactly one window.print — on the Reports page itself", () => {
+  it("uses the shared print option on Reports without scattering actions across data modules", () => {
     expect(dashboard.match(/window\.print/g)?.length ?? 0).toBe(0);
-    expect(performanceReports.match(/window\.print/g)?.length ?? 0).toBe(1);
+    expect(performanceReports).toContain("actions={[printDownload]}");
     expect(transportationPanel).not.toContain("window.print");
   });
   it("keeps the legitimate document downloads", () => {
@@ -156,7 +156,7 @@ describe("centralized reporting replaces scattered module exports", () => {
   it("gives Front Desk the Reports page and states that Export never submits", () => {
     expect(readFileSync("config/role-navigation.ts", "utf8")).toContain('roles: ["manager", "accounting", "front_desk"]');
     expect(dashboard).toContain("FrontDeskReportsPanel");
-    expect(reportsPanel).toContain("It does not submit anything to the Manager");
+    expect(reportsPanel).toContain("Submit the current preview for Manager review");
     expect(reportsPanel).toContain("Submit to Manager");
   });
 });

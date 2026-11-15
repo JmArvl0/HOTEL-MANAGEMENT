@@ -1,3 +1,4 @@
+import { isCalendarDate } from "@/lib/input-validation";
 /**
  * Rate plans — the TS mirror of the `room_nightly_rates` SQL resolver.
  *
@@ -56,6 +57,7 @@ const isoDayBit = (isoDate: string) => {
 
 const eachNight = (checkIn: string, checkOut: string) => {
   const nights: string[] = [];
+  if (!isCalendarDate(checkIn) || !isCalendarDate(checkOut)) return nights;
   for (let t = Date.parse(`${checkIn}T00:00:00Z`), end = Date.parse(`${checkOut}T00:00:00Z`); t < end; t += 86400000) {
     nights.push(new Date(t).toISOString().slice(0, 10));
   }

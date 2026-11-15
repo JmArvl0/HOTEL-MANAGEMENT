@@ -1,9 +1,5 @@
 // @vitest-environment jsdom
-// Front Desk report export — QA retest: Export timed out with no download or
-// print result. Export is window.print() over the preview article; this pins
-// the wiring (preview → Export → print call) and the print CSS that keeps a
-// tall preview from choking the browser's print preview (unbreakable panels
-// + interactive chrome must not print).
+// The report's Download menu opens the browser print workflow for the preview.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { readFileSync } from "node:fs";
@@ -39,13 +35,15 @@ function mockFetch() {
 }
 
 describe("FrontDeskReportsPanel export", () => {
-  it("builds a preview and hands it to the print workflow on Export", async () => {
+  it("builds a preview and prints it from the Download menu", async () => {
     mockFetch();
     const print = vi.spyOn(window, "print").mockImplementation(() => undefined);
     render(<FrontDeskReportsPanel role="front_desk" />);
     fireEvent.click(screen.getByRole("button", { name: "Generate preview" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Export" })).toBeTruthy());
-    fireEvent.click(screen.getByRole("button", { name: "Export" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Download daily operations report" })).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Download daily operations report" }));
+    expect(print).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("option", { name: "Print / Save as PDF" }));
     expect(print).toHaveBeenCalledOnce();
   });
 });
