@@ -15,7 +15,7 @@ it("retains stale edits and requires a successful save and reason before publish
     if (!init?.method) return Response.json({ data, location: null });
     const body = JSON.parse(String(init.body));
     requests.push(body);
-    if (body.action === "save" && rejectSave) return Response.json({ error: "Another editor saved a newer version." }, { status: 409 });
+    if (body.action === "save" && rejectSave) return Response.json({ error: "Another editor saved a newer version. Reload the latest content before saving." }, { status: 409 });
     if (body.action === "save") data = { ...data, draft: body.content, version: data.version + 1 };
     if (body.action === "publish") data = { ...data, published: data.draft, version: data.version + 1, published_version: data.version + 1 };
     return Response.json({ data });

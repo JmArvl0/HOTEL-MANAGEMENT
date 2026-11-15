@@ -171,13 +171,13 @@ describe("SystemHealthView", () => {
 
   it("runs a scheduled automation and reports the trigger through the toast", async () => {
     const notify = vi.fn();
-    const fetchMock = vi.fn(async () => ({ ok: true }));
+    const fetchMock = vi.fn(async () => Response.json({ ok: true }));
     vi.stubGlobal("fetch", fetchMock);
     try {
       render(<SystemHealthView data={health()} onRefresh={() => {}} notify={notify} />);
       fireEvent.click(screen.getByRole("button", { name: /Run Guest reminders now/ }));
       await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/guest-reminders", { method: "POST" }));
-      await waitFor(() => expect(notify).toHaveBeenCalledWith("Guest reminders triggered successfully."));
+      await waitFor(() => expect(notify).toHaveBeenCalledWith("Guest reminders triggered successfully.", "success"));
       // No local "did it run" flag: the durable record is the run timestamp the
       // server writes and the panel re-reads on refresh. Keeping a second,
       // weaker copy in local state meant two sources of truth for one fact.

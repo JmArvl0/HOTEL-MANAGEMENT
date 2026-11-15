@@ -1,4 +1,7 @@
-import { NextResponse } from "next/server";
+import { userMessage, validationBody } from "@/lib/errors";
+import { publicJson } from "@/lib/server-errors";
+
+
 import { z } from "zod";
 import { guardAdmin, adminGuardFailed } from "@/lib/admin-route";
 import { prepareLocationImage, readLocationUpload } from "@/lib/location-image";
@@ -14,24 +17,24 @@ export async function POST(request: Request) {
     if (!(file instanceof File)) throw new Error("Choose an image file.");
     image = await prepareLocationImage(new Uint8Array(await file.arrayBuffer()), file.type);
     alt = metadata.alt; imageKind = metadata.imageKind;
-  } catch (cause) { return NextResponse.json({ error: cause instanceof Error && !(cause instanceof z.ZodError) ? cause.message : "Describe the photo and choose its property/area category." }, { status: 400 }); }
+  } catch (cause) { return publicJson({ error: userMessage(cause, "We couldn't read this photo. Choose a valid JPEG, PNG or WebP image and try again.") }, { status: 400 }); }
   const id = crypto.randomUUID(), key = `${context.actorId}/${id}.webp`, bucket = context.client.storage.from("website-images");
   const uploaded = await bucket.upload(key, image.data, { contentType: "image/webp", upsert: false });
-  if (uploaded.error) return NextResponse.json({ error: "Photo upload failed. Try again." }, { status: 503 });
+  if (uploaded.error) return publicJson({ error: "Photo upload failed. Try again." }, { status: 503 });
   const { data, error } = await context.client.rpc("website_landing_image_write", { p_actor: context.actorId, p_action: "register", p_id: id, p_details: { alt, imageKind, width: image.width, height: image.height, bytes: image.data.length } });
   if (error) { await bucket.remove([key]); return websiteContentFailure(error); }
-  return NextResponse.json({ data }, { status: 201 });
+  return publicJson({ data }, { status: 201 });
 }
 
 export async function DELETE(request: Request) {
   const context = await guardAdmin(); if (adminGuardFailed(context)) return context;
   const parsed = z.object({ id: z.string().uuid() }).safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "Choose an uploaded photo." }, { status: 400 });
+  if (!parsed.success) return publicJson(validationBody(parsed.error, { error: "Choose an uploaded photo." }), { status: 400 });
   const args = { p_actor: context.actorId, p_id: parsed.data.id };
   const result = await context.client.rpc("website_landing_image_write", { ...args, p_action: "delete" });
   if (result.error) return websiteContentFailure(result.error);
   const removed = await context.client.storage.from("website-images").remove([result.data.storage_key]);
-  if (removed.error) return NextResponse.json({ error: "Private-file cleanup is pending. Retry deleting this photo." }, { status: 503 });
+  if (removed.error) return publicJson({ error: "The photo still needs to be fully removed. Try deleting it again to finish." }, { status: 503 });
   const finished = await context.client.rpc("website_landing_image_write", { ...args, p_action: "finish_delete" });
-  return finished.error ? websiteContentFailure(finished.error) : NextResponse.json({ ok: true });
+  return finished.error ? websiteContentFailure(finished.error) : publicJson({ ok: true });
 }

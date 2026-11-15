@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { publicJson } from "@/lib/server-errors";
+import { NextRequest } from "next/server";
 import { aiConfigured, generateJson, geminiModel } from "@/lib/ai/gemini-client";
 import { aiGuardFailed, guardAiSession } from "@/lib/ai/guard";
 import { aiRateLimited, recordAiInteraction } from "@/lib/ai/audit";
@@ -31,18 +32,18 @@ export async function GET(request: NextRequest) {
   if (aiGuardFailed(session)) return session;
 
   if (!aiConfigured()) {
-    return NextResponse.json({ data: null, message: AI_UNAVAILABLE_MESSAGE }, { status: 200 });
+    return publicJson({ data: null, message: AI_UNAVAILABLE_MESSAGE }, { status: 200 });
   }
 
   const refresh = request.nextUrl.searchParams.get("refresh") === "1";
   const today = hotelDay();
   if (!refresh && cachedBrief?.date === today) {
-    return NextResponse.json({ data: cachedBrief.brief, indicators: cachedBrief.indicators, model: cachedBrief.model, generatedAt: cachedBrief.generatedAt, cached: true });
+    return publicJson({ data: cachedBrief.brief, indicators: cachedBrief.indicators, model: cachedBrief.model, generatedAt: cachedBrief.generatedAt, cached: true });
   }
 
   if (refresh && await aiRateLimited(session.userId, "brief", 3, 10)) {
     await recordAiInteraction({ userId: session.userId, role: session.role, feature: "brief", toolCalls: [], status: "rate_limited" });
-    return NextResponse.json({ error: "Brief refresh limit reached. Try again in a few minutes." }, { status: 429 });
+    return publicJson({ error: "Brief refresh limit reached. Try again in a few minutes." }, { status: 429 });
   }
 
   try {
@@ -62,12 +63,12 @@ export async function GET(request: NextRequest) {
     });
     if (!result.ok) {
       console.error(`[ai] brief served fallback — reason=${result.reason} httpStatus=${result.httpStatus ?? "n/a"} errorCode=${result.errorCode ?? "n/a"}`);
-      return NextResponse.json({ data: null, indicators, message: AI_UNAVAILABLE_MESSAGE }, { status: 200 });
+      return publicJson({ data: null, indicators, message: AI_UNAVAILABLE_MESSAGE }, { status: 200 });
     }
     cachedBrief = { date: today, brief: result.data, indicators, model: result.model, generatedAt: new Date().toISOString() };
-    return NextResponse.json({ data: result.data, indicators, model: result.model, generatedAt: cachedBrief.generatedAt });
+    return publicJson({ data: result.data, indicators, model: result.model, generatedAt: cachedBrief.generatedAt });
   } catch {
     await recordAiInteraction({ userId: session.userId, role: session.role, feature: "brief", toolCalls: [], status: "error" });
-    return NextResponse.json({ data: null, message: AI_UNAVAILABLE_MESSAGE }, { status: 200 });
+    return publicJson({ data: null, message: AI_UNAVAILABLE_MESSAGE }, { status: 200 });
   }
 }

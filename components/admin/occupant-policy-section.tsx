@@ -1,4 +1,7 @@
 "use client";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import {useEffect,useState} from "react";
 import type {OccupantPolicy} from "@/lib/hotel-operations";
 import "./occupant-policy.css";
@@ -7,10 +10,10 @@ export default function OccupantPolicySection(){
   [reason,setReason]=useState(""),[error,setError]=useState(""),[notice,setNotice]=useState(""),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true);
  async function load(){
   setLoading(true);setError("");
-  try{const response=await fetch("/api/admin/occupant-policy",{cache:"no-store"}),result=await response.json();
+  try{const response=await fetchPublic("/api/admin/occupant-policy",{cache:"no-store"}),result=await readResponse(response);
    if(!response.ok)throw new Error(result.error??"Occupant policy is unavailable.");
    setPolicy(result.data);setRegisterDate(result.data.registerEffectiveFrom??"");setAgeDate(result.data.ageEffectiveFrom??"");
-  }catch(e){setError(e instanceof Error?e.message:"Occupant policy is unavailable.");}
+  }catch(e){setError(userMessage(e, "Occupant policy is unavailable."));}
   finally{setLoading(false);}
  }
  useEffect(()=>{const timer=window.setTimeout(()=>void load(),0);return()=>window.clearTimeout(timer);},[]);
@@ -21,13 +24,13 @@ export default function OccupantPolicySection(){
  async function save(event:React.FormEvent){
   event.preventDefault();if(!policy)return;setBusy(true);setError("");setNotice("");
   try{
-   const response=await fetch("/api/admin/occupant-policy",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+   const response=await fetchPublic("/api/admin/occupant-policy",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({
     registerEffectiveFrom:registerDate||null,ageEffectiveFrom:ageDate||null,version:policy.version,reason,
-   })}),result=await response.json();
+   })}),result=await readResponse(response);
    if(!response.ok)throw new Error(result.error??"Unable to update occupant policy.");
    setPolicy(result.data);setNotice("Occupant policy saved. Staff must complete each register and age check before the effective date.");
    setReason("");
-  }catch(e){setError(e instanceof Error?e.message:"Unable to update occupant policy.");}
+  }catch(e){setError(userMessage(e, "Unable to update occupant policy."));}
   finally{setBusy(false);}
  }
  return <section className="data-panel admin-occupant-policy" aria-labelledby="occupant-policy-title">

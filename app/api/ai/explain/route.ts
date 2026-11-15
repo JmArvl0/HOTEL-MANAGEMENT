@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { publicJson } from "@/lib/server-errors";
+import { NextRequest } from "next/server";
 import { aiConfigured, generateJson, geminiModel } from "@/lib/ai/gemini-client";
 import { aiGuardFailed, guardAiSession } from "@/lib/ai/guard";
 import { aiRateLimited, recordAiInteraction } from "@/lib/ai/audit";
@@ -24,22 +25,22 @@ export async function POST(request: NextRequest) {
   if (aiGuardFailed(session)) return session;
 
   if (!aiConfigured()) {
-    return NextResponse.json({ data: null, message: AI_UNAVAILABLE_MESSAGE }, { status: 200 });
+    return publicJson({ data: null, message: AI_UNAVAILABLE_MESSAGE }, { status: 200 });
   }
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+    return publicJson({ error: "Please check the details and try again." }, { status: 400 });
   }
   if (!isExplainType(body && typeof body === "object" && "type" in body ? body.type : undefined)) {
-    return NextResponse.json({ error: "Unknown prediction type." }, { status: 400 });
+    return publicJson({ error: "Unknown prediction type." }, { status: 400 });
   }
 
   if (await aiRateLimited(session.userId, "explain", 20, 10)) {
     await recordAiInteraction({ userId: session.userId, role: session.role, feature: "explain", toolCalls: [], status: "rate_limited" });
-    return NextResponse.json({ error: "Explanation limit reached. Try again in a few minutes." }, { status: 429 });
+    return publicJson({ error: "Explanation limit reached. Try again in a few minutes." }, { status: 429 });
   }
 
   try {
@@ -59,11 +60,11 @@ export async function POST(request: NextRequest) {
     });
     if (!result.ok) {
       console.error(`[ai] explain served fallback — reason=${result.reason} httpStatus=${result.httpStatus ?? "n/a"} errorCode=${result.errorCode ?? "n/a"}`);
-      return NextResponse.json({ data: null, message: AI_UNAVAILABLE_MESSAGE }, { status: 200 });
+      return publicJson({ data: null, message: AI_UNAVAILABLE_MESSAGE }, { status: 200 });
     }
-    return NextResponse.json({ data: result.data, model: result.model, disclosure: AI_DISCLOSURE });
+    return publicJson({ data: result.data, model: result.model, disclosure: AI_DISCLOSURE });
   } catch {
     await recordAiInteraction({ userId: session.userId, role: session.role, feature: "explain", toolCalls: [], status: "error" });
-    return NextResponse.json({ error: "Unable to load prediction data." }, { status: 500 });
+    return publicJson({ error: "Unable to load prediction data." }, { status: 500 });
   }
 }

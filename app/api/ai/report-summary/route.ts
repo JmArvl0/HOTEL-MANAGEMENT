@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { publicJson } from "@/lib/server-errors";
+import { NextRequest } from "next/server";
 import { aiConfigured, generateJson, geminiModel } from "@/lib/ai/gemini-client";
 import { aiGuardFailed, guardAiSession } from "@/lib/ai/guard";
 import { aiRateLimited, recordAiInteraction } from "@/lib/ai/audit";
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
   if (aiGuardFailed(session)) return session;
 
   if (!aiConfigured()) {
-    return NextResponse.json({ data: null, message: AI_UNAVAILABLE_MESSAGE }, { status: 200 });
+    return publicJson({ data: null, message: AI_UNAVAILABLE_MESSAGE }, { status: 200 });
   }
 
   let body: unknown = {};
@@ -38,13 +39,13 @@ export async function POST(request: NextRequest) {
   }
   const date = body && typeof body === "object" && "date" in body ? String((body as { date: unknown }).date) : hotelToday();
   if (!isReportDate(date)) {
-    return NextResponse.json({ error: "A valid report date (YYYY-MM-DD) is required." }, { status: 400 });
+    return publicJson({ error: "A valid report date (YYYY-MM-DD) is required." }, { status: 400 });
   }
   const digest = body && typeof body === "object" && (body as { mode?: unknown }).mode === "digest";
 
   if (await aiRateLimited(session.userId, digest ? "executive_shift_summary" : "report_summary", 20, 10)) {
     await recordAiInteraction({ userId: session.userId, role: session.role, feature: digest ? "executive_shift_summary" : "report_summary", toolCalls: [], status: "rate_limited" });
-    return NextResponse.json({ error: "Summary limit reached. Try again in a few minutes." }, { status: 429 });
+    return publicJson({ error: "Summary limit reached. Try again in a few minutes." }, { status: 429 });
   }
 
   try {
@@ -64,9 +65,9 @@ export async function POST(request: NextRequest) {
       });
       if (!digestResult.ok) {
         console.error(`[ai] executive_shift_summary served fallback — reason=${digestResult.reason}`);
-        return NextResponse.json({ data: null, message: AI_UNAVAILABLE_MESSAGE }, { status: 200 });
+        return publicJson({ data: null, message: AI_UNAVAILABLE_MESSAGE }, { status: 200 });
       }
-      return NextResponse.json({ data: digestResult.data, model: digestResult.model, reportDate: report.reportDate, disclosure: AI_DISCLOSURE });
+      return publicJson({ data: digestResult.data, model: digestResult.model, reportDate: report.reportDate, disclosure: AI_DISCLOSURE });
     }
     const result = await generateJson({
       systemInstruction: `${HAVEN_SYSTEM_PROMPT}\n\n${SUMMARY_TASK}`,
@@ -82,14 +83,14 @@ export async function POST(request: NextRequest) {
     });
     if (!result.ok) {
       console.error(`[ai] report_summary served fallback — reason=${result.reason} httpStatus=${result.httpStatus ?? "n/a"} errorCode=${result.errorCode ?? "n/a"}`);
-      return NextResponse.json({ data: null, message: AI_UNAVAILABLE_MESSAGE }, { status: 200 });
+      return publicJson({ data: null, message: AI_UNAVAILABLE_MESSAGE }, { status: 200 });
     }
-    return NextResponse.json({ data: result.data, model: result.model, reportDate: report.reportDate, disclosure: AI_DISCLOSURE });
+    return publicJson({ data: result.data, model: result.model, reportDate: report.reportDate, disclosure: AI_DISCLOSURE });
   } catch (error) {
-    if (error instanceof Error && error.message === "Database unavailable.") {
-      return NextResponse.json({ error: "Database unavailable." }, { status: 503 });
+    if (error instanceof Error && error.message === "This service is temporarily unavailable. Please try again shortly.") {
+      return publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
     }
     await recordAiInteraction({ userId: session.userId, role: session.role, feature: "report_summary", toolCalls: [], status: "error" });
-    return NextResponse.json({ error: "Unable to build the report summary." }, { status: 500 });
+    return publicJson({ error: "Unable to build the report summary." }, { status: 500 });
   }
 }

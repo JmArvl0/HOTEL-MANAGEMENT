@@ -1,4 +1,6 @@
-import { NextResponse } from "next/server";
+import { publicJson } from "@/lib/server-errors";
+import { validationBody } from "@/lib/errors";
+
 import { getServerSession } from "next-auth";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
@@ -24,7 +26,7 @@ export async function GET() {
     lastResult = ok === true ? "passed" : ok === false ? "failed" : null;
   }
   const configured = smtpConfigured();
-  return NextResponse.json({
+  return publicJson({
     data: {
       configured,
       sender: configured ? smtpSender() : null,
@@ -47,7 +49,7 @@ export async function POST(request: Request) {
   const c = await guardAdmin();
   if (adminGuardFailed(c)) return c;
   const parsed = testSchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "Choose verify or send." }, { status: 400 });
+  if (!parsed.success) return publicJson(validationBody(parsed.error, { error: "Choose verify or send." }), { status: 400 });
 
   if (parsed.data.action === "verify") {
     const result = await verifySmtpConnection();
@@ -55,13 +57,13 @@ export async function POST(request: Request) {
       user_id: c.actorId, action: "smtp_connection_tested", entity_type: "service_configuration",
       entity_id: "smtp", after_data: { ok: result.ok, reason: result.ok ? null : result.reason },
     });
-    if (!result.ok) return NextResponse.json({ error: result.message }, { status: result.reason === "unconfigured" ? 400 : 502 });
-    return NextResponse.json({ ok: true });
+    if (!result.ok) return publicJson({ error: result.message }, { status: result.reason === "unconfigured" ? 400 : 502 });
+    return publicJson({ ok: true });
   }
 
   const session = await getServerSession(authOptions);
   const address = session?.user.email?.trim();
-  if (!address) return NextResponse.json({ error: "No session email to test with." }, { status: 400 });
+  if (!address) return publicJson({ error: "Your signed-in account needs an email address before you can send a test email." }, { status: 400 });
   const result = await sendTestEmail({ to: address });
   // Probe content carries no code by construction (see buildTestEmail), so a
   // test message can never complete a challenge.
@@ -69,6 +71,6 @@ export async function POST(request: Request) {
     user_id: c.actorId, action: "smtp_test_email_sent", entity_type: "service_configuration",
     entity_id: "smtp", after_data: { ok: result.ok },
   });
-  if (!result.ok) return NextResponse.json({ error: result.message }, { status: result.reason === "unconfigured" ? 400 : 502 });
-  return NextResponse.json({ ok: true });
+  if (!result.ok) return publicJson({ error: result.message }, { status: result.reason === "unconfigured" ? 400 : 502 });
+  return publicJson({ ok: true });
 }

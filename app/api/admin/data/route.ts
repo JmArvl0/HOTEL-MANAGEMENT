@@ -1,24 +1,25 @@
-import { guestDepositsEnabled } from "@/lib/online-checkout";
-import { NextResponse } from "next/server";
+import { publicJson } from "@/lib/server-errors";
+
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { guardAdmin,adminGuardFailed } from "@/lib/admin-route";
 import { ROLE_CAPABILITIES } from "@/lib/admin";
+import { guestDepositsEnabled } from "@/lib/online-checkout";
 import { automationRunStatus, deploymentBuildStatus, migrationStatus, pendingMigrations, type AutomationRunStatus, type SystemHealth } from "@/lib/system-health";
 import { xenditConfigured } from "@/lib/xendit";
 
 export async function GET(request:Request){const context=await guardAdmin();if(adminGuardFailed(context))return context;const section=new URL(request.url).searchParams.get("section")??"overview";const db=context.client;
- if(section==="users"){const{data,error}=await db.from("user_accounts").select("id,email,name,role,active,account_status,recovery_required,phone,department,employee_reference,auth_version,created_at,updated_at").order("created_at",{ascending:false});if(error)throw error;return NextResponse.json({data});}
- if(section==="rooms"){const{data,error}=await db.from("rooms").select("id,number,floor,type,wing,administrative_designation,administratively_active,configuration_version,status,housekeeping,created_at,updated_at").order("number");if(error)throw error;return NextResponse.json({data});}
- if(section==="room_types"){const{data,error}=await db.from("room_types").select("id,name,description,max_guests,beds,size_sqm,amenities,base_rate,active,version,created_at,updated_at").order("name");if(error)throw error;return NextResponse.json({data});}
- if(section==="policy"){const{data,error}=await db.from("hotel_operational_policies").select("*").eq("key","default").single();if(error)throw error;return NextResponse.json({data});}
- if(section==="roles")return NextResponse.json({data:ROLE_CAPABILITIES});
-  if(section==="password_resets"){const{data,error}=await db.from("password_reset_logs").select("id,user_id,email,ip_address,otp_verified,selfie_url,status,created_at,completed_at").order("created_at",{ascending:false}).limit(100);if(error){if(error.code==="42P01")return NextResponse.json({data:[]});throw error}return NextResponse.json({data:(data??[]).map(row=>{const r=row as Record<string,unknown>;const{selfie_url,...rest}=r;return{...rest,has_selfie:typeof selfie_url==="string"&&selfie_url.length>0}})});}
- if(section==="system")return NextResponse.json({data:await systemHealth(db)});
+ if(section==="users"){const{data,error}=await db.from("user_accounts").select("id,email,name,role,active,account_status,recovery_required,phone,department,employee_reference,auth_version,created_at,updated_at").order("created_at",{ascending:false});if(error)throw error;return publicJson({data});}
+ if(section==="rooms"){const{data,error}=await db.from("rooms").select("id,number,floor,type,wing,administrative_designation,administratively_active,configuration_version,status,housekeeping,created_at,updated_at").order("number");if(error)throw error;return publicJson({data});}
+ if(section==="room_types"){const{data,error}=await db.from("room_types").select("id,name,description,max_guests,beds,size_sqm,amenities,base_rate,active,version,created_at,updated_at").order("name");if(error)throw error;return publicJson({data});}
+ if(section==="policy"){const{data,error}=await db.from("hotel_operational_policies").select("*").eq("key","default").single();if(error)throw error;return publicJson({data});}
+ if(section==="roles")return publicJson({data:ROLE_CAPABILITIES});
+  if(section==="password_resets"){const{data,error}=await db.from("password_reset_logs").select("id,user_id,email,ip_address,otp_verified,selfie_url,status,created_at,completed_at").order("created_at",{ascending:false}).limit(100);if(error){if(error.code==="42P01")return publicJson({data:[]});throw error}return publicJson({data:(data??[]).map(row=>{const r=row as Record<string,unknown>;const{selfie_url,...rest}=r;return{...rest,has_selfie:typeof selfie_url==="string"&&selfie_url.length>0}})});}
+ if(section==="system")return publicJson({data:await systemHealth(db)});
  const{data:audit}=await db.from("audit_logs").select("id,user_id,action,entity_type,entity_id,before_data,after_data,created_at").or("action.ilike.admin_%,action.ilike.security_%,action.ilike.otp_%,action.ilike.smtp_%,action.ilike.auth_%,action.eq.account_recovery_completed,action.eq.change_own_password").order("created_at",{ascending:false}).limit(section==="overview"?8:100);
- if(section==="audit"||section==="security")return NextResponse.json({data:audit??[]});
+ if(section==="audit"||section==="security")return publicJson({data:audit??[]});
  const[{data:users},{data:types},{data:rooms},{data:tokens}]=await Promise.all([db.from("user_accounts").select("role,active,account_status,recovery_required"),db.from("room_types").select("active"),db.from("rooms").select("administratively_active"),db.from("account_recovery_tokens").select("id,used_at,expires_at")]);
- const all=users??[],roleCounts=Object.fromEntries(Object.keys(ROLE_CAPABILITIES).map(role=>[role,all.filter(user=>user.role===role).length]));const now=Date.now();return NextResponse.json({data:{metrics:{activeUsers:all.filter(x=>x.active).length,inactiveUsers:all.filter(x=>!x.active).length,staffAccounts:all.filter(x=>x.role!=="guest").length,guestAccounts:all.filter(x=>x.role==="guest").length,attention:all.filter(x=>x.account_status==="suspended"||x.recovery_required).length,roomTypes:(types??[]).length,inactiveRoomTypes:(types??[]).filter(x=>!x.active).length,inactiveRooms:(rooms??[]).filter(x=>!x.administratively_active).length,activeRecoveryTokens:(tokens??[]).filter(x=>!x.used_at&&new Date(x.expires_at).getTime()>now).length},roleCounts,recentAudit:audit??[]}});}
+ const all=users??[],roleCounts=Object.fromEntries(Object.keys(ROLE_CAPABILITIES).map(role=>[role,all.filter(user=>user.role===role).length]));const now=Date.now();return publicJson({data:{metrics:{activeUsers:all.filter(x=>x.active).length,inactiveUsers:all.filter(x=>!x.active).length,staffAccounts:all.filter(x=>x.role!=="guest").length,guestAccounts:all.filter(x=>x.role==="guest").length,attention:all.filter(x=>x.account_status==="suspended"||x.recovery_required).length,roomTypes:(types??[]).length,inactiveRoomTypes:(types??[]).filter(x=>!x.active).length,inactiveRooms:(rooms??[]).filter(x=>!x.administratively_active).length,activeRecoveryTokens:(tokens??[]).filter(x=>!x.used_at&&new Date(x.expires_at).getTime()>now).length},roleCounts,recentAudit:audit??[]}});}
 
 // System Health section: DB live/latency probe, recent activity counters, and
 // local-vs-remote migration comparison (read via admin_read_migration_ledger,
@@ -46,12 +47,12 @@ async function systemHealth(db:AdminDbClient):Promise<SystemHealth>{
     db.rpc("admin_read_migration_ledger"),
     // Guest reminders only insert on an actual send (unique per reservation+kind),
     // so the newest row is the last SEND — the label in the view says so.
-    db.from("guest_reminder_deliveries").select("sent_at,status").order("sent_at",{ascending:false}).limit(1).maybeSingle(),
+    db.from("guest_email_deliveries").select("changed_at,state").like("event_key","stay-reminder:%").order("changed_at",{ascending:false}).limit(1).maybeSingle(),
     db.from("analytics_model_runs").select("generated_at,status").order("generated_at",{ascending:false}).limit(1).maybeSingle()]);
    lastAuditAt=lastAudit?.[0]?String(lastAudit[0].created_at):null;
    auditEvents24h=recentCount??0;pendingApprovals=pending??0;
     applied=(ledger??[]).map((row:{version:unknown;name:unknown;applied_at?:unknown;approximate?:unknown})=>({version:String(row.version),name:String(row.name),appliedAt:typeof row.applied_at==="string"?row.applied_at:null,approximate:row.approximate===true}));appliedCount=applied.length;
-   reminderRun={at:lastReminder?.sent_at?String(lastReminder.sent_at):null,status:automationRunStatus(lastReminder?.status)};
+   reminderRun={at:lastReminder?.changed_at?String(lastReminder.changed_at):null,status:automationRunStatus(lastReminder?.state)};
    modelRun={at:lastModelRun?.generated_at?String(lastModelRun.generated_at):null,status:automationRunStatus(lastModelRun?.status)};
    try{const{error:storageError}=await db.storage.from("room-photos").list("",{limit:1});storage={status:storageError?"unavailable":"operational"}}catch{storage={status:"unknown"}}
   }
@@ -81,7 +82,7 @@ async function systemHealth(db:AdminDbClient):Promise<SystemHealth>{
   // run" — never invented. The labels name what the timestamp means: the
   // reminder ledger records sends, not attempts.
   const automations:NonNullable<SystemHealth["automations"]>=[
-   {name:"Guest reminders",schedule:"Daily 01:05 UTC",lastRun:reminderRun.at,lastRunLabel:"Last send",lastStatus:reminderRun.status},
+   {name:"Guest reminders",schedule:"Daily 01:05 UTC",lastRun:reminderRun.at,lastRunLabel:"Last attempt",lastStatus:reminderRun.status},
    {name:"Analytics generation",schedule:"Daily 18:35 UTC",lastRun:modelRun.at,lastRunLabel:"Last run",lastStatus:modelRun.status},
   ];
   const gateway = { xenditConfigured: xenditConfigured() };

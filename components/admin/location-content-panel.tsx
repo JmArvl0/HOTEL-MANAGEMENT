@@ -1,5 +1,9 @@
 "use client";
 
+import { validationMessage } from "@/lib/errors";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import Image from "next/image";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { MapPin, Plus, RefreshCw, ArrowUpRight, ImageIcon, Pencil, Trash2 } from "lucide-react";
@@ -26,8 +30,8 @@ export default function LocationContentPanel() {
   const dialogs = useActionDialogs(), toasts = useToasts();
   const load = useCallback(async () => {
     setLoading(true); setError("");
-    try { const response = await fetch("/api/admin/location", { cache: "no-store" }); const body = await response.json(); if (!response.ok) throw new Error(body.error); setData(body.data); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to load location content."); }
+    try { const response = await fetchPublic("/api/admin/location", { cache: "no-store" }); const body = await readResponse(response); if (!response.ok) throw new Error(body.error); setData(body.data); }
+    catch (cause) { setError(userMessage(cause, "Unable to load location content.")); }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { const controller = window.setTimeout(() => void load(), 0); return () => window.clearTimeout(controller); }, [load]);
@@ -48,35 +52,35 @@ export default function LocationContentPanel() {
   async function save(event: FormEvent) {
     event.preventDefault(); if (!editing || busy || uploading) return;
     const parsed = locationSaveSchema.safeParse(editing);
-    if (!parsed.success) { setFormError(parsed.error.issues.map(issue => issue.message).join(" ")); return; }
+    if (!parsed.success) { setFormError(validationMessage(parsed.error)); return; }
     if (editing.kind === "hotel" && data?.hotel && ["address", "latitude", "longitude", "maps_label", "embed_url", "is_demo"].some(key => editing.body[key] !== (data.hotel as unknown as Fields)[key])) {
       if (!(await dialogs.askConfirm({ title: "Change the hotel location?", message: "All nearby places and route guides will return to draft. Review their locations, images and distances before publishing them for this hotel pin.", confirmText: "Save new location" }))) return;
     }
     setBusy(true); setFormError("");
-    try { const response = await fetch("/api/admin/location", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(parsed.data) }); const body = await response.json(); if (!response.ok) throw new Error(body.error); setEditing(null); toasts.push({ title: "Content saved", tone: "success", detail: "Published changes appear on the next landing-page visit." }); await load(); }
-    catch (cause) { setFormError(cause instanceof Error ? cause.message : "Unable to save. Your changes are still in this form."); }
+    try { const response = await fetchPublic("/api/admin/location", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(parsed.data) }); const body = await readResponse(response); if (!response.ok) throw new Error(body.error); setEditing(null); toasts.push({ title: "Content saved", tone: "success", detail: "Published changes appear on the next landing-page visit." }); await load(); }
+    catch (cause) { setFormError(userMessage(cause, "Unable to save. Your changes are still in this form.")); }
     finally { setBusy(false); }
   }
   async function remove(kind: Kind, row: ContentRow) {
     if (busy || !(await dialogs.askConfirm({ title: kind === "hotel" ? "Clear the hotel location?" : `Delete this ${singular[kind].toLowerCase()}?`, message: kind === "hotel" ? "The map/address will be cleared and all nearby places and routes returned to draft. Hotel operations and bookings are unaffected." : "This removes the content record. Uploaded images stay private and can be cleaned up in Images. Categories in use cannot be deleted.", confirmText: kind === "hotel" ? "Clear location" : "Delete", variant: "danger" }))) return;
     setBusy(true); setError("");
-    try { const response = await fetch("/api/admin/location", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, id: row.id, version: row.version }) }); const body = await response.json(); if (!response.ok) throw new Error(body.error); toasts.push({ title: "Content removed", tone: "success" }); await load(); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to delete this item."); }
+    try { const response = await fetchPublic("/api/admin/location", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, id: row.id, version: row.version }) }); const body = await readResponse(response); if (!response.ok) throw new Error(body.error); toasts.push({ title: "Content removed", tone: "success" }); await load(); }
+    catch (cause) { setError(userMessage(cause, "Unable to delete this item.")); }
     finally { setBusy(false); }
   }
   async function upload(file: File | undefined) {
     if (!file || uploading) return;
     if (!file.size || file.size > 5 * 1024 * 1024 || !["image/jpeg", "image/png", "image/webp"].includes(file.type)) { setFormError("Choose a nonempty JPEG, PNG or WebP image, 5 MB or smaller."); return; }
     setUploading(true); setFormError("");
-    try { const form = new FormData(); form.append("file", file); const response = await fetch("/api/admin/location/images", { method: "POST", body: form }); const body = await response.json(); if (!response.ok) throw new Error(body.error); setData(current => current ? { ...current, images: [body.data, ...current.images] } : current); setEditing(current => current ? { ...current, body: { ...current.body, image_id: body.data.id, sample_image: null } } : current); }
-    catch (cause) { setFormError(cause instanceof Error ? cause.message : "Upload failed. Please try again."); }
+    try { const form = new FormData(); form.append("file", file); const response = await fetchPublic("/api/admin/location/images", { method: "POST", body: form }); const body = await readResponse(response); if (!response.ok) throw new Error(body.error); setData(current => current ? { ...current, images: [body.data, ...current.images] } : current); setEditing(current => current ? { ...current, body: { ...current.body, image_id: body.data.id, sample_image: null } } : current); }
+    catch (cause) { setFormError(userMessage(cause, "Upload failed. Please try again.")); }
     finally { setUploading(false); }
   }
   async function removeImage(id: string) {
     if (busy || !(await dialogs.askConfirm({ title: "Delete this unused image?", message: "This removes the private file. Images attached to any draft or published content cannot be deleted.", confirmText: "Delete image", variant: "danger" }))) return;
     setBusy(true); setError("");
-    try { const response = await fetch("/api/admin/location/images", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) }); const body = await response.json(); if (!response.ok) throw new Error(body.error); toasts.push({ title: "Image deleted", tone: "success" }); await load(); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to remove image."); }
+    try { const response = await fetchPublic("/api/admin/location/images", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) }); const body = await readResponse(response); if (!response.ok) throw new Error(body.error); toasts.push({ title: "Image deleted", tone: "success" }); await load(); }
+    catch (cause) { setError(userMessage(cause, "Unable to remove image.")); }
     finally { setBusy(false); }
   }
   const list: ContentRow[] = !data ? [] : tab === "hotel" ? data.hotel ? [data.hotel] : [] : tab === "category" ? data.categories : tab === "place" ? data.places : tab === "route" ? data.routes : [];

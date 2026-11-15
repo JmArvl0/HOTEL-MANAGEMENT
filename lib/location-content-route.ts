@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { publicJson } from "@/lib/server-errors";
+
 export function locationFailure(error: { message: string; code?: string }) {
   const messages: Record<string, [number, string]> = {
     WEBSITE_FORBIDDEN: [403, "Owner or System Administrator authority is required."],
@@ -13,6 +14,6 @@ export function locationFailure(error: { message: string; code?: string }) {
     WEBSITE_INVALID: [400, "Check the content fields and try again."],
   };
   const key = Object.keys(messages).find(value => error.message.includes(value));
-  const [status, message] = key ? messages[key] : error.code === "23505" ? [409, "This slug is already used. Choose a different category slug."] : error.code === "23514" || error.code === "23502" || error.code === "22P02" || error.code === "23503" ? [400, "Check the field values, image and category references."] : [503, "Location content is unavailable. Check the database migration and try again."];
-  return NextResponse.json({ error: message }, { status: Number(status), headers: { "Cache-Control": "no-store" } });
+  const [status, message] = key ? messages[key] : error.code === "23505" ? [409, "This slug is already used. Choose a different category slug."] : error.code === "23514" || error.code === "23502" || error.code === "22P02" || error.code === "23503" ? [400, "Check the field values, image and category references."] : [503, "Location content is unavailable right now. Try again shortly, or contact the system administrator."];
+  return publicJson({ error: message }, { status: Number(status), headers: { "Cache-Control": "no-store" } });
 }

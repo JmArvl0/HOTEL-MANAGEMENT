@@ -1,5 +1,8 @@
 "use client";
 
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { useCallback, useEffect, useState } from "react";
 import { CreditCard } from "lucide-react";
 import { PageHeader } from "@/components/ui/Navigation";
@@ -17,17 +20,17 @@ type PaymentSettings = {
   trail: { id: number; created_at: string; actorName: string; action: string; reason: string | null }[];
 };
 
-export default function PaymentSettingsPanel({ notify }: { notify: (message: string) => void }) {
+export default function PaymentSettingsPanel({ notify }: { notify: (message: string, tone?: "info" | "success" | "warning" | "error") => void }) {
   const [data, setData] = useState<PaymentSettings | null>(null);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
     setError("");
     try {
-      const response = await fetch("/api/owner/data?section=payments", { cache: "no-store" });
-      const body = await response.json();
+      const response = await fetchPublic("/api/owner/data?section=payments", { cache: "no-store" });
+      const body = await readResponse(response);
       if (!response.ok) {
-        setError(body.error ?? "Unable to load payment settings.");
+        setError(userMessage(body.error, "Unable to load payment settings."));
         return;
       }
       setData(body.data);

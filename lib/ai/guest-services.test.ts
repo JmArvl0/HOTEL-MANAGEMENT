@@ -25,7 +25,7 @@ describe("guest smart-request drafting (via guest concierge)", () => {
   it("concierge route is guest-only, ownership-checked, rate-limited, and audited", () => {
     const route = read("app/api/account/ai/concierge/route.ts");
     expect(route).toContain('role !== "guest"');
-    expect(route).toContain("Customer access required.");
+    expect(route).toContain("Please sign in with a guest account to continue.");
     expect(route).toContain(".eq(\"user_id\", session.user.id)"); // reservation ownership
     expect(route).toContain('aiRateLimited(session.user.id, "guest_concierge"');
     expect(route).toContain('feature: "guest_concierge"');
@@ -52,7 +52,7 @@ describe("guest smart-request drafting (via guest concierge)", () => {
 
   it("confirm submits through the existing batch RPC for Front Desk review", () => {
     const panel = read("components/customer/guest-ai-concierge-panel.tsx");
-    expect(panel).toContain('fetch("/api/account/requests"');
+    expect(panel).toContain("fetchPublic(\"/api/account/requests\"");
     expect(panel).toContain("idempotencyKey");
     expect(panel).toContain("Confirm Request");
     expect(panel).toContain("concierge-chip"); // quick prompt suggestions

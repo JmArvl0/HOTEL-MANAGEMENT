@@ -1,5 +1,6 @@
+import { publicJson } from "@/lib/server-errors";
 import { getServerSession } from "next-auth";
-import { NextResponse } from "next/server";
+
 import { authOptions } from "@/lib/auth";
 import { generateInsights, evaluatePredictions } from "@/lib/analytics/runner";
 import { supabase } from "@/lib/supabase";
@@ -17,9 +18,9 @@ const FRONT_DESK_ROLE = "front_desk";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.disabled) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session || session.user.disabled) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
   if (!FULL_ROLES.has(session.user.role) && session.user.role !== FRONT_DESK_ROLE) {
-    return NextResponse.json({ error: "Analytics access required." }, { status: 403 });
+    return publicJson({ error: "Analytics access required." }, { status: 403 });
   }
   try {
     const insights = await generateInsights();
@@ -36,7 +37,7 @@ export async function GET() {
 
     if (!full) {
       // Front Desk operational subset: occupancy + housekeeping only.
-      return NextResponse.json({
+      return publicJson({
         data: {
           generatedAt: insights.generatedAt,
           lastSnapshotAt,
@@ -48,7 +49,7 @@ export async function GET() {
     }
 
     const metrics = supabase ? await evaluatePredictions() : null;
-    return NextResponse.json({
+    return publicJson({
       data: {
         generatedAt: insights.generatedAt,
         lastSnapshotAt,
@@ -62,6 +63,6 @@ export async function GET() {
       }
     });
   } catch {
-    return NextResponse.json({ error: "Unable to load predictions." }, { status: 500 });
+    return publicJson({ error: "Unable to load predictions." }, { status: 500 });
   }
 }

@@ -163,7 +163,7 @@ describe("transportation routes", () => {
   it("customer routes are guest-only and call the owning RPCs", () => {
     for (const route of [customerSubmitRoute, customerCancelRoute]) {
       expect(route).toContain('session.user.role!=="guest"');
-      expect(route).toContain('NextResponse.json({error:"Customer access required."},{status:403})');
+      expect(route).toContain("publicJson({error:\"Please sign in with a guest account to continue.\"},{status:403})");
     }
     expect(customerSubmitRoute).toContain('"customer_submit_transportation_request"');
     expect(customerSubmitRoute).toContain('RESERVATION_NOT_FOUND');
@@ -265,9 +265,9 @@ describe("transportation at checkout (deferred filing, mirrors guest_requests)",
     expect(checkoutMigration).toContain("perform public.file_booking_transportation_request(new.id)");
   });
   it("holds route passes preferences and maps the validation error to 400", () => {
-    expect(holdsRoute).toContain("p_transportation_preferences:p.transportationPreferences??null");
+    expect(holdsRoute).toMatch(/p_details: details/);
     expect(holdsRoute).toContain('INVALID_TRANSPORTATION_PREFERENCES');
-    expect(holdsRoute).toContain('{status:400}');
+    expect(holdsRoute).toMatch(/INVALID_TRANSPORTATION_PREFERENCES[\s\S]*?status:\s*400/);
   });
   it("checkout form offers the opt-in and posts preferences only when requested", () => {
     expect(guestDetailsForm).toContain("Need a ride?");

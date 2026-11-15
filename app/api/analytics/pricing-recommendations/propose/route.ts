@@ -1,4 +1,7 @@
-import { NextResponse } from "next/server";
+import { publicJson } from "@/lib/server-errors";
+import { validationBody } from "@/lib/errors";
+import { numericInput } from "@/lib/input-validation";
+
 import { z } from "zod";
 import { guardCatalog, adminGuardFailed, adminRpcFailure } from "@/lib/admin-route";
 import { getPricingRecommendations } from "@/lib/analytics/pricing-service";
@@ -8,7 +11,7 @@ const proposalSchema = z.object({
   recommendations: z.array(z.object({
     roomTypeId: z.string().uuid(),
     targetDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    nightlyRate: z.coerce.number().positive().max(10_000_000).refine(
+    nightlyRate: numericInput(z.number().positive().max(10_000_000)).refine(
       (value) => Math.abs(value * 100 - Math.round(value * 100)) < 0.000001,
       "Rates may use at most two decimal places."
     ),
@@ -18,15 +21,15 @@ const proposalSchema = z.object({
 export async function POST(request: Request) {
   const c = await guardCatalog();
   if (adminGuardFailed(c)) return c;
-  if (c.role !== "manager") return NextResponse.json({ error: "Only a Manager can submit predictive rate proposals." }, { status: 403 });
+  if (c.role !== "manager") return publicJson({ error: "Only a Manager can submit predictive rate proposals." }, { status: 403 });
 
   const parsed = proposalSchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "Select valid recommendations and rates before submitting." }, { status: 400 });
+  if (!parsed.success) return publicJson(validationBody(parsed.error, { error: "Select valid recommendations and rates before submitting." }), { status: 400 });
 
   try {
     const current = await getPricingRecommendations(c.client);
     if (!current.modelRunId || current.modelRunId !== parsed.data.modelRunId) {
-      return NextResponse.json({ error: "The pricing forecast changed. Refresh and review the latest recommendations." }, { status: 409 });
+      return publicJson({ error: "The pricing forecast changed. Refresh and review the latest recommendations." }, { status: 409 });
     }
     const byKey = new Map(current.recommendations.map((entry) => [`${entry.roomTypeId}:${entry.targetDate}`, entry]));
     const recommendations = parsed.data.recommendations.map((selected) => {
@@ -47,11 +50,11 @@ export async function POST(request: Request) {
       p_actor_user_id: c.actorId,
     });
     if (error) return adminRpcFailure(error, "Unable to submit the predictive rate proposal.");
-    return NextResponse.json({ data }, { status: 201 });
+    return publicJson({ data }, { status: 201 });
   } catch (error) {
     if (error instanceof Error && error.message.includes("INVALID_ANALYTICS_RATE_PROPOSAL")) {
-      return NextResponse.json({ error: "A proposed rate falls outside its allowed room-type bounds." }, { status: 400 });
+      return publicJson({ error: "A proposed rate falls outside its allowed room-type bounds." }, { status: 400 });
     }
-    return NextResponse.json({ error: "Unable to submit the predictive rate proposal." }, { status: 500 });
+    return publicJson({ error: "Unable to submit the predictive rate proposal." }, { status: 500 });
   }
 }

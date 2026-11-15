@@ -1,4 +1,5 @@
 "use client";
+import { userMessage } from "@/lib/errors";
 import {useRef,useState} from "react";
 import {hotelRequest,useHotelResource} from "./hotel-operations-client";
 import type {ReservationServiceCondition} from "@/lib/housekeeping-service";
@@ -12,7 +13,7 @@ export default function ReservationDndControl({reservationId,checkedIn,canSet=tr
   if(!prior||prior.body!==body)retries.current.set(action,{body,key:crypto.randomUUID()});
   try{await hotelRequest(`/api/front-desk/reservations/${encodeURIComponent(reservationId)}/service-condition`,{action,reason:reason.trim(),idempotencyKey:retries.current.get(action)!.key});
    retries.current.delete(action);setReason("");setNotice(action==="set"?"Do Not Disturb is active for this stay.":"Do Not Disturb was cleared and logged.");await refresh();
-  }catch(e){setFailure(e instanceof Error?e.message:"Unable to update the service instruction.");}finally{setBusy(false);}
+  }catch(e){setFailure(userMessage(e, "Unable to update the service instruction."));}finally{setBusy(false);}
  }
  if(!checkedIn)return null;
  return <section className="hotel-ops reservation-dnd-control" aria-label="Do Not Disturb service instruction">

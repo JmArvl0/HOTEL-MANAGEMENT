@@ -1,11 +1,17 @@
 "use client";
+import { ToastStack, useToasts } from "@/components/ui/toast-stack";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { useCallback, useEffect, useState } from "react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { TransportPickupProfile } from "@/components/customer/transport-pickup-profile";
 import { CalendarDays, CarFront, CarTaxiFront, CheckCircle2, ClipboardCheck, X } from "lucide-react";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { useActionDialogs } from "@/components/ui/action-dialogs";
 import { HavenDataToolbar, HavenFilterBadges, HavenSearchInput } from "@/components/ui/haven-data-controls";
 import { HavenEmptyState } from "@/components/ui/haven-data-controls";
+
 import { HavenSkeleton } from "@/components/ui/haven-skeleton";
 import { PageHeader } from "@/components/ui";
 import { HavenSelect } from "@/components/ui/haven-select";
@@ -56,7 +62,7 @@ export default function TransportationPanel({ role }: { role: Role }) {
   const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [toast, setToast] = useState("");
+  const feedback = useToasts();
   const [queue, setQueue] = useState("all");
   const [serviceFilter, setServiceFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -64,19 +70,19 @@ export default function TransportationPanel({ role }: { role: Role }) {
   const dialogs = useActionDialogs();
   const canOperate = canOperateTransportation(role);
   const canCancel = canCancelTransportation(role);
-  const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 2600); };
+  const notify = (message: string, tone: "info" | "success" | "warning" | "error" = "success") => feedback.push({ title: message, tone, ...(tone === "error" || tone === "warning" ? { duration: 0 } : {}) });
 
   const load = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
     try {
-      const response = await fetch("/api/transportation", { cache: "no-store" });
-      const body = await response.json();
+      const response = await fetchPublic("/api/transportation", { cache: "no-store" });
+      const body = await readResponse(response);
       if (!response.ok) throw new Error(body.error ?? "Unable to load transportation requests.");
       setTrips(body.data ?? []);
       setVehicleTypes(body.vehicleTypes ?? []);
       setError("");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to load transportation requests.");
+      setError(userMessage(cause, "Unable to load transportation requests."));
     }
     if (!quiet) setLoading(false);
   }, []);
@@ -84,9 +90,9 @@ export default function TransportationPanel({ role }: { role: Role }) {
   useEffect(() => { const set = () => setWeekAgo(Date.now() - 7 * 86400000); set(); const timer = window.setInterval(set, 30000); return () => window.clearInterval(timer); }, []);
 
   async function transition(trip: StaffTrip, action: TransportationAction, details: Record<string, unknown> = {}) {
-    const response = await fetch(`/api/transportation/${trip.id}/transition`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, expectedVersion: trip.version, details }) });
-    const body = await response.json();
-    if (!response.ok) { notify(body.error ?? `Unable to ${action.toLowerCase()} this request.`); return false; }
+    const response = await fetchPublic(`/api/transportation/${trip.id}/transition`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, expectedVersion: trip.version, details }) });
+    const body = await readResponse(response);
+    if (!response.ok) { notify(body.error ?? `Unable to ${action.toLowerCase()} this request.`, body.outcome === "unknown" ? "warning" : "error"); return false; }
     await load(true);
     return true;
   }
@@ -143,7 +149,7 @@ export default function TransportationPanel({ role }: { role: Role }) {
       const reason = await dialogs.askPrompt({
         title: action === "CANCEL" ? "Cancel transportation request" : "Reject transportation request",
         message: action === "CANCEL" ? "The request history is kept; the guest sees the cancellation and reason. Any fare already posted is reversed by Accounting." : "Rejection records why the hotel cannot take this request.",
-        label: "Reason", multiline: true, rows: 3, required: true, validation: required("A reason is required."),
+        label: "Reason", multiline: true, rows: 3, required: true, validation: required("Please enter a reason."),
       });
       if (!reason) return;
       await transition(trip, action, { reason: String(reason).trim() }) && notify(action === "CANCEL" ? "Request cancelled." : "Request rejected.");
@@ -199,7 +205,7 @@ export default function TransportationPanel({ role }: { role: Role }) {
       filtersLayout="inline"
       label="Search and filter transportation requests"
     />
-    <p className="tp-note">Locations are recorded as text — coordinate trips by phone; there is no external mapping or fleet service.</p>
+    <p className="tp-note">Coordinate trips through Front Desk. Open Pickup &amp; Fleet to prepare passenger details and review partner delivery.</p>
     <div className="data-panel">
       {loading ? <div className="haven-skeleton-list" role="status" aria-label="Loading transportation requests"><HavenSkeleton /><HavenSkeleton /><HavenSkeleton /><HavenSkeleton /></div>
       : visible.length === 0 ? <HavenEmptyState icon={<CarTaxiFront size={22} aria-hidden="true" />} title="No transportation requests" body={trips.length === 0 ? "Guest transfer requests appear here as soon as they are submitted at booking or from the guest account." : "No requests match the current filters or search."} action={trips.length > 0 && hasActiveFilters && <button type="button" className="btn btn-soft btn-sm" onClick={clearFilters}><X size={13} />Clear filters</button>} />
@@ -213,7 +219,7 @@ export default function TransportationPanel({ role }: { role: Role }) {
           <td><div className="cell-stack"><b>{trip.passenger_count}</b><small>{trip.passenger_count === 1 ? "passenger" : "passengers"}</small></div></td>
           <td><div className="cell-stack"><StatusBadge status={trip.status.toLowerCase()} label={TRANSPORTATION_STATUS_LABELS[trip.status]} />{trip.special_instructions && <small title="Special instructions">{label(trip.special_instructions)}</small>}</div></td>
           <td>{trip.driver_name ? <div className="cell-stack"><b>{label(trip.driver_name)}</b><small>{label(trip.transport_vehicle_types?.name)}</small>{trip.fare_amount != null && <small>{formatPeso(trip.fare_amount)} on folio</small>}</div> : <span className="tp-unassigned">Not assigned</span>}</td>
-          <td className="tp-actions">{actions(trip)}</td>
+          <td className="tp-actions">{actions(trip)}<TransportPickupProfile requestId={trip.id} requestVersion={trip.version} staff canEdit={canOperate} canPrepare={canOperate} /></td>
         </tr>)}</tbody></table></div>
       <div className="tp-cards">{page.rows.map((trip) => <article className="tp-card" key={trip.id}>
         <header><b>{SERVICE_TYPE_LABELS[trip.service_type]}</b><StatusBadge status={trip.status.toLowerCase()} label={TRANSPORTATION_STATUS_LABELS[trip.status]} /></header>
@@ -223,12 +229,12 @@ export default function TransportationPanel({ role }: { role: Role }) {
         {trip.service_type === "ROUND_TRIP" && trip.return_date && <p className="tp-card-return">Return {formatDate(trip.return_date)} · {formatTime(trip.return_time!)}{trip.return_location ? ` · ${trip.return_location}` : ""}</p>}
         {trip.driver_name ? <p className="tp-card-driver">Driver: {label(trip.driver_name)} · {label(trip.transport_vehicle_types?.name)}{trip.fare_amount != null ? ` · ${formatPeso(trip.fare_amount)} on folio` : ""}</p> : <p className="tp-card-driver tp-unassigned">Driver not assigned yet</p>}
         {trip.special_instructions && <p className="tp-card-note">Note: {label(trip.special_instructions)}</p>}
-        <div className="tp-card-actions">{actions(trip)}</div>
+        <div className="tp-card-actions">{actions(trip)}<TransportPickupProfile requestId={trip.id} requestVersion={trip.version} staff canEdit={canOperate} canPrepare={canOperate} /></div>
       </article>)}</div>
       </>}
       <TablePagination {...page} onPageChange={page.setPage} noun="transportation requests" allTotal={trips.length} note="Every transition is server-validated, versioned and audited." />
     </div></>)}
-    {toast && <div className="toast"><ClipboardCheck size={18}/>{toast}</div>}
+    <ToastStack controller={feedback} />
     {dialogs.view}
   </>;
 }

@@ -1,7 +1,11 @@
 "use client";
 
+
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowRight, Check, CircleDollarSign, RefreshCw, SlidersHorizontal, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowRight, Check, RefreshCw, SlidersHorizontal, TrendingDown, TrendingUp } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { HavenSkeletonCard, HavenErrorAlert } from "@/components/ui/haven-data-controls";
 import type { DynamicRateRecommendation } from "@/lib/analytics/dynamic-pricing";
@@ -31,8 +35,8 @@ export default function PredictivePricingPanel() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/analytics/pricing-recommendations", { cache: "no-store" });
-      const body = await response.json();
+      const response = await fetchPublic("/api/analytics/pricing-recommendations", { cache: "no-store" });
+      const body = await readResponse(response);
       if (!response.ok) throw new Error(body?.error ?? "Unable to load pricing recommendations.");
       const raw = body.data as Partial<PricingResponse>;
       if (!Array.isArray(raw.recommendations)) throw new Error("Pricing recommendations are unavailable in this response.");
@@ -47,7 +51,7 @@ export default function PredictivePricingPanel() {
       setSelected(new Set(next.recommendations.map(recommendationKey)));
       setError("");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to load pricing recommendations.");
+      setError(userMessage(caught, "Unable to load pricing recommendations."));
     } finally {
       setLoading(false);
     }
@@ -79,17 +83,17 @@ export default function PredictivePricingPanel() {
     setSubmitting(true);
     setFeedback("");
     try {
-      const response = await fetch("/api/analytics/pricing-recommendations/propose", {
+      const response = await fetchPublic("/api/analytics/pricing-recommendations/propose", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ modelRunId: data.modelRunId, recommendations }),
       });
-      const body = await response.json();
+      const body = await readResponse(response);
       if (!response.ok) throw new Error(body?.error ?? "Unable to submit the rate proposal.");
       setOpen(false);
       setFeedback(`${body.data?.submitted ?? recommendations.length} rate proposal${recommendations.length === 1 ? "" : "s"} sent to Owner/Admin review. Live rates are unchanged.`);
     } catch (caught) {
-      setFeedback(caught instanceof Error ? caught.message : "Unable to submit the rate proposal.");
+      setFeedback(userMessage(caught, "Unable to submit the rate proposal."));
     } finally {
       setSubmitting(false);
     }

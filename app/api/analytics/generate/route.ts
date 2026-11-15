@@ -1,5 +1,6 @@
+import { publicJson } from "@/lib/server-errors";
 import { getServerSession } from "next-auth";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { generateAndPersistInsights, generationCoolingDown, generateInsights, markDemoGeneration, GENERATION_COOLDOWN_MS } from "@/lib/analytics/runner";
 import { supabase } from "@/lib/supabase";
@@ -16,8 +17,9 @@ const AUTHORIZED_ROLES = new Set(["manager", "owner", "admin"]);
 async function authorized(request: NextRequest): Promise<boolean> {
   const secret = process.env.CRON_SECRET?.trim();
   if (secret && request.headers.get("authorization") === `Bearer ${secret}`) return true;
+  if (request.method === "GET") return false;
   const session = await getServerSession(authOptions);
-  return Boolean(session && !session.user.disabled && AUTHORIZED_ROLES.has(session.user.role));
+  return Boolean(session && !session.user.disabled && !session.user.otpPending && AUTHORIZED_ROLES.has(session.user.role));
 }
 
 export async function GET(request: NextRequest) {
@@ -29,21 +31,21 @@ export async function POST(request: NextRequest) {
 }
 
 async function run(request: NextRequest) {
-  if (!(await authorized(request))) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!(await authorized(request))) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
   try {
     if (await generationCoolingDown()) {
-      return NextResponse.json({ error: `Predictions were generated recently. Try again within the hour (cooldown ${Math.round(GENERATION_COOLDOWN_MS / 60000)} minutes).` }, { status: 429 });
+      return publicJson({ error: `Predictions were generated recently. Try again within the hour (cooldown ${Math.round(GENERATION_COOLDOWN_MS / 60000)} minutes).` }, { status: 429 });
     }
     if (supabase) {
       const result = await generateAndPersistInsights();
-      return NextResponse.json({ data: { generatedAt: result.generatedAt, persisted: true, occupancyDays: result.occupancy.days.length, inventoryShortages: result.inventory.shortageCount, maintenanceElevated: result.maintenance.elevatedCount } });
+      return publicJson({ data: { generatedAt: result.generatedAt, persisted: true, occupancyDays: result.occupancy.days.length, inventoryShortages: result.inventory.shortageCount, maintenanceElevated: result.maintenance.elevatedCount } });
     }
     const demo = await generateInsights();
     markDemoGeneration();
-    return NextResponse.json({ data: { generatedAt: demo.generatedAt, persisted: false, occupancyDays: demo.occupancy.days.length, inventoryShortages: demo.inventory.shortageCount, maintenanceElevated: demo.maintenance.elevatedCount, note: "Demo mode: forecasts computed in-memory; snapshots require a database." } });
+    return publicJson({ data: { generatedAt: demo.generatedAt, persisted: false, occupancyDays: demo.occupancy.days.length, inventoryShortages: demo.inventory.shortageCount, maintenanceElevated: demo.maintenance.elevatedCount, note: "Demo mode: forecasts computed in-memory; snapshots require a database." } });
   } catch (error) {
     if (error instanceof Error && error.message === "ANALYTICS_COOLDOWN")
-      return NextResponse.json({ error: "Predictions were generated recently. Try again within the hour." }, { status: 429 });
-    return NextResponse.json({ error: "Unable to generate predictions." }, { status: 500 });
+      return publicJson({ error: "Predictions were generated recently. Try again within the hour." }, { status: 429 });
+    return publicJson({ error: "Unable to generate predictions." }, { status: 500 });
   }
 }

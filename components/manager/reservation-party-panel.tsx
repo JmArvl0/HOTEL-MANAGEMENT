@@ -1,4 +1,5 @@
 "use client";
+import { userMessage } from "@/lib/errors";
 import {useRef,useState} from "react";
 import type {Occupant,Party} from "@/lib/hotel-operations";
 import {hotelRequest,useHotelResource} from "./hotel-operations-client";
@@ -19,13 +20,13 @@ export default function ReservationPartyPanel({reservationId,editable=false,canS
    ...(member.guestId!==undefined?{guestId:member.guestId}:{}),
    name:member.name,role:member.role,occupantType:member.occupantType,dateOfBirth:member.dateOfBirth,nationality:member.nationality,
   }));
-  if(completeRegister&&payload.length!==data.declaredCount){setError("The list must match the declared guest count before it can be confirmed.");setBusy(false);return;}
+  if(completeRegister&&payload.length!==data.declaredCount){setError("Add or remove staying guests so the list matches the number on the reservation.");setBusy(false);return;}
   const body=JSON.stringify({members:payload,completeRegister,expectedVersion:data.version});
   if(retry.current?.body!==body)retry.current={body,key:crypto.randomUUID()};
   try{
    const result=await hotelRequest<Party>(`/api/front-desk/reservations/${encodeURIComponent(reservationId)}/guests`,{members:payload,completeRegister,expectedVersion:data.version,idempotencyKey:retry.current.key});
    setData(result);setDraft(null);retry.current=null;setCompleteRegister(false);setNotice("Staying guests saved.");
-  }catch(e){setError((e as Error).message);}finally{setBusy(false);}
+  }catch(e){setError(userMessage((e as Error), "We couldn't confirm the update. Check the record before trying again."));}finally{setBusy(false);}
  }
  async function verify(member:DraftOccupant){
   if(!member.occupantId)return;setBusy(true);setError("");
@@ -35,7 +36,7 @@ export default function ReservationPartyPanel({reservationId,editable=false,canS
    await hotelRequest(`/api/front-desk/reservations/${encodeURIComponent(reservationId)}/occupants/${member.occupantId}/verify`,{
     ...payload,idempotencyKey:verifyRetries.current.get(member.occupantId!)!.key,
    });verifyRetries.current.delete(member.occupantId!);setVerifyId(null);setDob("");setAge("");await refresh();setNotice("ID check recorded by Front Desk.");
-  }catch(e){setError((e as Error).message);}finally{setBusy(false);}
+  }catch(e){setError(userMessage((e as Error), "We couldn't confirm the update. Check the record before trying again."));}finally{setBusy(false);}
  }
  async function presence(member:DraftOccupant,action:"arrive"|"depart"){
   if(!data||!member.occupantId)return;setBusy(true);setError("");
@@ -45,7 +46,7 @@ export default function ReservationPartyPanel({reservationId,editable=false,canS
    await hotelRequest(`/api/front-desk/reservations/${encodeURIComponent(reservationId)}/occupants/${member.occupantId}/presence`,{action,expectedVersion:data.version,idempotencyKey:presenceRetries.current.get(retryKey)});
    presenceRetries.current.delete(retryKey);
    await refresh();setNotice(action==="arrive"?"Arrival recorded.":"Departure recorded.");
-  }catch(e){setError((e as Error).message);}finally{setBusy(false);}
+  }catch(e){setError(userMessage((e as Error), "We couldn't confirm the update. Check the record before trying again."));}finally{setBusy(false);}
  }
  return <section className="hotel-ops" aria-label="Staying guests">
   {editable&&data?.status==="checked_in"&&<ReservationDndControl reservationId={reservationId} checkedIn canSet={canSetDnd}/>}

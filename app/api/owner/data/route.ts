@@ -1,8 +1,9 @@
+import { publicJson } from "@/lib/server-errors";
 import { guestDepositsEnabled } from "@/lib/online-checkout";
 import { xenditConfigured } from "@/lib/xendit";
 import { readAllRows } from "@/lib/read-all-rows";
-import { NextResponse } from "next/server";
-import { getAccountingLedger } from "@/lib/accounting";
+
+import { getAccountingLedger, summarizeCollections } from "@/lib/accounting";
 import { ROLE_CAPABILITIES } from "@/lib/admin";
 import { guardOwner, ownerGuardFailed } from "@/lib/owner-route";
 import { bookedOccupancyTrend } from "@/lib/analytics/occupancy";
@@ -22,14 +23,14 @@ export async function GET(request: Request) {
   try {
     if (section === "financial") {
       const ledger = await getAccountingLedger("owner");
-      return NextResponse.json({ data: ledger });
+      return publicJson({ data: ledger });
     }
     if (section === "admins") {
       const { data, error } = await db.from("user_accounts").select("id,email,name,role,active,account_status,recovery_required,phone,department,employee_reference,auth_version,created_at,updated_at").in("role", ["owner", "admin"]).order("created_at");
       if (error) throw error;
-      return NextResponse.json({ data });
+      return publicJson({ data });
     }
-    if (section === "roles") return NextResponse.json({ data: { catalogue: ROLE_CAPABILITIES, ownerPrinciples: ["Broad executive visibility", "Admin and protected-role governance", "Critical policy authority", "Owner-level exception authorization", "No routine departmental execution", "No audit or financial-history bypass"] } });
+    if (section === "roles") return publicJson({ data: { catalogue: ROLE_CAPABILITIES, ownerPrinciples: ["Broad executive visibility", "Admin and protected-role governance", "Critical policy authority", "Owner-level exception authorization", "No routine departmental execution", "No audit or financial-history bypass"] } });
     if (section === "policy") {
       const { data, error } = await db.from("hotel_operational_policies").select("*").eq("key", "default").single();
       if (error) throw error;
@@ -40,7 +41,7 @@ export async function GET(request: Request) {
       const { data: policyUsers } = policyActors.length
         ? await db.from("user_accounts").select("id,name,role").in("id", policyActors)
         : { data: [] };
-      return NextResponse.json({ data: {
+      return publicJson({ data: {
         policy: data,
         trail: (policyTrail ?? []).map((entry) => ({
           ...entry,
@@ -53,7 +54,7 @@ export async function GET(request: Request) {
         .select("deposit_method,version,updated_at")
         .eq("key", "default").maybeSingle();
       if (policyError) throw policyError;
-      if (!policy) return NextResponse.json({ error: "Payment settings unavailable." }, { status: 503 });
+      if (!policy) return publicJson({ error: "Payment settings unavailable." }, { status: 503 });
       const { data: trail } = await db.from("audit_logs")
         .select("id,user_id,action,created_at,after_data").eq("entity_type", "hotel_payment_destination")
         .order("created_at", { ascending: false }).limit(20);
@@ -62,7 +63,7 @@ export async function GET(request: Request) {
         ? await db.from("user_accounts").select("id,name,role").in("id", actors)
         : { data: [] };
       const latest = ((trail ?? []) as Row[])[0];
-      return NextResponse.json({ data: {
+      return publicJson({ data: {
         depositMethod: guestDepositsEnabled(policy.deposit_method) ? "xendit" : "off",
         version: policy.version,
         xenditConfigured: xenditConfigured(),
@@ -82,7 +83,7 @@ export async function GET(request: Request) {
       if (section === "security") query = query.or("action.ilike.admin_%,action.ilike.owner_%,action.ilike.%recovery%,action.ilike.%password%,action.ilike.%role%,action.ilike.%status%");
       const { data, error } = await query;
       if (error) throw error;
-      return NextResponse.json({ data });
+      return publicJson({ data });
     }
     if (section === "exceptions") {
       const { data, error } = await db.from("manager_approval_requests").select("id,request_type,related_entity_type,related_entity_id,reservation_id,department,severity,reason,requested_action,normal_policy_result,requested_by,requested_at,status,reviewed_by,reviewed_at,decision_reason,execution_status,executed_by,executed_at,version,authority_level,owner_escalated_by,owner_escalated_at,owner_escalation_reason,owner_reviewed_by,owner_reviewed_at").eq("authority_level", "owner").order("requested_at", { ascending: false }).limit(150);
@@ -100,7 +101,7 @@ export async function GET(request: Request) {
         const escalator = users.data?.find((item) => item.id === row.owner_escalated_by);
         return { ...row, reservation_reference: reservation?.confirmation_number ?? row.reservation_id, guest_name: reservation?.guest_name ?? null, stay_dates: reservation ? `${reservation.check_in} to ${reservation.check_out}` : null, reservation_status: reservation?.status ?? null, requester_name: requester?.name ?? "Unknown", escalator_name: escalator?.name ?? "Unknown" };
       });
-      return NextResponse.json({ data: enriched });
+      return publicJson({ data: enriched });
     }
 
     const [policyResult, reservationResult, roomResult, taskResult, maintenanceResult, requestResult, invoiceResult, paymentResult, userResult, approvalResult, auditResult] = await Promise.all([
@@ -129,7 +130,7 @@ export async function GET(request: Request) {
     const overdueTasks = tasks.filter((row) => row.status !== "completed" && ageMinutes(row.created_at) > taskOverdue);
     const overdueRequests = requests.filter((row) => row.status !== "completed" && ((row.due_at && new Date(String(row.due_at)).getTime() < now) || ageMinutes(row.created_at) > requestOverdue));
     const settled = payments.filter((row) => row.status === "paid");
-    const financial = { grossCollected: sum(settled.filter((row) => row.purpose !== "refund"), "amount"), refundsIssued: sum(settled.filter((row) => row.purpose === "refund"), "amount"), outstandingBalance: sum(invoices, "balance"), folioCredit: sum(invoices, "credit_balance") };
+    const financial = { ...summarizeCollections(settled), outstandingBalance: sum(invoices, "balance"), folioCredit: sum(invoices, "credit_balance") };
     // Booked occupancy on the engine's shared night-covering basis — see
     // bookedOccupancyTrend. Not the live room rack in metrics.occupancy.
     const occupancySeries = bookedOccupancyTrend(reservations as unknown as ReservationLike[], serviceableRooms.length, today);
@@ -146,11 +147,11 @@ export async function GET(request: Request) {
       accounting: { outstandingBalance: financial.outstandingBalance, refundsIssued: financial.refundsIssued },
       management: { pending: approvals.filter((row) => row.status === "pending" && row.authority_level !== "owner").length, ownerEscalations: approvals.filter((row) => row.status === "pending" && row.authority_level === "owner").length }
     };
-    const data = { timeZone, today, metrics: { occupancy: Math.round((occupied / Math.max(serviceableRooms.length, 1)) * 100), occupied, availableRooms: rooms.filter((row) => row.administratively_active !== false && row.status === "available" && row.housekeeping === "clean" && !blockedRoomIds.has(row.id)).length, blockedRooms: blockedRoomIds.size, outOfServiceRooms: blockedOrders.filter((row) => row.serviceability_impact === "out_of_service").length, overdueHousekeeping: overdueTasks.length, criticalMaintenance: departmentSummary.maintenance.critical, unresolvedEscalations: departmentSummary.guestService.escalated, activeStaff: users.filter((row) => row.role !== "guest" && row.active).length, inactiveStaff: users.filter((row) => row.role !== "guest" && !row.active).length, securityWarnings: users.filter((row) => row.recovery_required || row.account_status === "suspended").length, pendingOwnerExceptions: departmentSummary.management.ownerEscalations }, financial: { ...financial, netRevenue: Math.max(financial.grossCollected - financial.refundsIssued, 0) }, trend, roleCounts, departmentSummary, risks: { blockedRooms: blockedOrders.slice(0, 20), overdueHousekeeping: overdueTasks.slice(0, 20), overdueGuestRequests: overdueRequests.slice(0, 20), criticalMaintenance: maintenance.filter((row) => activeMaintenance.has(String(row.status)) && ["urgent", "critical"].includes(String(row.priority || row.severity))).slice(0, 20) }, recentAudit: auditResult.data ?? [] };
-    if (section === "operations") return NextResponse.json({ data: { metrics: data.metrics, departmentSummary, risks: data.risks, trend } });
-    if (section === "departments") return NextResponse.json({ data: { departmentSummary, risks: data.risks } });
-    return NextResponse.json({ data });
+    const data = { timeZone, today, metrics: { occupancy: Math.round((occupied / Math.max(serviceableRooms.length, 1)) * 100), occupied, availableRooms: rooms.filter((row) => row.administratively_active !== false && row.status === "available" && row.housekeeping === "clean" && !blockedRoomIds.has(row.id)).length, blockedRooms: blockedRoomIds.size, outOfServiceRooms: blockedOrders.filter((row) => row.serviceability_impact === "out_of_service").length, overdueHousekeeping: overdueTasks.length, criticalMaintenance: departmentSummary.maintenance.critical, unresolvedEscalations: departmentSummary.guestService.escalated, activeStaff: users.filter((row) => row.role !== "guest" && row.active).length, inactiveStaff: users.filter((row) => row.role !== "guest" && !row.active).length, securityWarnings: users.filter((row) => row.recovery_required || row.account_status === "suspended").length, pendingOwnerExceptions: departmentSummary.management.ownerEscalations }, financial, trend, roleCounts, departmentSummary, risks: { blockedRooms: blockedOrders.slice(0, 20), overdueHousekeeping: overdueTasks.slice(0, 20), overdueGuestRequests: overdueRequests.slice(0, 20), criticalMaintenance: maintenance.filter((row) => activeMaintenance.has(String(row.status)) && ["urgent", "critical"].includes(String(row.priority || row.severity))).slice(0, 20) }, recentAudit: auditResult.data ?? [] };
+    if (section === "operations") return publicJson({ data: { metrics: data.metrics, departmentSummary, risks: data.risks, trend } });
+    if (section === "departments") return publicJson({ data: { departmentSummary, risks: data.risks } });
+    return publicJson({ data });
   } catch {
-    return NextResponse.json({ error: "Unable to load executive governance data." }, { status: 500 });
+    return publicJson({ error: "Unable to load executive governance data." }, { status: 500 });
   }
 }

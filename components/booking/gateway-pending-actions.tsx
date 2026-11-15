@@ -1,5 +1,8 @@
 "use client";
 
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { HavenErrorAlert } from "@/components/ui/haven-data-controls";
@@ -28,19 +31,19 @@ export function GatewayPendingActions({
     setBusy(true);
     setError("");
     try {
-      const response = await fetch(`/api/account/reservations/${reservationId}/cancel-attempt`, {
+      const response = await fetchPublic(`/api/account/reservations/${reservationId}/cancel-attempt`, {
         method: "POST",
       });
-      const body = await response.json();
+      const body = await readResponse(response);
       if (!response.ok) {
-        setError(body.error ?? "Unable to cancel this payment attempt.");
+        setError(userMessage(body.error, "Unable to cancel this payment attempt."));
         return;
       }
       const retry = `/account/find-room?${new URLSearchParams({ checkIn, checkOut, guests: String(guests) })}`;
       router.push(retry);
       router.refresh();
     } catch {
-      setError("Unable to cancel this payment attempt. Please try again.");
+      setError("We couldn't confirm the payment cancellation. Check your reservation and payment status before trying again.");
     } finally {
       setBusy(false);
     }
@@ -52,7 +55,7 @@ export function GatewayPendingActions({
         {busy ? "Cancelling…" : "Cancel this attempt and try again"}
       </button>
       {error && (
-        <HavenErrorAlert title="Cancellation failed" body={error} variant="customer" />
+        <HavenErrorAlert title="Cancellation needs attention" body={error} variant="customer" />
       )}
     </div>
   );

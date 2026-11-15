@@ -1,4 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { publicJson } from "@/lib/server-errors";
+import { validationBody } from "@/lib/errors";
+import { NextRequest } from "next/server";
 import type { Content, Part } from "@google/genai";
 import { z } from "zod";
 import { aiConfigured, buildFunctionResponseParts, extractText, generateWithTools, geminiModel, getModelContentForToolHistory } from "@/lib/ai/gemini-client";
@@ -34,23 +36,23 @@ export async function POST(request: NextRequest) {
   if (aiGuardFailed(session)) return session;
 
   if (!aiConfigured()) {
-    return NextResponse.json({ data: null, message: AI_UNAVAILABLE_MESSAGE }, { status: 200 });
+    return publicJson({ data: null, message: AI_UNAVAILABLE_MESSAGE }, { status: 200 });
   }
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+    return publicJson({ error: "Please check the details and try again." }, { status: 400 });
   }
   const parsed = AskRequestSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "A question is required (3-600 characters)." }, { status: 400 });
+    return publicJson(validationBody(parsed.error, { error: "Please enter a question with 3 to 600 characters." }), { status: 400 });
   }
 
   if (await aiRateLimited(session.userId, "ask", 15, 10)) {
     await recordAiInteraction({ userId: session.userId, role: session.role, feature: "ask", toolCalls: [], status: "rate_limited" });
-    return NextResponse.json({ error: "Ask HAVEN limit reached. Try again in a few minutes." }, { status: 429 });
+    return publicJson({ error: "Ask HAVEN limit reached. Try again in a few minutes." }, { status: 429 });
   }
 
   const contents: Content[] = [
@@ -77,7 +79,7 @@ export async function POST(request: NextRequest) {
         userId: session.userId, role: session.role, feature: "ask", toolCalls,
         status: result.reason === "rate_limited" ? "rate_limited" : result.reason === "tool_context" ? "error" : "unavailable", model: geminiModel(), latencyMs
       });
-      return NextResponse.json({ data: null, message: AI_ASK_FAILURE_MESSAGE }, { status: 200 });
+      return publicJson({ data: null, message: AI_ASK_FAILURE_MESSAGE }, { status: 200 });
     }
     latencyMs += result.latencyMs;
 
@@ -87,10 +89,10 @@ export async function POST(request: NextRequest) {
       const validated = AskReplySchema.safeParse({ answer, data_basis: toolCalls.join(", ") });
       if (!validated.success) {
         await recordAiInteraction({ userId: session.userId, role: session.role, feature: "ask", toolCalls, status: "invalid", model: result.model, latencyMs });
-        return NextResponse.json({ data: null, message: AI_ASK_FAILURE_MESSAGE }, { status: 200 });
+        return publicJson({ data: null, message: AI_ASK_FAILURE_MESSAGE }, { status: 200 });
       }
       await recordAiInteraction({ userId: session.userId, role: session.role, feature: "ask", toolCalls, status: "ok", model: result.model, latencyMs });
-      return NextResponse.json({ data: validated.data, model: result.model, toolCalls, disclosure: AI_DISCLOSURE });
+      return publicJson({ data: validated.data, model: result.model, toolCalls, disclosure: AI_DISCLOSURE });
     }
 
     // Preserve Gemini's full returned model content (including Gemini 3
@@ -102,7 +104,7 @@ export async function POST(request: NextRequest) {
     if (!modelContent) {
       console.error(`[ai] ask tool context unrecoverable — calls=${calls.length}`);
       await recordAiInteraction({ userId: session.userId, role: session.role, feature: "ask", toolCalls, status: "error", model: result.model, latencyMs });
-      return NextResponse.json({ data: null, message: AI_ASK_FAILURE_MESSAGE }, { status: 200 });
+      return publicJson({ data: null, message: AI_ASK_FAILURE_MESSAGE }, { status: 200 });
     }
     contents.push(modelContent);
     const outputs: unknown[] = [];
@@ -120,5 +122,5 @@ export async function POST(request: NextRequest) {
   }
 
   await recordAiInteraction({ userId: session.userId, role: session.role, feature: "ask", toolCalls, status: "error", model: geminiModel(), latencyMs });
-  return NextResponse.json({ data: null, message: AI_ASK_FAILURE_MESSAGE }, { status: 200 });
+  return publicJson({ data: null, message: AI_ASK_FAILURE_MESSAGE }, { status: 200 });
 }

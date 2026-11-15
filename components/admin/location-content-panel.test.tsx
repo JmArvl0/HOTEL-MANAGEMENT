@@ -11,7 +11,7 @@ beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(async (_url: string, init?: RequestInit) => {
     if (!init?.method) return new Response(JSON.stringify({ data }));
     const payload = JSON.parse(String(init.body)); writes.push(payload);
-    if (failSave) return new Response(JSON.stringify({ error: "This content changed in another session. Refresh and reopen it." }), { status: 409 });
+    if (failSave) return new Response(JSON.stringify({ error: "This content changed in another session. Refresh and reopen it before saving." }), { status: 409 });
     if (init.method === "POST" && payload.kind === "category") data = { ...data, categories: [...data.categories, { ...payload.body, id: "00000000-0000-4000-8000-000000000021", version: 1, updated_at: "2026-11-06" }] };
     if (init.method === "DELETE") data = { ...data, categories: data.categories.filter(row => row.id !== payload.id) };
     return new Response(JSON.stringify({ data: {} }));

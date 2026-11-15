@@ -1,5 +1,6 @@
+import { publicJson } from "@/lib/server-errors";
 import { getServerSession } from "next-auth";
-import { NextResponse } from "next/server";
+
 import { authOptions } from "@/lib/auth";
 import { canViewStaffDuty } from "@/lib/permissions";
 import { supabase } from "@/lib/supabase";
@@ -13,11 +14,11 @@ import type { Role } from "@/lib/types";
 // is never a duty signal. Demo mode (no Supabase) serves the demo store.
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.disabled) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!canViewStaffDuty(session.user.role as Role)) return NextResponse.json({ error: "Staff duty access required." }, { status: 403 });
+  if (!session || session.user.disabled) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
+  if (!canViewStaffDuty(session.user.role as Role)) return publicJson({ error: "Staff duty access required." }, { status: 403 });
   try {
-    return NextResponse.json({ data: await getStaffDutySnapshot(supabase) });
+    return publicJson({ data: await getStaffDutySnapshot(supabase) });
   } catch {
-    return NextResponse.json({ error: "Unable to load staff duty." }, { status: 500 });
+    return publicJson({ error: "Unable to load staff duty." }, { status: 500 });
   }
 }

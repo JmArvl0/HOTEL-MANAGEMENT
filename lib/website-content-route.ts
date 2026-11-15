@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { publicJson } from "@/lib/server-errors";
+
 
 export function websiteContentFailure(error: { message: string }) {
   const messages: Record<string, [number, string]> = {
@@ -14,5 +15,5 @@ export function websiteContentFailure(error: { message: string }) {
   };
   const match = Object.entries(messages).find(([key]) => error.message.includes(key));
   const [status, message] = match ? match[1] : [503, "Website content is temporarily unavailable. Try again."];
-  return NextResponse.json({ error: message }, { status: Number(status), headers: { "Cache-Control": "no-store" } });
+  return publicJson({ error: message }, { status: Number(status), headers: { "Cache-Control": "no-store" } });
 }

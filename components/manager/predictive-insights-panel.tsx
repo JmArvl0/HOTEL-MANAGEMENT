@@ -1,5 +1,8 @@
 "use client";
 
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
+import { userMessage } from "@/lib/errors";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Activity, BedDouble, Boxes, RefreshCw, Sparkles, Wrench } from "lucide-react";
@@ -132,13 +135,13 @@ export default function PredictiveInsightsPanel() {
   const load = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
     try {
-      const response = await fetch("/api/analytics/insights", { cache: "no-store" });
-      const body = await response.json();
+      const response = await fetchPublic("/api/analytics/insights", { cache: "no-store" });
+      const body = await readResponse(response);
       if (!response.ok) throw new Error(body?.error ?? "Unable to load predictions.");
       setData(body.data);
       setError("");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to load predictions.");
+      setError(userMessage(caught, "Unable to load predictions."));
     } finally {
       setLoading(false);
     }
@@ -150,8 +153,8 @@ export default function PredictiveInsightsPanel() {
     setRefreshing(true);
     setToast("");
     try {
-      const response = await fetch("/api/analytics/generate", { method: "POST" });
-      const body = await response.json();
+      const response = await fetchPublic("/api/analytics/generate", { method: "POST" });
+      const body = await readResponse(response);
       setToast(response.ok ? "Predictions refreshed and snapshot recorded." : body?.error ?? "Unable to refresh predictions.");
       if (response.ok) await load(true);
     } catch {
@@ -166,12 +169,12 @@ export default function PredictiveInsightsPanel() {
     setExplaining(true);
     setExplanation(null);
     try {
-      const response = await fetch("/api/ai/explain", {
+      const response = await fetchPublic("/api/ai/explain", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type })
       });
-      const body = await response.json();
+      const body = await readResponse(response);
       if (response.ok && body.data) setExplanation({ type, data: body.data });
       else setToast(body?.message ?? body?.error ?? "AI interpretation is unavailable right now.");
     } catch {

@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { publicJson } from "@/lib/server-errors";
+
 import { guardAdmin, adminGuardFailed } from "@/lib/admin-route";
 
 /**
@@ -14,8 +15,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     .select("selfie_url").eq("id", id).maybeSingle();
   const path = (data as { selfie_url?: unknown } | null)?.selfie_url;
   if (typeof path !== "string" || !path.startsWith("recovery-selfies/"))
-    return NextResponse.json({ error: "No identity selfie is attached to this reset attempt." }, { status: 404 });
+    return publicJson({ error: "No identity selfie is attached to this reset attempt." }, { status: 404 });
   const { data: signed, error } = await context.client.storage.from("recovery-selfies").createSignedUrl(path, 60);
-  if (error || !signed?.signedUrl) return NextResponse.json({ error: "The selfie could not be loaded." }, { status: 500 });
-  return NextResponse.json({ data: { url: signed.signedUrl } });
+  if (error || !signed?.signedUrl) return publicJson({ error: "The selfie could not be loaded." }, { status: 500 });
+  return publicJson({ data: { url: signed.signedUrl } });
 }

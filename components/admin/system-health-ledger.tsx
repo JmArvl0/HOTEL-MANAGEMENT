@@ -1,7 +1,8 @@
 "use client";
+
 import { useRef, useState } from "react";
 import { CreditCard, FileText, Layers, ShieldAlert } from "lucide-react";
-import { HavenSearchInput, HavenSkeletonCard, HavenSkeletonList } from "@/components/ui/haven-data-controls";
+import { HavenSearchInput, HavenSkeletonCard } from "@/components/ui/haven-data-controls";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { TablePagination, useTablePagination } from "@/components/ui/table-pagination";
 import { DepositMethodSwitch } from "@/components/ui/deposit-method-switch";
@@ -22,7 +23,7 @@ const tabs = [
 
 type TabKey = (typeof tabs)[number]["key"];
 
-export function PaymentHealthPanel({ payments, gateway, notify, onRefresh }: { payments: SystemHealth["payments"]; gateway?: SystemHealth["gateway"]; notify?: (message: string) => void; onRefresh?: () => void }) {
+export function PaymentHealthPanel({ payments, gateway, notify, onRefresh }: { payments: SystemHealth["payments"]; gateway?: SystemHealth["gateway"]; notify?: (message: string, tone?: "info" | "success" | "warning" | "error") => void; onRefresh?: () => void }) {
   if (!payments)
     return (
       <HavenSkeletonCard hasHeader />
@@ -75,7 +76,7 @@ export function SystemHealthLedger({
   data: SystemHealth;
   checked: string;
   onProbe?: () => void;
-  notify?: (message: string) => void;
+  notify?: (message: string, tone?: "info" | "success" | "warning" | "error") => void;
 }) {
   const rows = data?.migrations?.applied ?? [];
   const appliedCount = data?.migrations?.appliedCount ?? rows.length;

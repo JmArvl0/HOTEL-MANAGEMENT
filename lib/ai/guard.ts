@@ -1,3 +1,4 @@
+import { publicJson } from "@/lib/server-errors";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
@@ -13,8 +14,8 @@ export const AI_ROLES: Role[] = ["manager", "owner", "admin"];
 
 export async function guardAiSession(): Promise<{ userId: string; role: Role } | NextResponse> {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.disabled) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!AI_ROLES.includes(session.user.role as Role)) return NextResponse.json({ error: "AI assistant access required." }, { status: 403 });
+  if (!session || session.user.disabled) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
+  if (!AI_ROLES.includes(session.user.role as Role)) return publicJson({ error: "AI assistant access required." }, { status: 403 });
   return { userId: session.user.id, role: session.user.role as Role };
 }
 

@@ -1,5 +1,8 @@
 "use client";
 
+import { userMessage } from "@/lib/errors";
+import { fetchPublic, readResponse } from "@/lib/client-errors";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
@@ -95,8 +98,8 @@ export default function HavenAiPanel({ userName, onOpenQueue }: { userName?: str
     if (refresh) setRefreshingBrief(true);
     else setLoadingBrief(true);
     try {
-      const response = await fetch(`/api/ai/brief${refresh ? "?refresh=1" : ""}`, { cache: "no-store" });
-      const body = await response.json();
+      const response = await fetchPublic(`/api/ai/brief${refresh ? "?refresh=1" : ""}`, { cache: "no-store" });
+      const body = await readResponse(response);
       if (!response.ok) throw new Error(body?.message ?? body?.error ?? "Unable to load the AI brief.");
       setIndicators(body.indicators ?? null);
       if (body.data) {
@@ -111,7 +114,7 @@ export default function HavenAiPanel({ userName, onOpenQueue }: { userName?: str
       }
     } catch (cause) {
       if (!refresh) setIndicators(null);
-      setBriefUnavailable(cause instanceof Error && cause.message ? cause.message : BRIEF_UNAVAILABLE_MESSAGE);
+      setBriefUnavailable(userMessage(cause, BRIEF_UNAVAILABLE_MESSAGE));
     } finally {
       setLoadingBrief(false);
       setRefreshingBrief(false);
@@ -136,12 +139,12 @@ export default function HavenAiPanel({ userName, onOpenQueue }: { userName?: str
     const priorHistory = [...history, { role: "user" as const, text: trimmed }];
     setHistory(priorHistory);
     try {
-      const response = await fetch("/api/ai/ask", {
+      const response = await fetchPublic("/api/ai/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: trimmed, history: history.slice(-6) })
       });
-      const body = await response.json();
+      const body = await readResponse(response);
       if (response.ok && body.data) {
         setHistory([...priorHistory, { role: "assistant", text: body.data.answer }]);
       } else if (response.status === 429) {

@@ -38,7 +38,7 @@ describe("Owner authority hierarchy", () => {
   it("removes Owner from every direct Front Desk and Maintenance route guard", () => {
     for (const path of [...filesBelow("app/api/front-desk"), ...filesBelow("app/api/maintenance")]) expect(read(path), path).not.toContain('"owner"');
     expect(resourceRoute).toContain('auth.session!.user.role==="owner"');
-    expect(resourceRoute).toContain("This record must be created through its protected workflow.");
+    expect(resourceRoute).toContain("Open the relevant module and use its create action.");
   });
 
   it("routes Owner to a dedicated executive surface", () => {
