@@ -1,5 +1,21 @@
 # AI Session Handoff
 
+## Worktree test recovery and cleanup — 2026-11-16
+
+Recovered the old isolated PO/room-rack repairs as `2fec9b8`, adapted to the
+current Booking UI and confirmed delivery dialog. Node 22.22.2 focused tests
+pass 46/46; typecheck, scoped ESLint (zero findings), and isolated production
+build pass. Full suite: 2,640 passed / 9 failed (eight timeouts and one arrival
+query failure); all five affected files then pass serially, 67/67, with unchanged
+assertions/deadlines. This is not a clean full-suite pass.
+
+Removed `.tmp/po-room-rack-fix` and `.tmp/xendit/release-stage`; retained both
+branches, original PO recovery files under `.tmp/worktree-cleanup-20261116/`,
+and the original November 6 session record. The five other worktrees are clean.
+Concurrent OpenCode CSS/session/handoff edits remain untouched and uncommitted;
+only this handoff addition belongs to this cleanup. No push or deployment.
+See [[2026-11-16 - Worktree Test Recovery and Cleanup]].
+
 ## Remaining port reviewed for release — 2026-11-15
 
 The user authorized reviewing GLM's continuation and merging/pushing when it
