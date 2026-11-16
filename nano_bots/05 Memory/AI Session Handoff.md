@@ -16,6 +16,17 @@ Concurrent OpenCode CSS/session/handoff edits remain untouched and uncommitted;
 only this handoff addition belongs to this cleanup. No push or deployment.
 See [[2026-11-16 - Worktree Test Recovery and Cleanup]].
 
+## QA residue cleanup + landing Top button — 2026-11-16
+
+Removed the public "QA Turnover 856c3b5d" card by deactivating the catalog type
+and retiring its synthetic physical room through the governance RPCs (audit rows
+written; nothing deleted). The floating "Top" button is now a transparent ghost
+style in `app/(landing-page)/landing.css`. Verified: typecheck, targeted tests,
+44/44 isolated re-runs of the flaky trio. A concurrent Codex session on
+`codex/preserve-worktree-tests-20261116` was editing PO/room-rack tests mid-run —
+do not touch; re-check `git status` first. See
+[[2026-11-16 - QA Catalog Residue and Landing Top Button]].
+
 ## Remaining port reviewed for release — 2026-11-15
 
 The user authorized reviewing GLM's continuation and merging/pushing when it
