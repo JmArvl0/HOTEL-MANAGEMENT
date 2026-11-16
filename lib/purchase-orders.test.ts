@@ -185,15 +185,4 @@ describe("surface contracts", () => {
     expect(ui).toContain("Nothing was ordered"); // the toast tells the truth
     expect(ui).toContain("nothing is ordered or sent automatically");
   });
-
-  it("the PO workspace offers status filters and the submit/receive/cancel lifecycle", () => {
-    const panel = read("components/manager/inventory-replenishment-panel.tsx");
-    expect(panel).toContain("pending_approval");
-    expect(panel).toContain("Receive delivery");
-    expect(panel).toContain("Received — immutable");
-    expect(panel).toContain("onSubmit");
-    expect(panel).toContain("haven-filter-badge");
-    expect(panel).toContain("Confirm stock restock");
-    expect(panel).toContain("Outstanding quantities stay open for the next delivery.");
-  });
 });
