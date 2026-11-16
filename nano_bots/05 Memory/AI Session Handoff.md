@@ -1,5 +1,48 @@
 # AI Session Handoff
 
+## Transactions exception remediation (2026-11-16)
+
+Owner confirmed KI-029's three paid totals and KI-032's two cash receipts are
+demo records. A guarded `20261116010000` migration recomputes the invoice
+totals and audits before/after state; local PostgreSQL replay passed. Transactions
+now labels drawer-less paid cash and offers Accounting's investigation queue;
+Front Desk browser warning passed. Component 8/8, full Vitest 2,452/2,452,
+typecheck, scoped lint (zero errors), and isolated Webpack build passed.
+The latest `origin/main` supplied the 17 missing migration files. A separate
+worktree replayed 150 migrations and dry-ran only `20261116010000`, then applied
+it to the linked database. Live readback: all three invoices ₱0 paid with
+balances ₱26,700 / ₱23,200 / ₱12,800 and three before/after audit entries.
+Migration source is pushed as `codex/transactions-demo-correction` (`b013e43`).
+This checkout still has conflicting migration history and must not run db push.
+The immutable cash rows remain for a full fixture cleanup; neither was changed.
+See [[2026-11-16 - Transactions Exceptions Remediation]].
+
+## Transactions data-flow QA (2026-11-15)
+
+Read-only configured-ledger and Front Desk browser tracing covered Transactions,
+Deposit Verification, Billing, Cash & Shifts and Financial Documents. The
+specific-payment navigation and verified-date daily grouping defects were fixed
+in source; the former passed live browser retest and both passed focused tests.
+KI-029 was resolved on 2026-11-16, and KI-032 tracks two historical paid cash rows without
+drawer links. Typecheck, scoped lint (zero errors), 14 focused tests, full
+Vitest (2,451), and isolated Webpack build passed. No financial write or
+deployment. See
+`docs/qa/transactions-data-flow-qa-2026-11-15.md` and
+[[2026-11-15 - Transactions Data Flow QA]].
+
+## Transactions UI integration (2026-11-15)
+
+The approved Transactions prototype is live in the shared Front Desk and
+Accounting dashboard, backed by real ledger rows. It pairs Manila-date
+settled totals with a searchable/filterable ledger and recorded detail, with
+role-scoped deposit and receipt actions and a mobile detail view. Front Desk
+desktop/phone browser QA passed; Accounting live actions were not exercised.
+Typecheck, touched lint (0 errors), 12 focused tests, full Vitest (2,449),
+and an isolated Webpack production build passed. No hosted write or deployment.
+The Transactions palette was then aligned with shared staff tokens in both
+themes; desktop/phone browser review, typecheck, focused tests and lint passed.
+See [[2026-11-15 - Transactions UI Integration]].
+
 ## Cash & Shifts remediation continuation (2026-11-15)
 
 The approved plan was implemented: new daily snapshots separate collections,
@@ -11,37 +54,30 @@ isolated Webpack production build exited 0. Final isolated app/database QA
 passed 10/10 across Front Desk and Accounting at 1440/390/320px; the original
 refund example returned ₱2,000 / ₱350.25 / ₱1,649.75. SQL acceptance 12/12,
 full Vitest 2,451/2,451. Configured ledger read-only: cash migration applied,
-new Billing correction migration pending. A concurrent session committed and
+proposed Billing correction migration then pending (later removed; see below).
+A concurrent session committed and
 pushed shared source as `386cd49`. This pass found and locally repaired the
-pending Billing migration's undeclared loop variable and missed audit rows;
+then-pending Billing migration's undeclared loop variable and missed audit rows;
 131-migration replay passed afterward. No further push or hosted business
 write. See `docs/qa/cash-shifts-pre-push-qa-2026-11-15.md` and
 [[2026-11-15 - Cash Shifts Remediation]].
 
-## Billing QA (2026-11-15)
+## Billing QA remediation (2026-11-15)
 
-Read-only Front Desk browser QA covered 38 folios, related Finance sections,
-and 390px queue/detail behavior. Summary values, deposit destination, search,
-filters, pagination, reservation opening, and phone Back/focus worked. Four
-findings are documented: paid totals with missing linked history (KI-029),
-repeated financial document snapshots (KI-013), pending deposits absent from
-Payments activity (KI-030), and cancelled detail without status/settlement
-context (KI-031). All four findings fixed locally:
+Pending deposits, role wording, cancelled context and the missing-payment-
+history alert passed Front Desk desktop/390px browser QA. KI-030/031 are fixed
+in source. KI-029 remains open: no external payment evidence supports changing
+three live balances. The unapplied `20261115020000` invoice-reset migration
+was removed; no configured-database financial write was made.
 
-- KI-013: server-side dedup added to `accounting_generate_document` via
-  migration `20261115010000_dedup_financial_documents.sql` — one canonical
-  folio statement returned per unchanged financial state.
-- KI-030 & KI-031: fixed in `staff-billing-workspace.tsx` (pending deposits in
-  Payments activity with role-aware labels; cancelled status and settlement
-  context in folio detail).
-- KI-029: correction migration `20261115020000_correct_unlinked_invoice_paid.sql`
-  sets `paid=0`, `balance=amount`, `status='unpaid'` on INV-7799/INV-7800/
-  INV-7801 with audit log entries; no payment records created or modified.
-
-Accounting browser/write paths and live charge/adjustment cases remain untested.
-Typecheck, scoped lint, 77 targeted tests, and all 2,451 Vitest tests passed;
-production build passes.
-See `docs/qa/billing-qa-2026-11-15.md` and [[2026-11-15 - Billing QA]].
+Configured ledger read-only: the already-applied `20261115010000` document
+migration had a five-total shortcut, no concurrency lock and lost terminal-
+settlement fields. Additive repair `20261115030000` is **pending deployment**.
+Local PostgreSQL replay plus unchanged/changed-content, receipt and concurrent
+request checks passed. Typecheck, scoped lint (zero errors), 2,443/2,443
+Vitest tests and isolated Webpack production build passed. Accounting live
+write paths remain untested. See `docs/qa/billing-qa-2026-11-15.md` and
+[[2026-11-15 - Billing QA Remediation]].
 
 ## Cash & Shifts pre-push QA (2026-11-15)
 

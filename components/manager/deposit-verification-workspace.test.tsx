@@ -99,6 +99,16 @@ describe("live deposit verification workspace", () => {
     expect(screen.getByRole("button", { name: "Reject payment" })).toBeTruthy();
   });
 
+  it("opens a specifically searched provider payment across queue filters", () => {
+    vi.stubGlobal("fetch", vi.fn());
+    const provider = { ...payment, id: "provider-1", method: "gateway_paymongo", reference: "PM-1" } as RecordItem;
+    const actions = { ...props(false), search: "provider-1", items: [payment, provider], allItems: [payment, provider] };
+    render(<ResourceView {...actions} />);
+    expect(screen.getByRole("button", { name: /Maya Santos.*Awaiting provider/ })).toBeTruthy();
+    expect(screen.getByText(/Online payment confirms automatically when the provider settles/)).toBeTruthy();
+    expect(screen.queryByText("GC-12345")).toBeNull();
+  });
+
   it("shows overdue proofs as a visibility cue while keeping Accounting in control", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false }));
     const overdue = { ...payment, submitted_at: "2026-01-01T00:00:00Z" } as RecordItem;

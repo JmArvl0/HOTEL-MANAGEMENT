@@ -95,7 +95,7 @@ function Fact({ term, children }: { term: string; children: React.ReactNode }) {
 }
 
 export default function DepositVerificationWorkspace({ items, canVerify, slaHours, search, onSearch, onVerify, onReject }: Props) {
-  const [queue, setQueue] = useState<Queue>("needs");
+  const [queue, setQueue] = useState<Queue>(search.trim() ? "all" : "needs");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mobileDetail, setMobileDetail] = useState(false);
   const [decision, setDecision] = useState<Decision | null>(null);

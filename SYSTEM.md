@@ -1243,6 +1243,17 @@ deposit review, reservation, and statement actions remain; Accounting alone can
 reverse charges or record adjustments. The separate Guest Folios navigation item
 is removed. No financial records or guest-facing folios are removed.
 
+**Billing QA follow-up (2026-11-15).** Pending deposits appear in payment
+activity as unapplied and the queue names Accounting as the reviewer for Front
+Desk. Cancelled reservations carry their status and historical-stay context in
+the detail itself. A folio reporting applied payments without any linked
+settled payment shows a reconciliation warning; it does not rewrite the invoice.
+Billing blocks repeated statement clicks while issuance is pending, then links
+to the issued document. The owner confirmed the three unsupported paid totals
+were demo seed values. Guarded migration `20261116010000` recomputed them from
+the payment ledger on 2026-11-16; the invoices now have zero paid and three
+before/after audit entries (KI-029).
+
 **Front Office modules (2026-11-09).** Staff navigation separates Room Management
 (`room_rack`), Front Desk Bookings (`reservations`), and Guest Management (`guests`).
 Room Management shows cards in collapsible room-type groups with separate room
@@ -1322,6 +1333,17 @@ issued while both rates are 0 carry no breakdown at all. A customer never reache
 directly: `getCustomerReceipt` re-derives the same VAT-inclusive breakdown for the *customer's*
 receipt from the reservation's frozen snapshot (falling back to `getOperationalPolicy()`), and
 attaches an `RCP-` number only when a `financial_documents` row already exists for that payment.
+
+Document issuance must return one canonical receipt per settled payment and one
+folio statement per reservation and identical immutable snapshot. Number and
+generation time do not define financial content; charges, adjustments,
+payments, tax, and terminal-settlement data do. Existing documents stay
+immutable. Migration `20261115010000` was applied with a narrower five-total
+check and accidentally removed terminal-settlement fields from new documents.
+The additive repair `20261115030000` restores those fields and adds full-content
+comparison plus per-source issuance locks; it is pending on the configured
+database as of 2026-11-15. Do not treat the narrower deployed behavior as the
+final contract (KI-013).
 
 **Staff notification surfaces (standardized 2026-09-19)** — three complementary mechanisms with
 distinct meanings. Operational roles (Manager, Front Desk, Accounting, Housekeeping, Maintenance)
@@ -1545,7 +1567,7 @@ generic Maintenance view of Guest Requests — informational, via one shared
 `moduleSummary` helper in the generic `ResourceView`; Deposit Verification uses
 its own queue-backed cards, including **Past SLA** for pending manual payments
 waiting past the policy's `depositSlaHours`), the **Accounting**
-sections (Transactions/Folios/Cash/Reconciliation/Documents, informational),
+sections (Folios/Cash/Reconciliation/Documents, informational),
 **Housekeeping** (five cards from the same
 `groupQueueTask` grouping the queue renders: Needs attention / In progress / Waiting for
 inspection / Blocked by Maintenance / Completed today), and the **Front Desk Reports history** (Submitted /
@@ -1560,6 +1582,15 @@ Transfer Vehicles, Request Types) and Staff & Duty (its own KPI cards) deliberat
 none. The "needs attention" count is intentionally absent from the front-desk Reservations
 queue itself — no authoritative definition exists there; arrival readiness is the
 "Arrivals needing prep" card.
+
+Transactions uses a separate ledger workspace: Manila-date settled totals,
+search and status/type filters, selected recorded detail, and existing
+role-scoped deposit and receipt actions. Pending records are excluded from
+settled totals. Paid entries use `verified_at` (falling back to `created_at`)
+for the workspace calendar day and ordering, matching Accounting performance
+reports; the detail history retains the original recording timestamp. A paid
+cash entry without a drawer link is identified as a historical cash exception;
+Accounting can open its existing investigation queue from the transaction.
 
 ### 7.11 Transportation service (standalone)
 

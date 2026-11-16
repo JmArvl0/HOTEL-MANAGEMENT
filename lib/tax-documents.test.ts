@@ -7,8 +7,7 @@ import { inclusiveTaxBreakdown, ratePercent } from "@/lib/accounting";
 // gross. The contract is pinned against the migration source (the SQL lives in
 // SECURITY DEFINER bodies) and the TS mirror must agree with it exactly.
 const migration = readFileSync("supabase/migrations/20260928010000_tax_aware_documents.sql", "utf8");
-const dedupMigration = readFileSync("supabase/migrations/20261115010000_dedup_financial_documents.sql", "utf8");
-const paidCorrectionMigration = readFileSync("supabase/migrations/20261115020000_correct_unlinked_invoice_paid.sql", "utf8");
+const dedupMigration = readFileSync("supabase/migrations/20261115030000_repair_financial_document_dedup.sql", "utf8");
 const policyRoute = readFileSync("app/api/admin/policy/route.ts", "utf8");
 
 describe("inclusive tax breakdown", () => {
@@ -72,58 +71,32 @@ describe("migration 20260928010000 contract", () => {
   });
 });
 
-describe("folio statement dedup (migration 20261115010000)", () => {
-  it("checks existing folio documents by reservation before inserting", () => {
-    expect(dedupMigration).toContain("where reservation_id = r.id");
-    expect(dedupMigration).toContain("and document_type = 'folio'");
+describe("financial document dedup repair (migration 20261115030000)", () => {
+  it("patches the current document function so terminal settlement fields survive", () => {
+    expect(dedupMigration).toContain("pg_get_functiondef");
+    expect(dedupMigration).not.toContain("create or replace function public.accounting_generate_document");
+    expect(dedupMigration).toContain("'terminalSettlement'");
+    expect(dedupMigration).toContain("'originalFolioAmount'");
+    expect(dedupMigration).toContain("-- Dedup folio statements:");
   });
-  it("compares the full financial snapshot before considering a duplicate", () => {
-    expect(dedupMigration).toContain("snapshot->>'folioAmount'");
-    expect(dedupMigration).toContain("snapshot->>'paid'");
-    expect(dedupMigration).toContain("snapshot->>'balance'");
-    expect(dedupMigration).toContain("snapshot->>'creditBalance'");
-    expect(dedupMigration).toContain("snapshot->>'folioStatus'");
+  it("serializes folio issuance and compares every immutable snapshot field", () => {
+    expect(dedupMigration).toContain("pg_advisory_xact_lock");
+    expect(dedupMigration).toContain("snapshot - 'documentNumber' - 'generatedAt'");
+    expect(dedupMigration).toContain("v_snapshot - 'documentNumber' - 'generatedAt'");
   });
-  it("returns the existing document instead of creating a duplicate", () => {
+  it("returns the existing document only for an unchanged folio", () => {
+    expect(dedupMigration).toContain("p_document_type='folio'");
     expect(dedupMigration).toContain("'deduplicated',true");
     expect(dedupMigration).toContain("existing.document_number");
   });
-  it("only dedups folio statements, not receipts", () => {
-    expect(dedupMigration).toContain("if p_document_type = 'folio' then");
+  it("keeps one canonical receipt per settled payment", () => {
+    expect(dedupMigration).toContain("p_document_type='receipt'");
+    expect(dedupMigration).toContain("payment_id=p.id");
+    expect(dedupMigration).toContain("receipt-document:");
   });
   it("keeps grants service-role only", () => {
     expect(dedupMigration).toContain("revoke all on function public.accounting_generate_document");
     expect(dedupMigration).toContain("grant execute on function public.accounting_generate_document");
     expect(dedupMigration).toContain("to service_role");
-  });
-});
-
-describe("unlinked invoice paid correction (migration 20261115020000)", () => {
-  it("targets the three affected invoices", () => {
-    for (const id of ["INV-7799", "INV-7800", "INV-7801"]) {
-      expect(paidCorrectionMigration).toContain(id);
-    }
-  });
-  it("sets paid to zero on affected invoices", () => {
-    expect(paidCorrectionMigration).toContain("paid = 0");
-  });
-  it("resets balance to the invoice amount", () => {
-    expect(paidCorrectionMigration).toContain("balance = amount");
-  });
-  it("marks corrected invoices as unpaid", () => {
-    expect(paidCorrectionMigration).toContain("status = 'unpaid'");
-  });
-  it("only touches invoices with nonzero paid", () => {
-    expect(paidCorrectionMigration).toContain("and paid > 0");
-  });
-  it("writes audit log entries for each correction", () => {
-    expect(paidCorrectionMigration).toContain("correct_unlinked_invoice_paid");
-    expect(paidCorrectionMigration).toContain("Paid total had no linked payment transaction");
-  });
-  it("recomputes folio financials through sync_invoice_financials", () => {
-    expect(paidCorrectionMigration).toContain("sync_invoice_financials");
-  });
-  it("creates no payment records", () => {
-    expect(paidCorrectionMigration).not.toContain("insert into payments");
   });
 });

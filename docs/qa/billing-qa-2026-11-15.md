@@ -53,3 +53,43 @@ Relevant implementation: `app/api/staff/billing/route.ts`,
 `components/manager/manager-dashboard-client.tsx`,
 `app/api/accounting/documents/route.ts`, and
 `supabase/migrations/20260928010000_tax_aware_documents.sql`.
+
+## Remediation follow-up — 15 November 2026
+
+The Billing UI now lists pending deposits in Payments once, marks them unapplied,
+uses role-aware review wording, shows cancelled context in the detail, and warns
+when a nonzero paid total has no linked settled transaction. Statement issuance
+blocks repeat clicks and offers the issued document. Front Desk browser checks
+confirmed the ₱19,140 pending example, warning on `INV-7799`, and cancelled
+status/context for `INV-FF587288` at desktop and 390px. No live financial write
+was made in these checks.
+
+The configured migration ledger was read-only: `20261115010000` is already
+applied, while `20261115020000` is not. The applied document migration compared
+only five invoice fields, had no concurrency lock, and replaced the later
+terminal-settlement document fields. The additive
+`20261115030000_repair_financial_document_dedup.sql` removes that shortcut,
+restores the settlement fields, compares complete immutable statement content,
+and serializes issuance. It also returns the earliest receipt for a settled
+payment. The repair is **pending deployment**; historical documents remain.
+
+The proposed invoice-reset migration `20261115020000` was removed before it
+could run. No linked database payment row was found for the three invoices, but
+that alone does not prove the guests did not pay. Accounting still needs
+external payment evidence before changing balances. KI-029 remains open; the
+Billing warning is the interim safeguard.
+
+Local PostgreSQL replay applied all 130 remaining migrations. Replaying the
+already-applied dedup migration removed `terminalSettlement`; applying the new
+repair restored it and removed the five-field shortcut. Fictional test rows
+confirmed one document for unchanged folio content, a new document when a
+reversed charge changed content without changing totals, one canonical receipt
+per settled payment, and one document from two concurrent statement requests.
+The disposable database was stopped and removed. The new repair has not been
+applied to the configured database.
+
+Final checks: `npm run typecheck` passed; scoped ESLint had zero errors and
+three pre-existing dashboard warnings; all 233 Vitest files and 2,443 tests
+passed. Impeccable's UI detector returned no findings. The isolated Webpack
+production build exited 0 after the first sandboxed run hit Windows `EPERM`.
+Its generated `next-env.d.ts` and `tsconfig.json` changes were restored.

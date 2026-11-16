@@ -4,6 +4,16 @@ The source-of-truth reference for the shipped UI. **Do not apply
 `design-system/haven-hotel/MASTER.md`** — it is superseded (see `DESIGN-STATUS.md` F2).
 This doc and `app/ui-primitives.css` are the current system.
 
+**Transactions workspace (2026-11-15).** Front Desk and Accounting share a
+Manila-date money summary, a searchable and filterable ledger, and selected
+payment or refund detail. The summary uses settled entries recorded in the
+selected period and excludes pending payments; refunds appear as outflows.
+Detail shows recorded references and timestamps, with receipt and deposit
+actions limited by the signed-in role. On narrow screens, detail opens
+separately and Back restores focus to the selected ledger row. The workspace
+uses the shared staff surface, text, button, focus and status tokens in both
+themes, so its palette matches the neighboring finance modules.
+
 **Cash & Shifts post-close actions (2026-11-14).** In the shared Front Desk
 and Accounting workspace, the handover card opens post-close actions in an
 anchored, internally scrollable popover. It stays within the viewport and does
@@ -18,6 +28,11 @@ Statement issuance and Accounting corrections sit in the detail footer. On
 phones, the queue and detail are separate views with a Back control that
 returns focus to the selected folio. The standalone Guest Folios sidebar item
 is removed; Billing remains the entry point.
+The detail repeats status so a phone view retains cancellation context. Pending
+deposits remain visible in Payments with an unapplied label, while the queue
+names the role that can review them. Missing linked payment history is an
+explicit alert beside the totals. Statement issuance shows progress, prevents
+repeat clicks, and becomes a View statement action after success.
 
 **Account dashboards (2026-11-12).** Manager, Front Desk, Housekeeping,
 Maintenance, Accounting, Admin, Owner, and Guest share the dashboard heading,

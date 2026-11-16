@@ -1,36 +1,47 @@
 # Known Issues
 
+## KI-032 — Historical cash payments lack drawer links
+
+Status: Open (2026-11-15); P2 demo-fixture integrity. Two paid cash transactions in
+the configured ledger have no `cash_shift_id`: `CASH-261003-8C1135` (₱4,060,
+`RSV-E6199544`) and `CASH-261003-8369D2` (₱6,230, `RSV-5C4E8679`). They
+appear in Transactions but cannot appear in any Cash & Shifts drawer activity.
+On 2026-11-16 the owner identified both as disposable demo records. The
+Transactions detail now identifies the missing drawer link and Accounting can
+open the existing cash investigation queue. Their settled payment and audit
+history remain immutable; no drawer or refund has been fabricated. A broader
+demo-fixture cleanup must account for the linked paid folios and one still
+checked-in stay before removal. See
+`docs/qa/transactions-data-flow-qa-2026-11-15.md`.
+
 ## KI-029 — Billing paid totals lack linked payment history
 
-Status: Fixed in local migration, pending hosted application (2026-11-15); P1 financial data integrity. Three live
-invoices (`INV-7799`, `INV-7800`, `INV-7801`) had nonzero applied payments but no
-linked paid transactions in `payments`. Verified against live Transactions — no
-matching rows exist for any of the three reservations. Correction migration
-`20261115020000_correct_unlinked_invoice_paid.sql` sets `paid=0`, `balance=amount`,
-and `status='unpaid'` on each affected invoice, with audit log entries. No payment
-records are created, modified, or deleted; no folio amounts are changed. The
-migration's loop declaration and audit order were corrected after a failed
-fresh replay. All 131 local migrations replayed, and a real-PostgreSQL fixture
-corrected three fictional invoices with three audit rows. The configured ledger
-still shows this migration pending; live invoice values have not been changed
-by this QA pass.
-See `docs/qa/billing-qa-2026-11-15.md`, BILL-01.
+Status: Resolved in linked database (2026-11-16); P1 financial data integrity.
+`INV-7799`, `INV-7800`, and `INV-7801` had nonzero paid totals without linked
+payments. The owner confirmed these were demo seed values without payment
+evidence. Guarded additive migration `20261116010000` recomputed the three
+folios through `sync_invoice_financials` and recorded before/after audit values.
+The linked database now shows ₱0 paid and unpaid balances of ₱26,700, ₱23,200,
+and ₱12,800. Readback verified three audit entries and no cash-payment change.
+The migration source is committed on `codex/transactions-demo-correction`
+(`b013e43`), based on the compatible current `origin/main` migration line.
+See `docs/qa/billing-qa-2026-11-15.md`, BILL-01, for the original finding.
 
 ## KI-030 — Pending deposit disappears from Billing payment filter
 
-Status: Open (2026-11-15); P2. A pending ₱19,140 deposit is visible in a
-Billing banner and Deposit Verification but Payments says no payments. Front
-Desk also sees “Verify deposit” in the queue although it cannot verify. Include
-the pending row with an unapplied label and make the queue wording role-aware.
+Status: Fixed in source and Front Desk browser QA (2026-11-15); P2. Pending
+deposits now appear once in Payments with status and “Not applied to balance.”
+Front Desk sees “Awaiting Accounting”; Accounting sees “Review deposit” and
+retains the authorized review action. The ₱19,140 live example was checked.
 See `docs/qa/billing-qa-2026-11-15.md`, BILL-03.
 
 ## KI-031 — Cancelled folio detail omits cancellation context
 
-Status: Open (2026-11-15); P2. `INV-FF587288` shows an original ₱63,800 stay
-charge and a ₱0 due balance with no explanation in the detail. Its Cancelled
-status appears only in the queue, which the phone detail hides. Show status,
-the reason the balance is closed, and actual cancellation events without
-fabricating an adjustment. See `docs/qa/billing-qa-2026-11-15.md`, BILL-04.
+Status: Fixed in source and Front Desk browser QA (2026-11-15); P2.
+`INV-FF587288` now shows Cancelled in the detail, explains the retained stay
+entry and ₱0 due balance, and keeps the expired deposit visibly unapplied.
+Actual posted fees and credits remain in activity; no adjustment was invented.
+The 390px detail was checked. See `docs/qa/billing-qa-2026-11-15.md`, BILL-04.
 
 ## KI-028 — Current Drawer headline briefly lags after cash activity
 
@@ -438,14 +449,16 @@ Related:
 
 ## KI-013 — Repeated receipts / folio statements for unchanged source records
 
-Status: Fixed in local source (2026-11-15); server-side dedup deployed via migration
-`20261115010000_dedup_financial_documents.sql`. `accounting_generate_document` now
-checks whether an existing folio statement for the same reservation already carries
-the same financial snapshot (amount, paid, balance, credit, status) before
-inserting; if matched, it returns the existing document number instead of creating
-a duplicate. Receipts are unaffected. Existing immutable documents preserved.
-UI click guard + "View statement after success" already in
-`components/manager/staff-billing-workspace.tsx`. See `docs/qa/billing-qa-2026-11-15.md` (BILL-02).
+Status: Repair pending deployment (2026-11-15). The already-applied migration
+`20261115010000` deduplicates folio statements using only five invoice fields,
+without a concurrency lock, and replaced the newer terminal-settlement fields
+in the document function. The additive `20261115030000` migration removes that
+shortcut, restores settlement fields, serializes issuance, compares the entire
+immutable statement content, and returns the canonical receipt for a payment.
+It passed local PostgreSQL replay, changed-content and concurrent-request QA;
+the configured migration ledger still needs the repair. Existing documents
+are preserved. Billing also guards repeated clicks and links to the issued
+statement. See `docs/qa/billing-qa-2026-11-15.md` (BILL-02).
 
 ## KI-014 — Frontend remediation Phase 1 outcomes need browser verification
 

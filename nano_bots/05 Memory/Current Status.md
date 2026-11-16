@@ -1,5 +1,49 @@
 # Current Status
 
+## Transactions exception remediation (2026-11-16)
+
+- Owner confirmed the three unsupported paid invoice amounts and two
+  unattributed cash receipts are demo records. Guarded migration `20261116010000`
+  locally passed full SQL replay, changed-state rollback, and audit readback.
+  Component 8/8, full Vitest 2,452/2,452, typecheck, scoped lint (zero errors)
+  and isolated Webpack build passed. The linked database migration succeeded:
+  all three invoices now show ₱0 paid with balances ₱26,700 / ₱23,200 / ₱12,800;
+  three before/after audit entries were read back.
+- Transactions identifies drawer-less cash and routes Accounting to its
+  investigation queue; Front Desk browser QA confirmed the warning. Settled
+  cash payments and linked paid folios remain immutable; a full demo-fixture
+  cleanup is still unresolved.
+- This checkout's migration history conflicts with the linked database. The
+  latest `origin/main` contains the 17 missing versions; an isolated worktree
+  replayed 150 migrations, dry-ran only `20261116010000`, then applied it. Source
+  is preserved in pushed branch `codex/transactions-demo-correction` (`b013e43`).
+  Do not push migrations from this older checkout. See
+  [[2026-11-16 - Transactions Exceptions Remediation]].
+
+## Transactions data-flow QA (2026-11-15, local)
+
+- Read-only cross-module ledger checks found no orphan payment-to-invoice,
+  payment-to-shift, or receipt-to-payment links among records with those IDs.
+  A sample reservation matched Billing, Transactions and its receipt; a closed
+  cash drawer matched its linked transaction.
+- Transactions now opens the exact payment in Deposit Verification (live Front
+  Desk browser retest passed) and groups settled payments by verification day,
+  matching Accounting Reports. KI-029 was resolved on 2026-11-16; KI-032 tracks two historical
+  cash payments without shift links. Typecheck, scoped lint (zero errors),
+  14 focused tests, 2,451 full Vitest tests, and isolated Webpack build passed.
+  No financial data changed. See
+  `docs/qa/transactions-data-flow-qa-2026-11-15.md`.
+
+## Transactions UI integration (2026-11-15, local)
+
+- Front Desk and Accounting now share the approved Transactions layout, using
+  real ledger payments/refunds for Manila-date totals, search, filters and
+  recorded detail. Existing role-scoped financial actions remain wired.
+- Front Desk desktop/phone browser QA, typecheck, touched lint, 2,449 full
+  Vitest tests and isolated Webpack production build passed. Accounting live
+  actions remain untested. No deployment or hosted financial write.
+  See [[2026-11-15 - Transactions UI Integration]].
+
 ## Cash & Shifts remediation (2026-11-15, verified locally)
 
 - Daily report previews now separate paid collections, refund outflows and net
@@ -12,33 +56,28 @@
   links read back. SQL checks 12/12, full Vitest 2,451/2,451, isolated Webpack
   build passed. KI-022, KI-024 and KI-028 are fixed locally.
 - A concurrent Billing session committed and pushed the shared source as
-  `386cd49`. The pending Billing migration `20261115020000` failed a fresh
-  replay; its loop declaration and audit order are repaired locally, with all
-  131 migrations replaying successfully. The configured ledger was read-only:
-  cash migration `20261105010000` applied, Billing correction pending. No
+  `386cd49`. The then-pending Billing migration `20261115020000` failed a fresh
+  replay; its loop declaration and audit order were repaired locally, with all
+  131 migrations replaying. It was later removed (see Billing below). The
+  configured ledger was read-only: cash migration `20261105010000` applied. No
   further push or hosted business write in this pass. See
   `docs/qa/cash-shifts-pre-push-qa-2026-11-15.md`.
 
-## Billing QA (2026-11-15, local)
+## Billing QA remediation (2026-11-15, local)
 
-- Front Desk desktop/390px QA validated the integrated Billing navigation,
-  summary, search/filter/pagination, reservation link, deposit cross-check,
-  and phone Back/focus. The local snapshot had 38 folios, 48 payment rows, and
-  4 pending deposits.
-- Open findings: missing linked payment history for three nonzero-paid
-  invoices (KI-029), repeated document snapshots (KI-013), pending deposits
-  excluded from Payments activity (KI-030), and cancelled folio detail without
-  status/settlement explanation (KI-031). KI-013 fixed locally — server-side
-  dedup added to `accounting_generate_document` via migration
-  `20261115010000_dedup_financial_documents.sql` so one canonical folio
-  statement is returned per unchanged financial state. KI-030 and KI-031 fixed
-  in `staff-billing-workspace.tsx`. KI-029 fixed locally — correction migration
-  `20261115020000_correct_unlinked_invoice_paid.sql` sets `paid=0`,
-  `balance=amount`, `status='unpaid'` on INV-7799/INV-7800/INV-7801 with audit
-  log entries; no payment records created or modified. Accounting browser/write
-  paths and live charge/adjustment cases remain untested. Typecheck, scoped
-  lint, targeted 77/77 and full 2,451/2,451 tests passed; production build
-  passes. See `docs/qa/billing-qa-2026-11-15.md`.
+- Pending deposits now appear in Payments as unapplied with role-aware review
+  labels; cancelled context and missing linked-payment warning appear in detail.
+  Front Desk browser QA checked live examples at desktop and 390px. KI-030/031
+  are fixed in source; Accounting browser/write paths remain untested.
+- KI-029 was open in this Billing QA. The owner subsequently confirmed these
+  were demo seed totals, and guarded `20261116010000` corrected them on
+  2026-11-16. The earlier unapplied `20261115020000` invoice-reset candidate
+  was removed without changing balances.
+- The earlier `20261115010000` document dedup is applied but incomplete.
+  Additive `20261115030000` repairs full-content comparison, concurrency and
+  terminal-settlement fields; deployment is pending. Local PostgreSQL checks,
+  typecheck, lint, 2,443 Vitest tests and isolated Webpack build passed. See
+  `docs/qa/billing-qa-2026-11-15.md` and KI-013.
 
 ## Billing folio prototype integration (2026-11-14, local)
 

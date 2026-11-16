@@ -4,6 +4,17 @@ Lightweight decision log. Each entry records a choice that constrains future dev
 Trivial implementation details do not belong here. Historical sessions never override the
 current system or `SYSTEM.md` — see [[AI Session Handoff]] for the authority order.
 
+## D-040 — One document per settled payment or unchanged folio snapshot
+
+Date: 2026-11-15. Status: Chosen for Billing QA remediation; database repair pending.
+
+Repeated receipt requests return the earliest issued receipt for that settled
+payment. Repeated folio-statement requests return the earliest statement only
+when the complete immutable content matches, excluding its number and issue
+time. Changed charges, corrections, payments, tax, or settlement content can
+produce a new statement. Concurrent requests serialize by source. Keep all
+historical documents. See KI-013 and `20261115030000_repair_financial_document_dedup.sql`.
+
 ## D-039 — Manager dashboard shows four masked financial aggregates
 
 2026-11-11 user approved Today’s finances in the Manager dashboard. Its

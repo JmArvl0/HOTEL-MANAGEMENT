@@ -5,6 +5,7 @@ export const HOTEL_TIME_ZONE = "Asia/Manila";
 export function paymentSearchText(item: RecordItem) {
   const reservation = item.reservation as RecordItem | null | undefined;
   return [
+    item.id,
     reservation?.guest_name,
     reservation?.confirmation_number,
     item.reservation_id,
