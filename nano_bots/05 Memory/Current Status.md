@@ -1,5 +1,15 @@
 # Current Status
 
+## Lost & Found dashboard (2026-11-18, local)
+
+- The module is visible to Manager, Front Desk and Housekeeping. It now has
+  counted metric filters, a newest-first register, selected-item facts, release
+  readiness, chain of custody, role-gated actions, and a mobile queue/detail
+  switch. Housekeeping never sees claim notes.
+- Typecheck, scoped lint, targeted 51 tests, full Vitest (237 files / 2,469
+  tests) and the production build passed. Browser QA was not run. No DB, API or
+  migration changes. See [[2026-11-18 - Lost and Found Dashboard]].
+
 ## Front Desk QA corrections (2026-11-16)
 
 - KI-033: Dashboard ready-room calculation now uses the same rack reservation

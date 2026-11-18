@@ -32,6 +32,16 @@ describe("role navigation structure", () => {
     expect(sectionsFor("accounting")).not.toContain("guest_requests");
   });
 
+  it("exposes Lost & Found to custody, claim, and approval roles only", () => {
+    const item = NAV_ITEMS.find((entry) => entry.section === "lost_found");
+    expect(item?.hidden).toBeFalsy();
+    expect(item?.label).toBe("Lost & Found");
+    expect(item?.roles).toEqual(["manager", "front_desk", "housekeeping"]);
+    for (const role of ["owner", "admin", "maintenance", "accounting", "guest"] as const) {
+      expect(item?.roles).not.toContain(role);
+    }
+  });
+
   it("deposit verification is actionable by accounting alone", () => {
     expect(canVerifyDeposit("accounting")).toBe(true);
     for (const role of ["front_desk", "manager", "housekeeping", "maintenance", "owner"] as const) {

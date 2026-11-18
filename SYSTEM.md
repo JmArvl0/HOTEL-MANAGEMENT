@@ -1227,9 +1227,9 @@ are unchanged. Workspaces offered per role:
 
 | Role | Sections offered |
 |---|---|
-| Manager | Dashboard (risk command centre), reservations, rooms (+ **Manage rooms** roster, §6), guests, guest requests, **Transportation**, **Room Types & Photos**, **Transfer Vehicles**, housekeeping, maintenance, inventory, **Approvals & Escalations**, **Reports** (performance center + daily-report review, §7.12) |
-| Front Desk | Dashboard (arrivals/departures/in-house/rooms ready), reservations, rooms, guests, guest requests, **Transportation**, housekeeping, **Billing with guest folio detail**, Deposit verification (queue view — verification itself is Accounting's), **Transactions · Cash & shifts · Financial documents**, Approvals, **Reports** (daily operations report, §7.12) |
-| Housekeeping | Dashboard, rooms, guest requests, housekeeping tasks, inventory, Approvals |
+| Manager | Dashboard (risk command centre), reservations, rooms (+ **Manage rooms** roster, §6), guests, guest requests, **Transportation**, **Room Types & Photos**, **Transfer Vehicles**, housekeeping, maintenance, inventory, **Lost & Found**, **Approvals & Escalations**, **Reports** (performance center + daily-report review, §7.12) |
+| Front Desk | Dashboard (arrivals/departures/in-house/rooms ready), reservations, rooms, guests, guest requests, **Transportation**, housekeeping, **Lost & Found**, **Billing with guest folio detail**, Deposit verification (queue view — verification itself is Accounting's), **Transactions · Cash & shifts · Financial documents**, Approvals, **Reports** (daily operations report, §7.12) |
+| Housekeeping | Dashboard, rooms, guest requests, housekeeping tasks, **Lost & Found**, inventory, Approvals |
 | Maintenance | Dashboard, rooms, guest requests, maintenance orders, inventory, Approvals |
 | Accounting | Dashboard, reservations, **Billing with guest folio detail**, **Deposit verification** (the only role that can act on it), Refunds, **Transactions · Cash & shifts · Reconciliation · Documents**, Reports, Approvals |
 
@@ -1988,6 +1988,13 @@ applied remotely. See `docs/ROLE-IMPROVEMENT-IMPLEMENTATION.md` for deployment a
   release or declines claims; Front Desk verifies identity before release. Custody changes are
   acknowledged and audited. Manager disposition requires explicit policy confirmation/reason;
   no retention period or automated disposal is invented. Claim notes are hidden from Housekeeping.
+
+**Lost & Found workspace (2026-11-18).** The module is visible to Manager, Front Desk and
+Housekeeping. Four counted metric cards open the matching queue. The register sorts newest first and
+filters by status, location, found date and search within the latest 100 records. The selected item
+shows recorded facts, release readiness, chain of custody and role-gated actions. On phones the queue
+and detail are separate views, and Back restores focus to the selected row. Front Desk's page action
+filters to secured items and explains when none are ready for a claim.
 
 OTA, group/corporate, linen/laundry, formal night audit and full accounting remain separately
 scoped evaluations under Phase 5; no integrations are claimed.

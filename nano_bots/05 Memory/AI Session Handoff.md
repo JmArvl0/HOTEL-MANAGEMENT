@@ -1,5 +1,16 @@
 # AI Session Handoff
 
+## Lost & Found dashboard (2026-11-18, local)
+
+The hidden Lost & Found module is now visible to Manager, Front Desk and
+Housekeeping and rebuilt as a custody dashboard: four counted metric filters, a
+newest-first searchable register, selected-item facts, release readiness,
+chain of custody, role-gated actions, and a mobile queue/detail switch. Pure
+helpers and panel tests were added; no DB, API or migration changes. Typecheck,
+scoped lint, targeted 51 tests, full Vitest (237 files / 2,469 tests) and the
+production build passed. Browser QA was not run. See
+[[2026-11-18 - Lost and Found Dashboard]].
+
 ## Front Desk QA fixes (2026-11-16)
 
 KI-033 source fix aligns the Dashboard's ready-room count with the room rack's

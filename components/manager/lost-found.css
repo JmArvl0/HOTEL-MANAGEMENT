@@ -1,0 +1,776 @@
+.lost-found {
+  --lf-surface: var(--st-bg-surface);
+  --lf-subtle: var(--st-bg-surface-subtle);
+  --lf-hover: var(--st-bg-surface-hover);
+  --lf-ink: var(--st-text-primary);
+  --lf-muted: var(--st-text-secondary);
+  --lf-line: var(--st-border-color);
+  --lf-accent: var(--haven-brand-500, #2563eb);
+  --lf-success: var(--success-fg, #047857);
+  --lf-success-bg: color-mix(in srgb, var(--success, #10b981) 17%, var(--lf-surface));
+  --lf-warning: var(--warning-fg, #b45309);
+  --lf-warning-bg: color-mix(in srgb, var(--warning, #f59e0b) 17%, var(--lf-surface));
+  --lf-danger: var(--danger-fg, #b91c1c);
+  --lf-danger-bg: color-mix(in srgb, var(--danger, #ef4444) 17%, var(--lf-surface));
+  container: lost-found / inline-size;
+  min-inline-size: 0;
+  color: var(--lf-ink);
+}
+
+.lost-found .page-header {
+  margin-bottom: 18px;
+}
+
+.lost-found .lf-feedback {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 10px 13px;
+  border-radius: 10px;
+  background: var(--lf-subtle);
+  color: var(--lf-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.lost-found .lf-feedback.is-error {
+  background: var(--lf-danger-bg);
+  color: var(--lf-danger);
+}
+
+.lost-found .lf-text-action {
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 750;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.lost-found .lf-text-action:hover {
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.lost-found .lf-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.lost-found .lf-metric {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: 108px;
+  padding: 16px 18px;
+  border: 1px solid var(--lf-line);
+  border-radius: 16px;
+  background: var(--lf-surface);
+  color: var(--lf-ink);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.lost-found .lf-metric:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--st-shadow-sm);
+}
+
+.lost-found .lf-metric[aria-pressed="true"] {
+  border-color: var(--lf-ink);
+  box-shadow: inset 0 0 0 1px var(--lf-ink);
+}
+
+.lost-found .lf-metric > span {
+  padding-right: 25px;
+  color: var(--lf-muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.lost-found .lf-metric > svg {
+  position: absolute;
+  top: 17px;
+  right: 17px;
+  color: var(--lf-muted);
+}
+
+.lost-found .lf-metric > strong {
+  margin-top: 8px;
+  font-size: 28px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.lost-found .lf-metric > small {
+  margin-top: 6px;
+  color: var(--lf-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.lost-found .lf-workspace {
+  display: grid;
+  gap: 16px;
+  align-items: stretch;
+  min-block-size: 0;
+}
+
+.lost-found .lf-panel {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+  min-block-size: 0;
+  overflow: hidden;
+  border: 1px solid var(--lf-line);
+  border-radius: 16px;
+  background: var(--lf-surface);
+  box-shadow: var(--st-shadow-xs);
+}
+
+.lost-found .lf-workspace .lf-detail {
+  display: none;
+}
+
+.lost-found .lf-workspace[data-detail-open="true"] .lf-queue {
+  display: none;
+}
+
+.lost-found .lf-workspace[data-detail-open="true"] .lf-detail {
+  display: flex;
+}
+
+.lost-found .lf-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 18px 12px;
+}
+
+.lost-found .lf-panel-head h2 {
+  margin: 0;
+  color: var(--lf-ink);
+  font-size: 17px;
+  line-height: 1.3;
+}
+
+.lost-found .lf-panel-head p {
+  margin: 4px 0 0;
+  color: var(--lf-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.lost-found .lf-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  min-height: 38px;
+  padding: 7px 11px;
+  border: 1px solid var(--lf-line);
+  border-radius: 9px;
+  background: var(--lf-surface);
+  color: var(--lf-ink);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.lost-found .lf-refresh:hover:not(:disabled) {
+  background: var(--lf-hover);
+}
+
+.lost-found .lf-refresh:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.lost-found .lf-toolbar {
+  display: grid;
+  gap: 10px;
+  padding: 0 18px 14px;
+}
+
+.lost-found .lf-toolbar .haven-search-input {
+  width: 100%;
+}
+
+.lost-found .lf-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.lost-found .lf-filters .haven-select {
+  min-width: 0;
+}
+
+.lost-found .lf-queue-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 18px;
+  border-block: 1px solid var(--lf-line);
+  background: var(--lf-subtle);
+  color: var(--lf-muted);
+  font-size: 11px;
+}
+
+.lost-found .lf-table-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--lf-line) transparent;
+}
+
+.lost-found .lf-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.lost-found .lf-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--lf-line);
+  background: var(--lf-subtle);
+  color: var(--lf-muted);
+  font-size: 10.5px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.lost-found .lf-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--lf-line);
+  vertical-align: middle;
+}
+
+.lost-found .lf-table tbody tr:hover {
+  background: var(--lf-hover);
+}
+
+.lost-found .lf-table tbody tr[data-selected="true"] {
+  background: var(--lf-subtle);
+  box-shadow: inset 3px 0 var(--lf-ink);
+}
+
+.lost-found .lf-table td:first-child {
+  color: var(--lf-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.lost-found .lf-row-button {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--lf-ink);
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.lost-found .lf-row-button:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.lost-found .lf-row-button:focus-visible,
+.lost-found .lf-refresh:focus-visible,
+.lost-found .lf-action:focus-visible,
+.lost-found .lf-back:focus-visible,
+.lost-found .lf-text-action:focus-visible {
+  outline: 2px solid var(--lf-accent);
+  outline-offset: 2px;
+}
+
+.lost-found .lf-table .haven-status {
+  white-space: nowrap;
+}
+
+.lost-found .lf-empty {
+  display: grid;
+  gap: 6px;
+  place-content: center;
+  min-height: 220px;
+  padding: 24px;
+  color: var(--lf-muted);
+  text-align: center;
+}
+
+.lost-found .lf-empty h3 {
+  margin: 0;
+  color: var(--lf-ink);
+  font-size: 15px;
+}
+
+.lost-found .lf-empty p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.lost-found .lf-detail-head {
+  flex: none;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--lf-line);
+}
+
+.lost-found .lf-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  margin-bottom: 10px;
+  padding: 6px 10px;
+  border: 1px solid var(--lf-line);
+  border-radius: 8px;
+  background: var(--lf-surface);
+  color: var(--lf-ink);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.lost-found .lf-back:hover {
+  background: var(--lf-hover);
+}
+
+.lost-found .lf-detail-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px 10px;
+}
+
+.lost-found .lf-reference {
+  color: var(--lf-muted);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+}
+
+.lost-found .lf-detail-title h2 {
+  flex: 1 1 100%;
+  margin: 0;
+  color: var(--lf-ink);
+  font-size: 18px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.lost-found .lf-detail-title .haven-status {
+  flex: none;
+}
+
+.lost-found .lf-detail-body {
+  flex: 1;
+  min-height: 0;
+  padding: 16px 18px 20px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--lf-line) transparent;
+}
+
+.lost-found .lf-detail-body > * + * {
+  margin-top: 16px;
+}
+
+.lost-found .lf-facts {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 0 10px;
+  margin: 0;
+}
+
+.lost-found .lf-facts > div {
+  display: contents;
+}
+
+.lost-found .lf-facts dt {
+  padding: 7px 0;
+  border-top: 1px solid var(--lf-line);
+  color: var(--lf-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.lost-found .lf-facts dd {
+  margin: 0;
+  padding: 7px 0;
+  border-top: 1px solid var(--lf-line);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.lost-found .lf-facts > div:first-child dt,
+.lost-found .lf-facts > div:first-child dd {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.lost-found .lf-section h3 {
+  margin: 0 0 9px;
+  color: var(--lf-ink);
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.lost-found .lf-checklist {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lost-found .lf-checklist li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--lf-line);
+  font-size: 12px;
+}
+
+.lost-found .lf-checklist li:first-child {
+  border-top: 0;
+}
+
+.lost-found .lf-checklist li svg {
+  color: var(--lf-muted);
+}
+
+.lost-found .lf-checklist li[data-done="true"] svg,
+.lost-found .lf-checklist li[data-done="true"] small {
+  color: var(--lf-success);
+}
+
+.lost-found .lf-checklist small {
+  color: var(--lf-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.lost-found .lf-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--lf-subtle);
+  color: var(--lf-ink);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.lost-found .lf-muted {
+  margin: 0;
+  color: var(--lf-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.lost-found .lf-callout {
+  display: flex;
+  gap: 9px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  background: var(--lf-subtle);
+  color: var(--lf-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.lost-found .lf-callout svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.lost-found .lf-callout p {
+  margin: 0;
+}
+
+.lost-found .lf-timeline {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lost-found .lf-timeline li {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 9px;
+  padding-bottom: 14px;
+}
+
+.lost-found .lf-timeline li:last-child {
+  padding-bottom: 0;
+}
+
+.lost-found .lf-timeline li::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  margin-top: 4px;
+  border-radius: 50%;
+  background: var(--lf-accent);
+}
+
+.lost-found .lf-timeline li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 12px;
+  left: 3.5px;
+  width: 1px;
+  height: calc(100% - 4px);
+  background: var(--lf-line);
+}
+
+.lost-found .lf-timeline strong {
+  display: block;
+  color: var(--lf-ink);
+  font-size: 12px;
+}
+
+.lost-found .lf-timeline span,
+.lost-found .lf-timeline time {
+  display: block;
+  color: var(--lf-muted);
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+.lost-found .lf-timeline p {
+  margin: 4px 0 0;
+  color: var(--lf-muted);
+  font-size: 11.5px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.lost-found .lf-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 13px 18px;
+  border-top: 1px solid var(--lf-line);
+  background: var(--lf-surface);
+}
+
+.lost-found .lf-actions p {
+  max-width: 34ch;
+  margin: 0;
+  color: var(--lf-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.lost-found .lf-actions > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+  margin-inline-start: auto;
+}
+
+.lost-found .lf-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 8px 13px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 750;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.lost-found .lf-action.primary {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+}
+
+.lost-found .lf-action.primary:hover:not(:disabled) {
+  background: var(--btn-primary-hover);
+}
+
+.lost-found .lf-action.secondary {
+  border-color: var(--lf-line);
+  background: var(--lf-surface);
+  color: var(--lf-ink);
+}
+
+.lost-found .lf-action.secondary:hover:not(:disabled) {
+  background: var(--lf-hover);
+}
+
+.lost-found .lf-action.danger {
+  background: var(--lf-danger-bg);
+  color: var(--lf-danger);
+}
+
+.lost-found .lf-action:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.lost-found .lf-no-selection {
+  display: grid;
+  place-content: center;
+  min-height: 340px;
+  padding: 30px;
+  color: var(--lf-muted);
+  text-align: center;
+}
+
+.lost-found .lf-no-selection svg {
+  margin-inline: auto;
+  margin-bottom: 10px;
+}
+
+.lost-found .lf-no-selection h2 {
+  margin: 0 0 6px;
+  color: var(--lf-ink);
+  font-size: 16px;
+}
+
+.lost-found .lf-no-selection p {
+  max-width: 34ch;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@container lost-found (min-width: 681px) {
+  .lost-found .lf-workspace {
+    grid-template-columns: minmax(0, 1.15fr) minmax(300px, 1fr);
+  }
+
+  .lost-found .lf-workspace .lf-detail {
+    display: flex;
+  }
+
+  .lost-found .lf-workspace .lf-queue,
+  .lost-found .lf-workspace[data-detail-open="true"] .lf-queue {
+    display: flex;
+  }
+
+  .lost-found .lf-detail > .lf-back {
+    display: none;
+  }
+}
+
+@container lost-found (max-width: 900px) {
+  .lost-found .lf-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container lost-found (max-width: 680px) {
+  .lost-found .lf-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@container lost-found (max-width: 520px) {
+  .lost-found .lf-panel-head,
+  .lost-found .lf-toolbar,
+  .lost-found .lf-queue-meta,
+  .lost-found .lf-detail-head,
+  .lost-found .lf-detail-body,
+  .lost-found .lf-actions {
+    padding-inline: 12px;
+  }
+
+  .lost-found .lf-table th,
+  .lost-found .lf-table td {
+    padding-inline: 10px;
+  }
+
+  .lost-found .lf-table {
+    font-size: 12px;
+  }
+
+  .lost-found .lf-col-location,
+  .lost-found .lf-col-found {
+    display: none;
+  }
+
+  .lost-found .lf-action,
+  .lost-found .lf-refresh {
+    min-height: 44px;
+  }
+
+  .lost-found .lf-filters .haven-select-trigger {
+    min-height: 44px;
+  }
+}
+
+@media screen and (min-width: 1101px) and (min-height: 600px) {
+  .app-shell .workspace:has(> .workspace-body > .lost-found) {
+    block-size: 100dvh;
+  }
+
+  .app-shell .workspace:has(> .workspace-body > .lost-found) > .app-header {
+    flex-shrink: 0;
+  }
+
+  .app-shell .workspace-body:has(> .lost-found) {
+    display: flex;
+    min-block-size: 0;
+    padding-block-end: 24px;
+  }
+
+  .app-shell .lost-found {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-block-size: 0;
+  }
+
+  .app-shell .lost-found .lf-workspace {
+    flex: 1;
+  }
+
+  .app-shell .lost-found .lf-table-wrap,
+  .app-shell .lost-found .lf-detail-body {
+    flex: 1;
+    overflow-y: auto;
+  }
+}

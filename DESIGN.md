@@ -14,6 +14,13 @@ separately and Back restores focus to the selected ledger row. The workspace
 uses the shared staff surface, text, button, focus and status tokens in both
 themes, so its palette matches the neighboring finance modules.
 
+**Lost & Found workspace (2026-11-18).** Manager, Front Desk and Housekeeping share
+a custody dashboard: four counted metric cards filter a newest-first register, and
+the selected item shows recorded facts, release readiness and a chain-of-custody
+timeline. Wide layouts fill the workspace with independent queue and detail
+scrolling; phones open the detail separately and Back restores row focus. Counts
+are labeled as the latest 100 records, and Housekeeping never sees claim notes.
+
 **Cash & Shifts post-close actions (2026-11-14).** In the shared Front Desk
 and Accounting workspace, the handover card opens post-close actions in an
 anchored, internally scrollable popover. It stays within the viewport and does
