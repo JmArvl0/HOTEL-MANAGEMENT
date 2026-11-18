@@ -1227,11 +1227,11 @@ are unchanged. Workspaces offered per role:
 
 | Role | Sections offered |
 |---|---|
-| Manager | Dashboard (risk command centre), reservations, rooms (+ **Manage rooms** roster, §6), guests, guest requests, **Transportation**, **Room Types & Photos**, **Transfer Vehicles**, housekeeping, maintenance, inventory, **Lost & Found**, **Approvals & Escalations**, **Reports** (performance center + daily-report review, §7.12) |
-| Front Desk | Dashboard (arrivals/departures/in-house/rooms ready), reservations, rooms, guests, guest requests, **Transportation**, housekeeping, **Lost & Found**, **Billing with guest folio detail**, Deposit verification (queue view — verification itself is Accounting's), **Transactions · Cash & shifts · Financial documents**, Approvals, **Reports** (daily operations report, §7.12) |
-| Housekeeping | Dashboard, rooms, guest requests, housekeeping tasks, **Lost & Found**, inventory, Approvals |
-| Maintenance | Dashboard, rooms, guest requests, maintenance orders, inventory, Approvals |
-| Accounting | Dashboard, reservations, **Billing with guest folio detail**, **Deposit verification** (the only role that can act on it), Refunds, **Transactions · Cash & shifts · Reconciliation · Documents**, Reports, Approvals |
+| Manager | Dashboard (risk command centre), **Hotel Operations**, **Operational Handover**, reservations, rooms (+ **Manage rooms** roster, §6), guests, guest requests, **Transportation**, **Room Types & Photos**, **Transfer Vehicles**, housekeeping, maintenance, inventory, **Lost & Found**, **Approvals & Escalations**, **Reports** (performance center + daily-report review, §7.12) |
+| Front Desk | Dashboard (arrivals/departures/in-house/rooms ready), **Hotel Operations**, **Operational Handover**, reservations, rooms, guests, guest requests, **Transportation**, housekeeping, **Lost & Found**, **Billing with guest folio detail**, Deposit verification (queue view — verification itself is Accounting's), **Transactions · Cash & shifts · Financial documents**, Approvals, **Reports** (daily operations report, §7.12) |
+| Housekeeping | Dashboard, **Hotel Operations**, **Operational Handover**, rooms, guest requests, housekeeping tasks, **Lost & Found**, inventory, Approvals |
+| Maintenance | Dashboard, **Hotel Operations**, **Operational Handover**, rooms, guest requests, maintenance orders, inventory, Approvals |
+| Accounting | Dashboard, **Hotel Operations**, **Operational Handover**, reservations, **Billing with guest folio detail**, **Deposit verification** (the only role that can act on it), Refunds, **Transactions · Cash & shifts · Reconciliation · Documents**, Reports, Approvals |
 
 **Billing folio detail (2026-11-14).** Front Desk and Accounting use the existing
 Billing checkout, deposit-review, and settled queues to open a folio. Its detail

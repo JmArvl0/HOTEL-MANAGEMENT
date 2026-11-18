@@ -20,6 +20,9 @@ the selected item shows recorded facts, release readiness and a chain-of-custody
 timeline. Wide layouts fill the workspace with independent queue and detail
 scrolling; phones open the detail separately and Back restores row focus. Counts
 are labeled as the latest 100 records, and Housekeeping never sees claim notes.
+The module uses scoped `.lost-found` / `.lf-*` rules with the shared staff
+surface, text, focus and status tokens in both themes, and Inter-only staff
+typography. It adds no new palette or dependency.
 
 **Cash & Shifts post-close actions (2026-11-14).** In the shared Front Desk
 and Accounting workspace, the handover card opens post-close actions in an
