@@ -56,7 +56,7 @@ export async function getDashboard(role: Role, userId?: string): Promise<Dashboa
   // one derivation (holds + blocks included) feeding Overview, Reports, and
   // the board, so the three surfaces cannot disagree with each other.
   const stays = reservations as unknown as RackReservation[];
-  const rackReservations = managerRole ? roomRackStays(stays, today) : stays;
+  const rackReservations = roomRackStays(stays, today);
   const boardStateById = new Map(rooms.map((room) => [String(room.id), roomBoardState(room as unknown as RackRoom, rackReservations, today, blockedMaintenanceRoomIds).state]));
   const countBoardState = (state: string) => rooms.filter((room) => boardStateById.get(String(room.id)) === state).length;
   const serviceableRooms = rooms.filter((record) => record.administratively_active !== false && !blockedMaintenanceRoomIds.has(record.id)).length;

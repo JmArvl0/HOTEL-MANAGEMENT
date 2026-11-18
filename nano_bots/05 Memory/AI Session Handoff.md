@@ -1,5 +1,41 @@
 # AI Session Handoff
 
+## Front Desk QA fixes (2026-11-16)
+
+KI-033 source fix aligns the Dashboard's ready-room count with the room rack's
+reservation window. KI-035 Bookings and Transactions now route existing receipts
+to Financial Documents; `getStaffReservation` includes document `payment_id`.
+KI-034 `RSV-1046` was confirmed demo data and removed from the local seed. The
+owner chose an archive plus loyalty reversal: linked migration `20261116020000`
+passed 151-migration local replay and was applied through an `origin/main`
+worktree because this checkout's migration ledger is behind. Linked readback
+showed cancelled/retired reservation, no checkout timestamp, guest points 0,
+lifetime spend 0, original +174 and compensating -174 ledger rows, and audit.
+Gold tier remains under the no-downgrade rule; no evidence tied its origin to
+the demo award. Signed-in local browser retest: Dashboard, Room Management and
+Bookings each showed 8 ready rooms; Bookings and Transactions opened the same
+issued ₱8,960 receipt. The retired booking detail initially showed a phantom
+balance; its no-invoice fallback was corrected to “No folio recorded for this
+booking” and verified after refresh. Typecheck, scoped lint, full Vitest (2,458
+tests), and isolated production build passed. The app source is not deployed to
+a hosted environment. See
+[[2026-11-16 - Front Desk QA Fixes]] and the QA report follow-up.
+
+## Front Desk cross-module QA (2026-11-16)
+
+Read-only Front Desk browser QA covered all 16 visible modules, with linked
+reservation/guest/request/folio/payment/receipt and cash-shift checks against
+the configured responses. It found KI-033 (Dashboard ready-room count
+6 versus Room Management/Bookings 8), KI-034 (checked-out `RSV-1046` had no
+folio), and KI-035 (“View receipt” called issuance); all three have the
+follow-up corrections above. Existing duplicate
+documents remain KI-013; two drawer-less demo cash rows remain KI-032. No
+hosted business write or application code change. Typecheck, full Vitest
+(2,452), and lint (0 errors, 77 warnings) passed. Live write flows remain
+untested. Elevated isolated Webpack build passed after filesystem `EPERM` in
+ordinary attempts. See `docs/qa/front-desk-cross-module-qa-2026-11-16.md` and
+[[2026-11-16 - Front Desk Cross-Module QA]].
+
 ## Transactions exception remediation (2026-11-16)
 
 Owner confirmed KI-029's three paid totals and KI-032's two cash receipts are

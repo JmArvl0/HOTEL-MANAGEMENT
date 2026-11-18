@@ -241,7 +241,7 @@ export async function getStaffReservation(id: string, role: Role) {
     supabase.from("folio_charges").select("id,description,category,amount,status,source,created_at").eq("reservation_id",id).order("created_at",{ascending:false}),
     supabase.from("financial_adjustments").select("id,transaction_type,direction,amount,reason,source_charge_id,created_at").eq("reservation_id",id).order("created_at",{ascending:false}),
     supabase.from("refund_requests").select("id,eligible_amount,refund_basis_points,status,reference,created_at,processed_at").eq("reservation_id",id).order("created_at",{ascending:false}),
-    supabase.from("financial_documents").select("id,document_number,document_type,created_at").eq("reservation_id",id).order("created_at",{ascending:false}),
+    supabase.from("financial_documents").select("id,document_number,document_type,payment_id,created_at").eq("reservation_id",id).order("created_at",{ascending:false}),
     supabase.from("reservation_change_requests").select("id,requested_check_in,requested_check_out,requested_room_type,reason,status,created_at").eq("reservation_id",id).order("created_at",{ascending:false}),
     supabase.from("reservation_room_assignments").select("id,room_id,check_in,check_out,assigned_at,released_at,status,reason,is_upgrade").eq("reservation_id",id).order("assigned_at",{ascending:false}),
     supabase.from("guest_requests").select("id,request,department,priority,status,created_at").eq("reservation_id",id).order("created_at",{ascending:false}),

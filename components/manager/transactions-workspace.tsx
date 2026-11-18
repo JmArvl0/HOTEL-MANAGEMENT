@@ -19,6 +19,7 @@ type Props = {
   canIssueDocument: boolean;
   rejectDeposit: (row: RecordItem) => void;
   generateDocument: (payload: { documentType: "receipt"; paymentId: string }) => void;
+  openIssuedReceipt: (documentNumber: string) => void;
   openDepositVerification: (paymentId: string) => void;
   openCashInvestigation?: () => void;
 };
@@ -56,7 +57,7 @@ const statusLabel = (row: Transaction) => row.status === "pending_verification" 
 const statusTone = (row: Transaction) => row.status === "paid" ? "paid" : row.status === "pending_verification" ? "pending" : row.status === "failed" ? "failed" : "other";
 const matchesKind = (row: Transaction, kind: Kind) => kind === "all" || kind === "deposit" && String(row.purpose).includes("deposit") || row.purpose === kind;
 
-export default function TransactionsWorkspace({ ledger, search, setSearch, canVerify, canIssueDocument, rejectDeposit, generateDocument, openDepositVerification, openCashInvestigation }: Props) {
+export default function TransactionsWorkspace({ ledger, search, setSearch, canVerify, canIssueDocument, rejectDeposit, generateDocument, openIssuedReceipt, openDepositVerification, openCashInvestigation }: Props) {
   const today = dayKey(new Date());
   const yesterday = shiftDay(today, -1);
   const [period, setPeriod] = useState<Period>("today");
@@ -90,6 +91,7 @@ export default function TransactionsWorkspace({ ledger, search, setSearch, canVe
   const safePage = Math.min(page, pages - 1);
   const visible = filtered.slice(safePage * pageSize, (safePage + 1) * pageSize);
   const selected = visible.find(row => String(row.id) === selectedId) ?? visible[0] ?? null;
+  const selectedReceipt = selected && ledger.documents.find(document => document.document_type === "receipt" && String(document.payment_id) === String(selected.id));
   const guestName = (row: Transaction) => invoices.get(String(row.reservation_id)) ?? "Guest name unavailable";
 
   useEffect(() => {
@@ -174,7 +176,7 @@ export default function TransactionsWorkspace({ ledger, search, setSearch, canVe
             <div className="tx-detail-section"><h3>Record history</h3>{history.length ? <ol className="tx-history">{history.map((event, index) => <li key={`${event.label}-${index}`}><span aria-hidden="true" /><div><strong>{event.label}</strong><time dateTime={String(event.at)}>{stamp(event.at)}</time></div></li>)}</ol> : <p className="tx-detail-muted">No timestamps are available for this record.</p>}</div>
             <div className="tx-context" data-tone={pending ? "pending" : failed ? "failed" : "settled"}>{pending || failed ? <CircleAlert size={18} aria-hidden="true" /> : <CircleCheck size={18} aria-hidden="true" />}<div><strong>{pending ? provider ? "Provider settlement pending" : "Review required" : failed ? "Not settled" : selected.purpose === "refund" ? "Separate refund entry" : "Settled record"}</strong><p>{pending ? provider ? "Provider settlement is automatic. Follow its status in Deposit Verification." : canVerify ? "Accounting can review submitted proof in Deposit Verification." : "Accounting reviews submitted proof. Front Desk can follow its status here." : failed ? "This attempt is excluded from settled totals." : selected.purpose === "refund" ? "This outflow does not change the original payment record." : "Settled entries cannot be edited. Corrections use separate financial records."}</p></div></div>
             {cashException && <div className="tx-context" data-tone="pending"><CircleAlert size={18} aria-hidden="true" /><div><strong>Cash collected without a drawer link</strong><p>Accounting investigates this historical collection in Reconciliation. It is excluded from every drawer balance.</p></div></div>}
-            <div className="tx-actions">{pending && <button type="button" onClick={() => openDepositVerification(String(selected.id))}>Open Deposit Verification</button>}{pending && canVerify && <button type="button" onClick={() => rejectDeposit(selected as RecordItem)}>Reject payment</button>}{cashException && openCashInvestigation && <button type="button" onClick={openCashInvestigation}>Open cash investigation</button>}{selected.status === "paid" && selected.purpose !== "refund" && canIssueDocument && <button type="button" onClick={() => generateDocument({ documentType: "receipt", paymentId: String(selected.id) })}>Issue receipt</button>}</div>
+            <div className="tx-actions">{pending && <button type="button" onClick={() => openDepositVerification(String(selected.id))}>Open Deposit Verification</button>}{pending && canVerify && <button type="button" onClick={() => rejectDeposit(selected as RecordItem)}>Reject payment</button>}{cashException && openCashInvestigation && <button type="button" onClick={openCashInvestigation}>Open cash investigation</button>}{selected.status === "paid" && selected.purpose !== "refund" && canIssueDocument && (selectedReceipt ? <button type="button" onClick={() => openIssuedReceipt(String(selectedReceipt.document_number))}>View receipt</button> : <button type="button" onClick={() => generateDocument({ documentType: "receipt", paymentId: String(selected.id) })}>Issue receipt</button>)}</div>
           </>}
         </div>
       </section>

@@ -1,5 +1,39 @@
 # Current Status
 
+## Front Desk QA corrections (2026-11-16)
+
+- KI-033: Dashboard ready-room calculation now uses the same rack reservation
+  window as Room Management; a future assigned booking regression test passes.
+- KI-034: Owner confirmed `RSV-1046` was an orphaned demo booking. The linked
+  migration `20261116020000` succeeded and readback confirmed it is cancelled
+  with a retirement reason and no false checkout timestamp. Its original loyalty
+  award remains immutable; a -174 adjustment and audit entry reverse the demo
+  credit. Guest points and lifetime spend are now 0. Gold tier is retained
+  because the loyalty system does not downgrade tiers and its origin was not
+  established. The local demo seed no longer contains this booking. Browser
+  retest found and fixed a phantom balance in its no-invoice detail; it now
+  says “No folio recorded for this booking.”
+- KI-035: Bookings and Transactions now open an existing receipt in Financial
+  Documents and offer issuance only when no receipt is linked to the payment.
+  The reservation detail query now includes document `payment_id`.
+- Local browser retest showed 8 ready rooms across Dashboard, Room Management,
+  and Bookings. Both Bookings and Transactions opened the existing ₱8,960
+  receipt in Financial Documents. Typecheck, scoped lint, full Vitest (236 files /
+  2,458 tests), isolated build, and browser retest passed. The app source is not
+  deployed to a hosted environment. KI-013 and KI-032 remain open. See
+  `docs/qa/front-desk-cross-module-qa-2026-11-16.md`.
+
+## Front Desk cross-module QA (2026-11-16)
+
+- Read-only configured-browser QA covered all 16 visible Front Desk modules.
+  Sample reservation, guest request, folio, payment and receipt links agreed;
+  39 reservations, 38 folios, 48 payments, 49 documents and 11 shifts were
+  checked for broken references. No live business write was made.
+- The three new findings were corrected in the follow-up above. Historical
+  duplicate documents (KI-013) and drawer-less demo cash (KI-032) remain open.
+  Live write flows need a separate end-to-end pass. See
+  `docs/qa/front-desk-cross-module-qa-2026-11-16.md`.
+
 ## Transactions exception remediation (2026-11-16)
 
 - Owner confirmed the three unsupported paid invoice amounts and two

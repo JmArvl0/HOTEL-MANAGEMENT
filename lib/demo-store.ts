@@ -7,7 +7,6 @@ const seed: Record<Resource, RecordItem[]> = {
   reservations: [
     { id: "RSV-1048", guest_name: "Ava Thompson", room_number: "401", room_type: "Ocean Suite", check_in: iso(0), check_out: iso(3), guests: 2, status: "confirmed", total: 26700, source: "Direct" },
     { id: "RSV-1047", guest_name: "Marcus Chen", room_number: "205", room_type: "Deluxe King", check_in: iso(0), check_out: iso(2), guests: 1, status: "checked_in", total: 12800, source: "Online" },
-    { id: "RSV-1046", guest_name: "Samantha Lee", room_number: "-", room_type: "Garden Twin", check_in: iso(1), check_out: iso(4), guests: 3, status: "pending", total: 17400, source: "Phone" },
     { id: "RSV-1045", guest_name: "Oliver Wilson", room_number: "302", room_type: "Executive Suite", check_in: iso(-2), check_out: iso(0), guests: 2, status: "checked_in", total: 23200, source: "Corporate" }
   ],
   rooms: [

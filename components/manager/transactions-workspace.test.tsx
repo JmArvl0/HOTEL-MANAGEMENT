@@ -14,6 +14,7 @@ type Props = {
   rejectDeposit: (row: RecordItem) => void;
   generateDocument: (payload: { documentType: "receipt"; paymentId: string }) => void;
   openDepositVerification: (paymentId: string) => void;
+  openIssuedReceipt: (documentNumber: string) => void;
   openCashInvestigation?: () => void;
 };
 
@@ -52,7 +53,7 @@ const ledger = {
 function setup(overrides: Partial<Props> = {}) {
   const props: Props = {
     ledger, search: "", setSearch: vi.fn(), canVerify: true, canIssueDocument: true,
-    rejectDeposit: vi.fn(), generateDocument: vi.fn(), openDepositVerification: vi.fn(), ...overrides,
+    rejectDeposit: vi.fn(), generateDocument: vi.fn(), openDepositVerification: vi.fn(), openIssuedReceipt: vi.fn(), ...overrides,
   };
   function Harness() {
     const [search, setSearch] = useState(props.search);
@@ -111,6 +112,16 @@ describe("live Transactions workspace", () => {
     expect(props.generateDocument).toHaveBeenCalledWith({ documentType: "receipt", paymentId: "paid-today" });
     fireEvent.click(screen.getByRole("button", { name: /Jo Cruz.*REF-350/ }));
     expect(screen.queryByRole("button", { name: "Issue receipt" })).toBeNull();
+  });
+
+  it("opens an existing receipt from Transactions without issuing another document", () => {
+    const issued = { id: "doc-1", document_type: "receipt", document_number: "RCP-205", payment_id: "paid-today" };
+    const props = setup({ ledger: { ...ledger, documents: [issued] } as AccountingLedger });
+    fireEvent.click(screen.getByRole("button", { name: /Maya Santos.*CASH-205/ }));
+    expect(screen.queryByRole("button", { name: "Issue receipt" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "View receipt" }));
+    expect(props.openIssuedReceipt).toHaveBeenCalledWith("RCP-205");
+    expect(props.generateDocument).not.toHaveBeenCalled();
   });
 
   it("routes drawer-less cash to Accounting's investigation queue without assigning a drawer", () => {

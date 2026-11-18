@@ -7,10 +7,14 @@ const resourceRoute = readFileSync("app/api/resources/[resource]/route.ts", "utf
 const staffRoute = readFileSync("app/api/staff/reservations/[id]/route.ts", "utf8");
 const dashboard = readFileSync("components/manager/manager-dashboard-client.tsx", "utf8");
 const dashboardData = readFileSync("lib/data.ts", "utf8");
+const staffData = readFileSync("lib/staff-data.ts", "utf8");
 const managerPanel = readFileSync("components/manager/manager-reservations-panel.tsx", "utf8");
 const migration = readFileSync("supabase/migrations/20260828040000_staff_reservation_operations.sql", "utf8");
 
 describe("staff reservation RBAC", () => {
+  it("includes receipt payment links in the authorized reservation detail", () => {
+    expect(staffData).toContain('from("financial_documents").select("id,document_number,document_type,payment_id,created_at")');
+  });
   it("makes Front Desk the operational owner of guest contact and reservation actions", () => {
     expect(canViewGuestContact("front_desk")).toBe(true);
     expect(canManageReservation("front_desk")).toBe(true);

@@ -33,3 +33,27 @@ it("returns the four dashboard aggregates only in the Manager overview payload",
     demoStore.invoices.splice(demoStore.invoices.indexOf(folio), 1);
   }
 });
+
+it("keeps Front Desk ready-room count aligned with the room rack's current-week stays", async () => {
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
+  vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
+  const { demoStore } = await import("@/lib/demo-store");
+  const { hotelToday } = await import("@/lib/booking");
+  const { getDashboard } = await import("@/lib/data");
+  const baseline = (await getDashboard("front_desk")).metrics.availableRooms;
+  const from = new Date(`${hotelToday()}T00:00:00Z`);
+  from.setUTCDate(from.getUTCDate() + 8);
+  const through = new Date(from);
+  through.setUTCDate(through.getUTCDate() + 2);
+  const futureStay = {
+    id: "qa-future-room-hold", room_id: "RM-402", room_type: "Ocean Suite",
+    check_in: from.toISOString().slice(0, 10), check_out: through.toISOString().slice(0, 10),
+    status: "confirmed", total: 17800,
+  };
+  demoStore.reservations.push(futureStay);
+  try {
+    expect((await getDashboard("front_desk")).metrics.availableRooms).toBe(baseline);
+  } finally {
+    demoStore.reservations.splice(demoStore.reservations.indexOf(futureStay), 1);
+  }
+});
