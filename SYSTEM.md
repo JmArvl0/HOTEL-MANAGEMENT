@@ -1326,12 +1326,12 @@ live by a guest (`customer_submit_guest_requests`, up to 12 picks per submission
 batch). A single router `guest_request_route(type)` maps every type to a department — front desk,
 housekeeping, maintenance, … — and auto-creates the matching housekeeping task / maintenance order.
 Requests carry priority/severity and can be escalated to a Manager. Filed rows stamp
-`inventory_item_id` when their catalog type links an inventory item, and fulfillment
-consumes that exact item (legacy rows without the FK keep name-matching); nothing is
-reserved or decremented at request time. The `fulfilled_request_stock` trigger performs the
-conditional decrement and one movement in the same transaction as task or direct request
-completion. Insufficient stock rolls back fulfillment; concurrent requests cannot overwrite
-each other's decrements. Staff quantity changes use the locked `adjust_inventory_stock` RPC.
+`inventory_item_id` when their active catalog type links an inventory item. The local
+`20261120010000` migration adds that behavior to portal submissions and preserves their
+existing retry fingerprints and filed links. Older consumable requests with a missing
+link require stock mapping review. Fulfillment consumes the saved item and records one
+movement in the same transaction as task or direct request completion. Insufficient
+stock rolls back fulfillment. Staff quantity changes use the locked `adjust_inventory_stock` RPC.
 
 **Batch approval.** `guest_requests` carry `batch_id` + `approval_status ∈ {pending, approved,
 rejected}` (+ `approved_by/at/note`). A customer submission (or a booking's auto-filed batch) starts
@@ -2312,6 +2312,14 @@ service-role client directly. The sole RLS policy in the repo is `room_photos_pu
 `HVN-YYMMDD-XXXXXX`, receipts `RCP-`, folio documents `FOL-`. Idempotency keys are caller-supplied
 uuids behind partial unique indexes (some derived, e.g. `md5(reservation_id||'|'||option)::uuid` for
 auto-filed requests/transport lines).
+
+**Financial document issuance (2026-11-20, local).** Migration `20261120020000`
+serializes staff issuance by payment or reservation. It returns the oldest issued
+receipt for the payment and reuses a folio statement when its snapshot matches apart
+from the document number and generation time. Tax and terminal-settlement fields
+remain part of the snapshot comparison. A retry key stays bound to its first
+document even when it reused an existing snapshot. Previously issued documents
+and audit history are preserved.
 
 **Indexes/invariants worth knowing:** GiST exclusion on active assignments; partial unique indexes
 for one-pending manager approval per entity, one open cash shift per staff, one active maintenance

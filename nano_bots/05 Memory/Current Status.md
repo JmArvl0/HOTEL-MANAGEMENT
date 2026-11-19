@@ -1,5 +1,13 @@
 # Current Status
 
+## Staff migration conflicts (2026-11-20, local)
+
+The local history matches all 151 hosted ledger entries. The two new migrations
+capture portal inventory links and deduplicate future receipt and folio issuance
+while preserving retry keys and historical documents. Clean and upgrade
+PostgreSQL replays passed. Hosted deployment remains pending.
+See [[2026-11-20 - Staff Migration Conflict Reconciliation]].
+
 ## Lost & Found port (2026-11-20, local)
 
 Manager, Front Desk, and Housekeeping can open the custody dashboard from

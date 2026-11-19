@@ -1,5 +1,14 @@
 # AI Session Handoff
 
+## Staff migration conflict reconciliation — 2026-11-20
+
+The read-only hosted ledger has 151 entries. The five colliding versions keep
+their hosted identities. Restored two exact, already-applied demo-data files.
+Only `20261120010000` (portal request stock link) and `20261120020000` (document
+deduplication) are pending in the local-to-hosted comparison. Clean 153-file
+replay, 151-to-153 upgrade, and 11 real PostgreSQL scenarios passed. Hosted
+application and Git push were excluded. See [[2026-11-20 - Staff Migration Conflict Reconciliation]].
+
 ## Lost & Found port — 2026-11-20
 
 Local `main` exposes the custody dashboard to Manager, Front Desk, and
