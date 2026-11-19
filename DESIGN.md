@@ -4,6 +4,12 @@ The source-of-truth reference for the shipped UI. **Do not apply
 `design-system/haven-hotel/MASTER.md`** — it is superseded (see `DESIGN-STATUS.md` F2).
 This doc and `app/ui-primitives.css` are the current system.
 
+**Lost & Found.** Four status counters filter the item register. Wide workspaces
+show the register and item details side by side with independent scrolling. Narrow
+workspaces show one pane at a time, and Back restores focus to the selected row.
+The detail pane shows release readiness and custody history. Scoped
+`.lost-found` styles use the shared staff surface, text, focus, and status tokens.
+
 **Guest My Stay (2026-11-14, local).** The guest account uses warm ivory, navy ink
 and restrained brass accents. Compact page headings replace the navy banners.
 One photo-led booking surface carries the actual room, dates, guests, booking

@@ -1,5 +1,14 @@
 # AI Session Handoff
 
+## Lost & Found port — 2026-11-20
+
+Local `main` exposes the custody dashboard to Manager, Front Desk, and
+Housekeeping. Release and disposition use one form with a required confirmation
+and note. Eight authenticated Edge scenarios passed through the production build
+and disposable PostgreSQL. Typecheck, scoped ESLint, 47 focused tests, and the
+2,660-test full suite passed. The port uses the existing custody API and schema.
+See [[2026-11-20 - Lost and Found Main Port]].
+
 ## Worktree test recovery and cleanup — 2026-11-16
 
 Recovered the old isolated PO/room-rack repairs as `2fec9b8`, adapted to the

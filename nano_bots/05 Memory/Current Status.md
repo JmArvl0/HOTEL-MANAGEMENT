@@ -1,5 +1,13 @@
 # Current Status
 
+## Lost & Found port (2026-11-20, local)
+
+Manager, Front Desk, and Housekeeping can open the custody dashboard from
+Operations. Authenticated local QA verified the complete record-to-release
+chain, declined claims, disposition, and Housekeeping privacy. The five
+migration conflicts from `codex/staff-redesign-qa` remain separate.
+See [[2026-11-20 - Lost and Found Main Port]].
+
 ## Remaining port release review (2026-11-15)
 
 The published 38-change release is `794eca8`; all eight rollout migrations were

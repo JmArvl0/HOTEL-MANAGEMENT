@@ -32,6 +32,13 @@ describe("role navigation structure", () => {
     expect(sectionsFor("accounting")).not.toContain("guest_requests");
   });
 
+  it("exposes Lost & Found to custody, claim, and approval roles only", () => {
+    const item = NAV_ITEMS.find((entry) => entry.section === "lost_found");
+    expect(item?.hidden).toBeFalsy();
+    expect(item?.label).toBe("Lost & Found");
+    expect(item?.roles).toEqual(["manager", "front_desk", "housekeeping"]);
+  });
+
   it("keeps read-only payment history with Accounting and Front Desk", () => {
     expect(NAV_ITEMS.find((item) => item.section === "payments")?.label).toBe("Payment History");
     expect(canAccess("accounting", "payments")).toBe(true);

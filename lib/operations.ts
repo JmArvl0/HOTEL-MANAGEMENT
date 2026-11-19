@@ -22,6 +22,39 @@ export type ShiftHandover = { id: string; summary: string; department: string; s
 export type FoundItem = { id: string; description: string; found_location: string; found_at: string; storage_location: string | null; status: string; version: number; custodian_id: string; custodian_name?: string; claimant_note?: string | null };
 export type FoundEvent = { id: string; item_id: string; action: string; note: string; actor_id: string; actor_name?: string; created_at: string };
 
+export function foundReference(id: string): string {
+  return `LF-${id.replace(/[^a-z0-9]/gi, "").slice(0, 6).toUpperCase()}`;
+}
+
+export type FoundMetrics = {
+  inCustody: number;
+  openClaims: number;
+  readyForRelease: number;
+  released: number;
+};
+
+export function foundMetrics(items: readonly Pick<FoundItem, "status">[]): FoundMetrics {
+  const counts: FoundMetrics = { inCustody: 0, openClaims: 0, readyForRelease: 0, released: 0 };
+  for (const { status } of items) {
+    if (status === "found" || status === "secured") counts.inCustody += 1;
+    else if (status === "claim_pending") counts.openClaims += 1;
+    else if (status === "release_authorized") counts.readyForRelease += 1;
+    else if (status === "released") counts.released += 1;
+  }
+  return counts;
+}
+
+const manilaDateFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Manila",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+export function manilaDateKey(value: string | Date): string {
+  return manilaDateFormatter.format(new Date(value));
+}
+
 export function manilaInputToIso(value: string): string {
   const parsed = z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/).safeParse(value);
   if (!parsed.success) throw new Error("Enter a valid date and time.");

@@ -212,20 +212,25 @@ export function FormDialog({
                 )}
               </fieldset>
             ) : field.type === "checkbox" ? (
-              <label className="checkbox-option">
-                <input
-                  type="checkbox"
-                  name={field.key}
-                  checked={values[field.key] as boolean}
-                  onChange={(e) => handleChange(field.key, e.target.checked)}
-                  onBlur={() => handleBlur(field.key)}
-                  disabled={field.disabled || loading}
-                  required={field.required}
-                  aria-invalid={!!(errors[field.key] && (touched[field.key] || submitted))}
-                  aria-describedby={errors[field.key] && (touched[field.key] || submitted) ? `${field.key}-error` : undefined}
-                />
-                <span>{field.label}{field.required && <span className="required">*</span>}</span>
-              </label>
+              <>
+                <label className="checkbox-option">
+                  <input
+                    type="checkbox"
+                    name={field.key}
+                    checked={values[field.key] as boolean}
+                    onChange={(e) => handleChange(field.key, e.target.checked)}
+                    onBlur={() => handleBlur(field.key)}
+                    disabled={field.disabled || loading}
+                    required={field.required}
+                    aria-invalid={!!(errors[field.key] && (touched[field.key] || submitted))}
+                    aria-describedby={errors[field.key] && (touched[field.key] || submitted) ? `${field.key}-error` : undefined}
+                  />
+                  <span>{field.label}{field.required && <span className="required">*</span>}</span>
+                </label>
+                {errors[field.key] && (touched[field.key] || submitted) && (
+                  <p id={`${field.key}-error`} className="form-error" role="alert">{errors[field.key]}</p>
+                )}
+              </>
             ) : field.type === "select" ? (
               <div className="form-field-wrapper">
                 <label htmlFor={field.key} className="form-label">

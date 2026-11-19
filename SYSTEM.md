@@ -35,9 +35,9 @@ variance. Pending department work is created after approval; withdrawal serializ
 with approval/assignment. Physical stock-count drafts retain their original item
 version through refresh until an explicit clear/recount; cash-count draft state
 resets when drawer/operator identity changes, and blank counts cannot submit.
-Standalone operational handover replaces the roster
-screen in shared staff navigation. Held HR/procurement/assets/Lost & Found
-migrations remain unapplied; do not blindly push the root migration directory.
+Standalone operational handover replaces the roster screen in shared staff
+navigation. At that checkpoint, HR, procurement, assets, and Lost & Found
+migrations were held.
 See `docs/HMS-WORKFLOW-IMPLEMENTATION-2026-11-03.md` for exact versions, scope,
 test evidence and the signed-in/browser/application-deployment limitations.
 
@@ -1459,9 +1459,9 @@ are unchanged. Workspaces offered per role:
 
 | Role | Sections offered |
 |---|---|
-| Manager | Dashboard (risk command centre), reservations, rooms (+ **Manage rooms** roster, §6), guests, guest requests, **Transportation**, **Room Types & Photos**, **Transfer Vehicles**, housekeeping, maintenance, inventory, **Approvals & Escalations**, **Reports** (performance center + daily-report review, §7.12) |
-| Front Desk | Dashboard (arrivals/departures/in-house/rooms ready), reservations, rooms, guests, guest requests, **Transportation**, housekeeping, billing, Payment History, **Transactions · Guest folios · Cash & shifts · Financial documents**, Approvals, **Reports** (daily operations report, §7.12) |
-| Housekeeping | Dashboard, rooms, guest requests, housekeeping tasks, inventory, Approvals |
+| Manager | Dashboard (risk command centre), reservations, rooms (+ **Manage rooms** roster, §6), guests, guest requests, **Transportation**, **Room Types & Photos**, **Transfer Vehicles**, housekeeping, maintenance, inventory, **Lost & Found**, **Approvals & Escalations**, **Reports** (performance center + daily-report review, §7.12) |
+| Front Desk | Dashboard (arrivals/departures/in-house/rooms ready), reservations, rooms, guests, guest requests, **Transportation**, housekeeping, **Lost & Found**, billing, Payment History, **Transactions · Guest folios · Cash & shifts · Financial documents**, Approvals, **Reports** (daily operations report, §7.12) |
+| Housekeeping | Dashboard, rooms, guest requests, housekeeping tasks, **Lost & Found**, inventory, Approvals |
 | Maintenance | Dashboard, rooms, guest requests, maintenance orders, inventory, Approvals |
 | Accounting | Dashboard, reservations, billing, **Payment History**, Refunds, **Transactions · Folios · Cash & shifts · Reconciliation · Documents**, Reports, Approvals |
 
@@ -2237,6 +2237,15 @@ applied remotely. See `docs/ROLE-IMPROVEMENT-IMPLEMENTATION.md` for deployment a
   release or declines claims; Front Desk verifies identity before release. Custody changes are
   acknowledged and audited. Manager disposition requires explicit policy confirmation/reason;
   no retention period or automated disposal is invented. Claim notes are hidden from Housekeeping.
+
+The Operations sidebar shows Lost & Found for Manager, Front Desk, and
+Housekeeping. The workspace searches and filters the latest 100 reports from
+`/api/staff/lost-found` and sorts the returned items by found time, newest first.
+Each item's detail shows release readiness, custody history, and the actions
+available to the current role. Manager and Front Desk can see claim notes.
+Release and disposition each require a note and explicit confirmation in the
+same form. The workspace uses the existing tables and RPCs from migration
+`20261103060000`.
 
 OTA, group/corporate, linen/laundry, formal night audit and full accounting remain separately
 scoped evaluations under Phase 5; no integrations are claimed.
