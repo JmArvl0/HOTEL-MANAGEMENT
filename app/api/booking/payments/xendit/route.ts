@@ -7,6 +7,7 @@ import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { createXenditSession, getXenditSession, testCheckoutUrl, XenditError, xenditChannel, xenditConfigured } from "@/lib/xendit";
 import { attachXenditSession, settleKnownXenditSession } from "@/lib/xendit-store";
+import { scheduleFleetDelivery } from "@/lib/fleet-delivery";
 
 const schema = z.object({ holdToken: z.string().uuid(), channel: xenditChannel.optional(), paymentChoice: z.enum(["deposit", "full"]).optional() }).strict();
 export async function POST(request: Request) {
@@ -36,6 +37,9 @@ export async function POST(request: Request) {
       if (current.reference_id !== attempt.reference || current.amount !== Number(attempt.amount)) throw new Error("XENDIT_SESSION_MISMATCH");
       if (current.status === "ACTIVE") return publicJson({ data: { checkoutUrl: testCheckoutUrl(attempt.checkoutUrl), confirmationUrl } });
       const outcome = await settleKnownXenditSession(supabase, current);
+      if (outcome.outcome === "confirmed" || outcome.outcome === "already_paid") {
+        scheduleFleetDelivery(supabase, { reservationId: attempt.reservationId });
+      }
       const message = outcome.outcome === "review_required" ? "Accounting is reviewing this payment. Please avoid paying again." : undefined;
       return publicJson({ data: { confirmationUrl }, message });
     } catch { return publicJson({ error: "We couldn't check your existing payment attempt. Try again shortly to reopen it; please don't start another payment." }, { status: 503 }); }

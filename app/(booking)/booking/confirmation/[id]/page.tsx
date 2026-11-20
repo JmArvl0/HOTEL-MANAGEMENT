@@ -14,6 +14,7 @@ import { GatewayPendingActions } from "@/components/booking/gateway-pending-acti
 import { PaymentStatusPoller } from "@/components/booking/payment-status-poller";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { scheduleFleetDelivery } from "@/lib/fleet-delivery";
 import { XenditCheckout } from "@/components/booking/xendit-checkout";
 import { FLEET_RIDE_STATUS_LABELS, getCustomerTransportation, isTerminalStatus, reservationTransportationHref, SERVICE_TYPE_LABELS, TRANSPORTATION_STATUS_LABELS } from "@/lib/transportation";
 
@@ -45,6 +46,10 @@ export default async function ConfirmationPage({
     ? await getCustomerTransportation(session.user.id, reservation.id).catch(() => null)
     : [];
   const ride = rideRequests?.find((request) => !isTerminalStatus(request.status)) ?? rideRequests?.[0];
+  if (supabase && !session.user.disabled && !session.user.otpPending && confirmed &&
+      ride?.fleetDelivery && ride.fleetDelivery !== "accepted") {
+    scheduleFleetDelivery(supabase, { reservationId: reservation.id });
+  }
   const transportationHref = reservationTransportationHref(reservation.id);
 
   const depositPayment =
@@ -199,7 +204,11 @@ export default async function ConfirmationPage({
               <p>{ride.pickup_location} → {ride.dropoff_location} · {ride.pickup_date} at {ride.pickup_time}</p>
               {ride.return_location && <p>{ride.dropoff_location} → {ride.return_location} · {ride.return_date} at {ride.return_time}</p>}
               {ride.rideUpdates.map(({ leg, status }) => <p key={leg}>{leg === "RETURN" ? "Return ride" : "Outbound ride"} · {FLEET_RIDE_STATUS_LABELS[status]}</p>)}
-              {ride.status === "REQUESTED" && <p>Front Desk will review your request and add the confirmed fare to your folio.</p>}
+              {ride.status === "REQUESTED" && <p>{ride.fleetDelivery === "pending"
+                ? "We’re sending your request to Fleet. The confirmed fare will appear on your folio."
+                : ride.fleetDelivery === "attention"
+                  ? "We saved your request. Front Desk can help check Fleet delivery."
+                  : "The confirmed fare will appear on your folio."}</p>}
               <Link className="btn btn-soft" href={transportationHref}>View transportation</Link>
             </> : rideRequests === null ? <>
               <h2>Transportation</h2>

@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 import { supabase } from "@/lib/supabase";
 import { verifyXenditToken, xenditConfig } from "@/lib/xendit";
 import { processXenditEvent } from "@/lib/xendit-store";
+import { scheduleFleetDelivery } from "@/lib/fleet-delivery";
 
 export async function POST(request: Request) {
   let token: string;
@@ -16,6 +17,10 @@ export async function POST(request: Request) {
   try { input = await request.json(); } catch { return NextResponse.json({ error: "Invalid JSON." }, { status: 400 }); }
   try {
     const result = await processXenditEvent(supabase, input);
+    if ((result.outcome === "confirmed" || result.outcome === "already_paid") &&
+        "reservationId" in result && typeof result.reservationId === "string") {
+      scheduleFleetDelivery(supabase, { reservationId: result.reservationId });
+    }
     console.info("[xendit] webhook processed", result);
     return NextResponse.json({ received: true, ...result });
   } catch (error) {

@@ -4,13 +4,19 @@ import { FormFieldError, formFieldProps, focusFirstFormError, type FormFieldErro
 import { fetchPublic, readResponse } from "@/lib/client-errors";
 
 import { userMessage } from "@/lib/errors";
-import { FormEvent, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { HavenErrorAlert } from "@/components/ui/haven-data-controls";
 import { useRouter } from "next/navigation";
 import { CarTaxiFront, Hotel, Plane, PlaneTakeoff, Repeat, Send } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { FleetRideOptions } from "@/components/customer/fleet-ride-options";
+import { readFleetOptions } from "@/lib/fleet-pickup-input";
+import { reservationTransportationHref } from "@/lib/transportation-display";
 
-type EligibleReservation = { id: string; confirmation_number: string | null; room_type: string; check_in: string; check_out: string; guests: number };
+export type EligibleRideReservation = {
+  id: string; confirmation_number: string | null; room_type: string; check_in: string; check_out: string; guests: number;
+  passenger?: { name: string; phone: string };
+};
 
 function formatStayDate(value: string) {
   return new Intl.DateTimeFormat("en-PH", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
@@ -22,15 +28,17 @@ const SERVICE_OPTIONS = [
   { value: "ROUND_TRIP", label: "Round trip", hint: "Pickup + return ride", icon: Repeat },
 ] as const;
 
-export function TransportationRequestForm({ reservations, hotelLabel, today, reservationSelected, openInitially }: {
-  reservations: EligibleReservation[];
+export function TransportationRequestForm({ reservations, hotelLabel, today, reservationSelected, openInitially, staff, onClose }: {
+  reservations: EligibleRideReservation[];
   hotelLabel: string;
   today: string;
   reservationSelected: boolean;
   openInitially: boolean;
+  staff?: boolean;
+  onClose?: (submitted: boolean) => void;
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(openInitially);
+  const [open, setOpen] = useState(false);
   const [serviceType, setServiceType] = useState<string>("PICKUP");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -41,6 +49,17 @@ export function TransportationRequestForm({ reservations, hotelLabel, today, res
   const [pickupDate, setPickupDate] = useState("");
   const [returnDate, setReturnDate] = useState("");
 
+  useEffect(() => {
+    if (!openInitially) return;
+    const timer = window.setTimeout(() => setOpen(true), 0);
+    return () => window.clearTimeout(timer);
+  }, [openInitially]);
+
+  function close(submitted = false) {
+    setOpen(false);
+    onClose?.(submitted);
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); if (submitting.current) return; submitting.current = true; setLoading(true); setError("");
     const formElement = event.currentTarget;
@@ -50,15 +69,24 @@ export function TransportationRequestForm({ reservations, hotelLabel, today, res
       ...(serviceType === "PICKUP" || serviceType === "ROUND_TRIP" ? { pickupLocation: String(form.get("pickupLocation") ?? "").trim() || undefined } : {}),
       ...(serviceType === "DROPOFF" ? { dropoffLocation: String(form.get("dropoffLocation") ?? "").trim() || undefined } : {}),
       ...(serviceType === "ROUND_TRIP" ? { returnLocation: String(form.get("returnLocation") ?? "").trim() || undefined, returnDate: String(form.get("returnDate") ?? ""), returnTime: String(form.get("returnTime") ?? "") } : {}),
-      specialInstructions: String(form.get("specialInstructions") ?? "").trim() || undefined };
+      specialInstructions: String(form.get("specialInstructions") ?? "").trim() || undefined,
+      fleetPickup: { ...readFleetOptions(form), travelerName: String(form.get("travelerName") ?? ""), phone: String(form.get("phone") ?? "") },
+    };
     const signature = JSON.stringify(payload);
     if (retry.current?.signature !== signature) retry.current = { signature, key: crypto.randomUUID() };
     try {
-    const response = await fetchPublic("/api/account/transportation", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, idempotencyKey: retry.current.key }) });
+    const response = await fetchPublic(staff ? "/api/transportation" : "/api/account/transportation", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, idempotencyKey: retry.current.key }) });
     const body = await readResponse(response); setLoading(false);
     if (!response.ok) { setFields(body.fields ?? {}); focusFirstFormError(formElement, body.fields ?? {}); setError(Object.keys(body.fields ?? {}).length ? "Please check the highlighted details." : userMessage(body.error, "Unable to submit your transportation request.")); return; }
     retry.current = null;
-    setOpen(false); router.refresh();
+    close(true);
+    if (!staff) {
+      if (openInitially && selectedReservationId) {
+        router.replace(reservationTransportationHref(selectedReservationId), { scroll: false });
+      } else {
+        router.refresh();
+      }
+    }
     } catch { setError("We couldn't confirm your transportation request. Check your transportation requests before sending it again."); }
     finally { submitting.current = false; setLoading(false); }
   }
@@ -69,7 +97,7 @@ export function TransportationRequestForm({ reservations, hotelLabel, today, res
   const stayEnd = selectedReservation.check_out;
   const hotelEndCaption = serviceType === "DROPOFF" ? "Pickup at the hotel" : serviceType === "ROUND_TRIP" ? "The hotel end of both legs is fixed" : "Drop-off at the hotel";
 
-  return <><section className="ctr-request-invitation"><span className="ctr-invitation-icon"><CarTaxiFront size={22} aria-hidden="true" /></span><div><h2>Need a ride?</h2><p>Front Desk will confirm the schedule and add the confirmed fare to your folio.</p></div><button type="button" className="btn btn-accent" onClick={() => setOpen(true)}><CarTaxiFront size={15} aria-hidden="true" />Request transportation</button></section><Modal isOpen={open} onClose={() => setOpen(false)} title="Request transportation" description="Share where and when you need a ride." size="xl" headerVariant="branded" className="customer-transportation-dialog"><form className="customer-request-form wide ctr-form" onSubmit={submit}>
+  return <>{!staff && <section className="ctr-request-invitation"><span className="ctr-invitation-icon"><CarTaxiFront size={22} aria-hidden="true" /></span><div><h2>Need a ride?</h2><p>Send your ride request to Fleet. The confirmed fare will appear on your folio.</p></div><button type="button" className="btn btn-accent" onClick={() => setOpen(true)}><CarTaxiFront size={15} aria-hidden="true" />Request transportation</button></section>}<Modal isOpen={open} onClose={() => close()} title={staff ? "Book a ride for the guest" : "Request transportation"} description={staff ? "Confirm the trip and passenger details with the guest." : "Share where and when you need a ride."} size="xl" headerVariant="branded" className="customer-transportation-dialog"><form className="customer-request-form wide ctr-form" onSubmit={submit}>
     <fieldset className="ctr-service-options">
       <legend>Service type</legend>
       {SERVICE_OPTIONS.map(({ value, label, hint, icon: Icon }) => (
@@ -97,7 +125,14 @@ export function TransportationRequestForm({ reservations, hotelLabel, today, res
       <label>Passengers<input name="passengerCount" type="number" min={1} max={20} key={selectedReservation.id} defaultValue={Math.min(selectedReservation.guests, 20)} required {...formFieldProps(fields, "passengerCount", "request")} /><FormFieldError errors={fields} field="passengerCount" prefix="request" /></label>
     </div>
     <label>Special instructions <small className="customer-data-note">Optional</small><textarea name="specialInstructions" rows={3} maxLength={500} placeholder="e.g. flight number, terminal, luggage or child seat" {...formFieldProps(fields, "specialInstructions", "request")} /><FormFieldError errors={fields} field="specialInstructions" prefix="request" /></label>
+    <div className="ctr-grid" key={selectedReservation.id}>
+      <label>Passenger name<input name="travelerName" required minLength={2} maxLength={120} defaultValue={selectedReservation.passenger?.name}
+        {...formFieldProps(fields, "travelerName", "request")} /><FormFieldError errors={fields} field="travelerName" prefix="request" /></label>
+      <label>Contact number<input name="phone" type="tel" required maxLength={40} defaultValue={selectedReservation.passenger?.phone}
+        {...formFieldProps(fields, "phone", "request")} /><FormFieldError errors={fields} field="phone" prefix="request" /></label>
+    </div>
+    <FleetRideOptions fields={fields} prefix="request" staff={staff} />
     {error && <HavenErrorAlert title="Request needs attention" body={error} variant="customer" />}
-    <div className="ctr-modal-actions"><button type="button" className="btn btn-soft" onClick={() => setOpen(false)}>Cancel</button><button className="btn btn-accent" disabled={loading}><Send size={15} aria-hidden="true" />{loading ? "Submitting…" : "Submit transportation request"}</button></div>
+    <div className="ctr-modal-actions"><button type="button" className="btn btn-soft" onClick={() => close()}>Cancel</button><button className="btn btn-accent" disabled={loading}><Send size={15} aria-hidden="true" />{loading ? "Submitting…" : "Send ride request"}</button></div>
   </form></Modal></>;
 }

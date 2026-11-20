@@ -153,8 +153,9 @@ describe("transportation stay-window enforcement", () => {
     expect(stayWindowMigration).not.toMatch(/delete\s+from|truncate\s+|drop\s+table/i);
   });
   it("checks the owning stay in the API before invoking the RPC", () => {
-    expect(customerSubmitRoute).toContain('.eq("user_id",session.user.id)');
-    expect(customerSubmitRoute).toContain("isDateWithinStay(p.pickupDate");
+    expect(customerSubmitRoute).toMatch(/\.eq\("user_id",\s*session\.user\.id\)/);
+    expect(customerSubmitRoute).toContain("isDateWithinStay(ride.pickupDate");
+    expect(customerSubmitRoute.indexOf("return await submitFleetTransportation")).toBeGreaterThan(customerSubmitRoute.indexOf("isDateWithinStay(ride.pickupDate"));
     expect(customerSubmitRoute).toContain("TRANSPORTATION_OUTSIDE_STAY_WINDOW");
   });
 });
@@ -162,8 +163,8 @@ describe("transportation stay-window enforcement", () => {
 describe("transportation routes", () => {
   it("customer routes are guest-only and call the owning RPCs", () => {
     for (const route of [customerSubmitRoute, customerCancelRoute]) {
-      expect(route).toContain('session.user.role!=="guest"');
-      expect(route).toContain("publicJson({error:\"Please sign in with a guest account to continue.\"},{status:403})");
+      expect(route).toMatch(/session\.user\.role\s*!==\s*"guest"/);
+      expect(route.replace(/\s+/g, "")).toContain('publicJson({error:"Pleasesigninwithaguestaccounttocontinue."},{status:403})');
     }
     expect(customerSubmitRoute).toContain('"customer_submit_transportation_request"');
     expect(customerSubmitRoute).toContain('RESERVATION_NOT_FOUND');
@@ -265,7 +266,8 @@ describe("transportation at checkout (deferred filing, mirrors guest_requests)",
     expect(checkoutMigration).toContain("perform public.file_booking_transportation_request(new.id)");
   });
   it("holds route passes preferences and maps the validation error to 400", () => {
-    expect(holdsRoute).toMatch(/p_details: details/);
+    expect(holdsRoute).toMatch(/p_details: bookingDetails/);
+    expect(holdsRoute).toContain("contactPhone: details.mobile");
     expect(holdsRoute).toContain('INVALID_TRANSPORTATION_PREFERENCES');
     expect(holdsRoute).toMatch(/INVALID_TRANSPORTATION_PREFERENCES[\s\S]*?status:\s*400/);
   });

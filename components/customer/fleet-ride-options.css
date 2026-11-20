@@ -1,0 +1,46 @@
+.fleet-ride-options {
+  border: 0;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.fleet-ride-options legend {
+  margin-bottom: 4px;
+  font-weight: 650;
+}
+
+.fleet-ride-options legend small {
+  margin-inline-start: 4px;
+  color: var(--cp-muted, var(--muted));
+  font-weight: 400;
+}
+
+.customer-request-form .fleet-ride-toggle,
+.booking-form-card .booking-form-grid .fleet-ride-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 13px;
+  line-height: 1.45;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.customer-request-form .fleet-ride-toggle input[type="checkbox"],
+.booking-form-card .booking-form-grid .fleet-ride-toggle input[type="checkbox"] {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--cp-ink, var(--accent));
+}
+
+.fleet-ride-consent {
+  border-top: 1px solid var(--cp-line, var(--line));
+  padding-top: 10px;
+}

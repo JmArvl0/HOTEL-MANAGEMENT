@@ -12,6 +12,8 @@ import { HavenErrorAlert } from "@/components/ui/haven-data-controls";
 import type { BreakfastChoice } from "@/lib/breakfast";
 import { formatPeso } from "@/lib/format";
 import type { TransportationPreferences } from "@/lib/transportation-display";
+import { FleetRideOptions } from "@/components/customer/fleet-ride-options";
+import { readFleetOptions } from "@/lib/fleet-pickup-input";
 
 type Props = { roomId?: string; holdToken?: string; roomType: string; checkIn: string; checkOut: string; guests: number; checkInFrom: string; defaults: Record<string, string>; initialRequests?: string[]; initialArrival?: string; initialTransport?: TransportationPreferences | null; preArrival?: PreArrivalOptions; breakfast?: BreakfastChoice | null; initialBreakfast?: boolean };
 
@@ -35,8 +37,7 @@ export function GuestDetailsForm({ roomId, holdToken, roomType, checkIn, checkOu
   // structured constants. No hardcoded amenity fallback ever renders here.
   const amenities = preArrival?.amenities ?? [];
   const services = preArrival?.services ?? preArrivalServices();
-  // Optional transportation request: pure client state, no pricing, no fetch. Filed as a
-  // REQUESTED row for the Front Desk workflow once the reservation is confirmed.
+  // The booking stores the ride and sharing permission until payment confirms the stay.
   const [needRide, setNeedRide] = useState(Boolean(initialTransport));
   const [serviceType, setServiceType] = useState<string>(initialTransport?.serviceType ?? "PICKUP");
 
@@ -68,6 +69,7 @@ export function GuestDetailsForm({ roomId, holdToken, roomType, checkIn, checkOu
         pickupDate: field("pickupDate"), pickupTime: field("pickupTime"),
         passengerCount: Number(field("passengerCount")),
         specialInstructions: field("rideNote").trim() || undefined,
+        fleetOptions: readFleetOptions(form),
       } } : {}),
     };
     pending.current = true; setLoading(true);
@@ -153,7 +155,7 @@ export function GuestDetailsForm({ roomId, holdToken, roomType, checkIn, checkOu
         <label className="request-option"><input name="needRide" type="radio" checked={needRide} onChange={() => setNeedRide(true)} />Arrange transportation</label>
       </div>
       <div hidden={!needRide}>
-        <p>Front Desk will review your request after your stay is confirmed and add the confirmed fare to your folio.</p>
+        <p>We’ll send your ride to Fleet once your stay is confirmed, using the name and mobile number on this booking. The confirmed fare will appear on your folio.</p>
         <fieldset disabled={!needRide} className="booking-form-grid transport-ride-fields" aria-label="Ride details">
           <label className="wide">Service type<select value={serviceType} onChange={(e) => setServiceType(e.target.value)}>{SERVICE_OPTIONS.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
           {(serviceType === "PICKUP" || serviceType === "ROUND_TRIP") && <label className="wide">{serviceType === "ROUND_TRIP" ? "Arrival pickup location" : "Pickup location"}<input name="pickupLocation" required minLength={5} maxLength={200} placeholder="e.g. NAIA Terminal 3, Pasay City" defaultValue={initialTransport?.pickupLocation ?? ""} {...fieldProps("pickupLocation")} />{fieldError("pickupLocation")}</label>}
@@ -167,6 +169,7 @@ export function GuestDetailsForm({ roomId, holdToken, roomType, checkIn, checkOu
           </>)}
           <label>Passengers<input name="passengerCount" type="number" min={1} max={20} defaultValue={initialTransport?.passengerCount ?? (guests > 20 ? 20 : guests)} required {...fieldProps("passengerCount")} />{fieldError("passengerCount")}</label>
           <label className="wide">Ride notes (optional)<textarea name="rideNote" rows={2} maxLength={500} placeholder="Flight, terminal or bags" defaultValue={initialTransport?.specialInstructions ?? ""} {...fieldProps("specialInstructions")} />{fieldError("specialInstructions")}</label>
+          <FleetRideOptions fields={fields} prefix={prefix} saved={initialTransport?.fleetOptions} />
         </fieldset>
       </div>
     </fieldset>

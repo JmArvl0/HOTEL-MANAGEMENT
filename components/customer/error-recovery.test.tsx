@@ -34,19 +34,25 @@ it("releases transportation loading and reuses the request identity after a time
     .mockResolvedValueOnce(Response.json({ data: { id: "trip-fixture" } }));
   vi.stubGlobal("fetch", fetcher);
   const view = render(<TransportationRequestForm hotelLabel="HAVEN" today="2026-12-01" reservationSelected={false} openInitially={false}
-    reservations={[{ id: "stay-fixture", confirmation_number: "STAY-FIXTURE", room_type: "Garden Twin", check_in: "2026-12-10", check_out: "2026-12-12", guests: 2 }]} />);
+    reservations={[{ id: "stay-fixture", confirmation_number: "STAY-FIXTURE", room_type: "Garden Twin", check_in: "2026-12-10", check_out: "2026-12-12", guests: 2,
+      passenger: { name: "Synthetic passenger", phone: "+12025550101" } }]} />);
   fireEvent.click(screen.getByRole("button", { name: /Request transportation/i }));
   const form = view.baseElement.querySelector("form")!;
   for (const [name, value] of Object.entries({ pickupLocation: "Airport Terminal 3", pickupDate: "2026-12-10", pickupTime: "14:00" })) {
     fireEvent.change(form.querySelector(`[name="${name}"]`)!, { target: { value } });
   }
+  fireEvent.click(screen.getByRole("checkbox", { name: "Quiet ride" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /I agree to share/ }));
   fireEvent.submit(form);
   expect((await screen.findByRole("alert")).textContent).toContain("Check your transportation requests");
-  expect((screen.getByRole("button", { name: "Submit transportation request" }) as HTMLButtonElement).disabled).toBe(false);
+  expect((screen.getByRole("button", { name: "Send ride request" }) as HTMLButtonElement).disabled).toBe(false);
   fireEvent.submit(form);
   await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));
   const first = JSON.parse(fetcher.mock.calls[0][1].body), second = JSON.parse(fetcher.mock.calls[1][1].body);
   expect(second).toEqual(first);
+  expect(first.fleetPickup).toEqual({
+    travelerName: "Synthetic passenger", phone: "+12025550101", ridePreferences: ["QUIET_RIDE"], sharingEnabled: true,
+  });
   expect(view.baseElement.textContent).not.toContain("private provider timeout");
 });
 

@@ -7,6 +7,7 @@ import { NextRequest } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { runGuestReminders } from "@/lib/guest-reminders";
+import { scheduleFleetDelivery } from "@/lib/fleet-delivery";
 
 /**
  * Daily guest-reminder pass (roadmap Phase 4): pre-arrival emails for confirmed
@@ -45,6 +46,7 @@ async function run(request: NextRequest) {
     const summary = await runGuestReminders(undefined, request.method === "POST" && request.nextUrl.searchParams.get("retryFailed") === "1");
     if (request.method === "GET") {
       if (xenditConfigured()) await reconcileXenditAttempts(supabase).catch(() => console.error("Xendit reconciliation sweep failed"));
+      scheduleFleetDelivery(supabase);
       await supabase.rpc("cleanup_auth_request_budgets");
     }
     return publicJson({ data: summary });

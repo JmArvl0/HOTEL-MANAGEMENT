@@ -112,7 +112,12 @@ export function TransportationRequestList({ requests }: { requests: CustomerTran
                   <small>Reservation {request.reservation?.confirmation_number ?? request.reservation_id}</small>
                 </div>
                 <div className="ctr-card-header-meta">
-                  {!request.rideUpdates.length && <span className={`customer-status ${request.status.toLowerCase()}`}>{TRANSPORTATION_STATUS_LABELS[request.status]}</span>}
+                  {!request.rideUpdates.length && <span className={`customer-status ${request.status.toLowerCase()}`}>
+                    {isTerminalStatus(request.status) ? TRANSPORTATION_STATUS_LABELS[request.status]
+                      : request.fleetDelivery === "pending" ? "Sending to Fleet"
+                      : request.fleetDelivery === "attention" ? "Fleet delivery needs attention"
+                      : TRANSPORTATION_STATUS_LABELS[request.status]}
+                  </span>}
                   {isCustomerCancellable(request.status) && !request.fleetDispatched && (
                     <button className="btn btn-soft" disabled={busy === request.id} onClick={() => setConfirming(request)}>
                       <X size={14} />{busy === request.id ? "Cancelling…" : "Cancel"}

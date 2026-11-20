@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { hotelToday } from "@/lib/booking";
 import { calendarDate, isCalendarDate } from "@/lib/input-validation";
+import { fleetPickupSchema } from "@/lib/fleet-pickup-input";
 import { supabase } from "@/lib/supabase";
 import { FLEET_RIDE_STATUS_LABELS, type CustomerTransportationRequest } from "@/lib/transportation-display";
 
@@ -39,6 +40,7 @@ export const transportationRequestSchema = z.object({
   passengerCount: z.coerce.number().int().min(1, "At least one passenger is required.").max(20, "Transportation accommodates at most 20 passengers."),
   specialInstructions: z.string().trim().max(500).optional(),
   idempotencyKey: z.string().uuid(),
+  fleetPickup: fleetPickupSchema.optional(),
 }).superRefine((value, ctx) => {
   if (value.serviceType === "PICKUP" && !value.pickupLocation)
     ctx.addIssue({ code: "custom", path: ["pickupLocation"], message: "Enter the pickup location." });
@@ -65,18 +67,26 @@ export function isDateWithinStay(value: string, checkIn: string, checkOut: strin
   return isCalendarDate(value) && value >= checkIn && value <= checkOut;
 }
 
-const customerColumns = "id,reservation_id,service_type,pickup_location,dropoff_location,pickup_date,pickup_time,return_location,return_date,return_time,passenger_count,special_instructions,status,driver_name,fare_amount,customer_visible_notes,cancellation_reason,version,created_at,transport_vehicle_types(name),fleet_transport_links(leg,needs_review,partner_status,fleet_transport_outbox(attempts))";
+const customerColumns = "id,reservation_id,service_type,pickup_location,dropoff_location,pickup_date,pickup_time,return_location,return_date,return_time,passenger_count,special_instructions,status,driver_name,fare_amount,customer_visible_notes,cancellation_reason,version,created_at,transport_vehicle_types(name),fleet_transport_links(leg,needs_review,partner_status,fleet_transport_outbox(attempts,auto_dispatch,state))";
 
+type FleetDelivery = { attempts: number; auto_dispatch?: boolean; state?: string };
 type FleetGuestUpdate = {
   leg: "OUTBOUND" | "RETURN";
   needs_review: boolean;
   partner_status: string | null;
-  fleet_transport_outbox: { attempts: number } | { attempts: number }[] | null;
+  fleet_transport_outbox: FleetDelivery | FleetDelivery[] | null;
 };
 
 export function wasDispatchedToFleet(links: Pick<FleetGuestUpdate, "fleet_transport_outbox">[]) {
   return links.some(({ fleet_transport_outbox: outbox }) =>
     ((Array.isArray(outbox) ? outbox[0]?.attempts : outbox?.attempts) ?? 0) > 0);
+}
+
+export function getFleetDeliveryState(links: Pick<FleetGuestUpdate, "fleet_transport_outbox" | "needs_review">[]) {
+  const delivery = links.flatMap(link => [link.fleet_transport_outbox].flat()).filter(item => item?.auto_dispatch);
+  if (!delivery.length) return undefined;
+  if (links.some(link => link.needs_review) || delivery.some(item => item?.state === "FAILED" || item?.state === "NEEDS_REVIEW")) return "attention";
+  return delivery.every(item => item?.state === "SENT") ? "accepted" : "pending";
 }
 
 /** Own transportation requests, scoped through the owning reservation (never staff_notes). */
@@ -102,7 +112,8 @@ export async function getCustomerTransportation(userId: string, reservationId?: 
       if (needs_review || !partner_status || !Object.hasOwn(FLEET_RIDE_STATUS_LABELS, partner_status)) return [];
       return [{ leg, status: partner_status as keyof typeof FLEET_RIDE_STATUS_LABELS }];
     });
-    return { ...row, vehicle_type: vehicleName ?? null, fleetDispatched, rideUpdates, reservation: (reservations ?? []).find((item) => item.id === row.reservation_id) ?? null };
+    return { ...row, vehicle_type: vehicleName ?? null, fleetDispatched, fleetDelivery: getFleetDeliveryState(links),
+      rideUpdates, reservation: (reservations ?? []).find((item) => item.id === row.reservation_id) ?? null };
   });
 }
 

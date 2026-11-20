@@ -21,7 +21,7 @@ export async function GET(_request: Request, context: Context) {
   const guard = await guardPickupRequest(id);
   if (guard instanceof NextResponse) return guard;
   if (guard.role === "guest") return pickupJson({ error: "Staff access required." }, 403);
-  const result = await guard.client.from("fleet_transport_links").select("id,leg,external_request_id,fleet_reference,partner_status,partner_version,assignment_active,guest_safety,needs_review,reconciliation_note,reviewed_at,fleet_transport_outbox(id,state,attempts,next_attempt_at,last_error,sent_at),fleet_tracking_renewals(id,state,attempts,expected_version,assignment_reference,next_attempt_at),fleet_tracking_revocations(state,attempts,expected_version,conflict_version,next_attempt_at)").eq("request_id", id).order("leg");
+  const result = await guard.client.from("fleet_transport_links").select("id,leg,external_request_id,fleet_reference,partner_status,partner_version,assignment_active,guest_safety,needs_review,reconciliation_note,reviewed_at,fleet_transport_outbox(id,state,attempts,next_attempt_at,last_error,sent_at,auto_dispatch),fleet_tracking_renewals(id,state,attempts,expected_version,assignment_reference,next_attempt_at),fleet_tracking_revocations(state,attempts,expected_version,conflict_version,next_attempt_at)").eq("request_id", id).order("leg");
   if (result.error) return pickupJson({ error: "Fleet preparation is not available yet." }, 503);
   const links = (result.data ?? []).map(({ guest_safety, ...link }) => ({
     ...link,

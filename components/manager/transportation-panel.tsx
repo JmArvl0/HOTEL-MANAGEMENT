@@ -21,6 +21,7 @@ import { canCancelTransportation, canOperateTransportation } from "@/lib/permiss
 import { formatPeso } from "@/lib/format";
 import { SERVICE_TYPE_LABELS, TRANSPORTATION_STATUS_LABELS, isTerminalStatus, type TransportationAction, type TransportationStatus } from "@/lib/transportation-display";
 import type { Role } from "@/lib/types";
+import { FrontDeskRideBooking } from "@/components/manager/front-desk-ride-booking";
 
 // Staff Transportation workspace. Front Desk executes the whole operational path;
 // Manager supervises (view + cancel/reject with reason); Owner is read-only.
@@ -32,6 +33,9 @@ type StaffTrip = {
   passenger_count: number; special_instructions: string | null; status: TransportationStatus;
   driver_name: string | null; fare_amount: number | null; staff_notes: string | null; customer_visible_notes: string | null;
   fleetDispatched?: boolean;
+  fleetManaged?: boolean;
+  fleetAttention?: boolean;
+  fleetAccepted?: boolean;
   cancellation_reason: string | null; completed_at: string | null; version: number; created_at: string;
   transport_vehicle_types?: { name: string } | null;
   reservations?: { confirmation_number: string | null; guest_name: string | null; guest_email: string | null; check_in: string; check_out: string } | null;
@@ -50,7 +54,7 @@ const QUEUES: [string, string][] = [["all", "All"], ["pending", "Needs review"],
 // Queue predicate shared by the filter chips (counts) and the visible rows,
 // so the two can never drift (same pattern as the reservations panel).
 function queueMatch(trip: StaffTrip, queue: string, today: string) {
-  if (queue === "pending") return ["REQUESTED", "REVIEWED"].includes(trip.status);
+  if (queue === "pending") return trip.fleetManaged ? Boolean(trip.fleetAttention) : ["REQUESTED", "REVIEWED"].includes(trip.status);
   if (queue === "today") return trip.pickup_date === today && !isTerminalStatus(trip.status);
   if (queue === "active") return ["SCHEDULED", "ASSIGNED", "IN_PROGRESS"].includes(trip.status);
   if (queue === "completed") return trip.status === "COMPLETED";
@@ -176,7 +180,7 @@ export default function TransportationPanel({ role }: { role: Role }) {
 
   const actions = (trip: StaffTrip) => {
     const buttons: [string, () => void][] = [];
-    if (canOperate) {
+    if (canOperate && !trip.fleetManaged) {
       if (trip.status === "REQUESTED") buttons.push(["Review", () => act(trip, "REVIEW")]);
       if (trip.status === "REVIEWED" && !trip.fleetDispatched) buttons.push(["Schedule", () => act(trip, "SCHEDULE")]);
       if (trip.status === "SCHEDULED" && !trip.fleetDispatched) buttons.push(["Assign", () => act(trip, "ASSIGN")]);
@@ -190,13 +194,19 @@ export default function TransportationPanel({ role }: { role: Role }) {
   };
 
   const when = (trip: StaffTrip) => <div className={`tp-when${trip.pickup_date === today ? " today" : ""}`}><b>{formatDate(trip.pickup_date)} · {formatTime(trip.pickup_time)}</b>{trip.service_type === "ROUND_TRIP" && trip.return_date && <small>Return {formatDate(trip.return_date)} · {formatTime(trip.return_time!)}</small>}</div>;
+  const statusLabel = (trip: StaffTrip) => {
+    if (!trip.fleetManaged || isTerminalStatus(trip.status)) return TRANSPORTATION_STATUS_LABELS[trip.status];
+    if (trip.fleetAttention) return "Fleet needs attention";
+    return trip.fleetAccepted ? "Accepted by Fleet" : "Sending to Fleet";
+  };
 
   return <>
-    <PageHeader variant="band" eyebrow="Hotel operations" title="Transportation" subtitle="Review, schedule, assign and complete guest pickup, drop-off and round-trip trips." />
+    <PageHeader variant="band" eyebrow="Hotel operations" title="Transportation" subtitle="Track guest rides and book for guests who ask at Front Desk."
+      actions={canOperate && <FrontDeskRideBooking onSubmitted={() => { void load(true); notify("Ride saved for Fleet delivery."); }} />} />
     {error && <HavenEmptyState icon={<CarTaxiFront size={22} aria-hidden="true" />} title="Transportation unavailable" body={error} />}
     {!error && (<>
     <ModuleSummaryCards cards={[
-      { label: "Needs review", value: trips.filter((trip) => ["REQUESTED", "REVIEWED"].includes(trip.status)).length, hint: "Requested or reviewed", queue: "pending", icon: ClipboardCheck, tone: "attention" },
+      { label: "Needs review", value: counts.pending, hint: "Local requests and Fleet issues", queue: "pending", icon: ClipboardCheck, tone: "attention" },
       { label: "Trips today", value: trips.filter((trip) => trip.pickup_date === today && !isTerminalStatus(trip.status)).length, hint: "Scheduled for today", queue: "today", icon: CalendarDays, tone: "today" },
       { label: "Assigned / in progress", value: trips.filter((trip) => ["ASSIGNED", "IN_PROGRESS"].includes(trip.status)).length, hint: "Driver on the trip", queue: "active", icon: CarFront, tone: "active" },
       { label: "Completed this week", value: trips.filter((trip) => trip.status === "COMPLETED" && trip.completed_at && new Date(trip.completed_at).getTime() >= weekAgo).length, hint: "Last 7 days", queue: "completed", icon: CheckCircle2, tone: "done" },
@@ -212,7 +222,7 @@ export default function TransportationPanel({ role }: { role: Role }) {
       filtersLayout="inline"
       label="Search and filter transportation requests"
     />
-    <p className="tp-note">Coordinate trips through Front Desk. Open Pickup &amp; Fleet to prepare passenger details and review partner delivery.</p>
+    <p className="tp-note">Open Pickup &amp; Fleet to check delivery or confirm a final fare.</p>
     <div className="data-panel">
       {loading ? <div className="haven-skeleton-list" role="status" aria-label="Loading transportation requests"><HavenSkeleton /><HavenSkeleton /><HavenSkeleton /><HavenSkeleton /></div>
       : visible.length === 0 ? <HavenEmptyState icon={<CarTaxiFront size={22} aria-hidden="true" />} title="No transportation requests" body={trips.length === 0 ? "Guest transfer requests appear here as soon as they are submitted at booking or from the guest account." : "No requests match the current filters or search."} action={trips.length > 0 && hasActiveFilters && <button type="button" className="btn btn-soft btn-sm" onClick={clearFilters}><X size={13} />Clear filters</button>} />
@@ -224,7 +234,7 @@ export default function TransportationPanel({ role }: { role: Role }) {
           <td><div className="cell-stack tp-route"><b>{trip.pickup_location} → {trip.dropoff_location}</b>{trip.service_type === "ROUND_TRIP" && trip.return_location && <small>Return: {trip.dropoff_location} → {trip.return_location}</small>}</div></td>
           <td>{when(trip)}</td>
           <td><div className="cell-stack"><b>{trip.passenger_count}</b><small>{trip.passenger_count === 1 ? "passenger" : "passengers"}</small></div></td>
-          <td><div className="cell-stack"><StatusBadge status={trip.status.toLowerCase()} label={TRANSPORTATION_STATUS_LABELS[trip.status]} />{trip.special_instructions && <small title="Special instructions">{label(trip.special_instructions)}</small>}</div></td>
+          <td><div className="cell-stack"><StatusBadge status={trip.status.toLowerCase()} label={statusLabel(trip)} />{trip.special_instructions && <small title="Special instructions">{label(trip.special_instructions)}</small>}</div></td>
           <td><div className="cell-stack">
             {trip.driver_name ? <><b>{label(trip.driver_name)}</b><small>{label(trip.transport_vehicle_types?.name)}</small></> : <span className="tp-unassigned">{trip.fleetDispatched ? "Fleet coordination" : "Not assigned"}</span>}
             {trip.fare_amount != null && <small>{Number(trip.fare_amount) === 0 ? "No charge due" : `${formatPeso(trip.fare_amount)} on folio`}</small>}
@@ -232,7 +242,7 @@ export default function TransportationPanel({ role }: { role: Role }) {
           <td className="tp-actions">{actions(trip)}<TransportPickupProfile requestId={trip.id} requestVersion={trip.version} staff canEdit={canOperate} canPrepare={canOperate} /></td>
         </tr>)}</tbody></table></div>
       <div className="tp-cards">{page.rows.map((trip) => <article className="tp-card" key={trip.id}>
-        <header><b>{SERVICE_TYPE_LABELS[trip.service_type]}</b><StatusBadge status={trip.status.toLowerCase()} label={TRANSPORTATION_STATUS_LABELS[trip.status]} /></header>
+        <header><b>{SERVICE_TYPE_LABELS[trip.service_type]}</b><StatusBadge status={trip.status.toLowerCase()} label={statusLabel(trip)} /></header>
         <div className="tp-card-guest"><strong>{label(trip.reservations?.guest_name)}</strong><small>{label(trip.reservations?.confirmation_number ?? trip.reservation_id)}</small></div>
         <p className="tp-card-route">{trip.pickup_location}<i aria-hidden="true">→</i>{trip.dropoff_location}</p>
         <div className="tp-card-meta"><span>{formatDate(trip.pickup_date)} · {formatTime(trip.pickup_time)}</span><span>{trip.passenger_count} {trip.passenger_count === 1 ? "passenger" : "passengers"}</span></div>

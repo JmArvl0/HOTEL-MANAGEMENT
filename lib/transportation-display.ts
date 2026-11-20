@@ -16,6 +16,7 @@ export type TransportationPreferences = {
   returnTime?: string;
   passengerCount: number;
   specialInstructions?: string;
+  fleetOptions?: { sharingEnabled: boolean; ridePreferences: string[] };
 };
 export type TransportationStatus =
   | "REQUESTED" | "REVIEWED" | "SCHEDULED" | "ASSIGNED"
@@ -69,7 +70,7 @@ export function reservationTransportationHref(reservationId: string, arrange = f
 }
 
 export const FLEET_RIDE_STATUS_LABELS = {
-  SCHEDULED: "Scheduled", ASSIGNED: "Assigned", IN_TRANSIT: "In progress",
+  RECEIVED: "Received by Fleet", SCHEDULED: "Scheduled", ASSIGNED: "Assigned", IN_TRANSIT: "In progress",
   COMPLETED: "Completed", CANCELLED: "Cancelled", REJECTED: "Rejected",
 } as const;
 
@@ -81,6 +82,7 @@ export type CustomerTransportationRequest = {
   passenger_count: number; special_instructions: string | null; status: TransportationStatus;
   driver_name: string | null; vehicle_type: string | null; fare_amount: number | null;
   fleetDispatched: boolean;
+  fleetDelivery?: "pending" | "accepted" | "attention";
   rideUpdates: { leg: "OUTBOUND" | "RETURN"; status: keyof typeof FLEET_RIDE_STATUS_LABELS }[];
   customer_visible_notes: string | null; cancellation_reason: string | null;
   version: number; created_at: string;

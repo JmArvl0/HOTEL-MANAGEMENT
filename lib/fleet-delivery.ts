@@ -1,9 +1,34 @@
 import { randomUUID } from "node:crypto";
+import { after } from "next/server";
 import { fleetConfiguration, limitedJson } from "@/lib/fleet-contract";
 import { fleetCreateEnvelopeSchema, fleetWireAcceptanceSchema, normalizeFleetSnapshot, type FleetWireSnapshot } from "@/lib/fleet-wire";
 import type { supabase } from "@/lib/supabase";
 
 type Client = NonNullable<typeof supabase>;
+type FleetDeliveryScope = { requestId: string } | { reservationId: string } | { guestId: string };
+
+export function scheduleFleetDelivery(client: Client, scope?: FleetDeliveryScope) {
+  after(() => deliverQueuedFleetTransport(client, scope).catch(() => {
+    console.error("[fleet] Automatic delivery needs retry");
+  }));
+}
+
+async function deliverQueuedFleetTransport(client: Client, scope?: FleetDeliveryScope) {
+  if (!fleetConfiguration()) return;
+  const now = new Date().toISOString();
+  let query = client.from("fleet_transport_outbox")
+    .select("id,fleet_transport_links!inner(request_id,transportation_requests!inner(reservation_id,user_id))")
+    .eq("auto_dispatch", true).in("state", ["PREPARED", "FAILED", "SENDING"]).lt("attempts", 8)
+    .lte("next_attempt_at", now).or(`state.neq.SENDING,lease_until.lte.${now}`)
+    .order("next_attempt_at").limit(scope && "requestId" in scope ? 2 : 12);
+  if (scope && "requestId" in scope) query = query.eq("fleet_transport_links.request_id", scope.requestId);
+  if (scope && "reservationId" in scope) query = query.eq("fleet_transport_links.transportation_requests.reservation_id", scope.reservationId);
+  if (scope && "guestId" in scope) query = query.eq("fleet_transport_links.transportation_requests.user_id", scope.guestId);
+  const { data, error } = await query;
+  if (error) throw new Error("FLEET_QUEUE_LOOKUP_FAILED");
+  const results = await Promise.allSettled((data ?? []).map(({ id }) => deliverFleetRequest(client, id)));
+  if (results.some(result => result.status === "rejected")) throw new Error("FLEET_QUEUE_DELIVERY_FAILED");
+}
 
 export async function deliverFleetRequest(client: Client, id: string) {
   const config = fleetConfiguration();

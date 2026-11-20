@@ -1759,23 +1759,30 @@ queue itself — no authoritative definition exists there; arrival readiness is 
 
 ### 7.11 Transportation service and Fleet preparation
 
-Guest pickup, drop-off, and round-trip rides as a first-class operational queue. Local operations
-remain the default. Locations are plain validated text, and `lib/transportation.test.ts` enforces that no
+Guest pickup, drop-off, and round-trip rides share an operational queue. Locations are plain
+validated text, and `lib/transportation.test.ts` enforces that no
 `api.tomtom.com` / `TOMTOM_API_KEY` code ships anywhere (a TomTom-priced variant was built and then
 deliberately removed; `docs/TRANSPORTATION_FUTURE_ENHANCEMENTS.md` records what was deferred).
 
-- **Origins.** Two ways a request exists: (a) at booking, the guest's optional **transportation
-  preference** rides the hold → reservation as `transportation_preferences` jsonb and is filed as a
-  `transportation_requests` row by a trigger the moment the website reservation first confirms (the filer never
-  raises — it re-validates defensively and skips, with an audit row, anything that no longer fits);
-  (b) live from the customer portal (`/account/transportation` → `customer_submit_transportation_request`,
-  idempotent by key). `customer_cancel_transportation_request` version-checks guest cancellations
+- **Origins.** My Stay submits the ride with prefilled passenger contact, optional ride
+  preferences, and explicit Fleet sharing permission. Website checkout keeps the same
+  preferences with the hold, including the mobile number entered for that booking. The
+  confirmation trigger files and queues the ride only when the reservation first confirms.
+  Front Desk may book for a guest who asks at the counter by searching the existing account
+  and selecting a confirmed or current stay. Each of these paths writes one Fleet delivery
+  record per leg using the same durable request and event IDs. The server attempts delivery
+  after the guest submission or payment confirmation response. Eligible retries use the
+  same saved payload when a guest revisits the ride or the daily reconciliation runs.
+  Older submissions without recorded sharing permission retain their local workflow.
+  `customer_cancel_transportation_request` version-checks guest cancellations
   at REQUESTED or REVIEWED before an outbound Fleet attempt. Cancellation of a stay closes those
   same uncommitted requests. Front Desk coordinates dispatched or later-stage rides separately.
   The hotel endpoint comes from `hotel_operational_policies` (`transfer_hotel_label`).
   The partial unique index prevents duplicate active requests by reservation, service type,
   pickup date and pickup location.
-- **Lifecycle.** `REQUESTED → REVIEWED → SCHEDULED → ASSIGNED → IN_PROGRESS → COMPLETED`, plus
+- **Lifecycle.** Fleet handles automatic rides without Front Desk approval. Front Desk
+  sees delivery issues and can retry the saved request. For hotel-operated rides the local
+  sequence is `REQUESTED → REVIEWED → SCHEDULED → ASSIGNED → IN_PROGRESS → COMPLETED`, plus
   terminal `CANCELLED`/`REJECTED`. Every transition goes through one version-guarded RPC,
   `staff_transition_transportation_request(p_request_id, p_action, p_details, p_staff_user_id,
   p_expected_version)`: **Front Desk executes** the operational path (review with internal/guest
@@ -1783,8 +1790,8 @@ deliberately removed; `docs/TRANSPORTATION_FUTURE_ENHANCEMENTS.md` records what 
   complete); **Manager may only cancel/reject with a required reason**; **Owner is read-only**.
 - **Money.** The checkout price excludes new transportation requests. Historical prepaid
   `transport_lines` remain readable. For hotel-operated rides, Front Desk confirms the available
-  vehicle and its flat fare `(base_fare + booking_fee) × legs` at assignment. Once delivery to Fleet
-  is attempted, billing uses the latest applied PHP fare revision for each required leg.
+  vehicle and its flat fare `(base_fare + booking_fee) × legs` at assignment. Fleet ride
+  billing uses the latest applied PHP fare revision for each required leg.
   Front Desk reviews the values in Pickup & Fleet and confirms the agreed fare. Migration
   `20261120030000_confirmed_transportation_folio_fares.sql` posts positive confirmed fares once
   to the existing folio and recomputes its balance and available credit. Guests can see the item
@@ -1828,7 +1835,8 @@ deliberately removed; `docs/TRANSPORTATION_FUTURE_ENHANCEMENTS.md` records what 
   envelope `round_trip_reference`/lowercase `leg_kind`, and source HAVEN.
   `HAVEN_FLEET_MODE` supports explicit `staging` and `production`. Both require
   `fleet-haven-2026-11-06`, distinct directional credentials and an HTTPS intake.
-  Connection defaults to off. Dispatch is initiated by Front Desk.
+  Connection defaults to off. Guest-authorized dispatch uses the Fleet delivery
+  queue; Front Desk can still prepare older local requests and resolve failed deliveries.
   Wrapped ACKs require a complete versioned HAVEN snapshot and both stored acceptance
   flags. Reference, status and inbox evidence commit atomically. Public callbacks use
   the same complete plain snapshot, dedicated inbound credential and matching

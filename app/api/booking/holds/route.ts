@@ -31,10 +31,15 @@ export async function POST(request: Request) {
   const attempt = z.object({ attemptId: z.string().uuid() }).safeParse(input);
   if (!attempt.success) return invalid(attempt.error, "Reload the page to start a new booking attempt.");
   const details = parsed.data;
+  const ride = details.transportationPreferences;
+  const bookingDetails = ride?.fleetOptions ? {
+    ...details,
+    transportationPreferences: { ...ride, fleetOptions: { ...ride.fleetOptions, contactPhone: details.mobile } },
+  } : details;
 
   try {
     const prior = await supabase.rpc("read_booking_hold_attempt", {
-      p_user: session.user.id, p_attempt: attempt.data.attemptId, p_details: details,
+      p_user: session.user.id, p_attempt: attempt.data.attemptId, p_details: bookingDetails,
     });
     if (prior.error) {
       const code = ["HOLD_ATTEMPT_EXPIRED", "RETRY_PAYLOAD_CONFLICT"].find(item => prior.error!.message.includes(item));
@@ -50,7 +55,6 @@ export async function POST(request: Request) {
     }
     const search = searchSchemaFor(hotelToday(policy.data.hotel_timezone)).safeParse(details);
     if (!search.success) return invalid(search.error, "Please choose valid check-in and check-out dates.");
-    const ride = details.transportationPreferences;
     if (ride) {
       const hotel = (policy.data.transfer_hotel_label?.trim() || "HAVEN Hotel & Residences").toLowerCase();
       const fields = Object.fromEntries((["pickupLocation", "dropoffLocation", "returnLocation"] as const)
@@ -67,7 +71,7 @@ export async function POST(request: Request) {
       return publicJson({ error: "Breakfast is unavailable. Review the current room offer.", code: "BREAKFAST_UNAVAILABLE" }, { status: 409 });
     }
     const { data, error } = await supabase.rpc("create_booking_hold_attempt", {
-      p_user: session.user.id, p_attempt: attempt.data.attemptId, p_details: details, p_breakfast_enabled: hotelBreakfastEnabled(),
+      p_user: session.user.id, p_attempt: attempt.data.attemptId, p_details: bookingDetails, p_breakfast_enabled: hotelBreakfastEnabled(),
     });
     if (error) {
       const conflicts: Record<string, string> = {

@@ -11,7 +11,7 @@ import { formatPeso } from "@/lib/format";
 import "./transport-pickup-profile.css";
 
 type Profile = { travelerName: string; phone: string; email: string; sharingEnabled: boolean; hasPhoto: boolean; photoUrl: string | null; version: number; ridePreferences: string[]; luggageCount: number; luggageNotes: string; rideNotes: string };
-type Delivery = { id: string; state: string; attempts: number; next_attempt_at: string; last_error: string | null };
+type Delivery = { id: string; state: string; attempts: number; next_attempt_at: string; last_error: string | null; auto_dispatch?: boolean };
 type Renewal = { id: string; state: string; expected_version: number; assignment_reference: string };
 type Revocation = { state: string; attempts: number; expected_version: number | null; conflict_version: number | null; next_attempt_at: string };
 type Link = { id: string; leg: string; fleet_reference: string | null; partner_status: string | null; partner_version: number; assignment_active: boolean; assignmentReference: string | null; driverName: string | null; vehicleDescription: string | null; vehiclePlate: string | null; needs_review: boolean; reconciliation_note: string | null; fleet_transport_outbox: Delivery | Delivery[] | null; fleet_tracking_renewals: Renewal[]; fleet_tracking_revocations: Revocation | Revocation[] | null };
@@ -141,7 +141,8 @@ export function TransportPickupProfile({ requestId, requestVersion, staff = fals
                 </button>}
               </> : <p>Waiting for the fare for each ride leg.</p>}
             </div>}
-            {canPrepare && <button type="button" className="btn btn-soft" disabled={busy} onClick={() => act({ action: "prepare", expectedVersion: requestVersion })}>Prepare for Fleet</button>}
+            {canPrepare && !fleet.links.some(link => [link.fleet_transport_outbox].flat().some(delivery => delivery?.auto_dispatch)) &&
+              <button type="button" className="btn btn-soft" disabled={busy} onClick={() => act({ action: "prepare", expectedVersion: requestVersion })}>Prepare for Fleet</button>}
             {fleet.links.map(link => {
               const delivery = Array.isArray(link.fleet_transport_outbox) ? link.fleet_transport_outbox[0] : link.fleet_transport_outbox;
               const renewal = link.fleet_tracking_renewals?.find(row => ["PENDING", "SENDING", "FAILED"].includes(row.state));
@@ -151,7 +152,8 @@ export function TransportPickupProfile({ requestId, requestVersion, staff = fals
                 {link.fleet_reference && <small>Fleet reference {link.fleet_reference} · {link.partner_status ?? "Awaiting status"}</small>}
                 {assignment && <small>{assignment}</small>}
                 {delivery && delivery.attempts > 0 && <small>{delivery.attempts} delivery attempt{delivery.attempts === 1 ? "" : "s"}{delivery.state === "FAILED" ? ` · next retry ${new Date(delivery.next_attempt_at).toLocaleString()}` : ""}</small>}
-                {canPrepare && delivery && ["PREPARED", "FAILED", "SENDING"].includes(delivery.state) && <button type="button" className="btn btn-soft" disabled={busy || !fleet.enabled} onClick={() => act({ action: "deliver", outboxId: delivery.id })}>{delivery.attempts ? "Retry delivery" : "Send to Fleet"}</button>}
+                {canPrepare && delivery && (delivery.auto_dispatch ? delivery.state === "FAILED" : ["PREPARED", "FAILED", "SENDING"].includes(delivery.state)) &&
+                  <button type="button" className="btn btn-soft" disabled={busy || !fleet.enabled} onClick={() => act({ action: "deliver", outboxId: delivery.id })}>{delivery.attempts ? "Retry delivery" : "Send to Fleet"}</button>}
                 {canPrepare && !revocation && link.assignment_active && !link.needs_review && link.assignmentReference && <div>
                   <button type="button" className="btn btn-soft" disabled={busy || !fleet.renewalEnabled} onClick={() => act({ action: "renew", linkId: link.id, eventId: renewal?.id ?? crypto.randomUUID(), expectedVersion: renewal?.expected_version ?? link.partner_version, assignmentReference: renewal?.assignment_reference ?? link.assignmentReference })}>{renewal ? "Retry tracking renewal" : "Renew tracking link"}</button>
                   <p className="pickup-profile-help">Renewing replaces the previously shared link. Send the new link to anyone who needs it.{!fleet.renewalEnabled ? " Renewal is unavailable while the partner connection or approved tracking address is unset." : ""}</p>

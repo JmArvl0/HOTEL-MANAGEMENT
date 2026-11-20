@@ -1,6 +1,7 @@
 import { validationMessage } from "@/lib/errors";
 import { calendarDate, isCalendarDate, integerInput, phoneInput, localTimePattern } from "@/lib/input-validation";
 import { z } from "zod";
+import { fleetOptionsSchema } from "@/lib/fleet-pickup-input";
 import { formatPeso } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
 import { nightlyRates, stayTotal, uniformRate, fromRate, type RatePlan } from "@/lib/rate-plans";
@@ -69,7 +70,7 @@ export const searchSchema = z.lazy(() => searchSchemaFor());
 
 // Transportation ride REQUESTED at checkout (operational only — no pricing, no folio). The
 // preferences ride hold -> reservation as jsonb and are filed into transportation_requests
-// by the file_booking_transportation_on_confirm trigger once the stay is confirmed. The
+// by the reservation-confirmation trigger once the stay is confirmed. The
 // client never supplies the hotel side of the route; the filer fills it.
 export const transportationPreferencesSchema = z.object({
   serviceType: z.enum(["PICKUP", "DROPOFF", "ROUND_TRIP"]),
@@ -82,6 +83,7 @@ export const transportationPreferencesSchema = z.object({
   returnTime: z.string().regex(localTimePattern).optional(),
   passengerCount: integerInput(1, 20),
   specialInstructions: z.string().trim().max(500).optional(),
+  fleetOptions: fleetOptionsSchema.optional(),
 }).superRefine((value, ctx) => {
   if (value.serviceType === "PICKUP" && !value.pickupLocation)
     ctx.addIssue({ code: "custom", path: ["pickupLocation"], message: "Enter the pickup location." });
@@ -123,6 +125,9 @@ export const guestDetailsSchema = z.object({
 }).superRefine((value, ctx) => {
   const ride = value.transportationPreferences;
   if (!ride) return;
+  if (ride.fleetOptions && `${value.firstName} ${value.lastName}`.length > 120) {
+    ctx.addIssue({ code: "custom", path: ["lastName"], message: "Use a passenger name of 120 characters or fewer." });
+  }
   for (const key of ["pickupDate", "returnDate"] as const) {
     const date = ride[key];
     if (date && (date < value.checkIn || date > value.checkOut)) ctx.addIssue({ code: "custom", path: ["transportationPreferences", key], message: "Choose a transportation date within your stay." });
