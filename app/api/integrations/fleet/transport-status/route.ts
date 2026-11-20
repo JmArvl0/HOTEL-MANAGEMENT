@@ -6,7 +6,7 @@ import { fleetWireSnapshotSchema, normalizeFleetSnapshot } from "@/lib/fleet-wir
 export const runtime = "nodejs";
 export async function POST(request: Request) {
   const config = fleetConfiguration();
-  if (!config || !supabase) return NextResponse.json({ delivered: false, error: "Fleet staging is unavailable." }, { status: 503 });
+  if (!config || !supabase) return NextResponse.json({ delivered: false, error: "The Fleet connection is unavailable." }, { status: 503 });
   if (!authorizeFleet(request, config.callbackKey)) return NextResponse.json({ delivered: false }, { status: 401 });
   let body: unknown;
   try { body = await limitedJson(request); }

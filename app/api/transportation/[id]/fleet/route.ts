@@ -32,7 +32,8 @@ export async function GET(_request: Request, context: Context) {
   }));
   const fare = links.length ? await guard.client.rpc("get_transportation_fleet_fare", { p_request: id }) : null;
   if (fare?.error) return pickupJson({ error: "Unable to check the transportation fare." }, 503);
-  return pickupJson({ enabled: Boolean(fleetConfiguration()), renewalEnabled: Boolean(fleetConfiguration()) && fleetTrackingConfigured(), links, fare: fare?.data ?? null });
+  const config = fleetConfiguration();
+  return pickupJson({ enabled: Boolean(config), mode: config?.mode ?? "off", renewalEnabled: Boolean(config) && fleetTrackingConfigured(), links, fare: fare?.data ?? null });
 }
 export async function POST(request: Request, context: Context) {
   const { id } = await context.params;
@@ -64,7 +65,7 @@ export async function POST(request: Request, context: Context) {
     catch { return pickupJson({ error: "Your sharing withdrawal was saved. We're still waiting for Fleet to confirm it. Check the ride status before retrying." }, 503); }
   }
   if (action.action === "renew") {
-    if (!fleetConfiguration() || !fleetTrackingConfigured()) return pickupJson({ error: "Fleet staging and an approved tracking origin are required." }, 503);
+    if (!fleetConfiguration() || !fleetTrackingConfigured()) return pickupJson({ error: "Tracking renewal requires an active Fleet connection and an approved tracking origin." }, 503);
     const scoped = await guard.client.from("fleet_transport_links").select("id").eq("id", action.linkId).eq("request_id", id).maybeSingle();
     if (scoped.error) return pickupJson({ error: "Unable to verify the Fleet ride." }, 503);
     if (!scoped.data) return pickupJson({ error: "Fleet ride not found." }, 404);

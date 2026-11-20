@@ -4,9 +4,9 @@ import { z } from "zod";
 import { allowedFleetTrackingUrl, fleetTrackingSchema } from "@/lib/fleet-safety";
 import { FLEET_CONTRACT } from "@/lib/fleet-wire";
 
-/** Supplied local wire. Production activation deliberately has no code path yet. */
 export function fleetConfiguration(env: Partial<NodeJS.ProcessEnv> = process.env) {
-  if (env.HAVEN_FLEET_MODE !== "staging") return null;
+  const mode = env.HAVEN_FLEET_MODE;
+  if (mode !== "staging" && mode !== "production") return null;
   if (env.HAVEN_FLEET_CONTRACT !== FLEET_CONTRACT) return null;
   const callbackKey = env.HAVEN_FLEET_CALLBACK_KEY ?? "";
   const photoKey = env.HAVEN_FLEET_PHOTO_KEY ?? "";
@@ -15,9 +15,9 @@ export function fleetConfiguration(env: Partial<NodeJS.ProcessEnv> = process.env
   if (credentials.some(key => key.length < 32) || new Set(credentials).size !== 3) return null;
   try {
     const endpoint = new URL(env.HAVEN_FLEET_CREATE_URL ?? "");
-    const loopbackTest = env.NODE_ENV === "test" && ["localhost", "127.0.0.1"].includes(endpoint.hostname);
+    const loopbackTest = mode === "staging" && env.NODE_ENV === "test" && ["localhost", "127.0.0.1"].includes(endpoint.hostname);
     if ((endpoint.protocol !== "https:" && !loopbackTest) || endpoint.username || endpoint.password || endpoint.search || endpoint.hash) return null;
-    return { endpoint: endpoint.toString(), callbackKey, photoKey, outboundKey };
+    return { mode, endpoint: endpoint.toString(), callbackKey, photoKey, outboundKey };
   } catch { return null; }
 }
 

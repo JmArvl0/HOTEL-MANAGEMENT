@@ -1821,13 +1821,14 @@ deliberately removed; `docs/TRANSPORTATION_FUTURE_ENHANCEMENTS.md` records what 
   completion, cancellation, sharing/local-detail/stay changes clear the projection. Fleet must
   separately revoke already-shared public tokens. Haven hosts no map/GPS service or SOS dispatch.
   Partner instructions: `docs/integrations/FLEET_TEAM_RIDE_SAFETY_INSTRUCTIONS.md`.
-- **Fleet adapter (local unreleased; supplied schema received 2026-11-13).**
+- **Fleet adapter (supplied schema received 2026-11-13).**
   `docs/integrations/contracts/fleet-haven-2026-11-06.schema.json` is Fleet's supplied
   local contract; its metadata includes uncommitted partner implementation, not hosted proof.
   Migration `20261113010000_fleet_wire_and_tracking_renewal.sql` persists flat guest fields,
-  envelope `round_trip_reference`/lowercase `leg_kind`, and source HAVEN. Staging requires
-  explicit `fleet-haven-2026-11-06`, distinct directional credentials and an HTTPS intake;
-  defaults stay off with blank tracking origins, no production mode or scheduled sender.
+  envelope `round_trip_reference`/lowercase `leg_kind`, and source HAVEN.
+  `HAVEN_FLEET_MODE` supports explicit `staging` and `production`. Both require
+  `fleet-haven-2026-11-06`, distinct directional credentials and an HTTPS intake.
+  Connection defaults to off. Dispatch is initiated by Front Desk.
   Wrapped ACKs require a complete versioned HAVEN snapshot and both stored acceptance
   flags. Reference, status and inbox evidence commit atomically. Public callbacks use
   the same complete plain snapshot, dedicated inbound credential and matching
@@ -1862,9 +1863,8 @@ deliberately removed; `docs/TRANSPORTATION_FUTURE_ENHANCEMENTS.md` records what 
   Lead Programmer is the Haven contact role. Fleet accepted
   Bitwarden Send (separate password-protected text sends,24h,max access1, verified private
   recipients/passwords through another channel). No real credentials/Send exchanged here.
-  See `docs/integrations/FLEET_HOSTED_READINESS_2026-11-13.md`. Hosted deployment,
-  actual image-origin verification, credential exchange, agreed window, joint QA and
-  authorized sign-offs remain prerequisites. Connection/allowlist stay off/blank.
+  See `docs/integrations/HAVEN_FLEET_PREPARATION.md` for production configuration.
+  Credential provisioning and the coordinated hosted QA ride remain pending.
   See `docs/integrations/HAVEN_FLEET_PREPARATION.md` for the wire and manual QA.
 
 ### 7.12 Daily Front Desk Operations Report
@@ -2621,8 +2621,8 @@ of CI/tests), `migrate.mjs` (legacy; **not** the supported migration path).
   and settled payment eligibility, then uses issue-time stay details and tax
   when a stored receipt exists. See the private document register in
   `docs/ENTERPRISE_BOUNDARIES.md` for retention, hold and recovery decisions.
-- **Server-only provider credentials.** Transportation uses local data by default, with an
-  unreleased opt-in staging Fleet candidate (§7.11). Fleet credentials are separate per
+- **Server-only provider credentials.** Transportation uses local data by default, with
+  explicit Fleet production and staging modes (§7.11). Fleet credentials are separate per
   direction and never public. A test enforces no external mapping/routing code. The
   **server-side Gemini client** (§7.13) also keeps `GEMINI_API_KEY` out of browser JavaScript
   (no `NEXT_PUBLIC_` variant exists), never logged, and never returned by any route; routes only
@@ -2688,8 +2688,8 @@ Honest inventory of what is **not** wired up yet (not prescriptions). Full split
 - **Transportation remains local by default.** Locations are free text, fares are flat per vehicle
   type, and there is no external mapping/routing — the TomTom-priced variant was removed.
   `docs/TRANSPORTATION_FUTURE_ENHANCEMENTS.md` records the deliberately deferred work (route
-  pricing and distance validation). The local Fleet preparation candidate in §7.11 needs
-  partner contract acceptance and staging QA before activation; automatic status/fare authority,
+  pricing and distance validation). Hosted Fleet connection acceptance remains pending
+  (§7.11). Automatic status/fare authority,
   machine update/cancel and recovery lookup remain deferred.
 - **`schema.sql` is a deployed-database snapshot, not a hand-maintained source of truth**
   (memory: `schema-sql-lags-behind-migrations`). It is regenerated with

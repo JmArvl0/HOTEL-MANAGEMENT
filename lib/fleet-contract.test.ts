@@ -5,18 +5,33 @@ import acceptance from "@/docs/integrations/contracts/examples/acceptance.json";
 
 const configured = { NODE_ENV: "test", HAVEN_FLEET_MODE: "staging", HAVEN_FLEET_CONTRACT: FLEET_CONTRACT, HAVEN_FLEET_CREATE_URL: "https://fleet.example.invalid/api/integration/transport-requests", HAVEN_FLEET_CALLBACK_KEY: "i".repeat(40), HAVEN_FLEET_PHOTO_KEY: "p".repeat(40), HAVEN_FLEET_OUTBOUND_KEY: "o".repeat(40) } as NodeJS.ProcessEnv;
 describe("Fleet candidate boundary", () => {
-  it("stays off by default and requires explicit staging, candidate and distinct credentials", () => {
+  it("stays off until an enabled mode is explicitly selected", () => {
     expect(fleetConfiguration({})).toBeNull();
-    expect(fleetConfiguration(configured)).not.toBeNull();
-    for (const overrides of [{ HAVEN_FLEET_MODE: "production" }, { HAVEN_FLEET_CONTRACT: "pickup-v1-candidate" }, { HAVEN_FLEET_CONTRACT: "" }, { HAVEN_FLEET_CALLBACK_KEY: "short" }, { HAVEN_FLEET_OUTBOUND_KEY: configured.HAVEN_FLEET_CALLBACK_KEY }, { HAVEN_FLEET_PHOTO_KEY: configured.HAVEN_FLEET_CALLBACK_KEY }, { HAVEN_FLEET_PHOTO_KEY: "" }, { HAVEN_FLEET_PHOTO_KEY: configured.HAVEN_FLEET_OUTBOUND_KEY }]) expect(fleetConfiguration({ ...configured, ...overrides })).toBeNull();
+    for (const mode of ["off", "preview", ""]) expect(fleetConfiguration({ ...configured, HAVEN_FLEET_MODE: mode })).toBeNull();
   });
-  it.each(["http://fleet.example.invalid/intake", "https://user:password@fleet.example.invalid/intake", "https://fleet.example.invalid/intake?token=secret", "https://fleet.example.invalid/intake#secret", "not a URL"])("rejects unsafe endpoint %s", url => {
-    expect(fleetConfiguration({ ...configured, HAVEN_FLEET_CREATE_URL: url })).toBeNull();
+  describe.each(["staging", "production"] as const)("%s mode", mode => {
+    const env: NodeJS.ProcessEnv = { ...configured, NODE_ENV: "production", HAVEN_FLEET_MODE: mode };
+
+    it("requires the current contract and three distinct credentials", () => {
+      expect(fleetConfiguration(env)).toMatchObject({ mode, endpoint: configured.HAVEN_FLEET_CREATE_URL });
+      for (const overrides of [
+        { HAVEN_FLEET_CONTRACT: "pickup-v1-candidate" }, { HAVEN_FLEET_CONTRACT: "" },
+        { HAVEN_FLEET_CALLBACK_KEY: "short" }, { HAVEN_FLEET_OUTBOUND_KEY: "" },
+        { HAVEN_FLEET_OUTBOUND_KEY: configured.HAVEN_FLEET_CALLBACK_KEY },
+        { HAVEN_FLEET_PHOTO_KEY: configured.HAVEN_FLEET_CALLBACK_KEY },
+        { HAVEN_FLEET_PHOTO_KEY: "" }, { HAVEN_FLEET_PHOTO_KEY: configured.HAVEN_FLEET_OUTBOUND_KEY },
+      ]) expect(fleetConfiguration({ ...env, ...overrides })).toBeNull();
+    });
+
+    it.each(["http://fleet.example.invalid/intake", "https://user:password@fleet.example.invalid/intake", "https://fleet.example.invalid/intake?token=secret", "https://fleet.example.invalid/intake#secret", "not a URL"])("rejects unsafe endpoint %s", url => {
+      expect(fleetConfiguration({ ...env, HAVEN_FLEET_CREATE_URL: url })).toBeNull();
+    });
   });
-  it("allows HTTP loopback only in tests", () => {
+  it("allows HTTP loopback only for staging in tests", () => {
     const env = { ...configured, HAVEN_FLEET_CREATE_URL: "http://127.0.0.1:1234/intake" };
     expect(fleetConfiguration(env)).not.toBeNull();
     expect(fleetConfiguration({ ...env, NODE_ENV: "production" })).toBeNull();
+    expect(fleetConfiguration({ ...env, HAVEN_FLEET_MODE: "production" })).toBeNull();
   });
   it("requires the exact direction-specific bearer credential", () => {
     const key = configured.HAVEN_FLEET_CALLBACK_KEY!;

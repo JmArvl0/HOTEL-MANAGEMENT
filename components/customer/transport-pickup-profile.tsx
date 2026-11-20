@@ -16,7 +16,7 @@ type Renewal = { id: string; state: string; expected_version: number; assignment
 type Revocation = { state: string; attempts: number; expected_version: number | null; conflict_version: number | null; next_attempt_at: string };
 type Link = { id: string; leg: string; fleet_reference: string | null; partner_status: string | null; partner_version: number; assignment_active: boolean; assignmentReference: string | null; driverName: string | null; vehicleDescription: string | null; vehiclePlate: string | null; needs_review: boolean; reconciliation_note: string | null; fleet_transport_outbox: Delivery | Delivery[] | null; fleet_tracking_renewals: Renewal[]; fleet_tracking_revocations: Revocation | Revocation[] | null };
 type Fleet = {
-  enabled: boolean; renewalEnabled: boolean; links: Link[];
+  enabled: boolean; mode: "off" | "staging" | "production"; renewalEnabled: boolean; links: Link[];
   fare: { postedAmount: number | null; quote: { amountMinor: number; revision: string } | null; canPost: boolean } | null;
 };
 const empty: Profile = { travelerName: "", phone: "", email: "", sharingEnabled: false, hasPhoto: false, photoUrl: null, version: 0, ridePreferences: [], luggageCount: 0, luggageNotes: "", rideNotes: "" };
@@ -124,7 +124,8 @@ export function TransportPickupProfile({ requestId, requestVersion, staff = fals
             </fieldset>
           </form>
           {staff && fleet && <section className="pickup-profile-fleet" aria-label="Fleet preparation">
-            <h3>Fleet preparation</h3><p>{fleet.enabled ? "Staging connection enabled. Partner updates remain subject to review." : "Partner connection is off. Prepared requests stay in the hotel for now."}</p>
+            <h3>Fleet preparation</h3>
+            <p>{fleet.mode === "production" ? "Production dispatch is enabled." : fleet.enabled ? "Staging dispatch is enabled." : "The Fleet connection is unavailable. Prepared requests are saved here."}</p>
             {fleet.fare && fleet.links.some(link => link.fleet_reference) && <div className="pickup-profile-fare">
               <h4>Guest folio</h4>
               {fleet.fare.postedAmount != null ? <>
@@ -150,7 +151,7 @@ export function TransportPickupProfile({ requestId, requestVersion, staff = fals
                 {link.fleet_reference && <small>Fleet reference {link.fleet_reference} · {link.partner_status ?? "Awaiting status"}</small>}
                 {assignment && <small>{assignment}</small>}
                 {delivery && delivery.attempts > 0 && <small>{delivery.attempts} delivery attempt{delivery.attempts === 1 ? "" : "s"}{delivery.state === "FAILED" ? ` · next retry ${new Date(delivery.next_attempt_at).toLocaleString()}` : ""}</small>}
-                {canPrepare && delivery && ["PREPARED", "FAILED", "SENDING"].includes(delivery.state) && <button type="button" className="btn btn-soft" disabled={busy || !fleet.enabled} onClick={() => act({ action: "deliver", outboxId: delivery.id })}>{delivery.attempts ? "Retry delivery" : "Send to Fleet staging"}</button>}
+                {canPrepare && delivery && ["PREPARED", "FAILED", "SENDING"].includes(delivery.state) && <button type="button" className="btn btn-soft" disabled={busy || !fleet.enabled} onClick={() => act({ action: "deliver", outboxId: delivery.id })}>{delivery.attempts ? "Retry delivery" : "Send to Fleet"}</button>}
                 {canPrepare && !revocation && link.assignment_active && !link.needs_review && link.assignmentReference && <div>
                   <button type="button" className="btn btn-soft" disabled={busy || !fleet.renewalEnabled} onClick={() => act({ action: "renew", linkId: link.id, eventId: renewal?.id ?? crypto.randomUUID(), expectedVersion: renewal?.expected_version ?? link.partner_version, assignmentReference: renewal?.assignment_reference ?? link.assignmentReference })}>{renewal ? "Retry tracking renewal" : "Renew tracking link"}</button>
                   <p className="pickup-profile-help">Renewing replaces the previously shared link. Send the new link to anyone who needs it.{!fleet.renewalEnabled ? " Renewal is unavailable while the partner connection or approved tracking address is unset." : ""}</p>

@@ -5,7 +5,7 @@ import { fleetPhotoRequestSchema } from "@/lib/fleet-wire";
 
 export async function POST(request: Request) {
   const config = fleetConfiguration();
-  if (!config || !supabase) return pickupJson({ error: "Fleet staging is unavailable." }, 503);
+  if (!config || !supabase) return pickupJson({ error: "The Fleet connection is unavailable." }, 503);
   if (!authorizeFleet(request, config.photoKey)) return pickupJson({ error: "Please sign in to continue." }, 401);
   const parsed = fleetPhotoRequestSchema.safeParse(await limitedJson(request, 2048).catch(() => null));
   if (!parsed.success) return pickupJson({ error: "Invalid photo request." }, 400);

@@ -510,6 +510,8 @@ export const ERROR_MESSAGES: Readonly<Record<string, string>> = {
   "Fleet ride not found.": "Fleet ride not found.",
   "Fleet staging and an approved tracking origin are required.": "Fleet staging and an approved tracking origin are required.",
   "Fleet staging is unavailable.": "Fleet staging is unavailable.",
+  "The Fleet connection is unavailable.": "The Fleet connection is unavailable.",
+  "Tracking renewal requires an active Fleet connection and an approved tracking origin.": "Tracking renewal requires an active Fleet connection and an approved tracking origin.",
   "Folio access required.": "You don't have permission to change this folio. Ask Front Desk or Accounting for help.",
   "Forbidden": "You don't have permission to perform this action. Ask your system administrator if you need access.",
   "Fresh Workforce updates assign pending tasks to eligible staff by workload.": "Fresh Workforce updates assign pending tasks to eligible staff by workload.",

@@ -1,6 +1,6 @@
 # Haven Fleet preparation
 
-Updated locally 13 November 2026 from Fleet's attached [6 November schema](contracts/fleet-haven-2026-11-06.schema.json) and [complete acceptance sample](contracts/examples/acceptance.json). Connection stays **off**, tracking origins blank, hosted rollout on hold. PayMongo and automatic fare posting remain deferred. Earlier proposal documents are historical examples.
+Based on Fleet's [6 November schema](contracts/fleet-haven-2026-11-06.schema.json) and [complete acceptance sample](contracts/examples/acceptance.json). Haven supports an explicit production connection. The default is off.
 
 ## Current wire
 
@@ -31,7 +31,7 @@ Haven rechecks exact request/photo/version/current assignment, sharing permissio
 
 ## Explicit tracking renewal
 
-Front Desk → Transportation → Pickup & Fleet → active leg → **Renew tracking link**. Guest/Manager/Owner cannot execute it. It is unavailable without staging and an approved tracking origin. Haven saves a durable command before sending:
+Front Desk → Transportation → Pickup & Fleet → active leg → **Renew tracking link**. Front Desk can renew when the Fleet connection is enabled and the tracking origin is approved. Haven saves a durable command before sending.
 
 ```text
 POST /api/integration/transport-requests/source/{externalRequestId}/tracking/renew
@@ -61,33 +61,50 @@ The wire is `DELETE .../source/{externalRequestId}/tracking` with exactly `{expe
 
 Pending or completed withdrawal hides cached tracking and prevents renewal, including after re-consent or a higher-version assignment callback. A successful receipt requires a matching complete snapshot with `tracking:null`. Fleet is responsible for actually invalidating the public token. Local transport/stay cancellation still requires provider coordination; this adapter does not send a Fleet booking cancellation or implement general source reconciliation. Automatic fare posting remains deferred.
 
-## Release prerequisites
+## Hosted production configuration
 
-These four migrations remain local and unapplied to hosting in this session: `20261105010000`, `20261105020000`, `20261113010000`, `20261113020000`. Live ledger checked read-only before numbering:118 applied, latest `20261111050000`. Official Supabase scoped dry-run lists exactly these four files; no migration was applied. An authorized release must use `supabase db push`, never `npm run migrate`.
+The hosted Haven database includes the Fleet migrations and `20261120030000` for confirmed fares. Set the following in Haven's production environment and redeploy.
 
-Keep `.env.local` unchanged. Defaults are `HAVEN_FLEET_MODE=off`, blank contract/create URL/directional keys/tracking origins. Approved staging selects `HAVEN_FLEET_CONTRACT=fleet-haven-2026-11-06`, an exact HTTPS intake, distinct securely exchanged test credentials and Fleet's actual approved tracking origin. No production mode exists.
+| Haven setting | Value |
+|---|---|
+| `HAVEN_FLEET_MODE` | `production` |
+| `HAVEN_FLEET_CONTRACT` | `fleet-haven-2026-11-06` |
+| `HAVEN_FLEET_CREATE_URL` | Fleet's approved [HTTPS intake](https://fleet-transpo.vercel.app/api/integration/transport-requests) |
+| `HAVEN_FLEET_TRACKING_ORIGINS` | Approved Fleet HTTPS tracking origins when the partner sends tracking URLs |
 
-The internal `staging` setting means controlled joint testing on the existing deployments; no second hosted project is required. Three distinct server-only keys, each at least32 characters, are now mandatory:
+Provision three distinct server-only credentials of at least 32 characters.
 
 | Haven variable | Issuer / purpose |
 |---|---|
-| `HAVEN_FLEET_OUTBOUND_KEY` | Fleet-issued credential for Haven→Fleet API calls |
-| `HAVEN_FLEET_CALLBACK_KEY` | Haven-issued credential for Fleet status callbacks |
-| `HAVEN_FLEET_PHOTO_KEY` | Separate Haven-issued credential for pickup-photo signing |
+| `HAVEN_FLEET_OUTBOUND_KEY` | Fleet-issued credential. Its Fleet setting is `HAVEN_WEBHOOK_SECRET`. |
+| `HAVEN_FLEET_CALLBACK_KEY` | Haven-issued credential for status callbacks. Fleet sets it as `HAVEN_STAGING_API_KEY`. |
+| `HAVEN_FLEET_PHOTO_KEY` | Separate Haven-issued credential. Fleet sets it as `HAVEN_PICKUP_PHOTO_SIGN_TOKEN` for pickup-photo signing. |
 
 The old shared `HAVEN_FLEET_INBOUND_KEY` is ignored. Swapping callback/photo keys fails authorization. Fleet has accepted Bitwarden Send Text: separate password-protected Send per credential,24-hour expiry/deletion,max access1, private verified-recipient delivery and password via a separate verified channel. No actual Send/key has been generated or exchanged here.
 
-The existing Fleet/Haven HTTPS addresses and Fleet revision/revocation contract are supplied. Revocation and separate callback/photo authentication are locally implemented and tested. Still required: Haven route/migration deployment (last hosted probes404), verified hosted image origin, actual secure credential exchange, agreed test window, joint browser/device tests and authorized Front Desk/Fleet/Accounting sign-off. See [hosted readiness](FLEET_HOSTED_READINESS_2026-11-13.md). Automatic fare posting requires a separate approved accounting adapter/schema.
+Fleet's published revision `3cf85b5` enables the Haven connector on the hosted deployment
+with `HAVEN_PMS_ENABLED=true` and `HAVEN_HOSTED_TEST_ENABLED=true`. Its Haven callback sender
+uses `HAVEN_STAGING_API_URL` for [Haven's HTTPS origin](https://haven-hotel-management-ten.vercel.app)
+and the credential listed above. Those are the names used by Fleet's current code.
+Haven itself runs with `HAVEN_FLEET_MODE=production`.
+
+Use a designated QA reservation and a coordinated window on the existing hosted projects.
+Before dispatch, check that the deployed Haven callback requires authentication. Front Desk
+prepares and sends the QA pickup after Fleet is ready. Keep the QA stay open throughout posting.
+Fleet completes the test trip, then an authorized Fleet operator records the final fare.
+Fleet resends the resulting snapshot with the exact event ID and body. Front Desk confirms
+the fare and retries the same confirmation.
+The guest folio should contain one transportation line and reflect the fare exactly once.
 
 ## Manual checks on the existing hosted test deployments
 
 1. Guest → Transportation → Passenger details. Confirm account name/phone/email prefill. Leave photo empty; save preferences, luggage/notes and permission. Reopen and check values. Repeat with an optional photo.
 2. Front Desk reviews the request, opens Pickup & Fleet and prepares it. With connection off, sends/renewals stay unavailable and no request leaves Haven.
-3. In approved staging, send both legs. Verify one booking per external ID, contacts/preferences/luggage/notes, route and time. Retry an uncertain delivery: no duplicate booking.
+3. Send the approved test ride. For a round trip verify both legs, one Fleet request per external ID, contact preferences, route and time. Retry any uncertain delivery using the saved request.
 4. Assign a real Fleet driver/vehicle. Guest refresh shows current driver/plate. Track opens Fleet's page; Share passes the same URL through the device share sheet or clipboard fallback. Public tracking needs no staff login. Check actual GPS timestamps/expiry with Fleet.
 5. Explicitly renew. Verify guest gets the new URL, the old public URL stops working at Fleet, and nothing renews automatically. Test callback-first/lost-response retries, reassignment and revoked/terminal rides. Old callbacks must not restore previous assignments.
 6. Signing succeeds only for the current request/photo/version/assignment. Wrong leg, stale refs, replacement/removal or withdrawal fail. Confirm approved image origin and lifetime ≤120 seconds.
 7. Turn guest sharing off and confirm both attempted legs show queued/confirmed withdrawal. Retry a deliberately lost DELETE response using the original version. Change the Fleet version before an initial revoke; verify409 requires explicit review/confirmation. Confirm revoked URLs remain unusable through reassignment/re-consent and cannot renew. Exercise Fleet cancellation/completion and confirm public URLs return404. Also test Front Desk's one-leg revoke, photo-signing denial after consent withdrawal, and permission denial for Guest/Manager direct staff actions.
-8. Send fare/correction evidence. Accounting confirms no automatic transport charge appears in the folio. Record joint results and sign-off.
+8. Send fare evidence and verify the folio has zero transportation charges before Front Desk confirmation. Confirm the fare, replay the callback and retry confirmation. Verify one charge and the expected balance. Record the result.
 
 Local automated/browser results are in the Codex session note. Synthetic Fleet/storage and emulated mobile QA do not replace real partner, physical device or OS share-sheet acceptance.
