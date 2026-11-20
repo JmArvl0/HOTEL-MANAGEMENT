@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // Guest Details — Expected arrival is a native <input type="time">, the same control as
-// Pickup time under Need a ride. No radial clock, no wheel sheet, no shared state between
+// Pickup time under Transportation. No radial clock, no wheel sheet, no shared state between
 // the two times, and no change to what the hold receives. Booking, transportation and
 // early-check-in rules are untouched (asserted by source contract).
 import { readFileSync } from "node:fs";
@@ -29,8 +29,7 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 function renderForm(props: Partial<Parameters<typeof GuestDetailsForm>[0]> = {}, withRide = false) {
   const view = render(<GuestDetailsForm {...base} {...props}/>);
   if (withRide) {
-    fireEvent.click(screen.getByText("Transportation (optional)"));
-    fireEvent.click(screen.getByLabelText("Request transportation"));
+    fireEvent.click(screen.getByRole("radio", { name: "Arrange transportation" }));
   }
   return view;
 }
@@ -145,11 +144,19 @@ describe("guest details — untouched contracts", () => {
     expect(formSource.toLowerCase()).not.toContain("early_check_in");
   });
 
-  it("keeps the transportation block and its payload shape verbatim", () => {
-    expect(formSource).toContain("Need a ride?");
+  it("keeps the transportation preference payload shape", () => {
     expect(formSource).toContain("...(needRide ? { transportationPreferences: {");
     expect(formSource).toContain("SERVICE_OPTIONS.map((option)");
     expect(formSource).toContain('name="pickupTime"');
+  });
+
+  it("skips incomplete ride details when the guest chooses No thanks", async () => {
+    const { container } = renderForm({ initialArrival: "15:00" }, true);
+    fireEvent.click(screen.getByRole("radio", { name: "No thanks" }));
+    expect((pickup().closest("fieldset") as HTMLFieldSetElement).disabled).toBe(true);
+    submitForm(container);
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(payloadOf()).not.toHaveProperty("transportationPreferences");
   });
 
   it("no longer imports or renders the old picker", () => {
@@ -220,7 +227,7 @@ describe("breakfast selection with booking recovery", () => {
 
   it("includes the published included offer without requiring a paid option", async () => {
     const { container } = renderForm({ breakfast: { ...breakfast, mode: "included", price: 0 }, initialArrival: "15:00" });
-    expect(screen.queryByRole("radio")).toBeNull();
+    expect(screen.queryByRole("radio", { name: /room( only| with breakfast)/i })).toBeNull();
     submitForm(container);
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     expect(payloadOf().breakfastOfferId).toBe(breakfast.id);

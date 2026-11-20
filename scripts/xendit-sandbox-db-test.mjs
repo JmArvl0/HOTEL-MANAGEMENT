@@ -14,8 +14,8 @@ try {
   await db.query("update hotel_operational_policies set deposit_method='xendit' where key='default'");
   await db.query("update reservation_deposit_policies set enabled=true,calculation_type='percentage',percentage_basis_points=3000 where key='online_reservation'");
   const dates = await row("select (hotel_today()+30)::text cin,(hotel_today()+32)::text cout");
-  const hold = async f => call("hotel_create_breakfast_booking_hold", { p_user: f.users.guest, p_room: f.rooms[0].id,
-    p_details: { roomType: f.type, checkIn: dates.cin, checkOut: dates.cout, guests: 2, firstName: "Sandbox", lastName: "Guest", email: `${f.tag}@example.invalid`, mobile: "+639170000000" }, p_offer: null, p_replace: null });
+  const hold = async (f, transportationPreferences) => call("hotel_create_breakfast_booking_hold", { p_user: f.users.guest, p_room: f.rooms[0].id,
+    p_details: { roomType: f.type, checkIn: dates.cin, checkOut: dates.cout, guests: 2, firstName: "Sandbox", lastName: "Guest", email: `${f.tag}@example.invalid`, mobile: "+639170000000", transportationPreferences }, p_offer: null, p_replace: null });
   const begin = (f, token, client = db, channel = "GCASH", paymentChoice) => call("hotel_begin_xendit_checkout", {
     p_token: token, p_user_id: f.users.guest, p_channel: channel,
     ...(paymentChoice === undefined ? {} : { p_payment_choice: paymentChoice }),
@@ -28,6 +28,102 @@ try {
   const event = (a, id, type = "payment_session.completed", overrides = {}) => call("hotel_process_xendit_event", { p_event: type,
     p_reference: a.reference, p_session: id, p_amount: a.amount, p_currency: "PHP", p_transaction: type.endsWith("completed") ? `py-${a.paymentId}` : null, p_channel: "GCASH", ...overrides });
   const fresh = async () => { const f = await hotelFixture(db, 1); const token = await hold(f); const a = await begin(f, token); return { f, token, a }; };
+  const trips = async id => (await db.query("select * from transportation_requests where reservation_id=$1", [id])).rows;
+  const ride = (serviceType) => ({
+    serviceType, passengerCount: 2, pickupTime: "10:30",
+    pickupDate: serviceType === "DROPOFF" ? dates.cout : dates.cin,
+    ...(serviceType === "DROPOFF" ? { dropoffLocation: "Airport Terminal 1" } : { pickupLocation: "Airport Terminal 3" }),
+    ...(serviceType === "ROUND_TRIP" ? { returnLocation: "Airport Terminal 1", returnDate: dates.cout, returnTime: "15:00" } : {}),
+  });
+  const transition = (f, trip, version, action, details = {}) => call("staff_transition_transportation_request", {
+    p_request_id: trip.id, p_action: action, p_details: details, p_staff_user_id: f.users.front_desk, p_expected_version: version,
+  });
+
+  await test("optional transportation files once after verified payment and never changes checkout price", async () => {
+    for (const type of [null, "PICKUP", "DROPOFF", "ROUND_TRIP"]) {
+      const f = await hotelFixture(db, 1);
+      const token = await hold(f, type ? ride(type) : undefined);
+      const checkout = await begin(f, token, db, "GCASH", "full");
+      assert.equal(Number(checkout.amount), 200);
+      assert.equal((await trips(checkout.reservationId)).length, 0);
+      const session = await attach(checkout);
+      assert.equal((await event(checkout, session)).outcome, "confirmed");
+      assert.equal((await event(checkout, session)).outcome, "already_paid");
+      const requests = await trips(checkout.reservationId);
+      assert.equal(requests.length, type ? 1 : 0);
+      if (type) {
+        assert.equal(requests[0].service_type, type);
+        assert.equal(requests[0].status, "REQUESTED");
+        assert.equal(requests[0].fare_amount, null);
+        assert.equal(requests[0].return_time, type === "ROUND_TRIP" ? "15:00" : null);
+      }
+      assert.deepEqual(await row("select amount::int,paid::int,balance::int from invoices where reservation_id=$1", [checkout.reservationId]),
+        { amount: 200, paid: 200, balance: 0 });
+    }
+  });
+
+  await test("expired or unpaid transportation preferences create no dispatch, and a filing failure leaves payment confirmed", async () => {
+    const f = await hotelFixture(db, 1);
+    const abandoned = await hold(f, ride("PICKUP"));
+    await db.query("update booking_holds set expires_at=now()-interval '1 minute' where token=$1", [abandoned]);
+    await call("expire_booking_holds", {});
+    assert.equal((await row("select reservation_id from booking_holds where token=$1", [abandoned])).reservation_id, null);
+    const label = await row("select transfer_hotel_label from hotel_operational_policies where key='default'");
+    const token = await hold(f, { ...ride("PICKUP"), pickupLocation: label.transfer_hotel_label || "HAVEN Hotel & Residences" });
+    const checkout = await begin(f, token);
+    const session = await attach(checkout);
+    await assert.rejects(event(checkout, session, "payment_session.completed", { p_amount: 1 }), /XENDIT_SESSION_MISMATCH/);
+    assert.equal((await trips(checkout.reservationId)).length, 0);
+    assert.equal((await event(checkout, session)).outcome, "confirmed");
+    assert.equal((await trips(checkout.reservationId)).length, 0);
+    assert.equal((await row("select status from reservations where id=$1", [checkout.reservationId])).status, "confirmed");
+    assert.equal((await row("select count(*)::int n from audit_logs where entity_id=$1 and action='file_booking_transportation_skipped'", [checkout.reservationId])).n, 1);
+  });
+
+  await test("only the assigned hotel vehicle fare enters the existing folio once, using available credit", async () => {
+    const f = await hotelFixture(db, 1);
+    const checkout = await begin(f, await hold(f, ride("ROUND_TRIP")), db, "GCASH", "full");
+    await event(checkout, await attach(checkout));
+    const [trip] = await trips(checkout.reservationId);
+    await db.query("update invoices set amount=180 where reservation_id=$1", [checkout.reservationId]);
+    const invoice = await row("select id from invoices where reservation_id=$1", [checkout.reservationId]);
+    await db.query("select sync_invoice_financials($1)", [invoice.id]);
+    const vehicle = await row("insert into transport_vehicle_types(name,seats,base_fare,booking_fee) values($1,4,42,8) returning id", [`QA-${f.tag}`]);
+    await transition(f, trip, 1, "REVIEW");
+    await transition(f, trip, 2, "SCHEDULE");
+    const details = { driverName: "Test driver", vehicleTypeId: vehicle.id, expectedFareMinor: 10000 };
+    await assert.rejects(transition(f, trip, 3, "ASSIGN", { ...details, expectedFareMinor: 9000 }), /TRANSPORTATION_FARE_CHANGED/);
+    assert.equal((await transition(f, trip, 3, "ASSIGN", details)).fareAmount, 100);
+    await assert.rejects(transition(f, trip, 3, "ASSIGN", details), /TRANSPORTATION_REQUEST_STALE/);
+    await transition(f, trip, 4, "START");
+    await transition(f, trip, 5, "COMPLETE");
+    assert.deepEqual(await row("select amount::int,paid::int,balance::int,credit_balance::int from invoices where id=$1", [invoice.id]),
+      { amount: 280, paid: 200, balance: 80, credit_balance: 0 });
+    assert.equal((await row("select count(*)::int n from folio_charges where source_record_id=$1 and category='transportation'", [trip.id])).n, 1);
+  });
+
+  await test("ride cancellation preserves the stay, and stay cancellation closes an uncommitted ride", async () => {
+    const f = await hotelFixture(db, 1);
+    const checkout = await begin(f, await hold(f, ride("PICKUP")));
+    await event(checkout, await attach(checkout));
+    const [booked] = await trips(checkout.reservationId);
+    const cancel = (user) => call("customer_cancel_transportation_request", {
+      p_user_id: user, p_request_id: booked.id, p_reason: null, p_expected_version: 1,
+    });
+    const other = await hotelFixture(db, 0);
+    await assert.rejects(cancel(other.users.guest), /TRANSPORTATION_REQUEST_NOT_FOUND/);
+    assert.equal((await cancel(f.users.guest)).status, "CANCELLED");
+    assert.equal((await row("select status from reservations where id=$1", [checkout.reservationId])).status, "confirmed");
+    const submitted = await call("customer_submit_transportation_request", {
+      p_user_id: f.users.guest, p_reservation_id: checkout.reservationId, p_service_type: "DROPOFF",
+      p_pickup_location: null, p_dropoff_location: "Airport Terminal 1", p_pickup_date: dates.cout,
+      p_pickup_time: "14:00", p_return_location: null, p_return_date: null, p_return_time: null,
+      p_passenger_count: 2, p_special_instructions: null, p_idempotency_key: randomUUID(),
+    });
+    await transition(f, submitted, 1, "REVIEW");
+    await db.query("update reservations set status='cancelled' where id=$1", [checkout.reservationId]);
+    assert.equal((await row("select status from transportation_requests where id=$1", [submitted.id])).status, "CANCELLED");
+  });
 
   await test("pending deposit uses frozen server price, exact room and a single local record", async () => {
     const { f, token, a } = await fresh();

@@ -7,14 +7,18 @@ import { useState, type FormEvent } from "react";
 import { Camera, UserRound } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { RIDE_PREFERENCES } from "@/lib/fleet-safety";
+import { formatPeso } from "@/lib/format";
 import "./transport-pickup-profile.css";
 
 type Profile = { travelerName: string; phone: string; email: string; sharingEnabled: boolean; hasPhoto: boolean; photoUrl: string | null; version: number; ridePreferences: string[]; luggageCount: number; luggageNotes: string; rideNotes: string };
 type Delivery = { id: string; state: string; attempts: number; next_attempt_at: string; last_error: string | null };
 type Renewal = { id: string; state: string; expected_version: number; assignment_reference: string };
 type Revocation = { state: string; attempts: number; expected_version: number | null; conflict_version: number | null; next_attempt_at: string };
-type Link = { id: string; leg: string; fleet_reference: string | null; partner_status: string | null; partner_version: number; assignment_active: boolean; assignmentReference: string | null; needs_review: boolean; reconciliation_note: string | null; fleet_transport_outbox: Delivery | Delivery[] | null; fleet_tracking_renewals: Renewal[]; fleet_tracking_revocations: Revocation | Revocation[] | null };
-type Fleet = { enabled: boolean; renewalEnabled: boolean; links: Link[] };
+type Link = { id: string; leg: string; fleet_reference: string | null; partner_status: string | null; partner_version: number; assignment_active: boolean; assignmentReference: string | null; driverName: string | null; vehicleDescription: string | null; vehiclePlate: string | null; needs_review: boolean; reconciliation_note: string | null; fleet_transport_outbox: Delivery | Delivery[] | null; fleet_tracking_renewals: Renewal[]; fleet_tracking_revocations: Revocation | Revocation[] | null };
+type Fleet = {
+  enabled: boolean; renewalEnabled: boolean; links: Link[];
+  fare: { postedAmount: number | null; quote: { amountMinor: number; revision: string } | null; canPost: boolean } | null;
+};
 const empty: Profile = { travelerName: "", phone: "", email: "", sharingEnabled: false, hasPhoto: false, photoUrl: null, version: 0, ridePreferences: [], luggageCount: 0, luggageNotes: "", rideNotes: "" };
 const stateLabel: Record<string, string> = { PREPARED: "Prepared locally", SENDING: "Sending", SENT: "Accepted by Fleet", SUCCEEDED: "Tracking link renewed. Previously shared links have been replaced.", FAILED: "We could not confirm the partner response. Check the request status before retrying the saved action.", NEEDS_REVIEW: "Needs coordination", NOT_DUE: "This request is already being sent or is waiting before another attempt. Check its current status.", DISABLED: "The Fleet connection is turned off. Contact Front Desk for help." };
 
@@ -76,6 +80,10 @@ export function TransportPickupProfile({ requestId, requestVersion, staff = fals
       if (!response.ok) throw new Error(body.error ?? "Unable to update Fleet preparation.");
       await load();
       setConfirmRevoke(null);
+      if (payload.action === "confirmFare") {
+        setMessage(body.fareAmount === 0 ? "No transportation charge is due." : "Confirmed fare is on the guest folio.");
+        return;
+      }
       setMessage(payload.action === "revoke" && body.state === "SUCCEEDED" ? "Shared link revoked. Previously shared URLs are now unavailable." : body.state === "CONFLICT" ? "Fleet has a newer version. Review the current ride before confirming revocation again." : payload.action === "prepare" ? "Prepared locally. Fleet has not received this request." : payload.action === "reconcile" ? "Coordination note saved. Pending partner confirmation stays visible." : stateLabel[body.state] ?? "Delivery checked.");
     } catch (e) { setError(userMessage(e, "Unable to update Fleet preparation.")); }
     finally { setBusy(false); }
@@ -104,7 +112,7 @@ export function TransportPickupProfile({ requestId, requestVersion, staff = fals
               <label>Contact number<input required type="tel" maxLength={30} autoComplete="tel" placeholder="+63 917 123 4567" value={profile.phone} onChange={event => setProfile({ ...profile, phone: event.target.value })} /><small>Use the number of the passenger or lead traveler.</small></label>
               <label>Email <small>Optional</small><input type="email" maxLength={254} autoComplete="email" value={profile.email} onChange={event => setProfile({ ...profile, email: event.target.value })} /></label>
               <div className="pickup-ride-preferences" role="group" aria-label="Ride preferences">
-                <h3>Make the ride yours</h3><p className="pickup-profile-help">Optional preferences. Front Desk and Fleet will confirm what can be accommodated.</p>
+                <h3>Make the ride yours</h3><p className="pickup-profile-help">Optional preferences. Front Desk will confirm what can be arranged.</p>
                 {RIDE_PREFERENCES.map(option => <label className="pickup-preference-option" key={option.value}><input type="checkbox" checked={profile.ridePreferences.includes(option.value)} onChange={event => setProfile({ ...profile, ridePreferences: event.target.checked ? [...profile.ridePreferences, option.value] : profile.ridePreferences.filter(value => value !== option.value) })} /><span><b>{option.label}</b><small>{option.hint}</small></span></label>)}
               </div>
               <label>Luggage count<input type="number" min={0} max={20} required value={profile.luggageCount} onChange={event => setProfile({ ...profile, luggageCount: Number(event.target.value) })} /><small>Enter 0 if you are travelling without bags.</small></label>
@@ -117,13 +125,30 @@ export function TransportPickupProfile({ requestId, requestVersion, staff = fals
           </form>
           {staff && fleet && <section className="pickup-profile-fleet" aria-label="Fleet preparation">
             <h3>Fleet preparation</h3><p>{fleet.enabled ? "Staging connection enabled. Partner updates remain subject to review." : "Partner connection is off. Prepared requests stay in the hotel for now."}</p>
+            {fleet.fare && fleet.links.some(link => link.fleet_reference) && <div className="pickup-profile-fare">
+              <h4>Guest folio</h4>
+              {fleet.fare.postedAmount != null ? <>
+                <p>{fleet.fare.postedAmount === 0 ? "No charge due" : `Fare posted · ${formatPeso(fleet.fare.postedAmount)}`}</p>
+                {fleet.fare.quote && fleet.fare.quote.amountMinor !== Math.round(fleet.fare.postedAmount * 100) &&
+                  <p>Fleet now reports {formatPeso(fleet.fare.quote.amountMinor / 100)}. Ask Accounting to review the difference.</p>}
+              </> : fleet.fare.quote ? <>
+                <p>Fleet fare · {formatPeso(fleet.fare.quote.amountMinor / 100)}</p>
+                {fleet.fare.canPost ? <p>Confirm after agreeing the final fare with the guest.</p> : <p>Contact Accounting to review this fare.</p>}
+                {canPrepare && fleet.fare.canPost && <button type="button" className="btn btn-soft" disabled={busy}
+                  onClick={() => act({ action: "confirmFare", revision: fleet.fare?.quote?.revision })}>
+                  {fleet.fare.quote.amountMinor === 0 ? "Confirm no charge" : `Confirm ${formatPeso(fleet.fare.quote.amountMinor / 100)} on folio`}
+                </button>}
+              </> : <p>Waiting for the fare for each ride leg.</p>}
+            </div>}
             {canPrepare && <button type="button" className="btn btn-soft" disabled={busy} onClick={() => act({ action: "prepare", expectedVersion: requestVersion })}>Prepare for Fleet</button>}
             {fleet.links.map(link => {
               const delivery = Array.isArray(link.fleet_transport_outbox) ? link.fleet_transport_outbox[0] : link.fleet_transport_outbox;
               const renewal = link.fleet_tracking_renewals?.find(row => ["PENDING", "SENDING", "FAILED"].includes(row.state));
               const revocation = Array.isArray(link.fleet_tracking_revocations) ? link.fleet_tracking_revocations[0] : link.fleet_tracking_revocations;
+              const assignment = [link.driverName, link.vehicleDescription, link.vehiclePlate].filter(Boolean).join(" · ");
               return <div className="pickup-profile-leg" key={link.id}><b>{link.leg === "RETURN" ? "Return ride" : "Outbound ride"}</b><span>{link.needs_review ? "Needs coordination" : stateLabel[delivery?.state ?? ""] ?? "Not prepared"}</span>
                 {link.fleet_reference && <small>Fleet reference {link.fleet_reference} · {link.partner_status ?? "Awaiting status"}</small>}
+                {assignment && <small>{assignment}</small>}
                 {delivery && delivery.attempts > 0 && <small>{delivery.attempts} delivery attempt{delivery.attempts === 1 ? "" : "s"}{delivery.state === "FAILED" ? ` · next retry ${new Date(delivery.next_attempt_at).toLocaleString()}` : ""}</small>}
                 {canPrepare && delivery && ["PREPARED", "FAILED", "SENDING"].includes(delivery.state) && <button type="button" className="btn btn-soft" disabled={busy || !fleet.enabled} onClick={() => act({ action: "deliver", outboxId: delivery.id })}>{delivery.attempts ? "Retry delivery" : "Send to Fleet staging"}</button>}
                 {canPrepare && !revocation && link.assignment_active && !link.needs_review && link.assignmentReference && <div>

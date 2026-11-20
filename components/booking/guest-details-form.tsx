@@ -11,15 +11,14 @@ import { preArrivalServices, type PreArrivalOptions } from "@/lib/inventory-requ
 import { HavenErrorAlert } from "@/components/ui/haven-data-controls";
 import type { BreakfastChoice } from "@/lib/breakfast";
 import { formatPeso } from "@/lib/format";
-
-type TransportationPreferences = { serviceType: "PICKUP" | "DROPOFF" | "ROUND_TRIP"; pickupLocation?: string; dropoffLocation?: string; pickupDate: string; pickupTime: string; returnLocation?: string; returnDate?: string; returnTime?: string; passengerCount: number; specialInstructions?: string };
+import type { TransportationPreferences } from "@/lib/transportation-display";
 
 type Props = { roomId?: string; holdToken?: string; roomType: string; checkIn: string; checkOut: string; guests: number; checkInFrom: string; defaults: Record<string, string>; initialRequests?: string[]; initialArrival?: string; initialTransport?: TransportationPreferences | null; preArrival?: PreArrivalOptions; breakfast?: BreakfastChoice | null; initialBreakfast?: boolean };
 
 const SERVICE_OPTIONS = [
-  { value: "PICKUP", label: "Pickup to Hotel (e.g. airport pickup)" },
-  { value: "DROPOFF", label: "Drop-off from Hotel (e.g. hotel to airport)" },
-  { value: "ROUND_TRIP", label: "Round Trip (pickup + return drop-off)" },
+  { value: "PICKUP", label: "Pickup to the hotel" },
+  { value: "DROPOFF", label: "Hotel drop-off" },
+  { value: "ROUND_TRIP", label: "Round trip" },
 ] as const;
 
 export function GuestDetailsForm({ roomId, holdToken, roomType, checkIn, checkOut, guests, checkInFrom, defaults, initialRequests = [], initialArrival = "", initialTransport = null, preArrival, breakfast, initialBreakfast }: Props) {
@@ -146,26 +145,31 @@ export function GuestDetailsForm({ roomId, holdToken, roomType, checkIn, checkOu
       <p className="request-options-subhead">Special requests</p>
       <div className="request-options-list">{services.map((option) => <label className="request-option" key={option.value}><input type="checkbox" name="requestOption" data-error-field="requestOptions" aria-invalid={Boolean(fields.requestOptions) || undefined} aria-describedby={fields.requestOptions ? "booking-field-requestOptions-error" : undefined} value={option.value} defaultChecked={initialRequests.includes(option.value)}/><span>{option.label}</span></label>)}</div>
     </div></details>
-    <details className="booking-optional" open={Boolean(initialTransport)}><summary>Transportation (optional)</summary><div className="booking-form-options">
-      <span className="booking-form-option-heading"><span className="transport-title"><CarTaxiFront size={14}/> Need a ride?</span><small>Optional — request hotel transportation. Our Front Desk reviews and schedules it once your stay is confirmed; the fare is settled with the hotel directly.</small></span>
+    <fieldset className="booking-ride-choice" id="booking-transportation">
+      <legend><CarTaxiFront size={16} aria-hidden="true" /> Transportation <small>Optional</small></legend>
+      <p>Need a ride to or from the hotel?</p>
       <div className="request-options-list">
-        <label className="request-option"><input type="checkbox" checked={needRide} onChange={(e) => setNeedRide(e.target.checked)}/><span><strong>Request transportation</strong></span></label>
-        {needRide && (<div className="booking-form-grid transport-ride-fields">
+        <label className="request-option"><input name="needRide" type="radio" checked={!needRide} onChange={() => setNeedRide(false)} />No thanks</label>
+        <label className="request-option"><input name="needRide" type="radio" checked={needRide} onChange={() => setNeedRide(true)} />Arrange transportation</label>
+      </div>
+      <div hidden={!needRide}>
+        <p>Front Desk will review your request after your stay is confirmed and add the confirmed fare to your folio.</p>
+        <fieldset disabled={!needRide} className="booking-form-grid transport-ride-fields" aria-label="Ride details">
           <label className="wide">Service type<select value={serviceType} onChange={(e) => setServiceType(e.target.value)}>{SERVICE_OPTIONS.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
           {(serviceType === "PICKUP" || serviceType === "ROUND_TRIP") && <label className="wide">{serviceType === "ROUND_TRIP" ? "Arrival pickup location" : "Pickup location"}<input name="pickupLocation" required minLength={5} maxLength={200} placeholder="e.g. NAIA Terminal 3, Pasay City" defaultValue={initialTransport?.pickupLocation ?? ""} {...fieldProps("pickupLocation")} />{fieldError("pickupLocation")}</label>}
           {serviceType === "DROPOFF" && <label className="wide">Destination<input name="dropoffLocation" required minLength={5} maxLength={200} placeholder="e.g. NAIA Terminal 3, Pasay City" defaultValue={initialTransport?.dropoffLocation ?? ""} {...fieldProps("dropoffLocation")} />{fieldError("dropoffLocation")}</label>}
+          <label>Pickup date<input key={serviceType === "DROPOFF" ? "departure" : "arrival"} name="pickupDate" type="date" required min={checkIn} max={checkOut} defaultValue={initialTransport?.serviceType === serviceType ? initialTransport.pickupDate : serviceType === "DROPOFF" ? checkOut : checkIn} {...fieldProps("pickupDate")} />{fieldError("pickupDate")}</label>
+          <label>Pickup time<input name="pickupTime" type="time" required defaultValue={initialTransport?.pickupTime ?? ""} {...fieldProps("pickupTime")} />{fieldError("pickupTime")}</label>
           {serviceType === "ROUND_TRIP" && (<>
             <label className="wide">Departure destination<input name="returnLocation" required minLength={5} maxLength={200} placeholder="e.g. NAIA Terminal 1, Pasay City" defaultValue={initialTransport?.returnLocation ?? ""} {...fieldProps("returnLocation")} />{fieldError("returnLocation")}</label>
-            <label>Return date<input name="returnDate" type="date" required min={checkIn} max={checkOut} defaultValue={initialTransport?.returnDate ?? ""} {...fieldProps("returnDate")} />{fieldError("returnDate")}</label>
+            <label>Return date<input name="returnDate" type="date" required min={checkIn} max={checkOut} defaultValue={initialTransport?.returnDate ?? checkOut} {...fieldProps("returnDate")} />{fieldError("returnDate")}</label>
             <label>Return time<input name="returnTime" type="time" required defaultValue={initialTransport?.returnTime ?? ""} {...fieldProps("returnTime")} />{fieldError("returnTime")}</label>
           </>)}
-          <label>Pickup date<input name="pickupDate" type="date" required min={checkIn} max={checkOut} defaultValue={initialTransport?.pickupDate ?? ""} {...fieldProps("pickupDate")} />{fieldError("pickupDate")}</label>
-          <label>Pickup time<input name="pickupTime" type="time" required defaultValue={initialTransport?.pickupTime ?? ""} {...fieldProps("pickupTime")} />{fieldError("pickupTime")}</label>
           <label>Passengers<input name="passengerCount" type="number" min={1} max={20} defaultValue={initialTransport?.passengerCount ?? (guests > 20 ? 20 : guests)} required {...fieldProps("passengerCount")} />{fieldError("passengerCount")}</label>
-          <label className="wide">Pickup time or instructions (optional)<input name="rideNote" maxLength={500} placeholder="e.g. flight lands 6:00 PM, 2 large suitcases" defaultValue={initialTransport?.specialInstructions ?? ""}/></label>
-        </div>)}
+          <label className="wide">Ride notes (optional)<textarea name="rideNote" rows={2} maxLength={500} placeholder="Flight, terminal or bags" defaultValue={initialTransport?.specialInstructions ?? ""} {...fieldProps("specialInstructions")} />{fieldError("specialInstructions")}</label>
+        </fieldset>
       </div>
-    </div></details>
+    </fieldset>
     <label className="booking-form-other"><span>Anything else?</span><small>Optional — tell us more and we will pass it to the front desk.</small><textarea name="specialRequests" defaultValue={defaults.specialRequests} maxLength={1000} rows={3} {...fieldProps("specialRequests")} />{fieldError("specialRequests")}</label>
     {error && <HavenErrorAlert title="Booking needs attention" body={error} variant="customer" />}<button className="btn btn-accent" disabled={loading}>{loading ? "Securing your room…" : "Review booking"}<ArrowRight size={17}/></button>
   </form>;

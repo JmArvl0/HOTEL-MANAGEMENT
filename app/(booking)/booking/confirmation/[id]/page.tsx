@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { CheckCircle2, Clock3 } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { BookingPageFrame } from "@/components/booking/booking-page-frame";
-import { calculateFinancialState, calculateNights, formatPeso, policyFromSnapshot } from "@/lib/booking";
+import { calculateFinancialState, calculateNights, formatPeso, hotelToday, policyFromSnapshot } from "@/lib/booking";
 import { friendlyStatus, getCustomerReservationDetail } from "@/lib/customer";
 import { BreakfastEntry } from "@/components/customer/breakfast-entry";
 import { CheckInQr } from "@/components/customer/check-in-qr";
@@ -15,6 +15,7 @@ import { PaymentStatusPoller } from "@/components/booking/payment-status-poller"
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { XenditCheckout } from "@/components/booking/xendit-checkout";
+import { FLEET_RIDE_STATUS_LABELS, getCustomerTransportation, isTerminalStatus, reservationTransportationHref, SERVICE_TYPE_LABELS, TRANSPORTATION_STATUS_LABELS } from "@/lib/transportation";
 
 export default async function ConfirmationPage({
   params,
@@ -39,25 +40,20 @@ export default async function ConfirmationPage({
   const confirmed = reservation.status === "confirmed";
   const policy = policyFromSnapshot(reservation.deposit_policy_snapshot);
 
-  const rideRequest = reservation.transportation_preferences as
-    | {
-        serviceType: "PICKUP" | "DROPOFF" | "ROUND_TRIP";
-        pickupLocation?: string;
-        dropoffLocation?: string;
-        pickupDate: string;
-        pickupTime: string;
-        returnLocation?: string;
-        returnDate?: string;
-        passengerCount: number;
-      }
-    | null ?? null;
+  const canArrangeRide = confirmed && reservation.check_out >= hotelToday();
+  const rideRequests = confirmed
+    ? await getCustomerTransportation(session.user.id, reservation.id).catch(() => null)
+    : [];
+  const ride = rideRequests?.find((request) => !isTerminalStatus(request.status)) ?? rideRequests?.[0];
+  const transportationHref = reservationTransportationHref(reservation.id);
 
   const depositPayment =
     reservation.payments.find((payment) => payment.purpose === "reservation_deposit") ?? null;
   const xendit = reservation.payment_method === "gateway_xendit";
   const review = xendit && supabase ? await supabase.rpc("guest_xendit_review_status", { p_reservation: reservation.id, p_guest: session.user.id }) : null;
   const paymentUnderReview = review?.data === true;
-  const paidInFull = xendit && finance.paid > 0 && finance.balance === 0;
+  const stayTotal = Number(reservation.total);
+  const paidInFull = xendit && stayTotal > 0 && finance.paid >= stayTotal;
   const terminal = reservation.status === "cancelled";
   const manualDepositPending = !xendit && !terminal && depositPayment?.status === "pending_verification" &&
     (depositPayment.method === "manual_gcash" || depositPayment.method === "manual_bank_transfer");
@@ -75,14 +71,6 @@ export default async function ConfirmationPage({
     !confirmed && !terminal &&
     (reservation.payment_method === "gateway_paymongo" ||
       depositPayment?.method === "gateway_paymongo");
-
-  const rideLabel = rideRequest
-    ? {
-        PICKUP: "Airport Pickup",
-        DROPOFF: "Hotel Drop-off",
-        ROUND_TRIP: "Round Trip Transportation",
-      }[rideRequest.serviceType]
-    : null;
 
   const breadcrumb = [
     {
@@ -165,28 +153,9 @@ export default async function ConfirmationPage({
             </dd>
           </div>
           <div>
-            <dt>Stay total</dt>
+            <dt>Folio total</dt>
             <dd>{formatPeso(finance.total)}</dd>
           </div>
-          {rideLabel && rideRequest && (
-            <div className="dl-note-row">
-              <dt>Transportation request</dt>
-              <dd>
-                {rideLabel} ·{" "}
-                {rideRequest.serviceType === "DROPOFF"
-                  ? `Hotel → ${rideRequest.dropoffLocation}`
-                  : `${rideRequest.pickupLocation} → Hotel`}
-                <small className="summary-note">
-                  {rideRequest.passengerCount} passenger{rideRequest.passengerCount !== 1 ? "s" : ""} ·{" "}
-                  {rideRequest.pickupDate} {rideRequest.pickupTime} —{" "}
-                  {confirmed
-                    ? "filed for the Front Desk to review and schedule"
-                    : "will be filed once your reservation is confirmed"}
-                  . Transportation is settled with the hotel directly.
-                </small>
-              </dd>
-            </div>
-          )}
           <div>
             <dt>Required reservation deposit</dt>
             <dd>{formatPeso(reservation.deposit_required ?? 0)}</dd>
@@ -222,6 +191,29 @@ export default async function ConfirmationPage({
             </div>
           )}
         </dl>
+        {confirmed && (ride || rideRequests === null || reservation.transportation_preferences || canArrangeRide) ? (
+          <section className="confirmation-transportation" aria-label="Transportation">
+            {ride ? <>
+              <h2>{ride.status === "REQUESTED" ? "Transportation request submitted" : "Transportation"}</h2>
+              <p><strong>{SERVICE_TYPE_LABELS[ride.service_type]}</strong>{!ride.rideUpdates.length && ` · ${TRANSPORTATION_STATUS_LABELS[ride.status]}`}</p>
+              <p>{ride.pickup_location} → {ride.dropoff_location} · {ride.pickup_date} at {ride.pickup_time}</p>
+              {ride.return_location && <p>{ride.dropoff_location} → {ride.return_location} · {ride.return_date} at {ride.return_time}</p>}
+              {ride.rideUpdates.map(({ leg, status }) => <p key={leg}>{leg === "RETURN" ? "Return ride" : "Outbound ride"} · {FLEET_RIDE_STATUS_LABELS[status]}</p>)}
+              {ride.status === "REQUESTED" && <p>Front Desk will review your request and add the confirmed fare to your folio.</p>}
+              <Link className="btn btn-soft" href={transportationHref}>View transportation</Link>
+            </> : rideRequests === null ? <>
+              <h2>Transportation</h2>
+              <p>Your stay is confirmed. We couldn&apos;t check your ride details right now.</p>
+              <Link className="btn btn-soft" href={transportationHref}>Check transportation</Link>
+            </> : <>
+              <h2>{reservation.transportation_preferences ? "Transportation request needs attention" : "Getting to the hotel?"}</h2>
+              <p>{reservation.transportation_preferences
+                ? "Your stay is confirmed. We couldn’t submit your ride request automatically."
+                : "Request a pickup or drop-off for this stay."}</p>
+              {canArrangeRide && <Link className="btn btn-soft" href={reservationTransportationHref(reservation.id, true)}>Arrange transportation</Link>}
+            </>}
+          </section>
+        ) : null}
         <p className="remaining-policy">Remaining balance due: {policy.remainingBalanceDue}.</p>
         <p className="remaining-policy">
           Rates are VAT-inclusive — service charge and VAT are itemised on your official receipt and folio statement.

@@ -33,7 +33,8 @@ it("releases transportation loading and reuses the request identity after a time
   const fetcher = vi.fn().mockRejectedValueOnce(new Error("private provider timeout"))
     .mockResolvedValueOnce(Response.json({ data: { id: "trip-fixture" } }));
   vi.stubGlobal("fetch", fetcher);
-  const view = render(<TransportationRequestForm hotelLabel="HAVEN" reservations={[{ id: "stay-fixture", confirmation_number: "STAY-FIXTURE", room_type: "Garden Twin", check_in: "2026-12-10", check_out: "2026-12-12" }]} />);
+  const view = render(<TransportationRequestForm hotelLabel="HAVEN" today="2026-12-01" reservationSelected={false} openInitially={false}
+    reservations={[{ id: "stay-fixture", confirmation_number: "STAY-FIXTURE", room_type: "Garden Twin", check_in: "2026-12-10", check_out: "2026-12-12", guests: 2 }]} />);
   fireEvent.click(screen.getByRole("button", { name: /Request transportation/i }));
   const form = view.baseElement.querySelector("form")!;
   for (const [name, value] of Object.entries({ pickupLocation: "Airport Terminal 3", pickupDate: "2026-12-10", pickupTime: "14:00" })) {

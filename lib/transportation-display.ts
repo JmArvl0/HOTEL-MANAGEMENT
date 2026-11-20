@@ -5,6 +5,18 @@
  */
 
 export type TransportationServiceType = "PICKUP" | "DROPOFF" | "ROUND_TRIP";
+export type TransportationPreferences = {
+  serviceType: TransportationServiceType;
+  pickupLocation?: string;
+  dropoffLocation?: string;
+  pickupDate: string;
+  pickupTime: string;
+  returnLocation?: string;
+  returnDate?: string;
+  returnTime?: string;
+  passengerCount: number;
+  specialInstructions?: string;
+};
 export type TransportationStatus =
   | "REQUESTED" | "REVIEWED" | "SCHEDULED" | "ASSIGNED"
   | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "REJECTED";
@@ -48,9 +60,18 @@ export const SERVICE_TYPE_LABELS: Record<TransportationServiceType, string> = {
 };
 
 export const TRANSPORTATION_STATUS_LABELS: Record<TransportationStatus, string> = {
-  REQUESTED: "Requested", REVIEWED: "Reviewed", SCHEDULED: "Scheduled", ASSIGNED: "Assigned",
+  REQUESTED: "Requested", REVIEWED: "Under review", SCHEDULED: "Scheduled", ASSIGNED: "Assigned",
   IN_PROGRESS: "In progress", COMPLETED: "Completed", CANCELLED: "Cancelled", REJECTED: "Rejected",
 };
+
+export function reservationTransportationHref(reservationId: string, arrange = false) {
+  return `/account/transportation?${new URLSearchParams({ reservation: reservationId, ...(arrange ? { arrange: "1" } : {}) })}`;
+}
+
+export const FLEET_RIDE_STATUS_LABELS = {
+  SCHEDULED: "Scheduled", ASSIGNED: "Assigned", IN_TRANSIT: "In progress",
+  COMPLETED: "Completed", CANCELLED: "Cancelled", REJECTED: "Rejected",
+} as const;
 
 /** Shape returned to the customer portal. staff_notes is never selected. */
 export type CustomerTransportationRequest = {
@@ -59,6 +80,8 @@ export type CustomerTransportationRequest = {
   return_location: string | null; return_date: string | null; return_time: string | null;
   passenger_count: number; special_instructions: string | null; status: TransportationStatus;
   driver_name: string | null; vehicle_type: string | null; fare_amount: number | null;
+  fleetDispatched: boolean;
+  rideUpdates: { leg: "OUTBOUND" | "RETURN"; status: keyof typeof FLEET_RIDE_STATUS_LABELS }[];
   customer_visible_notes: string | null; cancellation_reason: string | null;
   version: number; created_at: string;
   reservation?: { confirmation_number: string | null; room_type: string; check_in: string; check_out: string } | null;

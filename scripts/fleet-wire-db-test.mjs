@@ -119,6 +119,58 @@ try {
   validate("StatusSnapshot", s); await receive(s); assert.equal((await db.query("select payload->'wire_snapshot'->'fare'->>'fare_amount_minor' amount from fleet_transport_inbox where event_id=$1", [s.event_id])).rows[0].amount, "12345");
   assert.equal((await db.query("select count(*)::int n from folio_charges where reservation_id=$1", [trip.reservation])).rows[0].n, 0);
  });
+ await test("attempted Fleet delivery prevents catalog billing and guest cancellation", async () => {
+  const scheduled = await create(false);
+  await call("staff_transition_transportation_request", { p_request_id: scheduled.id, p_action: "SCHEDULE", p_details: {}, p_staff_user_id: f.users.front_desk, p_expected_version: 2 });
+  await call("prepare_fleet_transport", { p_actor: f.users.front_desk, p_request: scheduled.id, p_expected_version: 3 });
+  const first = scheduled.rows[0];
+  assert.ok(await call("claim_fleet_transport", { p_id: first.id, p_lease: randomUUID() }));
+  await assert.rejects(call("staff_transition_transportation_request", {
+   p_request_id: scheduled.id, p_action: "ASSIGN", p_details: { driverName: "Test driver" },
+   p_staff_user_id: f.users.front_desk, p_expected_version: 3,
+  }), /TRANSPORTATION_USE_FLEET/);
+  await assert.rejects(call("customer_cancel_transportation_request", {
+   p_user_id: f.users.guest, p_request_id: trip.id, p_reason: null, p_expected_version: 2,
+  }), /CANCELLATION_NOT_PERMITTED/);
+  await db.query("update reservations set status='cancelled' where id=$1", [scheduled.reservation]);
+  assert.equal((await db.query("select status from transportation_requests where id=$1", [scheduled.id])).rows[0].status, "SCHEDULED");
+ });
+ await test("Front Desk confirms both leg fares once, and stale or revised evidence cannot alter the folio", async () => {
+  const get = () => call("get_transportation_fleet_fare", { p_request: trip.id });
+  const post = (revision, client = db, actor = f.users.front_desk) =>
+   call("post_confirmed_fleet_fare", { p_request: trip.id, p_actor: actor, p_revision: revision }, client);
+  assert.equal((await get()).quote, null);
+  const leg = trip.rows[1], lease = randomUUID();
+  assert.ok(await call("claim_fleet_transport", { p_id: leg.id, p_lease: lease }));
+  const secondFare = { fare_amount_minor: 6789, currency: "PHP", fare_version: 1, fare_reference: randomUUID(), fare_revision_id: randomUUID(), previous_fare_revision_id: null, previous_fare_version: null, correction_reason: null };
+  const accepted = snapshot(1, { status: "SCHEDULED", fare: secondFare, fleet_request_id: 124, id: "124", fleet_reference: "124" }, leg);
+  validate("StatusSnapshot", accepted);
+  await call("finish_fleet_contract_create", { p_id: leg.id, p_lease: lease, p_reference: "124", p_snapshot: accepted, p_event: canonical(accepted), p_error: null, p_review: false });
+  const previous = (await get()).quote;
+  assert.equal(previous.amountMinor, 19134);
+  const adjusted = { ...accepted, event_id: randomUUID(), request_version: 2, fare: {
+   ...secondFare, fare_version: 2, fare_amount_minor: 7000, previous_fare_revision_id: secondFare.fare_revision_id,
+   fare_revision_id: randomUUID(), previous_fare_version: 1, correction_reason: "Confirmed wait time",
+  } };
+  await receive(adjusted);
+  await assert.rejects(post(previous.revision), /TRANSPORTATION_FARE_CHANGED/);
+  const current = (await get()).quote;
+  await assert.rejects(post(current.revision, db, f.users.manager), /TRANSPORTATION_AUTHORITY_REQUIRED/);
+  await db.query("insert into invoices(reservation_id,guest_name,amount,paid,balance,status) select id,guest_name,total,0,total,'unpaid' from reservations where id=$1 and not exists(select 1 from invoices where reservation_id=$1)", [trip.reservation]);
+  const parallel = await suite.connect();
+  try {
+   const postings = await Promise.all([post(current.revision), post(current.revision, parallel)]);
+   assert.deepEqual(postings.map(result => result.alreadyConfirmed).sort(), [false, true]);
+  } finally { await parallel.end(); }
+  assert.equal((await receive(adjusted)).duplicate, true);
+  const newer = { ...adjusted, event_id: randomUUID(), request_version: 3, status: "COMPLETED", fare: { ...adjusted.fare, fare_amount_minor: 8000, fare_version: 3, fare_revision_id: randomUUID(), previous_fare_version: 2, previous_fare_revision_id: adjusted.fare.fare_revision_id } };
+  assert.equal((await receive(newer)).outcome, "APPLIED");
+  assert.equal((await get()).quote.amountMinor, 20345);
+  assert.equal((await post((await get()).quote.revision)).fareAmount, 193.45);
+  assert.deepEqual((await db.query("select category,amount::text from folio_charges where reservation_id=$1", [trip.reservation])).rows, [{ category: "transportation", amount: "193.45" }]);
+  assert.equal((await db.query("select balance::text from invoices where reservation_id=$1", [trip.reservation])).rows[0].balance, "393.45");
+  assert.equal((await read()).needs_review, false);
+ });
  await test("browser roles have no renewal table or writer privileges", async () => {
   await db.query("set role authenticated"); try {
    await assert.rejects(db.query("select * from fleet_tracking_renewals"), /permission denied/);

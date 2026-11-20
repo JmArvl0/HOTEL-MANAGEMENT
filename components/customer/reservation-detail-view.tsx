@@ -16,7 +16,7 @@ import { ReservationActions, type OpenChangeRequest } from "@/components/custome
 import LoyaltyRedemptionSelector from "@/components/booking/loyalty-redemption-selector";
 import { Modal } from "@/components/ui/Modal";
 import {
-  SERVICE_TYPE_LABELS, isAssignmentVisible,
+  FLEET_RIDE_STATUS_LABELS, SERVICE_TYPE_LABELS, TRANSPORTATION_STATUS_LABELS, isAssignmentVisible, isTerminalStatus, reservationTransportationHref,
   type CustomerTransportationRequest,
 } from "@/lib/transportation-display";
 
@@ -74,6 +74,7 @@ export type ReservationDetailViewData = {
   refunds: { id: string; reason: string; eligibleAmount: number; status: string; createdAt: string }[];
   changeRequests: { id: string; reason: string; status: string; executionStatus: string; requestedCheckIn: string | null; requestedCheckOut: string | null; requestedRoomType: string | null; createdAt: string }[];
   transportation: CustomerTransportationRequest[];
+  canArrangeTransportation?: boolean;
 };
 
 const friendly = (value: string) =>
@@ -389,7 +390,7 @@ export function ReservationDetailView({ data, breakfast }: { data: ReservationDe
             {data.charges.map((charge) => (
               <div key={charge.id} className="crd-activity-row">
                 <TimelineDot tone="charge" />
-                <div><b>{charge.description}</b><small>{friendly(charge.category)} · {formatStamp(charge.createdAt)}</small></div>
+                <div><b>{charge.description}</b><small>{friendly(charge.category)} · {formatStamp(charge.createdAt)}{charge.status === "reversed" ? " · Reversed" : charge.status === "partially_reversed" ? " · Partially reversed" : ""}</small></div>
                 <span>{formatPeso(charge.amount)}</span>
               </div>
             ))}
@@ -446,19 +447,24 @@ export function ReservationDetailView({ data, breakfast }: { data: ReservationDe
               <article key={trip.id} className="crd-transport-card">
                 <header>
                   <b>{SERVICE_TYPE_LABELS[trip.service_type]}</b>
-                  <span className={`customer-status ${trip.status.toLowerCase()}`}>{trip.status.toLowerCase().replaceAll("_", " ")}</span>
+                  {!trip.rideUpdates.length && <span className={`customer-status ${trip.status.toLowerCase()}`}>{TRANSPORTATION_STATUS_LABELS[trip.status]}</span>}
                 </header>
                 <p>{trip.pickup_location} → {trip.dropoff_location}</p>
                 <small>{formatStayDate(trip.pickup_date)} · {trip.pickup_time}{trip.passenger_count ? ` · ${trip.passenger_count} passenger${trip.passenger_count !== 1 ? "s" : ""}` : ""}</small>
-                {isAssignmentVisible(trip.status) && trip.driver_name && <small>Driver: {trip.driver_name}{trip.vehicle_type ? ` · ${trip.vehicle_type}` : ""}</small>}
+                {trip.return_location && trip.return_date && <small>Return · {formatStayDate(trip.return_date)} · {trip.return_time} · {trip.dropoff_location} → {trip.return_location}</small>}
+                {isAssignmentVisible(trip.status) && (trip.driver_name || trip.vehicle_type) && <small>{[trip.driver_name, trip.vehicle_type].filter(Boolean).join(" · ")}</small>}
+                {trip.rideUpdates.map(({ leg, status }) => <small key={leg}>{leg === "RETURN" ? "Return ride" : "Outbound ride"} · {FLEET_RIDE_STATUS_LABELS[status]}</small>)}
+                {trip.fare_amount != null ? <small>Confirmed fare · {formatPeso(trip.fare_amount)}</small> : !isTerminalStatus(trip.status) && <small>Fare to be confirmed</small>}
                 {trip.customer_visible_notes && <small className="crd-transport-note">{trip.customer_visible_notes}</small>}
               </article>
             ))}
           </div>
         ) : (
-          <div className="crd-activity-empty"><CarTaxiFront /><p>No transportation on this reservation. Airport pickup and drop-off can be requested any time before check-in.</p></div>
+          <div className="crd-activity-empty"><CarTaxiFront /><p>No transportation arranged for this stay.</p></div>
         )}
-        <Link className="customer-inline-action" href="/account/transportation"><CarTaxiFront size={15} />Manage transportation</Link>
+        {data.transportation.length > 0
+          ? <Link className="customer-inline-action" href={reservationTransportationHref(data.id)}><CarTaxiFront size={15} />View transportation details</Link>
+          : data.canArrangeTransportation && <Link className="customer-inline-action" href={reservationTransportationHref(data.id, true)}><CarTaxiFront size={15} />Arrange a ride</Link>}
       </section>
 
       <section className="customer-policy crd-panel" role="tabpanel" id="crd-panel-policy" aria-labelledby="crd-tab-policy" hidden={tab !== "policy"}>

@@ -43,13 +43,21 @@ export async function POST(request: Request) {
     }
     if (prior.data?.token) return publicJson({ token: prior.data.token });
 
-    const policy = await supabase.from("hotel_operational_policies").select("deposit_method,hotel_timezone").eq("key", "default").single();
+    const policy = await supabase.from("hotel_operational_policies").select("deposit_method,hotel_timezone,transfer_hotel_label").eq("key", "default").single();
     if (policy.error) throw policy.error;
     if (policy.data.deposit_method !== "xendit" || !xenditConfigured()) {
       return publicJson({ error: "Online checkout is unavailable. Contact Front Desk for help booking this stay." }, { status: 409 });
     }
     const search = searchSchemaFor(hotelToday(policy.data.hotel_timezone)).safeParse(details);
     if (!search.success) return invalid(search.error, "Please choose valid check-in and check-out dates.");
+    const ride = details.transportationPreferences;
+    if (ride) {
+      const hotel = (policy.data.transfer_hotel_label?.trim() || "HAVEN Hotel & Residences").toLowerCase();
+      const fields = Object.fromEntries((["pickupLocation", "dropoffLocation", "returnLocation"] as const)
+        .filter((field) => ride[field]?.trim().toLowerCase() === hotel)
+        .map((field) => [field, "Choose a different location from the hotel."]));
+      if (Object.keys(fields).length) return publicJson({ error: "Check your transportation locations.", fields }, { status: 400 });
+    }
 
     const live = await getPreArrivalOptions();
     if (findUnavailableSelections(details.requestOptions, live).length) {

@@ -270,7 +270,8 @@ describe("transportation at checkout (deferred filing, mirrors guest_requests)",
     expect(holdsRoute).toMatch(/INVALID_TRANSPORTATION_PREFERENCES[\s\S]*?status:\s*400/);
   });
   it("checkout form offers the opt-in and posts preferences only when requested", () => {
-    expect(guestDetailsForm).toContain("Need a ride?");
+    expect(guestDetailsForm).toContain("No thanks");
+    expect(guestDetailsForm).toContain("Arrange transportation");
     expect(guestDetailsForm).toContain("...(needRide ? { transportationPreferences: {");
     expect(guestDetailsForm).toContain("SERVICE_OPTIONS.map((option)");
   });

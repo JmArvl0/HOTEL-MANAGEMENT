@@ -12,11 +12,9 @@ import { calculateNights, depositPolicyLabel, getOwnedHold, policyFromSnapshot, 
 import { parseFrozenRates } from "@/lib/rate-plans";
 import { requestLabel } from "@/lib/request-options";
 import { breakfastLine } from "@/lib/breakfast";
+import { SERVICE_TYPE_LABELS, type TransportationPreferences } from "@/lib/transportation-display";
 
 type TransportLineRow = { name: string; price: number | string; note?: string | null };
-type TransportationPreferences = { serviceType: "PICKUP" | "DROPOFF" | "ROUND_TRIP"; pickupLocation?: string; dropoffLocation?: string; pickupDate: string; pickupTime: string; returnLocation?: string; returnDate?: string; returnTime?: string; passengerCount: number; specialInstructions?: string };
-
-const SERVICE_LABELS: Record<TransportationPreferences["serviceType"], string> = { PICKUP: "Airport Pickup", DROPOFF: "Hotel Drop-off", ROUND_TRIP: "Round Trip Transportation" };
 
 export default async function ReviewPage({ params }: { params: Promise<{ token: string }> }) {
   const session = await getServerSession(authOptions); const { token } = await params;
@@ -46,7 +44,15 @@ export default async function ReviewPage({ params }: { params: Promise<{ token: 
   }
   return <BookingPageFrame session={session} step="Review" breadcrumb={breadcrumb}><section className="booking-stage customer-booking-stage-inner review-stage"><div><p className="eyebrow">Review booking</p><h1>Does everything look right?</h1><p className="review-lede">Review your guest details, stay, and deposit before continuing.</p><div className="review-card">
     <ReviewGuestCard firstName={hold.first_name} lastName={hold.last_name} email={hold.email} mobile={hold.mobile} address={hold.address} expectedArrival={hold.expected_arrival} requested={requested} specialRequests={hold.special_requests} detailsHref={detailsHref}/>
-    {ride&&<section className="review-section"><header className="review-section-heading"><h2>Transportation request</h2></header><ul className="review-transport-list"><li><span className="review-transport-name">{SERVICE_LABELS[ride.serviceType]} · {ride.serviceType==="DROPOFF"?`Hotel → ${ride.dropoffLocation}`:`${ride.pickupLocation} → Hotel`}{ride.serviceType==="ROUND_TRIP"&&ride.returnLocation?` · Hotel → ${ride.returnLocation}`:""}</span>{ride.specialInstructions?<small>{ride.specialInstructions}</small>:null}<strong>{ride.passengerCount} passenger{ride.passengerCount!==1?"s":""} · {ride.pickupDate} {ride.pickupTime}{ride.returnDate?` · return ${ride.returnDate} ${ride.returnTime}`:""}</strong></li></ul><p className="review-note">This is a request — our Front Desk reviews and schedules it once your reservation is confirmed. No fare is charged to this booking; transportation is settled with the hotel directly.</p></section>}
+    {ride && <section className="review-section review-ride">
+      <header className="review-section-heading"><h2>Transportation request</h2></header>
+      <p><strong>{SERVICE_TYPE_LABELS[ride.serviceType]}</strong> · {ride.passengerCount} passenger{ride.passengerCount === 1 ? "" : "s"}</p>
+      <p>{ride.serviceType === "DROPOFF" ? `Hotel → ${ride.dropoffLocation}` : `${ride.pickupLocation} → Hotel`} · {ride.pickupDate} at {ride.pickupTime}</p>
+      {ride.returnDate && <p>Hotel → {ride.returnLocation} · {ride.returnDate} at {ride.returnTime}</p>}
+      {ride.specialInstructions && <p>{ride.specialInstructions}</p>}
+      <p className="review-note">Fare to be confirmed. Front Desk will review your request after payment and add the confirmed fare to your folio.</p>
+    </section>}
+    {!ride && <Link className="customer-inline-action" href={`${detailsHref}#booking-transportation`}>Add transportation</Link>}
     <AmenitySnapshot value={hold.amenity_snapshot} /><ReviewDepositTiles depositRequired={hold.deposit_required} remainingBalance={Number(hold.total)-Number(hold.deposit_required)} depositLabel={depositPolicyLabel(policy)} remainingNote={`Due ${policy.remainingBalanceDue.toLowerCase()}.`}/>
     <footer className="review-actions"><HoldCountdown expiresAt={hold.expires_at} recoveryUrl={recovery}/><Link className="btn btn-accent" href={`/booking/payment/${token}`}>Continue to payment <ArrowRight size={17}/></Link></footer>
   </div></div><ReviewStayCard roomNumber={hold.selected_room_number??undefined} roomType={hold.room_type} checkIn={hold.check_in} checkOut={hold.check_out} guests={hold.guest_count} nights={nights} rate={hold.nightly_rate==null?null:Number(hold.nightly_rate)} total={Number(hold.total)} nightly={parseFrozenRates(hold.nightly_rates)} lines={[...breakfastLine(hold.breakfast_snapshot), ...(transport.length > 0 ? [{ label: "Hotel transfer", amount: transportTotal(transport) }] : [])]} photos={stayPhotos}/></section></BookingPageFrame>;

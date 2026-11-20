@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { hotelToday } from "@/lib/booking";
+import { calendarDate, isCalendarDate } from "@/lib/input-validation";
 import { supabase } from "@/lib/supabase";
-import type { CustomerTransportationRequest } from "@/lib/transportation-display";
+import { FLEET_RIDE_STATUS_LABELS, type CustomerTransportationRequest } from "@/lib/transportation-display";
 
 /**
  * Standalone internal Transportation Service (server-only helpers).
@@ -18,7 +19,6 @@ import type { CustomerTransportationRequest } from "@/lib/transportation-display
 
 export * from "@/lib/transportation-display";
 
-const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 /**
@@ -31,10 +31,10 @@ export const transportationRequestSchema = z.object({
   serviceType: z.enum(["PICKUP", "DROPOFF", "ROUND_TRIP"]),
   pickupLocation: z.string().trim().min(5, "Enter the pickup location.").max(200).optional(),
   dropoffLocation: z.string().trim().min(5, "Enter the destination.").max(200).optional(),
-  pickupDate: z.string().regex(datePattern, "Choose a valid date."),
+  pickupDate: calendarDate,
   pickupTime: z.string().regex(timePattern, "Choose a valid time."),
   returnLocation: z.string().trim().min(5, "Enter the departure destination.").max(200).optional(),
-  returnDate: z.string().regex(datePattern).optional(),
+  returnDate: calendarDate.optional(),
   returnTime: z.string().regex(timePattern).optional(),
   passengerCount: z.coerce.number().int().min(1, "At least one passenger is required.").max(20, "Transportation accommodates at most 20 passengers."),
   specialInstructions: z.string().trim().max(500).optional(),
@@ -51,6 +51,8 @@ export const transportationRequestSchema = z.object({
     if (!value.returnTime) ctx.addIssue({ code: "custom", path: ["returnTime"], message: "Choose the return time." });
     if (value.returnDate && value.returnDate < value.pickupDate)
       ctx.addIssue({ code: "custom", path: ["returnDate"], message: "The return must be on or after the arrival pickup." });
+    if (value.returnDate === value.pickupDate && value.returnTime && value.returnTime <= value.pickupTime)
+      ctx.addIssue({ code: "custom", path: ["returnTime"], message: "Choose a return time after pickup." });
   }
   if (value.pickupDate && value.pickupDate < hotelToday())
     ctx.addIssue({ code: "custom", path: ["pickupDate"], message: "Transportation cannot be in the past." });
@@ -60,15 +62,29 @@ export type TransportationRequestInput = z.infer<typeof transportationRequestSch
 
 /** ISO hotel dates sort chronologically, so this check is timezone-independent. */
 export function isDateWithinStay(value: string, checkIn: string, checkOut: string): boolean {
-  return datePattern.test(value) && value >= checkIn && value <= checkOut;
+  return isCalendarDate(value) && value >= checkIn && value <= checkOut;
 }
 
-const customerColumns = "id,reservation_id,service_type,pickup_location,dropoff_location,pickup_date,pickup_time,return_location,return_date,return_time,passenger_count,special_instructions,status,driver_name,fare_amount,customer_visible_notes,cancellation_reason,version,created_at,transport_vehicle_types(name)";
+const customerColumns = "id,reservation_id,service_type,pickup_location,dropoff_location,pickup_date,pickup_time,return_location,return_date,return_time,passenger_count,special_instructions,status,driver_name,fare_amount,customer_visible_notes,cancellation_reason,version,created_at,transport_vehicle_types(name),fleet_transport_links(leg,needs_review,partner_status,fleet_transport_outbox(attempts))";
+
+type FleetGuestUpdate = {
+  leg: "OUTBOUND" | "RETURN";
+  needs_review: boolean;
+  partner_status: string | null;
+  fleet_transport_outbox: { attempts: number } | { attempts: number }[] | null;
+};
+
+export function wasDispatchedToFleet(links: Pick<FleetGuestUpdate, "fleet_transport_outbox">[]) {
+  return links.some(({ fleet_transport_outbox: outbox }) =>
+    ((Array.isArray(outbox) ? outbox[0]?.attempts : outbox?.attempts) ?? 0) > 0);
+}
 
 /** Own transportation requests, scoped through the owning reservation (never staff_notes). */
-export async function getCustomerTransportation(userId: string): Promise<CustomerTransportationRequest[]> {
+export async function getCustomerTransportation(userId: string, reservationId?: string): Promise<CustomerTransportationRequest[]> {
   if (!supabase) return [];
-  const { data: reservations, error } = await supabase.from("reservations").select("id,confirmation_number,room_type,check_in,check_out").eq("user_id", userId);
+  const owned = supabase.from("reservations").select("id,confirmation_number,room_type,check_in,check_out").eq("user_id", userId);
+  if (reservationId) owned.eq("id", reservationId);
+  const { data: reservations, error } = await owned;
   if (error) throw error;
   const ids = (reservations ?? []).map((item) => item.id);
   if (!ids.length) return [];
@@ -77,10 +93,16 @@ export async function getCustomerTransportation(userId: string): Promise<Custome
     .in("reservation_id", ids).order("created_at", { ascending: false });
   if (requestError) throw requestError;
   // The generated type models the many-to-one embed as an array; PostgREST returns an object. Accept both.
-  return (data ?? []).map((row) => {
-    const vehicleType = row.transport_vehicle_types as { name?: string } | { name?: string }[] | null;
+  return (data ?? []).map(({ transport_vehicle_types, fleet_transport_links, ...row }) => {
+    const vehicleType = transport_vehicle_types as { name?: string } | { name?: string }[] | null;
     const vehicleName = Array.isArray(vehicleType) ? vehicleType[0]?.name : vehicleType?.name;
-    return { ...row, vehicle_type: vehicleName ?? null, reservation: (reservations ?? []).find((item) => item.id === row.reservation_id) ?? null };
+    const links = (fleet_transport_links ?? []) as FleetGuestUpdate[];
+    const fleetDispatched = wasDispatchedToFleet(links);
+    const rideUpdates = row.status === "CANCELLED" || row.status === "REJECTED" ? [] : links.flatMap(({ leg, needs_review, partner_status }) => {
+      if (needs_review || !partner_status || !Object.hasOwn(FLEET_RIDE_STATUS_LABELS, partner_status)) return [];
+      return [{ leg, status: partner_status as keyof typeof FLEET_RIDE_STATUS_LABELS }];
+    });
+    return { ...row, vehicle_type: vehicleName ?? null, fleetDispatched, rideUpdates, reservation: (reservations ?? []).find((item) => item.id === row.reservation_id) ?? null };
   });
 }
 

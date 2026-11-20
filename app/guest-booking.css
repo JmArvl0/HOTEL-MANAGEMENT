@@ -115,6 +115,12 @@
 .deposit-summary .deposit-due{margin:8px -12px;padding:16px 12px;background:#ffffff12}.deposit-summary>p{color:#93a0b4;line-height:1.6}.booking-notice{padding:13px 16px;background:#f59e0b14;border:1px solid #f59e0b;color:#b45309;font-size:11px}
 .deposit-confirmation>p:not(.eyebrow):not(.confirmation-number){color:var(--muted);line-height:1.6}.remaining-policy{padding:12px;background:var(--cp-panel-2,#f3f3f3)}
 .confirmation-card>.confirmation-actions{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}.confirmation-actions .btn{min-width:170px}
+.confirmation-transportation{border-block:1px solid var(--cp-line,var(--line));margin:20px 0;padding:16px 0;text-align:start;overflow-wrap:anywhere}
+.confirmation-transportation h2{margin:0 0 6px;font-size:18px}
+.confirmation-transportation p{margin:4px 0;color:var(--cp-muted,var(--muted))}
+.confirmation-transportation .btn{margin-top:10px;min-height:44px}
+.review-ride,.crd-transport-card{overflow-wrap:anywhere}
+.review-ride p{margin:6px 0}
 @media(max-width:600px){.confirmation-card>.confirmation-actions{align-items:stretch;flex-direction:column}.confirmation-actions .btn{width:100%;min-width:0}}
 .payment-history{display:grid;gap:8px}.payment-transaction{display:flex;justify-content:space-between;gap:20px;padding:12px 0;border-top:1px solid var(--cp-line)}.payment-transaction span,.payment-transaction strong,.payment-transaction small,.payment-transaction b,.payment-transaction em{display:block}.payment-transaction small{margin-top:4px;color:var(--cp-muted);font-size:9px}.payment-transaction>span:last-child{text-align:right}.payment-transaction em{margin-top:5px;font-style:normal}.reservation-payment-list{margin:16px 0;padding:14px;background:var(--cp-panel-2)}.reservation-payment-list h3{font-size:10px}.reservation-payment-list p{display:flex;justify-content:space-between;gap:12px;color:var(--cp-muted);font-size:9px}
 .badge.pending_verification{background:#f59e0b14;color:#b45309}.badge.paid{background:#10b98114;color:#047857}.badge.expired,.badge.failed{background:#ef444414;color:#b91c1c}
@@ -240,7 +246,15 @@
 .customer-request-heading svg{color:var(--cp-accent)}
 .customer-request-list-wrap{display:grid;gap:12px}
 .customer-request-meta{display:flex;flex-direction:column;align-items:flex-end;gap:10px;flex:0 0 auto}
-.transport-ride-fields{margin-top:10px}
+.booking-ride-choice{min-width:0;margin:18px 0 0;padding:0;border:0}
+.booking-ride-choice legend{display:flex;align-items:center;gap:8px;padding:0;color:var(--cp-text,var(--ink));font-weight:600}
+.booking-ride-choice legend small,.booking-ride-choice p{color:var(--cp-muted,var(--muted));font-size:14px}
+.booking-ride-choice p{margin:8px 0}
+.booking-ride-choice .request-options-list .request-option{min-height:44px;align-items:center}
+.booking-ride-choice .request-option input{margin:0!important}
+.booking-ride-choice .request-options-list .request-option:has(:checked){border-color:var(--cp-green,var(--green))}
+.transport-ride-fields{min-width:0;margin:10px 0 0;padding:0;border:0}
+.transport-ride-fields textarea{font-family:inherit;font-size:16px}
 .customer-detail-grid + .customer-detail-card{margin-top:12px}
 @media(max-width:600px){.customer-request-meta{align-items:flex-start}}
 
@@ -1070,6 +1084,9 @@
   .customer-transportation-dialog .ctr-grid label:last-child{grid-column:1 / -1}
   .customer-transportation-dialog .ctr-modal-actions{bottom:-16px;margin:20px -20px -16px;padding:14px 20px;flex-direction:column-reverse}
   .customer-transportation-dialog .ctr-modal-actions .btn{width:100%}
+}
+@media(max-width:480px){
+  .customer-transportation-dialog .ctr-grid{grid-template-columns:minmax(0,1fr)}
 }
 @media(prefers-reduced-motion:reduce){
   .customer-transportation-dialog .ctr-service-option{transition:none}

@@ -55,6 +55,7 @@ const stage = (
         {transport.length > 0 && <p><strong>Transport booked ({transport.length}):</strong> {transport.map((line) => line.name).join(", ")} - {formatPeso(transportTotal(transport))}
           <small className="summary-note">{xendit ? "Included in the stay total above." : "Included in the stay total above and covered by this reservation deposit."}</small>
         </p>}
+        {hold.transportation_preferences && <p><strong>Transportation requested.</strong> Your ride fare will be confirmed separately and added to your stay folio.</p>}
         {(requested.length > 0 || hold.special_requests) && <p><strong>Stay requests:</strong> {[...requested, hold.special_requests].filter(Boolean).join(", ")}. Subject to availability and hotel confirmation.</p>}
         <p>{xendit ? "Your reservation is confirmed after your payment is verified." : "Your reservation will be confirmed only after the required deposit has been verified."}</p>
         {!xenditReady && <small>The remaining balance will be settled {policy.remainingBalanceDue.toLowerCase()}.</small>}

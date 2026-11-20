@@ -60,12 +60,12 @@ export function FleetRideSafety({ requestId, active }: { requestId: string; acti
     }
   }, []);
   if (!active || (!rides.length && !error)) return null;
-  return <section className="fleet-ride-safety" aria-label="Fleet vehicle and tracking">
-    <h3><CarFront size={17} aria-hidden="true" />Your Fleet ride</h3>
-    {error ? <p>Fleet ride details are temporarily unavailable. They will refresh automatically.</p> : rides.map(ride => {
+  return <section className="fleet-ride-safety" aria-label="Vehicle and ride tracking">
+    <h3><CarFront size={17} aria-hidden="true" />Your ride</h3>
+    {error ? <p>Ride details are temporarily unavailable. They will refresh automatically.</p> : rides.map(ride => {
       const usable = Boolean(ride.trackingUrl && Date.parse(ride.trackingExpiresAt ?? "") > now);
       return <div className="fleet-safety-leg" key={ride.id}>
-        <div className="fleet-safety-vehicle"><div><small>{ride.leg === "RETURN" ? "Return ride" : "Outbound ride"} · Provided by Fleet</small><strong>{ride.plateNumber ?? "Plate number pending"}</strong><span>{[ride.driverName, ride.vehicleDescription].filter(Boolean).join(" · ") || "Vehicle details pending"}</span></div></div>
+        <div className="fleet-safety-vehicle"><div><small>{ride.leg === "RETURN" ? "Return ride" : "Outbound ride"}</small>{ride.plateNumber && <strong>{ride.plateNumber}</strong>}{(ride.driverName || ride.vehicleDescription) && <span>{[ride.driverName, ride.vehicleDescription].filter(Boolean).join(" · ")}</span>}</div></div>
         <div className="fleet-safety-actions">
           {usable ? <a className="btn btn-soft" href={ride.trackingUrl!} target="_blank" rel="noopener noreferrer"><ExternalLink size={15} aria-hidden="true" />Track ride</a> : <button className="btn btn-soft" type="button" disabled><ExternalLink size={15} aria-hidden="true" />Track ride</button>}
           <button className="btn btn-soft" type="button" disabled={!usable} onClick={() => handleShare(ride)}><Share2 size={15} aria-hidden="true" />Share ride</button>

@@ -31,6 +31,7 @@ type StaffTrip = {
   return_location: string | null; return_date: string | null; return_time: string | null;
   passenger_count: number; special_instructions: string | null; status: TransportationStatus;
   driver_name: string | null; fare_amount: number | null; staff_notes: string | null; customer_visible_notes: string | null;
+  fleetDispatched?: boolean;
   cancellation_reason: string | null; completed_at: string | null; version: number; created_at: string;
   transport_vehicle_types?: { name: string } | null;
   reservations?: { confirmation_number: string | null; guest_name: string | null; guest_email: string | null; check_in: string; check_out: string } | null;
@@ -124,13 +125,19 @@ export default function TransportationPanel({ role }: { role: Role }) {
     if (action === "ASSIGN") {
       const legs = trip.service_type === "ROUND_TRIP" ? 2 : 1;
       const flatFare = (type: VehicleType) => (type.base_fare + type.booking_fee) * legs;
+      const eligibleVehicles = vehicleTypes.filter((type) => type.seats >= trip.passenger_count);
+      if (!eligibleVehicles.length) { notify("No available vehicle type has enough seats for this ride.", "error"); return; }
       const fields: FormField[] = [
         { key: "driverName", label: "Driver name", type: "text", required: true, validation: (v: string | number | boolean) => (String(v ?? "").trim().length >= 2 ? null : "Enter the driver's name.") },
-        { key: "vehicleTypeId", label: "Vehicle type", type: "select", required: true, defaultValue: "", options: vehicleTypes.map((type) => ({ value: type.id, label: `${type.name} (${type.seats} seats) · ${formatPeso(flatFare(type))}` })), validation: (v: string | number | boolean) => (String(v ?? "").trim() ? null : "Choose a vehicle type — its fare is charged to the guest folio.") },
+        { key: "vehicleTypeId", label: "Vehicle type", type: "select", required: true, defaultValue: "", options: eligibleVehicles.map((type) => ({ value: type.id, label: `${type.name} (${type.seats} seats) · ${formatPeso(flatFare(type))}` })), validation: (v: string | number | boolean) => (String(v ?? "").trim() ? null : "Choose a vehicle type — its fare is charged to the guest folio.") },
       ];
       const data = await dialogs.askForm({ title: "Assign driver & vehicle", description: `The guest sees the assignment once saved. The vehicle's flat fare${legs === 2 ? " (×2 legs)" : ""} is added to the guest's folio on assignment.`, fields, submitText: "Assign" });
       if (!data) return;
-      await transition(trip, "ASSIGN", { driverName: String(data.driverName).trim(), vehicleTypeId: String(data.vehicleTypeId) }) && notify("Driver assigned. Fare added to the guest folio.");
+      const vehicle = eligibleVehicles.find((type) => type.id === data.vehicleTypeId);
+      if (!vehicle) return;
+      if (await transition(trip, "ASSIGN", { driverName: String(data.driverName).trim(), vehicleTypeId: vehicle.id, expectedFareMinor: Math.round(flatFare(vehicle) * 100) })) {
+        notify(flatFare(vehicle) ? "Driver assigned. Fare added to the guest folio." : "Driver assigned. No fare is due.");
+      }
     }
     if (action === "START") {
       const ok = await dialogs.askConfirm({ title: "Start trip", message: `Mark the ${label(trip.reservations?.guest_name)} trip as in progress?`, confirmText: "Start trip" });
@@ -171,8 +178,8 @@ export default function TransportationPanel({ role }: { role: Role }) {
     const buttons: [string, () => void][] = [];
     if (canOperate) {
       if (trip.status === "REQUESTED") buttons.push(["Review", () => act(trip, "REVIEW")]);
-      if (trip.status === "REVIEWED") buttons.push(["Schedule", () => act(trip, "SCHEDULE")]);
-      if (trip.status === "SCHEDULED") buttons.push(["Assign", () => act(trip, "ASSIGN")]);
+      if (trip.status === "REVIEWED" && !trip.fleetDispatched) buttons.push(["Schedule", () => act(trip, "SCHEDULE")]);
+      if (trip.status === "SCHEDULED" && !trip.fleetDispatched) buttons.push(["Assign", () => act(trip, "ASSIGN")]);
       if (trip.status === "ASSIGNED") buttons.push(["Start", () => act(trip, "START")]);
       if (trip.status === "IN_PROGRESS") buttons.push(["Complete", () => act(trip, "COMPLETE")]);
     }
@@ -218,7 +225,10 @@ export default function TransportationPanel({ role }: { role: Role }) {
           <td>{when(trip)}</td>
           <td><div className="cell-stack"><b>{trip.passenger_count}</b><small>{trip.passenger_count === 1 ? "passenger" : "passengers"}</small></div></td>
           <td><div className="cell-stack"><StatusBadge status={trip.status.toLowerCase()} label={TRANSPORTATION_STATUS_LABELS[trip.status]} />{trip.special_instructions && <small title="Special instructions">{label(trip.special_instructions)}</small>}</div></td>
-          <td>{trip.driver_name ? <div className="cell-stack"><b>{label(trip.driver_name)}</b><small>{label(trip.transport_vehicle_types?.name)}</small>{trip.fare_amount != null && <small>{formatPeso(trip.fare_amount)} on folio</small>}</div> : <span className="tp-unassigned">Not assigned</span>}</td>
+          <td><div className="cell-stack">
+            {trip.driver_name ? <><b>{label(trip.driver_name)}</b><small>{label(trip.transport_vehicle_types?.name)}</small></> : <span className="tp-unassigned">{trip.fleetDispatched ? "Fleet coordination" : "Not assigned"}</span>}
+            {trip.fare_amount != null && <small>{Number(trip.fare_amount) === 0 ? "No charge due" : `${formatPeso(trip.fare_amount)} on folio`}</small>}
+          </div></td>
           <td className="tp-actions">{actions(trip)}<TransportPickupProfile requestId={trip.id} requestVersion={trip.version} staff canEdit={canOperate} canPrepare={canOperate} /></td>
         </tr>)}</tbody></table></div>
       <div className="tp-cards">{page.rows.map((trip) => <article className="tp-card" key={trip.id}>
@@ -227,7 +237,8 @@ export default function TransportationPanel({ role }: { role: Role }) {
         <p className="tp-card-route">{trip.pickup_location}<i aria-hidden="true">→</i>{trip.dropoff_location}</p>
         <div className="tp-card-meta"><span>{formatDate(trip.pickup_date)} · {formatTime(trip.pickup_time)}</span><span>{trip.passenger_count} {trip.passenger_count === 1 ? "passenger" : "passengers"}</span></div>
         {trip.service_type === "ROUND_TRIP" && trip.return_date && <p className="tp-card-return">Return {formatDate(trip.return_date)} · {formatTime(trip.return_time!)}{trip.return_location ? ` · ${trip.return_location}` : ""}</p>}
-        {trip.driver_name ? <p className="tp-card-driver">Driver: {label(trip.driver_name)} · {label(trip.transport_vehicle_types?.name)}{trip.fare_amount != null ? ` · ${formatPeso(trip.fare_amount)} on folio` : ""}</p> : <p className="tp-card-driver tp-unassigned">Driver not assigned yet</p>}
+        <p className="tp-card-driver">{trip.driver_name ? `Driver: ${label(trip.driver_name)} · ${label(trip.transport_vehicle_types?.name)}` : trip.fleetDispatched ? "Fleet coordination" : "Driver not assigned yet"}
+          {trip.fare_amount != null && (Number(trip.fare_amount) === 0 ? " · No charge due" : ` · ${formatPeso(trip.fare_amount)} on folio`)}</p>
         {trip.special_instructions && <p className="tp-card-note">Note: {label(trip.special_instructions)}</p>}
         <div className="tp-card-actions">{actions(trip)}<TransportPickupProfile requestId={trip.id} requestVersion={trip.version} staff canEdit={canOperate} canPrepare={canOperate} /></div>
       </article>)}</div>

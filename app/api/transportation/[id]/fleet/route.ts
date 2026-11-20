@@ -11,6 +11,7 @@ const schema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("prepare"), expectedVersion: z.number().int().positive() }),
   z.object({ action: z.literal("deliver"), outboxId: z.string().uuid() }),
   z.object({ action: z.literal("reconcile"), note: z.string().trim().min(5).max(500) }),
+  z.object({ action: z.literal("confirmFare"), revision: z.string().regex(/^[a-f0-9]{32}$/) }),
   z.object({ action: z.literal("renew"), linkId: z.string().uuid(), eventId: z.string().uuid(), expectedVersion: z.number().int().positive().max(2147483647), assignmentReference: z.string().uuid() }),
   z.object({ action: z.literal("revoke"), linkId: z.string().uuid(), expectedVersion: z.number().int().positive().max(2147483647).nullable(), confirmConflict: z.boolean().default(false) }),
 ]);
@@ -22,8 +23,16 @@ export async function GET(_request: Request, context: Context) {
   if (guard.role === "guest") return pickupJson({ error: "Staff access required." }, 403);
   const result = await guard.client.from("fleet_transport_links").select("id,leg,external_request_id,fleet_reference,partner_status,partner_version,assignment_active,guest_safety,needs_review,reconciliation_note,reviewed_at,fleet_transport_outbox(id,state,attempts,next_attempt_at,last_error,sent_at),fleet_tracking_renewals(id,state,attempts,expected_version,assignment_reference,next_attempt_at),fleet_tracking_revocations(state,attempts,expected_version,conflict_version,next_attempt_at)").eq("request_id", id).order("leg");
   if (result.error) return pickupJson({ error: "Fleet preparation is not available yet." }, 503);
-  const links = (result.data ?? []).map(({ guest_safety, ...link }) => ({ ...link, assignmentReference: guest_safety?.assignment_reference ?? null }));
-  return pickupJson({ enabled: Boolean(fleetConfiguration()), renewalEnabled: Boolean(fleetConfiguration()) && fleetTrackingConfigured(), links });
+  const links = (result.data ?? []).map(({ guest_safety, ...link }) => ({
+    ...link,
+    assignmentReference: guest_safety?.assignment_reference ?? null,
+    driverName: guest_safety?.driver?.name ?? null,
+    vehicleDescription: guest_safety?.vehicle?.description ?? null,
+    vehiclePlate: guest_safety?.vehicle?.plate_number ?? null,
+  }));
+  const fare = links.length ? await guard.client.rpc("get_transportation_fleet_fare", { p_request: id }) : null;
+  if (fare?.error) return pickupJson({ error: "Unable to check the transportation fare." }, 503);
+  return pickupJson({ enabled: Boolean(fleetConfiguration()), renewalEnabled: Boolean(fleetConfiguration()) && fleetTrackingConfigured(), links, fare: fare?.data ?? null });
 }
 export async function POST(request: Request, context: Context) {
   const { id } = await context.params;
@@ -34,6 +43,17 @@ export async function POST(request: Request, context: Context) {
   const parsed = schema.safeParse(await limitedJson(request, 4096).catch(() => null));
   if (!parsed.success) return pickupJson({ error: "Invalid Fleet action." }, 400);
   const action = parsed.data;
+  if (action.action === "confirmFare") {
+    const result = await guard.client.rpc("post_confirmed_fleet_fare", {
+      p_request: id, p_actor: guard.actor, p_revision: action.revision,
+    });
+    if (result.error?.message.includes("TRANSPORTATION_FARE_CHANGED"))
+      return pickupJson({ error: "The Fleet fare changed or is awaiting confirmation. Refresh and review the fare again." }, 409);
+    if (result.error?.message.includes("TRANSPORTATION_RESERVATION_NOT_READY"))
+      return pickupJson({ error: "This stay no longer accepts ride charges. Contact Accounting for help." }, 409);
+    if (result.error) return pickupJson({ error: "Unable to add the fare to the guest folio. Check the folio before retrying." }, 503);
+    return pickupJson(result.data);
+  }
   if (action.action === "revoke") {
     const scoped = await guard.client.from("fleet_transport_links").select("id").eq("id", action.linkId).eq("request_id", id).maybeSingle();
     if (scoped.error) return pickupJson({ error: "Unable to verify the Fleet ride." }, 503);

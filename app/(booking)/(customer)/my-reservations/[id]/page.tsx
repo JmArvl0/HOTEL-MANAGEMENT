@@ -3,6 +3,7 @@ import { requireCustomerSession } from "@/lib/customer-auth";
 import { getCustomerReservationDetail } from "@/lib/customer";
 import { displayTime, operationalPolicyFromSnapshot } from "@/lib/hotel-policy";
 import { getCustomerTransportation } from "@/lib/transportation";
+import { hotelToday } from "@/lib/booking";
 import { supabase } from "@/lib/supabase";
 import { ReservationDetailView } from "@/components/customer/reservation-detail-view";
 import { StayReviewCard } from "@/components/customer/stay-review-card";
@@ -12,7 +13,7 @@ import { isLegacyGuestPayment } from "@/lib/payment-display";
 export default async function ReservationPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireCustomerSession();
   const { id } = await params;
-  const [reservation, transportation] = await Promise.all([getCustomerReservationDetail(session.user.id, id), getCustomerTransportation(session.user.id)]);
+  const [reservation, transportation] = await Promise.all([getCustomerReservationDetail(session.user.id, id), getCustomerTransportation(session.user.id, id)]);
   if (!reservation) notFound();
 
   const invoice = reservation.invoice;
@@ -240,7 +241,8 @@ export default async function ReservationPage({ params }: { params: Promise<{ id
         payments: reservation.payments.map((payment) => ({ id: payment.id, amount: Number(payment.amount), method: payment.method, purpose: payment.purpose, status: payment.status, createdAt: String(payment.created_at) })),
         refunds: reservation.refunds.map((refund) => ({ id: refund.id, reason: refund.reason, eligibleAmount: Number(refund.eligible_amount), status: refund.status, createdAt: String(refund.created_at) })),
         changeRequests: reservation.changeRequests.map((request) => ({ id: request.id, reason: request.reason, status: request.status, executionStatus: String(request.execution_status ?? ""), requestedCheckIn: request.requested_check_in ? String(request.requested_check_in) : null, requestedCheckOut: request.requested_check_out ? String(request.requested_check_out) : null, requestedRoomType: request.requested_room_type ? String(request.requested_room_type) : null, createdAt: String(request.created_at) })),
-        transportation: transportation.filter((request) => request.reservation_id === id),
+        transportation,
+        canArrangeTransportation: ["confirmed", "checked_in"].includes(reservation.status) && reservation.check_out >= hotelToday(),
       }}
     />
     {reservation.status === "checked_out" && (

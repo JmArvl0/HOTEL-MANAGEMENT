@@ -11,7 +11,7 @@ import { ConfirmDialog } from "@/components/ui/Modal";
 import { TransportPickupProfile } from "@/components/customer/transport-pickup-profile";
 import { FleetRideSafety } from "@/components/customer/fleet-ride-safety";
 import { formatPeso } from "@/lib/format";
-import { isAssignmentVisible, isCustomerCancellable, isTerminalStatus, SERVICE_TYPE_LABELS, TRANSPORTATION_STATUS_LABELS, type CustomerTransportationRequest, type TransportationStatus } from "@/lib/transportation-display";
+import { FLEET_RIDE_STATUS_LABELS, isAssignmentVisible, isCustomerCancellable, isTerminalStatus, SERVICE_TYPE_LABELS, TRANSPORTATION_STATUS_LABELS, type CustomerTransportationRequest, type TransportationStatus } from "@/lib/transportation-display";
 
 const formatDate = (value: string) => new Intl.DateTimeFormat("en-PH", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
 const formatTime = (value: string) => new Date(`2000-01-01T${value}:00`).toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit" });
@@ -75,12 +75,17 @@ export function TransportationRequestList({ requests }: { requests: CustomerTran
 
   async function cancel(request: CustomerTransportationRequest) {
     setBusy(request.id); setError("");
-    const response = await fetchPublic(`/api/account/transportation/${request.id}/cancel`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ expectedVersion: request.version }) });
-    const body = await readResponse(response).catch(() => ({}));
-    setBusy(null);
-    if (!response.ok) { setError(userMessage(body.error, "Unable to cancel this request.")); return; }
-    setConfirming(null);
-    router.refresh();
+    try {
+      const response = await fetchPublic(`/api/account/transportation/${request.id}/cancel`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ expectedVersion: request.version }) });
+      const body = await readResponse(response);
+      if (!response.ok) { setError(userMessage(body.error, "Unable to cancel this request.")); return; }
+      setConfirming(null);
+      router.refresh();
+    } catch {
+      setError("We couldn’t confirm the cancellation. Refresh this page to check your ride.");
+    } finally {
+      setBusy(null);
+    }
   }
 
   if (!requests.length) return <div className="customer-empty ctr-empty"><CarTaxiFront aria-hidden="true" /><h2>No rides scheduled yet</h2><p>Your pickup, drop-off, and driver updates will appear here after you submit a request.</p></div>;
@@ -107,8 +112,8 @@ export function TransportationRequestList({ requests }: { requests: CustomerTran
                   <small>Reservation {request.reservation?.confirmation_number ?? request.reservation_id}</small>
                 </div>
                 <div className="ctr-card-header-meta">
-                  <span className={`customer-status ${request.status.toLowerCase()}`}>{TRANSPORTATION_STATUS_LABELS[request.status]}</span>
-                  {isCustomerCancellable(request.status) && (
+                  {!request.rideUpdates.length && <span className={`customer-status ${request.status.toLowerCase()}`}>{TRANSPORTATION_STATUS_LABELS[request.status]}</span>}
+                  {isCustomerCancellable(request.status) && !request.fleetDispatched && (
                     <button className="btn btn-soft" disabled={busy === request.id} onClick={() => setConfirming(request)}>
                       <X size={14} />{busy === request.id ? "Cancelling…" : "Cancel"}
                     </button>
@@ -132,9 +137,14 @@ export function TransportationRequestList({ requests }: { requests: CustomerTran
               </p>
 
               {isAssignmentVisible(request.status) && (request.driver_name || request.vehicle_type) && (
-                <p className="ctr-assignment"><CarTaxiFront size={14} aria-hidden="true" />Your ride: {request.driver_name ?? "Driver pending"}{request.vehicle_type ? ` · ${request.vehicle_type}` : ""}</p>
+                <p className="ctr-assignment"><CarTaxiFront size={14} aria-hidden="true" />{[request.driver_name, request.vehicle_type].filter(Boolean).join(" · ")}</p>
               )}
-              {request.fare_amount != null && <p className="ctr-note"><b>Vehicle fare</b>{formatPeso(request.fare_amount)} · added to your stay folio</p>}
+              {request.rideUpdates.map(({ leg, status }) => <p key={leg} className="ctr-note">
+                <b>{leg === "RETURN" ? "Return ride" : "Outbound ride"}</b>{FLEET_RIDE_STATUS_LABELS[status]}
+              </p>)}
+              {request.fare_amount != null
+                ? <p className="ctr-note"><b>Confirmed fare</b>{Number(request.fare_amount) === 0 ? "No charge due" : `${formatPeso(request.fare_amount)} · added to your stay folio`}</p>
+                : !terminal && <p className="ctr-note"><b>Fare pending</b>Your confirmed fare will appear on your stay folio.</p>}
               {request.customer_visible_notes && <p className="ctr-note"><b>Front Desk</b>{request.customer_visible_notes}</p>}
               {request.special_instructions && <p className="ctr-note"><b>Your notes</b>{request.special_instructions}</p>}
               <TransportPickupProfile requestId={request.id} requestVersion={request.version} />
@@ -142,7 +152,7 @@ export function TransportationRequestList({ requests }: { requests: CustomerTran
 
               {terminal
                 ? <p className={`ctr-terminal-notice customer-status ${request.status.toLowerCase()}`}>{TERMINAL_COPY[request.status]}{request.cancellation_reason ? ` ${request.cancellation_reason}` : ""}</p>
-                : <ol className="crd-stepper ctr-stepper" aria-label="Request progress">
+                : !request.rideUpdates.length && <ol className="crd-stepper ctr-stepper" aria-label="Request progress">
                     {STEPS.map((step, index) => (
                       <li key={step.key} data-state={index < currentStep ? "past" : index === currentStep ? "current" : "future"} aria-current={index === currentStep ? "step" : undefined}>
                         <i aria-hidden="true" />
@@ -162,9 +172,9 @@ export function TransportationRequestList({ requests }: { requests: CustomerTran
       <ConfirmDialog
         isOpen={!!confirming}
         onClose={() => setConfirming(null)}
-        onConfirm={() => { if (confirming) cancel(confirming); }}
+        onConfirm={() => confirming ? cancel(confirming) : undefined}
         title="Cancel Transportation Request"
-        message="Cancel this transportation request? The Front Desk will stop arranging it. You can submit a new request any time."
+        message="Cancel this ride request? Your hotel reservation stays confirmed."
         confirmText="Yes, cancel"
         cancelText="Keep request"
         variant="danger"

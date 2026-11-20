@@ -900,9 +900,9 @@ Confirmation**, wired through search-params → a server-issued **hold token** �
    an explicitly replaced hold is released transactionally. Flow pages share a compact back link
    (`components/booking/booking-page-frame.tsx` + `BackButton`) that pushes deterministically to
    the previous breadcrumb step (never `router.back()`), labelled "Back to <step>".
-4. **Review** (`/booking/review/[token]`) — holds the reservation.
-5. **Payment link** (`/booking/payment/[token]`) — Xendit sandbox GCash or Maya, with deposit and full-payment options (§7.2.2).
-6. **Confirmation** (`/booking/confirmation/[id]`) — auto-refreshes when a gateway deposit settles.
+4. **Review** (`/booking/review/[token]`) — shows the held stay and any transportation request with fare pending.
+5. **Payment link** (`/booking/payment/[token]`) — Xendit sandbox GCash or Maya with deposit and full-payment options (§7.2.2). New ride requests carry no checkout price.
+6. **Confirmation** (`/booking/confirmation/[id]`) — auto-refreshes when a gateway deposit settles. It reads the filed ride and links to the reservation's transportation page. If filing failed, the guest can arrange the ride from that page.
 
 **Guest recovery.** Account overview and My Reservations show each active, unconverted room hold
 with its expiry in hotel time and a link back to Review. Guests can release their own unconverted
@@ -1049,9 +1049,9 @@ Self-service actions and their constraints:
 - **Payments** — view transactions, balances and receipts. Front Desk collects balances after booking.
 - **Guest requests** — submitted as a **batch** (§7.7): up to 12 structured picks per submission,
   routed to departments only after Front Desk approves the batch.
-- **Transportation** (`/account/transportation`) — request a pickup/drop-off/round-trip against an
-  active reservation (locations are free text; hotel-side endpoints come from policy), and cancel a
-  pending request with a reason.
+- **Transportation** (`/account/transportation`) — request a pickup, drop-off or round trip against a
+  confirmed or current stay, view ride progress and cancel eligible requests. Links from confirmation
+  and reservation details scope the page and request form to the selected stay.
 - **Notifications** — durable, user-scoped event rows for guest-request review and transportation
   schedule/cancellation actions, plus historical payment notices. The bell is
   **click-to-open** (hover shows only the tooltip/header highlight) and shows one aggregate unread
@@ -1769,24 +1769,31 @@ deliberately removed; `docs/TRANSPORTATION_FUTURE_ENHANCEMENTS.md` records what 
   `transportation_requests` row by a trigger the moment the website reservation first confirms (the filer never
   raises — it re-validates defensively and skips, with an audit row, anything that no longer fits);
   (b) live from the customer portal (`/account/transportation` → `customer_submit_transportation_request`,
-  idempotent by key; `customer_cancel_transportation_request` cancels a not-yet-scheduled
-  (REQUESTED/REVIEWED) request with a reason, version-guarded). The hotel side of each
-  route comes from `hotel_operational_policies` (`transfer_hotel_label`), so a client can never
-  invent it. A partial unique index keeps **one active request per reservation**.
+  idempotent by key). `customer_cancel_transportation_request` version-checks guest cancellations
+  at REQUESTED or REVIEWED before an outbound Fleet attempt. Cancellation of a stay closes those
+  same uncommitted requests. Front Desk coordinates dispatched or later-stage rides separately.
+  The hotel endpoint comes from `hotel_operational_policies` (`transfer_hotel_label`).
+  The partial unique index prevents duplicate active requests by reservation, service type,
+  pickup date and pickup location.
 - **Lifecycle.** `REQUESTED → REVIEWED → SCHEDULED → ASSIGNED → IN_PROGRESS → COMPLETED`, plus
   terminal `CANCELLED`/`REJECTED`. Every transition goes through one version-guarded RPC,
   `staff_transition_transportation_request(p_request_id, p_action, p_details, p_staff_user_id,
   p_expected_version)`: **Front Desk executes** the operational path (review with internal/guest
   notes → schedule the pickup date/time the guest sees → assign driver + vehicle type → start →
   complete); **Manager may only cancel/reject with a required reason**; **Owner is read-only**.
-- **Money.** Fares are **flat per vehicle type** — `(base_fare + booking_fee) × legs` from
-  `transport_vehicle_types` (a round trip is 2 legs). On **assign**, the fare is posted to the
-  guest's folio (`fare_amount`/`fare_posted_at` on the request, idempotent by key). A later
-  cancel/reject does **not** auto-reverse a posted fare — the correction goes through Accounting's
-  existing charge-reversal/adjustment flow (separation of duties: the role that cancels the trip
-  must not also rewrite the folio). The vehicle-type catalogue is manager-maintained (§7.1).
-- **Guard rails.** A trigger (`enforce_transportation_stay_window`) keeps pickup/return inside the
-  reservation's stay window; the staff workspace (`components/manager/transportation-panel.tsx`)
+- **Money.** The checkout price excludes new transportation requests. Historical prepaid
+  `transport_lines` remain readable. For hotel-operated rides, Front Desk confirms the available
+  vehicle and its flat fare `(base_fare + booking_fee) × legs` at assignment. Once delivery to Fleet
+  is attempted, billing uses the latest applied PHP fare revision for each required leg.
+  Front Desk reviews the values in Pickup & Fleet and confirms the agreed fare. Migration
+  `20261120030000_confirmed_transportation_folio_fares.sql` posts positive confirmed fares once
+  to the existing folio and recomputes its balance and available credit. Guests can see the item
+  in their reservation's Folio tab. Accounting handles adjustments, later fare revisions, and
+  reversals of posted fares. The vehicle-type catalogue is manager-maintained (§7.1).
+- **Guard rails.** Database triggers check both legs against the stay window, require different
+  endpoints within a leg, and require a later return time for same-day round trips.
+  Departure dates default to checkout and can be changed within the stay. The staff workspace
+  (`components/manager/transportation-panel.tsx`)
   offers queue filters (needs review / today / active / completed / closed), service-type and search
   filters, and auto-refreshes every 30 s.
 - **Pickup profiles (local unreleased).** Guest Transportation → Passenger details and staff
@@ -1827,7 +1834,8 @@ deliberately removed; `docs/TRANSPORTATION_FUTURE_ENHANCEMENTS.md` records what 
   Idempotency-Key; immutable wire evidence is retained. New PMS callbacks are rejected;
   previously stored identical legacy events can replay. Journey, leg and external revision
   must match the saved create. Changed repeats conflict; stale versions do not regress
-  projections. PHP-centavo fare/correction evidence never posts folio charges or local status.
+  projections. Callbacks store PHP-centavo fare and correction evidence. Front Desk confirmation
+  is a separate folio operation. Guests can see the current published status of each leg.
   Photo signing requires external request ID, photo reference/version and current assignment
   UUID, permission and active trip/stay. It returns url/expires_at with a 60-second private
   HTTPS URL. Explicit Front Desk tracking renewal saves a durable command with original
@@ -1849,9 +1857,9 @@ deliberately removed; `docs/TRANSPORTATION_FUTURE_ENHANCEMENTS.md` records what 
   Callback/photo authentication now requires two distinct purpose-specific Haven keys,
   plus a distinct Fleet-issued outbound key; the legacy shared inbound key is ignored.
   Existing projects are used for testing: Haven at https://haven-hotel-management-ten.vercel.app,
-  Fleet/base/tracking at https://fleet-transpo.vercel.app. Four local Fleet migrations have
-  a scoped Supabase dry-run, but no hosted apply/release. Last hosted route probes404;
-  no hosted readiness claim. Lead Programmer is the Haven contact role; Fleet accepted
+  Fleet/base/tracking at https://fleet-transpo.vercel.app. The hosted ledger read on 2026-11-20
+  includes the four existing Fleet migrations. Live partner acceptance is pending.
+  Lead Programmer is the Haven contact role. Fleet accepted
   Bitwarden Send (separate password-protected text sends,24h,max access1, verified private
   recipients/passwords through another channel). No real credentials/Send exchanged here.
   See `docs/integrations/FLEET_HOSTED_READINESS_2026-11-13.md`. Hosted deployment,
