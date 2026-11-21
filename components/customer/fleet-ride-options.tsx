@@ -23,7 +23,7 @@ export function FleetRideOptions({ fields, prefix, saved, staff }: {
       <input type="checkbox" name="sharingEnabled" required defaultChecked={saved?.sharingEnabled}
         {...formFieldProps(fields, "sharingEnabled", prefix)} />
       <span>{staff ? "The guest agreed to share the passenger contact and ride details with Fleet."
-        : "I agree to share the passenger contact and ride details with Fleet."}</span>
+        : "I agree to share my contact and ride details with Fleet."}</span>
     </label>
     <FormFieldError errors={fields} field="sharingEnabled" prefix={prefix} />
   </>;

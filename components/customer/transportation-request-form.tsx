@@ -12,6 +12,7 @@ import { Modal } from "@/components/ui/Modal";
 import { FleetRideOptions } from "@/components/customer/fleet-ride-options";
 import { readFleetOptions } from "@/lib/fleet-pickup-input";
 import { reservationTransportationHref } from "@/lib/transportation-display";
+import { normalizePhone } from "@/lib/input-validation";
 
 export type EligibleRideReservation = {
   id: string; confirmation_number: string | null; room_type: string; check_in: string; check_out: string; guests: number;
@@ -48,6 +49,11 @@ export function TransportationRequestForm({ reservations, hotelLabel, today, res
   const [selectedReservationId, setSelectedReservationId] = useState(reservations[0]?.id ?? "");
   const [pickupDate, setPickupDate] = useState("");
   const [returnDate, setReturnDate] = useState("");
+  const selectedReservation = reservations.find(reservation => reservation.id === selectedReservationId) ?? reservations[0];
+  const savedName = selectedReservation?.passenger?.name?.trim() ?? "";
+  const savedPhone = normalizePhone(selectedReservation?.passenger?.phone ?? "") ?? "";
+  const needsName = staff || savedName.length < 2 || savedName.length > 120;
+  const needsPhone = staff || !savedPhone;
 
   useEffect(() => {
     if (!openInitially) return;
@@ -70,7 +76,11 @@ export function TransportationRequestForm({ reservations, hotelLabel, today, res
       ...(serviceType === "DROPOFF" ? { dropoffLocation: String(form.get("dropoffLocation") ?? "").trim() || undefined } : {}),
       ...(serviceType === "ROUND_TRIP" ? { returnLocation: String(form.get("returnLocation") ?? "").trim() || undefined, returnDate: String(form.get("returnDate") ?? ""), returnTime: String(form.get("returnTime") ?? "") } : {}),
       specialInstructions: String(form.get("specialInstructions") ?? "").trim() || undefined,
-      fleetPickup: { ...readFleetOptions(form), travelerName: String(form.get("travelerName") ?? ""), phone: String(form.get("phone") ?? "") },
+      fleetPickup: {
+        ...readFleetOptions(form),
+        travelerName: needsName ? String(form.get("travelerName") ?? "") : savedName,
+        phone: needsPhone ? String(form.get("phone") ?? "") : savedPhone,
+      },
     };
     const signature = JSON.stringify(payload);
     if (retry.current?.signature !== signature) retry.current = { signature, key: crypto.randomUUID() };
@@ -91,8 +101,7 @@ export function TransportationRequestForm({ reservations, hotelLabel, today, res
     finally { submitting.current = false; setLoading(false); }
   }
 
-  if (!reservations.length) return <p className="customer-empty-note">A confirmed or current reservation is required before requesting transportation.</p>;
-  const selectedReservation = reservations.find((reservation) => reservation.id === selectedReservationId) ?? reservations[0];
+  if (!selectedReservation) return <p className="customer-empty-note">A confirmed or current reservation is required before requesting transportation.</p>;
   const stayStart = selectedReservation.check_in < today ? today : selectedReservation.check_in;
   const stayEnd = selectedReservation.check_out;
   const hotelEndCaption = serviceType === "DROPOFF" ? "Pickup at the hotel" : serviceType === "ROUND_TRIP" ? "The hotel end of both legs is fixed" : "Drop-off at the hotel";
@@ -125,12 +134,12 @@ export function TransportationRequestForm({ reservations, hotelLabel, today, res
       <label>Passengers<input name="passengerCount" type="number" min={1} max={20} key={selectedReservation.id} defaultValue={Math.min(selectedReservation.guests, 20)} required {...formFieldProps(fields, "passengerCount", "request")} /><FormFieldError errors={fields} field="passengerCount" prefix="request" /></label>
     </div>
     <label>Special instructions <small className="customer-data-note">Optional</small><textarea name="specialInstructions" rows={3} maxLength={500} placeholder="e.g. flight number, terminal, luggage or child seat" {...formFieldProps(fields, "specialInstructions", "request")} /><FormFieldError errors={fields} field="specialInstructions" prefix="request" /></label>
-    <div className="ctr-grid" key={selectedReservation.id}>
-      <label>Passenger name<input name="travelerName" required minLength={2} maxLength={120} defaultValue={selectedReservation.passenger?.name}
-        {...formFieldProps(fields, "travelerName", "request")} /><FormFieldError errors={fields} field="travelerName" prefix="request" /></label>
-      <label>Contact number<input name="phone" type="tel" required maxLength={40} defaultValue={selectedReservation.passenger?.phone}
-        {...formFieldProps(fields, "phone", "request")} /><FormFieldError errors={fields} field="phone" prefix="request" /></label>
-    </div>
+    {(needsName || needsPhone) && <div className="ctr-grid" key={selectedReservation.id}>
+      {needsName && <label>Passenger name<input name="travelerName" required minLength={2} maxLength={120} defaultValue={staff ? savedName : ""}
+        {...formFieldProps(fields, "travelerName", "request")} /><FormFieldError errors={fields} field="travelerName" prefix="request" /></label>}
+      {needsPhone && <label>Contact number<input name="phone" type="tel" required maxLength={40} defaultValue={staff ? selectedReservation.passenger?.phone : ""}
+        {...formFieldProps(fields, "phone", "request")} /><FormFieldError errors={fields} field="phone" prefix="request" /></label>}
+    </div>}
     <FleetRideOptions fields={fields} prefix="request" staff={staff} />
     {error && <HavenErrorAlert title="Request needs attention" body={error} variant="customer" />}
     <div className="ctr-modal-actions"><button type="button" className="btn btn-soft" onClick={() => close()}>Cancel</button><button className="btn btn-accent" disabled={loading}><Send size={15} aria-hidden="true" />{loading ? "Submitting…" : "Send ride request"}</button></div>

@@ -37,6 +37,8 @@ it("releases transportation loading and reuses the request identity after a time
     reservations={[{ id: "stay-fixture", confirmation_number: "STAY-FIXTURE", room_type: "Garden Twin", check_in: "2026-12-10", check_out: "2026-12-12", guests: 2,
       passenger: { name: "Synthetic passenger", phone: "+12025550101" } }]} />);
   fireEvent.click(screen.getByRole("button", { name: /Request transportation/i }));
+  expect(screen.queryByLabelText("Passenger name")).toBeNull();
+  expect(screen.queryByLabelText("Contact number")).toBeNull();
   const form = view.baseElement.querySelector("form")!;
   for (const [name, value] of Object.entries({ pickupLocation: "Airport Terminal 3", pickupDate: "2026-12-10", pickupTime: "14:00" })) {
     fireEvent.change(form.querySelector(`[name="${name}"]`)!, { target: { value } });
