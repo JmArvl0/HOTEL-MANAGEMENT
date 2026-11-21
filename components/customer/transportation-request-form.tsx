@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { CarTaxiFront, Hotel, Plane, PlaneTakeoff, Repeat, Send } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { FleetRideOptions } from "@/components/customer/fleet-ride-options";
+import { RideLocationField } from "@/components/customer/ride-location-field";
 import { readFleetOptions } from "@/lib/fleet-pickup-input";
 import { reservationTransportationHref } from "@/lib/transportation-display";
 import { normalizePhone } from "@/lib/input-validation";
@@ -120,14 +121,22 @@ export function TransportationRequestForm({ reservations, hotelLabel, today, res
     {reservationSelected ? <input type="hidden" name="reservationId" value={selectedReservation.id} /> :
       <label>Reservation<select name="reservationId" required value={selectedReservationId} onChange={(event) => { setSelectedReservationId(event.target.value); setPickupDate(""); setReturnDate(""); setError(""); }}>{reservations.map((reservation) => <option value={reservation.id} key={reservation.id}>{reservation.confirmation_number ?? reservation.id} · {reservation.room_type} · {reservation.check_in} to {reservation.check_out}</option>)}</select></label>}
     <p className="ctr-stay-window" aria-live="polite"><span>Available ride dates</span><b>{formatStayDate(stayStart)} – {formatStayDate(stayEnd)}</b><small>Dates outside this reservation are disabled.</small></p>
-    {(serviceType === "PICKUP" || serviceType === "ROUND_TRIP") && <label>{serviceType === "ROUND_TRIP" ? "Arrival pickup location" : "Pickup location"}<input name="pickupLocation" required minLength={5} maxLength={200} placeholder="e.g. NAIA Terminal 3, Pasay City" {...formFieldProps(fields, "pickupLocation", "request")} /><FormFieldError errors={fields} field="pickupLocation" prefix="request" /></label>}
+    {(serviceType === "PICKUP" || serviceType === "ROUND_TRIP") && <RideLocationField name="pickupLocation"
+      label={serviceType === "ROUND_TRIP" ? "Arrival pickup location" : "Pickup location"} placeholder="e.g. NAIA Terminal 3, Pasay City"
+      fields={fields} prefix="request" allowMap={!staff} />}
     <div className="ctr-hotel-end" aria-label={`${hotelEndCaption}: ${hotelLabel}`}>
       <Hotel size={14} aria-hidden="true" />
       <span>{hotelEndCaption}</span>
       <b>{hotelLabel}</b>
     </div>
-    {serviceType === "DROPOFF" && <label>Destination<input name="dropoffLocation" required minLength={5} maxLength={200} placeholder="e.g. SM North EDSA, Quezon City" {...formFieldProps(fields, "dropoffLocation", "request")} /><FormFieldError errors={fields} field="dropoffLocation" prefix="request" /></label>}
-    {serviceType === "ROUND_TRIP" && <><label>Departure destination<input name="returnLocation" required minLength={5} maxLength={200} placeholder="e.g. NAIA Terminal 1, Pasay City" {...formFieldProps(fields, "returnLocation", "request")} /><FormFieldError errors={fields} field="returnLocation" prefix="request" /></label><label>Return date<input name="returnDate" type="date" min={pickupDate || stayStart} max={stayEnd} value={returnDate || stayEnd} onChange={(event) => setReturnDate(event.target.value)} required {...formFieldProps(fields, "returnDate", "request")} /><FormFieldError errors={fields} field="returnDate" prefix="request" /></label><label>Return time<input name="returnTime" type="time" required {...formFieldProps(fields, "returnTime", "request")} /><FormFieldError errors={fields} field="returnTime" prefix="request" /></label></>}
+    {serviceType === "DROPOFF" && <RideLocationField name="dropoffLocation" label="Destination" placeholder="e.g. SM North EDSA, Quezon City"
+      fields={fields} prefix="request" allowMap={!staff} />}
+    {serviceType === "ROUND_TRIP" && <>
+      <RideLocationField name="returnLocation" label="Departure destination" placeholder="e.g. NAIA Terminal 1, Pasay City"
+        fields={fields} prefix="request" allowMap={!staff} />
+      <label>Return date<input name="returnDate" type="date" min={pickupDate || stayStart} max={stayEnd} value={returnDate || stayEnd} onChange={(event) => setReturnDate(event.target.value)} required {...formFieldProps(fields, "returnDate", "request")} /><FormFieldError errors={fields} field="returnDate" prefix="request" /></label>
+      <label>Return time<input name="returnTime" type="time" required {...formFieldProps(fields, "returnTime", "request")} /><FormFieldError errors={fields} field="returnTime" prefix="request" /></label>
+    </>}
     <div className="ctr-grid">
       <label>Pickup date<input name="pickupDate" type="date" min={stayStart} max={stayEnd} value={pickupDate || (serviceType === "DROPOFF" ? stayEnd : stayStart)} onChange={(event) => { setPickupDate(event.target.value); if (returnDate && returnDate < event.target.value) setReturnDate(""); }} required {...formFieldProps(fields, "pickupDate", "request")} /><FormFieldError errors={fields} field="pickupDate" prefix="request" /><small className="ctr-date-hint">Choose a date within your stay.</small></label>
       <label>Pickup time<input name="pickupTime" type="time" required {...formFieldProps(fields, "pickupTime", "request")} /><FormFieldError errors={fields} field="pickupTime" prefix="request" /></label>

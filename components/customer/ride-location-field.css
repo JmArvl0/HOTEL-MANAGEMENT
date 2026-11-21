@@ -1,0 +1,66 @@
+.ride-location-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ride-location-heading,
+.ride-pin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ride-pin-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 8px;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.ride-pin-button:hover {
+  background: var(--cp-panel-2, var(--surface-2, #eef1f5));
+}
+
+.ride-pin-picker {
+  display: grid;
+  gap: 8px;
+}
+
+.ride-pin-picker p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.ride-pin-map {
+  height: 240px;
+  z-index: 0;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid var(--cp-line, var(--line));
+  border-radius: 8px;
+}
+
+.ride-pin-map .ride-map-pin {
+  background: #193752;
+  border: 3px solid #fff;
+  border-radius: 50% 50% 50% 0;
+  rotate: -45deg;
+  transform-origin: 50% 100%;
+  box-shadow: 0 2px 5px #10213555;
+}
+
+.ride-pin-actions .btn {
+  min-height: 44px;
+}
