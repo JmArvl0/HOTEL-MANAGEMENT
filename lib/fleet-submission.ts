@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import { scheduleFleetDelivery } from "@/lib/fleet-delivery";
+import { fleetRideInstructions } from "@/lib/fleet-pickup-input";
 import { publicJson } from "@/lib/server-errors";
 import { type TransportationContext, transportationRpcFailure } from "@/lib/transportation-route";
 import type { transportationRequestSchema } from "@/lib/transportation";
@@ -9,9 +10,11 @@ export async function submitFleetTransportation(
   { reservationId, idempotencyKey, fleetPickup, ...ride }: z.infer<typeof transportationRequestSchema>,
 ) {
   if (!fleetPickup) return publicJson({ error: "Confirm the passenger contact and sharing permission." }, { status: 400 });
+  const { vehicleSeats, ...profile } = fleetPickup;
   const { data, error } = await client.rpc("submit_fleet_transportation_request", {
-    p_actor: actorId, p_reservation_id: reservationId, p_ride: ride,
-    p_profile: fleetPickup, p_idempotency_key: idempotencyKey,
+    p_actor: actorId, p_reservation_id: reservationId,
+    p_ride: { ...ride, specialInstructions: fleetRideInstructions(ride.specialInstructions, vehicleSeats) },
+    p_profile: profile, p_idempotency_key: idempotencyKey,
   });
   if (error) return transportationRpcFailure(error, {
     RESERVATION_NOT_FOUND: "An eligible reservation with a guest account is required.",

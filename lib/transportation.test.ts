@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { canCancelTransportation, canOperateTransportation, canViewTransportation } from "@/lib/permissions";
 import { transportationPreferencesSchema } from "@/lib/booking";
+import { editableFleetRideNotes, fleetRideInstructions } from "@/lib/fleet-pickup-input";
 import { isDateWithinStay, transportationRequestSchema } from "@/lib/transportation";
 import { canTransition, CUSTOMER_CANCELLABLE_STATUSES, isAssignmentVisible, isCustomerCancellable, isTerminalStatus, TRANSPORTATION_TRANSITIONS } from "@/lib/transportation-display";
 
@@ -219,6 +220,17 @@ describe("transportation request schema (service-type conditionals)", () => {
   const future = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
   const later = new Date(Date.now() + 9 * 86400000).toISOString().slice(0, 10);
   const base = { reservationId: "res-1", pickupDate: future, pickupTime: "14:30", passengerCount: 2, idempotencyKey: "00000000-0000-4000-8000-000000000001" };
+  it("validates requested seating and preserves the guest's notes through checkout edits", () => {
+    const pickup = { ...base, serviceType: "PICKUP", pickupLocation: "NAIA Terminal 3, Pasay" };
+    const options = { vehicleSeats: "4", sharingEnabled: true, ridePreferences: [] };
+    const profile = { ...options, travelerName: "Test Passenger", phone: "+12025550101" };
+    expect(transportationRequestSchema.safeParse({ ...pickup, fleetPickup: profile }).success).toBe(true);
+    expect(transportationRequestSchema.safeParse({ ...pickup, fleetPickup: profile, passengerCount: 5 }).success).toBe(false);
+    expect(transportationPreferencesSchema.safeParse({ ...pickup, fleetOptions: options, passengerCount: 5 }).success).toBe(false);
+    const wireNotes = fleetRideInstructions("Meet at arrivals", "4");
+    expect(wireNotes).toBe("Vehicle preference: 4-seater\nMeet at arrivals");
+    expect(editableFleetRideNotes(wireNotes, "4")).toBe("Meet at arrivals");
+  });
   it("PICKUP needs only the pickup side", () => {
     expect(transportationRequestSchema.safeParse({ ...base, serviceType: "PICKUP", pickupLocation: "NAIA Terminal 3, Pasay" }).success).toBe(true);
     expect(transportationRequestSchema.safeParse({ ...base, serviceType: "PICKUP" }).success).toBe(false);

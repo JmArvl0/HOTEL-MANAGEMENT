@@ -1,7 +1,7 @@
 import { validationMessage } from "@/lib/errors";
 import { calendarDate, isCalendarDate, integerInput, phoneInput, localTimePattern } from "@/lib/input-validation";
 import { z } from "zod";
-import { fleetOptionsSchema } from "@/lib/fleet-pickup-input";
+import { fleetOptionsSchema, validateFleetVehiclePreference } from "@/lib/fleet-pickup-input";
 import { formatPeso } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
 import { nightlyRates, stayTotal, uniformRate, fromRate, type RatePlan } from "@/lib/rate-plans";
@@ -85,6 +85,7 @@ export const transportationPreferencesSchema = z.object({
   specialInstructions: z.string().trim().max(500).optional(),
   fleetOptions: fleetOptionsSchema.optional(),
 }).superRefine((value, ctx) => {
+  validateFleetVehiclePreference(value.passengerCount, ctx, value.fleetOptions?.vehicleSeats, value.specialInstructions);
   if (value.serviceType === "PICKUP" && !value.pickupLocation)
     ctx.addIssue({ code: "custom", path: ["pickupLocation"], message: "Enter the pickup location." });
   if (value.serviceType === "DROPOFF" && !value.dropoffLocation)

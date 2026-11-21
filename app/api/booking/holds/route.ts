@@ -11,6 +11,7 @@ import { findUnavailableSelections, getPreArrivalOptions, PRE_ARRIVAL_UNAVAILABL
 import { escapeEmailText, guestEmailHtml } from "@/lib/email";
 import { deliverGuestEmail } from "@/lib/guest-email-delivery";
 import { xenditConfigured } from "@/lib/xendit";
+import { fleetRideInstructions } from "@/lib/fleet-pickup-input";
 
 function invalid(error: z.ZodError, fallback: string) {
   const fields = Object.fromEntries(error.issues.filter(issue => issue.path.length)
@@ -34,7 +35,11 @@ export async function POST(request: Request) {
   const ride = details.transportationPreferences;
   const bookingDetails = ride?.fleetOptions ? {
     ...details,
-    transportationPreferences: { ...ride, fleetOptions: { ...ride.fleetOptions, contactPhone: details.mobile } },
+    transportationPreferences: {
+      ...ride,
+      specialInstructions: fleetRideInstructions(ride.specialInstructions, ride.fleetOptions.vehicleSeats),
+      fleetOptions: { ...ride.fleetOptions, contactPhone: details.mobile },
+    },
   } : details;
 
   try {

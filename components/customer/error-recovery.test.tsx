@@ -39,6 +39,7 @@ it("releases transportation loading and reuses the request identity after a time
   fireEvent.click(screen.getByRole("button", { name: /Request transportation/i }));
   expect(screen.queryByLabelText("Passenger name")).toBeNull();
   expect(screen.queryByLabelText("Contact number")).toBeNull();
+  fireEvent.change(screen.getByRole("combobox", { name: /Vehicle preference/ }), { target: { value: "4" } });
   const form = view.baseElement.querySelector("form")!;
   for (const [name, value] of Object.entries({ pickupLocation: "Airport Terminal 3", pickupDate: "2026-12-10", pickupTime: "14:00" })) {
     fireEvent.change(form.querySelector(`[name="${name}"]`)!, { target: { value } });
@@ -53,7 +54,7 @@ it("releases transportation loading and reuses the request identity after a time
   const first = JSON.parse(fetcher.mock.calls[0][1].body), second = JSON.parse(fetcher.mock.calls[1][1].body);
   expect(second).toEqual(first);
   expect(first.fleetPickup).toEqual({
-    travelerName: "Synthetic passenger", phone: "+12025550101", ridePreferences: ["QUIET_RIDE"], sharingEnabled: true,
+    travelerName: "Synthetic passenger", phone: "+12025550101", vehicleSeats: "4", ridePreferences: ["QUIET_RIDE"], sharingEnabled: true,
   });
   expect(view.baseElement.textContent).not.toContain("private provider timeout");
 });

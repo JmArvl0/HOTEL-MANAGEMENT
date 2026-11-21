@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { hotelToday } from "@/lib/booking";
 import { calendarDate, isCalendarDate } from "@/lib/input-validation";
-import { fleetPickupSchema } from "@/lib/fleet-pickup-input";
+import { fleetPickupSchema, validateFleetVehiclePreference } from "@/lib/fleet-pickup-input";
 import { supabase } from "@/lib/supabase";
 import { FLEET_RIDE_STATUS_LABELS, type CustomerTransportationRequest } from "@/lib/transportation-display";
 
@@ -42,6 +42,7 @@ export const transportationRequestSchema = z.object({
   idempotencyKey: z.string().uuid(),
   fleetPickup: fleetPickupSchema.optional(),
 }).superRefine((value, ctx) => {
+  validateFleetVehiclePreference(value.passengerCount, ctx, value.fleetPickup?.vehicleSeats, value.specialInstructions);
   if (value.serviceType === "PICKUP" && !value.pickupLocation)
     ctx.addIssue({ code: "custom", path: ["pickupLocation"], message: "Enter the pickup location." });
   if (value.serviceType === "DROPOFF" && !value.dropoffLocation)

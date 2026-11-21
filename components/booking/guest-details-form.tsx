@@ -13,7 +13,7 @@ import type { BreakfastChoice } from "@/lib/breakfast";
 import { formatPeso } from "@/lib/format";
 import type { TransportationPreferences } from "@/lib/transportation-display";
 import { FleetRideOptions } from "@/components/customer/fleet-ride-options";
-import { readFleetOptions } from "@/lib/fleet-pickup-input";
+import { editableFleetRideNotes, readFleetOptions } from "@/lib/fleet-pickup-input";
 
 type Props = { roomId?: string; holdToken?: string; roomType: string; checkIn: string; checkOut: string; guests: number; checkInFrom: string; defaults: Record<string, string>; initialRequests?: string[]; initialArrival?: string; initialTransport?: TransportationPreferences | null; preArrival?: PreArrivalOptions; breakfast?: BreakfastChoice | null; initialBreakfast?: boolean };
 
@@ -168,7 +168,9 @@ export function GuestDetailsForm({ roomId, holdToken, roomType, checkIn, checkOu
             <label>Return time<input name="returnTime" type="time" required defaultValue={initialTransport?.returnTime ?? ""} {...fieldProps("returnTime")} />{fieldError("returnTime")}</label>
           </>)}
           <label>Passengers<input name="passengerCount" type="number" min={1} max={20} defaultValue={initialTransport?.passengerCount ?? (guests > 20 ? 20 : guests)} required {...fieldProps("passengerCount")} />{fieldError("passengerCount")}</label>
-          <label className="wide">Ride notes (optional)<textarea name="rideNote" rows={2} maxLength={500} placeholder="Flight, terminal or bags" defaultValue={initialTransport?.specialInstructions ?? ""} {...fieldProps("specialInstructions")} />{fieldError("specialInstructions")}</label>
+          <label className="wide">Ride notes (optional)<textarea name="rideNote" rows={2} maxLength={500} placeholder="Flight, terminal or bags"
+            defaultValue={editableFleetRideNotes(initialTransport?.specialInstructions, initialTransport?.fleetOptions?.vehicleSeats) ?? ""}
+            {...fieldProps("specialInstructions")} />{fieldError("specialInstructions")}</label>
           <FleetRideOptions fields={fields} prefix={prefix} saved={initialTransport?.fleetOptions} />
         </fieldset>
       </div>

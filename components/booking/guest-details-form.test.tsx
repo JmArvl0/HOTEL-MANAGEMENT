@@ -92,12 +92,14 @@ describe("expected arrival — simple time input", () => {
     const { container } = renderForm({}, true);
     fireEvent.change(arrival(), { target: { value: "13:00" } });
     fireEvent.change(pickup(), { target: { value: "13:30" } });
+    fireEvent.change(screen.getByRole("combobox", { name: /Vehicle preference/ }), { target: { value: "4" } });
     submitForm(container);
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
 
     const payload = payloadOf();
     expect(payload.expectedArrival).toBe("13:00");
     expect(payload.transportationPreferences.pickupTime).toBe("13:30");
+    expect(payload.transportationPreferences.fleetOptions.vehicleSeats).toBe("4");
     await vi.waitFor(() => expect(push).toHaveBeenCalledWith("/booking/review/hold-token"));
   });
 

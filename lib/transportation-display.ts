@@ -4,6 +4,8 @@
  * Server code re-exports these from lib/transportation.ts.
  */
 
+import type { VehicleSeats } from "@/lib/fleet-pickup-input";
+
 export type TransportationServiceType = "PICKUP" | "DROPOFF" | "ROUND_TRIP";
 export type TransportationPreferences = {
   serviceType: TransportationServiceType;
@@ -16,7 +18,7 @@ export type TransportationPreferences = {
   returnTime?: string;
   passengerCount: number;
   specialInstructions?: string;
-  fleetOptions?: { sharingEnabled: boolean; ridePreferences: string[] };
+  fleetOptions?: { sharingEnabled: boolean; ridePreferences: string[]; vehicleSeats?: VehicleSeats };
 };
 export type TransportationStatus =
   | "REQUESTED" | "REVIEWED" | "SCHEDULED" | "ASSIGNED"
