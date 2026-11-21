@@ -1326,8 +1326,8 @@ live by a guest (`customer_submit_guest_requests`, up to 12 picks per submission
 batch). A single router `guest_request_route(type)` maps every type to a department — front desk,
 housekeeping, maintenance, … — and auto-creates the matching housekeeping task / maintenance order.
 Requests carry priority/severity and can be escalated to a Manager. Filed rows stamp
-`inventory_item_id` when their active catalog type links an inventory item. The local
-`20261120010000` migration adds that behavior to portal submissions and preserves their
+`inventory_item_id` when their active catalog type links an inventory item. Migration
+`20261120010000` adds that behavior to portal submissions and preserves their
 existing retry fingerprints and filed links. Older consumable requests with a missing
 link require stock mapping review. Fulfillment consumes the saved item and records one
 movement in the same transaction as task or direct request completion. Insufficient
@@ -2329,7 +2329,7 @@ service-role client directly. The sole RLS policy in the repo is `room_photos_pu
 uuids behind partial unique indexes (some derived, e.g. `md5(reservation_id||'|'||option)::uuid` for
 auto-filed requests/transport lines).
 
-**Financial document issuance (2026-11-20, local).** Migration `20261120020000`
+**Financial document issuance (2026-11-20, hosted).** Migration `20261120020000`
 serializes staff issuance by payment or reservation. It returns the oldest issued
 receipt for the payment and reuses a folio statement when its snapshot matches apart
 from the document number and generation time. Tax and terminal-settlement fields

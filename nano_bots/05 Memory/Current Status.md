@@ -1,12 +1,12 @@
 # Current Status
 
-## Staff migration conflicts (2026-11-20, local)
+## Staff migrations and Lost & Found (2026-11-20, production)
 
-The local history matches all 151 hosted ledger entries. The two new migrations
-capture portal inventory links and deduplicate future receipt and folio issuance
-while preserving retry keys and historical documents. Clean and upgrade
-PostgreSQL replays passed. Hosted deployment remains pending.
-See [[2026-11-20 - Staff Migration Conflict Reconciliation]].
+The two staff migrations were applied in hosted Supabase and all 153 entries
+match the release files. Vercel production deployed `69d16de`, including the
+Lost & Found workspace. Production signed-out access checks passed. The
+signed-in smoke still needs an eligible staff session.
+See [[2026-11-20 - Staff Production Release]].
 
 ## Lost & Found port (2026-11-20, local)
 

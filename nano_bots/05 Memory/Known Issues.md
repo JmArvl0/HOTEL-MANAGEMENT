@@ -350,7 +350,8 @@ Related:
 
 ## KI-013 — Repeated receipts / folio statements for the same source records
 
-Status is fixed locally for new issuance. Hosted deployment is pending.
+Status is fixed for new issuance. Migration `20261120020000` was applied and
+verified in hosted Supabase on 2026-11-20.
 
 The 2026-10-03 Accounting QA report flagged possible duplicate immutable
 documents. The 2026-11-20 local upgrade reproduced duplicate receipt issuance
