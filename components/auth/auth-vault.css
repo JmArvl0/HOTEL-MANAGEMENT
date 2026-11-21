@@ -50,10 +50,7 @@
 @media(prefers-reduced-motion:reduce){.haven-vault *{animation:none!important;transition:none!important}}
 .haven-vault__notice{margin:0 0 16px;padding:12px 14px;border:1px solid #d1d5db;border-radius:12px;background:#f3f3f3;color:#111827;font-size:12px}.haven-vault__remember{display:flex;align-items:center;gap:10px;margin:14px 0 0;color:#111827;font-size:12px;font-weight:600;cursor:pointer}.haven-vault__remember input{width:18px;height:18px;accent-color:#111827}.haven-vault__otp{letter-spacing:.35em!important;text-align:center;font-size:22px!important;font-weight:800}.haven-vault__otp-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:16px;color:#5b6472;font-size:12px}.haven-vault__link{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;padding:6px 2px;color:#111827;font-size:12px;font-weight:800;cursor:pointer;text-decoration:underline;text-underline-offset:3px}.haven-vault__link:disabled{opacity:.55;cursor:wait;text-decoration:none}
 .haven-vault__options{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;margin-top:14px}.haven-vault__options .haven-vault__remember{margin:0;min-width:0}.haven-vault__options .haven-vault__foot{flex:0 0 auto;margin:0 0 0 auto}
-.haven-vault.haven-vault--booking{background:#f3f3f3;grid-template-columns:1fr 1fr;gap:50px;max-width:1150px;margin:auto;padding:50px 28px;min-height:100vh}.haven-vault--booking .haven-vault__visual{background:transparent;color:#111827;position:relative;min-height:0;overflow:visible;padding:70px 0 0}.haven-vault--booking .haven-vault__panel{padding:0;background:transparent}.haven-vault--booking .haven-vault__stage{padding:20px 0;align-items:start}.haven-vault--booking .haven-vault__card{background:white;padding:30px;border-radius:20px}.booking-account-context h1{font:40px/1.2 var(--font-display),serif;letter-spacing:-.02em}.booking-account-context p{font-size:14px;line-height:1.8;margin:16px 0}.booking-account-context>div{background:white;border-radius:18px;overflow:hidden;margin:24px 0}.booking-account-context img{display:block;width:100%;height:250px;object-fit:cover}.booking-account-context section{padding:24px}.booking-account-context h2{font:26px var(--font-display),serif}.booking-account-context section p{margin:8px 0}.booking-account-context a{display:inline-flex;min-height:44px;align-items:center;text-decoration:underline}@media(max-width:900px){.haven-vault.haven-vault--booking{grid-template-columns:1fr;gap:24px;max-width:700px;padding:28px 20px}.haven-vault--booking .haven-vault__visual{display:block;padding:0}.booking-account-context img{height:180px}.haven-vault--booking .haven-vault__panel{min-height:0}}@media(max-width:480px){.haven-vault--booking .haven-vault__card{padding:24px 20px}.booking-account-context h1{font-size:32px}}
-@media(max-width:900px){.haven-vault--booking .booking-account-context>h1{font-size:26px}.haven-vault--booking .booking-account-context>p{margin:8px 0}.haven-vault--booking .booking-account-context>div{display:grid;grid-template-columns:96px minmax(0,1fr);margin:14px 0}.haven-vault--booking .booking-account-context img{height:100%;min-height:130px}.haven-vault--booking .booking-account-context section{padding:14px}.haven-vault--booking .booking-account-context h2{font-size:20px}.haven-vault--booking .booking-account-context section p{font-size:13px;line-height:1.5;margin:5px 0}.haven-vault.haven-vault--booking{gap:8px}.haven-vault--booking .haven-vault__stage{padding-top:8px}}
 .haven-vault :is(.haven-vault__help,.haven-vault__link,.haven-vault__eye,.haven-vault__foot a){min-height:44px}.haven-vault__eye{min-width:44px}.haven-vault__foot a{display:inline-flex;align-items:center}.haven-vault__field{font-size:13px}.haven-vault__security{font-size:13px}
-.booking-account-context>h2{font:clamp(24px,3.2vw,38px)/1.2 var(--font-display),serif;letter-spacing:-.02em}.booking-account-stay summary{min-height:44px;padding:10px 0;cursor:pointer;font-weight:650}.booking-account-stay img{height:auto;aspect-ratio:2/1;border-radius:12px}.booking-account-stay p{margin:8px 0}.booking-account-context>p:last-child{font-size:13px;color:#4b5563}
 
 /* Account access fits the available height; errors, zoom and the on-screen
    keyboard can still grow the document so no form control becomes unreachable. */
@@ -117,12 +114,6 @@
 }
 .haven-vault__footer > a { display: inline-flex; align-items: center; min-height: 44px; text-decoration: underline; text-underline-offset: 4px; }
 .haven-vault__footer .haven-vault__security { margin: 0; padding: 0; border: 0; font-size: 12px; }
-.haven-vault.haven-vault--booking { min-height: 100dvh; padding-block: var(--auth-space); gap: 32px; }
-.haven-vault--booking .haven-vault__panel { min-height: calc(100dvh - 2 * var(--auth-space)); }
-.haven-vault--booking .haven-vault__header { padding: 0; }
-.haven-vault--booking .haven-vault__stage { min-height: 0; padding: var(--auth-space) 0; align-items: center; }
-.haven-vault--booking .haven-vault__card { padding: clamp(16px, 3dvh, 30px); }
-.haven-vault--booking .haven-vault__visual { padding-top: 60px; }
 
 @media (max-height: 760px) {
   .haven-vault { --auth-space: 8px; }
@@ -144,12 +135,6 @@
   .haven-vault__stage { padding: var(--auth-space) 24px; }
   .haven-vault__head h1 { font-size: clamp(28px, 4.8dvh, 40px); }
   .haven-vault__row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .haven-vault.haven-vault--booking { padding: 0; }
-  .haven-vault--booking .haven-vault__visual { padding: 16px 24px 0; }
-  .haven-vault--booking .haven-vault__panel { min-height: 0; }
-  .haven-vault--booking .haven-vault__header { padding: 8px 24px; }
-  .haven-vault--booking .haven-vault__stage { padding: 0 24px 16px; }
-  .haven-vault--booking .haven-vault__card { padding: 16px; }
 }
 @media (max-width: 480px) {
   .haven-vault { --auth-space: 8px; }
@@ -172,25 +157,144 @@
   .haven-vault__head h1 { font-size: 24px; margin-bottom: 4px; }
   .haven-vault__footer .haven-vault__security, .haven-vault__qualities { display: none; }
 }
-.haven-vault--booking .haven-vault__visual { align-items:stretch; padding:0; background:var(--hv-ivory,#f8f6f0); }
-.haven-vault--booking .booking-account-context { display:flex; flex-direction:column; justify-content:flex-start; width:100%; max-width:none; padding:0 0 28px; color:#172639; }
-.haven-vault--booking .booking-account-photo { position:static; display:block; width:100%; height:42dvh; min-height:180px; max-height:420px; object-fit:cover; margin:0 0 24px; border-radius:0; }
-.haven-vault--booking .booking-account-context>h2,.haven-vault--booking .booking-account-context>p,.haven-vault--booking .booking-account-stay { margin-inline:32px; }
-.haven-vault--booking .booking-account-context>h2 { font:500 28px/1.3 var(--font-display); }
-.haven-vault--booking .booking-account-context p { font-size:14px; line-height:1.6; color:#5c6269; }
-.haven-vault--booking .booking-account-stay { padding:0; border:0; background:transparent; }
-.haven-vault--booking .booking-account-stay a { display:inline-flex; align-items:center; min-height:44px; color:#172639; text-decoration:underline; text-underline-offset:4px; }
-.haven-vault__mobile-stay { display:none; }
-@media(max-width:900px) {
- .haven-vault__mobile-stay { display:block; padding-bottom:14px; margin-bottom:14px; border-bottom:1px solid #d8d5cd; }
- .haven-vault--booking .haven-vault__mobile-stay .booking-account-context { padding:0; display:block; }
- .haven-vault--booking .haven-vault__mobile-stay .booking-account-photo,
- .haven-vault--booking .haven-vault__mobile-stay .booking-account-stay,
- .haven-vault--booking .haven-vault__mobile-stay .booking-account-context>p:last-child { display:none; }
- .haven-vault--booking .haven-vault__mobile-stay .booking-account-context>h2 { margin:0; font-size:18px; }
- .haven-vault--booking .haven-vault__mobile-stay .booking-account-context>p { margin:6px 0 0; font-size:13px; }
+@media (max-width: 480px) {
+  .haven-vault .haven-vault__row { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Booking account access pairs the selected room with the sign-in form. */
+.haven-vault--booking {
+  --booking-ink: #172639;
+  --booking-muted: #59606a;
+  --booking-stone: #eeece7;
+  --booking-paper: #faf9f6;
+  grid-template-columns: minmax(0, 1fr) minmax(0, .94fr);
+  gap: clamp(24px, 4vw, 60px);
+  padding: 24px max(32px, calc((100% - 1116px) / 2));
+  background: var(--booking-stone);
+}
+.haven-vault--booking .haven-vault__visual {
+  align-self: center;
+  color: var(--booking-ink);
+}
+.haven-vault--booking .haven-vault__panel {
+  min-height: calc(100dvh - 48px);
+  background: transparent;
+}
+.haven-vault--booking .haven-vault__header { padding: 0; }
+.haven-vault--booking .haven-vault__stage { padding: 20px 0 0; }
+.haven-vault--booking .haven-vault__card {
+  width: 100%;
+  padding: clamp(24px, 3vw, 36px);
+  border-radius: 16px;
+  background: #fff;
+}
+.haven-vault--booking .haven-vault__head h1 { font-size: 32px; }
+.haven-vault--booking :is(.haven-vault__submit, .haven-vault__tab.is-active) { box-shadow: none; }
+.haven-vault--booking .haven-vault__submit:hover:not(:disabled) { background: var(--booking-ink); box-shadow: none; }
+.haven-vault__mobile-stay { display: none; }
+
+.booking-account-context {
+  --stay-inset: clamp(20px, 3vw, 32px);
+  display: grid;
+  gap: 14px;
+  padding-block-end: 22px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--booking-paper);
+  color: var(--booking-ink);
+}
+.booking-account-photo {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+.booking-account-context > :not(img) { margin-inline: var(--stay-inset); }
+.booking-account-room { margin-block-start: 8px; }
+.booking-account-room h2 {
+  margin: 0;
+  font: 500 32px/1.15 var(--font-display), Georgia, serif;
+  letter-spacing: -.02em;
+  overflow-wrap: anywhere;
+}
+.booking-account-room p {
+  margin: 5px 0 0;
+  color: var(--booking-muted);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.booking-account-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  font-weight: 600;
+}
+.booking-account-facts li { display: flex; align-items: center; gap: 7px; }
+.booking-account-facts svg { flex: none; color: #655739; }
+.booking-account-stay {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1px 18px;
+  padding: 9px 14px;
+  border-radius: 8px;
+  background: var(--booking-stone);
+}
+.booking-account-rate { margin: 0; }
+.booking-account-rate dt { color: var(--booking-muted); font-size: 13px; line-height: 1.4; }
+.booking-account-rate dd {
+  margin: 2px 0 0;
+  font-size: 21px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.booking-account-stay a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.booking-account-stay a:hover { color: #655739; }
+.booking-account-stay a:focus-visible { outline-color: #655739; }
+.booking-account-hold { margin-block: 0; color: var(--booking-muted); font-size: 13px; line-height: 1.5; }
+
+@media (max-width: 900px) {
+  .haven-vault--booking { padding: 8px max(24px, calc((100% - 652px) / 2)) 24px; }
+  .haven-vault--booking .haven-vault__visual { display: none; }
+  .haven-vault--booking .haven-vault__panel { min-height: 0; }
+  .haven-vault--booking .haven-vault__stage { padding-top: 8px; }
+  .haven-vault--booking .haven-vault__head h1 { font-size: clamp(24px, 4.8vw, 30px); }
+  .haven-vault__mobile-stay { display: block; margin-bottom: 16px; }
+  .booking-account-context {
+    --stay-inset: 0px;
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 8px 12px;
+    align-items: center;
+    padding: 12px;
+    border-radius: 12px;
+  }
+  .booking-account-photo { aspect-ratio: 1; border-radius: 6px; }
+  .booking-account-room { margin-block-start: 0; }
+  .booking-account-room h2 { font-size: 22px; }
+  .booking-account-room p, .booking-account-facts { font-size: 13px; }
+  .booking-account-facts, .booking-account-stay, .booking-account-hold { grid-column: 1 / -1; }
+  .booking-account-stay { padding: 0 10px; }
+  .booking-account-rate { padding-block: 6px; }
+  .booking-account-rate dd { font-size: 18px; }
 }
 
 @media (max-width: 480px) {
-  .haven-vault .haven-vault__row { grid-template-columns: minmax(0, 1fr); }
+  .haven-vault--booking { padding-inline: 16px; }
+  .haven-vault--booking .haven-vault__card { padding: 14px; }
 }
