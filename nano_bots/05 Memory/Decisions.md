@@ -16,6 +16,16 @@ in chat/repo. Acceptance of this process is not deployment, activation or sign-o
 connection stays disabled until both teams agree the test window. PayMongo/fare
 posting remain deferred. See [[2026-11-13 - Fleet Revocation and Separate Credentials]].
 
+2026-11-20 follow-up: the user selected explicit Haven `production` mode for
+the existing hosted Fleet connection. The secure credential exchange and one
+designated joint QA ride still apply. See [[2026-11-20 - Fleet Production Mode]].
+
+2026-11-20 dispatch follow-up. The user approved automatic Fleet delivery for
+consented My Stay requests and website rides once the stay confirms. Staff
+can book when a guest asks at Front Desk by finding the existing account and
+stay. Final Fleet fare confirmation posts once to that stay's folio.
+See [[2026-11-20 - Automatic Fleet Dispatch]].
+
 ## D-038 — Guest chooses the exact physical room
 
 2026-11-11 user authorized implementation of the entire reviewed booking prototype.

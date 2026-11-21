@@ -1,5 +1,16 @@
 # Current Status
 
+## Transportation fares (2026-11-20, production)
+
+Haven production runs `c7c7166` with migrations through `20261120040000`.
+Live Fleet accepted the automatic checkout, My Stay, and Front Desk QA rides
+as references `611`, `612`, and `613`. The verified sandbox checkout generated
+no ride before reservation confirmation. A hosted rollback test confirmed
+one synthetic fare charge across replay and confirmation retries. Live fare
+verification remains pending Fleet's final test fare for `612`.
+See [[2026-11-20 - Fleet Production Mode]] and
+[[2026-11-20 - Automatic Fleet Dispatch]].
+
 ## Staff migrations and Lost & Found (2026-11-20, production)
 
 The two staff migrations were applied in hosted Supabase and all 153 entries
