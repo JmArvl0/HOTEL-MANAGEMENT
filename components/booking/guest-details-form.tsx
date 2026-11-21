@@ -14,6 +14,7 @@ import { formatPeso } from "@/lib/format";
 import type { TransportationPreferences } from "@/lib/transportation-display";
 import { FleetRideOptions } from "@/components/customer/fleet-ride-options";
 import { RideLocationField } from "@/components/customer/ride-location-field";
+import { RideScheduleField } from "@/components/customer/ride-schedule-field";
 import { editableFleetRideNotes, readFleetOptions } from "@/lib/fleet-pickup-input";
 
 type Props = { roomId?: string; holdToken?: string; roomType: string; checkIn: string; checkOut: string; guests: number; checkInFrom: string; defaults: Record<string, string>; initialRequests?: string[]; initialArrival?: string; initialTransport?: TransportationPreferences | null; preArrival?: PreArrivalOptions; breakfast?: BreakfastChoice | null; initialBreakfast?: boolean };
@@ -164,13 +165,18 @@ export function GuestDetailsForm({ roomId, holdToken, roomType, checkIn, checkOu
             defaultValue={initialTransport?.pickupLocation} fields={fields} prefix={prefix} />}
           {serviceType === "DROPOFF" && <RideLocationField wide name="dropoffLocation" label="Destination"
             placeholder="e.g. NAIA Terminal 3, Pasay City" defaultValue={initialTransport?.dropoffLocation} fields={fields} prefix={prefix} />}
-          <label>Pickup date<input key={serviceType === "DROPOFF" ? "departure" : "arrival"} name="pickupDate" type="date" required min={checkIn} max={checkOut} defaultValue={initialTransport?.serviceType === serviceType ? initialTransport.pickupDate : serviceType === "DROPOFF" ? checkOut : checkIn} {...fieldProps("pickupDate")} />{fieldError("pickupDate")}</label>
-          <label>Pickup time<input name="pickupTime" type="time" required defaultValue={initialTransport?.pickupTime ?? ""} {...fieldProps("pickupTime")} />{fieldError("pickupTime")}</label>
+          <RideScheduleField key={serviceType === "DROPOFF" ? "departure" : "arrival"} label="Pickup date" name="pickupDate" type="date"
+            min={checkIn} max={checkOut} defaultValue={initialTransport?.serviceType === serviceType ? initialTransport.pickupDate : serviceType === "DROPOFF" ? checkOut : checkIn}
+            fields={fields} prefix={prefix} />
+          <RideScheduleField label="Pickup time" name="pickupTime" type="time" defaultValue={initialTransport?.pickupTime ?? ""}
+            fields={fields} prefix={prefix} hint="Manila time" />
           {serviceType === "ROUND_TRIP" && (<>
             <RideLocationField wide name="returnLocation" label="Departure destination" placeholder="e.g. NAIA Terminal 1, Pasay City"
               defaultValue={initialTransport?.returnLocation} fields={fields} prefix={prefix} />
-            <label>Return date<input name="returnDate" type="date" required min={checkIn} max={checkOut} defaultValue={initialTransport?.returnDate ?? checkOut} {...fieldProps("returnDate")} />{fieldError("returnDate")}</label>
-            <label>Return time<input name="returnTime" type="time" required defaultValue={initialTransport?.returnTime ?? ""} {...fieldProps("returnTime")} />{fieldError("returnTime")}</label>
+            <RideScheduleField label="Return date" name="returnDate" type="date" min={checkIn} max={checkOut}
+              defaultValue={initialTransport?.returnDate ?? checkOut} fields={fields} prefix={prefix} />
+            <RideScheduleField label="Return time" name="returnTime" type="time" defaultValue={initialTransport?.returnTime ?? ""}
+              fields={fields} prefix={prefix} hint="Manila time" />
           </>)}
           <label>Passengers<input name="passengerCount" type="number" min={1} max={20} defaultValue={initialTransport?.passengerCount ?? (guests > 20 ? 20 : guests)} required {...fieldProps("passengerCount")} />{fieldError("passengerCount")}</label>
           <label className="wide">Ride notes (optional)<textarea name="rideNote" rows={2} maxLength={500} placeholder="Flight, terminal or bags"

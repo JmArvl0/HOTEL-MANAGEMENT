@@ -1,0 +1,57 @@
+.ride-schedule-field {
+  min-width: 0;
+  align-self: start;
+}
+
+.ride-schedule-control {
+  --ride-schedule-background: var(--cp-panel-2, var(--surface, #f6f7f9));
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  border: 1px solid var(--cp-line, var(--line, #cbd0d7));
+  border-radius: 8px;
+  background: var(--ride-schedule-background);
+}
+
+.ride-schedule-control > svg {
+  flex: none;
+  margin-inline-start: 12px;
+  pointer-events: none;
+}
+
+.customer-request-form .ride-schedule-control input,
+.booking-form-card .booking-form-grid .ride-schedule-control input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding-inline: 8px;
+  border: 0;
+  background: transparent;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ride-schedule-control:focus-within {
+  outline: 2px solid var(--accent, #355e86);
+  outline-offset: 2px;
+}
+
+.ride-schedule-field > small {
+  display: block;
+  margin-top: 6px;
+  color: var(--cp-muted, var(--muted));
+  font-size: 12px;
+}
+
+.ride-return-schedule {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 480px) {
+  .ride-return-schedule {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

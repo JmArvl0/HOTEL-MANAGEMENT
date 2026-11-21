@@ -11,6 +11,7 @@ import { CarTaxiFront, Hotel, Plane, PlaneTakeoff, Repeat, Send } from "lucide-r
 import { Modal } from "@/components/ui/Modal";
 import { FleetRideOptions } from "@/components/customer/fleet-ride-options";
 import { RideLocationField } from "@/components/customer/ride-location-field";
+import { RideScheduleField } from "@/components/customer/ride-schedule-field";
 import { readFleetOptions } from "@/lib/fleet-pickup-input";
 import { reservationTransportationHref } from "@/lib/transportation-display";
 import { normalizePhone } from "@/lib/input-validation";
@@ -134,12 +135,18 @@ export function TransportationRequestForm({ reservations, hotelLabel, today, res
     {serviceType === "ROUND_TRIP" && <>
       <RideLocationField name="returnLocation" label="Departure destination" placeholder="e.g. NAIA Terminal 1, Pasay City"
         fields={fields} prefix="request" allowMap={!staff} />
-      <label>Return date<input name="returnDate" type="date" min={pickupDate || stayStart} max={stayEnd} value={returnDate || stayEnd} onChange={(event) => setReturnDate(event.target.value)} required {...formFieldProps(fields, "returnDate", "request")} /><FormFieldError errors={fields} field="returnDate" prefix="request" /></label>
-      <label>Return time<input name="returnTime" type="time" required {...formFieldProps(fields, "returnTime", "request")} /><FormFieldError errors={fields} field="returnTime" prefix="request" /></label>
+      <div className="ride-return-schedule">
+        <RideScheduleField label="Return date" name="returnDate" type="date" min={pickupDate || stayStart} max={stayEnd}
+          value={returnDate || stayEnd} onChange={event => setReturnDate(event.target.value)} fields={fields} prefix="request" />
+        <RideScheduleField label="Return time" name="returnTime" type="time" fields={fields} prefix="request" hint="Manila time" />
+      </div>
     </>}
     <div className="ctr-grid">
-      <label>Pickup date<input name="pickupDate" type="date" min={stayStart} max={stayEnd} value={pickupDate || (serviceType === "DROPOFF" ? stayEnd : stayStart)} onChange={(event) => { setPickupDate(event.target.value); if (returnDate && returnDate < event.target.value) setReturnDate(""); }} required {...formFieldProps(fields, "pickupDate", "request")} /><FormFieldError errors={fields} field="pickupDate" prefix="request" /><small className="ctr-date-hint">Choose a date within your stay.</small></label>
-      <label>Pickup time<input name="pickupTime" type="time" required {...formFieldProps(fields, "pickupTime", "request")} /><FormFieldError errors={fields} field="pickupTime" prefix="request" /></label>
+      <RideScheduleField label="Pickup date" name="pickupDate" type="date" min={stayStart} max={stayEnd}
+        value={pickupDate || (serviceType === "DROPOFF" ? stayEnd : stayStart)}
+        onChange={event => { setPickupDate(event.target.value); if (returnDate && returnDate < event.target.value) setReturnDate(""); }}
+        fields={fields} prefix="request" />
+      <RideScheduleField label="Pickup time" name="pickupTime" type="time" fields={fields} prefix="request" hint="Manila time" />
       <label>Passengers<input name="passengerCount" type="number" min={1} max={20} key={selectedReservation.id} defaultValue={Math.min(selectedReservation.guests, 20)} required {...formFieldProps(fields, "passengerCount", "request")} /><FormFieldError errors={fields} field="passengerCount" prefix="request" /></label>
     </div>
     <label>Special instructions <small className="customer-data-note">Optional</small><textarea name="specialInstructions" rows={3} maxLength={500} placeholder="e.g. flight number, terminal, luggage or child seat" {...formFieldProps(fields, "specialInstructions", "request")} /><FormFieldError errors={fields} field="specialInstructions" prefix="request" /></label>
