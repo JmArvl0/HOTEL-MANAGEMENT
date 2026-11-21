@@ -50,7 +50,7 @@ export function AuthVaultShell({
       <section className="haven-vault__panel">
         <header className="haven-vault__header">
           <Link href="/" className="haven-vault__back"><span className="haven-vault__mobile-logo"><HavenLogo size={30} /></span><ArrowLeft size={15} aria-hidden="true" /> Back to Haven</Link>
-          <Link className="haven-vault__help" href="/#contact">
+          <Link className="haven-vault__help" href="/#contact" aria-label="Contact Front Desk">
             <Headphones size={18} aria-hidden="true" />
             <span>Need help?<strong>Contact Front Desk</strong></span>
           </Link>
