@@ -204,8 +204,8 @@ The Xendit sandbox checkout (§7.2.2) uses server-only `XENDIT_SECRET_KEY`,
 `XENDIT_WEBHOOK_TOKEN`, and HTTPS-origin `APP_BASE_URL`; only `xnd_development_` secret keys and
 test-hosted checkout URLs are accepted. Unconfigured selected Xendit shows its unavailable
 state and never silently falls back to real wallet transfer. zod validates the app's
-required environment at boot. Transportation deliberately uses no external mapping/routing API
-(§7.11).
+required environment at boot. Guest transportation maps fill optional addresses.
+Route calculations and map-based pricing are outside the transportation flow (§7.11).
 
 **Bringing up a real environment.**
 1. Provision a Supabase project and `supabase link`.
@@ -1764,8 +1764,16 @@ validated text, and `lib/transportation.test.ts` enforces that no
 `api.tomtom.com` / `TOMTOM_API_KEY` code ships anywhere (a TomTom-priced variant was built and then
 deliberately removed; `docs/TRANSPORTATION_FUTURE_ENHANCEMENTS.md` records what was deferred).
 
-- **Origins.** My Stay submits the ride with prefilled passenger contact, optional ride
-  preferences, and explicit Fleet sharing permission. Website checkout keeps the same
+- **Origins.** My Stay reuses saved passenger contact and prompts only for missing or
+  invalid details. Guests can select 4, 6, or 10 passenger seats, or let Fleet choose.
+  A selection must fit the passenger count and travels in Fleet's special requests.
+  Ride preferences remain optional. Luggage assistance requires the bag count,
+  sent in the Fleet payload. Fleet sharing requires explicit permission.
+  Guests can type each non-hotel location or use a map pin to fill an editable
+  address. The map loads OpenStreetMap tiles when opened and uses Photon for a
+  reverse lookup when the guest confirms the pin. Coordinates fill the field
+  when the lookup returns no address. Map selection does not affect fares.
+  Website checkout keeps the same
   preferences with the hold, including the mobile number entered for that booking. The
   confirmation trigger files and queues the ride only when the reservation first confirms.
   Front Desk may book for a guest who asks at the counter by searching the existing account
@@ -2631,7 +2639,7 @@ of CI/tests), `migrate.mjs` (legacy; **not** the supported migration path).
   `docs/ENTERPRISE_BOUNDARIES.md` for retention, hold and recovery decisions.
 - **Server-only provider credentials.** Transportation uses local data by default, with
   explicit Fleet production and staging modes (§7.11). Fleet credentials are separate per
-  direction and never public. A test enforces no external mapping/routing code. The
+  direction and never public. No map service calculates charges. The
   **server-side Gemini client** (§7.13) also keeps `GEMINI_API_KEY` out of browser JavaScript
   (no `NEXT_PUBLIC_` variant exists), never logged, and never returned by any route; routes only
   report whether AI is configured.
@@ -2693,8 +2701,9 @@ Honest inventory of what is **not** wired up yet (not prescriptions). Full split
 - **Minimum-age enforcement is not deployed.** The local unreleased occupant register now supports
   Front Desk DOB or exact-age evidence recorded from official ID, without inferring unknown ages;
   active enforcement still requires the matching migration/app release and explicit policy dates.
-- **Transportation remains local by default.** Locations are free text, fares are flat per vehicle
-  type, and there is no external mapping/routing — the TomTom-priced variant was removed.
+- **Transportation stays usable without map services.** Locations can be entered
+  as free text. Guest map pins assist address entry. The TomTom-priced variant
+  was removed.
   `docs/TRANSPORTATION_FUTURE_ENHANCEMENTS.md` records the deliberately deferred work (route
   pricing and distance validation). Hosted Fleet connection acceptance remains pending
   (§7.11). Automatic status/fare authority,
