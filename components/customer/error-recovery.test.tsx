@@ -45,6 +45,11 @@ it("releases transportation loading and reuses the request identity after a time
     fireEvent.change(form.querySelector(`[name="${name}"]`)!, { target: { value } });
   }
   fireEvent.click(screen.getByRole("checkbox", { name: "Quiet ride" }));
+  expect(screen.queryByLabelText("Number of bags")).toBeNull();
+  fireEvent.click(screen.getByRole("checkbox", { name: "Help with luggage" }));
+  const bags = screen.getByRole("spinbutton", { name: "Number of bags" }) as HTMLInputElement;
+  expect(bags.required).toBe(true);
+  fireEvent.change(bags, { target: { value: "3" } });
   fireEvent.click(screen.getByRole("checkbox", { name: /I agree to share/ }));
   fireEvent.submit(form);
   expect((await screen.findByRole("alert")).textContent).toContain("Check your transportation requests");
@@ -54,7 +59,7 @@ it("releases transportation loading and reuses the request identity after a time
   const first = JSON.parse(fetcher.mock.calls[0][1].body), second = JSON.parse(fetcher.mock.calls[1][1].body);
   expect(second).toEqual(first);
   expect(first.fleetPickup).toEqual({
-    travelerName: "Synthetic passenger", phone: "+12025550101", vehicleSeats: "4", ridePreferences: ["QUIET_RIDE"], sharingEnabled: true,
+    travelerName: "Synthetic passenger", phone: "+12025550101", vehicleSeats: "4", ridePreferences: ["QUIET_RIDE", "HELP_WITH_LUGGAGE"], luggageCount: 3, sharingEnabled: true,
   });
   expect(view.baseElement.textContent).not.toContain("private provider timeout");
 });

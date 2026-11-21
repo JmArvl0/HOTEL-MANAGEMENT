@@ -9,24 +9,35 @@ export const ridePreferenceOptions = [
 export const vehicleSeatOptions = ["4", "6", "10"] as const;
 export type VehicleSeats = typeof vehicleSeatOptions[number];
 
-export const fleetOptionsSchema = z.object({
+const fleetOptionsFields = z.object({
   sharingEnabled: z.boolean().refine(Boolean, "Confirm that Fleet can receive the pickup details."),
   vehicleSeats: z.enum(vehicleSeatOptions).optional(),
   ridePreferences: z.array(z.enum(["QUIET_RIDE", "HELP_WITH_LUGGAGE", "COOL_CABIN"]))
     .max(3).refine(values => new Set(values).size === values.length, "Choose each preference once."),
+  luggageCount: z.number().int().min(1).max(20).optional(),
 });
 
-export const fleetPickupSchema = fleetOptionsSchema.extend({
+function validateLuggageCount(options: z.infer<typeof fleetOptionsFields>, ctx: z.RefinementCtx) {
+  if (options.ridePreferences.includes("HELP_WITH_LUGGAGE") && options.luggageCount === undefined) {
+    ctx.addIssue({ code: "custom", path: ["luggageCount"], message: "Enter the number of bags you need help with." });
+  }
+}
+
+export const fleetOptionsSchema = fleetOptionsFields.superRefine(validateLuggageCount);
+
+export const fleetPickupSchema = fleetOptionsFields.extend({
   travelerName: z.string().trim().min(2, "Enter the passenger name.").max(120),
   phone: phoneInput,
-});
+}).superRefine(validateLuggageCount);
 
 export function readFleetOptions(form: FormData) {
   const ridePreferences = form.getAll("ridePreference").map(String);
+  const bags = form.get("luggageCount");
   return {
     sharingEnabled: form.has("sharingEnabled"),
     vehicleSeats: String(form.get("vehicleSeats") ?? "") || undefined,
     ridePreferences,
+    luggageCount: ridePreferences.includes("HELP_WITH_LUGGAGE") && typeof bags === "string" && bags !== "" ? Number(bags) : undefined,
   };
 }
 

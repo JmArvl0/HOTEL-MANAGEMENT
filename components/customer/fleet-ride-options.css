@@ -44,3 +44,10 @@
   border-top: 1px solid var(--cp-line, var(--line));
   padding-top: 10px;
 }
+
+.fleet-ride-options .fleet-luggage-count {
+  display: grid;
+  gap: 6px;
+  max-width: 11rem;
+  margin: 0 0 12px 28px;
+}

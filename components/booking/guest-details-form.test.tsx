@@ -93,6 +93,13 @@ describe("expected arrival — simple time input", () => {
     fireEvent.change(arrival(), { target: { value: "13:00" } });
     fireEvent.change(pickup(), { target: { value: "13:30" } });
     fireEvent.change(screen.getByRole("combobox", { name: /Vehicle preference/ }), { target: { value: "4" } });
+    const luggage = screen.getByRole("checkbox", { name: "Help with luggage" });
+    fireEvent.click(luggage);
+    expect((screen.getByLabelText("Number of bags") as HTMLInputElement).required).toBe(true);
+    fireEvent.click(luggage);
+    expect(screen.queryByLabelText("Number of bags")).toBeNull();
+    fireEvent.click(luggage);
+    fireEvent.change(screen.getByLabelText("Number of bags"), { target: { value: "2" } });
     submitForm(container);
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
 
@@ -100,6 +107,7 @@ describe("expected arrival — simple time input", () => {
     expect(payload.expectedArrival).toBe("13:00");
     expect(payload.transportationPreferences.pickupTime).toBe("13:30");
     expect(payload.transportationPreferences.fleetOptions.vehicleSeats).toBe("4");
+    expect(payload.transportationPreferences.fleetOptions.luggageCount).toBe(2);
     await vi.waitFor(() => expect(push).toHaveBeenCalledWith("/booking/review/hold-token"));
   });
 

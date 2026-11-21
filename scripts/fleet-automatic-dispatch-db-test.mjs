@@ -15,6 +15,7 @@ try {
     phone: "+12025550101",
     sharingEnabled: true,
     ridePreferences: ["QUIET_RIDE", "HELP_WITH_LUGGAGE"],
+    luggageCount: 3,
   };
   async function createStay(status = "confirmed", preferences = null) {
     return one(`insert into reservations
@@ -46,6 +47,7 @@ try {
   assert.equal(leg.auto_dispatch, true);
   assert.equal(leg.payload.request.guest_phone, profile.phone);
   assert.deepEqual(leg.payload.request.ride_preferences, profile.ridePreferences);
+  assert.equal(leg.payload.request.luggage.count, 3);
   assert.equal((await charges(selfService.id)).count, 0);
   await assert.rejects(call("staff_transition_transportation_request", {
     p_request_id: saved.id, p_action: "REVIEW", p_details: {}, p_staff_user_id: fixture.users.front_desk, p_expected_version: 1,
@@ -90,7 +92,7 @@ try {
 
   const checkout = await createStay("pending", {
     ...pickup(selfService), pickupLocation: "Test airport terminal B",
-    fleetOptions: { sharingEnabled: true, contactPhone: profile.phone, ridePreferences: ["HELP_WITH_LUGGAGE"] },
+    fleetOptions: { sharingEnabled: true, contactPhone: profile.phone, ridePreferences: ["HELP_WITH_LUGGAGE"], luggageCount: 2 },
   });
   const countRides = () => one("select count(*)::int as count from transportation_requests where reservation_id=$1", [checkout.id]);
   assert.equal((await countRides()).count, 0);
@@ -104,6 +106,7 @@ try {
   assert.equal(checkoutLeg.payload.request.guest_name, profile.travelerName);
   assert.equal(checkoutLeg.payload.request.guest_phone, profile.phone);
   assert.deepEqual(checkoutLeg.payload.request.ride_preferences, ["HELP_WITH_LUGGAGE"]);
+  assert.equal(checkoutLeg.payload.request.luggage.count, 2);
   await db.query("update reservations set status='confirmed' where id=$1", [checkout.id]);
   assert.equal((await countRides()).count, 1);
   assert.equal((await outbox(filed.id))[0].id, checkoutLeg.id);

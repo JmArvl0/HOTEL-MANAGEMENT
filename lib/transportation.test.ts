@@ -227,6 +227,11 @@ describe("transportation request schema (service-type conditionals)", () => {
     expect(transportationRequestSchema.safeParse({ ...pickup, fleetPickup: profile }).success).toBe(true);
     expect(transportationRequestSchema.safeParse({ ...pickup, fleetPickup: profile, passengerCount: 5 }).success).toBe(false);
     expect(transportationPreferencesSchema.safeParse({ ...pickup, fleetOptions: options, passengerCount: 5 }).success).toBe(false);
+    const withLuggage = { ...options, ridePreferences: ["HELP_WITH_LUGGAGE"] };
+    expect(transportationRequestSchema.safeParse({ ...pickup, fleetPickup: { ...profile, ...withLuggage } }).success).toBe(false);
+    expect(transportationPreferencesSchema.safeParse({ ...pickup, fleetOptions: withLuggage }).success).toBe(false);
+    expect(transportationPreferencesSchema.safeParse({ ...pickup, fleetOptions: { ...withLuggage, luggageCount: 0 } }).success).toBe(false);
+    expect(transportationPreferencesSchema.safeParse({ ...pickup, fleetOptions: { ...withLuggage, luggageCount: 3 } }).success).toBe(true);
     const wireNotes = fleetRideInstructions("Meet at arrivals", "4");
     expect(wireNotes).toBe("Vehicle preference: 4-seater\nMeet at arrivals");
     expect(editableFleetRideNotes(wireNotes, "4")).toBe("Meet at arrivals");

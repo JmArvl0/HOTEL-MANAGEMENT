@@ -18,7 +18,7 @@ export type TransportationPreferences = {
   returnTime?: string;
   passengerCount: number;
   specialInstructions?: string;
-  fleetOptions?: { sharingEnabled: boolean; ridePreferences: string[]; vehicleSeats?: VehicleSeats };
+  fleetOptions?: { sharingEnabled: boolean; ridePreferences: string[]; vehicleSeats?: VehicleSeats; luggageCount?: number };
 };
 export type TransportationStatus =
   | "REQUESTED" | "REVIEWED" | "SCHEDULED" | "ASSIGNED"
