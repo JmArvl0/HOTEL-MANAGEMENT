@@ -1,0 +1,35 @@
+.stay-search-panel {
+  background: var(--search-paper, var(--color-surface, #fff));
+  color: var(--search-ink, var(--color-ink, #172639));
+  border-radius: 12px;
+}
+
+.stay-search-panel > summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+  padding: 10px 16px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.stay-search-panel > summary::-webkit-details-marker { display: none; }
+.stay-search-panel > summary:hover { background: color-mix(in srgb, currentColor 5%, transparent); border-radius: inherit; }
+.stay-search-panel > summary:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; border-radius: inherit; }
+.stay-search-selection { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; }
+.stay-search-selection strong { font-size: 15px; font-weight: 650; }
+.stay-search-selection > span, .stay-search-edit { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+.stay-search-edit { font-weight: 650; white-space: nowrap; }
+.stay-search-panel[open] .stay-search-edit svg { transform: rotate(180deg); }
+.stay-search-fields { padding: 0 10px 10px; }
+.stay-search-panel .booking-search.compact { margin: 0; box-shadow: none; }
+.portal-stay-search { margin-block: 16px; }
+
+@media (max-width: 480px) {
+  .stay-search-panel > summary { gap: 9px; padding-inline: 12px; }
+  .stay-search-selection { flex-direction: column; align-items: flex-start; }
+  .stay-search-selection strong { font-size: 14px; }
+  .stay-search-panel .booking-search.compact :is(input, select) { min-height: 44px; font-size: 16px; }
+}

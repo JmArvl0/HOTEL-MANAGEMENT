@@ -22,7 +22,7 @@ export function AvailabilityGuide({
   className,
   children,
 }: {
-  id: string;
+  id?: string;
   className?: string;
   children: React.ReactNode;
 }) {
@@ -35,6 +35,8 @@ export function AvailabilityGuide({
     const onChooseDates = () => {
       const el = root.current;
       if (!el) return;
+      const disclosure = el.querySelector<HTMLDetailsElement>("[data-stay-editor]");
+      if (disclosure) disclosure.open = true;
       el.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
       setGuided(true);
       const checkIn = el.querySelector<HTMLInputElement>('input[name="checkIn"]');
@@ -56,6 +58,17 @@ export function AvailabilityGuide({
       if (timer.current) window.clearTimeout(timer.current);
     };
   }, [reduced]);
+
+  useEffect(() => {
+    const openLinkedEditor = () => {
+      if (window.location.hash !== "#book-form") return;
+      const editor = root.current?.querySelector<HTMLDetailsElement>("[data-stay-editor]");
+      if (editor) editor.open = true;
+    };
+    openLinkedEditor();
+    window.addEventListener("hashchange", openLinkedEditor);
+    return () => window.removeEventListener("hashchange", openLinkedEditor);
+  }, []);
 
   const cls = `${className ?? ""}${guided ? (reduced ? " is-guided-static" : " is-guided") : ""}`.trim();
   return (

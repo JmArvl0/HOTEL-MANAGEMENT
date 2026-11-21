@@ -2,12 +2,11 @@ import { getBookingTimezone } from "@/lib/booking";
 import { getServerSession } from "next-auth";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, CalendarDays, Check, ChevronRight, Clock3, Headphones, ShieldCheck, Users, Waves } from "lucide-react";
+import { ArrowRight, Check, ChevronRight, Clock3, Headphones, ShieldCheck } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { PublicWebsiteNav } from "@/components/landing/public-website-nav";
 import { BookingNoticeToast } from "@/components/booking/booking-notice-toast";
-import { BookingSearchForm } from "@/components/booking/booking-search-form";
-import { AvailabilityGuide } from "@/components/booking/availability-guide";
+import { StaySearchPanel } from "@/components/booking/stay-search-panel";
 import { BackButton } from "@/components/booking/back-button";
 import { RoomResults } from "@/components/booking/room-results";
 import { RoomFocus } from "@/components/booking/room-focus";
@@ -26,7 +25,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   if (session?.user.role === "guest") redirect(`/account/find-room${forwarded.size ? `?${forwarded}` : ""}`);
 
   // Intent comes from the URL (see parseSearchIntent): valid dates → availability, otherwise browse.
-  const intent = parseSearchIntent(raw, new Intl.DateTimeFormat("en-CA", { timeZone: await getBookingTimezone() }).format(new Date()));
+  const timeZone = await getBookingTimezone();
+  const intent = parseSearchIntent(raw, new Intl.DateTimeFormat("en-CA", { timeZone }).format(new Date()));
   const depositPolicy = await getDepositPolicy();
   let rooms: (AvailableRoomType | RoomTypeSummary)[] = [];
   let lookupError: string | undefined;
@@ -69,10 +69,6 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const capacityCatalog = intent.mode === "browse" ? rooms : await Promise.resolve(getRoomCatalog()).catch(() => []);
   const maxGuests = bookingGuestCapacity(capacityCatalog);
   const availability = intent.mode === "availability" ? intent : undefined;
-  const nights = availability ? (() => {
-    const diff = Math.round((Date.parse(`${availability.checkOut}T00:00:00Z`) - Date.parse(`${availability.checkIn}T00:00:00Z`)) / 86_400_000);
-    return diff > 0 ? diff : 1;
-  })() : 0;
   const totalUnits = rooms.reduce((sum, room) => sum + ("availableUnits" in room ? room.availableUnits : 0), 0);
 
   const details = (roomType: string) => {
@@ -85,7 +81,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     : { guests: Math.min(8, Math.max(1, Number(raw.guests) || 2)), roomType: focusRoomType };
 
   return (
-    <main className="booking-page">
+    <main className="booking-page room-search-page">
       <PublicWebsiteNav bookingHref="#book-form" active="Rooms" rootLinks />
       <section className="booking-hero--search" aria-labelledby="search-title">
         <div className="booking-search-hero-shade" />
@@ -99,7 +95,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           <div className="booking-search-heading">
             <div>
               {focusRoomType && !availability ? <><h1 id="search-title" className="room-title">{focusRoomType}</h1><p>Explore this room, or compare it with the rest of the HAVEN collection.</p></>
-              : availability ? <><h1 id="search-title">Choose the room that feels right.</h1><p>Live availability and current rates for the stay you selected.</p></>
+              : availability ? <><h1 id="search-title">Find your room</h1><p>Compare available rooms and rates for your stay.</p></>
               : <><h1 id="search-title">A room for your kind of stay.</h1><p>Browse HAVEN’s room types, then choose dates to see live availability.</p></>}
             </div>
             <ol className="booking-progress" aria-label="Booking progress">
@@ -109,14 +105,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             </ol>
           </div>
         </div>
-        <AvailabilityGuide id="book-form" className="booking-search-summary">
-          <BookingSearchForm compact initial={formInitial} maxGuests={maxGuests} searched={availability} />
-          {availability && <div className="booking-active-filters" aria-label="Current search filters">
-            <span className="booking-filter-chip"><CalendarDays size={14} aria-hidden="true" /> {availability.checkIn} → {availability.checkOut} · {nights} night{nights !== 1 ? "s" : ""}</span>
-            <span className="booking-filter-chip"><Users size={14} aria-hidden="true" /> {availability.guests} guest{availability.guests !== 1 ? "s" : ""}</span>
-            <span className="booking-filter-chip"><Waves size={14} aria-hidden="true" />{lookupError ? "Availability unavailable" : rooms.length ? `${rooms.length} room type${rooms.length !== 1 ? "s" : ""} · ${totalUnits} room${totalUnits !== 1 ? "s" : ""} available` : "No rooms available for these dates"}</span>
-          </div>}
-        </AvailabilityGuide>
+        <StaySearchPanel className="booking-search-summary" initial={formInitial} maxGuests={maxGuests} searched={availability} timeZone={timeZone} />
       </section>
 
       <div className="booking-content--premium">
@@ -134,7 +123,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                   : focusRoomType ? `${focusRoomType} and every room type` : "All rooms & suites"}
               </h2>
               <span className="booking-results__count">
-                {lookupError ? "Check details" : availability ? `${rooms.length} results` : `${rooms.length} room type${rooms.length !== 1 ? "s" : ""}`}
+                {lookupError ? "Availability unavailable" : availability
+                  ? rooms.length ? `${rooms.length} room type${rooms.length !== 1 ? "s" : ""} · ${totalUnits} room${totalUnits !== 1 ? "s" : ""} available` : "No rooms available for these dates"
+                  : `${rooms.length} room type${rooms.length !== 1 ? "s" : ""}`}
               </span>
             </div>
             {focusRoomType && <RoomFocus roomType={focusRoomType} searchKey={JSON.stringify(raw)} />}
@@ -158,18 +149,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
               <Link href="/booking-policy" className="booking-sidebar__link">Read deposit &amp; cancellation terms <ArrowRight size={14} aria-hidden="true" /></Link>
               <Link href="/#contact" className="booking-sidebar__link">Contact Front Desk <ArrowRight size={14} aria-hidden="true" /></Link>
             </div>
-            {availability ? (
-              <div className="booking-sidebar__card">
-                <CalendarDays size={22} aria-hidden="true" />
-                <h3>Your search</h3>
-                <p>
-                  Check-in <strong>{availability.checkIn}</strong> → Check-out <strong>{availability.checkOut}</strong>
-                  <br />
-                  {nights} night{nights !== 1 ? "s" : ""} · {availability.guests} guest{availability.guests !== 1 ? "s" : ""}
-                </p>
-                <a href="#book-form" className="booking-sidebar__link">Change stay details <ArrowRight size={14} aria-hidden="true" /></a>
-              </div>
-            ) : (
+            {!availability && (
               <div className="booking-sidebar__card">
                 <Clock3 size={22} aria-hidden="true" />
                 <h3>Planning ahead?</h3>

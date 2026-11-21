@@ -1,7 +1,6 @@
 import { getBookingTimezone } from "@/lib/booking";
 import { BookingNoticeToast } from "@/components/booking/booking-notice-toast";
-import { BookingSearchForm } from "@/components/booking/booking-search-form";
-import { AvailabilityGuide } from "@/components/booking/availability-guide";
+import { StaySearchPanel } from "@/components/booking/stay-search-panel";
 import { RoomResults } from "@/components/booking/room-results";
 import { RoomFocus } from "@/components/booking/room-focus";
 import { bookingGuestCapacity, getDepositPolicy, getAvailability, getRoomCatalog, parseSearchIntent, type AvailableRoomType, type RoomTypeSummary } from "@/lib/booking";
@@ -19,7 +18,8 @@ export default async function FindRoomPage({ searchParams }: { searchParams: Pro
   }
   // Intent mirrors /booking/search: valid dates → availability, otherwise the browse catalog,
   // with an optional ?roomType focus from a landing Featured Stay card.
-  const intent = parseSearchIntent(raw, new Intl.DateTimeFormat("en-CA", { timeZone: await getBookingTimezone() }).format(new Date()));
+  const timeZone = await getBookingTimezone();
+  const intent = parseSearchIntent(raw, new Intl.DateTimeFormat("en-CA", { timeZone }).format(new Date()));
   const depositPolicy = await getDepositPolicy();
   let rooms: (AvailableRoomType | RoomTypeSummary)[] = [];
   let lookupError: string | undefined;
@@ -62,7 +62,7 @@ export default async function FindRoomPage({ searchParams }: { searchParams: Pro
   return <><section className="customer-page-title"><p className="eyebrow">Reserve your stay</p><h1>Find a Room</h1><p>{availability ? "Live availability from Haven's room inventory." : "Browse Haven's room types, then choose your dates to see live availability."}</p></section>
   {intent.mode === "browse" && intent.notice && <BookingNoticeToast text={`Your search needs attention — ${intent.notice.toLowerCase()}. Pick dates below to see live availability.`} />}
   {focusNotice && <BookingNoticeToast text={focusNotice} />}
-  <AvailabilityGuide id="book-form"><BookingSearchForm compact action={FIND_ROOM_PATH} initial={formInitial} maxGuests={maxGuests} searched={availability}/></AvailabilityGuide>
+  <StaySearchPanel className="portal-stay-search" action={FIND_ROOM_PATH} initial={formInitial} maxGuests={maxGuests} searched={availability} timeZone={timeZone}/>
   {focusRoomType && <RoomFocus roomType={focusRoomType} searchKey={JSON.stringify(raw)}/>}
   <RoomResults depositPolicy={depositPolicy} rooms={rooms} error={lookupError} retryHref={`${FIND_ROOM_PATH}${retryQuery.size ? `?${retryQuery}` : ""}`} hrefFor={details} focusRoomType={focusRoomType}/></>;
 }

@@ -60,7 +60,11 @@ export function RoomResults({
         <ul className="room-amenities" aria-label={`${room.name} amenities preview`}>{room.amenities.slice(0, CARD_AMENITY_LIMIT).map((amenity) => <li key={amenity}><Check size={13} aria-hidden="true" />{amenity}</li>)}{extraAmenities > 0 && <li className="room-amenities-more">+{extraAmenities} more</li>}</ul>
         <div className="room-rate">
           {priced ? (
-            <span className="room-price"><small className="room-price-nights">{room.nights} night{room.nights !== 1 ? "s" : ""}</small><strong className="room-price-nightly">{formatPeso(room.nightlyRate)}</strong> / night<br /><em className="room-price-total">{formatPeso(room.subtotal)} estimated total</em>{deposit !== null && <small className="room-deposit-estimate">{formatPeso(deposit)} estimated deposit</small>}</span>
+            <span className="room-price">
+              <em className="room-price-total">{formatPeso(room.subtotal)} estimated total</em>
+              <small className="room-price-nights">{room.nights} {room.nights === 1 ? "night" : "nights"} · <span>{formatPeso(room.nightlyRate)}</span> / night</small>
+              {deposit !== null && <small className="room-deposit-estimate">{formatPeso(deposit)} estimated deposit</small>}
+            </span>
           ) : (
             <span className="room-price"><small className="room-price-nights">From</small><strong className="room-price-nightly">{formatPeso(room.nightlyRate)}</strong> / night</span>
           )}

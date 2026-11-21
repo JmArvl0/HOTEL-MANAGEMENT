@@ -247,3 +247,57 @@
   .booking-progress li { min-width:96px; }
   .booking-search-heading { gap:18px; }
 }
+
+.booking-page .landing-nav .brand { flex: none; white-space: nowrap; }
+.booking-page .landing-actions { flex: none; }
+.booking-page .landing-nav .btn-nav-cta { min-height: 44px; white-space: nowrap; }
+.booking-page .nav-book-short { display: none; }
+.room-search-page { background: #f8f6f0; }
+.room-search-page .landing-nav,
+.room-search-page .landing-nav.is-scrolled {
+  position: relative;
+  background: var(--search-paper);
+  color: var(--search-ink);
+  box-shadow: none;
+}
+.room-search-page .landing-nav :is(.sign-in-link, .landing-menu-btn) { border-color: var(--search-line); }
+.room-search-page .btn-nav-cta,
+.room-search-page .btn-nav-cta:hover { background: var(--search-teal); color: #fff; }
+.room-search-page .booking-hero--search { padding-top: 26px; }
+.room-search-page .booking-search-heading { justify-content: space-between; }
+.room-search-page .booking-search-summary { margin-top: 18px; }
+.room-search-page .booking-results__count { padding: 0; border: 0; background: none; white-space: normal; }
+.room-search-page .booking-search.compact label,
+.room-search-page .room-focus-chip { font-size: 13px; letter-spacing: normal; text-transform: none; }
+.room-search-page .brand small { font-size: 11px; letter-spacing: 0; }
+.room-search-page :is(.booking-progress li, .room-facts span, .room-amenities, .room-actions .btn, .room-photo-count,
+  .booking-sidebar__card p, .booking-sidebar__list li, .booking-sidebar__link) { font-size: 12px; }
+.room-search-page .available-room,
+.room-search-page .available-room:is(:hover, .is-focused) { box-shadow: none; transform: none; }
+.room-search-page .available-room.is-focused { outline: 2px solid var(--search-muted); outline-offset: 2px; }
+.room-search-page .available-room .available-room-image { background: #eeece7; }
+.room-search-page .available-room:is(:hover, :focus-within) .room-actions .btn-accent { box-shadow: none; }
+.booking-page .room-rate .room-price-total { font-size: 17px; line-height: 1.3; font-weight: 750; }
+
+@media (max-width: 600px) {
+  .booking-page .landing-nav { height: 68px; padding-inline: 16px; }
+  .booking-page .landing-nav .brand { gap: 7px; font-size: 19px; letter-spacing: 1.5px; }
+  .booking-page .landing-nav .brand-mark { flex-basis: 34px; }
+  .booking-page .landing-nav .btn-nav-cta { display: inline-flex; padding-inline: 12px; }
+  .booking-page .nav-book-short { display: inline; }
+  .booking-page .nav-book-long { display: none; }
+  .room-search-page .booking-hero--search { padding: 16px 16px 0; }
+  .room-search-page .booking-search-heading { display: block; }
+  .room-search-page .booking-search-heading p { margin-top: 5px; }
+  .room-search-page :is(.booking-back, .booking-progress) { display: none; }
+  .room-search-page .booking-content--premium { padding-top: 18px; }
+  .room-search-page .booking-results__head { gap: 4px 10px; margin-bottom: 12px; }
+  .room-search-page .booking-results__head h2 { font-size: 23px; }
+  .room-search-page .available-room-image { min-height: 0; aspect-ratio: 16 / 9; }
+  .room-search-page .available-room-copy { padding: 16px; }
+  .room-search-page .available-room-copy h2 { font-size: 26px; }
+  .room-search-page .available-room-copy > p:not(.room-focus-chip) { margin-top: 6px; }
+  .room-search-page .room-facts { margin-top: 9px; }
+  .room-search-page .available-room-copy .room-amenities { display: none; }
+  .room-search-page .room-rate { margin-top: 10px; padding-top: 9px; gap: 10px; }
+}

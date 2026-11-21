@@ -8,6 +8,7 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { AvailabilityGuide, CHOOSE_DATES_EVENT } from "./availability-guide";
 import { ChooseDatesButton } from "./choose-dates-button";
 import { BookingSearchForm } from "./booking-search-form";
+import { StaySearchPanel } from "./stay-search-panel";
 
 const scrollSpy = vi.fn();
 let motionReduced = false;
@@ -126,6 +127,24 @@ describe("AvailabilityGuide", () => {
     fireEvent.change(screen.getByLabelText("Check in"), { target: { value: "2099-09-06" } });
     expect(container.querySelector("#book-form.is-guided")).toBeNull();
     expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("opens the compact date editor and focuses Check availability when its fields are valid", () => {
+    render(<><StaySearchPanel /><ChooseDatesButton /></>);
+    const editor = document.querySelector<HTMLDetailsElement>(".stay-search-panel");
+    expect(editor?.open).toBe(false);
+    fireEvent.click(screen.getByRole("link", { name: "Choose dates" }));
+    expect(editor?.open).toBe(true);
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Check availability" }));
+  });
+
+  it("shows unambiguous dates and guest count without opening the form", () => {
+    const searched = { checkIn: "2099-12-04", checkOut: "2099-12-06", guests: 2 };
+    render(<StaySearchPanel initial={searched} searched={searched} />);
+    const summary = document.querySelector(".stay-search-panel summary");
+    expect(summary?.textContent).toMatch(/Dec 4\s*[–-]\s*6, 2099/);
+    expect(summary?.textContent).toContain("2 guests");
+    expect(summary?.parentElement?.hasAttribute("open")).toBe(false);
   });
 });
 
