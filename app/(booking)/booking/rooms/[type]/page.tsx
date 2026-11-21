@@ -12,7 +12,7 @@ import {getExactRooms,type ExactRoom} from '@/lib/exact-rooms';
 import {resolveRoomAmenities} from '@/lib/room-amenities';
 import {roomPhotosFor} from '@/lib/room-images';
 import {formatPeso} from '@/lib/format';
-import {BookingSearchForm} from '@/components/booking/booking-search-form';
+import {StaySearchPanel} from '@/components/booking/stay-search-panel';
 import {RoomPhotoTrigger} from '@/components/booking/room-photo-lightbox';
 import {PublicWebsiteNav} from '@/components/landing/public-website-nav';
 import { getBreakfastChoice } from '@/lib/breakfast-server';
@@ -30,9 +30,14 @@ export default async function RoomsPage({params,searchParams}:{params:Promise<{t
  const photos=roomPhotosFor(room.photos,room.name);const capacity=!!stay&&stay.guests<=room.maxGuests;
  const checkoutOpen=stay ? await bookingCheckoutEnabled() : false;
  const breakfast=stay&&capacity&&priced ? await getBreakfastChoice(room.id,stay.checkIn,stay.checkOut,stay.guests,priced.subtotal) : null;
+ const availableCount = choices.filter(choice => choice.available && capacity).length;
+ const resultCount = stay ? availableCount : choices.length;
  return <main className="booking-page exact-room-page"><PublicWebsiteNav bookingHref="#book-form" active="Rooms" rootLinks/><div className="exact-room-content"><nav aria-label="Breadcrumb"><Link href="/#stay">Room types</Link><span> / {room.name}</span></nav><section className="exact-type-intro"><div><h1>{room.name}</h1><p>{room.description}</p><p>{room.beds} · {room.sizeSqm?`${room.sizeSqm} m² · `:''}Up to {room.maxGuests} guests</p><div className="exact-amenities">{room.amenities.map(a=><span key={a}>{a}</span>)}</div></div><RoomGallery photos={photos} roomName={room.name}/></section>
- <section id="book-form" className="exact-room-search" aria-label="Stay dates"><BookingSearchForm maxGuests={Math.min(8,room.maxGuests)} timeZone={information.operations.hotelTimezone} compact action={`/booking/rooms/${encodeURIComponent(type)}`} initial={{...(stay??{}),guests:stay?.guests??2}} searched={stay??undefined}/><BookingPolicySummary information={information}/></section>
- <div className="exact-room-results-heading"><h2>Choose your room</h2><span>{choices.length} room{choices.length === 1 ? "" : "s"}</span></div><p>Choose the exact room number for your stay. Your room is held after you submit Guest details.</p>
+ <StaySearchPanel className="exact-room-search" maxGuests={Math.min(8,room.maxGuests)} timeZone={information.operations.hotelTimezone} action={`/booking/rooms/${encodeURIComponent(type)}`} initial={{...(stay??{}),guests:stay?.guests??Math.min(2,room.maxGuests)}} searched={stay??undefined}/>
+ <div className="exact-room-results-heading">
+   <h2>Choose your room</h2>
+   {!error && <span>{resultCount} {resultCount === 1 ? "room" : "rooms"}{stay ? " available" : ""}</span>}
+ </div>
  {!stay&&<p role="status">Choose your dates and check availability to book a room.</p>}{stay&&!capacity&&<p role="alert">This type accommodates up to {room.maxGuests} guests. Adjust your party size or <Link href="/booking/search">choose another type</Link>.</p>}
  {stay&&!checkoutOpen&&<p role="status">Online checkout is unavailable. Contact Front Desk for help booking.</p>}
  {raw.changed&&<p role="alert">That room is no longer available. Please choose another room below.</p>}
@@ -44,9 +49,37 @@ export default async function RoomsPage({params,searchParams}:{params:Promise<{t
    const details=`/booking/details?${params}`;
    return session&&!session.user.otpPending ? details : `/login?booking=1&callbackUrl=${encodeURIComponent(details)}`;
  };
- const canPay=checkoutOpen&&Boolean(priced&&Number(publicDepositEstimate(priced.subtotal,information.deposit))>0);
+ const deposit = priced ? publicDepositEstimate(priced.subtotal, information.deposit) : null;
+ const canPay = checkoutOpen && Number(deposit) > 0;
  const href=bookingLink(breakfast?.mode==='included' ? breakfast.id : undefined);
- return <article key={choice.id} className={`exact-room-card${stay&&!available?' is-unavailable':''}`}><RoomGallery photos={photos} roomName={`${room.name}, Room ${choice.number}`}/><div className="exact-room-card-body"><div className="exact-room-heading"><h3>Room {choice.number}</h3><span>{!stay?'Check dates':available?'Available':'Unavailable'}</span></div><p>{room.name} · Floor {choice.floor}</p><p>{room.beds} · Up to {room.maxGuests} guests</p>{(choice.amenity_additions?.length>0||choice.amenity_exclusions?.length>0)&&<p className="exact-room-adjustments"><strong>Room amenities:</strong> {choice.amenities.join(' · ')||'None configured'}</p>}<strong>{formatPeso(priced?.nightlyRate??room.nightlyRate)} / night</strong>{priced&&<p>{formatPeso(priced.subtotal)} for {priced.nights} night{priced.nights===1?'':'s'}{information.deposit.enabled && <small className="room-deposit-estimate">{formatPeso(publicDepositEstimate(priced.subtotal, information.deposit) ?? 0)} estimated deposit</small>}</p>}{available && canPay ? breakfast?.mode === "optional" ? <div className="exact-breakfast-actions"><Link className="btn btn-accent" href={href}>Book Room {choice.number} · room only</Link><Link className="btn btn-soft" href={bookingLink(breakfast.id)}>Room {choice.number} with breakfast · {formatPeso(breakfast.total)}</Link></div> : <Link className="btn btn-accent" href={href}>Book Room {choice.number}{breakfast?.mode === "included" ? " · breakfast included" : ""}</Link> : <button className="btn" disabled>{stay?'Unavailable':'Choose dates first'}</button>}<details><summary>View room details</summary><p>{room.description}</p><p>{choice.amenities.join(' · ')||'No amenities configured.'}</p></details></div></article>})}</div>}{!error&&!choices.length&&<p>No rooms are currently published for this type.</p>}</div></main>;
+ return (
+   <article key={choice.id} className={`exact-room-card${stay && !available ? ' is-unavailable' : ''}`}>
+     <RoomGallery photos={photos} roomName={`${room.name}, Room ${choice.number}`} />
+     <div className="exact-room-card-body">
+       <div className="exact-room-heading"><h3>Room {choice.number}</h3><span>{!stay ? "Check dates" : available ? "Available" : "Unavailable"}</span></div>
+       <p>Floor {choice.floor} · {room.beds} · Up to {room.maxGuests} guests</p>
+       {priced ? <div className="exact-room-price">
+         <strong>{formatPeso(priced.subtotal)} estimated total</strong>
+         <p>{priced.nights} {priced.nights === 1 ? "night" : "nights"} · {formatPeso(priced.nightlyRate)} / night</p>
+         {deposit !== null && <small className="room-deposit-estimate">{formatPeso(deposit)} estimated deposit</small>}
+       </div> : <strong>From {formatPeso(room.nightlyRate)} / night</strong>}
+       {available && canPay ? breakfast?.mode === "optional" ? (
+         <div className="exact-breakfast-actions">
+           <Link className="btn btn-accent" href={href}>Book Room {choice.number} · room only</Link>
+           <Link className="btn btn-soft" href={bookingLink(breakfast.id)}>Room {choice.number} with breakfast · {formatPeso(breakfast.total)}</Link>
+         </div>
+       ) : <Link className="btn btn-accent" href={href}>Book Room {choice.number}{breakfast?.mode === "included" ? " · breakfast included" : ""}</Link>
+       : <button className="btn" disabled>{stay ? "Unavailable" : "Choose dates first"}</button>}
+       <details>
+         <summary>View room details</summary>
+         <p>{room.description}</p>
+         <p><strong>Room amenities</strong> · {choice.amenities.join(" · ") || "No amenities configured."}</p>
+       </details>
+     </div>
+   </article>
+ )})}</div>}{!error&&!choices.length&&<p>No rooms are currently published for this type.</p>}
+ <section className="exact-room-policy" aria-label="Booking terms"><BookingPolicySummary information={information} /></section>
+ </div></main>;
 }
 
 function RoomGallery({photos,roomName}:{photos:string[];roomName:string}){return <figure><img src={photos[0]||"/hotel-hero.png"} alt={roomName}/><RoomPhotoTrigger photos={photos} roomName={roomName}/></figure>}

@@ -3,24 +3,33 @@
 .exact-room-page .landing-nav{position:relative;inset:auto;background:#fff;color:#111827}.exact-room-page figure{position:relative}.exact-room-page .brand-mark{color:#111827}.exact-room-page .landing-menu-btn{border-color:#d1d5db;color:#111827}.exact-room-page .sign-in-link{border-color:#d1d5db;background:#fff;color:#111827}
 .exact-room-page { background:#f8f6f0; color:#172639; }
 .exact-type-intro { gap:24px; margin-bottom:20px; }
-.exact-type-intro h1 { font-size:34px; }
+.exact-type-intro h1 { margin:0; font-size:34px; }
 .exact-type-intro p { margin-top:10px; font-size:14px; line-height:1.6; }
 .exact-type-intro figure { height:160px; border-radius:12px; }
 .exact-amenities { margin-top:12px; }
-.exact-room-search { padding:16px; margin:20px 0 24px; border:1px solid #d8d5cd; border-radius:12px; }
+.exact-room-search { padding:0; margin:16px 0 20px; border:0; }
 .exact-room-results-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; }
-.exact-room-results-heading h2 { font:500 28px/1.3 var(--font-display); }
+.exact-room-results-heading h2 { margin:0; font:500 28px/1.3 var(--font-display); }
 .exact-room-results-heading>span { font-size:13px; color:#5c6269; }
 .exact-room-card { border:1px solid #d8d5cd; border-radius:12px; }
 .exact-room-card>figure { height:180px; }
 .exact-room-card-body { padding:20px; gap:10px; }
 .exact-room-heading { flex-wrap:wrap; }
-.exact-room-heading h3 { font-size:24px; }
-.exact-room-card .room-deposit-estimate { display:block; font-size:12px; color:#5c6269; }
+.exact-room-heading h3 { margin:0; font-size:24px; }
+.exact-room-price strong { font-size:17px; font-variant-numeric:tabular-nums; }
+.exact-room-card .room-deposit-estimate { display:block; font-size:13px; color:#5c6269; }
+.exact-room-policy { margin-top:28px; padding:20px; border-radius:12px; background:#fff; }
 @media(max-width:680px) {
- .exact-type-intro { grid-template-columns:minmax(0,1fr); }
+ .exact-room-content { width:calc(100% - 32px); margin-top:16px; }
+ .exact-type-intro { grid-template-columns:minmax(0,1fr); margin-bottom:16px; }
  .exact-type-intro figure { display:none; }
  .exact-type-intro h1 { font-size:30px; }
+ .exact-type-intro p { margin-top:6px; }
+ .exact-type-intro .exact-amenities { display:none; }
  .exact-room-grid { grid-template-columns:minmax(0,1fr); }
- .exact-room-content>nav { margin-bottom:18px; }
+ .exact-room-content>nav { margin-bottom:12px; }
+ .exact-room-results-heading { margin-bottom:12px; }
+ .exact-room-results-heading h2 { font-size:23px; }
+ .exact-room-card>figure { height:auto; aspect-ratio:16 / 9; }
+ .exact-room-card-body { padding:16px; }
 }
