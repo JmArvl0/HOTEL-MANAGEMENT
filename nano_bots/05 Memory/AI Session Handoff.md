@@ -1,5 +1,87 @@
 # AI Session Handoff
 
+## Room search and Express check-in — 2026-11-21
+
+Public search, numbered-room selection and portal Find a Room share a compact
+stay editor. Room results lead with photos and estimated totals. The branded
+kiosk has camera retry, manual Express Pass code entry and Front Desk help.
+Local Edge verified both flows at 320–1440px. Preview runs on port 3261.
+See [[2026-11-21 - Room Search and Express Check-In]].
+
+## Booking account summary — 2026-11-21
+
+Booking sign-in and registration use a room card beside the form at wide
+widths and one compact summary above the form on narrow screens. Local Edge
+verified both views, the edit link and sign-in return to checkout. The preview
+on port 3241 uses the existing guest login and a sample room. See
+[[2026-11-21 - Booking Account Summary]].
+
+## Guest ride form follow-up — 2026-11-21
+
+Both guest flows reveal a required bag count with luggage assistance, offer
+map-pin autofill with editable pickup and destination fields, and use the
+shared ride date and time controls. Local browser and PostgreSQL QA passed.
+Updated preview uses port 3218 and the same synthetic guest credentials.
+Migration `20261121010000` is local only. See [[2026-11-21 - Guest Ride Form Follow-up]].
+
+## Guest vehicle preference — 2026-11-21
+
+My Stay now hides valid saved passenger details and prompts for missing
+contact only. Both guest forms offer 4-, 6-, and 10-seat preferences or no
+preference. Fleet receives the selection through existing special requests.
+The verified build runs on localhost with a fictional guest and a confirmed
+test stay. Fleet delivery is off for the preview. No production deployment.
+See [[2026-11-21 - Guest Vehicle Preference]].
+
+## Automatic Fleet dispatch — 2026-11-20
+
+My Stay sends after guest submission. Website checkout saves the contact,
+preferences and consent, then queues delivery on reservation confirmation.
+Front Desk can search a guest account and arrange a walk-up ride on its stay.
+All three paths use the same Fleet delivery records and confirmed-fare posting.
+Automatic rides bypass the local approval sequence. Local PostgreSQL and Edge
+verified all three paths and one folio charge across repeated callback and
+confirmation. Supabase recorded migration `20261120040000` and Vercel deployed
+`c7c7166`. Live Fleet acknowledged checkout `611`, My Stay `612`, and Front Desk
+`613` on the same fictional reservation. Readback found three first-attempt
+deliveries and zero transportation charges. Fleet must supply its final test
+fare for `612` before the live replay and folio confirmation can be verified.
+See [[2026-11-20 - Automatic Fleet Dispatch]].
+
+## Fleet production mode — 2026-11-20
+
+Commit `5e51dd6` is deployed and accepts `HAVEN_FLEET_MODE=production`.
+Authenticated local Edge QA with a synthetic HTTPS partner verified dispatch,
+trip completion, and one PHP 321.23 fare after duplicate callback and
+confirmation. Haven's hosted callback still returns 503 and has no applied
+partner fares. Next joint step requires credential provisioning and an open
+QA pickup reservation. See [[2026-11-20 - Fleet Production Mode]].
+
+## Transportation booking and folio — 2026-11-20
+
+Ride preferences remain optional and file only after verified payment.
+Confirmation reads the saved ride and links to the exact stay. Hotel-operated
+fares post when Front Desk assigns the vehicle. For Fleet rides, Front Desk
+reviews all current leg fares before posting one charge to the existing folio.
+Uncommitted requests close when the stay is cancelled.
+
+Migration `20261120030000` was numbered after a read-only hosted ledger check
+and replayed locally. The 2,662-test suite, Xendit SQL, Fleet SQL and local
+authenticated Edge flow passed.
+The migration is applied and app commit `0571c25` is live in production.
+Hosted SQL verified one fare charge across retries in a rolled-back test.
+Haven's live Fleet staging endpoints report unavailable. See
+[[2026-11-20 - Transportation Production Rollout]] for release evidence and
+[[2026-11-20 - Transportation Booking and Folio]] for the implementation.
+
+## Lost & Found and migration production release — 2026-11-20
+
+The hosted dry-run listed only `20261120010000` and `20261120020000`. Both were
+applied and the 153 hosted entries match the release files. GitHub `main` and
+Vercel production reached `69d16de`. The production login and signed-out
+access checks passed, and the live site serves the Lost & Found stylesheet.
+See [[2026-11-20 - Staff Production Release]] for the staff smoke test status.
+
 ## Staff migration conflict reconciliation — 2026-11-20
 
 The read-only hosted ledger has 151 entries. The five colliding versions keep

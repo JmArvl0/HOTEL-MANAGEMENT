@@ -20,8 +20,10 @@ and 44px touch floor; room/card frames use 12px. The guest theme is scoped in
 Narrow layouts stack the room/photo, use a two-column booking timeline and
 stack the next action and supporting sections. Guest detail forms stack their
 summary below the form at 1100px and optional requests/transport use disclosures.
-Booking-related auth shows the room photo and summary on desktop and a compact
-summary on mobile. Search and exact-room browsing use compact controls and
+Booking-related auth pairs the room summary with the account form on desktop.
+At 900px and below, a single compact summary sits above the form, with a room
+thumbnail, stay facts, the estimated total, and the room/date change link.
+Search and exact-room browsing use compact controls and
 deposit estimates; the hold remains the pricing authority.
 Desktop account and narrow hold/recovery renders were inspected. Final stay-guide,
 auth, dark-mode and full mobile-matrix visual QA remain pending after browser
@@ -483,12 +485,18 @@ and 44px minimum targets.
 
 The public room-discovery route (`/booking/search`) extends the landing-page identity instead of introducing a separate booking brand.
 
-- Use the shared landing navigation with **Rooms** marked as the current page. Breadcrumbs communicate location; the separate three-step indicator communicates booking progress.
-- Lead with a photographic coastal hero, then overlap the compact availability form across the hero/content boundary. Search parameters and availability remain the source of truth for the visible filter chips.
+- Room search uses the shared landing navigation with a one-line wordmark and a short **Book** action on narrow screens. Breadcrumbs communicate location and a wide-screen indicator communicates booking progress.
+- Search, exact-room selection, and My Stay's Find a Room share a compact disclosure for dates and guest count. Room photos and rates appear ahead of the date editor when it is closed. Card and navigation actions open the editor, and searched results keep the stay and rates that were last checked.
 - Room results are photo-first editorial cards. On wide screens, media and details share the card; at `820px` and below they stack. The results and support rail become one column at `1000px` and below.
 - Availability is a circular, inventory-backed marker. Hover and keyboard focus coordinate the marker, room photograph, and primary select action; reduced-motion preferences remove these transitions.
 - Support copy must remain operationally truthful: live inventory, the configured 15-minute hold, and deposit/terms disclosed before submission. Do not add invented ratings, scarcity, guarantees, sustainability claims, or chain-wide claims.
 - `app/(booking)/booking/search/search.css` owns this route's scoped composition. Shared booking validation, availability, rates, and reservation behavior remain in their existing components and domain libraries.
+
+**Express check-in.** The public kiosk has a Haven header and a visible Front
+Desk help link. Its camera states, retry action, manual QR-code entry, errors,
+and success screen share a compact layout. The manual field takes the code
+encoded on the Express Pass. A signed-out verification attempt links back to
+sign-in while preserving the kiosk destination.
 
 ## 9. Customer payments & folio
 

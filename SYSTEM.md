@@ -819,6 +819,11 @@ and confirmation. Account pages show the chosen room and stay; saved registratio
 mobile prefills details. Shared phone input has SVG flags, country/code search,
 default PH+63 and PH local/international normalization (eight country choices).
 
+Public room search, the signed-in Find a Room page, and exact-room selection
+show the searched dates and guest count in a disclosure above results. The
+editor submits the same search intent. Priced room cards lead with the
+estimated stay total, then the nightly rate and estimated deposit.
+
 Migration `20261111010000_guest_exact_rooms` is applied. `create_exact_booking_hold`
 wraps the existing pricing/policy RPC under the same type advisory lock, checks
 the continuous room claim and saves `selected_room_id/number`. Owned hold edits
