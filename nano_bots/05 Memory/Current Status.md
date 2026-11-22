@@ -1,5 +1,36 @@
 # Current Status
 
+## Age enforcement and release gate (2026-11-22, local)
+
+Manual and Express QR arrivals use the same primary age gate. The new
+migration preserves the separately audited age policy activation date.
+Local migration replay, production build, and all 2,690 tests passed.
+The GitHub Actions workflow has been added locally. Hosted release is pending.
+See [[2026-11-22 - Age Enforcement and Defense QA]].
+
+## Analytical Reports and Command Center (2026-11-22, local)
+
+Manager and Owner open a shared operating overview and period-based reports.
+Analytical Reports include room performance, cash, booking and service
+measures, CSV, and a date-matched Forecast Evaluation link. Historical
+occupancy and room-accrual ratios show night-audit coverage.
+See [[2026-11-22 - Analytical Reports and Command Center]].
+
+## Seasonal Occupancy (2026-11-22, local)
+
+Manager Predictive Insights offers a monthly occupancy outlook and same-date
+comparisons across years. Saved daily occupancy evidence powers the baseline.
+Cold-start bookings and historical coverage are visible from the first day.
+See [[2026-11-22 - Seasonal Occupancy]].
+
+## Forecast Evaluation (2026-11-22, local)
+
+Manager Predictive Insights has a Forecast Evaluation view for occupancy,
+timed housekeeping hours, and item-level inventory usage. The generation
+job saves actuals and a frozen baseline using the existing analytics schema.
+Defense accuracy results require seven matched observations per cohort after
+prospective capture begins. See [[2026-11-22 - Forecast Evaluation Phase 1]].
+
 ## Transportation fares (2026-11-20, production)
 
 Haven production runs `c7c7166` with migrations through `20261120040000`.

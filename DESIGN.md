@@ -4,6 +4,24 @@ The source-of-truth reference for the shipped UI. **Do not apply
 `design-system/haven-hotel/MASTER.md`** — it is superseded (see `DESIGN-STATUS.md` F2).
 This doc and `app/ui-primitives.css` are the current system.
 
+**Forecast Evaluation.** Predictive Insights places the forecast tabs above the outlook
+cards, with Evaluation beside Occupancy Outlook. Its filter tray, divided accuracy summary, and comparison plot share the staff
+light and dark surfaces. Actual uses a solid line, predicted a dashed line, and baseline
+a dotted line. Forecast records and score definitions are keyboard-accessible disclosures.
+On phones, the accuracy summary becomes two columns and the evidence table scrolls inside
+its own labeled region.
+
+**Seasonal Occupancy.** The second Predictive Insights tab opens a month or exact-date view.
+The filter tray pairs the target with a reference year. Bookings, the historical baseline,
+and the occupancy estimate use a divided summary, backed by a gap-aware chart and daily
+records. With sparse history, a coverage message sits beside the available booking facts.
+
+**Hotel Command Center and Reports.** Manager and Owner use a divided hotel summary and
+an arrivals/departures board. Needs attention sits beside the board on wide screens and
+above it on narrow screens. Reports use a compact view switcher, period and cohort filters,
+and an accessible trend with daily figures. Both surfaces reuse staff light and dark tokens,
+tabular figures, and the forecast workspace's bordered panels.
+
 **Lost & Found.** Four status counters filter the item register. Wide workspaces
 show the register and item details side by side with independent scrolling. Narrow
 workspaces show one pane at a time, and Back restores focus to the selected row.
@@ -246,6 +264,11 @@ standalone source/owner form and filterable follow-up log. Guest and uploaded-ID
 forms preserve the existing portal/arrival shell. Labels, draft preservation,
 stable retry keys, truthful status/error feedback and keyboard focus are part of
 the workflow; no prototype/sample records are wired into production screens.
+
+**Front Desk age verification (2026-11-22):** The Staying guests panel shows the
+scheduled check-in date and the primary guest's current age requirement. The
+inline form shows one evidence field at a time and records the Front Desk ID
+attestation. Staff can reopen verification when the date changes.
 
 **Cash safeguards (2026-11-05, local):** Count review distinguishes unsaved edits,
 an explicitly saved server draft, resume/fresh count and final Close. Changed

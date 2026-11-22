@@ -1,7 +1,7 @@
 // Disposable PostgreSQL behavior checks for the occupant, guest-control,
 // discrepancy, merge, and housekeeping migrations. Uses only hotelTestDatabase.
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { hotelTestDatabase, hotelFixture, rpc } from "./hotel-db-test-helpers.mjs";
 
 const suite = await hotelTestDatabase();
@@ -38,10 +38,35 @@ try {
   check("complete roster is confirmed at its declared count", party.complete === true && party.members.length === 2);
 
   const minimumAge = Number((await q("select coalesce((current_operational_policy_snapshot()->>'minimumBookingAge')::integer,18) age"))[0].age);
+  const arrival = (await q("select to_char(hotel_today(),'YYYY-MM-DD') as today,to_char(hotel_today()+1,'YYYY-MM-DD') as tomorrow,to_char(hotel_today()-make_interval(years=>$1),'YYYY-MM-DD') as birthday,to_char(hotel_today()-make_interval(years=>$1)+interval '1 day','YYYY-MM-DD') as underage", [minimumAge]))[0];
+  const arrivalState = async (id, room) => (await q(`select r.status,r.checked_in_at,r.digital_key_hash,i.balance,rm.status as room_status,rm.housekeeping
+    from reservations r join invoices i on i.reservation_id=r.id join rooms rm on rm.id=$2 where r.id=$1`, [id, room]))[0];
+  const recordEvidence = async (reservationId, occupantId, evidence, options = {}) => {
+    const version = (await q("select party_version from reservations where id=$1", [reservationId]))[0].party_version;
+    const result = await call("hotel_occupant_verify_arrival", {
+      p_reservation_id: reservationId, p_occupant_id: occupantId, p_date_of_birth: null,
+      p_verified_age_years: null, p_nationality: null, p_expected_check_in: arrival.today,
+      p_expected_version: version, p_key: randomUUID(), p_actor: f.users.front_desk,
+      ...evidence, ...options,
+    });
+    return result[0].hotel_occupant_verify_arrival;
+  };
+  const beforeDeniedArrival = await arrivalState(reservation, checkinRoom.id);
   await assert.rejects(call("front_desk_check_in", { p_reservation_id: reservation, p_room_id: checkinRoom.id, p_staff_user_id: f.users.front_desk }), /PRIMARY_AGE_UNVERIFIED/);
-  await call("hotel_occupant_verify", { p_reservation_id: reservation, p_occupant_id: primary.id, p_date_of_birth: null, p_verified_age_years: minimumAge - 1, p_nationality: null, p_key: randomUUID(), p_evidence: "Official ID inspected", p_actor: f.users.front_desk });
+  await assert.rejects(recordEvidence(reservation, primary.id, { p_date_of_birth: arrival.birthday }, { p_expected_check_in: arrival.tomorrow }), /AGE_ARRIVAL_DATE_CHANGED/);
+  await assert.rejects(recordEvidence(reservation, primary.id, { p_date_of_birth: arrival.birthday }, { p_actor: f.users.manager }), /FORBIDDEN/);
+  await assert.rejects(recordEvidence(reservation, primary.id, { p_date_of_birth: arrival.tomorrow }), /INVALID_DATE_OF_BIRTH/);
+  await recordEvidence(reservation, primary.id, { p_date_of_birth: arrival.underage });
   await assert.rejects(call("front_desk_check_in", { p_reservation_id: reservation, p_room_id: checkinRoom.id, p_staff_user_id: f.users.front_desk }), /PRIMARY_UNDER_MINIMUM_AGE/);
-  await call("hotel_occupant_verify", { p_reservation_id: reservation, p_occupant_id: primary.id, p_date_of_birth: null, p_verified_age_years: minimumAge, p_nationality: null, p_key: randomUUID(), p_evidence: "Official ID inspected", p_actor: f.users.front_desk });
+  assert.deepEqual(await arrivalState(reservation, checkinRoom.id), beforeDeniedArrival);
+  const recordedKey = randomUUID();
+  const recordedVersion = (await q("select party_version from reservations where id=$1", [reservation]))[0].party_version;
+  const verification = { p_key: recordedKey, p_expected_version: recordedVersion };
+  const birthdayResult = await recordEvidence(reservation, primary.id, { p_date_of_birth: arrival.birthday }, verification);
+  assert.deepEqual(await recordEvidence(reservation, primary.id, { p_date_of_birth: arrival.birthday }, verification), birthdayResult);
+  check("DOB passes on the exact minimum-age birthday, and denied arrivals leave state unchanged", birthdayResult.referenceDate === arrival.today);
+  const ownerRoster = (await call("hotel_party_read", { p_reservation_id: reservation, p_actor: f.users.owner }))[0].hotel_party_read;
+  check("roster exposes verification status without DOB or exact age", ownerRoster.members[0].ageVerified && !("dateOfBirth" in ownerRoster.members[0]) && !("verifiedAgeYears" in ownerRoster.members[0]));
   await call("front_desk_check_in", { p_reservation_id: reservation, p_room_id: checkinRoom.id, p_staff_user_id: f.users.front_desk });
   const emergency = (await call("hotel_occupants_in_house", { p_actor: f.users.front_desk }))[0].hotel_occupants_in_house;
   check("verified primary age gates check-in and emergency list includes name-only occupants", emergency.items.some(item => item.reservationId === reservation && item.occupants.some(person => person.name === "Ana Child" && person.type === "child")));
@@ -112,6 +137,84 @@ try {
   check("DND refuses start without advancing the new room's task or housekeeping state", beforeStart[0].status !== "in_progress");
   await call("front_desk_checkout", { p_reservation_id: reservation, p_staff_user_id: f.users.front_desk });
   check("checkout clears DND while preserving its history", (await q("select status,clear_reason from reservation_service_conditions where reservation_id=$1 order by set_at desc limit 1", [reservation]))[0].status === "cleared");
+
+  const expressFixture = await hotelFixture(db, 1);
+  const expressRoom = expressFixture.rooms[0];
+  const expressReservation = (await q(`insert into reservations(
+    guest_id,user_id,guest_name,room_type,check_in,check_out,guests,status,total,room_id,room_number,
+    identity_status,identity_verified_by,identity_verified_at,operational_policy_snapshot
+  ) values($1,$2,'Test guest',$3,hotel_today(),hotel_today()+2,1,'confirmed',200,$4,$5,'verified',$6,now(),$7)
+    returning id`, [expressFixture.guest, expressFixture.users.guest, expressFixture.type, expressRoom.id, expressRoom.number, f.users.front_desk, policy]))[0].id;
+  await q("insert into invoices(reservation_id,guest_name,amount,paid,balance,status) values($1,'Express guest',0,0,0,'paid')", [expressReservation]);
+  await q("update hotel_occupant_policy set register_effective_from=null,age_effective_from=hotel_today()-1 where key='default'");
+  const expressPrimary = (await q("select id from reservation_guests where reservation_id=$1 and role='primary' and removed_at is null", [expressReservation]))[0].id;
+  const token = randomBytes(32).toString("hex");
+  await q("insert into qr_tokens(token_hash,resource_type,resource_id,purpose) values($1,'reservation',$2,'check_in')", [token, expressReservation]);
+  const express = (actor = expressFixture.users.guest) => call("express_qr_self_check_in", { p_qr_token_hash: token, p_user_id: actor });
+  const beforeExpress = await arrivalState(expressReservation, expressRoom.id);
+  await assert.rejects(express(), /PRIMARY_AGE_UNVERIFIED/);
+  await recordEvidence(expressReservation, expressPrimary, { p_verified_age_years: minimumAge });
+  await q("update reservations set check_in=check_in-1 where id=$1", [expressReservation]);
+  await assert.rejects(express(), /PRIMARY_AGE_UNVERIFIED/);
+  await q("update reservations set check_in=hotel_today(),guest_id=$2 where id=$1", [expressReservation, f.guest]);
+  await assert.rejects(express(), /PARTY_PRIMARY_REQUIRED/);
+  const readiness = (await call("hotel_reservation_readiness", { p_reservation_id: expressReservation, p_actor: f.users.front_desk, p_candidate_room: expressRoom.id }))[0].hotel_reservation_readiness;
+  assert.ok(readiness.checkIn.includes("PARTY_PRIMARY_REQUIRED"));
+  await assert.rejects(recordEvidence(expressReservation, expressPrimary, { p_verified_age_years: minimumAge }), /PARTY_PRIMARY_REQUIRED/);
+  assert.deepEqual(await arrivalState(expressReservation, expressRoom.id), beforeExpress);
+  check("Express and readiness reject stale dates and a previous primary guest with age-only enforcement", true);
+
+  const mismatchedParty = (await call("hotel_party_read", { p_reservation_id: expressReservation, p_actor: f.users.front_desk }))[0].hotel_party_read;
+  await call("hotel_party_update", {
+    p_reservation_id: expressReservation, p_members: { completeRegister: true, members: [
+      { occupantId: expressPrimary, guestId: f.guest, name: "Updated primary guest", role: "primary" },
+    ] }, p_expected_version: mismatchedParty.version, p_key: randomUUID(), p_actor: f.users.front_desk,
+  });
+  await assert.rejects(express(), /PRIMARY_AGE_UNVERIFIED/);
+  await recordEvidence(expressReservation, expressPrimary, { p_verified_age_years: minimumAge });
+  await assert.rejects(express(f.users.guest), /SELF_CHECKIN_FORBIDDEN/);
+  await q("update qr_tokens set expires_at=now() where token_hash=$1", [token]);
+  await assert.rejects(express(), /SELF_CHECKIN_INVALID_QR/);
+  await q("update qr_tokens set expires_at=null,revoked_at=now() where token_hash=$1", [token]);
+  await assert.rejects(express(), /SELF_CHECKIN_INVALID_QR/);
+  assert.deepEqual(await arrivalState(expressReservation, expressRoom.id), beforeExpress);
+  await q("update qr_tokens set revoked_at=null where token_hash=$1", [token]);
+  const expressResult = await express();
+  check("valid Express QR checks in after verification, while expired, revoked and wrong-owner scans leave state unchanged",
+    expressResult[0]?.reservation_id === expressReservation && (await arrivalState(expressReservation, expressRoom.id)).room_status === "occupied");
+
+  const walkInFixture = await hotelFixture(db, 2);
+  const [walkInRoom, legacyRoom] = walkInFixture.rooms;
+  const walkIn = (await call("front_desk_create_reservation", {
+    p_guest_name: "Sample walk-in", p_email: `walk-in-${walkInFixture.tag}@example.invalid`,
+    p_phone: "+639171234567", p_room_type: walkInFixture.type, p_check_in: arrival.today,
+    p_check_out: arrival.tomorrow, p_guest_count: 1, p_source: "Walk-In",
+    p_special_requests: null, p_expected_arrival: "00:00",
+    p_idempotency_key: randomUUID(), p_staff_user_id: f.users.front_desk,
+  }))[0];
+  await call("verify_guest_identity", { p_reservation_id: walkIn.reservation_id, p_staff_user_id: f.users.front_desk });
+  await call("hms_collect_payment", {
+    p_reservation_id: walkIn.reservation_id, p_amount: Number(walkIn.total), p_method: "card",
+    p_reference: "Synthetic walk-in payment", p_idempotency_key: randomUUID(), p_staff_user_id: f.users.front_desk,
+  });
+  const walkInCheckIn = () => call("front_desk_check_in", {
+    p_reservation_id: walkIn.reservation_id, p_room_id: walkInRoom.id, p_staff_user_id: f.users.front_desk,
+  });
+  await assert.rejects(walkInCheckIn(), /PRIMARY_AGE_UNVERIFIED/);
+  const walkInPrimary = (await q("select id from reservation_guests where reservation_id=$1 and role='primary'", [walkIn.reservation_id]))[0].id;
+  await recordEvidence(walkIn.reservation_id, walkInPrimary, { p_verified_age_years: minimumAge });
+  await walkInCheckIn();
+  check("a paid walk-in requires primary age evidence before occupying the room",
+    (await arrivalState(walkIn.reservation_id, walkInRoom.id)).status === "checked_in");
+
+  const legacy = (await q(`insert into reservations(guest_id,guest_name,room_type,check_in,check_out,guests,status,total,
+    identity_status,identity_verified_by,identity_verified_at,operational_policy_snapshot)
+    values($1,'Test guest',$2,hotel_today()-2,hotel_today()+1,1,'confirmed',0,'verified',$3,now(),$4) returning id`,
+  [walkInFixture.guest, walkInFixture.type, f.users.front_desk, policy]))[0].id;
+  await q("insert into invoices(reservation_id,guest_name,amount,paid,balance,status) values($1,'Test guest',0,0,0,'paid')", [legacy]);
+  await call("front_desk_check_in", { p_reservation_id: legacy, p_room_id: legacyRoom.id, p_staff_user_id: f.users.front_desk });
+  check("legacy arrivals before the effective date still follow the existing check-in rules",
+    (await arrivalState(legacy, legacyRoom.id)).status === "checked_in");
 
   console.log(JSON.stringify({ checksPassed: checks, scope: "Real SQL on a disposable PostgreSQL clone; hosted database untouched" }));
 } finally {

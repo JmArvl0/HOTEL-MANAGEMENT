@@ -16,8 +16,8 @@ export function OperatingDateBanner(){
  if(!data&&loading)return <p className="hotel-ops-banner" role="status">Checking operating day…</p>;
  return data?.active&&data.lagging?<p className="hotel-ops-banner" role="status">Operating day {data.businessDate} remains open · Calendar day {data.calendarDate} ({data.timezone})</p>:null;
 }
-export default function HotelOperationsPanel({role,onReservation,onTasks,onRoom,onGuest}:{role:Role;onReservation?:(id:string)=>void;onTasks?:()=>void;onRoom?:(id:string)=>void;onGuest?:(id:string)=>void}){
- const[tab,setTab]=useState("handover");const finance=["front_desk","accounting","manager","owner"].includes(role),identity=["manager","owner"].includes(role);
+export default function HotelOperationsPanel({role,onReservation,onTasks,onRoom,onGuest,initialTab="handover"}:{role:Role;onReservation?:(id:string)=>void;onTasks?:()=>void;onRoom?:(id:string)=>void;onGuest?:(id:string)=>void;initialTab?:"handover"|"audit"}){
+ const[tab,setTab]=useState<string>(initialTab);const finance=["front_desk","accounting","manager","owner"].includes(role),identity=["manager","owner"].includes(role);
  const occupants=["front_desk","manager","owner"].includes(role);
  const discrepancies=["front_desk","manager","owner"].includes(role);
  const tabs=[{id:"handover",label:"Shift handover"},...(occupants?[{id:"occupants",label:"In-house occupants"}]:[]),...(discrepancies?[{id:"discrepancies",label:"Room discrepancies"}]:[]),...(finance?[{id:"audit",label:"Operating day & close"},{id:"fees",label:"Fee catalog"}]:[]),...(identity?[{id:"duplicates",label:"Identity review"}]:[])];

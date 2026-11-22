@@ -1921,6 +1921,30 @@ folio issuance remains a separate financial-document workflow.
   Snapshots are never updated — immutability comes from RLS-with-no-policies + service-role-only
   writes through the two RPCs (same trust model as `financial_documents`).
 
+**Reports workspace.** Manager and Owner have separate Analytical and Operational views.
+Only Manager reviews submitted daily snapshots. Owner can read the same saved history. Front
+Desk retains preview, submit, and resubmission. Accounting retains its financial workspace.
+
+`GET /api/staff/analytical-report` returns a completed hotel-date range of up to 90 days
+and an equal preceding period. Property booked occupancy, ADR and RevPAR are operational
+room-accrual measures based on immutable night audits and dated serviceable room supply.
+Their range totals require complete inputs. The report shows Phase 1 recorded occupancy as a
+separate daily series. Settled payments and refunds are grouped by operating posting date,
+falling back to local settlement date for older payments. Room type and source filters apply
+to reservations and contracted room accrual by type. Historical capacity by room type is
+unavailable, and the breakdown identifies the current reservation type as its grouping basis.
+Service measures use traceable checkout-task and guest-request timestamps. The report also
+shows repeated maintenance groups and links to saved occupancy forecast evaluation for the
+same period. CSV and print use the selected report.
+
+**Hotel Command Center.** Manager and Owner open the same read-only operating overview
+via `GET /api/staff/command-center`. It shows live occupancy of serviceable rooms, current
+arrivals and departures, room readiness, workload, transport, stock, and forecast alerts.
+Management approval counts follow the actor's authority level. The financial projection uses
+the existing operating-day summary and labels its date when the operating day differs from the
+calendar. Queue cards route to the role's permitted module. The overview distinguishes failed
+reads from actual zero counts, with local disclosure for partial data.
+
 ### 7.13 Innovation layer — Predictive Analytics, Gemini AI assistance, QR operations
 
 The capstone innovation layer. Full architecture and defense narrative:
@@ -1936,27 +1960,49 @@ hotel operational data → lib/analytics (HAVEN's own forecasts — the ONLY pre
 **Predictive analytics engine** (`lib/analytics/`, pure functions over plain arrays — dual-mode and
 unit-testable). Four operational forecasts plus one governed pricing recommendation model:
 **occupancy** (7-day; per day KNOWN/booked occupancy as FACT from
-confirmed+checked-in reservations, plus a PREDICTED final occupancy from same-weekday historical
-pickup — shown only when enough observations exist, always labeled with its basis), **housekeeping
+confirmed+checked-in reservations, plus a PREDICTED final occupancy from historical pickup at the
+same lead time, pooled across weekdays — shown only when enough observations exist), **housekeeping
 workload** (expected departures → checkout cleans, stayovers → services, inspections per policy,
-labor hours from historical task durations), **inventory demand** (per item: 3-day predicted
-consumption from `inventory_movements` daily means → projected shortage + recommended reorder —
+labor hours from timed cleaning and guest-request tasks), **inventory demand** (per item: predicted
+consumption for the next three full Manila dates from `inventory_movements` daily means → projected shortage + recommended reorder —
 genuinely predictive, not a low-stock alert; items without history are flagged, never guessed),
 **maintenance recurring-issue risk** (repeat-incidence grouping per room+category over 90 days —
 "recurring issue risk", never a failure-probability claim). `runner.ts` orchestrates the four,
 persists snapshots to `analytics_model_runs` + `analytics_predictions` through the atomic
 `persist_analytics_generation` RPC (serialized cooldown claim; failed prediction writes roll
-back the generation and retain a failed-attempt record), and computes evaluation
-metrics (predicted vs actual for elapsed target dates: occupancy MAE/MAPE, housekeeping MAE,
-inventory MAE — shown in the UI as "Prediction performance"). Snapshots generate daily via a
+back the generation and retain a failed-attempt record). Snapshots generate daily via a
 Vercel cron (`vercel.json` → `/api/analytics/generate`, 02:35 Manila) or on-demand by an
 authorized Manager (rate-limited ≥1 h between runs); `/api/analytics/insights` serves the latest
 snapshot with on-demand-compute fallback. UI: Manager dashboard → **Predictive Insights**
 (metric cards with FACT vs PREDICTION separation, 7-day occupancy chart with booked-fact bars vs
-dashed predicted line, housekeeping/inventory forecast tables, maintenance-risk cards, performance
-metrics, honest data-quality notes everywhere). Beside the occupancy chart, **predictive pricing**
+dashed predicted line, housekeeping/inventory forecast tables, maintenance-risk cards, and Forecast
+Evaluation). Beside the occupancy chart, **predictive pricing**
 shows high/moderate/low demand cards and a Manager-only edit-and-propose modal; base rates are
 FACT, occupancy-driven recommendations are PREDICTION, and submitting never activates a price.
+
+**Forecast Evaluation** (`/api/analytics/evaluation`, Manager/Owner/Admin API, Manager workspace)
+compares saved predictions with recorded actuals and an issuance-time benchmark. Occupancy and
+housekeeping use the first completed one-day-ahead run per model and hotel date. Inventory uses
+the next three full hotel dates, per item and unit. Atomic generation stores previous-day actuals
+in model-run parameters and the baseline in prediction metadata using existing JSON fields.
+Occupancy actuals use recorded presence at Manila midnight and the active room count captured on
+the target date. Housekeeping actuals sum elapsed time for completed checkout cleans, stayover
+cleans, and guest-request tasks. The baseline averages seven prior recorded closed dates, scaled
+to three days for inventory. MAE uses identical matched rows for the model and baseline. MAPE
+excludes zero actuals. The UI shows input history, data quality, exclusions, and a CSV. Scores
+appear after seven matched rows. Daily generation builds this evidence prospectively. Legacy
+snapshots lack the required evaluation fields.
+
+**Seasonal Occupancy** (`/api/analytics/seasonal-occupancy`, Manager/Owner/Admin API, Manager
+workspace) adds planning by month or exact calendar date. The reference year defaults to the prior
+year and can be changed. The reference value is the recorded occupancy for that month and day,
+read from closed-day analytics evidence. The estimate applies the old rate to today's active room
+capacity and uses current booked rooms as its lower bound. Closed target dates display recorded
+actuals alongside the reference. A month can show partial daily estimates. A whole-period figure
+requires a usable value for every target date. A non-leap reference year leaves February 29
+unmatched. Cold-start bookings remain visible while daily analytics runs build historical coverage.
+Seasonal estimates refresh with bookings. The existing Forecast Evaluation scores its saved
+short-term forecasts separately.
 
 **Gemini AI assistance** (`lib/ai/`, server-side only, `@google/genai` 2.21.0). `gemini-client.ts`
 is the single source of truth for the model (`GEMINI_MODEL_DEFAULT = "gemini-3.6-flash"`,
@@ -2215,6 +2261,11 @@ schema as deployed until release is complete.
   without adding a companion. Guest-ID-only update callers resolve an existing
   active occupant on that same stay; names never establish identity, and removed
   occupants are not silently revived (`20261104010000`).
+  The local `20261122010000` migration ties the age check to the reservation's
+  current primary guest and scheduled local check-in date, even if only age
+  enforcement is active. Manual and Express QR arrivals share the database gate
+  and readiness uses the same rule. Front Desk can replace stale evidence after
+  confirming official ID in person. Party and audit views omit DOB and exact age.
 - **Room discrepancies:** Housekeeping records the observed occupancy and system snapshot; the
   database opens a linked Front Desk handover. Front Desk investigates and resolves against a
   fresh room snapshot. An unresolved mismatch blocks a new arrival or assignment and never
@@ -2297,8 +2348,8 @@ Provisional defaults (`docs/PROVISIONAL_BUSINESS_POLICIES.md`, `lib/hotel-policy
 | Deposit (website) | 30% of total (`reservation_deposit_policies`, `percentage_basis_points = 3000`); hold 15 min; "At hotel / check-in" balance wording |
 | Cancellation refunds | full within 14 days, 50% (5000 bp) 7–14 days, 0 after — computed on the hotel-local day |
 | Self-service modification | allowed > 3 days before check-in; else manager approval |
-| Identity | valid ID required at check-in (guest cannot self-check-in) |
-| Minimum booking age | 18 (data source for the actual age check is a gap — §15) |
+| Identity | Valid ID is required by policy. Express check-in requires Front Desk to have verified identity first. |
+| Minimum booking age | 18 by default. The local implementation enforces the configured age at check-in after the audited age-policy effective date (§7.16.1, §15). |
 | Email verification | required: **off** |
 | VAT / service charge | **VAT-inclusive**: 12% VAT + 10% service charge (`vat_rate_bp` 1200, `service_charge_bp` 1000, basis points 0–10000, Owner/Admin-editable) — displayed prices are the full amount guests pay; documents derive the breakdown (net = gross ÷ ((1+sc)×(1+vat)), VAT line absorbs rounding). Rates freeze into `operational_policy_snapshot` per reservation; settled documents are never recomputed |
 | Historical deposit verification SLA | Stored with prior policy snapshots and carried through policy updates. The application retired the review queue and its SLA controls on 2026-11-15. |
@@ -2471,8 +2522,10 @@ closeReservation), `GET rooms/[id]` (room dossier), `GET guests/[id]` (consolida
 §7.9 — guest-contact roles only, GET only); **dashboard** `GET /api/manager_dashboard`.
 
 **Analytics** (`/api/analytics`, §7.13; manager/owner/admin — front desk gets a reduced subset on
-insights): `GET /insights` (latest prediction snapshot + evaluation metrics, on-demand-compute
-fallback); `POST /generate` (run the analytics engine + persist snapshot — Vercel cron bearer
+insights): `GET /insights` (live forecast plus saved-run metadata); `GET /seasonal-occupancy`
+(`view=month|date`, `target=YYYY-MM|YYYY-MM-DD`, `referenceYear`); `GET /evaluation`
+(saved comparisons, `metric=occupancy|housekeeping|inventory`, `days=14|30|90`);
+`POST /generate` (run the analytics engine and persist the snapshot and evaluation evidence — Vercel cron bearer
 `CRON_SECRET` or authorized session, ≥1 h between runs); `GET /pricing-recommendations`
 (Manager/Owner/Admin) and `POST /pricing-recommendations/propose` (Manager only; governed pending
 rate-plan proposals, never direct pricing writes).
@@ -2671,8 +2724,9 @@ schema, then `set-passwords.mjs` on the empty database to create/activate the st
 `vercel.json` registers **two daily crons** (Hobby-plan Vercel allows daily only): 02:35 Manila
 `/api/analytics/generate` and 09:05 Manila `/api/guest-reminders`, both with the `CRON_SECRET`
 bearer (§7.13, §11); mid-day prediction refresh happens through the Manager's
-[Refresh predictions] button. There is no CI
-pipeline config in the repo at this tree.
+[Refresh predictions] button. The local GitHub Actions CI workflow installs locked
+dependencies, generates Next.js route types, and runs typecheck, lint, tests, and
+build on push and pull request.
 
 ## 15. Current gaps & deferred configuration
 
@@ -2703,9 +2757,10 @@ Honest inventory of what is **not** wired up yet (not prescriptions). Full split
   sends best-effort transactional copies for selected payment, request, and transportation events;
   durable in-app notifications remain authoritative. Email verification is off, and booking expiry
   still has no external reminder service.
-- **Minimum-age enforcement is not deployed.** The local unreleased occupant register now supports
-  Front Desk DOB or exact-age evidence recorded from official ID, without inferring unknown ages;
-  active enforcement still requires the matching migration/app release and explicit policy dates.
+- **Minimum-age enforcement is local.** Front Desk records DOB or exact age
+  from official ID for the current primary guest's scheduled hotel check-in date.
+  Production enforcement requires the matching migration/app release and explicit
+  activation through the audited occupant policy.
 - **Transportation stays usable without map services.** Locations can be entered
   as free text. Guest map pins assist address entry. The TomTom-priced variant
   was removed.
@@ -2763,8 +2818,8 @@ Honest inventory of what is **not** wired up yet (not prescriptions). Full split
   risk model — due dates are calendar facts, not predictions). Hobby-plan
   Vercel allows daily crons only — the analytics
   snapshot refreshes once per night plus on-demand Manager refresh.
-- No CI config; no production observability; guest-facing behaviour depends on the provisional
-  policies in §8 until real ones are configured.
+- Production observability remains pending. Guest-facing behaviour depends on the
+  provisional policies in §8 until real ones are configured.
 
 ## 16. Further reading
 

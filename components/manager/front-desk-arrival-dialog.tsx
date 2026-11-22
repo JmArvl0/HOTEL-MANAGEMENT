@@ -305,6 +305,7 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
       const res = await fetchPublic("/api/front-desk/check-in", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reservationId, room: selected }) });
       if (res.ok) { onCheckedIn(); return; }
       const body = await readResponse(res).catch(() => ({}));
+      if (["OCCUPANT_REGISTER_REQUIRED", "PARTY_PRIMARY_REQUIRED", "PRIMARY_AGE_UNVERIFIED", "PRIMARY_UNDER_MINIMUM_AGE"].includes(body.code)) setStep(0);
       setError(userMessage(body.error, "Unable to complete check-in."));
     } finally { setBusy(false); }
   };

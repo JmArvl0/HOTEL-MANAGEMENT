@@ -64,6 +64,28 @@ describe("hotel operation screens",()=>{
   expect(payload.completeRegister).toBe(true);expect(payload.expectedVersion).toBe(3);
   expect(payload.members).toHaveLength(1);expect(payload.members[0]).toMatchObject({occupantId:member.occupantId,guestId:"g",occupantType:"adult"});
  });
+ it("lets Front Desk verify an already-checked ID again for a changed arrival date",async()=>{
+  const occupantId="11111111-1111-4111-8111-111111111111";
+  const member={occupantId,guestId:"g",name:"Sample guest",role:"primary",idVerified:true,ageVerified:false,occupantType:"unknown",attendanceStatus:"expected"};
+  const party={version:4,status:"confirmed",capacity:1,declaredCount:1,complete:true,primaryGuestId:"g",checkInDate:"2026-11-22",hotelDate:"2026-11-22",minimumBookingAge:18,primaryAgeIssue:"PRIMARY_AGE_UNVERIFIED",members:[member]};
+  const request=vi.fn()
+   .mockResolvedValueOnce(new Response(JSON.stringify({data:party})))
+   .mockResolvedValueOnce(new Response(JSON.stringify({data:{ageVerified:true}})))
+   .mockResolvedValueOnce(new Response(JSON.stringify({data:{...party,primaryAgeIssue:null,members:[{...member,ageVerified:true}]}})));
+  vi.stubGlobal("fetch",request);
+  render(<ReservationPartyPanel reservationId="sample" editable />);
+  fireEvent.click(await screen.findByRole("button",{name:"Verify age again"}));
+  fireEvent.change(screen.getByLabelText("Evidence type"),{target:{value:"age"}});
+  fireEvent.change(screen.getByLabelText("Age on the check-in date"),{target:{value:"18"}});
+  const save=screen.getByRole("button",{name:"Save age verification"}) as HTMLButtonElement;
+  expect(save.disabled).toBe(true);
+  fireEvent.click(screen.getByRole("checkbox",{name:/checked this guest’s government-issued ID/}));
+  fireEvent.click(save);
+  await screen.findByText("ID and age evidence recorded.");
+  expect(JSON.parse(request.mock.calls[1][1].body)).toMatchObject({
+   verifiedAgeYears:18,expectedCheckIn:"2026-11-22",expectedVersion:4,idChecked:true,
+  });
+ });
  it("never gives Front Desk a financial close button or financial totals",async()=>{
   vi.stubGlobal("fetch",vi.fn().mockResolvedValue({ok:true,json:async()=>({data:{active:true,businessDate:"2026-11-03",version:1,blockers:[],warnings:[],metrics:null,recentCloses:[]}})}));
   render(<NightAuditPanel role="front_desk" />);await waitFor(()=>expect(screen.getByText(/2026-11-03/)).toBeTruthy());

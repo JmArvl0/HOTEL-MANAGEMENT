@@ -1,5 +1,36 @@
 # AI Session Handoff
 
+## Age enforcement and defense QA — 2026-11-22
+
+The local age check binds official-ID evidence to the current primary guest
+and scheduled check-in date for both manual and Express QR arrivals. Front
+Desk can repeat verification after changes. CI is defined locally. The hosted
+ledger is unlinked in this checkout and the age policy remains unactivated.
+See [[2026-11-22 - Age Enforcement and Defense QA]].
+
+## Analytical Reports and Command Center — 2026-11-22
+
+Manager and Owner have a live Command Center and separate Operational and
+Analytical report views. Historical ratios use closed night audits. Dated room
+type capacity is still unavailable. Owner can read saved operational reports
+with Manager retaining review authority. Local implementation only.
+See [[2026-11-22 - Analytical Reports and Command Center]].
+
+## Seasonal Occupancy — 2026-11-22
+
+Predictive Insights now offers month and exact-date comparisons with a selected
+earlier year. Bookings remain visible as the daily analytics job builds recorded
+occupancy history. Local production build, tests, and Edge/PostgreSQL QA passed.
+See [[2026-11-22 - Seasonal Occupancy]].
+
+## Forecast Evaluation Phase 1 — 2026-11-22
+
+Manager Predictive Insights compares occupancy, timed housekeeping hours, and
+item-level inventory usage against actuals and a seven-closed-day baseline.
+The existing daily job stores evidence prospectively in existing JSON fields.
+The UI includes MAE, MAPE, coverage, and CSV. Local implementation only.
+See [[2026-11-22 - Forecast Evaluation Phase 1]].
+
 ## Room search and Express check-in — 2026-11-21
 
 Public search, numbered-room selection and portal Find a Room share a compact

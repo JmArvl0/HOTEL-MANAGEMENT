@@ -18,6 +18,8 @@ export interface ReservationLike {
   check_in: string;
   check_out: string;
   created_at: string;
+  checked_in_at?: string | null;
+  checked_out_at?: string | null;
   room_type?: string;
   guests?: number;
 }
@@ -58,6 +60,7 @@ export interface InventoryItemLike {
   quantity: number | string;
   reorder_point: number | string;
   unit: string;
+  created_at?: string;
 }
 
 export interface InventoryMovementLike {
@@ -71,6 +74,17 @@ export interface InventoryMovementLike {
 /** Shift a yyyy-mm-dd string by N days (UTC arithmetic on date-only strings). */
 export function shiftDate(iso: string, days: number): string {
   return new Date(Date.parse(`${iso}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
+}
+
+const manilaDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit" });
+
+export function analyticsDay(timestamp: string | Date): string {
+  const date = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
+  return Number.isFinite(date.getTime()) ? manilaDate.format(date) : "";
+}
+
+export function hotelMidnight(date: string): string {
+  return new Date(`${date}T00:00:00+08:00`).toISOString();
 }
 
 export const toNumber = (value: number | string | null | undefined): number => {

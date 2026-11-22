@@ -9,7 +9,7 @@ import type {Role} from "@/lib/types";
 export const hotelStaff:Role[]=["front_desk","manager","owner","housekeeping","maintenance","accounting"];
 export async function hotelGuard(roles:readonly Role[]){
  const session=await getServerSession(authOptions);
- if(!session||session.user.disabled)return publicJson({error:"Please sign in to continue."},{status:401});
+ if(!session||session.user.disabled||session.user.otpPending)return publicJson({error:"Please sign in to continue."},{status:401});
  if(!roles.includes(session.user.role))return publicJson({error:"This hotel action is not available to your role."},{status:403});
  if(!supabase)return publicJson({error:"This service is temporarily unavailable. Please try again shortly."},{status:503});
  return {client:supabase,actor:session.user.id,role:session.user.role};
@@ -18,6 +18,7 @@ const messages:Record<string,string>={OPERATIONS_CHANGED_RETRY:"Hotel operations
 export async function hotelRpc(context:Exclude<Awaited<ReturnType<typeof hotelGuard>>,NextResponse>,name:string,args:Record<string,unknown>={}){
  const result=await context.client.rpc(name,{...args,p_actor:context.actor});
  if(result.error){
+  if(result.error.message==="AGE_ARRIVAL_DATE_CHANGED")return publicJson({error:"The arrival date changed. Refresh staying guests and verify the ID for the new date."},{status:409});
   if(["PGRST202","PGRST205","42883","42P01"].includes(result.error.code)){
    console.error("Hotel operation unavailable",{operation:name,code:result.error.code});
    return publicJson({error:"This hotel service is unavailable. Please contact the system administrator.",code:"HOTEL_OPERATIONS_UNAVAILABLE"},{status:503});

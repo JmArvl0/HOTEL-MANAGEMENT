@@ -1,4 +1,4 @@
-import { NIGHT_COVERING_STATUSES, shiftDate, type DataQuality, type ReservationLike, type TaskLike, type WorkloadLevel } from "./types";
+import { analyticsDay, NIGHT_COVERING_STATUSES, shiftDate, type DataQuality, type ReservationLike, type TaskLike, type WorkloadLevel } from "./types";
 
 /**
  * HOUSEKEEPING WORKLOAD FORECAST — derived from reservations (expected
@@ -7,7 +7,7 @@ import { NIGHT_COVERING_STATUSES, shiftDate, type DataQuality, type ReservationL
  * appear when real completed-task durations exist.
  */
 
-export const HOUSEKEEPING_MODEL_VERSION = "housekeeping-v1";
+export const HOUSEKEEPING_MODEL_VERSION = "housekeeping-v2";
 const REQUEST_HISTORY_DAYS = 14;
 const DURATION_HISTORY_DAYS = 30;
 const MIN_DURATION_SAMPLES = 5;
@@ -23,6 +23,7 @@ export interface HousekeepingDayForecast {
   workload: WorkloadLevel;
   estimatedLaborHours?: number;
   meanTaskMinutes?: number;
+  durationObservations: number;
   dataQuality: DataQuality;
   basisNote: string;
 }
@@ -42,11 +43,9 @@ export interface HousekeepingInput {
   inspectionRequired?: boolean;
 }
 
-// created_at/completed_at are timestamptz; bucket by the Asia/Manila hotel day, like hotelToday().
-const manilaDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit" });
-const dayKey = (timestamp: string): string => manilaDay.format(new Date(timestamp));
+export const LABOR_TASK_TYPES = ["checkout_cleaning", "stayover_cleaning", "guest_request"] as const;
 
-const minutesBetween = (start: string | null | undefined, end: string | null | undefined): number | null => {
+export const minutesBetween = (start: string | null | undefined, end: string | null | undefined): number | null => {
   if (!start || !end) return null;
   const value = (new Date(end).getTime() - new Date(start).getTime()) / 60_000;
   return value > 0 && value < 24 * 60 ? value : null; // ignore absurd durations (clock skew, mid-night rollovers)
@@ -65,7 +64,9 @@ export function forecastHousekeeping(input: HousekeepingInput): HousekeepingFore
   // Mean completed-task duration (hours) from real history.
   const durationWindowStart = shiftDate(input.today, -DURATION_HISTORY_DAYS);
   const durations = input.tasks
-    .filter((task) => task.status === "completed" && task.completed_at && task.started_at && task.completed_at.slice(0, 10) >= durationWindowStart)
+    .filter((task) => task.status === "completed" && task.completed_at && task.started_at
+      && (!task.task_type || LABOR_TASK_TYPES.some(type => type === task.task_type))
+      && analyticsDay(task.completed_at) >= durationWindowStart && analyticsDay(task.completed_at) < input.today)
     .map((task) => minutesBetween(task.started_at, task.completed_at))
     .filter((value): value is number => value !== null);
   const meanTaskMinutes = durations.length >= MIN_DURATION_SAMPLES
@@ -76,7 +77,7 @@ export function forecastHousekeeping(input: HousekeepingInput): HousekeepingFore
   const completedByDay = new Map<string, number>();
   for (const task of input.tasks) {
     if (task.status !== "completed" || !task.completed_at) continue;
-    const key = dayKey(task.completed_at);
+    const key = analyticsDay(task.completed_at);
     completedByDay.set(key, (completedByDay.get(key) ?? 0) + 1);
   }
   const historicalDaily = [...completedByDay.values()].filter((value) => value > 0).sort((a, b) => a - b);
@@ -117,13 +118,14 @@ export function forecastHousekeeping(input: HousekeepingInput): HousekeepingFore
       totalTasks: Math.round(totalTasks * 10) / 10,
       workload,
       dataQuality: historyDays >= MIN_WORKLOAD_HISTORY_DAYS ? "medium" : "limited",
+      durationObservations: durations.length,
       basisNote: meanTaskMinutes
-        ? `Durations from ${durations.length} completed tasks (mean ${meanTaskMinutes} min).`
+        ? `Durations from ${durations.length} completed cleaning and guest-request tasks (mean ${meanTaskMinutes} min). Inspections are counted as tasks only.`
         : "No completed-task duration history yet — labor hours unavailable."
     };
     if (meanTaskMinutes) {
       day.meanTaskMinutes = meanTaskMinutes;
-      day.estimatedLaborHours = Math.round((totalTasks * meanTaskMinutes / 60) * 10) / 10;
+      day.estimatedLaborHours = Math.round(((totalTasks - inspections) * meanTaskMinutes / 60) * 10) / 10;
     }
     days.push(day);
   }
@@ -138,5 +140,5 @@ export function forecastHousekeeping(input: HousekeepingInput): HousekeepingFore
 
 /** Actual tasks created for a date — used by prediction-vs-actual evaluation. */
 export function actualTaskCount(tasks: TaskLike[], date: string): number {
-  return tasks.filter((task) => dayKey(task.created_at) === date).length;
+  return tasks.filter((task) => analyticsDay(task.created_at) === date).length;
 }

@@ -28,7 +28,7 @@ const dueCutoff = () => {
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.disabled) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
+  if (!session || session.user.disabled || session.user.otpPending) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
   if (!supabase) return publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
 
   let body: unknown;
@@ -56,9 +56,11 @@ export async function POST(request: NextRequest) {
     return fail(410, "revoked", "This QR code was revoked and replaced. Ask the guest to reopen their reservation or reprint the placard.");
   }
 
-  // Reservation QRs are lifecycle-bound (expires_at NULL): the reservation
-  // status below owns validity, so no date check applies to them. Room
-  // placards keep their own expiry handling inside resolveRoom.
+  if (record.expires_at && Date.parse(record.expires_at) <= Date.now()) {
+    await auditor("expired");
+    return fail(410, "expired", "This QR code has expired.");
+  }
+
   return record.resource_type === "reservation"
     ? resolveReservation(record, session.user.id, session.user.role, auditor)
     : resolveRoom(record, session.user.id, session.user.role, auditor);
@@ -138,10 +140,6 @@ async function resolveRoom(record: QrTokenRow, userId: string, role: string, aud
   if (!room || room.administratively_active === false) {
     await auditor("invalid");
     return fail(404, "invalid", "The room this QR code refers to is not active.");
-  }
-  if (record.expires_at && Date.parse(record.expires_at) < Date.now()) {
-    await auditor("expired");
-    return fail(410, "expired", "This QR code has expired.");
   }
 
   if (ROOM_STAFF.has(role)) {

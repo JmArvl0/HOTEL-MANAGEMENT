@@ -2,7 +2,7 @@ import { publicJson } from "@/lib/server-errors";
 import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/lib/auth";
-import { generateInsights, evaluatePredictions } from "@/lib/analytics/runner";
+import { generateInsights } from "@/lib/analytics/runner";
 import { supabase } from "@/lib/supabase";
 
 /**
@@ -48,7 +48,6 @@ export async function GET() {
       });
     }
 
-    const metrics = supabase ? await evaluatePredictions() : null;
     return publicJson({
       data: {
         generatedAt: insights.generatedAt,
@@ -58,7 +57,6 @@ export async function GET() {
         housekeeping: insights.housekeeping,
         inventory: insights.inventory,
         maintenance: insights.maintenance,
-        metrics,
         databaseMode: supabase ? "supabase" : "demo"
       }
     });

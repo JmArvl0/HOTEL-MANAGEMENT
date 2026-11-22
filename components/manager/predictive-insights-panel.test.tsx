@@ -58,12 +58,6 @@ const insights = {
     elevatedCount: 1,
     method: "Repeat-incidence grouping per room and category, 90-day window",
     notes: []
-  },
-  metrics: {
-    occupancy: { mae: 1.4, mape: 6.2, observations: 5, skippedKnownOnly: 2 },
-    housekeeping: { mae: 2.1, observations: 4 },
-    inventory: { mae: 3.0, observations: 2 },
-    methodNote: "Elapsed target dates only; newest prediction per date."
   }
 };
 
@@ -86,6 +80,23 @@ function mockFetch(responses: Record<string, unknown>) {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe("PredictiveInsightsPanel", () => {
+  it("opens the seasonal outlook and requests a specific date with an earlier reference year", async () => {
+    const coldStart = {
+      today: "2026-09-08", activeRooms: 20, databaseMode: "supabase",
+      days: [{ date: "2026-10-01", referenceDate: "2025-10-01", reference: null, actual: null, bookedRooms: 0, bookedPercent: 0, projectedPercent: null, projectedRooms: null }],
+      summary: { comparisonDays: 0, targetDays: 1, hasOpenDates: true, bookedRoomNights: 0, baselinePercent: null, periodOccupancy: null }
+    };
+    const requests = mockFetch({ "/api/analytics/insights": { data: insights }, "/api/analytics/seasonal-occupancy": { data: coldStart } });
+    render(<PredictiveInsightsPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Seasonal Outlook" }));
+    expect(await screen.findByText("Building occupancy history")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Specific date" }));
+    await waitFor(() => expect((screen.getByRole("button", { name: "Show outlook" }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.change(screen.getByLabelText("Target date"), { target: { value: "2027-01-21" } });
+    fireEvent.click(screen.getByRole("button", { name: "Show outlook" }));
+    await waitFor(() => expect(requests).toHaveBeenCalledWith("/api/analytics/seasonal-occupancy?view=date&target=2027-01-21&referenceYear=2026", expect.anything()));
+  });
+
   it("renders the four overview cards with FACT vs PREDICTION separation", async () => {
     mockFetch({ "/api/analytics/insights": { data: insights } });
     render(<PredictiveInsightsPanel />);
@@ -112,22 +123,18 @@ describe("PredictiveInsightsPanel", () => {
     await waitFor(() => expect(screen.getByText(/Room 305: 4 air conditioning work orders/)).toBeTruthy());
   });
 
-  it("renders unavailable performance metrics without crashing", async () => {
-    const sparseInsights = {
-      ...insights,
-      metrics: {
-        ...insights.metrics,
-        occupancy: { ...insights.metrics.occupancy, mae: null, mape: null, observations: 0 },
-        housekeeping: { mae: null, observations: 0 },
-        inventory: { mae: null, observations: 0 }
-      }
-    };
-    mockFetch({ "/api/analytics/insights": { data: sparseInsights } });
+  it("opens Forecast Evaluation and shows empty evidence without implying zero error", async () => {
+    const requests = mockFetch({
+      "/api/analytics/insights": { data: insights },
+      "/api/analytics/evaluation": { data: { from: "2026-08-09", through: "2026-09-07", rows: [], databaseMode: "supabase" } }
+    });
     render(<PredictiveInsightsPanel />);
-    await waitFor(() => expect(screen.getByText("Prediction performance")).toBeTruthy());
-    for (const label of ["Occupancy — mean absolute error", "Occupancy — mean absolute % error", "Housekeeping — mean absolute error", "Inventory — mean absolute error"]) {
-      expect(screen.getByText(label).closest("li")?.textContent).toContain("—");
-    }
+    fireEvent.click(await screen.findByRole("tab", { name: "Forecast Evaluation" }));
+    expect(await screen.findByText("No saved forecasts in this period")).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Forecast summary" })).toBeNull();
+    expect((screen.getByRole("button", { name: "Export CSV" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText("Forecast"), { target: { value: "inventory" } });
+    await waitFor(() => expect(requests).toHaveBeenCalledWith("/api/analytics/evaluation?metric=inventory&days=30", expect.anything()));
   });
   it("refreshes predictions through the generate endpoint", async () => {
     const fetchMock = mockFetch({
@@ -154,13 +161,15 @@ describe("PredictiveInsightsPanel", () => {
     expect(actions.textContent).toContain("Refresh predictions");
   });
 
-  it("renders exactly four forecast tabs with Occupancy selected by default", async () => {
+  it("keeps the outlook first and exposes Forecast Evaluation alongside it", async () => {
     mockFetch({ "/api/analytics/insights": { data: insights } });
     const { container } = render(<PredictiveInsightsPanel />);
     await waitFor(() => expect(screen.getByText("7-day occupancy outlook")).toBeTruthy());
     const tabs = screen.getAllByRole("tab");
     expect(tabs.map((tab) => tab.textContent)).toEqual([
       "Occupancy Outlook",
+      "Seasonal Outlook",
+      "Forecast Evaluation",
       "Housekeeping Forecast",
       "Inventory Demand",
       "Maintenance Risk"
@@ -169,8 +178,7 @@ describe("PredictiveInsightsPanel", () => {
     // Only the selected panel renders — sibling forecasts stay out of the DOM.
     expect(screen.queryByText("Housekeeping workload forecast")).toBeNull();
     expect(container.querySelectorAll(".insights-row")).toHaveLength(0);
-    // Prediction performance stays visible outside the tabs.
-    expect(screen.getByText("Prediction performance")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Forecast Evaluation" })).toBeNull();
   });
 
   it("switches forecast panels locally with no refetch", async () => {
@@ -188,14 +196,16 @@ describe("PredictiveInsightsPanel", () => {
     expect(screen.getByRole("heading", { name: "Recurring maintenance risk" })).toBeTruthy();
     // Tab switches render already-loaded data — the insights endpoint is hit once.
     expect(fetchMock).toHaveBeenCalledTimes(callsAfterLoad);
-    // Performance remains visible regardless of the selected tab.
-    expect(screen.getByText("Prediction performance")).toBeTruthy();
   });
 
   it("moves tab selection with arrow keys", async () => {
     mockFetch({ "/api/analytics/insights": { data: insights } });
     render(<PredictiveInsightsPanel />);
     await waitFor(() => expect(screen.getByText("7-day occupancy outlook")).toBeTruthy());
+    fireEvent.keyDown(screen.getByRole("tablist"), { key: "ArrowRight" });
+    expect(screen.getByRole("heading", { name: "Seasonal Occupancy" })).toBeTruthy();
+    fireEvent.keyDown(screen.getByRole("tablist"), { key: "ArrowRight" });
+    expect(screen.getByRole("heading", { name: "Forecast Evaluation" })).toBeTruthy();
     fireEvent.keyDown(screen.getByRole("tablist"), { key: "ArrowRight" });
     expect(screen.getByText("Housekeeping workload forecast")).toBeTruthy();
     fireEvent.keyDown(screen.getByRole("tablist"), { key: "End" });

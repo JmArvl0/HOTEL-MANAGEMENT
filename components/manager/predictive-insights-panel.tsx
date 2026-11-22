@@ -5,14 +5,15 @@ import { fetchPublic, readResponse } from "@/lib/client-errors";
 import { userMessage } from "@/lib/errors";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Activity, BedDouble, Boxes, RefreshCw, Sparkles, Wrench } from "lucide-react";
+import { Activity, BedDouble, Boxes, CalendarRange, ChartNoAxesCombined, RefreshCw, Sparkles, Wrench } from "lucide-react";
 import { usePrefersReducedMotion } from "@/lib/motion/reduced-motion";
 import { CHART_FORECAST, CHART_GRID, CHART_OCCUPANCY } from "@/lib/chart-tokens";
 import { TablePagination, sortTableRows, useTablePagination } from "@/components/ui/table-pagination";
 import { PageHeader } from "@/components/ui";
 import PredictivePricingPanel from "@/components/manager/predictive-pricing-panel";
+import ForecastEvaluationPanel from "@/components/manager/forecast-evaluation-panel";
+import SeasonalOccupancyPanel from "@/components/manager/seasonal-occupancy-panel";
 import type { RiskLevel } from "@/lib/analytics/types";
-import type { PredictionMetrics } from "@/lib/analytics/runner";
 
 /**
  * Predictive Insights — the analytics engine's storefront. Every number on
@@ -40,7 +41,6 @@ type MaintenanceRisk = {
   roomId: string; roomNumber: string; category: string; incidents90Days: number; openIncidents: number;
   daysSinceLast: number | null; trend: string; risk: RiskLevel; reason: string; suggestedAction: string; dataQuality: string;
 };
-type Metrics = PredictionMetrics | null;
 
 type InsightsData = {
   generatedAt: string; lastSnapshotAt: string | null; snapshotCount: number; databaseMode: string;
@@ -48,7 +48,6 @@ type InsightsData = {
   housekeeping: { today: string; days: HousekeepingDay[]; method: string; notes: string[] };
   inventory: { today: string; items: InventoryRisk[]; shortageCount: number; method: string; notes: string[] };
   maintenance: { today: string; risks: MaintenanceRisk[]; elevatedCount: number; method: string; notes: string[] };
-  metrics: Metrics;
 };
 
 type Explanation = {
@@ -57,13 +56,15 @@ type Explanation = {
   data_quality_note: string;
 };
 
-type ForecastTab = "occupancy" | "housekeeping" | "inventory" | "maintenance";
+type ForecastTab = "occupancy" | "seasonal" | "evaluation" | "housekeeping" | "inventory" | "maintenance";
 
 // Tab order mirrors the previous stacked section order; occupancy first as the
 // broadest hotel-level forecast. Tabs only switch visibility — the forecast
 // data loads once and Refresh never resets the selection.
 const FORECAST_TABS: { key: ForecastTab; label: string; icon: typeof Activity }[] = [
   { key: "occupancy", label: "Occupancy Outlook", icon: BedDouble },
+  { key: "seasonal", label: "Seasonal Outlook", icon: CalendarRange },
+  { key: "evaluation", label: "Forecast Evaluation", icon: ChartNoAxesCombined },
   { key: "housekeeping", label: "Housekeeping Forecast", icon: Activity },
   { key: "inventory", label: "Inventory Demand", icon: Boxes },
   { key: "maintenance", label: "Maintenance Risk", icon: Wrench }
@@ -80,7 +81,6 @@ const fmtStamp = (value: string | null) => value
   ? new Intl.DateTimeFormat("en-PH", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(value))
   : "—";
 const riskBadge = (risk: string) => `badge ${risk === "high" ? "cancelled" : risk === "medium" ? "pending" : "confirmed"}`;
-const fmtMetric = (value: number | null | undefined, suffix: string) => typeof value === "number" && Number.isFinite(value) ? `${value.toFixed(1)}${suffix}` : "—";
 
 function ExplainButton({ type, onExplain, busy }: { type: string; onExplain: (type: string) => void; busy: boolean }) {
   return (
@@ -205,7 +205,9 @@ export default function PredictiveInsightsPanel() {
 
   return (
     <div className="predictive-insights">
-      <PageHeader variant="band" className="insights-title" title="What is coming this week?" subtitle="HAVEN's own forecast models — occupancy, housekeeping workload, inventory demand and maintenance risk — computed from live operational data." actions={<>
+      <PageHeader variant="band" className="insights-title" title={activeForecastTab === "seasonal" ? "Occupancy planning" : "What is coming this week?"} subtitle={activeForecastTab === "seasonal"
+        ? "Review current bookings and historical occupancy."
+        : "HAVEN's own forecast models — occupancy, housekeeping workload, inventory demand and maintenance risk — computed from live operational data."} actions={<>
           <span className="insights-freshness"><Activity size={15} /><span><b>{data.databaseMode === "demo" ? "Demo outlook" : "Live outlook"}</b><small>Generated {fmtStamp(data.generatedAt)}</small></span></span>
           <button type="button" className="btn btn-accent" onClick={refresh} disabled={refreshing}>
             <RefreshCw className={refreshing ? "is-spinning" : ""} size={16} /> {refreshing ? "Refreshing…" : "Refresh predictions"}
@@ -214,6 +216,13 @@ export default function PredictiveInsightsPanel() {
 
       {toast && <p className="insights-toast" role="status">{toast}</p>}
 
+      <div className="insights-tabs" role="tablist" aria-label="Forecast views" onKeyDown={handleTabKeys}>
+        {FORECAST_TABS.map(({ key, label: tabLabel, icon: TabIcon }) => (
+          <button key={key} ref={(element) => { tabRefs.current[key] = element; }} type="button" role="tab" id={`forecast-tab-${key}`} aria-selected={activeForecastTab === key} aria-controls={`forecast-panel-${key}`} tabIndex={activeForecastTab === key ? 0 : -1} className={activeForecastTab === key ? "active" : ""} onClick={() => setActiveForecastTab(key)}><TabIcon size={14} aria-hidden="true" />{tabLabel}</button>
+        ))}
+      </div>
+
+      {activeForecastTab !== "evaluation" && activeForecastTab !== "seasonal" && (
       <section className="metric-grid insights-metric-grid" aria-label="Forecast summary">
         <article className={`metric-card insights-metric-card ${occupancyTomorrow?.riskLevel ?? "low"}`}>
           <div>
@@ -254,12 +263,7 @@ export default function PredictiveInsightsPanel() {
           <i><Wrench size={21} /></i>
         </article>
       </section>
-
-      <div className="insights-tabs" role="tablist" aria-label="Forecast views" onKeyDown={handleTabKeys}>
-        {FORECAST_TABS.map(({ key, label: tabLabel, icon: TabIcon }) => (
-          <button key={key} ref={(element) => { tabRefs.current[key] = element; }} type="button" role="tab" id={`forecast-tab-${key}`} aria-selected={activeForecastTab === key} aria-controls={`forecast-panel-${key}`} tabIndex={activeForecastTab === key ? 0 : -1} className={activeForecastTab === key ? "active" : ""} onClick={() => setActiveForecastTab(key)}><TabIcon size={14} aria-hidden="true" />{tabLabel}</button>
-        ))}
-      </div>
+      )}
 
       {activeForecastTab === "occupancy" && (
       <article className="panel insights-panel insights-chart-panel insights-tabpanel" role="tabpanel" id="forecast-panel-occupancy" aria-labelledby="forecast-tab-occupancy" tabIndex={0}>
@@ -404,34 +408,8 @@ export default function PredictiveInsightsPanel() {
       </article>
       )}
 
-      <article className="panel insights-panel insights-performance-panel">
-        <div className="panel-heading">
-          <div>
-            <h3>Prediction performance</h3>
-            <p>How yesterday&apos;s predictions compared with what actually happened.</p>
-          </div>
-        </div>
-        {data.metrics ? (
-          <>
-            <ul className="snapshot-list">
-              <li><span>Occupancy — mean absolute error</span><b>{fmtMetric(data.metrics.occupancy.mae, " rooms")}</b></li>
-              <li><span>Occupancy — mean absolute % error</span><b>{fmtMetric(data.metrics.occupancy.mape, "%")}</b></li>
-              <li><span>Occupancy predictions evaluated</span><b>{data.metrics.occupancy.observations}</b></li>
-              <li><span>Housekeeping — mean absolute error</span><b>{fmtMetric(data.metrics.housekeeping.mae, " tasks")}</b></li>
-              <li><span>Housekeeping predictions evaluated</span><b>{data.metrics.housekeeping.observations}</b></li>
-              <li><span>Inventory — mean absolute error</span><b>{fmtMetric(data.metrics.inventory.mae, " units")}</b></li>
-              <li><span>Inventory predictions evaluated</span><b>{data.metrics.inventory.observations}</b></li>
-            </ul>
-            <p className="snapshot-hint">{data.metrics.methodNote}</p>
-          </>
-        ) : (
-          <p className="snapshot-hint">Prediction accuracy is computed from stored snapshots. The daily 02:35 AM snapshot run builds this history — metrics appear after the first snapshots have target dates in the past.</p>
-        )}
-        <p className="snapshot-hint">
-          Last snapshot {fmtStamp(data.lastSnapshotAt)} · {data.snapshotCount} run{data.snapshotCount !== 1 ? "s" : ""} recorded ·
-          live forecasts computed {fmtStamp(data.generatedAt)} · {data.databaseMode === "demo" ? "demo data" : "live data"}
-        </p>
-      </article>
+      {activeForecastTab === "evaluation" && <ForecastEvaluationPanel snapshotAt={data.lastSnapshotAt} />}
+      {activeForecastTab === "seasonal" && <SeasonalOccupancyPanel today={data.occupancy.today} snapshotAt={data.lastSnapshotAt} />}
     </div>
   );
 }

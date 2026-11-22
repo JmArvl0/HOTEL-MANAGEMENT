@@ -1,4 +1,4 @@
-import { shiftDate, toNumber, type DataQuality, type InventoryItemLike, type InventoryMovementLike, type RiskLevel } from "./types";
+import { analyticsDay, shiftDate, toNumber, type DataQuality, type InventoryItemLike, type InventoryMovementLike, type RiskLevel } from "./types";
 
 /**
  * INVENTORY DEMAND / SHORTAGE FORECAST — genuinely predictive, deliberately
@@ -11,7 +11,7 @@ import { shiftDate, toNumber, type DataQuality, type InventoryItemLike, type Inv
  * number — the movement log added in the innovation migration is the fix.
  */
 
-export const INVENTORY_MODEL_VERSION = "inventory-v1";
+export const INVENTORY_MODEL_VERSION = "inventory-v2";
 export const FORECAST_DAYS = 3;
 const MOVEMENT_WINDOW_DAYS = 30;
 const MIN_MOVEMENT_DAYS = 7;
@@ -52,12 +52,12 @@ export function forecastInventory(input: InventoryInput): InventoryForecast {
   const items: InventoryRisk[] = input.items.map((item) => {
     const currentStock = toNumber(item.quantity);
     const reorderPoint = toNumber(item.reorder_point);
-    const consumptions = input.movements.filter((movement) =>
-      movement.item_id === item.id
-      && movement.direction === "consumption"
-      && movement.created_at.slice(0, 10) >= windowStart
-    );
-    const movementDays = new Set(consumptions.map((movement) => movement.created_at.slice(0, 10))).size;
+    const consumptions = input.movements.filter((movement) => {
+      if (movement.item_id !== item.id || movement.direction !== "consumption") return false;
+      const day = analyticsDay(movement.created_at);
+      return day >= windowStart && day < input.today;
+    });
+    const movementDays = new Set(consumptions.map((movement) => analyticsDay(movement.created_at))).size;
 
     // Not enough consumption history: report the current-stock facts only.
     if (movementDays < MIN_MOVEMENT_DAYS) {
@@ -100,7 +100,7 @@ export function forecastInventory(input: InventoryInput): InventoryForecast {
     today: input.today,
     items,
     shortageCount: items.filter((item) => item.projectedShortage !== null && item.projectedShortage > 0).length,
-    method: `Mean daily consumption from inventory movements (trailing ${MOVEMENT_WINDOW_DAYS} days) × ${FORECAST_DAYS}-day horizon`,
+    method: `Mean consumption over ${MOVEMENT_WINDOW_DAYS} closed hotel days × the next ${FORECAST_DAYS} full hotel days`,
     notes
   };
 }
