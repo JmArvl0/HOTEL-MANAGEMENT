@@ -2,9 +2,20 @@
 
 The defense document for HAVEN's capstone innovation layer. Capstone title: *"Design and
 Development of a Google Gemini AI-Assisted Hotel Management System with Integrated QR-based
-Operation using Predictive Analytics."* This document separates what each component does, why the
+Operation using Predictive Analysis."* This document separates what each component does, why the
 responsibilities are split the way they are, how the pieces integrate with the existing system,
 and where the honest limits are.
+
+**Current design direction (2026-11-22):** One shared Gemini assistant should
+be available throughout the hotel-management modules authorized to each staff
+account. It answers general questions and adapts to the open module or selected
+record: Bookings readiness, Lost & Found custody checks, Housekeeping task
+guidance, and the other purposes in the seven-account coverage report
+`docs/ai-placement-by-account.md`. Module context and tools remain role-scoped;
+Gemini advises while HAVEN facts, predictions, QR checks, and human actions
+retain their authority. Existing module summary cards cover only part of this
+design and remain unreleased. The user requested analysis only before further
+prototype or live UI work.
 
 Companion: `SYSTEM.md` §7.13 (operational summary), §9 (tables), §11 (routes), §13 (security).
 
@@ -78,9 +89,13 @@ never returned. Every call returns a discriminated result
 outage only disables AI text; reservations, payments, housekeeping, reports all keep working, and
 the UI says so plainly.
 
-**Access control** (`guard.ts`). Manager/Owner/Admin only, enforced server-side before any data
-is fetched or any Gemini call is made. Front Desk, Housekeeping, Maintenance, Accounting and
-Guests have no AI access at all.
+**Current access control** (`guard.ts`). The existing general endpoints allow
+Manager/Owner/Admin only, enforced server-side before any data fetch or Gemini
+call. Front Desk, Housekeeping, Maintenance, Accounting, and Guests have no
+access to those endpoints yet. The intended contextual-module design extends
+authorized staff access only for the specific modules and facts each role may
+see; it does not grant staff access to Manager/Owner/Admin tools or unrelated
+financial data.
 
 **Four features.**
 
@@ -90,6 +105,7 @@ Guests have no AI access at all.
 | Ask HAVEN | `POST /api/ai/ask` | The user's question (+ short client-held history) and, through the tool loop, the outputs of read-only tools it chooses to call | Advisory answer + the tool list it drew on (provenance shown in the UI) |
 | Explain with AI | `POST /api/ai/explain` | The forecast type only — the **server rebuilds** the forecast and its contributing factors; the client never supplies numbers | `{explanation, key_factors[], data_quality_note}` per forecast type |
 | AI-assisted report summary | `POST /api/ai/report-summary` | `buildDailyReport` aggregates (§7.12) for a date | A labeled "AI-assisted summary"; the original report snapshot stays authoritative and untouched |
+| **Module Assistant (Phases 1–2, local)** | `POST /api/ai/module/[module]` | Aggregate module facts, optional allowlisted focus topic, action options | Selected fact/action IDs; the server composes the displayed facts, summary, and advisory actions |
 
 **The tool registry** (`tools.ts`). An explicit, fixed list of read-only functions — operational
 summary, occupancy forecast, arrivals, departures, housekeeping forecast, inventory risk,
@@ -206,3 +222,29 @@ intact — QR is an accelerator, not a dependency.
   covering QR issuance/resolution and analytics run + prediction persistence.
 - **Live smoke** (`scripts/ai-smoke.mjs`, opt-in env flag): one minimal authorized Gemini call —
   the only place live Gemini is ever exercised, never in CI gates.
+
+## 9. Module Assistant — role-aware operational summaries (Phases 1–2, local)
+
+**Partial local foundation, unreleased.** These cards summarize seven operational
+areas, but they do not yet fulfill the agreed contextual design. For example,
+Front Desk needs AI guidance in **Bookings**, not only a dashboard workload
+summary. Each proposed placement and role-specific purpose is tracked in
+`docs/ai-placement-by-account.md`. Retain this section as an accurate record
+of local code; do not treat its pending migration as a completed release of
+the broader placement map.
+
+The reusable card makes one explicit, read-only Gemini call for a module's current workload. Front Desk is Phase 1. Phase 2 adds Housekeeping, Maintenance, Accounting, Inventory, Guest Requests, and Lost & Found. Reports permissions are unchanged. Owner/Admin retain their existing general AI access but are excluded from operational module AI.
+
+| Module | Allowed roles | Aggregate basis |
+|---|---|---|
+| Front Desk | Front Desk, Manager | Arrivals/departures, shared room-board readiness, occupancy, requests, transportation, maintenance |
+| Housekeeping | Housekeeping, Manager | Dashboard task, cleaning, inspection, overdue counts |
+| Maintenance | Maintenance, Manager | Open/urgent work and out-of-service room counts |
+| Accounting | Accounting | Payment verification, refund, collection, outstanding-balance aggregates |
+| Inventory | Front Desk, Housekeeping, Maintenance, Manager | Item, out-of-stock, low-stock counts |
+| Guest Requests | Front Desk, Housekeeping, Manager | Open/escalated/approval counts; Housekeeping receives only its department |
+| Lost & Found | Front Desk, Housekeeping, Manager | Custody, claim, release-stage counts; no descriptions or claimant notes |
+
+`guardModuleAiSession` checks the module role before reading data. The request body contains only an optional server-defined topic ID. Gemini receives aggregate facts and allowlisted advisory actions, with no free-text question, tool loop, or conversation history. Its structured response contains only `fact_ids`, `action_ids`, and an `unanswered` flag. Zod rejects prose and malformed selections; `resolveModuleAnswer` rejects unknown IDs and composes the displayed summary, source statements, values, and action wording from server-owned data. The card renders FACT/PREDICTION basis and the standard AI disclosure. Interaction metadata is audited; no prompt or response body is stored.
+
+`20261118010000_ai_module_assistants.sql` adds the feature, `provider_quota` and `reserved` audit statuses, nullable `module_id`, index, and `reserve_ai_module_interaction` RPC. The RPC serializes per-user/module reservations and admits at most ten calls in a rolling ten-minute window; denied requests create no row. The route finalizes reserved rows after Gemini and fails closed when storage is unavailable. The migration remains **unapplied** in the hosted database. The former manual SQL script hash in the handover is obsolete; the updated script in `temp_review/` must be reverified against the live ledger before use. Live Gemini, browser, and hosted migration acceptance remain open.

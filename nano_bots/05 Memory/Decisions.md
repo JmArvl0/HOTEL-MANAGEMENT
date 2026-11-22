@@ -4,6 +4,76 @@ Lightweight decision log. Each entry records a choice that constrains future dev
 Trivial implementation details do not belong here. Historical sessions never override the
 current system or `SYSTEM.md` — see [[AI Session Handoff]] for the authority order.
 
+## D-046 — Review AI placement on existing module layouts
+
+Date: 2026-11-22. Status: User direction; visual prototype only. Staff AI
+placement must be reviewed on the actual local modules for all seven staff
+roles, with only a fixed right-edge toggle and overlay drawer added. The drawer
+begins below the app header; the toggle stays at the upper-right height in
+both states. Opening the drawer must not reflow the module. The Guest portal
+retains its separate concierge. The drawer uses sample guidance, not actual record analysis or
+automation. See `docs/ai-placement-by-account.md` and the launcher at
+`public/prototypes/haven-ai-system-preview.html`.
+
+## D-045 — Prototype first; refresh AI only on relevant data changes
+
+Date: 2026-11-22. Status: User direction and staged recommendation; no live
+implementation. Review an interactive, sample-data prototype before changing
+the live AI UI or approval workflow. Module opening and record selection show
+stored guidance without a Gemini call; relevant new/changed hotel data drives
+affected-record analysis. Manager-controlled guest visibility is distinct from
+auto-approval eligibility. The user wants exception automation explored to
+reduce Manager workload; source-linked briefs for all exceptions and a later
+narrow operational auto-approval candidate are proposed, not yet authorized
+as a runtime rule. The canonical prototype source is
+`docs/ai-placement-by-account.md`; the separate engineering task breakdown is
+supplementary. The old Phase 1–2 plan was discarded.
+
+## D-044 — Proactive AI assistance with bounded routine automation
+
+Date: 2026-11-22. Status: User direction, refined by D-045; not live.
+Authorized staff modules should show current HAVEN facts and relevant AI help
+on open, refreshing changed context in the background. Keep Ask HAVEN AI for
+complex questions. A routine Guest Request batch is the first proposed
+automatic-approval candidate, evaluated at submission by a guarded policy;
+show explicit AI-automation attribution instead of a logged-in staff actor.
+Payment/identity verification, refunds, check-in, and item release remain
+outside the first automatic set. Stripe is planned separately for payments.
+See `AI_ASSISTANT_SPEC.md` and `docs/ai-placement-by-account.md`. This does not
+change `SYSTEM.md` or current runtime authority until implementation is
+verified.
+
+## D-043 — System-wide, context-aware AI across staff modules
+
+Date: 2026-11-22. Status: User direction, amended by D-044; live
+implementation pending. The capstone AI scope is the hotel-management system,
+not one example module. One shared Gemini assistant should be reachable in all
+authorized staff modules, answer general questions, and provide help based on
+the open module or selected record. Front Desk Bookings and Lost & Found are
+examples, not limits. Use server-enforced account context and cite HAVEN facts
+or labeled predictions. D-044 adds a proposed guarded path for routine
+automatic approvals; other decisions stay with authorized staff. D-042's
+standalone-general-page interpretation is superseded while general Q&A remains
+part of this design. See `docs/ai-placement-by-account.md`.
+
+## D-042 — One general Gemini assistant across authorized hotel accounts
+
+Date: 2026-11-21. Status: Superseded by D-043; prototype only. The capstone's AI assistance is general to hotel management: one
+freeform assistant can relate permitted workflows, records, QR operation status,
+and HAVEN-generated predictions. Each account gets only its server-authorized
+context and tools. Gemini explains and advises; HAVEN remains the authority for
+facts, forecasts, QR validation, and actions. The module-card approach in D-041
+is superseded. See `public/prototypes/haven-general-ai-preview.html`.
+
+## D-041 — Phase 2 expands operational AI modules only
+
+Date: 2026-11-21. Status: Superseded by D-042; implemented locally, unreleased.
+Add role-scoped Housekeeping, Maintenance, Accounting, Inventory, Guest Requests,
+and Lost & Found AI summaries. Keep Reports permissions unchanged. Owner/Admin
+remain excluded from operational module AI, while existing general AI access
+continues under its own rules. See
+[[2026-11-21 - Role-Aware AI Modules Phases 1 and 2]].
+
 ## D-040 — One document per settled payment or unchanged folio snapshot
 
 Date: 2026-11-15. Status: Chosen for Billing QA remediation; database repair pending.

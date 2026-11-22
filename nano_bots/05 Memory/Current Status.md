@@ -1,5 +1,139 @@
 # Current Status
 
+## Approved HAVEN AI drawer and manual Gemini Ask (2026-11-22, local)
+
+- The user approved the fixed right-edge overlay on existing staff layouts and
+  requested live Gemini guidance. The seven staff account shells now expose
+  one shared drawer at the 94 mapped module entries. Manager's HAVEN AI page
+  and the Guest concierge keep their separate surfaces. The fictional sample
+  remains available through the prototype launcher.
+- Opening a module reads the approved purpose and supported role-scoped HAVEN
+  aggregates without a Gemini call. A deliberate Ask submission uses Gemini,
+  validates scope and cited facts, and writes no hotel record. Authenticated
+  Front Desk browser QA observed live facts and a Gemini answer. Other roles,
+  phone layouts, and both themes still need live visual review.
+- Focused tests (40), full suite (248 files / 2,545 tests), typecheck, touched
+  ESLint (zero errors), and an elevated isolated webpack production build pass.
+  The initial sandbox build hit Windows EPERM; temporary build outputs were
+  removed. No remote migration or deployment occurred.
+- Stored event-driven recommendations and selected-record analysis are not yet
+  implemented. Remote Supabase migration history is ahead of this checkout and
+  lacks the pending module-assistant migration. Automatic approvals remain
+  outside this implementation until an exact eligibility policy is reviewed.
+  See [[2026-11-22 - Approved HAVEN AI Placement Integration]].
+
+## AI placement on local module layouts (2026-11-22, awaiting account review)
+
+- The prototype launcher now opens the actual staff workspace. A session-scoped
+  right-edge AI toggle and fixed sample drawer are mounted in the five shared
+  staff roles plus Owner and Admin shells, without replacing their module
+  layouts. Staff must sign in as each role; Guest opens the existing portal and
+  separate concierge. The drawer reads only the generated static placement map
+  and cannot call Gemini or modify hotel records. D-046 and the placement
+  report describe this revised visual direction.
+- Launcher browser QA and local smoke passed; targeted drawer tests (3), full
+  suite (245 files, 2,529 tests), typecheck, and isolated webpack build passed.
+  The ordinary Turbopack build hit a Windows junction permission error.
+  Earlier authenticated Front Desk browser QA checked Room Management: the header
+  ended at 60px, the overlay began at 60px, and the toggle stayed at 90px open
+  and closed while the workspace width remained unchanged. Other roles and
+  phone widths still need visual review.
+- The Front Desk dashboard guidance label now clears its Scan QR, New
+  reservation, and Shift briefing row by 31px. Its X dismisses the label for
+  that module visit while the toggle stays visible; the label returns after
+  navigating away and back. Browser QA, four targeted drawer tests, typecheck,
+  and touched-file ESLint passed.
+- The toggle and label now share a 160px top edge on the Front Desk dashboard,
+  31px below its action row. Browser QA verified that the toggle stays at this
+  height with the drawer open and closed; the drawer remains below the header.
+  At 390px phone width, the pair sits side by side 11px below Shift briefing.
+
+## Right-edge AI placement revision (2026-11-22, awaiting review)
+
+- The system-wide sample prototype now places a compact HAVEN AI dock at the right edge. It shows status and a one-line stored recommendation immediately; the toggle opens a fixed overlay drawer without reflowing module content. The Guest concierge remains separate, and the Manager HAVEN AI page has no duplicate drawer. The placement report, root spec, and supplementary plan reflect this proposed UI.
+- Local smoke checks and CSS parsing passed. Browser visual QA is still blocked by browser control's local URL restriction, so the user must review the overlay on desktop and phone. No live AI or operational workflow changed.
+
+## System-wide AI placement prototype (2026-11-22, awaiting review)
+
+- The standalone fictional-data preview at `public/prototypes/haven-ai-system-preview.html` covers all seven staff accounts and their 94 planned module entries, plus the Guest account's separate concierge and request journey. It shows event-driven guidance, stored-result states, manual Ask, proposed request automation, catalog visibility, staff/AI attribution, and Manager exception examples. The canonical placement report and supplementary plan include the Guest preview as a distinct eighth view.
+- Local smoke checks passed. Browser visual QA was blocked by browser control's local URL restriction; the user still needs to review placement, mobile layout, and wording. No live AI, approval, database, or Stripe behavior changed.
+
+## Canonical AI placement and prototype brief (2026-11-22, proposed)
+
+- `docs/ai-placement-by-account.md` is the canonical brief for the sample-only
+  interactive prototype and the critical AI placement conditions. The
+  supplementary `docs/plans/2026-11-22-system-wide-ai-prototype-first.md`
+  breaks down later engineering tasks: role-scoped
+  event-driven guidance, separate guest visibility/auto-approval policy,
+  per-batch Guest Request decisions, exception briefs, observation-only trials,
+  and only later any reviewed narrow exception automation.
+- Opening a module or selecting a record must read stored guidance without a
+  Gemini call; only relevant changed data or explicit complex Ask HAVEN AI
+  triggers model work. The report and root spec were reconciled. The user
+  requested Manager-controlled guest request visibility; current generic
+  catalog API also permits Owner/Admin, so strict Manager-only API authority
+  remains a decision. Exact routine and exception auto-approval policies remain
+  review gates. Applicable safeguards from the old Phase 1–2 plan were moved
+  to the placement report and that obsolete plan was discarded. D-045 records
+  the direction. No prototype or runtime change was implemented in this
+  planning turn.
+
+## Proactive AI assistance specification (2026-11-22, proposed)
+
+- User requested a visible AI assistance panel on module open, background
+  refresh for changed context, and Ask HAVEN AI only for deeper questions.
+  `docs/ai-placement-by-account.md` now records these triggers and keeps
+  routine Guest Request auto-approval tied to submission, not page opening.
+- Root `AI_ASSISTANT_SPEC.md` documents proposed AI conditions, role/data
+  boundaries, fallback, attribution, and the first automation candidate.
+  D-044 records the direction. The older Phase 1–2 plan remains superseded;
+  current Gemini code and `SYSTEM.md` still describe advisory, read-only AI.
+  No new UI, API, database behavior, or Stripe integration was implemented.
+
+## Contextual AI placement report (2026-11-22, analysis)
+
+- User clarified that the capstone AI should cover the hotel-management system,
+  not a single module. `docs/ai-placement-by-account.md` maps one general,
+  context-aware assistant across 94 visible entries for all seven staff
+  accounts, each with a module-specific purpose. The Guest concierge is a
+  separate existing surface. The user requested **report and suggestions only**;
+  the extra contextual prototype from the prior turn was removed.
+- Front Desk Bookings and Lost & Found are examples of system-wide coverage,
+  not the implementation scope. D-043 records the direction. Existing local
+  module summaries and the hosted AI migration remain unreleased.
+
+## General Gemini assistant direction (2026-11-21, superseded concept)
+
+- User clarified the capstone requires one general Gemini assistant across
+  authorized hotel accounts, with role-scoped context and freeform questions.
+  The interactive concept is `public/prototypes/haven-general-ai-preview.html`.
+  It uses scripted sample data and no Gemini/API/database calls.
+- Existing general Ask HAVEN remains Manager/Owner/Admin-only. The local
+  module-card code and unapplied migration reflect the superseded design and
+  require redesign before release. See D-042.
+
+## AI module account prototype (2026-11-21, review)
+
+- An interactive sample-data preview for Front Desk, Housekeeping, Maintenance,
+  Accounting and Manager is available at
+  `public/prototypes/ai-modules-preview.html` (now redirects to the earlier
+  general-assistant concept). The former module preview passed desktop and 375/320px
+  browser review. No live UI, API, database or permissions changed in this
+  prototype step. See [[2026-11-21 - AI Module Account Prototype]].
+
+## Role-aware AI modules (2026-11-21, local)
+
+- Front Desk summary and six additional role-scoped operational AI summaries
+  are implemented locally. Reports permissions are unchanged. Model output is
+  limited to fact/action IDs, with server-owned displayed text and aggregate
+  context. Audit reservations enforce a per-user/module limit.
+- Full Vitest passed (2,526 tests); isolated Webpack build passed. The AI
+  migration passed local PostgreSQL 18 replay and a concurrent reservation
+  check, but is not applied to the hosted
+  database. Live Gemini, browser, supported Node 22, and hosted migration
+  acceptance remain unverified. See
+  [[2026-11-21 - Role-Aware AI Modules Phases 1 and 2]] and D-041.
+
 ## Lost & Found dashboard (2026-11-18, local)
 
 - The module is visible to Manager, Front Desk and Housekeeping. It now has

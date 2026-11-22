@@ -84,3 +84,27 @@ export const ReportSummaryResponseSchema: Schema = {
   },
   required: ["summary"]
 };
+
+// ---- Module Assistant -------------------------------------------------------
+// Strict input: only a server-approved topic ID. No free text, role, facts, or history.
+// The model selects IDs only. All displayed operational wording is composed by the server.
+
+export const ModuleRequestSchema = z.object({ topic: z.string().min(1).max(50).regex(/^[a-z_]+$/).optional() }).strict();
+export type ModuleRequest = z.infer<typeof ModuleRequestSchema>;
+
+export const ModuleAssistantSchema = z.object({
+  fact_ids: z.array(z.string().min(1).max(80).regex(/^[a-z0-9_.]+$/i)).min(1).max(10),
+  action_ids: z.array(z.string().min(1).max(80).regex(/^[a-z0-9_]+$/i)).max(5),
+  unanswered: z.boolean()
+}).strict();
+export type ModuleAssistant = z.infer<typeof ModuleAssistantSchema>;
+
+export const ModuleAssistantResponseSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    fact_ids: { type: Type.ARRAY, items: { type: Type.STRING } },
+    action_ids: { type: Type.ARRAY, items: { type: Type.STRING } },
+    unanswered: { type: Type.BOOLEAN }
+  },
+  required: ["fact_ids", "action_ids", "unanswered"]
+};

@@ -743,3 +743,14 @@ dark theme acquiring the light theme's tone-tint grammar; HAVEN AI's 5-across
 mini strip becomes the standard card at 20px gap; report cards go vertical.
 Manual browser checks required: staff dark + light, guest payments + loyalty,
 HAVEN AI skeleton, report print.
+
+UPDATE 2026-11-22 - Approved HAVEN AI staff placement. Authorized staff
+modules retain their existing content layout. A fixed right-edge toggle sits
+beside a dismissible summary label below the app header and below the module's
+top action row. It stays in place with the drawer open or closed. The drawer
+overlays the module without resizing cards, filters, tables, or details, and
+starts below the app header. A deliberate Ask button opens the Gemini question
+form. The Guest concierge and dedicated Manager HAVEN AI page retain their
+separate presentations. Component styles live in
+`components/ai/placement-preview-drawer.css` and are shared by the sample and
+live drawer.

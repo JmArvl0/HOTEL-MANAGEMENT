@@ -20,6 +20,7 @@ export interface ReservationLike {
   created_at: string;
   room_type?: string;
   guests?: number;
+  room_id?: string | null;
 }
 
 export interface RoomLike {
@@ -27,6 +28,7 @@ export interface RoomLike {
   number: string;
   status: string;
   administratively_active?: boolean;
+  housekeeping?: string;
 }
 
 export interface TaskLike {
@@ -49,6 +51,7 @@ export interface MaintenanceOrderLike {
   status: string;
   priority?: string | null;
   created_at: string;
+  serviceability_impact?: string | null;
 }
 
 export interface InventoryItemLike {

@@ -161,6 +161,28 @@ describe("Overview role composition", () => {
     expect(container.textContent).not.toMatch(/add rooms|create room|new room/i);
   });
 
+  it("front desk and manager keep the dashboard layout free of an inline AI card", () => {
+    const { container: fdContainer } = show("front_desk", ["overview", "reservations", "rooms", "guest_requests"]);
+    expect(fdContainer.querySelector(".module-ai-card")).toBeNull();
+
+    cleanup();
+    const { container: mgrContainer } = show("manager", ["overview", "reservations", "rooms", "approvals", "insights"]);
+    expect(mgrContainer.querySelector(".module-ai-card")).toBeNull();
+  });
+
+  it("housekeeping, maintenance, accounting do not see the card", () => {
+    show("housekeeping", ["overview", "rooms", "housekeeping_tasks", "guest_requests"]);
+    expect(screen.queryByText("Front Desk Operations Summary")).toBeNull();
+
+    cleanup();
+    show("maintenance", ["overview", "rooms", "maintenance_orders", "guest_requests"]);
+    expect(screen.queryByText("Front Desk Operations Summary")).toBeNull();
+
+    cleanup();
+    show("accounting", ["overview", "payments", "refunds", "reconciliation", "documents", "folios", "approvals"]);
+    expect(screen.queryByText("Front Desk Operations Summary")).toBeNull();
+  });
+
   it("action items navigate to their existing module sections", () => {
     const setSection = vi.fn();
     render(

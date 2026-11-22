@@ -1229,8 +1229,8 @@ are unchanged. Workspaces offered per role:
 |---|---|
 | Manager | Dashboard (risk command centre), **Hotel Operations**, **Operational Handover**, reservations, rooms (+ **Manage rooms** roster, §6), guests, guest requests, **Transportation**, **Room Types & Photos**, **Transfer Vehicles**, housekeeping, maintenance, inventory, **Lost & Found**, **Approvals & Escalations**, **Reports** (performance center + daily-report review, §7.12) |
 | Front Desk | Dashboard (arrivals/departures/in-house/rooms ready), **Hotel Operations**, **Operational Handover**, reservations, rooms, guests, guest requests, **Transportation**, housekeeping, **Lost & Found**, **Billing with guest folio detail**, Deposit verification (queue view — verification itself is Accounting's), **Transactions · Cash & shifts · Financial documents**, Approvals, **Reports** (daily operations report, §7.12) |
-| Housekeeping | Dashboard, **Hotel Operations**, **Operational Handover**, rooms, guest requests, housekeeping tasks, **Lost & Found**, inventory, Approvals |
-| Maintenance | Dashboard, **Hotel Operations**, **Operational Handover**, rooms, guest requests, maintenance orders, inventory, Approvals |
+| Housekeeping | Dashboard, **Hotel Operations**, **Operational Handover**, guest requests routed to Housekeeping, housekeeping tasks, **Lost & Found**, inventory, Approvals; room details are reachable through tasks, not a separate visible Room Management entry |
+| Maintenance | Dashboard, **Hotel Operations**, **Operational Handover**, maintenance orders, inventory, Approvals; room details are reachable through work orders, not separate visible Room Management or Guest Requests entries |
 | Accounting | Dashboard, **Hotel Operations**, **Operational Handover**, reservations, **Billing with guest folio detail**, **Deposit verification** (the only role that can act on it), Refunds, **Transactions · Cash & shifts · Reconciliation · Documents**, Reports, Approvals |
 
 **Billing folio detail (2026-11-14).** Front Desk and Accounting use the existing
@@ -1715,8 +1715,8 @@ unavailable, rate-limited, timeout, invalid, tool_context) only disables AI expl
 keeps working (Ask HAVEN UI: "HAVEN AI couldn't complete that request right now. Please try again.";
 other surfaces: "AI assistance is temporarily unavailable…"). Failure reasons map to sanitized
 server-side categories (`AI_TOOL_CONTEXT_ERROR` for tool-context/signature problems); raw provider
-bodies, signatures, and keys never reach the browser or the logs. Access is Manager/Owner/Admin
-only (`guardAiSession`, enforced server-side before any data is fetched). Four features:
+  bodies, signatures, and keys never reach the browser or the logs. The general AI endpoints are
+  Manager/Owner/Admin only (`guardAiSession`, enforced server-side before any data is fetched). Four features:
 **daily brief** (`/api/ai/brief` — Gemini narrates the analytics output into summary, priority
 actions, warnings and forecast notes; cached per hotel day, refresh rate-limited; the response also
 projects five non-AI operational indicators from the same authoritative `BriefInput`: occupied
@@ -1745,6 +1745,58 @@ executes any operation. The Manager HAVEN AI workspace presents those factual in
 two-column Daily Operations Brief / Ask HAVEN decision surface and ends with the explicit
 data → HAVEN predictive analytics → Gemini explanation → human decision boundary. Missing KPI data
 is labeled `Unavailable`, never replaced with a fabricated zero.
+
+**Role-aware module AI (local, migration pending):** `POST /api/ai/module/[module]`
+is a provisional implementation of seven read-only module summaries. The user
+clarified on 2026-11-22 that the capstone direction is **one Gemini assistant
+available across all authorized hotel-management modules**. It supports both
+general questions and module-context help: for example, a Bookings process
+guide for Front Desk and a custody/claim checklist in Lost & Found. Neither
+example defines the AI's overall scope. Each module needs a named purpose,
+source-linked facts, and a next step that leaves decisions and operations with
+authorized staff. The seven-staff-account analysis is
+`docs/ai-placement-by-account.md`. Its 94 staff account/module placements now
+use one fixed right-edge drawer in the existing local layouts. The toggle and
+dismissible summary label stay below the app header; opening the drawer does
+not resize the module or call Gemini. `GET /api/ai/placement` validates the
+signed-in role and module, then returns the module purpose and any supported
+role-scoped aggregate HAVEN facts. `POST /api/ai/placement` handles deliberate
+Ask submissions through Gemini with scope checks, an existing Ask rate limit
+and audit path, and server validation of cited fact IDs and numbers. It cannot
+change a hotel record. Some placements have no aggregate fact source yet and
+show that absence explicitly. `/prototypes/haven-ai-system-preview.html`
+offers the live workspace and the original fictional sample for comparison.
+The Guest portal keeps its separate concierge, and the Manager HAVEN AI page
+keeps its dedicated workspace without a nested drawer. The existing general
+Ask route still permits only Manager/Owner/Admin; the placement route has its
+own seven-role allowlist. Stored event-driven recommendations, record-specific
+analysis, and automatic approvals are not implemented. The remote database
+ledger is ahead of this checkout and lacks the pending module migration, so
+that migration must be reconciled before its separate RPC-backed module route
+can be used in Supabase mode.
+
+The provisional local route currently
+adds seven read-only operational summaries: Front Desk (`front_desk`, `manager`),
+Housekeeping (`housekeeping`, `manager`), Maintenance (`maintenance`, `manager`),
+Accounting (`accounting` only), Inventory (`front_desk`, `housekeeping`,
+`maintenance`, `manager`), Guest Requests and Lost & Found (`front_desk`,
+`housekeeping`, `manager`). Owner/Admin and guests cannot call these modules;
+the existing general AI authority above remains separate. The route checks the
+module role before reading data, accepts only a server-defined focus topic,
+and sends aggregate facts without guest names, item descriptions, claimant
+notes, or payment identifiers. Housekeeping's Guest Requests facts are scoped
+to its department. Gemini selects fact and advisory action IDs; the server
+resolves every ID and composes the displayed text and values. Unknown IDs fail
+the response. Those provisional cards are no longer mounted in the staff
+workspace; the shared placement drawer is the visible staff entry point.
+The pending `20261118010000_ai_module_assistants.sql` migration extends the
+audit schema and installs an atomic per-user/module reservation RPC for ten
+calls per ten minutes. Denied requests create no row; reserved calls are
+finalized with the provider outcome. Interaction metadata is retained, but
+topic and response bodies are not. Supabase mode fails closed until the
+migration is applied. This separate route has not undergone hosted migration
+or browser acceptance testing; the placement route has had a Front Desk live
+Gemini browser check.
 
 **QR-based operations** (`lib/qr/tokens.ts`, `app/api/qr/**`, dashboard scan modal, `/qr-placard/[roomId]`).
 Tokens are opaque 32-byte crypto-random strings; only their **SHA-256 hash** is stored (`qr_tokens`,
@@ -2321,7 +2373,8 @@ of CI/tests), `migrate.mjs` (legacy; **not** the supported migration path).
   **server-side Gemini client** (§7.13): `GEMINI_API_KEY` is never exposed to browser JavaScript
   (no `NEXT_PUBLIC_` variant exists), never logged, and never returned by any route; routes only
   report whether AI is configured.
-- **AI is advisory and read-only** (§7.13). Server-side RBAC (manager/owner/admin) before any data
+- **AI is advisory and read-only** (§7.13). General AI uses manager/owner/admin RBAC;
+  module AI uses the separate operational-role matrix above before any data
   fetch or Gemini call; no generic SQL tool — only an explicit registry of read-only functions
   returning aggregated, PII-minimized payloads; every response zod-validated before render; every
   interaction audited (`ai_interactions`) and rate-limited; Gemini cannot mutate any row, execute
