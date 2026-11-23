@@ -26,3 +26,8 @@ tests/auth/states/
 
 # QA reset legacy archive (guest PII — never commit)
 /legacy-archive/
+
+# local AI review notes and unrelated reference form
+/.superpowers/
+/temp_review/
+/reference/GROUP-200_Prototype_Testing.docx
