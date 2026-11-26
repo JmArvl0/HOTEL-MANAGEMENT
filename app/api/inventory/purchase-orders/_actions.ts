@@ -12,20 +12,6 @@ function denied(role: string | undefined, allowed: Role[]) {
   return !allowed.includes(role as Role);
 }
 
-export async function submitRoute(id: string, userId: string, version: number) {
-  if (!supabase) return publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
-  const { data, error } = await supabase.rpc("submit_purchase_order", { p_po_id: id, p_staff_user_id: userId, p_expected_version: version });
-  if (error) {
-    const msg = error.message ?? "";
-    if (msg.includes("PO_STALE")) return publicJson({ error: "Order changed — reload and retry.", code: "PO_STALE" }, { status: 409 });
-    if (msg.includes("PO_NOT_DRAFT")) return publicJson({ error: "Only drafts can be submitted." }, { status: 409 });
-    if (msg.includes("PO_ITEM_NOT_FOUND")) return publicJson({ error: "An item is no longer in inventory." }, { status: 409 });
-    if (msg.includes("FORBIDDEN")) return publicJson({ error: "Submission access required." }, { status: 403 });
-    return publicJson({ error: "Unable to submit the purchase order." }, { status: 409 });
-  }
-  return publicJson({ data });
-}
-
 export async function receiveRoute(id: string, userId: string, role: string | undefined, body: unknown) {
   if (denied(role, RECEIVE_ROLES)) return publicJson({ error: "Receiving access required." }, { status: 403 });
   const parsed = z.object({

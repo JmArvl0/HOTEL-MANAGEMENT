@@ -72,6 +72,17 @@ correction is a new linked effect. Closed snapshots are preserved.
 
 ## 3. Finance handoff
 
+For local review, an existing Accounting operator can download a saved night
+close from **Hotel Operations → Operating day & close → Closed days** by choosing
+**Finance handoff (JSON)**, or call
+`GET /api/accounting/exports?date=YYYY-MM-DD&format=json`. Version 1 includes
+`schemaVersion`, `property`, `batchId`, `businessDate`, `closedAtUtc`, `currency`,
+`status: review_pending` and `measures` with stable `id`, `code` and signed
+`amountMinor` in centavos. A repeat download of the same close has the same
+batch and measure IDs. The JSON contains aggregate control totals for Finance
+review. Import mapping, journal posting, and acknowledgment require the agreed
+partner contract below.
+
 Owners use O06–O10, O14–O15 and O22 from the role register. Hotel Accounting owns
 the operational source transactions and guest balance. Finance owns its journals,
 AR/AP, credit decisions, settlement and approved fiscal policy.
@@ -157,10 +168,17 @@ CSV uses integer centavos, Excel uses numeric PHP cells, and PDF presents the
 same values for review. The amounts represent distinct measures, so only gross
 collections less refunds reconciles to net collections.
 
-This is the review-download portion of Task 15. An approved line-level import
-format, account/tax mapping, Finance acknowledgment and reconciliation workflow,
-and partner replay acceptance are still pending. Download issuance is logged
-separately from those Finance events.
+The offline review rehearsal uses the JSON download and a draft Finance
+acknowledgment. Run `node scripts/finance-handoff-check.mts close.json acknowledgment.json`.
+The acknowledgment carries `schemaVersion: 1`, `property: "HAVEN"`, the exported
+`batchId`, `currency: "PHP"`, an `acknowledgmentId`, and `reviewedAtUtc`. Include
+each exported measure ID and `amountMinor` exactly once. Use `status: "accepted"`
+and a `financeReference`, or `status: "rejected"` and a `reasonCode`. The tool
+returns exit code 2 when any measure needs review. To rehearse replay, pass the
+previous acknowledgment as a third argument. Changed outcomes need a correction
+agreed by Finance and Hotel before processing. These files contain control totals
+from the saved Hotel close. Finance still defines journal lines, chart-of-accounts
+and tax mapping, and payout references during acceptance.
 
 ## 4. HR and Hotel access handoff
 

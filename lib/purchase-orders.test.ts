@@ -60,36 +60,16 @@ describe("draft purchase order helpers", () => {
 describe("route contract (app/api/inventory/purchase-orders/route.ts)", () => {
   const route = read("app/api/inventory/purchase-orders/route.ts");
 
-  it("writes status draft on insert — submit/receive/cancel live in their own RPC routes", () => {
-    expect(route).toContain("status: draft.status"); // insert carries the builder's status…
-    expect(route).toContain('after_data: { status: "draft"'); // …and the audit row repeats it
-    // No transition to any other status anywhere in this route file.
-    expect(route).not.toMatch(/status:\s*"(ordered|submitted|approved|sent|received|cancelled|pending_approval)"/i);
-    // The only update path is the draft-edit branch: draft rows, version-guarded.
-    expect(route).toContain('.eq("status", "draft").eq("version"');
+  it("reads history and routes new procurement to Supply Chain without performing writes", () => {
+    expect(route).toContain('from("purchase_orders").select(');
+    expect(route).toContain("Supply Chain handles new purchase orders");
+    expect(route).not.toMatch(/\.(?:insert|update|delete|rpc)\(|fetch\(/);
   });
 
-  it("never trusts the client: unit cost comes from the inventory rows, total is recomputed", () => {
-    expect(route).toContain('from("inventory").select("id,name,unit_cost,unit,vendor_id")');
-    expect(route).toContain("buildDraftPurchaseOrder(");
-    expect(route).toContain("Number(byId.get(item.itemId)?.unit_cost ?? 0)");
-  });
-
-  it("records an audit row and marks the draft as never submitted to a vendor", () => {
-    expect(route).toContain('action: "inventory_draft_purchase_order"');
-    expect(route).toContain("submittedToVendor: false");
-    expect(route).not.toMatch(/resend|sendEmail|fetch\(/i); // no external send of any kind
-  });
-
-  it("gates suggestions and creation to manager/owner/admin", () => {
+  it("keeps restricted receiving separate from purchase history", () => {
     expect(route).toMatch(/\["manager",\s*"owner",\s*"admin"\]/);
-    expect(route).toContain("Draft purchase order access required.");
-    expect(route).toContain("Replenishment suggestion access required.");
-  });
-
-  it("validates quantities as positive integers and vendors as active", () => {
-    expect(route).toMatch(/quantity:\s*z\.number\(\)\.int\(\)\.positive\(\)/);
-    expect(route).toContain('vendor?.status === "active"');
+    expect(route).toContain('.in("status", ["approved", "partially_received"])');
+    expect(route).toContain("receivingOnly: true");
   });
 });
 
@@ -150,9 +130,9 @@ describe("workflow migration (20261014010000_inventory_replenishment_workflow.sq
 });
 
 describe("action route contracts", () => {
-  it("submit/receive/cancel call their RPCs with version guards and mapped errors", () => {
+  it("keeps only receive and cancel RPCs with version guards and mapped errors", () => {
     const actions = read("app/api/inventory/purchase-orders/_actions.ts");
-    expect(actions).toContain('rpc("submit_purchase_order"');
+    expect(actions).not.toContain('rpc("submit_purchase_order"');
     expect(actions).toContain('rpc("inventory_receive_purchase_order"');
     expect(actions).toContain('rpc("cancel_purchase_order"');
     expect(actions).toContain("PO_STALE");
@@ -160,13 +140,13 @@ describe("action route contracts", () => {
     expect(actions).toContain("PO_IMMUTABLE");
   });
 
-  it("receive is open to housekeeping; submit/cancel stay manager/owner/admin", () => {
+  it("receive is open to housekeeping; cancellation stays with manager/owner/admin", () => {
     const actions = read("app/api/inventory/purchase-orders/_actions.ts");
     expect(actions).toMatch(/\["manager",\s*"housekeeping",\s*"owner",\s*"admin"\]/);
     expect(actions).toMatch(/\["manager",\s*"owner",\s*"admin"\]/);
   });
 
-  it("owner/admin review PO exceptions through the dedicated RPC, never the generic review", () => {
+  it("owner/admin can resolve legacy PO approvals through the dedicated route", () => {
     const review = read("app/api/inventory/purchase-orders/approvals/[id]/review/route.ts");
     expect(review).toContain('rpc("review_purchase_order_approval"');
     expect(review).toMatch(/\["owner",\s*"admin"\]/);
@@ -177,12 +157,10 @@ describe("action route contracts", () => {
 });
 
 describe("surface contracts", () => {
-  it("the Inventory section renders the advisory strip and a quantity-editable draft dialog", () => {
+  it("keeps Hotel delivery history and receiving in the Inventory section", () => {
     const ui = read("components/manager/manager-dashboard-client.tsx");
-    expect(ui).toContain("Replenishment suggestions");
-    expect(ui).toContain("Create draft PO");
-    expect(ui).toContain("defaultValue: suggestion.suggestedQuantity"); // quantity editable, forecast default
-    expect(ui).toContain("Nothing was ordered"); // the toast tells the truth
-    expect(ui).toContain("nothing is ordered or sent automatically");
+    expect(ui).toContain("<PurchaseOrderList");
+    expect(ui).not.toContain("Create draft PO");
+    expect(ui).toContain('await refreshReplenishment()');
   });
 });

@@ -3,6 +3,7 @@ import { hotelToday } from "@/lib/booking";
 import { calendarDate, isCalendarDate } from "@/lib/input-validation";
 import { fleetPickupSchema, validateFleetVehiclePreference } from "@/lib/fleet-pickup-input";
 import { supabase } from "@/lib/supabase";
+import { readAllRows } from "@/lib/read-all-rows";
 import { FLEET_RIDE_STATUS_LABELS, type CustomerTransportationRequest } from "@/lib/transportation-display";
 
 /**
@@ -92,19 +93,16 @@ export function getFleetDeliveryState(links: Pick<FleetGuestUpdate, "fleet_trans
 
 /** Own transportation requests, scoped through the owning reservation (never staff_notes). */
 export async function getCustomerTransportation(userId: string, reservationId?: string): Promise<CustomerTransportationRequest[]> {
-  if (!supabase) return [];
-  const owned = supabase.from("reservations").select("id,confirmation_number,room_type,check_in,check_out").eq("user_id", userId);
-  if (reservationId) owned.eq("id", reservationId);
-  const { data: reservations, error } = await owned;
-  if (error) throw error;
-  const ids = (reservations ?? []).map((item) => item.id);
-  if (!ids.length) return [];
-  const { data, error: requestError } = await supabase
-    .from("transportation_requests").select(customerColumns)
-    .in("reservation_id", ids).order("created_at", { ascending: false });
-  if (requestError) throw requestError;
+  const client = supabase;
+  if (!client) return [];
+  const requests = await readAllRows(() => {
+    const query = client.from("transportation_requests")
+      .select(`${customerColumns},reservation:reservations!inner(id,confirmation_number,room_type,check_in,check_out)`)
+      .eq("reservation.user_id", userId).order("created_at", { ascending: false });
+    return reservationId ? query.eq("reservation_id", reservationId) : query;
+  });
   // The generated type models the many-to-one embed as an array; PostgREST returns an object. Accept both.
-  return (data ?? []).map(({ transport_vehicle_types, fleet_transport_links, ...row }) => {
+  return requests.map(({ transport_vehicle_types, fleet_transport_links, reservation, ...row }) => {
     const vehicleType = transport_vehicle_types as { name?: string } | { name?: string }[] | null;
     const vehicleName = Array.isArray(vehicleType) ? vehicleType[0]?.name : vehicleType?.name;
     const links = (fleet_transport_links ?? []) as FleetGuestUpdate[];
@@ -114,7 +112,7 @@ export async function getCustomerTransportation(userId: string, reservationId?: 
       return [{ leg, status: partner_status as keyof typeof FLEET_RIDE_STATUS_LABELS }];
     });
     return { ...row, vehicle_type: vehicleName ?? null, fleetDispatched, fleetDelivery: getFleetDeliveryState(links),
-      rideUpdates, reservation: (reservations ?? []).find((item) => item.id === row.reservation_id) ?? null };
+      rideUpdates, reservation: Array.isArray(reservation) ? reservation[0] ?? null : reservation };
   });
 }
 

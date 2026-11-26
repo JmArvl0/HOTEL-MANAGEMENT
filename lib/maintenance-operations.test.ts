@@ -11,7 +11,7 @@ const dashboard = read("components/manager/manager-dashboard-client.tsx");
 
 describe("Maintenance ownership and least privilege", () => {
   it("blocks generic work-order mutation and uses protected RPC routes", () => {
-    expect(genericRoute).toContain('resource==="maintenance_orders"');
+    expect(genericRoute).toContain("return rejectWrite(request, context)");
     expect(genericRoute).not.toContain('rpc("resolve_maintenance_order"');
     expect(createRoute).toContain('rpc("maintenance_create_work_order"');
     for (const rpc of ["maintenance_assign_work_order", "maintenance_start_work_order", "maintenance_record_diagnosis", "maintenance_defer_work_order", "maintenance_add_progress", "maintenance_resolve_work_order", "maintenance_close_work_order", "maintenance_cancel_work_order"]) expect(actionRoute).toContain(rpc);

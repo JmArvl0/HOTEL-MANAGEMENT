@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
+import { readAllRows } from "@/lib/read-all-rows";
 
 async function context() {
   const session = await getServerSession(authOptions);
@@ -19,22 +20,27 @@ const schema = z.discriminatedUnion("action", [
 ]);
 export async function GET() {
   const ctx = await context(); if (ctx instanceof NextResponse) return ctx;
-  const [links, staff] = await Promise.all([
-    ctx.client.from("maintenance_asset_work").select("order_id,asset_id,due_date,serviced_at,service_note,maintenance_orders(status,assigned_user_id)").order("created_at", { ascending: false }).limit(200),
-    ctx.client.from("user_accounts").select("id,name").eq("role", "maintenance").eq("active", true).order("name")
-  ]);
-  if (links.error || staff.error) return publicJson({ error: "Preventive maintenance is unavailable right now. Try again shortly, or contact the system administrator." }, { status: 503 });
-  return publicJson({ data: { links: links.data, technicians: staff.data } });
+  try {
+    const rows = await readAllRows(() => ctx.client.from("maintenance_asset_work")
+      .select("order_id,due_date,serviced_at,service_note,maintenance_assets(name),maintenance_orders(status,assigned_user_id)")
+      .order("created_at", { ascending: false }), "order_id");
+    const links = rows.map(({ maintenance_assets: assets, maintenance_orders: orders, ...row }) => ({
+      ...row,
+      assetName: (Array.isArray(assets) ? assets[0]?.name : (assets as { name: string } | null)?.name) ?? "Equipment",
+      order: Array.isArray(orders) ? orders[0] ?? null : orders,
+    }));
+    return publicJson({ data: { links } });
+  } catch {
+    return publicJson({ error: "Linked maintenance work is temporarily unavailable." }, { status: 503 });
+  }
 }
 export async function POST(request: Request) {
   const ctx = await context(); if (ctx instanceof NextResponse) return ctx;
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return publicJson(validationBody(parsed.error, { error: "Enter valid service details." }), { status: 400 });
   const v = parsed.data;
-  if (v.action === "create" && ctx.user.role === "maintenance" && v.technicianId !== ctx.user.id) return publicJson({ error: "Technicians can assign preventive work only to themselves." }, { status: 403 });
-  const { data, error } = v.action === "create"
-    ? await ctx.client.rpc("create_asset_work", { p_actor: ctx.user.id, p_asset: v.assetId, p_technician: v.technicianId })
-    : await ctx.client.rpc("record_linked_asset_service", { p_actor: ctx.user.id, p_order: v.orderId, p_date: v.serviceDate, p_note: v.note });
+  if (v.action === "create") return publicJson({ error: "Facilities schedules preventive work. You can still record completion for a linked Hotel work order." }, { status: 410 });
+  const { data, error } = await ctx.client.rpc("record_linked_asset_service", { p_actor: ctx.user.id, p_order: v.orderId, p_date: v.serviceDate, p_note: v.note });
   if (error) return publicJson({ error: error.message.includes("NOT_COMPLETED") ? "Complete the assigned work order before recording service." : "Unable to save. Check the service date, assigned technician and latest work order state." }, { status: error.message.includes("FORBIDDEN") ? 403 : 409 });
   return publicJson({ data });
 }

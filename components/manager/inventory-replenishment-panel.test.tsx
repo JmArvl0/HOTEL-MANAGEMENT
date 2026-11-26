@@ -16,7 +16,7 @@ it("accepts only outstanding whole quantities and submits only the items deliver
     received_quantities: { towels: 4, soap: 2 },
   };
   const onReceive = vi.fn();
-  render(<PurchaseOrderList orders={[order]} vendors={[]} onSubmit={vi.fn()} onReceive={onReceive} onCancel={vi.fn()} />);
+  render(<PurchaseOrderList orders={[order]} vendors={[]} onReceive={onReceive} onCancel={vi.fn()} />);
   expect(screen.getByText(/Towels: 4 \/ 10 received/)).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Receive delivery" }));
   const dialog = within(await screen.findByRole("dialog"));

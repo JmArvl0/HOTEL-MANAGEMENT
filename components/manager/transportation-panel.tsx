@@ -62,13 +62,13 @@ function queueMatch(trip: StaffTrip, queue: string, today: string) {
   return true;
 }
 
-export default function TransportationPanel({ role }: { role: Role }) {
+export default function TransportationPanel({ role, initialQueue = "all" }: { role: Role; initialQueue?: "all" | "today" }) {
   const [trips, setTrips] = useState<StaffTrip[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const feedback = useToasts();
-  const [queue, setQueue] = useState("all");
+  const [queue, setQueue] = useState<string>(initialQueue);
   const [serviceFilter, setServiceFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [weekAgo, setWeekAgo] = useState(0);

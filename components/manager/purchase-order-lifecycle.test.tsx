@@ -17,14 +17,14 @@ const orders = [
 ];
 
 function renderOrders(receivingOnly = false) {
-  const handlers = { onSubmit: vi.fn(), onReceive: vi.fn(), onCancel: vi.fn() };
+  const handlers = { onReceive: vi.fn(), onCancel: vi.fn() };
   render(<PurchaseOrderList orders={orders} vendors={[]} receivingOnly={receivingOnly} {...handlers} />);
-  return { ...handlers, panel: within(screen.getByRole("region", { name: "Purchase orders" })) };
+  return { ...handlers, panel: within(screen.getByRole("region", { name: "Delivery history" })) };
 }
 
 describe("purchase-order workspace lifecycle", () => {
-  it("filters orders and routes submit, confirmed delivery and cancel to the selected order", async () => {
-    const { panel, onSubmit, onReceive, onCancel } = renderOrders();
+  it("filters orders and routes confirmed delivery and cancel to the selected order", async () => {
+    const { panel, onReceive, onCancel } = renderOrders();
     fireEvent.click(panel.getByRole("button", { name: /^approved/ }));
     expect(panel.getByText("PO po-ready")).toBeTruthy();
     expect(panel.queryByText("PO po-draft")).toBeNull();
@@ -37,8 +37,8 @@ describe("purchase-order workspace lifecycle", () => {
     expect(onCancel).toHaveBeenCalledExactlyOnceWith(orders[1]);
 
     fireEvent.click(panel.getByRole("button", { name: /^draft/ }));
-    fireEvent.click(panel.getByRole("button", { name: "Submit" }));
-    expect(onSubmit).toHaveBeenCalledExactlyOnceWith(orders[0]);
+    expect(panel.queryByRole("button", { name: "Submit" })).toBeNull();
+    expect(panel.getByRole("button", { name: "Cancel" })).toBeTruthy();
 
     fireEvent.click(panel.getByRole("button", { name: /^partially received/ }));
     expect(panel.queryByRole("button", { name: "Cancel" })).toBeNull();
@@ -51,7 +51,7 @@ describe("purchase-order workspace lifecycle", () => {
   });
 
   it("keeps completed and cancelled orders immutable and pending approval gated", () => {
-    const { panel, onSubmit, onReceive, onCancel } = renderOrders();
+    const { panel, onReceive, onCancel } = renderOrders();
     for (const [filter, id] of [[/^received/, "po-done1"], [/^cancelled/, "po-stop1"]] as const) {
       fireEvent.click(panel.getByRole("button", { name: filter }));
       expect(panel.getByText(`PO ${id}`)).toBeTruthy();
@@ -60,17 +60,16 @@ describe("purchase-order workspace lifecycle", () => {
       expect(panel.queryByRole("button", { name: "Cancel" })).toBeNull();
     }
     fireEvent.click(panel.getByRole("button", { name: /^pending approval/ }));
-    expect(panel.getByText("Awaiting Owner/Admin approval")).toBeTruthy();
+    expect(panel.getByText("Pending order · coordinate with Supply Chain")).toBeTruthy();
     expect(panel.queryByRole("button", { name: "Submit" })).toBeNull();
     expect(panel.queryByRole("button", { name: "Receive delivery" })).toBeNull();
     expect(panel.getByRole("button", { name: "Cancel" })).toBeTruthy();
-    expect(onSubmit).not.toHaveBeenCalled();
     expect(onReceive).not.toHaveBeenCalled();
     expect(onCancel).not.toHaveBeenCalled();
   });
 
   it("limits the receiving-only workspace to delivery actions and honours dialog cancellation", async () => {
-    const { panel, onSubmit, onReceive, onCancel } = renderOrders(true);
+    const { panel, onReceive, onCancel } = renderOrders(true);
     expect(panel.queryByRole("button", { name: "Submit" })).toBeNull();
     expect(panel.queryByRole("button", { name: "Cancel" })).toBeNull();
     const receiveButtons = panel.getAllByRole("button", { name: "Receive delivery" });
@@ -79,7 +78,6 @@ describe("purchase-order workspace lifecycle", () => {
     const delivery = within(await screen.findByRole("dialog"));
     fireEvent.click(delivery.getByRole("button", { name: "Cancel" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    expect(onSubmit).not.toHaveBeenCalled();
     expect(onReceive).not.toHaveBeenCalled();
     expect(onCancel).not.toHaveBeenCalled();
   });

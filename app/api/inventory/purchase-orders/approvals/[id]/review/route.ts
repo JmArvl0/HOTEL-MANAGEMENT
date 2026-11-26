@@ -9,13 +9,14 @@ import type { Role } from "@/lib/types";
 
 const schema = z.object({ decision: z.enum(["approve", "reject"]), reason: z.string().trim().min(3).max(1000) });
 
-// Owner/Admin review of purchase-order exceptions (above the auto-approve threshold).
+// Owner/Admin can resolve an existing pending order without creating a purchase commitment.
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session || session.user.disabled) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
   if (!["owner", "admin"].includes(session.user.role as Role)) return publicJson({ error: "Owner/Admin review authority required." }, { status: 403 });
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return publicJson(validationBody(parsed.error, { error: "A decision and reason are required." }), { status: 400 });
+  if (parsed.data.decision === "approve") return publicJson({ error: "Supply Chain approves purchase orders. Reject or cancel this pending Hotel order before resubmitting it there." }, { status: 410 });
   if (!supabase) return publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
   const { data, error } = await supabase.rpc("review_purchase_order_approval", {
     p_approval_id: (await params).id, p_staff_user_id: session.user.id, p_decision: parsed.data.decision, p_reason: parsed.data.reason

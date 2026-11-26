@@ -1,49 +1,34 @@
 import { publicJson } from "@/lib/server-errors";
-import { validationBody } from "@/lib/errors";
-import { getServerSession } from "next-auth";
-
-import { z } from "zod";
-import { authOptions } from "@/lib/auth";
+import { getAuthenticatedSession } from "@/lib/authorization";
 import { supabase } from "@/lib/supabase";
-import { forecastInventory } from "@/lib/analytics/inventory";
-import { getAnalyticsInputs } from "@/lib/analytics/data";
-import { buildDraftPurchaseOrder, suggestedQuantity, type DraftPurchaseItem } from "@/lib/purchase-orders";
+import { readAllRows } from "@/lib/read-all-rows";
 import type { Role } from "@/lib/types";
 
-// GET returns forecast shortage suggestions and recent purchase orders, with
-// optional status/vendor/date filters. POST creates or edits drafts only.
-// Separate submit/review/receive/cancel routes manage local order transitions;
-// no route sends an order to a supplier. Quantity and vendor are editable,
-// while unit costs and totals are resolved server-side and changes audited.
+const PURCHASE_HISTORY_ROLES: Role[] = ["manager", "owner", "admin"];
 
-const DRAFT_PO_ROLES: Role[] = ["manager", "owner", "admin"];
-
-/** Shortage suggestions from the same forecast the Predictive Insights panel uses. */
+/** Existing deliveries and purchase records retained for Hotel reference. */
 export async function GET(request: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.disabled) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
-  if (session.user.role !== "housekeeping" && !DRAFT_PO_ROLES.includes(session.user.role as Role)) return publicJson({ error: "Replenishment suggestion access required." }, { status: 403 });
+  const session = await getAuthenticatedSession();
+  if (!session) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
+  if (session.user.role !== "housekeeping" && !PURCHASE_HISTORY_ROLES.includes(session.user.role)) return publicJson({ error: "Hotel delivery access required." }, { status: 403 });
   if (!supabase) return publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
-  if (session.user.role === "housekeeping") {
-    const { data, error } = await supabase.from("purchase_orders").select("id,status,items,received_quantities,version,created_at,purchase_order_receipts(id,items,created_at)").in("status", ["approved", "partially_received"]).order("created_at").limit(100);
-    if (error) return publicJson({ error: "Unable to load approved deliveries." }, { status: 503 });
-    const drafts = (data ?? []).map(o => ({ ...o, items: (o.items as {itemId:string;name:string;quantity:number;unit:string}[]).map(l => ({ itemId:l.itemId,name:l.name,quantity:l.quantity,unit:l.unit })) }));
-    return publicJson({ data: { suggestions: [], drafts, vendors: [], receivingOnly: true } });
-  }
-  const params = new URL(request.url).searchParams;
+  const client = supabase;
   try {
-    const inputs = await getAnalyticsInputs();
-    const forecast = forecastInventory({ items: inputs.inventoryItems, movements: inputs.movements, today: inputs.today });
-    // Suggest reorders for predicted shortages (and current out-of-stock items
-    // without history — those are facts, not predictions). Unit cost comes from
-    // the live inventory rows via a second narrow read.
-    const shortageIds = forecast.items
-      .filter((item) => (item.projectedShortage ?? 0) > 0 || item.riskBasis === "current-low-stock")
-      .map((item) => item.itemId);
-    const [costResult, ordersResult, vendorResult, policyResult] = await Promise.all([
-      shortageIds.length ? supabase.from("inventory").select("id,unit_cost,vendor_id").in("id", shortageIds) : Promise.resolve({ data: [] as { id: string; unit_cost: number | null; vendor_id: string | null }[], error: null as null }),
-      (() => {
-        let q = supabase.from("purchase_orders").select("id,vendor_id,status,total,items,received_quantities,created_at,version,approved_at,received_at,purchase_order_receipts(id,items,created_at)").order("created_at", { ascending: false }).limit(50);
+    if (session.user.role === "housekeeping") {
+      const data = await readAllRows(() => client.from("purchase_orders")
+        .select("id,status,items,received_quantities,version,created_at,purchase_order_receipts(id,items,created_at)")
+        .in("status", ["approved", "partially_received"]).order("created_at").order("id"));
+      const drafts = data.map(order => ({
+        ...order,
+        items: (order.items as { itemId: string; name: string; quantity: number; unit: string }[])
+          .map(({ itemId, name, quantity, unit }) => ({ itemId, name, quantity, unit })),
+      }));
+      return publicJson({ data: { drafts, vendors: [], receivingOnly: true } });
+    }
+    const params = new URL(request.url).searchParams;
+    const [ordersResult, vendorResult] = await Promise.all([
+      readAllRows(() => {
+        let q = client.from("purchase_orders").select("id,vendor_id,status,total,items,received_quantities,created_at,version,approved_at,received_at,purchase_order_receipts(id,items,created_at)").order("created_at", { ascending: false }).order("id");
         const status = params.get("status");
         if (status) q = q.eq("status", status);
         const vendor = params.get("vendor");
@@ -53,125 +38,19 @@ export async function GET(request: Request) {
         const to = params.get("to");
         if (to) q = q.lte("created_at", to);
         return q;
-      })(),
-      supabase.from("vendors").select("id,name").eq("status", "active").order("name"),
-      supabase.from("hotel_operational_policies").select("po_auto_approve_threshold").eq("key", "default").maybeSingle()
+      }),
+      client.from("vendors").select("id,name").order("name")
     ]);
-    if (costResult.error || ordersResult.error || vendorResult.error) throw costResult.error ?? ordersResult.error ?? vendorResult.error;
-    const costs = new Map((costResult.data ?? []).map((row) => [String(row.id), row]));
-    const suggestions = forecast.items
-      .filter((item) => (item.projectedShortage ?? 0) > 0 || item.riskBasis === "current-low-stock")
-      .map((item) => {
-        const cost = costs.get(item.itemId);
-        return {
-          itemId: item.itemId,
-          name: item.name,
-          unit: item.unit,
-          currentStock: item.currentStock,
-          reorderPoint: item.reorderPoint,
-          predictedConsumption: item.predictedConsumption,
-          projectedShortage: item.projectedShortage,
-          suggestedQuantity: suggestedQuantity(item.recommendedReorder, item.reorderPoint),
-          unitCost: Number(cost?.unit_cost ?? 0),
-          riskBasis: item.riskBasis,
-          risk: item.risk
-        };
-      });
-    return publicJson({ data: { suggestions, drafts: ordersResult.data ?? [], vendors: vendorResult.data ?? [], method: forecast.method, notes: forecast.notes, autoApproveThreshold: Number((policyResult.data as { po_auto_approve_threshold?: number } | null)?.po_auto_approve_threshold ?? 50000) } });
+    if (vendorResult.error) throw vendorResult.error;
+    return publicJson({ data: { drafts: ordersResult, vendors: vendorResult.data ?? [] } });
   } catch {
-    return publicJson({ error: "Unable to load replenishment suggestions." }, { status: 500 });
+    return publicJson({ error: "Unable to load Hotel delivery records." }, { status: 503 });
   }
 }
 
-const schema = z.object({
-  id: z.string().uuid().optional(),
-  version: z.number().int().positive().optional(),
-  items: z.array(z.object({
-    itemId: z.string().min(1),
-    name: z.string().trim().min(1).max(200),
-    quantity: z.number().int().positive().max(100000),
-    unit: z.string().trim().max(50).default("")
-  })).min(1),
-  vendorId: z.string().uuid().nullable().default(null),
-  note: z.string().trim().max(500).optional()
-});
-
-export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.disabled) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
-  if (!DRAFT_PO_ROLES.includes(session.user.role as Role)) return publicJson({ error: "Draft purchase order access required." }, { status: 403 });
-  if (!supabase) return publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
-
-  const parsed = schema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return publicJson(validationBody(parsed.error, { error: "Choose valid items and quantities." }), { status: 400 });
-
-  // Server-side truth: unit cost (and name sanity) come from the inventory
-  // rows themselves — the client payload only carries what to order.
-  const ids = parsed.data.items.map((item) => item.itemId);
-  const { data: inventoryRows, error: inventoryError } = await supabase.from("inventory").select("id,name,unit_cost,unit,vendor_id").in("id", ids);
-  if (inventoryError) return publicJson({ error: "Unable to read inventory items." }, { status: 500 });
-  const byId = new Map((inventoryRows ?? []).map((row) => [String(row.id), row]));
-  for (const item of parsed.data.items) {
-    if (!byId.has(item.itemId)) return publicJson({ error: `Item ${item.name} is no longer in inventory.` }, { status: 409 });
-  }
-
-  // Optional vendor must exist and be active.
-  let vendorOk = true;
-  if (parsed.data.vendorId) {
-    const { data: vendor } = await supabase.from("vendors").select("id,status").eq("id", parsed.data.vendorId).maybeSingle();
-    vendorOk = Boolean(vendor) && vendor?.status === "active";
-  }
-  if (!vendorOk) return publicJson({ error: "Choose an active vendor or leave the vendor unassigned." }, { status: 409 });
-
-  const items: DraftPurchaseItem[] = parsed.data.items.map((item) => ({
-    itemId: item.itemId,
-    name: String(byId.get(item.itemId)?.name ?? item.name),
-    quantity: item.quantity,
-    unit: item.unit || String(byId.get(item.itemId)?.unit ?? ""),
-    unitCost: Number(byId.get(item.itemId)?.unit_cost ?? 0)
-  }));
-
-  let draft;
-  try {
-    draft = buildDraftPurchaseOrder({ items, vendorId: parsed.data.vendorId, orderedBy: session.user.id, note: parsed.data.note });
-  } catch (error) {
-    const code = error instanceof Error ? error.message : "";
-    return publicJson({ error: code === "EMPTY_DRAFT" ? "Nothing to order — all quantities are zero." : "Choose valid unit costs." }, { status: 400 });
-  }
-
-  // Draft edit: only draft rows, version-guarded. Submit/receive/cancel have own routes.
-  if (parsed.data.id) {
-    if (!parsed.data.version) return publicJson({ error: "Reopen the latest purchase order draft before editing it." }, { status: 400 });
-    const { data: updated, error: updateError } = await supabase.from("purchase_orders")
-      .update({ vendor_id: draft.vendorId, items: draft.items, total: draft.total, version: parsed.data.version + 1 })
-      .eq("id", parsed.data.id).eq("status", "draft").eq("version", parsed.data.version)
-      .select("id,status,total").maybeSingle();
-    if (updateError) return publicJson({ error: "Unable to update the draft purchase order." }, { status: 409 });
-    if (!updated) return publicJson({ error: "Draft changed or already submitted — reload and retry.", code: "PO_STALE" }, { status: 409 });
-    await supabase.from("audit_logs").insert({
-      user_id: session.user.id, action: "inventory_draft_purchase_order_updated",
-      entity_type: "purchase_order", entity_id: String(updated.id),
-      after_data: { status: "draft", vendorId: draft.vendorId, total: draft.total, items: draft.items, note: draft.note ?? null }
-    });
-    return publicJson({ data: updated });
-  }
-
-  const { data, error } = await supabase.from("purchase_orders").insert({
-    vendor_id: draft.vendorId,
-    status: draft.status, // always 'draft' — inserts only; edits go through the branch above
-    items: draft.items,
-    total: draft.total,
-    ordered_by: draft.orderedBy
-  }).select("id,status,total").single();
-  if (error) return publicJson({ error: "Unable to create the draft purchase order." }, { status: 409 });
-
-  await supabase.from("audit_logs").insert({
-    user_id: session.user.id,
-    action: "inventory_draft_purchase_order",
-    entity_type: "purchase_order",
-    entity_id: String(data.id),
-    after_data: { status: "draft", vendorId: draft.vendorId, total: draft.total, items: draft.items, note: draft.note ?? null, submittedToVendor: false }
-  });
-
-  return publicJson({ data }, { status: 201 });
+export async function POST() {
+  const session = await getAuthenticatedSession();
+  if (!session) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
+  if (!PURCHASE_HISTORY_ROLES.includes(session.user.role)) return publicJson({ error: "Hotel purchase history access required." }, { status: 403 });
+  return publicJson({ error: "Supply Chain handles new purchase orders. Receive or close existing Hotel orders from Hotel Supplies." }, { status: 410 });
 }

@@ -75,47 +75,36 @@ describe("migration contract (20260932010000_maintenance_assets.sql)", () => {
 describe("route contracts", () => {
   const list = read("app/api/maintenance/assets/route.ts");
   const actions = read("app/api/maintenance/assets/[id]/[action]/route.ts");
+  const linked = read("app/api/maintenance/asset-work/route.ts");
 
   it("gates the registry to maintenance and manager — Owner/Admin supervise, never operate", () => {
     expect(list).toMatch(/\["maintenance",\s*"manager"\]/);
-    expect(actions).toMatch(/\["maintenance",\s*"manager"\]/);
+    expect(actions).toContain('role === "maintenance" || role === "manager"');
     expect(list).not.toContain('"owner"');
     expect(list).not.toContain('"admin"');
     expect(actions).not.toContain('"owner"');
     expect(actions).not.toContain('"admin"');
     expect(list).toContain("Asset registry access required.");
-    expect(actions).toContain("Asset registry access required.");
+    expect(actions).toContain("Equipment history access required.");
   });
 
-  it("every mutation runs through its audited RPC — no direct table writes, no room writes", () => {
+  it("keeps only the audited linked service mutation", () => {
     for (const rpc of ["maintenance_register_asset", "maintenance_record_asset_service", "maintenance_apply_asset_change"]) {
-      expect(list + actions).toContain(`"${rpc}"`);
+      expect(list + actions + linked).not.toContain(`"${rpc}"`);
     }
-    expect(list + actions).not.toMatch(/from\("maintenance_assets"\)\.(insert|update|delete)/);
-    expect(list + actions).not.toMatch(/from\("rooms"\)\.(insert|update|delete)/); // rooms are read-only lookups
-  });
-
-  it("rejects future service dates and resolves staff-typed rooms to ids", () => {
-    expect(list).toContain("cannot be in the future");
-    expect(actions).toContain("on or before today");
-    expect(read("lib/asset-room.ts")).toContain('.eq("id", identifier)');
-    expect(read("lib/asset-room.ts")).toContain('.eq("number", identifier)');
+    expect(linked).toContain('rpc("record_linked_asset_service"');
+    expect(list + actions + linked).not.toMatch(/from\("(?:maintenance_assets|rooms)"\)\.(insert|update|delete)/);
   });
 });
 
 describe("surface contract (manager-dashboard-client.tsx)", () => {
   const ui = read("components/manager/manager-dashboard-client.tsx");
 
-  it("renders the due-window card group with an explicit no-auto-block disclosure", () => {
-    expect(ui).toContain("Preventive maintenance");
-    expect(ui).toContain("Register asset");
-    expect(ui).toContain("a room is never blocked because a service is due");
-    expect(ui).toContain("ASSET_DUE_WINDOWS.map"); // groups come from the shared window list
-    expect(ui).toContain("Record service");
-  });
-
-  it("states the empty registry honestly instead of showing sample equipment", () => {
-    expect(ui).toContain("No assets registered yet");
-    expect(ui).toContain("no sample assets are created");
+  it("keeps linked maintenance history on the Hotel work-order page", () => {
+    expect(ui).toContain("<PreventiveWorkPanel");
+    expect(ui).not.toContain("Register asset");
+    const panel = read("components/manager/preventive-work-panel.tsx");
+    expect(panel).toContain("Record linked service");
+    expect(panel).not.toContain('action: "create"');
   });
 });
