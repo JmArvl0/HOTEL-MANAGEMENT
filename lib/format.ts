@@ -14,6 +14,14 @@ export function formatPeso(value: number | string) {
 
 export const HOTEL_TIME_ZONE = "Asia/Manila";
 
+const stayDateFormatter = new Intl.DateTimeFormat("en-PH", {
+  month: "short", day: "numeric", year: "numeric", timeZone: "UTC",
+});
+
+export function formatStayDate(value: string) {
+  return stayDateFormatter.format(new Date(`${value}T00:00:00Z`));
+}
+
 /** Consistent human-readable timestamp for ordinary customer and staff UI. */
 export function formatHotelDateTime(value: Date | string | number | null | undefined, timeZone = HOTEL_TIME_ZONE) {
   if (value === null || value === undefined || value === "") return "—";

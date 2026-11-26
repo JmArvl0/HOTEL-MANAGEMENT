@@ -9,7 +9,7 @@ import { CHOOSE_DATES_EVENT } from "./availability-guide";
  * #book-form); with JS it asks AvailabilityGuide for the smooth scroll, glow,
  * helper, and smart focus instead. Never books, never checks in.
  */
-export function ChooseDatesButton() {
+export function ChooseDatesButton({ label = "Choose dates" }: { label?: string }) {
   return (
     <a
       className="btn btn-accent"
@@ -19,7 +19,7 @@ export function ChooseDatesButton() {
         window.dispatchEvent(new CustomEvent(CHOOSE_DATES_EVENT));
       }}
     >
-      Choose dates <ArrowRight size={16} aria-hidden="true" />
+      {label} <ArrowRight size={16} aria-hidden="true" />
     </a>
   );
 }

@@ -31,8 +31,8 @@ describe("BookingStaySummary base card (Details + Review shape)", () => {
   it("renders room type, dates, guests, nights, nightly rate, and stay total", () => {
     render(<BookingStaySummary {...garden} photos={garden.photos} />);
     expect(screen.getByRole("heading", { name: "Garden Twin" })).toBeTruthy();
-    expect(screen.getByText("2026-09-18")).toBeTruthy();
-    expect(screen.getByText("2026-09-20")).toBeTruthy();
+    expect(screen.getByText("Sep 18, 2026")).toBeTruthy();
+    expect(screen.getByText("Sep 20, 2026")).toBeTruthy();
     expect(screen.getByText("Your stay")).toBeTruthy();
     expect(screen.getByText(formatPeso(5800))).toBeTruthy();
     expect(screen.getByText(formatPeso(11600))).toBeTruthy();
@@ -174,7 +174,8 @@ describe("stay-summary consolidation contracts", () => {
   });
 
   it("wires booking steps to the shared component with no duplicate cards", () => {
-    expect(read("app/(booking)/booking/details/page.tsx")).toContain("BookingStaySummary");
+    expect(read("app/(booking)/booking/details/page.tsx")).toContain("GuestDetailsForm");
+    expect(read("components/booking/guest-details-form.tsx")).toContain("BookingStaySummary");
     expect(read("app/(booking)/booking/payment/[token]/page.tsx")).toContain("BookingStaySummary");
     expect(read("app/(booking)/booking/confirmation/[id]/page.tsx")).not.toContain("BookingStaySummary");
     expect(read("app/(booking)/booking/review/[token]/page.tsx")).toContain("ReviewStayCard");

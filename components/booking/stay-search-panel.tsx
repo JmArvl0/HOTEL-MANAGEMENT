@@ -16,10 +16,10 @@ export function StaySearchPanel({
   className,
   searched,
   ...form
-}: Pick<SearchFormProps, "action" | "initial" | "maxGuests" | "searched" | "timeZone"> & { className?: string }) {
+}: Pick<SearchFormProps, "action" | "initial" | "maxGuests" | "searched" | "timeZone" | "validation"> & { className?: string }) {
   return (
     <AvailabilityGuide className={className}>
-      <details className="stay-search-panel" data-stay-editor>
+      <details className="stay-search-panel" data-stay-editor open={form.validation ? true : undefined}>
         <summary>
           <CalendarDays size={19} aria-hidden="true" />
           <span className="stay-search-selection">

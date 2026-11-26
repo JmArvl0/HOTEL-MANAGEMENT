@@ -205,6 +205,7 @@ export function RoomPhotoTrigger({ photos, roomName, className }: { photos: stri
         type="button"
         className={className ?? "room-photo-open"}
         aria-label={`Open ${roomName} photo gallery`}
+        aria-haspopup="dialog"
         onClick={() => setIndex(0)}
       >
         <span className="room-photo-open-hint" aria-hidden="true"><ZoomIn size={15} /> View photo</span>

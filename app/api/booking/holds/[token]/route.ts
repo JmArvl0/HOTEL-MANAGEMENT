@@ -1,15 +1,12 @@
 import { publicJson } from "@/lib/server-errors";
-import { getServerSession } from "next-auth";
-
 import { z } from "zod";
-import { authOptions } from "@/lib/auth";
+import { requirePermission } from "@/lib/authorization";
 import { supabase } from "@/lib/supabase";
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ token: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user.id || session.user.disabled || session.user.otpPending || session.user.role !== "guest") {
-    return publicJson({ error: "Please sign in with a guest account to continue." }, { status: 401 });
-  }
+  const result = await requirePermission(role => role === "guest", "Please sign in with a guest account to continue.");
+  if (result.error) return result.error;
+  const { session } = result;
   const { token } = await params;
   if (!z.string().uuid().safeParse(token).success) {
     return publicJson({ error: "Reopen this booking from your account." }, { status: 400 });

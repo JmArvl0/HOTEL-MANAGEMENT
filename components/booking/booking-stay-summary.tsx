@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 import { CreditCard, LogIn, LogOut, Moon, ReceiptText, Tag, Users, Wallet } from "lucide-react";
-import { formatPeso } from "@/lib/format";
+import { formatPeso, formatStayDate } from "@/lib/format";
 import { roomPhotosFor } from "@/lib/room-images";
 import type { NightlyRate } from "@/lib/rate-plans";
 import { RoomPhotoTrigger } from "@/components/booking/room-photo-lightbox";
+import { RoomPhoto } from "@/components/booking/room-photo";
 
 export type StayLine = { label: string; amount: number };
 
@@ -21,6 +22,7 @@ export function BookingStaySummary({
   guests,
   nights,
   rate,
+  rateVaries,
   total,
   lines,
   nightly,
@@ -37,6 +39,7 @@ export function BookingStaySummary({
   guests: number;
   nights: number;
   rate: number | null;
+  rateVaries?: boolean;
   total: number;
   lines?: StayLine[];
   nightly?: NightlyRate[];
@@ -58,8 +61,8 @@ export function BookingStaySummary({
       <div className={`review-stay-photo${photo ? "" : " review-stay-photo--fallback"}`}>
         {photo ? (
           <>
-            {/* eslint-disable-next-line @next/next/no-img-element -- DB photo URL, same rationale as the shared lightbox */}
-            <img src={photo} alt="" aria-hidden="true" loading="lazy" />
+            <RoomPhoto src={photo} alt="" />
+            <small className="room-photo-source">{photos.some(url => url.trim()) ? "Room type photo" : "Illustrative photo"}</small>
             <RoomPhotoTrigger photos={gallery} roomName={roomType} className="review-stay-photo-open" />
           </>
         ) : (
@@ -76,13 +79,13 @@ export function BookingStaySummary({
             <dt>
               <LogIn size={14} aria-hidden="true" /> Check-in
             </dt>
-            <dd>{checkIn}</dd>
+            <dd>{formatStayDate(checkIn)}</dd>
           </div>
           <div>
             <dt>
               <LogOut size={14} aria-hidden="true" /> Check-out
             </dt>
-            <dd>{checkOut}</dd>
+            <dd>{formatStayDate(checkOut)}</dd>
           </div>
           <div>
             <dt>
@@ -100,7 +103,7 @@ export function BookingStaySummary({
             ? nightly!.map((night) => (
                 <div key={night.date}>
                   <dt>
-                    <Tag size={14} aria-hidden="true" /> {night.date}
+                    <Tag size={14} aria-hidden="true" /> {formatStayDate(night.date)}
                   </dt>
                   <dd className="review-stay-amount">{formatPeso(night.rate)}</dd>
                 </div>
@@ -108,7 +111,7 @@ export function BookingStaySummary({
             : rate != null && (
                 <div>
                   <dt>
-                    <Tag size={14} aria-hidden="true" /> Nightly rate
+                    <Tag size={14} aria-hidden="true" /> {rateVaries ? "Nightly rate from" : "Nightly rate"}
                   </dt>
                   <dd className="review-stay-amount">{formatPeso(rate)}</dd>
                 </div>

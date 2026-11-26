@@ -58,6 +58,7 @@ function FeaturedStayCard({ room, href }: { room: FeaturedRoom; href: string }) 
   const [selected, setSelected] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<number | null>(null);
   const [failed, setFailed] = useState<ReadonlySet<string>>(new Set());
+  const illustrative = !Array.isArray(room.photo_urls) || !room.photo_urls.some(url => url.trim());
   const photos = roomPhotosFor(Array.isArray(room.photo_urls) ? room.photo_urls : undefined, room.name)
     .filter((photo) => !failed.has(photo));
   const index = Math.max(0, photos.indexOf(selected ?? ""));
@@ -72,7 +73,7 @@ function FeaturedStayCard({ room, href }: { room: FeaturedRoom; href: string }) 
       className="coast-room-photo" label={`Open ${room.name} photo gallery`}>
       <Image
         src={src}
-        alt={`${room.name} — room photo ${index + 1}`}
+        alt={illustrative ? "Illustrative hotel room" : `${room.name} — room photo ${index + 1}`}
         fill
         sizes={roomCoverSizes}
         quality={85}
@@ -80,6 +81,7 @@ function FeaturedStayCard({ room, href }: { room: FeaturedRoom; href: string }) 
         onError={() => onPhotoError(src)}
       />
       <span className="coast-room-photo-hint"><Expand size={12} aria-hidden="true" /> View full photo</span>
+      {illustrative && <span className="room-photo-source">Illustrative photo</span>}
     </RoomPhotoFigure> : <div className="coast-room-photo coast-room-photo-empty"><span>Room photos are currently unavailable.</span></div>}
     <div className="coast-room-copy">
       <h3 className="room-title"><Link href={href}>{room.name}</Link></h3>

@@ -114,8 +114,8 @@ describe("ReviewDepositTiles + ReviewStayCard passthrough", () => {
       />,
     );
     expect(screen.getByText("Ocean Suite")).toBeTruthy();
-    expect(screen.getByText("2026-09-16")).toBeTruthy();
-    expect(screen.getByText("2026-09-17")).toBeTruthy();
+    expect(screen.getByText("Sep 16, 2026")).toBeTruthy();
+    expect(screen.getByText("Sep 17, 2026")).toBeTruthy();
     // Nightly rate and stay total agree on a uniform single-night stay.
     expect(screen.getAllByText(byFullText("₱8,900")).length).toBe(2);
   });
@@ -155,8 +155,8 @@ describe("ReviewDepositTiles + ReviewStayCard passthrough", () => {
       />,
     );
     // Check-in date and the first per-night row share a label by design.
-    expect(screen.getAllByText("2026-09-16").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getAllByText("2026-09-17").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Sep 16, 2026").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("Sep 17, 2026").length).toBeGreaterThanOrEqual(1);
   });
   it("keeps the hold timer operating with the held-for label", () => {
     const expiresAt = new Date(Date.now() + 14 * 60 * 1000 + 57 * 1000).toISOString();

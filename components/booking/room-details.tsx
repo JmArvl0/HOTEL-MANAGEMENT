@@ -40,7 +40,8 @@ export function RoomTypeDetailsBody({ room, note, rateLine }: { room: AvailableR
           <>
             <RoomPhotoFigure photos={livePhotos} roomName={room.name} index={shownPos} onOpen={setLightbox} className="rd-photo-open">
               {/* eslint-disable-next-line @next/next/no-img-element -- plain <img>: CDN photos bypass the Next optimizer so they can't fail on allowlist/restart */}
-              <img className="rd-photo" src={src} alt={`${room.name} — room photo ${shownPos + 1} of ${live.length}`} onError={onImgError} loading="eager" />
+              <img className="rd-photo" src={src} alt={room.photos.some(url => url.trim()) ? `${room.name} — room photo ${shownPos + 1} of ${live.length}` : "Illustrative hotel room"} onError={onImgError} loading="eager" />
+              {!room.photos.some(url => url.trim()) && <small className="room-photo-source">Illustrative photo</small>}
             </RoomPhotoFigure>
             {live.length > 1 && (
               <>

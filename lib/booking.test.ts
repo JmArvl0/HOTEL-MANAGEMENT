@@ -27,7 +27,7 @@ describe("search intent (landing → /booking/search modes)",()=>{
     expect(reversed.mode==="browse"&&reversed.notice).toContain("after check-in");
     const tooMany=parseSearchIntent({checkIn:date(1),checkOut:date(2),guests:"99"});
     expect(tooMany.mode).toBe("browse");
-    expect(parseSearchIntent({checkIn:date(1)})).toEqual({mode:"browse"});
+    expect(parseSearchIntent({checkIn:date(1)})).toMatchObject({mode:"browse",correction:{field:"checkOut",checkIn:date(1),checkOut:""}});
   });
 });
 describe("stored transport lines (historical)",()=>{

@@ -30,4 +30,11 @@ describe("ConfirmationActions", () => {
     expect(links.map((link) => link.textContent?.trim())).toEqual(["Manage Reservation", "Go Home"]);
     expect(new Set(links.map((link) => link.getAttribute("href"))).size).toBe(2);
   });
+
+  it("offers the booking PDF only for a downloadable reservation", () => {
+    const { rerender } = render(<ConfirmationActions reservationId="reservation-123" />);
+    expect(screen.queryByRole("button", { name: "Download confirmation PDF" })).toBeNull();
+    rerender(<ConfirmationActions reservationId="reservation-123" canDownload />);
+    expect(screen.getByRole("button", { name: "Download confirmation PDF" })).toBeTruthy();
+  });
 });

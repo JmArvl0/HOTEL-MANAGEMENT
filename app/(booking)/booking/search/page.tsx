@@ -1,4 +1,5 @@
 import { getBookingTimezone } from "@/lib/booking";
+import { bookingCheckoutEnabled } from "@/lib/booking-checkout-policy";
 import { getServerSession } from "next-auth";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -69,6 +70,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const capacityCatalog = intent.mode === "browse" ? rooms : await Promise.resolve(getRoomCatalog()).catch(() => []);
   const maxGuests = bookingGuestCapacity(capacityCatalog);
   const availability = intent.mode === "availability" ? intent : undefined;
+  const checkoutOpen = !availability || await bookingCheckoutEnabled();
+  const correction = intent.mode === "browse" ? intent.correction : undefined;
+  const validation = correction && intent.mode === "browse" && intent.notice ? { field: correction.field, message: intent.notice } : undefined;
   const totalUnits = rooms.reduce((sum, room) => sum + ("availableUnits" in room ? room.availableUnits : 0), 0);
 
   const details = (roomType: string) => {
@@ -78,7 +82,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   };
   const formInitial = availability
     ? { ...availability, roomType: focusRoomType }
-    : { guests: Math.min(8, Math.max(1, Number(raw.guests) || 2)), roomType: focusRoomType };
+    : { checkIn: correction?.checkIn, checkOut: correction?.checkOut, guests: Math.min(99, Math.max(1, Math.trunc(Number(raw.guests)) || 2)), roomType: focusRoomType };
 
   return (
     <main className="booking-page room-search-page">
@@ -105,18 +109,17 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             </ol>
           </div>
         </div>
-        <StaySearchPanel className="booking-search-summary" initial={formInitial} maxGuests={maxGuests} searched={availability} timeZone={timeZone} />
+        <StaySearchPanel className="booking-search-summary" initial={formInitial} maxGuests={maxGuests} searched={availability} timeZone={timeZone} validation={validation} />
       </section>
 
       <div className="booking-content--premium">
         {raw.expired && availability && <BookingNoticeToast text="Your hold expired. Please pick from today’s live rooms." />}
         {raw.changed && availability && <BookingNoticeToast text="Rates or availability changed — here are the latest results." />}
-        {intent.mode === "browse" && intent.notice && <BookingNoticeToast text={`Your search needs attention — ${intent.notice.toLowerCase()}. Pick dates below to see live availability.`} />}
         {focusNotice && <BookingNoticeToast text={focusNotice} />}
 
         <div className="booking-layout">
           <div className="booking-results">
-            <div className="booking-results__head">
+            {(!availability || totalUnits > 0 || lookupError) && <div className="booking-results__head">
               <h2>
                 {lookupError ? "Unable to load rooms" : availability
                   ? rooms.length ? "Rooms for your dates" : "Choose different dates"
@@ -127,9 +130,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                   ? rooms.length ? `${rooms.length} room type${rooms.length !== 1 ? "s" : ""} · ${totalUnits} room${totalUnits !== 1 ? "s" : ""} available` : "No rooms available for these dates"
                   : `${rooms.length} room type${rooms.length !== 1 ? "s" : ""}`}
               </span>
-            </div>
+            </div>}
             {focusRoomType && <RoomFocus roomType={focusRoomType} searchKey={JSON.stringify(raw)} />}
-            <RoomResults depositPolicy={depositPolicy} rooms={rooms} error={lookupError} retryHref={`/booking/search${forwarded.size ? `?${forwarded}` : ""}`} hrefFor={details} focusRoomType={focusRoomType} />
+            <RoomResults depositPolicy={depositPolicy} rooms={rooms} error={lookupError} retryHref={`/booking/search${forwarded.size ? `?${forwarded}` : ""}`} hrefFor={details} focusRoomType={focusRoomType} searched={Boolean(availability)} checkoutOpen={checkoutOpen} />
           </div>
 
           <aside className="booking-sidebar" aria-label="Booking help">

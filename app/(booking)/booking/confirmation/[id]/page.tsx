@@ -1,11 +1,13 @@
 import { AmenitySnapshot } from "@/components/booking/amenity-snapshot";
-import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
 import { CheckCircle2, Clock3 } from "lucide-react";
-import { authOptions } from "@/lib/auth";
+import { getAuthenticatedSession } from "@/lib/authorization";
 import { BookingPageFrame } from "@/components/booking/booking-page-frame";
-import { calculateFinancialState, calculateNights, formatPeso, hotelToday, policyFromSnapshot } from "@/lib/booking";
-import { friendlyStatus, getCustomerReservationDetail } from "@/lib/customer";
+import { calculateNights, formatPeso, hotelToday, policyFromSnapshot } from "@/lib/booking";
+import { folioMoney, friendlyStatus, formatStayRange, getCustomerReservationDetail } from "@/lib/customer";
+import { formatStayDate } from "@/lib/format";
+import { summarizeCollections } from "@/lib/accounting";
+import { isBookingConfirmationStatus } from "@/lib/hotel-document-data";
 import { BreakfastEntry } from "@/components/customer/breakfast-entry";
 import { CheckInQr } from "@/components/customer/check-in-qr";
 import { ProofThumbnail } from "@/components/booking/proof-thumbnail";
@@ -25,7 +27,7 @@ export default async function ConfirmationPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ checkout?: string }>;
 }) {
-  const session = await getServerSession(authOptions);
+  const session = await getAuthenticatedSession();
   const { id } = await params;
   const returned = (await searchParams).checkout;
   if (!session) redirect(`/login?callbackUrl=${encodeURIComponent(`/booking/confirmation/${id}`)}`);
@@ -34,11 +36,11 @@ export default async function ConfirmationPage({
   const reservation = await getCustomerReservationDetail(session.user.id, id);
   if (!reservation) notFound();
 
-  const finance = calculateFinancialState(
-    reservation.invoice?.amount ?? reservation.total,
-    reservation.invoice?.paid ?? reservation.deposit ?? 0,
-  );
+  const finance = folioMoney(reservation);
   const confirmed = reservation.status === "confirmed";
+  const fulfilled = isBookingConfirmationStatus(reservation.status);
+  const completed = reservation.status === "checked_out";
+  const pending = reservation.status === "pending";
   const policy = policyFromSnapshot(reservation.deposit_policy_snapshot);
 
   const canArrangeRide = confirmed && reservation.check_out >= hotelToday();
@@ -59,12 +61,20 @@ export default async function ConfirmationPage({
   const paymentUnderReview = review?.data === true;
   const stayTotal = Number(reservation.total);
   const paidInFull = xendit && stayTotal > 0 && finance.paid >= stayTotal;
-  const terminal = reservation.status === "cancelled";
-  const manualDepositPending = !xendit && !terminal && depositPayment?.status === "pending_verification" &&
+  const terminal = reservation.status === "cancelled" || reservation.status === "no_show";
+  const collections = terminal ? summarizeCollections(reservation.payments) : null;
+  const checkoutExpired = reservation.status === "cancelled" && xendit &&
+    reservation.cancellation_reason === "Xendit sandbox checkout expired" &&
+    depositPayment?.status === "expired" && collections?.grossCollected === 0;
+  const settlement = reservation.invoice?.terminal_settlement as { feeAmount?: number } | null;
+  const refunds = reservation.refunds.filter((item) => ["pending", "failed", "processed"].includes(item.status));
+  const collected = terminal ? collections?.grossCollected ?? 0 : finance.paid;
+  const collectionAvailable = !terminal || collected > 0 || Boolean(settlement) || checkoutExpired;
+  const manualDepositPending = pending && !xendit && depositPayment?.status === "pending_verification" &&
     (depositPayment.method === "manual_gcash" || depositPayment.method === "manual_bank_transfer");
   let xenditHold: string | null = null;
   let checkoutAmount = Number(reservation.deposit_required ?? 0);
-  if (xendit && !confirmed && !terminal && supabase) {
+  if (xendit && pending && supabase) {
     const [hold, payment] = await Promise.all([
       supabase.from("booking_holds").select("token").eq("reservation_id", id).eq("user_id", session.user.id).maybeSingle(),
       supabase.from("payments").select("gateway_checkout_amount").eq("reservation_id", id).eq("purpose", "reservation_deposit").eq("payment_gateway", "xendit").maybeSingle(),
@@ -73,7 +83,7 @@ export default async function ConfirmationPage({
     checkoutAmount = Number(payment.data?.gateway_checkout_amount ?? checkoutAmount);
   }
   const gatewayPending =
-    !confirmed && !terminal &&
+    pending &&
     (reservation.payment_method === "gateway_paymongo" ||
       depositPayment?.method === "gateway_paymongo");
 
@@ -92,17 +102,23 @@ export default async function ConfirmationPage({
   return (
     <BookingPageFrame
       session={session}
-      step={confirmed ? "Confirmed" : terminal ? xendit ? "Checkout expired" : "Cancelled" : "Verification pending"}
+      step={checkoutExpired ? "Checkout expired" : pending ? "Payment" : friendlyStatus(reservation.status)}
       breadcrumb={breadcrumb}
     >
       <section className="confirmation-card deposit-confirmation">
-        {confirmed ? <CheckCircle2 /> : <Clock3 />}
-        <p>{xendit ? "Xendit sandbox · Test mode · No real money" : confirmed ? "Reservation confirmed" : terminal ? "Reservation cancelled" : manualDepositPending ? "Unsettled legacy payment" : "Reservation pending"}</p>
+        {fulfilled || completed ? <CheckCircle2 /> : <Clock3 />}
+        {xendit && pending && <p>Xendit sandbox · Test mode · No real money</p>}
         <h1>
           {confirmed
             ? "Your Haven stay is reserved."
+            : reservation.status === "checked_in"
+            ? "You’re checked in."
+            : reservation.status === "checked_out"
+            ? "Your Haven stay is complete."
+            : reservation.status === "no_show"
+            ? "This reservation was closed as a no-show."
             : terminal
-            ? xendit ? "This checkout has expired." : "This reservation was cancelled."
+            ? checkoutExpired ? "This checkout has expired." : "This reservation was cancelled."
             : xendit && returned === "cancelled"
             ? "Checkout was not completed."
             : xendit
@@ -114,10 +130,12 @@ export default async function ConfirmationPage({
         <p>
           {confirmed
             ? paidInFull ? "Haven verified your full stay payment." : "Haven verified your reservation deposit."
-            : xendit && terminal
+            : checkoutExpired
             ? "Your reservation is not confirmed and its temporary room hold has been released. Choose an available room to try again. Contact the hotel if you completed a simulated payment."
             : terminal
             ? "View your reservation for its cancellation and payment details."
+            : fulfilled || completed
+            ? "Manage your stay or review your booking and payment details."
             : xendit
             ? "Returning from checkout does not confirm payment. This page updates after Haven verifies Xendit’s notification. You can safely retry to reopen an existing checkout."
             : gatewayPending
@@ -127,10 +145,10 @@ export default async function ConfirmationPage({
             : "Check your reservation for the latest payment status and available actions."}
         </p>
         {manualDepositPending && <Link className="btn btn-soft" href="/account/help">Contact Front Desk</Link>}
-        {!confirmed && !terminal && !manualDepositPending && <PaymentStatusPoller reservationId={reservation.id} status={reservation.status} />}
+        {pending && !manualDepositPending && <PaymentStatusPoller reservationId={reservation.id} status={reservation.status} />}
         {paymentUnderReview && <p role="status" className="booking-error">Accounting is reviewing your Xendit payment. Contact Front Desk with your booking reference before paying again.</p>}
         {xenditHold && !paymentUnderReview && <XenditCheckout holdToken={xenditHold} amount={checkoutAmount} retry />}
-        {xendit && terminal && !paymentUnderReview && <Link className="btn btn-accent" href={`/account/find-room?${new URLSearchParams({ checkIn: reservation.check_in, checkOut: reservation.check_out, guests: String(reservation.guests) })}`}>Retry payment with a new room hold</Link>}
+        {checkoutExpired && !paymentUnderReview && <Link className="btn btn-accent" href={`/account/find-room?${new URLSearchParams({ checkIn: reservation.check_in, checkOut: reservation.check_out, guests: String(reservation.guests) })}`}>Find another room</Link>}
         {gatewayPending && (
           <GatewayPendingActions
             reservationId={reservation.id}
@@ -148,7 +166,7 @@ export default async function ConfirmationPage({
           <div>
             <dt>Dates</dt>
             <dd>
-              {reservation.check_in} - {reservation.check_out}
+              {formatStayRange(reservation.check_in, reservation.check_out)}
             </dd>
           </div>
           <div>
@@ -161,15 +179,23 @@ export default async function ConfirmationPage({
             <dt>Folio total</dt>
             <dd>{formatPeso(finance.total)}</dd>
           </div>
-          <div>
+          {!terminal && <div>
             <dt>Required reservation deposit</dt>
             <dd>{formatPeso(reservation.deposit_required ?? 0)}</dd>
-          </div>
+          </div>}
           {manualDepositPending && <div><dt>Previously submitted</dt><dd>{formatPeso(depositPayment.amount)}</dd></div>}
           <div>
-            <dt>{xendit ? "Amount paid" : "Deposit paid"}</dt>
-            <dd>{formatPeso(finance.paid)}</dd>
+            <dt>{terminal ? "Original payments collected" : xendit ? "Amount paid" : "Deposit paid"}</dt>
+            <dd>{collectionAvailable ? formatPeso(collected) : "Unavailable in guest records"}</dd>
           </div>
+          {terminal && typeof settlement?.feeAmount === "number" && <div>
+            <dt>{reservation.status === "no_show" ? "No-show fee assessed" : "Cancellation fee assessed"}</dt>
+            <dd>{formatPeso(settlement.feeAmount)}</dd>
+          </div>}
+          {terminal && refunds.map((refund) => <div key={refund.id}>
+            <dt>{refund.status === "processed" ? "Refund issued" : "Eligible refund"}</dt>
+            <dd>{formatPeso(refund.eligible_amount)} · {refund.status === "processed" ? "Processed" : refund.status === "failed" ? "Needs review" : "Pending processing"}</dd>
+          </div>)}
           <div>
             <dt>Remaining balance</dt>
             <dd>{formatPeso(finance.balance)}</dd>
@@ -183,7 +209,7 @@ export default async function ConfirmationPage({
             <dd>{manualDepositPending ? "Unsettled legacy payment" : friendlyStatus(reservation.invoice?.status ?? reservation.payment_status)}</dd>
           </div>
           {xendit && depositPayment && <div><dt>{depositPayment.status === "paid" ? "Transaction reference" : "Payment reference"}</dt><dd>{depositPayment.reference}</dd></div>}
-          {xendit && !confirmed && !terminal && reservation.payment_due_at && <div><dt>Sandbox checkout deadline</dt><dd>{new Date(reservation.payment_due_at).toLocaleString("en-PH", { timeZone: "Asia/Manila", dateStyle: "medium", timeStyle: "short" })} (Philippine time)</dd></div>}
+          {xendit && pending && reservation.payment_due_at && <div><dt>Sandbox checkout deadline</dt><dd>{new Date(reservation.payment_due_at).toLocaleString("en-PH", { timeZone: "Asia/Manila", dateStyle: "medium", timeStyle: "short" })} (Philippine time)</dd></div>}
           {depositPayment?.proof_original_name && (
             <div>
               <dt>Payment proof</dt>
@@ -201,8 +227,8 @@ export default async function ConfirmationPage({
             {ride ? <>
               <h2>{ride.status === "REQUESTED" ? "Transportation request submitted" : "Transportation"}</h2>
               <p><strong>{SERVICE_TYPE_LABELS[ride.service_type]}</strong>{!ride.rideUpdates.length && ` · ${TRANSPORTATION_STATUS_LABELS[ride.status]}`}</p>
-              <p>{ride.pickup_location} → {ride.dropoff_location} · {ride.pickup_date} at {ride.pickup_time}</p>
-              {ride.return_location && <p>{ride.dropoff_location} → {ride.return_location} · {ride.return_date} at {ride.return_time}</p>}
+              <p>{ride.pickup_location} → {ride.dropoff_location} · {formatStayDate(ride.pickup_date)} at {ride.pickup_time}</p>
+              {ride.return_location && ride.return_date && <p>{ride.dropoff_location} → {ride.return_location} · {formatStayDate(ride.return_date)} at {ride.return_time}</p>}
               {ride.rideUpdates.map(({ leg, status }) => <p key={leg}>{leg === "RETURN" ? "Return ride" : "Outbound ride"} · {FLEET_RIDE_STATUS_LABELS[status]}</p>)}
               {ride.status === "REQUESTED" && <p>{ride.fleetDelivery === "pending"
                 ? "We’re sending your request to Fleet. The confirmed fare will appear on your folio."
@@ -223,7 +249,7 @@ export default async function ConfirmationPage({
             </>}
           </section>
         ) : null}
-        <p className="remaining-policy">Remaining balance due: {policy.remainingBalanceDue}.</p>
+        {!terminal && finance.balance > 0 && <p className="remaining-policy">Remaining balance due: {policy.remainingBalanceDue}.</p>}
         <p className="remaining-policy">
           Rates are VAT-inclusive — service charge and VAT are itemised on your official receipt and folio statement.
         </p>
@@ -231,7 +257,7 @@ export default async function ConfirmationPage({
           <CheckInQr reservationId={reservation.id} confirmationNumber={reservation.confirmation_number} />
         )}
         <BreakfastEntry id={reservation.id} snapshot={reservation.breakfast_snapshot} status={reservation.status} />
-        <AmenitySnapshot value={reservation.amenity_snapshot} /><ConfirmationActions reservationId={reservation.id} />
+        <AmenitySnapshot value={reservation.amenity_snapshot} /><ConfirmationActions reservationId={reservation.id} canDownload={fulfilled} />
       </section>
     </BookingPageFrame>
   );

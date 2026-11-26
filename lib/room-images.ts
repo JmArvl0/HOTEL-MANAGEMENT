@@ -49,7 +49,8 @@ export function roomPrimaryPhoto(name: string): string | undefined {
 
 /** Room photos for a type: DB-backed gallery wins; falls back to the stock map by room name. */
 export function roomPhotosFor(photos?: string[], name?: string): string[] {
-  return photos && photos.length > 0 ? photos : roomPhotos(name ?? "");
+  const managed = photos?.filter(url => url.trim());
+  return managed?.length ? managed : roomPhotos(name ?? "");
 }
 
 /** Primary display image for a room type, honouring DB photos first. */

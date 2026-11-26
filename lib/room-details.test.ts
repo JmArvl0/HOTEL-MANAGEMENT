@@ -51,7 +51,7 @@ describe("room details modal", () => {
     // the matrix source, and the dashboard only wires it in.
     expect(roomMatrix).toContain("View room details for Room");
     expect(roomMatrix).toContain('event.key === "Enter"');
-    expect(roomMatrix).toContain("event.stopPropagation(); onAdvanceStatus(item)");
+    expect(roomMatrix).not.toContain("onAdvanceStatus");
     expect(dashboard).toContain("<UnifiedRoomMatrix");
   });
   it("uses accessible tabs and the required blocked-room copy", () => {

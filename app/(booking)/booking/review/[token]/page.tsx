@@ -1,9 +1,8 @@
 import { AmenitySnapshot } from "@/components/booking/amenity-snapshot";
 import Link from "next/link";
-import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
 import { ArrowRight, Clock3 } from "lucide-react";
-import { authOptions } from "@/lib/auth";
+import { getAuthenticatedSession } from "@/lib/authorization";
 import { supabase } from "@/lib/supabase";
 import { BookingPageFrame } from "@/components/booking/booking-page-frame";
 import { ReviewDepositTiles, ReviewGuestCard, ReviewStayCard } from "@/components/booking/booking-review";
@@ -17,7 +16,7 @@ import { SERVICE_TYPE_LABELS, type TransportationPreferences } from "@/lib/trans
 type TransportLineRow = { name: string; price: number | string; note?: string | null };
 
 export default async function ReviewPage({ params }: { params: Promise<{ token: string }> }) {
-  const session = await getServerSession(authOptions); const { token } = await params;
+  const session = await getAuthenticatedSession(); const { token } = await params;
   if (!session) redirect(`/login?booking=1&callbackUrl=${encodeURIComponent(`/booking/review/${token}`)}`); if(session.user.role!=="guest")redirect("/manager_dashboard");
   const hold = await getOwnedHold(token, session.user.id); if (!hold) notFound();
   if (hold.status === "payment_submitted" && hold.reservation_id) redirect(`/booking/confirmation/${hold.reservation_id}`);

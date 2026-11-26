@@ -1,4 +1,5 @@
 import { getBookingTimezone } from "@/lib/booking";
+import { bookingCheckoutEnabled } from "@/lib/booking-checkout-policy";
 import { BookingNoticeToast } from "@/components/booking/booking-notice-toast";
 import { StaySearchPanel } from "@/components/booking/stay-search-panel";
 import { RoomResults } from "@/components/booking/room-results";
@@ -52,17 +53,19 @@ export default async function FindRoomPage({ searchParams }: { searchParams: Pro
   }
   if (focusRoomType) rooms = [...rooms.filter((room) => room.name === focusRoomType), ...rooms.filter((room) => room.name !== focusRoomType)];
   const availability = intent.mode === "availability" ? intent : undefined;
+  const checkoutOpen = !availability || await bookingCheckoutEnabled();
+  const correction = intent.mode === "browse" ? intent.correction : undefined;
+  const validation = correction && intent.mode === "browse" && intent.notice ? { field: correction.field, message: intent.notice } : undefined;
   const maxGuests = bookingGuestCapacity(availability ? await getRoomCatalog().catch(() => []) : rooms);
   const details = (roomType: string) => availability
     ? `/booking/rooms/${encodeURIComponent(roomType)}?${new URLSearchParams({ roomType, checkIn: availability.checkIn, checkOut: availability.checkOut, guests: String(availability.guests) })}`
     : `/booking/rooms/${encodeURIComponent(roomType)}`;
   const formInitial = availability
     ? { ...availability, roomType: focusRoomType }
-    : { guests: Math.min(8, Math.max(1, Number(raw.guests) || 2)), roomType: focusRoomType };
+    : { checkIn: correction?.checkIn, checkOut: correction?.checkOut, guests: Math.min(99, Math.max(1, Math.trunc(Number(raw.guests)) || 2)), roomType: focusRoomType };
   return <><section className="customer-page-title"><p className="eyebrow">Reserve your stay</p><h1>Find a Room</h1><p>{availability ? "Live availability from Haven's room inventory." : "Browse Haven's room types, then choose your dates to see live availability."}</p></section>
-  {intent.mode === "browse" && intent.notice && <BookingNoticeToast text={`Your search needs attention — ${intent.notice.toLowerCase()}. Pick dates below to see live availability.`} />}
   {focusNotice && <BookingNoticeToast text={focusNotice} />}
-  <StaySearchPanel className="portal-stay-search" action={FIND_ROOM_PATH} initial={formInitial} maxGuests={maxGuests} searched={availability} timeZone={timeZone}/>
+  <StaySearchPanel className="portal-stay-search" action={FIND_ROOM_PATH} initial={formInitial} maxGuests={maxGuests} searched={availability} timeZone={timeZone} validation={validation}/>
   {focusRoomType && <RoomFocus roomType={focusRoomType} searchKey={JSON.stringify(raw)}/>}
-  <RoomResults depositPolicy={depositPolicy} rooms={rooms} error={lookupError} retryHref={`${FIND_ROOM_PATH}${retryQuery.size ? `?${retryQuery}` : ""}`} hrefFor={details} focusRoomType={focusRoomType}/></>;
+  <RoomResults depositPolicy={depositPolicy} rooms={rooms} error={lookupError} retryHref={`${FIND_ROOM_PATH}${retryQuery.size ? `?${retryQuery}` : ""}`} hrefFor={details} focusRoomType={focusRoomType} searched={Boolean(availability)} checkoutOpen={checkoutOpen} contactHref="/account/help"/></>;
 }

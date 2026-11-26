@@ -4,6 +4,7 @@ import { z } from "zod";
 import { fleetOptionsSchema, validateFleetVehiclePreference } from "@/lib/fleet-pickup-input";
 import { formatPeso } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
+import { readAllRows } from "@/lib/read-all-rows";
 import { nightlyRates, stayTotal, uniformRate, fromRate, type RatePlan } from "@/lib/rate-plans";
 
 export const BLOCKING_RESERVATION_STATUSES = ["pending", "confirmed", "checked_in"] as const;
@@ -52,10 +53,10 @@ export async function getBookingTimezone() {
   return typeof data?.hotel_timezone === "string" ? data.hotel_timezone : "Asia/Manila";
 }
 
-export const searchSchemaFor = (today = hotelToday()) => z.object({
+export const searchSchemaFor = (today = hotelToday(), maxGuests = 8) => z.object({
   checkIn: calendarDate,
   checkOut: calendarDate,
-  guests: integerInput(1, 8),
+  guests: integerInput(1, maxGuests),
 }).superRefine((value, ctx) => {
   if (value.checkIn < today) ctx.addIssue({ code: "custom", path: ["checkIn"], message: "Check-in cannot be in the past." });
   if (Date.parse(value.checkIn) - Date.parse(today) > 730 * 86400000) ctx.addIssue({ code: "custom", path: ["checkIn"], message: "Choose a check-in within the next 730 days." });
@@ -141,7 +142,7 @@ export type GuestDetailsInput = z.infer<typeof guestDetailsSchema>;
 export type AvailableRoomType = {
   id: string; name: string; description: string; maxGuests: number; beds: string;
   sizeSqm: number | null; amenities: string[]; nightlyRate: number; nights: number;
-  subtotal: number; availableUnits: number; photos: string[];
+  subtotal: number; availableUnits: number; photos: string[]; rateVaries?: boolean;
 };
 
 /** A catalog room type with no date context — browse mode. Never carries availability. */
@@ -162,18 +163,22 @@ export function bookingGuestCapacity(rooms: readonly { maxGuests: number }[] | u
  */
 export type SearchIntent =
   | { mode: "availability"; checkIn: string; checkOut: string; guests: number; roomType?: string }
-  | { mode: "browse"; roomType?: string; notice?: string };
+  | { mode: "browse"; roomType?: string; notice?: string; correction?: { field: "checkIn" | "checkOut" | "guests"; checkIn?: string; checkOut?: string } };
 
 export function parseSearchIntent(raw: Record<string, string | string[] | undefined>, today = hotelToday()): SearchIntent {
   const single = (key: string) => (typeof raw[key] === "string" ? (raw[key] as string) : undefined);
   const roomType = single("roomType");
   const checkIn = single("checkIn");
   const checkOut = single("checkOut");
-  if (!checkIn || !checkOut) return { mode: "browse", roomType };
+  if (!checkIn && !checkOut) return { mode: "browse", roomType };
   const parsed = searchSchemaFor(today).safeParse({ checkIn, checkOut, guests: single("guests") ?? 2 });
   if (parsed.success) return { mode: "availability", ...parsed.data, roomType };
   // Invalid dates/guests fall back to a safe browse state; the first issue becomes the notice.
-  return { mode: "browse", roomType, notice: validationMessage(parsed.error) };
+  const path = parsed.error.issues[0]?.path[0];
+  const field = path === "checkIn" || path === "guests" ? path : "checkOut";
+  return { mode: "browse", roomType, notice: validationMessage(parsed.error), correction: {
+    field, checkIn: checkIn && isCalendarDate(checkIn) ? checkIn : "", checkOut: checkOut && isCalendarDate(checkOut) ? checkOut : "",
+  } };
 }
 
 export function calculateNights(checkIn: string, checkOut: string) {
@@ -307,10 +312,10 @@ export function countAvailableUnits(
   return Math.max(0, inventory - peak);
 }
 
-export async function getAvailability(input: SearchInput, retryTransientAuth = true): Promise<AvailableRoomType[]> {
+export async function getAvailability(input: SearchInput, retryTransientAuth = true, maxGuests = 8): Promise<AvailableRoomType[]> {
   if (!supabase) return [];
   const hotelTz = await getBookingTimezone();
-  const parsed = searchSchemaFor(hotelToday(hotelTz)).safeParse(input);
+  const parsed = searchSchemaFor(hotelToday(hotelTz), maxGuests).safeParse(input);
   if (!parsed.success) return [];
   const { checkIn, checkOut, guests } = parsed.data;
   const now = new Date().toISOString();
@@ -326,7 +331,7 @@ export async function getAvailability(input: SearchInput, retryTransientAuth = t
   if (queryError) {
     if (retryTransientAuth && queryError.code === "PGRST303") {
       await new Promise((resolve) => setTimeout(resolve, 300));
-      return getAvailability(input, false);
+      return getAvailability(input, false, maxGuests);
     }
     throw new Error(`Availability query failed${queryError.code ? ` (${queryError.code})` : ""}`);
   }
@@ -338,9 +343,10 @@ export async function getAvailability(input: SearchInput, retryTransientAuth = t
   return (types ?? []).map((type) => {
     const typePlans = ((plans ?? []) as RatePlan[]).filter((plan) => plan.room_type_id === type.id);
     const perNight = nightlyRates(type.base_rate, typePlans, checkIn, checkOut);
-    const rate = uniformRate(perNight) ?? Math.min(...perNight.map((night) => night.rate));
+    const uniform = uniformRate(perNight);
+    const rate = uniform ?? Math.min(...perNight.map((night) => night.rate));
     const subtotal = stayTotal(perNight);
-    return { id: type.id, name: type.name, description: type.description, maxGuests: type.max_guests, beds: type.beds, sizeSqm: type.size_sqm, amenities: Array.isArray(type.amenities) ? type.amenities.map(String) : [], nightlyRate: rate, nights, subtotal, availableUnits: countAvailableUnits(type.name, window, rows), photos: Array.isArray(type.photo_urls) ? type.photo_urls.map(String) : [] };
+    return { id: type.id, name: type.name, description: type.description, maxGuests: type.max_guests, beds: type.beds, sizeSqm: type.size_sqm, amenities: Array.isArray(type.amenities) ? type.amenities.map(String) : [], nightlyRate: rate, rateVaries: uniform == null, nights, subtotal, availableUnits: countAvailableUnits(type.name, window, rows), photos: Array.isArray(type.photo_urls) ? type.photo_urls.map(String) : [] };
   // Sold-out types stay visible as Unavailable (Select disabled downstream) instead
   // of vanishing: available first, cheapest first within each group.
   }).sort((a, b) => Number(b.availableUnits > 0) - Number(a.availableUnits > 0) || a.nightlyRate - b.nightlyRate);
@@ -393,7 +399,7 @@ export async function getGuestProfile(userId: string, email?: string | null) {
 }
 
 export async function getOwnedHold(token: string, userId: string) {
-  if (!supabase || !z.string().uuid().safeParse(token).success) return null;
+  if (!supabase || !z.guid().safeParse(token).success) return null;
   await supabase.rpc("expire_booking_holds");
   const { data, error } = await supabase.from("booking_holds").select("*").eq("token", token).eq("user_id", userId).maybeSingle();
   if (error) throw new Error("Could not load the booking hold.", { cause: error });
@@ -413,14 +419,17 @@ export async function getActiveGuestHolds(userId: string) {
   return data ?? [];
 }
 
-const reservationColumns = "id,confirmation_number,guest_name,guest_email,room_type,room_number,check_in,check_out,guests,status,total,deposit,deposit_required,deposit_policy_snapshot,payment_due_at,payment_status,payment_method,source,special_requests,request_options,transport_lines,transportation_preferences,expected_arrival,created_at";;
+const reservationColumns = "id,confirmation_number,guest_name,guest_email,room_type,room_number,check_in,check_out,guests,status,total,deposit,deposit_required,deposit_policy_snapshot,payment_due_at,payment_status,payment_method,source,special_requests,request_options,transport_lines,transportation_preferences,expected_arrival,created_at";
 
-export async function getGuestReservations(userId: string) {
-  if (!supabase) return [];
-  await supabase.rpc("expire_booking_holds");
-  const { data, error } = await supabase.from("reservations").select(reservationColumns).eq("user_id", userId).order("check_in", { ascending: false });
-  if (error) throw error;
-  return data ?? [];
+export async function getGuestReservations(userId: string, statuses?: readonly string[]) {
+  const client = supabase;
+  if (!client) return [];
+  await client.rpc("expire_booking_holds");
+  return readAllRows(() => {
+    const query = client.from("reservations").select(reservationColumns)
+      .eq("user_id", userId).order("check_in", { ascending: false });
+    return statuses ? query.in("status", statuses) : query;
+  });
 }
 
 export async function getGuestReservation(userId: string, id: string) {

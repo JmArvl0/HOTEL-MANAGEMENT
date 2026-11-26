@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { ArrowRight, BedDouble, Check, Ruler, Users } from "lucide-react";
 import { publicDepositEstimate } from "@/lib/public-booking-information";
 import { formatPeso } from "@/lib/format";
@@ -8,6 +7,7 @@ import { RoomDetailsButton } from "@/components/booking/room-details";
 import { ChooseDatesButton } from "@/components/booking/choose-dates-button";
 import { RoomPhotoTrigger } from "@/components/booking/room-photo-lightbox";
 import { roomPhotosFor, roomPrimary } from "@/lib/room-images";
+import { RoomPhoto } from "@/components/booking/room-photo";
 
 /** Max amenities shown on the card; overflow collapses to a "+N more" note. */
 const CARD_AMENITY_LIMIT = 4;
@@ -22,6 +22,9 @@ export function RoomResults({
   hrefFor,
   focusRoomType,
   depositPolicy,
+  searched,
+  checkoutOpen = true,
+  contactHref = "/#contact",
 }: {
   rooms: (AvailableRoomType | RoomTypeSummary)[];
   error?: string;
@@ -29,10 +32,20 @@ export function RoomResults({
   hrefFor: (roomType: string) => string;
   focusRoomType?: string;
   depositPolicy?: DepositPolicy;
+  searched?: boolean;
+  checkoutOpen?: boolean;
+  contactHref?: string;
 }) {
   if (error) return <div className="booking-empty" role="alert"><h2>Room lookup unavailable</h2><p>{error}</p>{retryHref && <a className="btn btn-accent" href={retryHref}>Retry availability</a>}</div>;
+  if (searched && !rooms.some(room => "availableUnits" in room && room.availableUnits > 0)) return (
+    <div className="booking-empty" role="status"><BedDouble aria-hidden="true" /><h2>No rooms available for this stay</h2>
+      <p>Try different dates or change your party size. Front Desk can help with alternatives.</p>
+      <div className="room-actions"><ChooseDatesButton label="Edit stay dates" /><Link className="btn btn-soft" href={contactHref}>Contact Front Desk</Link></div>
+    </div>
+  );
   if (rooms.length === 0) return <div className="booking-empty"><BedDouble/><h2>No rooms available</h2><p>Try different dates or fewer guests. Your search details have been preserved.</p></div>;
-  return <div className="availability-grid">{rooms.map((room, index) => {
+  return <>{searched && !checkoutOpen && <p className="booking-checkout-notice" role="status">Online checkout is unavailable. <Link href={contactHref}>Contact Front Desk to book an available room.</Link></p>}
+  <div className="availability-grid">{rooms.map((room, index) => {
     const priced = "availableUnits" in room;
     const deposit = priced && depositPolicy ? publicDepositEstimate(room.subtotal, depositPolicy) : null;
     const soldOut = priced && room.availableUnits <= 0;
@@ -47,8 +60,9 @@ export function RoomResults({
       data-room-type={room.name}
     >
       <div className={`available-room-image${photo ? " room-photo" : ""}`}>
-        {photo ? <Image src={photo} alt={`${room.name} room`} fill sizes="(max-width: 760px) 100vw, 420px" /> : null}
+        {photo ? <RoomPhoto src={photo} alt={room.photos.length ? `${room.name} room type` : "Illustrative hotel room"} fill sizes="(max-width: 760px) 100vw, 420px" /> : null}
         {photo ? <RoomPhotoTrigger photos={roomPhotosFor(room.photos, room.name)} roomName={room.name} /> : null}
+        {photo && room.photos.length === 0 && <small className="room-photo-source">Illustrative photo</small>}
         <span className={`room-availability-chip${chipModifier}`}>{priced ? (soldOut ? "Unavailable" : `${room.availableUnits} available`) : "Check dates"}</span>
         {room.photos.length > 1 ? <small className="room-photo-count">{room.photos.length} photos</small> : null}
       </div>
@@ -62,7 +76,7 @@ export function RoomResults({
           {priced ? (
             <span className="room-price">
               <em className="room-price-total">{formatPeso(room.subtotal)} estimated total</em>
-              <small className="room-price-nights">{room.nights} {room.nights === 1 ? "night" : "nights"} · <span>{formatPeso(room.nightlyRate)}</span> / night</small>
+              <small className="room-price-nights">{room.nights} {room.nights === 1 ? "night" : "nights"} · {room.rateVaries && "From "}<span>{formatPeso(room.nightlyRate)}</span> / night</small>
               {deposit !== null && <small className="room-deposit-estimate">{formatPeso(deposit)} estimated deposit</small>}
             </span>
           ) : (
@@ -83,5 +97,5 @@ export function RoomResults({
         </div>
       </div>
     </article>;
-  })}</div>;
+  })}</div></>;
 }

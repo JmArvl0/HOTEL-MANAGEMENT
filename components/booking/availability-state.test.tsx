@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const lookup = vi.hoisted(() => ({ availability: vi.fn(), catalog: vi.fn() }));
 vi.mock("next-auth", () => ({ getServerSession: async () => null }));
 vi.mock("@/lib/auth", () => ({ authOptions: {} }));
+vi.mock("@/lib/booking-checkout-policy", () => ({ bookingCheckoutEnabled: async () => true }));
 vi.mock("@/components/landing/public-website-nav", () => ({ PublicWebsiteNav: () => null }));
 vi.mock("@/components/booking/booking-search-form", () => ({ BookingSearchForm: () => <form aria-label="Stay search" /> }));
 vi.mock("@/components/booking/back-button", () => ({ BackButton: () => null }));
@@ -31,8 +32,8 @@ describe("public search distinguishes failed inventory from sold out", () => {
   });
   it("shows sold out only after a successful empty lookup", async () => {
     await show();
-    expect(screen.getByText("No rooms available for these dates")).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Choose different dates" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "No rooms available for this stay" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Edit stay dates" })).toBeTruthy();
     expect(screen.queryByRole("link", { name: "Retry availability" })).toBeNull();
   });
   it("shows actual inventory after a successful nonzero lookup", async () => {

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useId, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import Link from "next/link";
 import { StayCalendar } from "./stay-calendar";
 import { ArrowRight, CalendarDays, ChevronDown, UsersRound } from "lucide-react";
@@ -15,6 +15,7 @@ export function BookingSearchForm({
   searched,
   maxGuests = 8,
   timeZone = "Asia/Manila",
+  validation,
 }: {
   initial?: { checkIn?: string; checkOut?: string; guests?: number; roomType?: string };
   compact?: boolean;
@@ -30,6 +31,7 @@ export function BookingSearchForm({
   searched?: { checkIn: string; checkOut: string; guests: number };
   maxGuests?: number;
   timeZone?: string;
+  validation?: { field: "checkIn" | "checkOut" | "guests"; message: string };
 }) {
   const id = useId();
   const today = useMemo(() => {
@@ -52,6 +54,13 @@ export function BookingSearchForm({
   const [guests, setGuests] = useState(initial?.guests ?? Math.min(maxGuests, 2));
   const [submitting, setSubmitting] = useState(false);
   const [dateError, setDateError] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
+  const [serverError, setServerError] = useState(validation);
+  useEffect(() => {
+    if (!validation) return;
+    const field = formRef.current?.elements.namedItem(validation.field);
+    if (field instanceof HTMLElement) field.focus();
+  }, [validation]);
   useEffect(() => {
     onIntentChange?.({ checkIn, checkOut, guests });
   }, [checkIn, checkOut, guests, onIntentChange]);
@@ -72,6 +81,12 @@ export function BookingSearchForm({
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
+    if (!hero && guests > maxGuests) {
+      event.preventDefault();
+      setServerError({ field: "guests", message: `Choose up to ${maxGuests} guests for one room.` });
+      event.currentTarget.querySelector<HTMLSelectElement>('select[name="guests"]')?.focus();
+      return;
+    }
     if (hero && (checkIn < today || checkOut <= checkIn)) {
       event.preventDefault();
       const missingField = checkIn < today ? "checkIn" : "checkOut";
@@ -86,10 +101,12 @@ export function BookingSearchForm({
     setCheckIn(start);
     setCheckOut(end);
     setDateError("");
+    if (serverError?.field !== "guests") setServerError(undefined);
   }} />;
   const guestSelect = (
-    <select id={`${id}-guests`} name="guests" value={guests} onChange={(event) => setGuests(Number(event.target.value))} required aria-required="true">
-      {Array.from({ length: Math.min(20, Math.max(maxGuests, initial?.guests ?? 1)) }, (_, i) => i + 1).map((count) => (
+    <select id={`${id}-guests`} name="guests" value={guests} onChange={(event) => setGuests(Number(event.target.value))} required aria-required="true" aria-invalid={serverError?.field === "guests" || undefined} aria-describedby={serverError?.field === "guests" ? `${id}-error` : undefined}>
+      {guests > maxGuests && <option value={guests} disabled>{guests} guests</option>}
+      {Array.from({ length: maxGuests }, (_, i) => i + 1).map((count) => (
         <option value={count} key={count}>{count} guest{count > 1 ? "s" : ""}</option>
       ))}
     </select>
@@ -124,10 +141,15 @@ export function BookingSearchForm({
   return (
     <form
       className={compact ? "booking-search compact" : "booking-bar"}
+      ref={formRef}
       action={action}
       method="get"
       aria-label="Check availability"
       onSubmit={submit}
+      onChange={(event) => {
+        const name = (event.target as HTMLInputElement).name;
+        if (serverError && (name === serverError.field || (serverError.field === "checkOut" && name === "checkIn"))) setServerError(undefined);
+      }}
     >
       {calendar}
       {stale && !submitting ? <BookingNoticeToast text="Your dates changed — check availability again for current counts." /> : null}
@@ -144,6 +166,8 @@ export function BookingSearchForm({
           onChange={changeCheckIn}
           required
           aria-required="true"
+          aria-invalid={serverError?.field === "checkIn" || undefined}
+          aria-describedby={serverError?.field === "checkIn" ? `${id}-error` : undefined}
         />
       </label>
       <label htmlFor={`${id}-checkout`}>
@@ -158,12 +182,15 @@ export function BookingSearchForm({
           onChange={(event) => setCheckOut(event.currentTarget.value)}
           required
           aria-required="true"
+          aria-invalid={serverError?.field === "checkOut" || undefined}
+          aria-describedby={serverError?.field === "checkOut" ? `${id}-error` : undefined}
         />
       </label>
       <label htmlFor={`${id}-guests`}>
         Guests
         {guestSelect}
       </label>
+      {serverError && <p id={`${id}-error`} role="alert" className="booking-error booking-search-feedback">{serverError.message}</p>}
       {submitButton}
       {partyHelp}
     </form>
