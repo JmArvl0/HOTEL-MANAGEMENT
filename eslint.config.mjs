@@ -16,6 +16,7 @@ const config = [
       ".opencode/**",
       "public/prototypes/**",
       ".tmp/**",
+      ".next-guest-preview/**",
       ".next/**"
     ]
   },

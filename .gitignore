@@ -15,6 +15,7 @@ node_modules
 
 # local visual verification captures
 tmp-shots/
+/output/pdf/haven-hotel-pdf-templates.pdf
 
 # Playwright
 playwright-report/
