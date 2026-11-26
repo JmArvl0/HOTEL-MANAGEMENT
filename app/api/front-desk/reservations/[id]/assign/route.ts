@@ -1,3 +1,49 @@
-import { publicJson } from "@/lib/server-errors";
+import { getServerSession } from "next-auth";
+import { z } from "zod";
+
+import { authOptions } from "@/lib/auth";
 import { validationBody } from "@/lib/errors";
-import{getServerSession}from"next-auth";import{z}from"zod";import{authOptions}from"@/lib/auth";import{supabase}from"@/lib/supabase";const allowed=new Set(["front_desk"]);const schema=z.object({room:z.string().trim().min(1).max(40),reason:z.string().trim().max(300).optional()});export async function POST(request:Request,{params}:{params:Promise<{id:string}>}){const session=await getServerSession(authOptions);if (!session || session.user.disabled || session.user.otpPending)return publicJson({error:"Please sign in to continue."},{status:401});if(!allowed.has(session.user.role))return publicJson({error:"Room assignment access required."},{status:403});if(!supabase)return publicJson({error:"This service is temporarily unavailable. Please try again shortly."},{status:503});const parsed=schema.safeParse(await request.json().catch(() => null));if(!parsed.success)return publicJson(validationBody(parsed.error, { error:"Choose an eligible room." }),{status:400});const{data,error}=await supabase.rpc("front_desk_assign_room",{p_reservation_id:(await params).id,p_room_id:parsed.data.room,p_reason:parsed.data.reason??null,p_staff_user_id:session.user.id});if(error){const map:Record<string,string>={RESERVATION_NOT_ASSIGNABLE:"Only confirmed reservations can receive a pre-arrival room assignment.",ROOM_TYPE_MISMATCH:"Choose a room of the reserved type.",ROOM_NOT_READY:"This room is not ready for guests. Choose another eligible room or check its preparation status.",ROOM_INACTIVE:"That room is administratively retired.",ROOM_UNDER_MAINTENANCE:"This room is unavailable while maintenance work is open. Choose another eligible room.",ROOM_ALREADY_ASSIGNED:"That room was assigned by another staff member."};const key=Object.keys(map).find(k=>error.message.includes(k));return publicJson({error:key?map[key]:"Unable to assign room."},{status:409})}return publicJson({data})}
+import { roomHeldConflict } from "@/lib/front-desk-room-conflict";
+import { publicJson } from "@/lib/server-errors";
+import { supabase } from "@/lib/supabase";
+
+const allowed = new Set(["front_desk"]);
+const schema = z.object({
+  room: z.string().trim().min(1).max(40),
+  reason: z.string().trim().max(300).optional(),
+});
+
+const assignmentErrors: Record<string, string> = {
+  RESERVATION_NOT_ASSIGNABLE: "Only confirmed reservations can receive a pre-arrival room assignment.",
+  ROOM_TYPE_MISMATCH: "Choose a room of the reserved type.",
+  ROOM_NOT_READY: "This room is not ready for guests. Choose another eligible room or check its preparation status.",
+  ROOM_INACTIVE: "That room is administratively retired.",
+  ROOM_UNDER_MAINTENANCE: "This room is unavailable while maintenance work is open. Choose another eligible room.",
+  ROOM_ALREADY_ASSIGNED: "That room was assigned by another staff member.",
+};
+
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions);
+  if (!session || session.user.disabled || session.user.otpPending) {
+    return publicJson({ error: "Please sign in to continue." }, { status: 401 });
+  }
+  if (!allowed.has(session.user.role)) return publicJson({ error: "Room assignment access required." }, { status: 403 });
+  if (!supabase) return publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
+
+  const parsed = schema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return publicJson(validationBody(parsed.error, { error: "Choose an eligible room." }), { status: 400 });
+
+  const { data, error } = await supabase.rpc("front_desk_assign_room", {
+    p_reservation_id: (await params).id,
+    p_room_id: parsed.data.room,
+    p_reason: parsed.data.reason ?? null,
+    p_staff_user_id: session.user.id,
+  });
+  if (error) {
+    const held = roomHeldConflict(error);
+    if (held) return held;
+    const key = Object.keys(assignmentErrors).find(reason => error.message.includes(reason));
+    return publicJson({ error: key ? assignmentErrors[key] : "Unable to assign room." }, { status: 409 });
+  }
+  return publicJson({ data });
+}

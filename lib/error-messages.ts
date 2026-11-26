@@ -1,5 +1,14 @@
 // Authored public messages. Keep arbitrary exception text and provider diagnostics internal.
+export const STAY_EXTENSION_HOLD_MESSAGE = "A guest is holding this room for one or more added nights. Refresh availability to check again.";
+export const AMENDMENT_REPLACEMENT_HOLD_MESSAGE = "A guest is holding the replacement room for the amended dates. Select Execute as Front Desk to choose another room, or retry the same room after the hold expires.";
+
 export const ERROR_MESSAGES: Readonly<Record<string, string>> = {
+  [STAY_EXTENSION_HOLD_MESSAGE]: STAY_EXTENSION_HOLD_MESSAGE,
+  [AMENDMENT_REPLACEMENT_HOLD_MESSAGE]: AMENDMENT_REPLACEMENT_HOLD_MESSAGE,
+  "Could not confirm the extension. Retry with the same details to recover the result.": "Could not confirm the extension. Retry with the same details to recover the result.",
+  "This extension attempt cannot be reused. Review the current checkout date and folio before trying again.": "This extension attempt cannot be reused. Review the current checkout date and folio before trying again.",
+  "This stay cannot be extended. Refresh the reservation and check its room assignment and folio.": "This stay cannot be extended. Refresh the reservation and check its room assignment and folio.",
+  "This transaction reference is already recorded for this payment method. Check this folio's payment history. If you can't find it, ask Accounting to verify the reference before collecting again.": "This transaction reference is already recorded for this payment method. Check this folio's payment history. If you can't find it, ask Accounting to verify the reference before collecting again.",
   "A newer count draft exists. Reload the saved draft before continuing.": "A newer count draft exists. Reload the saved draft before continuing.",
   "Cash activity changed. Start a fresh physical count before saving or closing.": "Cash activity changed. Start a fresh physical count before saving or closing.",
   "Cash activity changed. Take a fresh physical count before saving or closing.": "Cash activity changed. Take a fresh physical count before saving or closing.",
@@ -1345,6 +1354,7 @@ export const ERROR_MESSAGES: Readonly<Record<string, string>> = {
   "Unable to archive this room type.": "Unable to archive this room type.",
   "Unable to archive this type.": "Unable to archive this type.",
   "Unable to assign room.": "Unable to assign room.",
+  "A guest is holding this room for these dates. Reopen the room list and choose another room.": "A guest is holding this room for these dates. Reopen the room list and choose another room.",
   "Unable to assign this task.": "Unable to assign this task.",
   "Unable to build the digest.": "Unable to build the digest.",
   "Unable to build the report summary.": "Unable to build the report summary.",
@@ -1622,6 +1632,9 @@ export const ERROR_MESSAGES: Readonly<Record<string, string>> = {
   "Verify the primary guest’s age from ID before check-in": "Verify the primary guest’s age from ID before check-in",
   "Verify the primary guest's age from official ID before check-in.": "Verify the primary guest's age from official ID before check-in.",
   "Verify the primary guest’s date of birth or age from official ID.": "Verify the primary guest’s date of birth or age from official ID.",
+  "The arrival date changed. Refresh staying guests and verify the ID for the new date.": "The arrival date changed. Refresh staying guests and verify the ID for the new date.",
+  "The Front Desk needs to confirm the primary staying guest before check-in.": "The Front Desk needs to confirm the primary staying guest before check-in.",
+  "Confirm the primary staying guest before check-in.": "Confirm the primary staying guest before check-in.",
   "Verify the required guest identity": "Verify the required guest identity",
   "Version is required to edit a draft.": "Reopen the latest purchase order draft before editing it.",
   "Version is required.": "Reopen the latest record before continuing.",

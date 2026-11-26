@@ -13,12 +13,14 @@ import { BedDouble, Check, CheckCircle2, ChevronLeft, ChevronRight, ClipboardChe
 import PaymentCollectionDialog from "@/components/manager/payment-collection-dialog";
 import UploadedIdReview from "@/components/manager/uploaded-id-review";
 import { Modal } from "@/components/ui/Modal";
+import { HavenErrorAlert } from "@/components/ui/haven-error-alert";
 import ReservationReadinessPanel from "./reservation-readiness-panel";
 import ReservationPartyPanel from "./reservation-party-panel";
 import { HavenSelect } from "@/components/ui/haven-select";
 import type { RecordItem } from "@/lib/types";
 import type { AskFormOptions, AskFormData } from "@/components/ui/action-dialogs";
 import { ROOM_TYPE_CHANGE_REASONS, roomTypeChangeResponsibility, roomTypeChangeReasonLabel, financialDifference, type RoomTypeChangeFinancials } from "@/lib/room-type-change-reasons";
+import { arrivalReadinessAction, type Readiness } from "@/lib/hotel-operations";
 
 type EligibleRoom = { id: string; number: string; floor?: unknown; type: string; housekeeping?: string };
 type AlternativeRoomType = { roomTypeId: string; roomTypeName: string; eligibleRoomCount: number };
@@ -60,7 +62,10 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
   const [exceptionFinancials, setExceptionFinancials] = useState<RoomTypeChangeFinancials | null>(null);
   const [approvedException, setApprovedException] = useState<{ type: string; id: string; financials: RoomTypeChangeFinancials | null; guestAcceptedAt: string | null } | null>(null);
   const [selected, setSelected] = useState<string>("");
+  const [preferredRoom, setPreferredRoom] = useState("");
+  const [roomsRevision, setRoomsRevision] = useState(0);
   const [error, setError] = useState("");
+  const [roomHoldMessage, setRoomHoldMessage] = useState("");
   const [notice, setNotice] = useState("");
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -106,15 +111,30 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
   const exceptionDiff = financialDifference(exceptionFinancialsActive);
   const exceptionResponsibility = exceptionFinancialsActive?.responsibility ?? null;
 
-  const fetchDetail = useCallback(async () => {
+  const fetchDetail = useCallback(async (initial = false) => {
     setBusy(true); setError("");
     try {
+      const assessmentRequest = initial && !exceptionType
+        ? fetchPublic(`/api/staff/reservations/${encodeURIComponent(reservationId)}/readiness`, { cache: "no-store" })
+          .then(async response => response.ok ? (await readResponse(response)).data as Readiness : null)
+          .catch(() => null)
+        : null;
       const res = await fetchPublic(`/api/staff/reservations/${reservationId}`, { cache: "no-store" });
       const body = await readResponse(res).catch(() => ({}));
       if (!res.ok) { setError(userMessage(body.error, "Unable to load the reservation.")); setDetail(null); return; }
+      if (assessmentRequest && body.data?.reservation?.status === "confirmed") {
+        const assessment = await assessmentRequest;
+        if (Array.isArray(assessment?.checkIn)) {
+          const current = resumeRef.current;
+          const required = arrivalReadinessAction(assessment.checkIn).step;
+          const start = current ? Math.min(required, current.step) : required;
+          if (current) resumeRef.current = { ...current, step: start };
+          setStep(start);
+        }
+      }
       setDetail(body.data as Detail);
     } finally { setBusy(false); }
-  }, [reservationId]);
+  }, [exceptionType, reservationId]);
 
   // Returns the mapped rooms so the caller can validate a resumed selection.
   const loadRooms = useCallback(async (mode: string | null): Promise<EligibleRoom[]> => {
@@ -130,7 +150,6 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
       if (body.exceptionApproved) { setExceptionFinancials((body.financials ?? null) as RoomTypeChangeFinancials | null); }
       else { setError(`The approved room-type exception for ${human(mode)} is no longer valid.`); setExceptionMode(null); setExceptionFinancials(null); return mapped; }
     } else { setExceptionFinancials(null); }
-    setSelected("");
     return mapped;
   }, [reservationId]);
 
@@ -189,10 +208,12 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
   useEffect(() => {
     const saved = resumeRef.current;
     setStep(saved?.step ?? 0); setRooms([]);
+    setRoomHoldMessage("");
     setExceptionMode(saved ? saved.exceptionMode : exceptionType ?? null);
     setExceptionFinancials(null); setApprovedException(null); setSelected(saved?.selected ?? ""); setError(""); setNotice("");
     setAlternatives([]); setTargetTypeId(""); setTargetRooms([]); setRequestedRoomId(""); setRequestedReasonCode(""); setRequestedReason(""); setTargetRate(null); setTargetNightlyRates([]); setRequestSent(false); setExceptionStatus(""); setShowAlternativeForm(false);
-    void fetchDetail();
+    setPreferredRoom("");
+    void fetchDetail(true);
     void checkApprovals();
   }, [exceptionType, fetchDetail, checkApprovals]);
 
@@ -202,22 +223,23 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
   // (the server rejects stale rooms at check-in regardless). The resume survives the
   // detail fetch (reservation is null on the first run) and is consumed only when the
   // load actually runs.
+  const showRooms = step >= 2;
   useEffect(() => {
     const saved = resumeRef.current;
-    const resumingAtRoom = Boolean(saved && saved.step >= 2);
-    if ((!resumingAtRoom && step !== 2) || !reservation || loadingRef.current) return;
+    if (!showRooms || !reservation || loadingRef.current) return;
     resumeRef.current = null; // one-shot: only the first load after (re)open restores
     loadingRef.current = true;
     setError(""); setNotice("");
     (async () => {
       const loaded = await loadRooms(exceptionMode);
       if (!exceptionMode) await checkApprovals();
-      if (saved) {
-        if (saved.selected && loaded.some((room) => room.number === saved.selected)) { setSelected(saved.selected); }
-        else if (saved.step >= 3) { setStep(2); }
-      }
+      const assigned = loaded.find(room => room.id === reservation.room_id || room.number === reservation.room_number);
+      setPreferredRoom(assigned?.number ?? (!exceptionMode && !reservation.room_id ? loaded[0]?.number ?? "" : ""));
+      const restored = saved?.selected && loaded.some(room => room.number === saved.selected) ? saved.selected : assigned?.number;
+      setSelected(current => loaded.some(room => room.number === current) ? current : restored ?? "");
+      if (saved?.step === 3 && !restored) setStep(current => current === 3 ? 2 : current);
     })().finally(() => { loadingRef.current = false; });
-  }, [step, exceptionMode, reservation, loadRooms, checkApprovals]);
+  }, [showRooms, exceptionMode, reservation, loadRooms, checkApprovals, roomsRevision]);
 
   // Report wizard progress upward so the parent can resume the flow after close.
   // The transient mount-time report (pre-restore values) is harmless: resume is read
@@ -238,7 +260,7 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
         size="xl"
         headerVariant="branded"
       >
-        <div className="arrival-body"><div className="arrival-empty">{error ? <p className="arrival-error">{error}</p> : <p>Loading arrival details…</p>}<button className="btn btn-soft" onClick={fetchDetail}><RefreshCw size={15} /> Retry</button></div></div>
+        <div className="arrival-body"><div className="arrival-empty">{error ? <p className="arrival-error">{error}</p> : <p>Loading arrival details…</p>}<button className="btn btn-soft" onClick={() => void fetchDetail(true)} disabled={busy}><RefreshCw size={15} /> Retry</button></div></div>
       </Modal>
     );
   }
@@ -248,12 +270,13 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
 
   const next = () => {
     setError("");
+    setRoomHoldMessage("");
     if (step === 0 && !identityReady) { setError("Verify the guest's valid ID before continuing."); return; }
     if (step === 1 && !financialReady) { setError(depositReady ? "Collect the remaining folio balance before continuing." : "The website deposit must be verified before this guest can check in."); return; }
     if (step === 2 && !selected) { setError("Choose one of the eligible rooms."); return; }
     setNotice(""); setStep((s) => s + 1);
   };
-  const back = () => { setError(""); setNotice(""); setStep((s) => Math.max(0, s - 1)); };
+  const back = () => { setError(""); setNotice(""); setRoomHoldMessage(""); setStep((s) => Math.max(0, s - 1)); };
 
   const doVerify = async () => {
     setBusy(true); setError("");
@@ -305,6 +328,18 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
       const res = await fetchPublic("/api/front-desk/check-in", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reservationId, room: selected }) });
       if (res.ok) { onCheckedIn(); return; }
       const body = await readResponse(res).catch(() => ({}));
+      if (body.code === "ROOM_HELD_FOR_GUEST") {
+        setRooms(previous => previous.filter(room => room.number !== selected));
+        setSelected("");
+        setStep(2);
+        setRoomHoldMessage(userMessage(body.error, "Unable to complete check-in."));
+        return;
+      }
+      const task = arrivalReadinessAction(typeof body.code === "string" ? [body.code] : []);
+      if (task.step < 3) {
+        if (task.step === 2) setSelected("");
+        setStep(task.step);
+      }
       setError(userMessage(body.error, "Unable to complete check-in."));
     } finally { setBusy(false); }
   };
@@ -384,13 +419,21 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
       headerVariant="branded"
       footer={
         !notConfirmed ? (
-          <div className="arrival-footer">
-            {step > 0 && <button className="btn btn-soft" onClick={back} disabled={busy}><ChevronLeft size={15} /> Back</button>}
-            {step === 3
-              ? <button className="btn btn-accent" onClick={doCheckIn} disabled={busy}>{busy ? "Checking in…" : "Check in guest"}</button>
-              : step === 2
-                ? <button className="btn btn-accent" onClick={next} disabled={busy || !selected}><ClipboardCheck size={15} /> Review &amp; check in <ChevronRight size={15} /></button>
-                : <button className="btn btn-accent" onClick={next} disabled={busy || !stepOk(step)}>Continue <ChevronRight size={15} /></button>}
+          <div className="room-action-footer">
+            {roomHoldMessage && <HavenErrorAlert title={roomHoldMessage} />}
+            <div className="arrival-footer">
+              {step > 0 && <button className="btn btn-soft" onClick={back} disabled={busy}><ChevronLeft size={15} /> Back</button>}
+              {step === 2 && <button className="btn btn-soft arrival-refresh" disabled={busy} onClick={() => {
+                clearAlternativeSelection();
+                setRoomHoldMessage("");
+                setRoomsRevision(value => value + 1);
+              }}><RefreshCw size={14} /> Refresh eligible rooms</button>}
+              {step === 3
+                ? <button className="btn btn-accent" onClick={doCheckIn} disabled={busy || !selected || !rooms.some(room => room.number === selected)}>{busy ? "Checking in…" : "Check in guest"}</button>
+                : step === 2
+                  ? <button className="btn btn-accent" onClick={next} disabled={busy || !selected}><ClipboardCheck size={15} /> Review &amp; check in <ChevronRight size={15} /></button>
+                  : <button className="btn btn-accent" onClick={next} disabled={busy || !stepOk(step)}>Continue <ChevronRight size={15} /></button>}
+            </div>
           </div>
         ) : undefined
       }
@@ -404,9 +447,9 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
 
         {notConfirmed && <p className="arrival-error">This reservation is no longer confirmed and cannot be checked in.</p>}
 
-        <div className="arrival-steps" role="tablist" aria-label="Check-in steps">
+        <div className="arrival-steps" role="group" aria-label="Check-in steps">
           {STEPS.map((item, index) => (
-            <div key={item.key} className={`arrival-step ${index < step ? "done" : ""} ${index === step ? "active" : ""}`}>
+            <div key={item.key} aria-current={index === step ? "step" : undefined} className={`arrival-step ${index < step ? "done" : ""} ${index === step ? "active" : ""}`}>
               <span className="arrival-step-badge">{index < step ? <Check size={14} /> : index + 1}</span>
               <span className="arrival-step-label"><item.icon size={13} /> {item.label}</span>
             </div>
@@ -508,7 +551,7 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
                     <label key={room.id || room.number} className={`arrival-option ${selected === room.number ? "selected" : ""}`}>
                       <input type="radio" name="arrival-room" value={room.number} checked={selected === room.number} onChange={(e) => setSelected(e.target.value)} disabled={busy} />
                       <span className="arrival-option-name"><b>Room {human(room.number)}</b><small>{human(room.type)}{room.floor !== undefined ? ` · Floor ${human(room.floor)}` : ""}</small></span>
-                      <span className="arrival-option-ready"><Check size={14} /> Ready</span>
+                      <span className="arrival-option-ready"><Check size={14} /> {room.number === preferredRoom ? (room.id === reservation.room_id || room.number === reservation.room_number ? "Assigned room" : "Suggested room") : "Ready"}</span>
                     </label>
                   ))}
                 </div>
@@ -543,12 +586,12 @@ export default function FrontDeskArrivalDialog({ reservationId, guestName, excep
                   {exceptionMode && <button className="btn btn-soft" disabled={busy} onClick={() => { setError(""); setExceptionMode(null); }}>Try reserved-type rooms instead</button>}
                 </div>
               )}
-              <button className="btn btn-soft arrival-refresh" disabled={busy} onClick={() => { setError(""); setSelected(""); clearAlternativeSelection(); if (exceptionMode) { void loadRooms(exceptionMode); } else { void loadRooms(null); void checkApprovals(); } }}><RefreshCw size={14} /> Refresh eligible rooms</button>
             </section>
           )}
 
           {step === 3 && (
             <section className="arrival-section">
+              {!selected && <button type="button" className="btn btn-soft" onClick={() => setStep(2)}>Choose a room</button>}
               <ReservationReadinessPanel reservationId={reservationId} onResolve={setStep} candidateRoom={selected} />
               <h3>Review and check in</h3>
               <div className="arrival-facts">
