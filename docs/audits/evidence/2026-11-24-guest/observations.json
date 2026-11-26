@@ -1,0 +1,194 @@
+{
+  "scope": "Synthetic guest cases on localhost. Identifiers, bodies, headers and query strings are omitted.",
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/api/auth/session-status",
+      "statuses": [
+        415
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/booking/holds/[token]",
+      "statuses": [
+        415
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/booking/holds",
+      "statuses": [
+        201
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/booking/payments/xendit",
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/account/reservations/[id]/change-request",
+      "statuses": [
+        409
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/account/reservations/[id]/cancel",
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/account/reservations/[id]/cancel",
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/documents/booking-confirmation/[id]",
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/account/requests",
+      "statuses": [
+        201
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/account/profile",
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/register",
+      "statuses": [
+        201
+      ]
+    }
+  ],
+  "browserAndDatabase": [
+    {
+      "check": "room details keyboard",
+      "focusInside": true,
+      "focusReturned": true
+    },
+    {
+      "check": "pre-hold refresh",
+      "addressRetained": false
+    },
+    {
+      "check": "confirmed then guest-cancelled reservation confirmation",
+      "heading": "This checkout has expired."
+    },
+    {
+      "check": "post-cancellation folio and original payment remain distinct",
+      "amount": "1020.00",
+      "paid": "1020.00",
+      "balance": "0.00",
+      "status": "refund_pending",
+      "original": "2040.00"
+    },
+    {
+      "check": "different guest gets not-found view",
+      "streamedStatus": 200,
+      "documentStatus": 404,
+      "staffApiStatus": 403
+    },
+    {
+      "check": "actual browser Release hold action",
+      "status": 415,
+      "databaseStatus": "active"
+    }
+  ],
+  "responsive": [
+    {
+      "path": "/",
+      "width": 360,
+      "scrollWidth": 345
+    },
+    {
+      "path": "/",
+      "width": 390,
+      "scrollWidth": 375
+    },
+    {
+      "path": "/",
+      "width": 430,
+      "scrollWidth": 415
+    },
+    {
+      "path": "/",
+      "width": 768,
+      "scrollWidth": 753
+    },
+    {
+      "path": "/",
+      "width": 1280,
+      "scrollWidth": 1265
+    },
+    {
+      "path": "/",
+      "width": 1440,
+      "scrollWidth": 1425
+    },
+    {
+      "path": "/",
+      "width": 1920,
+      "scrollWidth": 1905
+    },
+    {
+      "path": "/booking/search",
+      "width": 360,
+      "scrollWidth": 345
+    },
+    {
+      "path": "/booking/search",
+      "width": 390,
+      "scrollWidth": 375
+    },
+    {
+      "path": "/booking/search",
+      "width": 430,
+      "scrollWidth": 415
+    },
+    {
+      "path": "/booking/search",
+      "width": 768,
+      "scrollWidth": 753
+    },
+    {
+      "path": "/booking/search",
+      "width": 1280,
+      "scrollWidth": 1265
+    },
+    {
+      "path": "/booking/search",
+      "width": 1440,
+      "scrollWidth": 1425
+    },
+    {
+      "path": "/booking/search",
+      "width": 1920,
+      "scrollWidth": 1905
+    }
+  ],
+  "slowLanding": {
+    "check": "one intentionally throttled no-cache landing navigation",
+    "ttfbMs": 160,
+    "domMs": 1134,
+    "loadMs": 6016
+  }
+}

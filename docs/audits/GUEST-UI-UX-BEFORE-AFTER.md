@@ -1,0 +1,17 @@
+# Guest booking before and after
+
+November 24, 2026 · Playwright and Edge with synthetic booking data.
+
+| Journey step | Before | After |
+| --- | --- | --- |
+| Booking account interruption | The photo and full stay summary used the first phone screen. Account creation had two links to the same form. [Before](evidence/2026-11-24-guest/booking-sign-in-mobile.png) | The form leads at 390 px. The tabs offer one Create account action and the selected-stay summary follows. [After](evidence/2026-11-24-guest-post-audit/booking-sign-in-mobile.png) |
+| Sold-out dates | Five priced cards and disabled booking actions followed the zero-room count. [Before](evidence/2026-11-24-guest/zero-availability-mobile.png) | A zero-supply heading leads with Edit stay dates and a direct support link. [After](evidence/2026-11-24-guest-post-audit/zero-availability-mobile.png) |
+| Date validation | Invalid dates were replaced and the warning disappeared after a brief toast. [Before audit finding](GUEST-UI-UX-AUDIT.md#guest-010) | The entered dates remain, the editor is open, and the affected input is focused and labelled by its persistent error. [After](evidence/2026-11-24-guest-post-audit/date-error-mobile.png) |
+| Assisted booking | An available room had an Unavailable action when checkout was closed. [Before](evidence/2026-11-24-guest/checkout-unavailable.png) | Inventory still reads Available, with a Front Desk booking link on the room card. [After](evidence/2026-11-24-guest-post-audit/assisted-booking-mobile.png) |
+| Pricing | A two-night mixed quote presented ₱2,500 as if it were the rate for both nights. [Before](evidence/2026-11-24-guest/mixed-rate-search.png) | The display explicitly says From ₱2,500 and keeps the ₱6,400 stay estimate. [After](evidence/2026-11-24-guest-post-audit/mixed-rates-mobile.png) |
+| Breakfast quote | The breakfast picker and stay summary presented different totals. [Before](evidence/2026-11-24-guest/01-guest-details.png) | The selection controls and stay summary update together. The browser verified both totals and the deposit before creating the hold. [After](evidence/2026-11-24-guest-post-audit/live-quote-mobile.png) |
+| Privacy | `/privacy` opened the booking policy. [Before](evidence/2026-11-24-guest/privacy-destination.png) | Guest privacy information has its own page and can be reached before signup. [After](evidence/2026-11-24-guest-post-audit/privacy-mobile.png) |
+| Arrival | Confirmation compressed Express Pass labels and the kiosk link into narrow columns. [Before](evidence/2026-11-24-guest/confirmation-mobile.png) | The pass stacks in the actual narrow container, with the kiosk link below the QR and instructions. [Light phone](evidence/2026-11-24-guest-post-audit/express-pass-390.png) · [Dark phone](evidence/2026-11-24-guest-post-audit/express-pass-dark-mobile.png) |
+| Paid cancellation | The original confirmation said the checkout expired and displayed ₱1,020 as the amount paid. [Before](evidence/2026-11-24-guest/cancelled-confirmation.png) | It shows cancellation, ₱2,040 collected, and the ₱1,020 fee and eligible refund as separate values. [After](evidence/2026-11-24-guest-post-audit/cancelled-confirmation-mobile.png) |
+
+Booking photos, typography and colors follow the existing Haven identity. Verification used the application’s normal routes, the local database, and a simulated wallet. [Regression report](GUEST-REGRESSION-TEST-REPORT.md).
