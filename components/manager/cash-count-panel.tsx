@@ -4,7 +4,7 @@ import { userMessage } from "@/lib/errors";
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { cashMoney, cashNumber, cashExpected, cashCountVariance, canCloseDrawer, cashDate } from "@/lib/cash-shift-display";
-import type { AccountingLedger } from "@/lib/accounting";
+import type { CashDrawerLedger } from "@/lib/accounting";
 import type { Role } from "@/lib/types";
 
 export type CashCountPresentation = {
@@ -18,7 +18,7 @@ type SavedCount = {
 };
 type CountContext = { status: string; basis: string; expectedCash: number; draft: SavedCount | null };
 type CashCountProps = {
-  ledger: AccountingLedger; actorId: string; role: Role;
+  ledger: CashDrawerLedger; actorId: string; role: Role;
   onSaved: (message?: string) => void; onStale?: () => void;
   renderWorkspace?: (count: CashCountPresentation) => ReactNode;
 };

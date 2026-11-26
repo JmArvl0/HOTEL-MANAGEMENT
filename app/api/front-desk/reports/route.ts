@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session || session.user.disabled || session.user.otpPending) return unauthorized;
   const role = session.user.role as Role;
-  const allowed = canGenerateFrontDeskReport(role) || canReviewFrontDeskReports(role);
+  const allowed = canGenerateFrontDeskReport(role) || canReviewFrontDeskReports(role) || role === "owner";
   if (!allowed) return publicJson({ error: "Reports access required." }, { status: 403 });
   if (!supabase) return unavailable;
   const date = new URL(request.url).searchParams.get("date");

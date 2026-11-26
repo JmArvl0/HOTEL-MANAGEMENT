@@ -124,9 +124,10 @@ describe("cash payment collection", () => {
     expect(cashMigration).toContain("grant execute on function public.record_staff_payment(text,numeric,text,text,uuid,uuid,boolean)to service_role");
   });
   it("makes the route reference rule method-aware and maps the shift error", () => {
-    expect(paymentRoute).toContain("value.method!==\"cash\"");
+    expect(paymentRoute).toMatch(/value\.method\s*!==\s*"cash"/);
     expect(paymentRoute).toContain("CASH_SHIFT_REQUIRED");
-    expect(paymentRoute).toContain("isCash?null:");
+    expect(paymentRoute).toMatch(/isCash\s*\?\s*null\s*:/);
+    expect(paymentRoute).toContain("DUPLICATE_PAYMENT_REFERENCE");
   });
   it("hides the reference field for cash in the collect dialog", () => {
     expect(arrivalDialog).toContain('PaymentCollectionDialog');

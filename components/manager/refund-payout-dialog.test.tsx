@@ -5,7 +5,7 @@ import RefundPayoutDialog from "./refund-payout-dialog";
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 it("requires explicit cash drawer confirmation and records the selected payout", async () => {
-  const fetch = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(async url => new Response(JSON.stringify({ data: url === "/api/accounting/ledger" ? { cashShifts: [{ id: "drawer", status: "open", location: "Front Desk", staff_name: "Maria", opening_amount: 1000, collected: 2000 }] } : { refund_status: "processed" } }), { status: 200 }));
+  const fetch = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(async url => new Response(JSON.stringify({ data: url === "/api/accounting/ledger?section=active_drawer" ? { cashShifts: [{ id: "drawer", status: "open", location: "Front Desk", staff_name: "Maria", opening_amount: 1000, collected: 2000 }] } : { refund_status: "processed" } }), { status: 200 }));
   vi.stubGlobal("fetch", fetch);
   const onSaved = vi.fn();
   render(<RefundPayoutDialog refund={{ id: "refund", eligible_amount: 250 }} drawer={null} basisLabel="Within policy" onClose={vi.fn()} onSaved={onSaved} />);

@@ -15,6 +15,19 @@ const activeMaintenance = new Set(["open", "assigned", "in_progress", "waiting_p
 const localDate = (value: unknown, timeZone: string) => value ? new Intl.DateTimeFormat("en-CA", { timeZone }).format(new Date(String(value))) : "";
 const sum = (rows: Row[], key: string) => rows.reduce((total, row) => total + Number(row[key] || 0), 0);
 
+function redactPartyAudit(snapshot: unknown) {
+  if (!snapshot || typeof snapshot !== "object") return snapshot;
+  const row = snapshot as Row;
+  if (!Array.isArray(row.members)) return snapshot;
+  return { ...row, members: row.members.map(member => {
+    if (!member || typeof member !== "object") return member;
+    const details = { ...member };
+    delete details.dateOfBirth;
+    delete details.verifiedAgeYears;
+    return details;
+  }) };
+}
+
 export async function GET(request: Request) {
   const context = await guardOwner();
   if (ownerGuardFailed(context)) return context;
@@ -83,7 +96,9 @@ export async function GET(request: Request) {
       if (section === "security") query = query.or("action.ilike.admin_%,action.ilike.owner_%,action.ilike.%recovery%,action.ilike.%password%,action.ilike.%role%,action.ilike.%status%");
       const { data, error } = await query;
       if (error) throw error;
-      return publicJson({ data });
+      return publicJson({ data: data.map(row => row.action === "reservation_party_update"
+        ? { ...row, before_data: redactPartyAudit(row.before_data), after_data: redactPartyAudit(row.after_data) }
+        : row) });
     }
     if (section === "exceptions") {
       const { data, error } = await db.from("manager_approval_requests").select("id,request_type,related_entity_type,related_entity_id,reservation_id,department,severity,reason,requested_action,normal_policy_result,requested_by,requested_at,status,reviewed_by,reviewed_at,decision_reason,execution_status,executed_by,executed_at,version,authority_level,owner_escalated_by,owner_escalated_at,owner_escalation_reason,owner_reviewed_by,owner_reviewed_at").eq("authority_level", "owner").order("requested_at", { ascending: false }).limit(150);

@@ -180,10 +180,14 @@ describe("owner redesign consolidation contracts", () => {
       "OwnerTabs",
       "OwnerCollapse",
       "useOwnerSearch",
-      "AccessibleChart",
     ]) {
       expect(dashboard).toContain(token);
     }
+  });
+
+  it("opens the shared overview and reporting views with Owner access", () => {
+    expect(dashboard).toContain('section === "overview" ? <HotelCommandCenter role="owner"');
+    expect(dashboard).toContain('section === "reports" ? <HotelReports role="owner"');
   });
 
   it("keeps the pinned Owner layout classes and data flow", () => {

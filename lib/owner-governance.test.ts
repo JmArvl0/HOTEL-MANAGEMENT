@@ -3,9 +3,9 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   canAccess, canAdjustFolio, canCollectPayment, canCoordinateOperations, canExecuteManagerApproval,
-  canExecuteManagerFinancialApproval, canIssueFinancialDocument, canManageReservation,
+  canExecuteManagerFinancialApproval, canGenerateFrontDeskReport, canIssueFinancialDocument, canManageReservation,
   canOperateCashShift, canPerformHousekeeping, canPostFolioCharge, canProcessRefund,
-  canRequestManagerApproval, canReviewManagerApprovals, canViewAccountingLedger
+  canRequestManagerApproval, canReviewFrontDeskReports, canReviewManagerApprovals, canViewAccountingLedger
 } from "@/lib/permissions";
 import type { Resource } from "@/lib/types";
 
@@ -35,10 +35,20 @@ describe("Owner authority hierarchy", () => {
     for (const capability of [canManageReservation, canCollectPayment, canPostFolioCharge, canProcessRefund, canAdjustFolio, canOperateCashShift, canIssueFinancialDocument, canReviewManagerApprovals, canRequestManagerApproval, canExecuteManagerApproval, canExecuteManagerFinancialApproval, canCoordinateOperations, canPerformHousekeeping]) expect(capability("owner")).toBe(false);
   });
 
-  it("removes Owner from every direct Front Desk and Maintenance route guard", () => {
-    for (const path of [...filesBelow("app/api/front-desk"), ...filesBelow("app/api/maintenance")]) expect(read(path), path).not.toContain('"owner"');
-    expect(resourceRoute).toContain('auth.session!.user.role==="owner"');
-    expect(resourceRoute).toContain("Open the relevant module and use its create action.");
+  it("allows Owner to read report history without Front Desk or Maintenance execution", () => {
+    const historyRoute = join("app/api/front-desk", "reports", "route.ts");
+    for (const path of [...filesBelow("app/api/front-desk"), ...filesBelow("app/api/maintenance")]) {
+      if (path !== historyRoute) expect(read(path), path).not.toContain('"owner"');
+    }
+    const [reportGet, reportPost] = read(historyRoute).split("export async function POST");
+    expect(reportGet).toContain('role === "owner"');
+    expect(reportGet).toContain("if (!canGenerateFrontDeskReport(role))");
+    expect(reportGet).toContain("await listFrontDeskReports(");
+    expect(reportPost).toContain("if (!canGenerateFrontDeskReport(");
+    expect(read("app/api/front-desk/reports/[id]/review/route.ts")).toContain("if (!canReviewFrontDeskReports(");
+    expect(canGenerateFrontDeskReport("owner")).toBe(false);
+    expect(canReviewFrontDeskReports("owner")).toBe(false);
+    expect(resourceRoute).toContain("return rejectWrite(request, context)");
   });
 
   it("routes Owner to a dedicated executive surface", () => {

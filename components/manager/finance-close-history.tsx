@@ -10,6 +10,7 @@ import type { NightAudit } from "@/lib/hotel-operations";
 import { saveBlob } from "@/lib/receipt-image";
 
 const formats = [
+  { value: "json", label: "Finance handoff (JSON)" },
   { value: "csv", label: "CSV file" },
   { value: "xlsx", label: "Excel workbook" },
   { value: "pdf", label: "PDF summary" },

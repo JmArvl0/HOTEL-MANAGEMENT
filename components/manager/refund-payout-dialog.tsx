@@ -21,7 +21,7 @@ export default function RefundPayoutDialog({ refund, drawer, basisLabel, onClose
     const controller = new AbortController();
     async function load() {
       try {
-        const response = await fetch("/api/accounting/ledger", { cache: "no-store", signal: controller.signal });
+        const response = await fetch("/api/accounting/ledger?section=active_drawer", { cache: "no-store", signal: controller.signal });
         const body = await response.json();
         if (!response.ok || !Array.isArray(body.data?.cashShifts)) throw new Error("Current drawer unavailable. Refresh before recording a cash payout.");
         if (!controller.signal.aborted) { setCashDrawer(body.data.cashShifts.find((shift: CashRecord) => shift.status === "open") ?? null); setDrawerReady(true); setDrawerError(""); }

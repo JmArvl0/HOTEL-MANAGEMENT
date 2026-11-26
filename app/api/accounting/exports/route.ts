@@ -4,7 +4,7 @@ import { z } from "zod";
 import { guardFailed, guardFinancial, invalid } from "@/lib/financial-route";
 import { buildFinanceCloseExport, financeExportContentType, renderFinanceCloseExport } from "@/lib/finance-export";
 
-const query = z.object({ date: z.string().date(), format: z.enum(["csv", "xlsx", "pdf"]) });
+const query = z.object({ date: z.string().date(), format: z.enum(["csv", "xlsx", "pdf", "json"]) });
 
 export async function GET(request: Request) {
   const context = await guardFinancial(role => role === "accounting", "Accounting export access required.");

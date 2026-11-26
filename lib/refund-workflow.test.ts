@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { canExecuteManagerFinancialApproval, canProcessRefund, canReviewManagerApprovals } from "@/lib/permissions";
+import { staffSections } from "@/config/role-navigation";
 
 const read = (path: string) => readFileSync(path, "utf8");
 // The 2026-09-12 migration holds the newest authoritative request/review bodies
@@ -106,8 +107,9 @@ describe("D-006 refund queue surfacing", () => {
     expect(dashboard).toContain('["guest_compensation","refund_exception"]');
   });
   it("keeps Manager off every financial mutation surface", () => {
-    const access = dashboard.match(/const access: Record<Role, Section\[\]> = \{([^}]*)\}/)![1];
-    const managerSections = access.match(/manager:\s*\[([^\]]*)\]/)![1];
-    for (const section of ["refunds", "cash_shifts", "reconciliation", "documents", "transactions", "folios"]) expect(managerSections, section).not.toContain(`"${section}"`);
+    const managerSections = staffSections("manager");
+    for (const section of ["refunds", "cash_shifts", "reconciliation", "documents", "transactions", "folios"]) {
+      expect(managerSections, section).not.toContain(section);
+    }
   });
 });

@@ -8,9 +8,15 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (guardFailed(context)) return context;
   const id = (await params).id;
   try {
-    const { data: shift, error } = await context.client.from("cash_shifts").select("id,status,closed_at").eq("id", id).maybeSingle();
+    const { data: shift, error } = await context.client.from("cash_shifts").select("id,staff_user_id,status,closed_at").eq("id", id).maybeSingle();
     if (error) throw error;
     if (!shift) return NextResponse.json({ error: "Cash shift not found." }, { status: 404 });
+    if (context.role === "front_desk" && shift.staff_user_id !== context.actorId) {
+      const latest = await context.client.from("cash_shifts").select("id").in("status", ["closed", "reconciled"])
+        .order("opened_at", { ascending: false }).order("id").limit(1).maybeSingle();
+      if (latest.error) throw latest.error;
+      if (latest.data?.id !== id) return NextResponse.json({ error: "Cash shift not found." }, { status: 404 });
+    }
     if (!shift.closed_at || shift.status === "open") return NextResponse.json({ error: "Close this drawer before checking its next steps." }, { status: 409 });
     const reportDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date(shift.closed_at));
     const handovers = await readAllRows(() => context.client.from("shift_handovers")

@@ -26,6 +26,17 @@ describe("Finance closed-day download", () => {
     expect(() => buildFinanceCloseExport({ ...savedClose, snapshot: { ...savedClose.snapshot, roomAccrual: null } })).toThrow();
   });
 
+  it("serializes a repeatable review batch without guest data", () => {
+    const batch = buildFinanceCloseExport(savedClose);
+    const content = new TextDecoder().decode(renderFinanceCloseExport(batch, "json"));
+    expect(renderFinanceCloseExport(buildFinanceCloseExport(savedClose), "json")).toEqual(renderFinanceCloseExport(batch, "json"));
+    expect(JSON.parse(content)).toMatchObject({
+      schemaVersion: 1, batchId: batch.id, businessDate: savedClose.business_date, currency: "PHP", status: "review_pending",
+      measures: expect.arrayContaining([{ id: `${batch.id}:net_collections`, code: "net_collections", amountMinor: -510 }]),
+    });
+    expect(content).not.toMatch(/private-reference|Private fixture/);
+  });
+
   it.each<FinanceExportFormat>(["csv", "xlsx", "pdf"])("retains the same batch and bytes on repeat %s downloads", format => {
     const batch = buildFinanceCloseExport(savedClose);
     const first = renderFinanceCloseExport(batch, format);

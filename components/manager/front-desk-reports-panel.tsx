@@ -7,6 +7,7 @@ import { userMessage } from "@/lib/errors";
 import { useCallback, useEffect, useState } from "react";
 import { CalendarDays, ClipboardCheck, FileText, Send, Sparkles, X } from "lucide-react";
 import { DownloadMenu, printDownload } from "@/components/ui/download-menu";
+import { downloadHotelPdf } from "@/components/ui/hotel-pdf-download";
 import { AI_DISCLOSURE } from "@/lib/ai/prompts";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -219,13 +220,15 @@ export default function FrontDeskReportsPanel({ role, initialDate }: { role: Rol
 
   const visible = rows.filter((row) => status === "all" || row.status === status);
   return <>
-    <PageHeader variant="band" eyebrow={canGenerate ? "Hotel operations" : "Management control"} title={canGenerate ? "Daily operations report" : "Front desk reports"} subtitle={canGenerate ? "One daily snapshot of front desk operations. Download a copy for your records. Submit the current preview for Manager review." : "Daily front desk operations snapshots submitted for review. Acknowledge to close, or return with a note for resubmission."} actions={canGenerate && <div className="report-tools"><label>Report date<input type="date" value={date} max={today} onChange={(event) => setDate(event.target.value)}/></label><button className="btn btn-accent" onClick={() => void generate()} disabled={building}>{building ? "Building…" : "Generate preview"}</button></div>} />
+    <PageHeader variant="band" eyebrow={canGenerate ? "Hotel operations" : "Management control"} title={canGenerate ? "Daily operations report" : "Front desk reports"} subtitle={canGenerate ? "One daily snapshot of front desk operations. Download a copy for your records. Submit the current preview for Manager review." : canReview ? "Daily front desk operations snapshots submitted for review. Acknowledge to close, or return with a note for resubmission." : "Review saved daily operations snapshots submitted by Front Desk."} actions={canGenerate && <div className="report-tools"><label>Report date<input type="date" value={date} max={today} onChange={(event) => setDate(event.target.value)}/></label><button className="btn btn-accent" onClick={() => void generate()} disabled={building}>{building ? "Building…" : "Generate preview"}</button></div>} />
     {error && <HavenErrorAlert title="Reports unavailable" body={error} variant="internal" />}
     {canReview && <ExecutiveDigestCard reportDate={viewing ? viewing.report_date.slice(0, 10) : date} />}
     {(preview || viewing) && <article className="panel report-preview">
       <div className="panel-heading"><div><h3>{viewing ? `Submitted snapshot · ${formatDate(viewing.report_date)}` : "Preview"}</h3><p>{viewing ? `Submitted by ${viewing.submitted_by_name ?? "Front Desk"} · ${formatStamp(viewing.submitted_at)}` : "Auto-generated from live hotel records for the selected hotel day."}</p></div>
       <div className="report-actions">
-        <DownloadMenu label="Download daily operations report" actions={[printDownload]} />
+        <DownloadMenu label="Download daily operations report" actions={viewing ? [
+          { value: "pdf", label: "Download PDF", run: () => downloadHotelPdf("daily-operations-report", viewing.id) }, printDownload,
+        ] : [printDownload]} />
         {canGenerate && preview && <button className="btn btn-accent" disabled={submitting} onClick={() => void submit(preview)}><Send size={16}/> {submitting ? "Submitting…" : supersedes ? "Resubmit to Manager" : "Submit to Manager"}</button>}
         {viewing && <button className="btn btn-soft" onClick={() => setViewing(null)}><X size={16}/> Close</button>}
       </div></div>

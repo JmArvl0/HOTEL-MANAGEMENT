@@ -1,5 +1,21 @@
 import { publicJson } from "@/lib/server-errors";
-import{getAccountingLedger}from"@/lib/accounting";import{canOperateCashShift,canViewAccountingLedger}from"@/lib/permissions";import{guardFailed,guardFinancial}from"@/lib/financial-route";
-// Cash-handling staff (front_desk) read the ledger too — scoped inside getAccountingLedger.
-export async function GET(){const context=await guardFinancial((role)=>canViewAccountingLedger(role)||canOperateCashShift(role),"Financial access required.");if(guardFailed(context))return context;
- const ledger=await getAccountingLedger(context.role);if(!ledger)return publicJson({error:"This service is temporarily unavailable. Please try again shortly."},{status:503});return publicJson({data:ledger,role:context.role})}
+import { z } from "zod";
+import { getAccountingLedger } from "@/lib/accounting";
+import { canViewAccountingLedger } from "@/lib/permissions";
+import { guardFailed, guardFinancial, invalid } from "@/lib/financial-route";
+
+const sectionSchema = z.enum(["transactions", "folios", "cash_shifts", "reconciliation", "documents", "active_drawer"]).optional();
+
+export async function GET(request: Request) {
+  const context = await guardFinancial(canViewAccountingLedger, "Financial ledger access required.");
+  if (guardFailed(context)) return context;
+  const section = sectionSchema.safeParse(new URL(request.url).searchParams.get("section") ?? undefined);
+  if (!section.success) return invalid("Choose a valid ledger section.");
+  try {
+    const ledger = await getAccountingLedger(context.role, section.data);
+    if (ledger) return publicJson({ data: ledger, role: context.role });
+  } catch {
+    // The caller receives a retryable availability error instead of a partial ledger.
+  }
+  return publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
+}

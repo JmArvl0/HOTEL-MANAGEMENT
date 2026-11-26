@@ -8,16 +8,17 @@ import { ArrowRight, Check, Circle, Clock3, RefreshCw, ShieldCheck, TriangleAler
 import CashCountPanel, { type CashCountPresentation } from "./cash-count-panel";
 import CashCloseNextSteps from "./cash-close-next-steps";
 import { Modal } from "@/components/ui/Modal";
+import { HotelPdfDownload } from "@/components/ui/hotel-pdf-download";
 import { TablePagination, useTablePagination } from "@/components/ui/table-pagination";
 import { canOperateCashShift, canReconcileFinancials } from "@/lib/permissions";
 import { cashDate, cashDifference, cashDuration, cashMoney, cashNumber, filterCashHistory, selectCashShifts, shiftCashBasis, type CashRecord } from "@/lib/cash-shift-display";
-import type { AccountingLedger } from "@/lib/accounting";
+import type { CashDrawerLedger } from "@/lib/accounting";
 import type { OperationalStaff, ShiftHandover } from "@/lib/operations";
 import type { Role } from "@/lib/types";
 import "./cash-shifts-workspace.css";
 
 type Props = {
-  ledger: AccountingLedger | null; actorId: string; role: Role;
+  ledger: CashDrawerLedger | null; actorId: string; role: Role;
   search: string; setSearch: (value: string) => void;
   onOpen: () => void; onRefresh: () => void;
   onOpenHandovers: (id?: string) => void;
@@ -47,7 +48,7 @@ function Lifecycle({ shift, counted }: { shift: CashRecord; counted: number | nu
   </ol>;
 }
 
-function CashMovements({ shift, ledger, onCurrent }: { shift: CashRecord; ledger: AccountingLedger; onCurrent?: () => void }) {
+function CashMovements({ shift, ledger, onCurrent }: { shift: CashRecord; ledger: CashDrawerLedger; onCurrent?: () => void }) {
   const rows = [...shiftCashBasis(shift, ledger.transactions).linked].sort((a, b) => (Date.parse(String(b.created_at)) || 0) - (Date.parse(String(a.created_at)) || 0));
   const page = useTablePagination(rows);
   return <section className="cash-surface cash-movements" aria-labelledby="cash-movements-heading">
@@ -188,18 +189,21 @@ export default function CashShiftsWorkspace({ ledger, actorId, role, search, set
       </>}
     </section>
 
-    <section className="cash-history" ref={historyRef} tabIndex={-1} aria-labelledby="cash-history-heading"><header className="cash-history-heading"><div><h2 id="cash-history-heading">Shift history</h2><p>All dates · {ledger.cashShifts.length} recorded shifts</p></div><div className="cash-history-controls"><label>Search shifts<input type="search" value={search} placeholder="Cashier, shift ID or notes" onChange={e => { setSearch(e.target.value); history.setPage(1); }} /></label><label>Shift status<select value={status} onChange={e => filter(e.target.value)}><option value="all">All shifts</option><option value="open">Open</option><option value="closed">Awaiting reconciliation</option><option value="reconciled">Reconciled</option></select></label>{(search || status !== "all") && <button className="cash-text-action" onClick={() => { setSearch(""); filter("all"); }}>Clear filters</button>}</div></header>
+    <section className="cash-history" ref={historyRef} tabIndex={-1} aria-labelledby="cash-history-heading"><header className="cash-history-heading"><div><h2 id="cash-history-heading">Shift history</h2><p>{role === "front_desk" ? "Shared drawer and your recent shifts" : "All dates"} · {ledger.cashShifts.length} recorded shifts</p></div><div className="cash-history-controls"><label>Search shifts<input type="search" value={search} placeholder="Cashier, shift ID or notes" onChange={e => { setSearch(e.target.value); history.setPage(1); }} /></label><label>Shift status<select value={status} onChange={e => filter(e.target.value)}><option value="all">All shifts</option><option value="open">Open</option><option value="closed">Awaiting reconciliation</option><option value="reconciled">Reconciled</option></select></label>{(search || status !== "all") && <button className="cash-text-action" onClick={() => { setSearch(""); filter("all"); }}>Clear filters</button>}</div></header>
       <div className="cash-surface cash-table-frame"><table aria-label="Cash shift history"><thead><tr><th scope="col">Shift / cashier</th><th scope="col" className="cash-num">Expected / counted</th><th scope="col" className="cash-num">Difference</th><th scope="col">Reconciliation</th><th scope="col">Actions</th></tr></thead><tbody>{history.rows.map(row => {
         const difference = cashDifference(row.status === "open" ? null : row.variance);
         const expected = row.status === "open" ? shiftCashBasis(row, ledger.transactions).expected : row.expected_cash;
         return <tr key={String(row.id)}><td data-label="Shift"><strong>{text(row.staff_name, "Staff name not supplied")}</strong><small>{cashDate(row.opened_at)} · #{shortId(row)}</small><small>{text(row.location)}</small></td><td data-label="Cash" className="cash-num"><span className="cash-small-label">Expected </span>{cashMoney(expected)}<small>Counted {row.status === "open" ? "Not recorded" : cashMoney(row.actual_cash)}</small></td><td data-label="Difference" className={`cash-num ${difference.amount ? "cash-recorded-difference" : ""}`}>{cashMoney(row.status === "open" ? null : row.variance)}<small>{difference.label}</small></td><td data-label="Reconciliation"><span className={`cash-status ${row.status === "closed" ? "cash-status-review" : ""}`}>{stateLabel(row)}</span></td><td data-label="Actions"><div className="cash-row-actions"><button className="cash-button" onClick={() => setDetailId(String(row.id))} aria-label={`View shift ${String(row.id)}`}>View details</button>{row.status === "closed" && mayReconcile && <button className="cash-text-action" onClick={() => openReconcile(row)} aria-label={`Reconcile shift ${String(row.id)}`}>Reconcile</button>}</div></td></tr>;
       })}</tbody></table>{matching.length === 0 && <p className="cash-empty">{ledger.cashShifts.length ? "No shifts match these filters. Clear the search or change the status." : "No shifts have been recorded yet. Open the first drawer with a counted float."}</p>}
-      <TablePagination {...history} onPageChange={history.setPage} noun="matching shifts" note={`${ledger.cashShifts.length} shifts across all dates and statuses. Current drawer remains independent of filters.`} /></div>
-      <p className="cash-history-total">Recorded net variance: <strong>{cashMoney(ledger.metrics.cashVariance)}</strong> · All closed/reconciled shifts across all dates. This signed historical total is not the current drawer shortage.</p>
+      <TablePagination {...history} onPageChange={history.setPage} noun="matching shifts" note={`${ledger.cashShifts.length} recorded shifts. The current drawer stays visible regardless of filters.`} /></div>
+      <p className="cash-history-total">Recorded net variance: <strong>{cashMoney(ledger.metrics.cashVariance)}</strong> · Total across the closed shifts shown in this workspace.</p>
       <p className="cash-custody"><ShieldCheck size={16} aria-hidden="true" />Only the opener or Accounting can close. Operational handover records follow-up, not a cash transfer.</p>
     </section>
 
     <Modal isOpen={Boolean(detail)} onClose={() => setDetailId(null)} title={detail ? `Cash shift #${shortId(detail)}` : "Cash shift"} className="cash-count-dialog" size="lg">
+      {detail && typeof detail.closed_at === "string" && detail.closed_at && (detail.status === "closed" || detail.status === "reconciled") && <div className="btn-row">
+        <HotelPdfDownload kind="cash-shift-close" id={String(detail.id)} label="Download shift summary PDF" className="cash-button" />
+      </div>}
       {detail && <><p>{text(detail.staff_name)} · {text(detail.location)} · {stateLabel(detail)}</p><dl className="cash-detail-list">{[["Full shift ID", detail.id], ["Opened", cashDate(detail.opened_at)], ["Closed", detail.closed_at ? cashDate(detail.closed_at) : "Not closed"], ["Reconciled", detail.reconciled_at ? cashDate(detail.reconciled_at) : "Not reconciled"], ["Opening float", cashMoney(detail.opening_amount)], ["Net collected", cashMoney(detail.collected)], ["Expected cash", cashMoney(detail.status === "open" ? shiftCashBasis(detail, ledger.transactions).expected : detail.expected_cash)], ["Counted cash", detail.status === "open" ? "Not recorded" : cashMoney(detail.actual_cash)], ["Recorded variance", detail.status === "open" ? "Not recorded" : cashMoney(detail.variance)], ["Close notes", text(detail.close_notes, "No close note supplied")], ["Reconciliation notes", text(detail.reconciliation_notes, "No reconciliation note supplied")]].map(([label, value]) => <div key={String(label)}><dt>{String(label)}</dt><dd>{String(value)}</dd></div>)}</dl>{detail.status !== "open" && <CashCloseNextSteps shift={detail} role={role} onCreateHandover={onCreateHandover} onOpenHandovers={onOpenHandovers} onOpenReport={onOpenReport} />}<div className="btn-row"><button className="cash-button" onClick={() => { setMovementId(String(detail.id)); setDetailId(null); }}>View cash movements</button>{detail.status === "closed" && mayReconcile && <button className="cash-button cash-primary" onClick={() => openReconcile(detail)}>Reconcile shift</button>}</div></>}
     </Modal>
 

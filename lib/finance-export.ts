@@ -2,7 +2,7 @@ import { z } from "zod";
 import { assembleA4Pdf, MARGIN, pdfRule, pdfText } from "@/lib/pdf-page";
 import { writeCloseWorkbook } from "@/lib/finance-export-workbook";
 
-export type FinanceExportFormat = "csv" | "xlsx" | "pdf";
+export type FinanceExportFormat = "csv" | "xlsx" | "pdf" | "json";
 
 const money = z.number().transform(value => Math.round(value * 100)).pipe(z.number().int().safe());
 const closedSnapshot = z.object({
@@ -46,11 +46,25 @@ export const financeExportContentType: Record<FinanceExportFormat, string> = {
   csv: "text/csv; charset=utf-8",
   xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   pdf: "application/pdf",
+  json: "application/json; charset=utf-8",
 };
 
 export function renderFinanceCloseExport(batch: FinanceCloseExport, format: FinanceExportFormat): Uint8Array<ArrayBuffer> {
   if (format === "xlsx") return writeCloseWorkbook(batch);
   if (format === "pdf") return renderPdf(batch);
+  if (format === "json") {
+    const reviewBatch = {
+      schemaVersion: 1,
+      property: "HAVEN",
+      batchId: batch.id,
+      businessDate: batch.date,
+      closedAtUtc: batch.closedAt,
+      currency: batch.currency,
+      status: "review_pending",
+      measures: batch.lines.map(line => ({ id: `${batch.id}:${line.code}`, code: line.code, amountMinor: line.minor })),
+    };
+    return new TextEncoder().encode(`${JSON.stringify(reviewBatch, null, 2)}\n`);
+  }
   const columns = ["batch_id", "property", "business_date", "closed_at_utc", "status", "measure", "currency", "amount_minor"];
   // These fields are controlled identifiers, ISO dates, fixed labels and integer centavos.
   const lines = batch.lines.map(line => [
