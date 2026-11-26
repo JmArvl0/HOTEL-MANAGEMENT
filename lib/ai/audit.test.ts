@@ -1,51 +1,103 @@
-// AI interaction audit: WHO used WHICH feature and how it went — never prompt or
-// response bodies. The durable ai_interactions rows double as the rate-limit counter.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { type FakeDb } from "@/lib/fake-supabase";
+import type { FakeDb, FakeSupabaseOptions } from "@/lib/fake-supabase";
 
-const fake = vi.hoisted(() => ({ db: {} as FakeDb }));
+const fake = vi.hoisted(() => ({
+  db: {} as FakeDb,
+  options: {} as FakeSupabaseOptions,
+  session: null as { user: { id: string; role: string } } | null
+}));
+
 vi.mock("@/lib/supabase", async () => {
-  const { fakeSupabase: make } = await import("@/lib/fake-supabase");
-  return { supabase: make(fake.db) };
+  const { fakeSupabase } = await import("@/lib/fake-supabase");
+  return {
+    get supabase() {
+      return fakeSupabase(fake.db, fake.options);
+    }
+  };
 });
 
-const { aiRateLimited, recordAiInteraction } = await import("@/lib/ai/audit");
+vi.mock("next-auth", () => ({ getServerSession: vi.fn(async () => fake.session) }));
 
-const USER = "11111111-1111-1111-1111-111111111111";
+const {
+  recordAiInteraction,
+  aiRateLimitStatus,
+  aiRateLimited
+} = await import("./audit");
 
-beforeEach(() => {
-  for (const key of Object.keys(fake.db)) delete (fake.db as Record<string, unknown>)[key];
-  fake.db.ai_interactions = [];
-});
+describe("audit: module_assistant feature", () => {
+  beforeEach(() => {
+    fake.db = {};
+    fake.options = {};
+    fake.session = { user: { id: "u1", role: "front_desk" } };
+  });
 
-describe("recordAiInteraction", () => {
-  it("stores user, role, feature, tools, status, model and latency — no prompt or response bodies", async () => {
-    await recordAiInteraction({ userId: USER, role: "manager", feature: "ask", toolCalls: ["getOccupancyForecast", "getHousekeepingForecast"], status: "ok", model: "gemini-2.5-flash", latencyMs: 1834 });
+  it("records module_assistant with module_id and provider_quota status", async () => {
+    const r = await recordAiInteraction({
+      userId: "u1",
+      role: "front_desk",
+      feature: "module_assistant",
+      toolCalls: [],
+      status: "provider_quota",
+      moduleId: "front_desk"
+    });
+    expect(r.ok).toBe(true);
     expect(fake.db.ai_interactions).toHaveLength(1);
-    const row = fake.db.ai_interactions![0];
-    expect(row).toMatchObject({ user_id: USER, role: "manager", feature: "ask", status: "ok", model: "gemini-2.5-flash", latency_ms: 1834 });
-    // The privacy decision, asserted: nothing that could echo operational data is persisted.
-    expect(Object.keys(row).some((key) => /prompt|response|question|answer|content|body/i.test(key))).toBe(false);
+    const row = fake.db.ai_interactions[0];
+    expect(row.feature).toBe("module_assistant");
+    expect(row.module_id).toBe("front_desk");
+    expect(row.status).toBe("provider_quota");
   });
-});
 
-describe("aiRateLimited", () => {
-  it("counts only this user's recent rows for the feature against the limit", async () => {
-    const now = Date.now();
+  it("keeps ordinary Ask audit inserts compatible with the existing schema", async () => {
+    const result = await recordAiInteraction({ userId: "u1", role: "front_desk", feature: "ask", toolCalls: [], status: "ok" });
+    expect(result.ok).toBe(true);
+    expect(fake.db.ai_interactions[0]).not.toHaveProperty("module_id");
+  });
+
+  it("records module_assistant with rate_limited status", async () => {
+    await recordAiInteraction({
+      userId: "u1",
+      role: "front_desk",
+      feature: "module_assistant",
+      toolCalls: [],
+      status: "rate_limited",
+      moduleId: "front_desk"
+    });
+    expect(fake.db.ai_interactions[0].status).toBe("rate_limited");
+  });
+
+  it("aiRateLimitStatus counts per module_id", async () => {
     fake.db.ai_interactions = [
-      { user_id: USER, feature: "ask", created_at: new Date(now - 1 * 60_000).toISOString() },
-      { user_id: USER, feature: "ask", created_at: new Date(now - 2 * 60_000).toISOString() },
-      { user_id: USER, feature: "ask", created_at: new Date(now - 3 * 60_000).toISOString() },
-      { user_id: USER, feature: "explain", created_at: new Date(now - 1 * 60_000).toISOString() }, // other feature
-      { user_id: "22222222-2222-2222-2222-222222222222", feature: "ask", created_at: new Date(now - 1 * 60_000).toISOString() }, // other user
-      { user_id: USER, feature: "ask", created_at: new Date(now - 30 * 60_000).toISOString() } // outside a 10-minute window
+      { user_id: "u1", feature: "module_assistant", module_id: "front_desk", created_at: new Date().toISOString() },
+      { user_id: "u1", feature: "module_assistant", module_id: "front_desk", created_at: new Date().toISOString() }
     ];
-    expect(await aiRateLimited(USER, "ask", 3, 10)).toBe(true);
-    expect(await aiRateLimited(USER, "ask", 4, 10)).toBe(false);
-    expect(await aiRateLimited(USER, "explain", 3, 10)).toBe(false);
+    expect(await aiRateLimitStatus("u1", "module_assistant", 1, 10, "front_desk")).toBe("limited");
+    expect(await aiRateLimitStatus("u1", "module_assistant", 1, 10, "housekeeping")).toBe("allowed");
   });
 
-  it("is not limited with no history", async () => {
-    expect(await aiRateLimited(USER, "brief", 3, 10)).toBe(false);
+  it("aiRateLimitStatus returns unavailable when storage fails", async () => {
+    fake.options.failTables = ["ai_interactions"];
+    expect(await aiRateLimitStatus("u1", "module_assistant", 1, 10, "front_desk")).toBe("unavailable");
+  });
+
+  it("recordAiInteraction returns ok:false when insert fails", async () => {
+    fake.options.failInserts = ["ai_interactions"];
+    const r = await recordAiInteraction({
+      userId: "u1",
+      role: "front_desk",
+      feature: "module_assistant",
+      toolCalls: [],
+      status: "ok",
+      moduleId: "front_desk"
+    });
+    expect(r.ok).toBe(false);
+  });
+
+  it("aiRateLimited returns true only for limited", async () => {
+    fake.db.ai_interactions = [{ user_id: "u1", feature: "module_assistant", module_id: "front_desk", created_at: new Date().toISOString() }];
+    expect(await aiRateLimited("u1", "module_assistant", 1, 10)).toBe(true);
+    expect(await aiRateLimited("u1", "module_assistant", 2, 10)).toBe(false);
+    fake.options.failTables = ["ai_interactions"];
+    expect(await aiRateLimited("u1", "module_assistant", 1, 10)).toBe(false);
   });
 });

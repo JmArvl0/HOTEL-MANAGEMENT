@@ -1,5 +1,13 @@
 # Current Status
 
+## Staff redesign and AI reconciliation (2026-11-26)
+
+PR #1 reconciles the 17 feature commits with the current main branch. The
+live AI drawer and movable toggle are wired to the current staff shells.
+Current Front Office, Accounting, guest, and Lost & Found workflows stay
+authoritative. Four older migration identities were already superseded by
+verified migrations on main. See [[2026-11-26 - Staff Redesign PR Reconciliation]].
+
 ## Front Desk post-audit implementation (2026-11-24, local)
 
 The release candidate fixes eight original Front Desk findings and measures

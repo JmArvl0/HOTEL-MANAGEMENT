@@ -1,0 +1,5 @@
+# Booking Search Efficiency Prototype (2026-11-09)
+
+Reviewed the local public `/booking/search` in browse and availability modes at 1440×900 and 390×844. For 13–15 November and two guests, the mobile price began at about 1,349 px and Select room at 1,436 px. The results repeated dates and party size across the form, chips and sidebar. The public route omits the form's `searched` state, so room selection links still use the previous applied search while draft dates are being edited. The sidebar's hold copy also conflicts with the guest-details submission, which calls the hold API.
+
+The chat prototype puts an editable stay summary, estimated stay totals and compact room choices on the first screen. It uses a sample of the current four room types and simulates the signed-out handoff. Edge checks passed at 1056, 390 and 320 px, including edited quote blocking, cancel, date and guest updates, room details, selection and focus return, and the no-match state. The public app and booking data were read only. Authenticated checkout and hosted behavior were outside the review.

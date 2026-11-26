@@ -1,0 +1,160 @@
+.haven-ai-placement-preview {
+  --preview-paper: var(--surface-overlay, #fff);
+  --preview-ink: var(--color-ink, #111827);
+  --preview-muted: var(--color-muted, #5b6472);
+  --preview-line: var(--color-line, #d1d5db);
+  --haven-ai-toggle-top: calc(var(--haven-ai-header-bottom, 60px) + 100px);
+  position: fixed;
+  inset: 0 0 auto auto;
+  z-index: 12000;
+  color: var(--preview-ink);
+  font-family: inherit;
+  pointer-events: none;
+}
+
+.haven-ai-placement-preview button,
+.haven-ai-placement-preview select,
+.haven-ai-placement-preview textarea { font: inherit; }
+
+.haven-ai-placement-drag-help { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.haven-ai-placement-toggle {
+  position: fixed;
+  right: 0;
+  top: var(--haven-ai-toggle-top);
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  width: 49px;
+  min-height: 58px;
+  padding: 9px 5px;
+  border: 1px solid #245d53;
+  border-radius: 12px 0 0 12px;
+  background: #124a41;
+  color: #fff;
+  box-shadow: 0 4px 18px #0a242b33;
+  cursor: grab;
+  touch-action: none;
+  pointer-events: auto;
+  z-index: 2;
+}
+
+.haven-ai-placement-toggle span { font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+.haven-ai-placement-toggle:hover { background: #176052; }
+.haven-ai-placement-toggle:active { cursor: grabbing; }
+.haven-ai-placement-toggle:focus-visible,
+.haven-ai-placement-preview button:focus-visible,
+.haven-ai-placement-preview select:focus-visible,
+.haven-ai-placement-preview textarea:focus-visible { outline: 3px solid #ca8b23; outline-offset: 2px; }
+
+.haven-ai-placement-preview[data-open="true"] .haven-ai-placement-toggle { right: min(420px, 100vw); border-radius: 10px 0 0 10px; }
+
+/* On wide staff layouts the open assistant is a flex column, like the sidebar. */
+@media (min-width: 1001px) {
+  .app-shell > .haven-ai-placement-preview[data-open="true"] {
+    position: sticky;
+    inset: auto;
+    top: 0;
+    flex: 0 0 clamp(320px, 30vw, 420px);
+    width: clamp(320px, 30vw, 420px);
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  .haven-ai-placement-preview[data-open="true"] .haven-ai-placement-toggle {
+    right: clamp(320px, 30vw, 420px);
+  }
+
+  .haven-ai-placement-preview[data-open="true"] .haven-ai-placement-panel {
+    position: static;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.haven-ai-placement-peek {
+  position: fixed;
+  top: var(--haven-ai-toggle-top);
+  right: 49px;
+  width: min(246px, calc(100vw - 66px));
+  padding: 7px 9px 8px 11px;
+  border: 1px solid var(--preview-line);
+  border-radius: 10px 0 0 10px;
+  background: var(--preview-paper);
+  box-shadow: 0 3px 14px #0a242b24;
+  pointer-events: none;
+}
+
+.haven-ai-placement-peek strong { display: block; font-size: 11px; letter-spacing: .04em; }
+.haven-ai-placement-peek-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.haven-ai-placement-peek-close { display: grid; place-items: center; flex: none; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 5px; background: transparent; color: var(--preview-muted); cursor: pointer; pointer-events: auto; }
+.haven-ai-placement-peek-close:hover { background: var(--badge-bg, #e9edf2); color: var(--preview-ink); }
+.haven-ai-placement-peek span { display: block; overflow: hidden; color: var(--preview-muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+
+.haven-ai-placement-panel {
+  position: fixed;
+  top: var(--haven-ai-header-bottom, 60px);
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  width: min(420px, 100vw);
+  border-left: 1px solid var(--preview-line);
+  background: var(--preview-paper);
+  box-shadow: -14px 0 40px #0a242b2a;
+  pointer-events: auto;
+}
+
+.haven-ai-placement-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 25px 22px 18px;
+  border-bottom: 1px solid var(--preview-line);
+}
+
+.haven-ai-placement-eyebrow { color: #176c5d; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.haven-ai-placement-header h2 { margin: 4px 0 2px; font-size: 23px; line-height: 1.2; }
+.haven-ai-placement-header p { margin: 0; color: var(--preview-muted); font-size: 13px; }
+.haven-ai-placement-icon-button { display: grid; flex: none; place-items: center; width: 38px; height: 38px; border: 1px solid var(--preview-line); border-radius: 9px; background: transparent; color: inherit; cursor: pointer; }
+.haven-ai-placement-scroll { overflow-y: auto; padding: 18px 22px 24px; }
+
+.haven-ai-placement-disclosure { margin: 0 0 17px; padding: 10px 12px; border: 1px solid #d5e5df; border-radius: 9px; background: #eff8f3; color: #244e43; font-size: 12px; line-height: 1.5; }
+.haven-ai-placement-block { margin: 0 0 14px; padding: 16px; border: 1px solid var(--preview-line); border-radius: 12px; background: var(--preview-paper); }
+.haven-ai-placement-block h3 { margin: 7px 0 6px; font-size: 17px; line-height: 1.3; }
+.haven-ai-placement-block p { margin: 0; font-size: 13px; line-height: 1.55; }
+.haven-ai-placement-block-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.haven-ai-placement-state { padding: 3px 7px; border-radius: 6px; background: #e7f2ec; color: #155a42; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.haven-ai-placement-state-stale { background: #fff0d8; color: #835000; }
+.haven-ai-placement-state-absent, .haven-ai-placement-state-unavailable { background: #e9edf2; color: #39495b; }
+.haven-ai-placement-block .haven-ai-placement-guidance { margin-top: 11px; font-size: 14px; font-weight: 650; }
+.haven-ai-placement-block .haven-ai-placement-source { margin-top: 10px; color: var(--preview-muted); font-size: 11px; }
+.haven-ai-placement-block .haven-ai-placement-caution { margin-top: 10px; color: #835000; }
+.haven-ai-placement-block .haven-ai-placement-empty { margin-top: 10px; color: var(--preview-muted); }
+.haven-ai-placement-facts { display: grid; gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }
+.haven-ai-placement-facts li { padding: 9px 10px; border: 1px solid var(--preview-line); border-radius: 8px; }
+.haven-ai-placement-facts strong, .haven-ai-placement-facts small { display: block; }
+.haven-ai-placement-facts strong { font-size: 12px; }
+.haven-ai-placement-facts small { margin-top: 3px; color: var(--preview-muted); font-size: 11px; }
+.haven-ai-placement-scenario label, .haven-ai-placement-ask label { display: block; margin: 10px 0 6px; font-size: 12px; font-weight: 700; }
+.haven-ai-placement-scenario select, .haven-ai-placement-ask textarea { display: block; width: 100%; padding: 9px 10px; border: 1px solid var(--preview-line); border-radius: 8px; background: var(--preview-paper); color: var(--preview-ink); }
+.haven-ai-placement-secondary, .haven-ai-placement-ask-toggle, .haven-ai-placement-submit { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; margin-top: 10px; padding: 9px 12px; border: 1px solid #1f6a58; border-radius: 8px; background: transparent; color: #176052; font-size: 12px; font-weight: 750; cursor: pointer; }
+.haven-ai-placement-ask-toggle { width: 100%; }
+.haven-ai-placement-submit { background: #176052; color: #fff; }
+.haven-ai-placement-submit:disabled { opacity: .55; cursor: not-allowed; }
+.haven-ai-placement-block .haven-ai-placement-answer { margin-top: 10px; padding: 11px; border-radius: 8px; background: #eff8f3; color: #244e43; }
+.haven-ai-placement-exit { width: 100%; min-height: 42px; border: 0; background: transparent; color: var(--preview-muted); font-size: 12px; text-decoration: underline; cursor: pointer; }
+
+@media (max-width: 600px) {
+  .haven-ai-placement-preview { --haven-ai-toggle-top: calc(var(--haven-ai-header-bottom, 60px) + 166px); }
+  .haven-ai-placement-preview[data-open="true"] .haven-ai-placement-toggle,
+  .haven-ai-placement-toggle { right: 12px; border-radius: 10px; }
+  .haven-ai-placement-peek { right: 61px; width: min(246px, calc(100vw - 78px)); border-radius: 10px; }
+  .haven-ai-placement-panel { width: 100vw; }
+  .haven-ai-placement-header { padding-right: 78px; }
+  .haven-ai-placement-icon-button { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .haven-ai-placement-preview * { scroll-behavior: auto; }
+}

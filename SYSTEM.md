@@ -2669,7 +2669,17 @@ fires daily at 01:05 UTC (≈09:05 Manila). Sends are idempotent (§9
 (cached daily brief, `?refresh=1` rate-limited); `POST /ask` (question + short history → tool-loop
 answer with tool provenance); `POST /explain` (type ∈ occupancy/housekeeping/inventory/maintenance
 — server rebuilds the forecast context); `POST /report-summary` (AI-assisted summary of a hotel
-day's report). All return `{ data: null, message }` degradation, never 5xx, when Gemini is down.
+day's report). These endpoints return tool-specific fallback responses when Gemini is down.
+
+**Staff module assistance** uses separate authorization. The drawer calls
+`GET /api/ai/placement?module=...` for the signed-in role's purpose and available
+aggregate facts. This read makes no Gemini request. `POST /api/ai/placement`
+runs only after staff choose Ask, validates the hotel question, and grounds
+numeric claims in the permitted facts. The separate `POST /api/ai/module/[module]`
+uses a server-owned topic and module-specific role check. It reserves usage
+and audits through `20261118010000_ai_module_assistants.sql`. Both paths are
+advisory. The dedicated Manager HAVEN AI page and Guest concierge are separate.
+See [AI placement](docs/ai-placement-by-account.md) for the design brief.
 
 **QR operations** (`/api/qr`, §7.13): `POST /resolve` (token → role-aware resolution with current
 resource-state re-check + scan audit); `GET /reservation/[id]` (guest-owner or staff; **confirmed

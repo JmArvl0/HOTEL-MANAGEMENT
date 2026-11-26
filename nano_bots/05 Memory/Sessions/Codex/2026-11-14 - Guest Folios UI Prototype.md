@@ -1,0 +1,6 @@
+# Guest Folios UI Prototype — 2026-11-14 (Codex)
+
+- Created a standalone, sample-data preview at `public/prototypes/guest-folios-preview.html` with companion CSS/JS. The live Front Desk and Accounting module was not edited.
+- The first concept duplicated Billing's existing folio register, balance and collection workflow. After the user questioned that overlap, the same preview was revised to show Billing with richer folio activity in its selected stay detail; the proposed sidebar no longer has a separate Guest Folios item. Existing checkout/deposit/settled queues and Front Desk/Accounting actions remain represented. Pending deposit is visibly excluded from applied payments. Phones use separate queue/detail views and return focus to the selected row.
+- Verified `npm run typecheck`, JavaScript syntax, CSS parsing, search/queue/role controls, pending-deposit state, mobile transition and return focus with jsdom. The Impeccable detector ran in degraded regex mode with no findings on the first concept; it was not rerun after the revision. Browser visual QA was blocked because the computer-use browser policy disallowed the local `file:` URL; no screenshot or browser layout claim was made.
+- Existing unrelated working-tree modifications were left untouched. Review the revised preview with the user before any live Billing/navigation integration.
