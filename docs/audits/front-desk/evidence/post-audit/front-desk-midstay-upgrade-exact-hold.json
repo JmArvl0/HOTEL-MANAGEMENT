@@ -1,0 +1,80 @@
+{
+  "date": "2026-11-26",
+  "environment": "Isolated loopback Next.js, PostgREST and PostgreSQL with synthetic staff and guest accounts",
+  "edgeVersion": "158.0.4370.33",
+  "nonLoopbackServerFetchAttempts": 0,
+  "browserPageErrors": 0,
+  "execution": {
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "heldEligibleRooms": 1,
+    "heldStatus": 409,
+    "heldPublicCode": "OPERATION_UNCONFIRMED",
+    "heldPublicMessage": "Unable to execute this approved exception.",
+    "heldDatabaseReason": "EXACT_ROOM_UNAVAILABLE",
+    "rejectedMoveLeftStateIntact": true,
+    "eligibleAfterExpiry": 2,
+    "holdStillActiveWhenRelisted": true,
+    "afterExpiryStatus": 409,
+    "afterExpiryPublicCode": "OPERATION_UNCONFIRMED",
+    "afterExpiryPublicMessage": "Unable to execute this approved exception.",
+    "afterExpiryDatabaseReason": "ROOM_TYPE_EXCEPTION_ROOM_CHANGED",
+    "replayStatus": 409,
+    "acceptedApprovalStillAwaitingExecution": true,
+    "originalRoomRetained": true,
+    "chargesAfterRetry": 0,
+    "approvedUpgradeDifference": 560,
+    "executionAudits": 0,
+    "turnoverTasks": 0
+  },
+  "targetedVitest": {
+    "passed": 73,
+    "testFiles": 5
+  },
+  "checks": [
+    {
+      "id": "FD-MIDSTAY-UPGRADE-ACCEPTANCE",
+      "method": "Edge + authenticated Front Desk and Manager HTTP + PostgreSQL",
+      "title": "Record mid-stay guest acceptance through the staff endpoint without posting a charge",
+      "state": "PASS",
+      "result": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "managerApprovalStatus": 200,
+        "visibleAcceptanceAction": false,
+        "beforeAcceptanceStatus": 409,
+        "beforeAcceptanceApiCode": "OPERATION_UNCONFIRMED",
+        "beforeAcceptanceDatabaseReason": "ROOM_TYPE_EXCEPTION_ROOM_CHANGED",
+        "acceptanceStatus": 200,
+        "acceptanceViaSignedInApi": true,
+        "acceptanceReplayStatus": 200,
+        "acceptanceAudits": 1,
+        "chargesOnAcceptance": 0,
+        "approvalAwaitingExecution": true,
+        "approvedUpgradeDifference": 560
+      }
+    },
+    {
+      "id": "FD-MIDSTAY-UPGRADE-EXECUTION",
+      "method": "Edge + guest and Front Desk HTTP + PostgreSQL",
+      "title": "Block the live exact hold, execute after expiry, and keep one charge on retry",
+      "state": "FAIL",
+      "detail": "An arrival-only trigger rejected an accepted mid-stay upgrade after hold expiry (ROOM_TYPE_EXCEPTION_ROOM_CHANGED)\n\n409 !== 200\n"
+    },
+    {
+      "id": "FD-MIDSTAY-UPGRADE-ISOLATION",
+      "method": "HTTP + PostgreSQL",
+      "title": "Verify no payment requests or provider activity in the disposable fixture",
+      "state": "PASS",
+      "result": {
+        "syntheticLedgerEntries": 1,
+        "holdConversions": 0,
+        "paymentEndpointPosts": 0
+      }
+    }
+  ]
+}

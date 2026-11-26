@@ -1,0 +1,236 @@
+{
+  "date": "2026-11-25",
+  "runtime": "Node 22.22.2",
+  "environment": "Loopback Next.js, PostgREST, Microsoft Edge, and a disposable PostgreSQL clone",
+  "localBaseMigration": "20261124020000",
+  "cloneOnlyMigration": "20261124030000",
+  "signedInGuests": 6,
+  "signedInFrontDesk": 6,
+  "nonLoopbackFetchAttempts": 0,
+  "httpStatusCounts": {
+    "200": 19,
+    "201": 16,
+    "409": 18
+  },
+  "checks": [
+    {
+      "id": "SHARED-01",
+      "method": "Authenticated HTTP + PostgreSQL",
+      "title": "Race one final unit with both guest hold modes",
+      "state": "PASS",
+      "result": [
+        {
+          "winner": "Guest hold",
+          "statuses": [
+            201,
+            409
+          ],
+          "mode": "type",
+          "firstQueued": "Guest",
+          "concurrentLockWaits": {
+            "guest": 1,
+            "desk": 1
+          },
+          "persisted": {
+            "reservations": 0,
+            "invoices": 0,
+            "payments": 0,
+            "liveHolds": 1,
+            "convertedHolds": 0
+          },
+          "availableUnits": 0
+        },
+        {
+          "winner": "Guest hold",
+          "statuses": [
+            201,
+            409
+          ],
+          "mode": "exact",
+          "firstQueued": "Guest",
+          "concurrentLockWaits": {
+            "guest": 1,
+            "desk": 1
+          },
+          "persisted": {
+            "reservations": 0,
+            "invoices": 0,
+            "payments": 0,
+            "liveHolds": 1,
+            "convertedHolds": 0
+          },
+          "availableUnits": 0
+        },
+        {
+          "winner": "Front Desk booking",
+          "statuses": [
+            409,
+            201
+          ],
+          "mode": "type",
+          "firstQueued": "Front Desk",
+          "concurrentLockWaits": {
+            "guest": 1,
+            "desk": 1
+          },
+          "persisted": {
+            "reservations": 1,
+            "invoices": 1,
+            "payments": 0,
+            "liveHolds": 0,
+            "convertedHolds": 0
+          },
+          "availableUnits": 0
+        },
+        {
+          "winner": "Front Desk booking",
+          "statuses": [
+            409,
+            201
+          ],
+          "mode": "exact",
+          "firstQueued": "Front Desk",
+          "concurrentLockWaits": {
+            "guest": 1,
+            "desk": 1
+          },
+          "persisted": {
+            "reservations": 1,
+            "invoices": 1,
+            "payments": 0,
+            "liveHolds": 0,
+            "convertedHolds": 0
+          },
+          "availableUnits": 0
+        }
+      ]
+    },
+    {
+      "id": "SHARED-02",
+      "method": "Authenticated HTTP + PostgreSQL",
+      "title": "Keep a mixed request burst within four shared rooms",
+      "state": "PASS",
+      "result": {
+        "requests": 12,
+        "accepted": 4,
+        "guestAccepted": 0,
+        "staffAccepted": 4,
+        "expectedCapacityConflicts": 8,
+        "concurrentLockWaits": {
+          "guest": 2,
+          "desk": 6
+        },
+        "persisted": {
+          "reservations": 4,
+          "invoices": 4,
+          "payments": 0,
+          "liveHolds": 0,
+          "convertedHolds": 0
+        }
+      }
+    },
+    {
+      "id": "SHARED-03",
+      "method": "Guest Edge + authenticated HTTP + PostgreSQL",
+      "title": "An expired exact hold releases the last room before cleanup",
+      "state": "PASS",
+      "result": {
+        "availabilityBeforeExpiry": 0,
+        "availabilityAfterExpiryBeforeSweep": 1,
+        "liveSameAttempt": 200,
+        "expiredSameAttempt": "HOLD_ATTEMPT_EXPIRED",
+        "staffRetryStatus": 201,
+        "guestReviewShowsExpiry": true,
+        "searchKeepsDates": true,
+        "statusAfterGuestReview": "expired",
+        "laterSweepRows": 0,
+        "persisted": {
+          "reservations": 1,
+          "invoices": 1,
+          "payments": 0,
+          "liveHolds": 0,
+          "convertedHolds": 0
+        }
+      }
+    },
+    {
+      "id": "SHARED-04",
+      "method": "Authenticated HTTP + PostgreSQL",
+      "title": "Race a fresh guest attempt and desk booking for newly expired inventory",
+      "state": "PASS",
+      "result": {
+        "winner": "Front Desk booking",
+        "statuses": [
+          409,
+          201
+        ],
+        "concurrentLockWaits": {
+          "guest": 1,
+          "desk": 1
+        },
+        "persisted": {
+          "reservations": 1,
+          "invoices": 1,
+          "payments": 0,
+          "liveHolds": 0,
+          "convertedHolds": 0
+        }
+      }
+    },
+    {
+      "id": "SHARED-05",
+      "method": "Authenticated HTTP + PostgreSQL",
+      "title": "Protect a guest’s exact room while another unit can take a staff booking",
+      "state": "PASS",
+      "result": {
+        "concurrentLockWaits": {
+          "guest": 1,
+          "desk": 1
+        },
+        "heldRoomWasOffered": true,
+        "alternateOffered": true,
+        "heldRoomAssignmentStatus": 409,
+        "heldRoomAssignmentMessage": "Unable to assign room.",
+        "alternateAssignmentStatus": 200,
+        "exactHoldStillActive": true
+      }
+    },
+    {
+      "id": "SHARED-06",
+      "method": "Authenticated HTTP + PostgreSQL",
+      "title": "Observe requests that start before the hold expires and leave the lock after expiry",
+      "state": "PASS",
+      "result": {
+        "bothQueuedBeforeExpiry": true,
+        "releasedAfterExpiry": true,
+        "initialStatuses": [
+          409,
+          409
+        ],
+        "retryStatus": 201,
+        "concurrentLockWaits": {
+          "guest": 1,
+          "desk": 1
+        },
+        "persisted": {
+          "reservations": 1,
+          "invoices": 1,
+          "payments": 0,
+          "liveHolds": 0,
+          "convertedHolds": 0
+        }
+      }
+    },
+    {
+      "id": "SHARED-07",
+      "method": "PostgreSQL",
+      "title": "Confirm the fixture created no payments or conversions",
+      "state": "PASS",
+      "result": {
+        "paymentRowsAdded": 0,
+        "convertedTestHolds": 0,
+        "paymentRoutePosts": 0
+      }
+    }
+  ]
+}

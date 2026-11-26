@@ -1,0 +1,86 @@
+{
+  "date": "2026-11-26",
+  "environment": "Isolated loopback Next.js, PostgREST and PostgreSQL with synthetic test accounts",
+  "migration": "20261126010000_front_desk_exact_hold_eligibility",
+  "edgeVersion": "158.0.4370.33",
+  "nonLoopbackServerFetchAttempts": 0,
+  "browserPageErrors": 0,
+  "targetedVitest": {
+    "testFiles": 4,
+    "passed": 51
+  },
+  "checks": [
+    {
+      "id": "FD-HOLD-CHECKIN",
+      "method": "Edge + authenticated HTTP + PostgreSQL",
+      "title": "Guided check-in hides live holds, rejects stale review and completes after expiry",
+      "state": "PASS",
+      "result": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "arrivals": 3,
+        "eligibleWhileHeld": 2,
+        "eligibleAfterExpiry": 3,
+        "alternateRemained": true,
+        "conflict": {
+          "status": 409,
+          "message": "Unable to complete check-in.",
+          "code": "REQUEST_409",
+          "databaseReason": "EXACT_ROOM_UNAVAILABLE"
+        },
+        "noRejectedWrites": true,
+        "holdStillActiveWhenRelisted": true,
+        "commitStatus": 200,
+        "activeAssignments": 1,
+        "checkInAudits": 1,
+        "finalRoomStatus": "occupied",
+        "paymentsCreated": 0
+      }
+    },
+    {
+      "id": "FD-HOLD-MOVE",
+      "method": "Edge + authenticated HTTP + PostgreSQL",
+      "title": "Room change keeps the original assignment on a stale rejection and moves after expiry",
+      "state": "PASS",
+      "result": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "initialEligible": 2,
+        "eligibleWhileHeld": 1,
+        "eligibleAfterExpiry": 2,
+        "alternateRemained": true,
+        "conflict": {
+          "status": 409,
+          "message": "Unable to change rooms.",
+          "code": "REQUEST_409",
+          "databaseReason": "EXACT_ROOM_UNAVAILABLE"
+        },
+        "noRejectedWrites": true,
+        "holdStillActiveWhenRelisted": true,
+        "commitStatus": 200,
+        "originalAssignmentClosedOnHotelDate": true,
+        "replacementStartsOnHotelDate": true,
+        "originalRoomStatus": "dirty",
+        "finalRoomStatus": "occupied",
+        "turnoverTasks": 1,
+        "changeAudits": 1,
+        "stayDatesAndFolioRetained": true
+      }
+    },
+    {
+      "id": "FD-HOLD-WORKFLOW-ISOLATION",
+      "method": "HTTP + PostgreSQL",
+      "title": "Confirm the fixture submitted no payments and converted no holds",
+      "state": "PASS",
+      "result": {
+        "payments": 0,
+        "conversions": 0,
+        "paymentEndpointPosts": 0
+      }
+    }
+  ]
+}

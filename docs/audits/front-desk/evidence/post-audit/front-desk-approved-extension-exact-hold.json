@@ -1,0 +1,76 @@
+{
+  "date": "2026-11-26",
+  "environment": "Isolated loopback Next.js, PostgREST and PostgreSQL with synthetic staff and guest accounts",
+  "extensionReplayMigration": "20261124030000_front_desk_extension_replay",
+  "edgeVersion": "158.0.4370.33",
+  "nonLoopbackServerFetchAttempts": 0,
+  "browserPageErrors": 0,
+  "targetedVitest": {
+    "passed": 43,
+    "testFiles": 5
+  },
+  "checks": [
+    {
+      "id": "FD-APPROVED-EXTENSION-REQUEST",
+      "method": "Edge + authenticated Front Desk and Manager HTTP + PostgreSQL",
+      "title": "Confirm the original room conflict and approve two extra nights",
+      "state": "PASS",
+      "result": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "directExtensionStatus": 409,
+        "directExtensionCode": "EXTENSION_REQUIRES_ROOM_CHANGE",
+        "managerApprovalStatus": 200,
+        "addedNights": 2,
+        "approvedAddedAmount": 200,
+        "folioBefore": 275,
+        "roomConflict": true
+      }
+    },
+    {
+      "id": "FD-APPROVED-EXTENSION-HOLD",
+      "method": "Edge + guest and Front Desk HTTP + PostgreSQL",
+      "title": "Reject a hold on an added night, complete the approved move after expiry, and replay one charge",
+      "state": "PASS",
+      "result": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "holdOverlappedOnlyAddedNights": true,
+        "heldStatus": 409,
+        "heldCode": "ROOM_HELD_FOR_GUEST",
+        "visibleHoldMessage": true,
+        "rejectedRequestPreservedState": true,
+        "holdStillActiveWhenDeadlinePassed": true,
+        "executionStatus": 200,
+        "addedNights": 2,
+        "activeAssignments": 1,
+        "turnoverTasks": 1,
+        "extensionCharges": 1,
+        "extensionAmount": 200,
+        "finalFolioTotal": 475,
+        "originalRoomFutureStayPreserved": true,
+        "priorFolioLinePreserved": true,
+        "executionReplayStatus": 409,
+        "executionReplayCode": "APPROVAL_NOT_EXECUTABLE",
+        "extensionReceiptReplayStatus": 200,
+        "extensionChargeCountAfterBothRetries": 1
+      }
+    },
+    {
+      "id": "FD-APPROVED-EXTENSION-ISOLATION",
+      "method": "HTTP + PostgreSQL",
+      "title": "Confirm the fixture issued no payment or refund requests",
+      "state": "PASS",
+      "result": {
+        "syntheticLedgerEntries": 1,
+        "paymentOrRefundEndpointPosts": 0,
+        "refundRequests": 0,
+        "holdConversions": 0
+      }
+    }
+  ]
+}

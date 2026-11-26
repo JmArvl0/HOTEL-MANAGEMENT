@@ -1,0 +1,156 @@
+{
+  "date": "2026-11-26",
+  "environment": "Isolated loopback Next.js, PostgREST and PostgreSQL with synthetic staff and guest accounts",
+  "migration": "20261126030000_validate_midstay_room_upgrade",
+  "edgeVersion": "158.0.4370.33",
+  "nonLoopbackServerFetchAttempts": 0,
+  "browserPageErrors": 0,
+  "targetedVitest": {
+    "passed": 74,
+    "testFiles": 5
+  },
+  "checks": [
+    {
+      "id": "FD-MIDSTAY-UPGRADE-ACCEPTANCE",
+      "method": "Edge + authenticated Front Desk and Manager HTTP + PostgreSQL",
+      "title": "Record mid-stay guest acceptance in Edge without posting a charge",
+      "state": "PASS",
+      "result": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "managerApprovalStatus": 200,
+        "directChangeWithoutApprovalRejected": true,
+        "visibleAcceptanceAction": true,
+        "beforeAcceptanceStatus": 409,
+        "beforeAcceptanceApiCode": "ROOM_TYPE_EXCEPTION_ACCEPTANCE_REQUIRED",
+        "acceptanceStatus": 200,
+        "acceptanceViaEdgeButton": true,
+        "acceptancePersistedAfterReopening": true,
+        "acceptanceReplayStatus": 200,
+        "acceptanceAudits": 1,
+        "chargesOnAcceptance": 0,
+        "approvalAwaitingExecution": true,
+        "approvedUpgradeDifference": 560
+      }
+    },
+    {
+      "id": "FD-MIDSTAY-UPGRADE-EXECUTION",
+      "method": "Edge + guest and Front Desk HTTP + PostgreSQL",
+      "title": "Block the live exact hold, execute after expiry, and keep one charge on retry",
+      "state": "PASS",
+      "result": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "liveEligibleRooms": 1,
+        "heldExecutionStatus": 409,
+        "heldExecutionApiCode": "ROOM_HELD_FOR_GUEST",
+        "heldExecutionMessage": "A guest is holding this room for these dates. Reopen the room list and choose another room.",
+        "visibleInDialog": true,
+        "heldExecutionDatabaseReason": "EXACT_ROOM_UNAVAILABLE",
+        "rejectedMoveLeftStateIntact": true,
+        "holdStillActiveWhenRelisted": true,
+        "eligibleAfterExpiry": 2,
+        "executionStatus": 200,
+        "activeAssignments": 1,
+        "executionAudits": 1,
+        "turnoverTasks": 1,
+        "chargeAmount": 560,
+        "finalFolioTotal": 960,
+        "replayStatus": 409,
+        "replayCode": "APPROVAL_NOT_EXECUTABLE",
+        "totalUpgradeChargesAfterRetry": 1
+      }
+    },
+    {
+      "id": "FD-MIDSTAY-UPGRADE-ISOLATION",
+      "method": "HTTP + PostgreSQL",
+      "title": "Verify no payment requests or provider activity in the disposable fixture",
+      "state": "PASS",
+      "result": {
+        "syntheticLedgerEntries": 1,
+        "holdConversions": 0,
+        "paymentEndpointPosts": 0
+      }
+    }
+  ],
+  "arrivalRegression": [
+    {
+      "id": "FD-API-005-ACCEPTANCE",
+      "method": "Edge + signed-in Front Desk and Manager HTTP + PostgreSQL",
+      "title": "Record acceptance through the Front Desk endpoint and post one charge across retries",
+      "state": "PASS",
+      "result": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "privileges": {
+          "serviceRole": true,
+          "anon": false,
+          "authenticated": false
+        },
+        "guestAttemptStatus": 403,
+        "requestStatus": 201,
+        "managerApprovalStatus": 200,
+        "beforeAcceptanceCode": "ROOM_TYPE_EXCEPTION_ACCEPTANCE_REQUIRED",
+        "edgeAcceptanceStatus": 200,
+        "visibleAcceptance": true,
+        "overlappingAcceptedRequests": 4,
+        "overlappingLockWaitersObserved": 4,
+        "edgeReplayStatus": 200,
+        "chargesAfterAllAttempts": 1,
+        "acceptanceAuditCount": 1,
+        "upgradeDifference": 420,
+        "folioTotal": 720,
+        "folioBalanceAfterAcceptance": 420,
+        "acceptanceWroteNoPayments": true,
+        "beforeFixtureSettlementCode": "REMAINING_BALANCE_REQUIRED",
+        "syntheticSettlementUsed": true
+      }
+    },
+    {
+      "id": "FD-API-005-HOLD",
+      "method": "Edge + authenticated HTTP + PostgreSQL",
+      "title": "Keep the approved room pinned during a stale check-in and execute after expiry",
+      "state": "PASS",
+      "result": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "differentRoomRejected": 409,
+        "liveApprovedRooms": 0,
+        "approvedRoomsAfterExpiry": 1,
+        "staleCheckInStatus": 409,
+        "publicCode": "ROOM_HELD_FOR_GUEST",
+        "visibleMessage": "A guest is holding this room for these dates. Reopen the room list and choose another room.",
+        "awaitingExecutionPreserved": true,
+        "committedWritesOnRejection": 0,
+        "holdStillActiveWhenRelisted": true,
+        "finalCheckInStatus": 200,
+        "approvalExecutionStatus": "executed",
+        "activeAssignments": 1,
+        "checkInAudits": 1,
+        "exceptionAudits": 1,
+        "acceptedRateFinalized": true,
+        "folioPreserved": true,
+        "finalUpgradeCharges": 1
+      }
+    },
+    {
+      "id": "FD-API-005-ISOLATION",
+      "method": "HTTP + PostgreSQL",
+      "title": "Verify payment isolation and synthetic ledger provenance",
+      "state": "PASS",
+      "result": {
+        "syntheticLedgerEntries": 2,
+        "holdConversions": 0,
+        "paymentEndpointPosts": 0
+      }
+    }
+  ]
+}

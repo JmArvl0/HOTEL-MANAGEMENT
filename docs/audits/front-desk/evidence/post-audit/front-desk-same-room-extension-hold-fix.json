@@ -1,0 +1,107 @@
+{
+  "date": "2026-11-26",
+  "environment": "Isolated loopback Next.js, PostgREST and PostgreSQL with synthetic staff and guest accounts",
+  "migration": "20261126040000_front_desk_extension_hold_preview",
+  "edgeVersion": "158.0.4370.33",
+  "nonLoopbackServerFetchAttempts": 0,
+  "browserPageErrors": 0,
+  "vitest": {
+    "passed": 2760,
+    "testFiles": 278,
+    "targetedPassed": 46
+  },
+  "postgresChecks": [
+    "Preview permissions",
+    "Hold on first added night",
+    "Hold on other room",
+    "Hold starting at requested checkout",
+    "Hold expiry",
+    "Rollback on a live hold",
+    "Single-charge replay"
+  ],
+  "checks": [
+    {
+      "id": "FD-SAME-ROOM-EXTENSION-HOLD",
+      "method": "Edge + guest HTTP + PostgreSQL",
+      "title": "Verify that an exact hold on an added night blocks an in-place extension",
+      "state": "PASS",
+      "result": {
+        "initialViewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "heldPreviewViewport": {
+          "width": 1280,
+          "height": 720,
+          "colorScheme": "dark"
+        },
+        "holdOverlappedOnlyFirstAddedNight": true,
+        "initialPreviewRoomHeld": false,
+        "refreshedPreviewRoomHeld": true,
+        "heldPreviewReplacedAvailability": true,
+        "alertReadability": {
+          "light": {
+            "visible": true,
+            "contrast": 5.53,
+            "fontSize": 13
+          },
+          "dark": {
+            "visible": true,
+            "contrast": 7.8,
+            "fontSize": 13
+          }
+        },
+        "refreshSentNoExtensionPost": true,
+        "replyStatus": 409,
+        "responseCode": "ROOM_HELD_FOR_GUEST",
+        "outcome": "rejected",
+        "databaseReason": "EXACT_ROOM_UNAVAILABLE",
+        "visibleMessage": "A guest is holding this room for one or more added nights. Refresh availability to check again.",
+        "roomHoldDidNotOfferManagerException": true,
+        "checkoutAndReasonPreserved": true,
+        "reservationAssignmentAndLedgerPreserved": true
+      }
+    },
+    {
+      "id": "FD-SAME-ROOM-EXTENSION-REPLAY",
+      "method": "Edge + PostgreSQL",
+      "title": "Extend in place after expiry and recover the original charge after a lost response",
+      "state": "PASS",
+      "result": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "holdStillActiveAtExpiry": true,
+        "roomAvailableAfterExpiryRefresh": true,
+        "extensionStatus": 200,
+        "addedNights": 2,
+        "sameRoomAndAssignment": true,
+        "managerApprovalCount": 0,
+        "extensionCharges": 1,
+        "extensionAmount": 200,
+        "receiptCount": 1,
+        "extensionAudits": 1,
+        "finalFolioTotal": 475,
+        "priorTransportChargePreserved": true,
+        "syntheticLostResponse": true,
+        "retryReusedKey": true,
+        "retryStatus": 200,
+        "sameReceipt": true,
+        "extensionChargeCountAfterRetry": 1
+      }
+    },
+    {
+      "id": "FD-SAME-ROOM-EXTENSION-ISOLATION",
+      "method": "HTTP + PostgreSQL",
+      "title": "Verify that the local workflow made zero payment or refund requests",
+      "state": "PASS",
+      "result": {
+        "syntheticLedgerEntries": 1,
+        "paymentOrRefundEndpointPosts": 0,
+        "refundRequests": 0,
+        "holdConversions": 0
+      }
+    }
+  ]
+}

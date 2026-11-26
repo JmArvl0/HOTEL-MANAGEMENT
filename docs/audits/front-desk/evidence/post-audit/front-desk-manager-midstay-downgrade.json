@@ -1,0 +1,88 @@
+{
+  "date": "2026-11-26",
+  "environment": "Isolated loopback Next.js, PostgREST and PostgreSQL with synthetic staff and guest accounts",
+  "migration": "20261126030000_validate_midstay_room_upgrade",
+  "edgeVersion": "158.0.4370.33",
+  "nonLoopbackServerFetchAttempts": 0,
+  "browserPageErrors": 0,
+  "targetedVitest": {
+    "passed": 73,
+    "testFiles": 6
+  },
+  "checks": [
+    {
+      "id": "FD-MIDSTAY-DOWNGRADE-APPROVAL",
+      "method": "Edge + authenticated Front Desk and Manager HTTP + PostgreSQL",
+      "title": "Approve a lower-priced room and show the no-automatic-refund note in Edge",
+      "state": "PASS",
+      "result": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "managerApprovalStatus": 200,
+        "proposedLodgingDifference": -160,
+        "targetLodgingQuote": 240,
+        "agreedLodging": 400,
+        "originalFolioTotal": 475,
+        "originalBalance": 75,
+        "noAutomaticRefundNoteVisible": true,
+        "acceptanceRequired": false,
+        "acceptanceAttemptCode": "ACCEPTANCE_NOT_REQUIRED",
+        "ledgerPreserved": true
+      }
+    },
+    {
+      "id": "FD-MIDSTAY-DOWNGRADE-HOLD",
+      "method": "Edge + guest and Front Desk HTTP + PostgreSQL",
+      "title": "Block the live hold, move after expiry, and preserve the rate and complete folio",
+      "state": "PASS",
+      "result": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "liveEligibleRooms": 1,
+        "heldExecutionStatus": 409,
+        "heldExecutionApiCode": "ROOM_HELD_FOR_GUEST",
+        "heldExecutionMessage": "A guest is holding this room for these dates. Reopen the room list and choose another room.",
+        "visibleInDialog": true,
+        "heldExecutionDatabaseReason": "EXACT_ROOM_UNAVAILABLE",
+        "rejectedMoveLeftStateIntact": true,
+        "holdStillActiveWhenRelisted": true,
+        "eligibleAfterExpiry": 2,
+        "executionStatus": 200,
+        "activeAssignments": 1,
+        "executionAudits": 1,
+        "turnoverTasks": 1,
+        "proposedLodgingDifference": -160,
+        "agreedLodgingAfter": 400,
+        "nightlyRatesPreserved": true,
+        "invoiceChargeAndPaymentRowsPreserved": true,
+        "finalFolioTotal": 475,
+        "finalFolioBalance": 75,
+        "replayStatus": 409,
+        "replayCode": "APPROVAL_NOT_EXECUTABLE",
+        "totalUpgradeChargesAfterRetry": 0,
+        "refundRequests": 0,
+        "refundPayments": 0,
+        "financialAdjustments": 0,
+        "creditBalance": 0
+      }
+    },
+    {
+      "id": "FD-MIDSTAY-DOWNGRADE-ISOLATION",
+      "method": "HTTP + PostgreSQL",
+      "title": "Verify no payment requests or provider activity in the disposable fixture",
+      "state": "PASS",
+      "result": {
+        "syntheticLedgerEntries": 1,
+        "holdConversions": 0,
+        "paymentOrRefundEndpointPosts": 0,
+        "refundRequests": 0,
+        "refundPayments": 0,
+        "refundAttempts": 0
+      }
+    }
+  ]
+}

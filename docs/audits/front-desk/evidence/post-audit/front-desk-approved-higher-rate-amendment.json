@@ -1,0 +1,93 @@
+{
+  "date": "2026-11-26",
+  "environment": "Isolated loopback Next.js, PostgREST and PostgreSQL with synthetic staff and guest accounts",
+  "edgeVersion": "158.0.4370.33",
+  "nonLoopbackServerFetchAttempts": 0,
+  "browserPageErrors": 0,
+  "targetedVitest": {
+    "passed": 53,
+    "testFiles": 5
+  },
+  "checks": [
+    {
+      "id": "FD-HIGHER-RATE-AMENDMENT-REQUEST",
+      "method": "Edge guest and Manager + PostgreSQL",
+      "title": "Submit and approve a higher-rate guest room change with a frozen price difference",
+      "state": "PASS",
+      "result": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "originalNightlyRate": 100,
+        "approvedNightlyRate": 180,
+        "currentCatalogNightlyRate": 220,
+        "approvedLodgingDelta": 160,
+        "quotedFolioTotal": 405,
+        "folioBefore": 245,
+        "guestRequestStatus": 201,
+        "managerApprovalStatus": 200,
+        "guestAndManagerUsedEdge": true,
+        "approvalVisibleToFrontDesk": true
+      }
+    },
+    {
+      "id": "FD-HIGHER-RATE-AMENDMENT-HOLD",
+      "method": "Edge + second guest HTTP + PostgreSQL",
+      "title": "Reject a hold on the selected replacement, then complete and retry the higher-rate move",
+      "state": "PASS",
+      "result": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "explicitReplacementPrompt": true,
+        "heldRoomBlocked": true,
+        "selectedRoomWasLastAvailableUnit": true,
+        "messageVisibleInDialog": true,
+        "wrongRoomKeptGenericOutcome": true,
+        "blockedStatus": 409,
+        "blockedCode": "ROOM_HELD_FOR_GUEST",
+        "blockedMessage": "A guest is holding the replacement room for the amended dates. Select Execute as Front Desk to choose another room, or retry the same room after the hold expires.",
+        "databaseReason": "MODIFICATION_ROOM_HELD",
+        "blockedPreservedApprovalReservationAndFolio": true,
+        "holdRowStillActiveWhenExpired": true,
+        "executionStatus": 200,
+        "nightCount": 2,
+        "activeAssignments": 1,
+        "originalAssignmentReassigned": true,
+        "laterBookingPreserved": true,
+        "folioBefore": 245,
+        "approvedLodgingDeltaApplied": 160,
+        "folioAfter": 405,
+        "offlinePaidAmount": 60,
+        "folioBalance": 345,
+        "approvedNightlyRatePreserved": true,
+        "guestPortalShowsNewRoomType": true,
+        "guestPortalShowsUpdatedFolio": true,
+        "originalInvoiceUpdatedOnce": true,
+        "originalChargeAndPaymentRowsPreserved": true,
+        "newFolioCharges": 0,
+        "refundRequests": 0,
+        "replayStatus": 409,
+        "replayCode": "APPROVAL_NOT_EXECUTABLE",
+        "folioUnchangedAfterReplay": true,
+        "guestChangeStatus": "executed",
+        "completedGuestRequestExitedQueue": true,
+        "executionAudits": 1
+      }
+    },
+    {
+      "id": "FD-HIGHER-RATE-AMENDMENT-ISOLATION",
+      "method": "HTTP + PostgreSQL",
+      "title": "Verify zero payment or refund requests and no guest hold conversion",
+      "state": "PASS",
+      "result": {
+        "syntheticLedgerEntries": 1,
+        "paymentOrRefundEndpointPosts": 0,
+        "refundRequests": 0,
+        "holdConversions": 0
+      }
+    }
+  ]
+}

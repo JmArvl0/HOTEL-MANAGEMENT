@@ -1,0 +1,98 @@
+{
+  "date": "2026-11-26",
+  "environment": "Isolated loopback Next.js, PostgREST and PostgreSQL with synthetic test accounts and fixture ledger rows",
+  "migration": "20261126010000_front_desk_exact_hold_eligibility",
+  "edgeVersion": "158.0.4370.33",
+  "nonLoopbackServerFetchAttempts": 0,
+  "browserPageErrors": 0,
+  "acceptanceRoute": {
+    "requestStatus": 201,
+    "managerApprovalStatus": 200,
+    "beforeAcceptanceCode": "ROOM_TYPE_EXCEPTION_ACCEPTANCE_REQUIRED",
+    "status": 409,
+    "code": "OPERATION_UNCONFIRMED",
+    "outcome": "unknown",
+    "message": "Unable to record guest acceptance.",
+    "databaseErrorCode": "42501",
+    "privileges": {
+      "serviceRole": false,
+      "anon": false,
+      "authenticated": false
+    },
+    "chargesWritten": 0,
+    "paymentRowsWritten": 0,
+    "approvalUnchanged": true
+  },
+  "targetedVitest": {
+    "testFiles": 5,
+    "passed": 76
+  },
+  "checks": [
+    {
+      "id": "FD-GUEST-UPGRADE-ACCEPTANCE-HTTP",
+      "method": "Edge + signed-in Front Desk and Manager HTTP + PostgreSQL",
+      "title": "Record guest acceptance through the normal Front Desk endpoint",
+      "state": "FAIL",
+      "detail": "Front Desk acceptance is blocked in the local migration replay by missing service_role EXECUTE (42501)\n\n409 !== 200\n"
+    },
+    {
+      "id": "FD-GUEST-UPGRADE-ACCEPTANCE-DB",
+      "method": "Direct disposable PostgreSQL fixture + signed-in HTTP balance gate",
+      "title": "Verify one folio charge from overlapping calls to the underlying acceptance RPC",
+      "state": "PASS",
+      "result": {
+        "overlappingAcceptedCalls": 3,
+        "overlappingLockWaitersObserved": 3,
+        "serialReplaySucceeded": true,
+        "chargesAfterAllAttempts": 1,
+        "acceptanceAuditCount": 1,
+        "upgradeDifference": 420,
+        "folioTotal": 720,
+        "folioBalanceAfterAcceptance": 420,
+        "acceptanceWroteNoPayments": true,
+        "beforeFixtureSettlementCode": "REMAINING_BALANCE_REQUIRED",
+        "syntheticSettlementUsed": true
+      }
+    },
+    {
+      "id": "FD-GUEST-UPGRADE-HOLD",
+      "method": "Edge + authenticated HTTP + PostgreSQL",
+      "title": "Keep the approved room pinned during a stale check-in and execute after expiry",
+      "state": "PASS",
+      "result": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "differentRoomRejected": 409,
+        "liveApprovedRooms": 0,
+        "approvedRoomsAfterExpiry": 1,
+        "staleCheckInStatus": 409,
+        "publicCode": "ROOM_HELD_FOR_GUEST",
+        "visibleMessage": "A guest is holding this room for these dates. Reopen the room list and choose another room.",
+        "awaitingExecutionPreserved": true,
+        "committedWritesOnRejection": 0,
+        "holdStillActiveWhenRelisted": true,
+        "finalCheckInStatus": 200,
+        "approvalExecutionStatus": "executed",
+        "activeAssignments": 1,
+        "checkInAudits": 1,
+        "exceptionAudits": 1,
+        "acceptedRateFinalized": true,
+        "folioPreserved": true,
+        "finalUpgradeCharges": 1
+      }
+    },
+    {
+      "id": "FD-GUEST-UPGRADE-ISOLATION",
+      "method": "HTTP + PostgreSQL",
+      "title": "Verify payment isolation and synthetic ledger provenance",
+      "state": "PASS",
+      "result": {
+        "syntheticLedgerEntries": 2,
+        "holdConversions": 0,
+        "paymentEndpointPosts": 0
+      }
+    }
+  ]
+}

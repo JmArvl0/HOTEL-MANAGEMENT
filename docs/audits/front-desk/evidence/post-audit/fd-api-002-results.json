@@ -1,0 +1,35 @@
+{
+  "date": "2026-11-24",
+  "environment": "Microsoft Edge against a loopback Next.js build and a disposable PostgreSQL clone",
+  "check": {
+    "id": "FD-API-002",
+    "method": "Edge + HTTP + PostgreSQL",
+    "title": "Explain a sold-out room type and reload inventory without creating the reviewed booking",
+    "state": "PASS",
+    "result": {
+      "status": 409,
+      "code": "ROOM_TYPE_UNAVAILABLE",
+      "visibleMessage": "That room type is no longer available for those dates. Review the updated availability.",
+      "availability": {
+        "status": 200,
+        "sameDates": true,
+        "soldOutUnits": 0,
+        "alternativesAvailable": true,
+        "staleSelectionCleared": true
+      },
+      "competingBookings": {
+        "reservations": 8,
+        "invoices": 8
+      },
+      "rejectedAttempt": {
+        "reservations": 0,
+        "invoices": 0,
+        "requestResults": 0
+      },
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      }
+    }
+  }
+}

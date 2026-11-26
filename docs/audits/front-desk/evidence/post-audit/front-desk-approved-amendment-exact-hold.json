@@ -1,0 +1,119 @@
+{
+  "date": "2026-11-26",
+  "environment": "Isolated loopback Next.js, PostgREST and PostgreSQL with synthetic staff and guest accounts",
+  "edgeVersion": "158.0.4370.33",
+  "nonLoopbackServerFetchAttempts": 0,
+  "browserPageErrors": 0,
+  "targetedVitest": {
+    "passed": 37,
+    "testFiles": 4
+  },
+  "confirmedFindings": [
+    "FD-API-008",
+    "FD-API-009"
+  ],
+  "frontDeskRequestChecks": [
+    {
+      "id": "FD-APPROVED-AMENDMENT-REQUEST",
+      "method": "Front Desk and Manager HTTP + PostgreSQL",
+      "title": "Request a one-day date shift with no lodging delta and obtain Manager approval",
+      "state": "PASS",
+      "result": {
+        "originalNights": 2,
+        "amendedNights": 2,
+        "sameNightlyRate": 100,
+        "expectedLodgingDelta": 0,
+        "folioBefore": 245,
+        "originalRoomConflicted": true,
+        "frontDeskRequestStatus": 201,
+        "managerApprovalStatus": 200
+      }
+    },
+    {
+      "id": "FD-APPROVED-AMENDMENT-HOLD",
+      "method": "Edge + second guest HTTP + PostgreSQL",
+      "title": "Reject a hold on the selected replacement, then complete and retry the same-rate move",
+      "state": "PASS",
+      "result": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "explicitReplacementPrompt": true,
+        "heldRoomBlocked": true,
+        "otherRoomRemainedAvailable": true,
+        "blockedStatus": 409,
+        "blockedCode": "MODIFICATION_ROOM_UNAVAILABLE",
+        "blockedMessage": "The replacement room does not match the requested room type or is unavailable for the amended dates.",
+        "databaseReason": "MODIFICATION_ROOM_UNAVAILABLE",
+        "blockedPreservedApprovalReservationAndFolio": true,
+        "holdRowStillActiveWhenExpired": true,
+        "executionStatus": 200,
+        "nightCount": 2,
+        "activeAssignments": 1,
+        "originalAssignmentReassigned": true,
+        "laterBookingPreserved": true,
+        "folioTotal": 245,
+        "offlinePaidAmount": 60,
+        "folioBalance": 185,
+        "originalFolioInvoiceChargeAndPaymentRowsPreserved": true,
+        "newFolioCharges": 0,
+        "refundRequests": 0,
+        "replayStatus": 409,
+        "replayCode": "APPROVAL_NOT_EXECUTABLE",
+        "folioUnchangedAfterReplay": true,
+        "executionAudits": 1
+      }
+    },
+    {
+      "id": "FD-APPROVED-AMENDMENT-ISOLATION",
+      "method": "HTTP + PostgreSQL",
+      "title": "Verify zero payment or refund requests and no guest hold conversion",
+      "state": "PASS",
+      "result": {
+        "syntheticLedgerEntries": 1,
+        "paymentOrRefundEndpointPosts": 0,
+        "refundRequests": 0,
+        "holdConversions": 0
+      }
+    }
+  ],
+  "guestRequestChecks": [
+    {
+      "id": "FD-APPROVED-AMENDMENT-REQUEST",
+      "method": "Guest and Manager HTTP + PostgreSQL",
+      "title": "Request a one-day date shift with no lodging delta and obtain Manager approval",
+      "state": "PASS",
+      "result": {
+        "originalNights": 2,
+        "amendedNights": 2,
+        "sameNightlyRate": 100,
+        "approvedLodgingDelta": 0,
+        "folioBefore": 245,
+        "originalRoomConflicted": true,
+        "guestRequestStatus": 201,
+        "managerApprovalStatus": 200
+      }
+    },
+    {
+      "id": "FD-GUEST-AMENDMENT-QUEUE",
+      "method": "Edge + authorized Front Desk and Manager HTTP + PostgreSQL",
+      "title": "Verify visibility of an approved guest-originated amendment in the Front Desk queue",
+      "state": "PASS",
+      "result": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "managerApprovalStatus": "awaiting_execution",
+        "managerListStatus": 200,
+        "frontDeskListStatus": 200,
+        "presentInManagerList": true,
+        "presentInFrontDeskList": false,
+        "presentInAllRequestsUi": false,
+        "confirmedFinding": "FD-API-008",
+        "folioPreserved": true
+      }
+    }
+  ]
+}

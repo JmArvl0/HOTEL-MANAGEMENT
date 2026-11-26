@@ -1,0 +1,84 @@
+{
+  "date": "2026-11-26",
+  "environment": "Isolated loopback Next.js, PostgREST and PostgreSQL with synthetic test accounts",
+  "migration": "20261126010000_front_desk_exact_hold_eligibility",
+  "edgeVersion": "158.0.4370.33",
+  "nonLoopbackServerFetchAttempts": 0,
+  "browserPageErrors": 0,
+  "targetedVitest": {
+    "passed": 50,
+    "testFiles": 4
+  },
+  "checks": [
+    {
+      "id": "FD-HOLD-EXCEPTION-REQUEST",
+      "method": "Signed-in HTTP + PostgreSQL",
+      "title": "Gate an exception request on its exact room and allow the same request after expiry",
+      "state": "PASS",
+      "result": {
+        "eligibleWhileHeld": 1,
+        "eligibleAfterExpiry": 2,
+        "blockedStatus": 409,
+        "blockedCode": "ROOM_TYPE_EXCEPTION_ROOM_UNAVAILABLE",
+        "rowsFromBlockedRequest": 0,
+        "retryStatus": 201,
+        "finalApprovalStatus": "pending",
+        "hotelAbsorbsRateDifference": true
+      }
+    },
+    {
+      "id": "FD-HOLD-EXCEPTION-APPROVAL",
+      "method": "Manager session + authenticated HTTP + PostgreSQL",
+      "title": "Keep the pending request unchanged while the exact room is held and approve the same version after expiry",
+      "state": "PASS",
+      "result": {
+        "frontDeskReviewStatus": 403,
+        "managerBlockedStatus": 409,
+        "managerBlockedCode": "ROOM_TYPE_EXCEPTION_ROOM_UNAVAILABLE",
+        "pendingStateAndVersionPreserved": true,
+        "retryWithSameVersionStatus": 200,
+        "finalApprovalStatus": "approved",
+        "executionStatus": "awaiting_execution",
+        "originalApprovedRoomRetained": true
+      }
+    },
+    {
+      "id": "FD-HOLD-EXCEPTION-CHECKIN",
+      "method": "Edge + authenticated HTTP + PostgreSQL",
+      "title": "Keep the approved room pinned during a stale check-in and execute after expiry",
+      "state": "PASS",
+      "result": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "differentRoomRejected": 409,
+        "liveApprovedRooms": 0,
+        "approvedRoomsAfterExpiry": 1,
+        "staleCheckInStatus": 409,
+        "publicCode": "ROOM_HELD_FOR_GUEST",
+        "visibleMessage": "A guest is holding this room for these dates. Reopen the room list and choose another room.",
+        "awaitingExecutionPreserved": true,
+        "committedWritesOnRejection": 0,
+        "holdStillActiveWhenRelisted": true,
+        "finalCheckInStatus": 200,
+        "approvalExecutionStatus": "executed",
+        "activeAssignments": 1,
+        "checkInAudits": 1,
+        "exceptionAudits": 1,
+        "originalRateAndFolioPreserved": true
+      }
+    },
+    {
+      "id": "FD-HOLD-EXCEPTION-ISOLATION",
+      "method": "HTTP + PostgreSQL",
+      "title": "Confirm no payment requests, payment rows, or hold conversions",
+      "state": "PASS",
+      "result": {
+        "payments": 0,
+        "conversions": 0,
+        "paymentEndpointPosts": 0
+      }
+    }
+  ]
+}

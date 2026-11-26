@@ -1,0 +1,3506 @@
+{
+  "date": "2026-11-24",
+  "fixture": {
+    "rooms": 30,
+    "baselineReservations": 36,
+    "postgres": "PostgreSQL 18.6 on x86_64-windows, compiled by msvc-19.44.35228, 64-bit"
+  },
+  "totals": {
+    "passed": 104,
+    "failed": 1,
+    "desktopSamples": 48
+  },
+  "checks": [
+    {
+      "id": "SHIFT-01",
+      "method": "browser + database",
+      "title": "Review morning arrival, departure and current queues",
+      "state": "PASS",
+      "result": {
+        "db": {
+          "in_house": 6,
+          "due_arrivals": 6,
+          "due_departures": 0
+        },
+        "cards": "Arrivals today | 6 | 6 need room assignment | Departures today | 0 | 6 balances need attention | In-house guests | 6 | 0 open guest requests | Rooms ready | 23 | 1 awaiting readiness | Cash this shift | ₱0 | Shift closed · Open in Cash & Shifts"
+      }
+    },
+    {
+      "id": "SHIFT-02",
+      "method": "browser + database",
+      "title": "Create a walk-in from Bookings at 1366 × 768",
+      "state": "PASS",
+      "result": {
+        "actionClicks": 6,
+        "typedFields": 3,
+        "secondsIncludingEvidence": 2,
+        "state": "confirmed"
+      }
+    },
+    {
+      "id": "SHIFT-03",
+      "method": "HTTP + database",
+      "title": "Book phone reservation and verify replay and invalid date",
+      "state": "PASS",
+      "result": {
+        "duplicateCount": 1
+      }
+    },
+    {
+      "id": "SHIFT-04",
+      "method": "HTTP + database",
+      "title": "Check-in rejects an unverified guest, an unpaid folio and a blocked room",
+      "state": "PASS",
+      "result": {
+        "unverified": "IDENTITY_VERIFICATION_REQUIRED",
+        "unpaid": "REMAINING_BALANCE_REQUIRED"
+      }
+    },
+    {
+      "id": "SHIFT-05",
+      "method": "HTTP + database",
+      "title": "Record synthetic tender, replay it, and check in",
+      "state": "PASS"
+    },
+    {
+      "id": "SHIFT-06",
+      "method": "HTTP + database",
+      "title": "Two reception actions cannot overlap on the same room",
+      "state": "PASS",
+      "result": {
+        "codes": [
+          200,
+          409
+        ],
+        "n": 1
+      }
+    },
+    {
+      "id": "SHIFT-07",
+      "method": "HTTP + database",
+      "title": "Record incidental once and verify checkout gate",
+      "state": "PASS",
+      "result": {
+        "duplicateReferenceMessage": "Unable to record payment."
+      }
+    },
+    {
+      "id": "SHIFT-08",
+      "method": "HTTP + database",
+      "title": "Reject different-type move without approval and retain folio on same-type move",
+      "state": "PASS"
+    },
+    {
+      "id": "SHIFT-09",
+      "method": "HTTP + database",
+      "title": "Preview, extend and retry without a duplicate folio charge",
+      "state": "FAIL",
+      "detail": "The new checkout must be later than the current checkout.\n\n409 !== 200\n"
+    },
+    {
+      "id": "SHIFT-10",
+      "method": "HTTP + database",
+      "title": "Route a guest request to Housekeeping",
+      "state": "PASS",
+      "result": {
+        "department": "housekeeping",
+        "status": "open",
+        "approval_status": "approved"
+      }
+    },
+    {
+      "id": "SHIFT-11",
+      "method": "HTTP + database",
+      "title": "Create and review a reservation modification through the proper roles",
+      "state": "PASS",
+      "result": {
+        "status": "approved",
+        "execution_status": "awaiting_execution"
+      }
+    },
+    {
+      "id": "SHIFT-12",
+      "method": "HTTP + database",
+      "title": "Settle outstanding local folio, check out and confirm turnover",
+      "state": "PASS",
+      "result": {
+        "balance": "0.00",
+        "room": "dirty",
+        "turnover": 1
+      }
+    },
+    {
+      "id": "SHIFT-13",
+      "method": "HTTP + database",
+      "title": "Housekeeping takes the turnover from dirty to ready",
+      "state": "PASS",
+      "result": {
+        "task": "completed",
+        "room": "clean"
+      }
+    },
+    {
+      "id": "SHIFT-14",
+      "method": "HTTP + database",
+      "title": "Submit daily operating snapshot and verify Manager boundary",
+      "state": "PASS",
+      "result": {
+        "status": "acknowledged",
+        "version": 2
+      }
+    },
+    {
+      "id": "SHIFT-15",
+      "method": "HTTP + database",
+      "title": "Record a follow-up linked to the audited reservation",
+      "state": "PASS"
+    },
+    {
+      "id": "SHIFT-16",
+      "method": "HTTP + database",
+      "title": "Hand off lost-property custody without exposing claimant fields",
+      "state": "PASS",
+      "result": {
+        "status": "found",
+        "version": 1
+      }
+    },
+    {
+      "id": "SHIFT-17",
+      "method": "HTTP",
+      "title": "Synthetic cash collection requires an open drawer",
+      "state": "PASS"
+    },
+    {
+      "id": "SHIFT-18",
+      "method": "browser + HTTP",
+      "title": "Return to Front Desk and confirm checkout and room board",
+      "state": "PASS"
+    },
+    {
+      "id": "RBAC-Reservation-details",
+      "method": "HTTP",
+      "title": "Check Reservation details",
+      "state": "PASS",
+      "result": {
+        "front_desk": 200,
+        "guest": 403,
+        "housekeeping": 403,
+        "maintenance": 403,
+        "anon": 401
+      }
+    },
+    {
+      "id": "RBAC-Report-generation",
+      "method": "HTTP",
+      "title": "Check Report generation",
+      "state": "PASS",
+      "result": {
+        "front_desk": 200,
+        "guest": 403,
+        "housekeeping": 403,
+        "manager": 403,
+        "anon": 401
+      }
+    },
+    {
+      "id": "RBAC-Cash-drawer-view",
+      "method": "HTTP",
+      "title": "Check Cash drawer view",
+      "state": "PASS",
+      "result": {
+        "front_desk": 200,
+        "guest": 403,
+        "housekeeping": 403,
+        "manager": 403,
+        "anon": 401
+      }
+    },
+    {
+      "id": "RBAC-Transportation-view",
+      "method": "HTTP",
+      "title": "Check Transportation view",
+      "state": "PASS",
+      "result": {
+        "front_desk": 200,
+        "guest": 403,
+        "housekeeping": 403,
+        "maintenance": 403,
+        "anon": 401
+      }
+    },
+    {
+      "id": "RBAC-Lost-property-queue",
+      "method": "HTTP",
+      "title": "Check Lost-property queue",
+      "state": "PASS",
+      "result": {
+        "front_desk": 200,
+        "guest": 403,
+        "maintenance": 403,
+        "accounting": 403,
+        "anon": 401
+      }
+    },
+    {
+      "id": "RBAC-Generic-invoice-list",
+      "method": "HTTP",
+      "title": "Check Generic invoice list",
+      "state": "PASS",
+      "result": {
+        "front_desk": 403,
+        "anon": 401
+      }
+    },
+    {
+      "id": "RBAC-Generic-payment-history",
+      "method": "HTTP",
+      "title": "Check Generic payment history",
+      "state": "PASS",
+      "result": {
+        "front_desk": 403,
+        "anon": 401
+      }
+    },
+    {
+      "id": "RBAC-Finance-refund-processing",
+      "method": "HTTP",
+      "title": "Check Finance refund processing",
+      "state": "PASS",
+      "result": {
+        "front_desk": 403,
+        "anon": 401
+      }
+    },
+    {
+      "id": "RBAC-Checkout-role",
+      "method": "HTTP",
+      "title": "Check Checkout role",
+      "state": "PASS",
+      "result": {
+        "front_desk": 409,
+        "accounting": 403,
+        "manager": 403,
+        "guest": 403,
+        "housekeeping": 403,
+        "anon": 401
+      }
+    },
+    {
+      "id": "RBAC-Book-staff-reservation",
+      "method": "HTTP",
+      "title": "Check Book staff reservation",
+      "state": "PASS",
+      "result": {
+        "front_desk": 400,
+        "guest": 403,
+        "manager": 403,
+        "accounting": 403,
+        "housekeeping": 403,
+        "anon": 401
+      }
+    },
+    {
+      "id": "OPS-01",
+      "method": "HTTP + database",
+      "title": "Refuse premature no-show then cancel a separate reservation",
+      "state": "PASS",
+      "result": {
+        "todayNoShow": 409,
+        "futureNoShow": 409,
+        "cancelled": "cancelled",
+        "overdue": "no_show"
+      }
+    },
+    {
+      "id": "OPS-02",
+      "method": "HTTP + database",
+      "title": "Open a synthetic cash drawer and reject a duplicate open",
+      "state": "PASS",
+      "result": {
+        "n": 1,
+        "float": "1200.00"
+      }
+    },
+    {
+      "id": "OPS-03",
+      "method": "HTTP + database",
+      "title": "Front Desk files a repair and Maintenance reads it",
+      "state": "PASS",
+      "result": {
+        "status": "open"
+      }
+    },
+    {
+      "id": "OPS-04",
+      "method": "HTTP + database",
+      "title": "Review a seeded pending ride without dispatch and check role and date validation",
+      "state": "PASS",
+      "result": {
+        "status": "REVIEWED",
+        "externalLinks": 0,
+        "submissionWithoutSharing": "Please check the highlighted details."
+      }
+    },
+    {
+      "id": "OPS-05",
+      "method": "HTTP + database",
+      "title": "Check roster scope and signed-in reservation detail",
+      "state": "PASS",
+      "result": {
+        "rosterShape": [
+          "items",
+          "assessedAt"
+        ],
+        "financialDetail": true
+      }
+    },
+    {
+      "id": "OPS-VIS-Hotel-Operations",
+      "method": "browser",
+      "title": "Inspect populated Hotel Operations",
+      "state": "PASS",
+      "result": [
+        "Hotel operations",
+        "Shift handover"
+      ]
+    },
+    {
+      "id": "OPS-VIS-Cash-Shifts",
+      "method": "browser",
+      "title": "Inspect populated Cash & Shifts",
+      "state": "PASS",
+      "result": [
+        "Cash & Shifts",
+        "Current shift",
+        "Reconciliation pending close",
+        "Cash movements",
+        "Handover",
+        "Shift history"
+      ]
+    },
+    {
+      "id": "OPS-VIS-Lost-Found",
+      "method": "browser",
+      "title": "Inspect populated Lost & Found",
+      "state": "PASS",
+      "result": [
+        "Lost & Found",
+        "Claims & reported items",
+        "Synthetic blue umbrella"
+      ]
+    },
+    {
+      "id": "OPS-VIS-Transportation",
+      "method": "browser",
+      "title": "Inspect populated Transportation",
+      "state": "PASS",
+      "result": [
+        "Transportation"
+      ]
+    },
+    {
+      "id": "OPS-VIS-Operational-Handover",
+      "method": "browser",
+      "title": "Inspect populated Operational Handover",
+      "state": "PASS",
+      "result": [
+        "Operational handover"
+      ]
+    },
+    {
+      "id": "NAV-Room-Management",
+      "method": "browser",
+      "title": "Open Room Management",
+      "state": "PASS",
+      "result": {
+        "title": "Room Management",
+        "rows": 0
+      }
+    },
+    {
+      "id": "NAV-Bookings",
+      "method": "browser",
+      "title": "Open Bookings",
+      "state": "PASS",
+      "result": {
+        "title": "Bookings",
+        "rows": 10
+      }
+    },
+    {
+      "id": "NAV-Guest-Management",
+      "method": "browser",
+      "title": "Open Guest Management",
+      "state": "PASS",
+      "result": {
+        "title": "Guest Management",
+        "rows": 8
+      }
+    },
+    {
+      "id": "NAV-Guest-Requests",
+      "method": "browser",
+      "title": "Open Guest Requests",
+      "state": "PASS",
+      "result": {
+        "title": "Guest requests",
+        "rows": 0
+      }
+    },
+    {
+      "id": "NAV-Transportation",
+      "method": "browser",
+      "title": "Open Transportation",
+      "state": "PASS",
+      "result": {
+        "title": "Transportation",
+        "rows": 0
+      }
+    },
+    {
+      "id": "NAV-Hotel-Operations",
+      "method": "browser",
+      "title": "Open Hotel Operations",
+      "state": "PASS",
+      "result": {
+        "title": "Hotel operations",
+        "rows": 0
+      }
+    },
+    {
+      "id": "NAV-Approvals-Escalations",
+      "method": "browser",
+      "title": "Open Approvals & Escalations",
+      "state": "PASS",
+      "result": {
+        "title": "Approvals & Escalations",
+        "rows": 1
+      }
+    },
+    {
+      "id": "NAV-Housekeeping",
+      "method": "browser",
+      "title": "Open Housekeeping",
+      "state": "PASS",
+      "result": {
+        "title": "Workforce availability",
+        "rows": 0
+      }
+    },
+    {
+      "id": "NAV-Reports",
+      "method": "browser",
+      "title": "Open Reports",
+      "state": "PASS",
+      "result": {
+        "title": "Daily operations report",
+        "rows": 1
+      }
+    },
+    {
+      "id": "NAV-Operational-Handover",
+      "method": "browser",
+      "title": "Open Operational Handover",
+      "state": "PASS",
+      "result": {
+        "title": "Operational handover",
+        "rows": 0
+      }
+    },
+    {
+      "id": "NAV-Lost-Found",
+      "method": "browser",
+      "title": "Open Lost & Found",
+      "state": "PASS",
+      "result": {
+        "title": "Lost & Found",
+        "rows": 1
+      }
+    },
+    {
+      "id": "NAV-Cash-Shifts",
+      "method": "browser",
+      "title": "Open Cash & Shifts",
+      "state": "PASS",
+      "result": {
+        "title": "Cash & Shifts",
+        "rows": 1
+      }
+    },
+    {
+      "id": "UX-1280-light-dashboard",
+      "method": "browser",
+      "title": "Measure dashboard",
+      "state": "PASS",
+      "result": {
+        "rows": 5,
+        "visible": 5,
+        "overflow": 0,
+        "elapsed": 334
+      }
+    },
+    {
+      "id": "UX-1280-light-rooms",
+      "method": "browser",
+      "title": "Measure rooms",
+      "state": "PASS",
+      "result": {
+        "rows": 30,
+        "visible": 0,
+        "overflow": 0,
+        "elapsed": 346
+      }
+    },
+    {
+      "id": "UX-1280-light-bookings",
+      "method": "browser",
+      "title": "Measure bookings",
+      "state": "PASS",
+      "result": {
+        "rows": 10,
+        "visible": 0,
+        "overflow": 0,
+        "elapsed": 556
+      }
+    },
+    {
+      "id": "UX-1280-light-calendar",
+      "method": "browser",
+      "title": "Measure calendar",
+      "state": "PASS",
+      "result": {
+        "rows": 30,
+        "visible": 0,
+        "overflow": 0,
+        "elapsed": 285
+      }
+    },
+    {
+      "id": "UX-1280-dark-dashboard",
+      "method": "browser",
+      "title": "Measure dashboard",
+      "state": "PASS",
+      "result": {
+        "rows": 5,
+        "visible": 5,
+        "overflow": 0,
+        "elapsed": 381
+      }
+    },
+    {
+      "id": "UX-1280-dark-rooms",
+      "method": "browser",
+      "title": "Measure rooms",
+      "state": "PASS",
+      "result": {
+        "rows": 30,
+        "visible": 0,
+        "overflow": 0,
+        "elapsed": 357
+      }
+    },
+    {
+      "id": "UX-1280-dark-bookings",
+      "method": "browser",
+      "title": "Measure bookings",
+      "state": "PASS",
+      "result": {
+        "rows": 10,
+        "visible": 0,
+        "overflow": 0,
+        "elapsed": 472
+      }
+    },
+    {
+      "id": "UX-1280-dark-calendar",
+      "method": "browser",
+      "title": "Measure calendar",
+      "state": "PASS",
+      "result": {
+        "rows": 30,
+        "visible": 0,
+        "overflow": 0,
+        "elapsed": 268
+      }
+    },
+    {
+      "id": "UX-1366-light-dashboard",
+      "method": "browser",
+      "title": "Measure dashboard",
+      "state": "PASS",
+      "result": {
+        "rows": 5,
+        "visible": 5,
+        "overflow": 0,
+        "elapsed": 410
+      }
+    },
+    {
+      "id": "UX-1366-light-rooms",
+      "method": "browser",
+      "title": "Measure rooms",
+      "state": "PASS",
+      "result": {
+        "rows": 30,
+        "visible": 0,
+        "overflow": 0,
+        "elapsed": 339
+      }
+    },
+    {
+      "id": "UX-1366-light-bookings",
+      "method": "browser",
+      "title": "Measure bookings",
+      "state": "PASS",
+      "result": {
+        "rows": 10,
+        "visible": 0,
+        "overflow": 0,
+        "elapsed": 538
+      }
+    },
+    {
+      "id": "UX-1366-light-calendar",
+      "method": "browser",
+      "title": "Measure calendar",
+      "state": "PASS",
+      "result": {
+        "rows": 30,
+        "visible": 0,
+        "overflow": 0,
+        "elapsed": 248
+      }
+    },
+    {
+      "id": "UX-1366-dark-dashboard",
+      "method": "browser",
+      "title": "Measure dashboard",
+      "state": "PASS",
+      "result": {
+        "rows": 5,
+        "visible": 5,
+        "overflow": 0,
+        "elapsed": 375
+      }
+    },
+    {
+      "id": "UX-1366-dark-rooms",
+      "method": "browser",
+      "title": "Measure rooms",
+      "state": "PASS",
+      "result": {
+        "rows": 30,
+        "visible": 0,
+        "overflow": 0,
+        "elapsed": 342
+      }
+    },
+    {
+      "id": "UX-1366-dark-bookings",
+      "method": "browser",
+      "title": "Measure bookings",
+      "state": "PASS",
+      "result": {
+        "rows": 10,
+        "visible": 0,
+        "overflow": 0,
+        "elapsed": 527
+      }
+    },
+    {
+      "id": "UX-1366-dark-calendar",
+      "method": "browser",
+      "title": "Measure calendar",
+      "state": "PASS",
+      "result": {
+        "rows": 30,
+        "visible": 0,
+        "overflow": 0,
+        "elapsed": 276
+      }
+    },
+    {
+      "id": "UX-1440-light-dashboard",
+      "method": "browser",
+      "title": "Measure dashboard",
+      "state": "PASS",
+      "result": {
+        "rows": 5,
+        "visible": 5,
+        "overflow": 0,
+        "elapsed": 408
+      }
+    },
+    {
+      "id": "UX-1440-light-rooms",
+      "method": "browser",
+      "title": "Measure rooms",
+      "state": "PASS",
+      "result": {
+        "rows": 30,
+        "visible": 0,
+        "overflow": 0,
+        "elapsed": 341
+      }
+    },
+    {
+      "id": "UX-1440-light-bookings",
+      "method": "browser",
+      "title": "Measure bookings",
+      "state": "PASS",
+      "result": {
+        "rows": 10,
+        "visible": 1,
+        "overflow": 0,
+        "elapsed": 550
+      }
+    },
+    {
+      "id": "UX-1440-light-calendar",
+      "method": "browser",
+      "title": "Measure calendar",
+      "state": "PASS",
+      "result": {
+        "rows": 30,
+        "visible": 1,
+        "overflow": 0,
+        "elapsed": 253
+      }
+    },
+    {
+      "id": "UX-1440-dark-dashboard",
+      "method": "browser",
+      "title": "Measure dashboard",
+      "state": "PASS",
+      "result": {
+        "rows": 5,
+        "visible": 5,
+        "overflow": 0,
+        "elapsed": 442
+      }
+    },
+    {
+      "id": "UX-1440-dark-rooms",
+      "method": "browser",
+      "title": "Measure rooms",
+      "state": "PASS",
+      "result": {
+        "rows": 30,
+        "visible": 0,
+        "overflow": 0,
+        "elapsed": 348
+      }
+    },
+    {
+      "id": "UX-1440-dark-bookings",
+      "method": "browser",
+      "title": "Measure bookings",
+      "state": "PASS",
+      "result": {
+        "rows": 10,
+        "visible": 1,
+        "overflow": 0,
+        "elapsed": 550
+      }
+    },
+    {
+      "id": "UX-1440-dark-calendar",
+      "method": "browser",
+      "title": "Measure calendar",
+      "state": "PASS",
+      "result": {
+        "rows": 30,
+        "visible": 1,
+        "overflow": 0,
+        "elapsed": 267
+      }
+    },
+    {
+      "id": "UX-1600-light-dashboard",
+      "method": "browser",
+      "title": "Measure dashboard",
+      "state": "PASS",
+      "result": {
+        "rows": 5,
+        "visible": 5,
+        "overflow": 0,
+        "elapsed": 338
+      }
+    },
+    {
+      "id": "UX-1600-light-rooms",
+      "method": "browser",
+      "title": "Measure rooms",
+      "state": "PASS",
+      "result": {
+        "rows": 30,
+        "visible": 0,
+        "overflow": 0,
+        "elapsed": 359
+      }
+    },
+    {
+      "id": "UX-1600-light-bookings",
+      "method": "browser",
+      "title": "Measure bookings",
+      "state": "PASS",
+      "result": {
+        "rows": 10,
+        "visible": 1,
+        "overflow": 0,
+        "elapsed": 583
+      }
+    },
+    {
+      "id": "UX-1600-light-calendar",
+      "method": "browser",
+      "title": "Measure calendar",
+      "state": "PASS",
+      "result": {
+        "rows": 30,
+        "visible": 1,
+        "overflow": 0,
+        "elapsed": 247
+      }
+    },
+    {
+      "id": "UX-1600-dark-dashboard",
+      "method": "browser",
+      "title": "Measure dashboard",
+      "state": "PASS",
+      "result": {
+        "rows": 5,
+        "visible": 5,
+        "overflow": 0,
+        "elapsed": 381
+      }
+    },
+    {
+      "id": "UX-1600-dark-rooms",
+      "method": "browser",
+      "title": "Measure rooms",
+      "state": "PASS",
+      "result": {
+        "rows": 30,
+        "visible": 0,
+        "overflow": 0,
+        "elapsed": 339
+      }
+    },
+    {
+      "id": "UX-1600-dark-bookings",
+      "method": "browser",
+      "title": "Measure bookings",
+      "state": "PASS",
+      "result": {
+        "rows": 10,
+        "visible": 1,
+        "overflow": 0,
+        "elapsed": 553
+      }
+    },
+    {
+      "id": "UX-1600-dark-calendar",
+      "method": "browser",
+      "title": "Measure calendar",
+      "state": "PASS",
+      "result": {
+        "rows": 30,
+        "visible": 1,
+        "overflow": 0,
+        "elapsed": 268
+      }
+    },
+    {
+      "id": "UX-1920-light-dashboard",
+      "method": "browser",
+      "title": "Measure dashboard",
+      "state": "PASS",
+      "result": {
+        "rows": 5,
+        "visible": 5,
+        "overflow": 0,
+        "elapsed": 401
+      }
+    },
+    {
+      "id": "UX-1920-light-rooms",
+      "method": "browser",
+      "title": "Measure rooms",
+      "state": "PASS",
+      "result": {
+        "rows": 30,
+        "visible": 5,
+        "overflow": 0,
+        "elapsed": 327
+      }
+    },
+    {
+      "id": "UX-1920-light-bookings",
+      "method": "browser",
+      "title": "Measure bookings",
+      "state": "PASS",
+      "result": {
+        "rows": 10,
+        "visible": 3,
+        "overflow": 0,
+        "elapsed": 554
+      }
+    },
+    {
+      "id": "UX-1920-light-calendar",
+      "method": "browser",
+      "title": "Measure calendar",
+      "state": "PASS",
+      "result": {
+        "rows": 30,
+        "visible": 3,
+        "overflow": 0,
+        "elapsed": 261
+      }
+    },
+    {
+      "id": "UX-1920-dark-dashboard",
+      "method": "browser",
+      "title": "Measure dashboard",
+      "state": "PASS",
+      "result": {
+        "rows": 5,
+        "visible": 5,
+        "overflow": 0,
+        "elapsed": 348
+      }
+    },
+    {
+      "id": "UX-1920-dark-rooms",
+      "method": "browser",
+      "title": "Measure rooms",
+      "state": "PASS",
+      "result": {
+        "rows": 30,
+        "visible": 0,
+        "overflow": 0,
+        "elapsed": 324
+      }
+    },
+    {
+      "id": "UX-1920-dark-bookings",
+      "method": "browser",
+      "title": "Measure bookings",
+      "state": "PASS",
+      "result": {
+        "rows": 10,
+        "visible": 3,
+        "overflow": 0,
+        "elapsed": 445
+      }
+    },
+    {
+      "id": "UX-1920-dark-calendar",
+      "method": "browser",
+      "title": "Measure calendar",
+      "state": "PASS",
+      "result": {
+        "rows": 30,
+        "visible": 3,
+        "overflow": 0,
+        "elapsed": 246
+      }
+    },
+    {
+      "id": "UX-2560-light-dashboard",
+      "method": "browser",
+      "title": "Measure dashboard",
+      "state": "PASS",
+      "result": {
+        "rows": 5,
+        "visible": 5,
+        "overflow": 0,
+        "elapsed": 383
+      }
+    },
+    {
+      "id": "UX-2560-light-rooms",
+      "method": "browser",
+      "title": "Measure rooms",
+      "state": "PASS",
+      "result": {
+        "rows": 30,
+        "visible": 5,
+        "overflow": 0,
+        "elapsed": 345
+      }
+    },
+    {
+      "id": "UX-2560-light-bookings",
+      "method": "browser",
+      "title": "Measure bookings",
+      "state": "PASS",
+      "result": {
+        "rows": 10,
+        "visible": 6,
+        "overflow": 0,
+        "elapsed": 553
+      }
+    },
+    {
+      "id": "UX-2560-light-calendar",
+      "method": "browser",
+      "title": "Measure calendar",
+      "state": "PASS",
+      "result": {
+        "rows": 30,
+        "visible": 7,
+        "overflow": 0,
+        "elapsed": 271
+      }
+    },
+    {
+      "id": "UX-2560-dark-dashboard",
+      "method": "browser",
+      "title": "Measure dashboard",
+      "state": "PASS",
+      "result": {
+        "rows": 5,
+        "visible": 5,
+        "overflow": 0,
+        "elapsed": 330
+      }
+    },
+    {
+      "id": "UX-2560-dark-rooms",
+      "method": "browser",
+      "title": "Measure rooms",
+      "state": "PASS",
+      "result": {
+        "rows": 30,
+        "visible": 4,
+        "overflow": 0,
+        "elapsed": 352
+      }
+    },
+    {
+      "id": "UX-2560-dark-bookings",
+      "method": "browser",
+      "title": "Measure bookings",
+      "state": "PASS",
+      "result": {
+        "rows": 10,
+        "visible": 6,
+        "overflow": 0,
+        "elapsed": 545
+      }
+    },
+    {
+      "id": "UX-2560-dark-calendar",
+      "method": "browser",
+      "title": "Measure calendar",
+      "state": "PASS",
+      "result": {
+        "rows": 30,
+        "visible": 7,
+        "overflow": 0,
+        "elapsed": 266
+      }
+    },
+    {
+      "id": "UX-KEY",
+      "method": "browser",
+      "title": "Keyboard command access and modal focus",
+      "state": "PASS",
+      "result": {
+        "initial": "Type a command or search..."
+      }
+    },
+    {
+      "id": "UX-MODAL",
+      "method": "browser",
+      "title": "Booking modal proportions and logical focus order",
+      "state": "PASS",
+      "result": {
+        "extents": {
+          "x": 203,
+          "y": 151.546875,
+          "width": 960,
+          "height": 464.890625
+        },
+        "focus": [
+          "Name, email or phone",
+          "Enter a new guest",
+          "Continue",
+          "Close dialog",
+          "Name, email or phone",
+          "Enter a new guest",
+          "Continue"
+        ]
+      }
+    },
+    {
+      "id": "FOCUS-01",
+      "method": "browser",
+      "title": "Search the booking table and open a matching reservation",
+      "state": "PASS",
+      "result": {
+        "heading": "QA-FD-007",
+        "queryPreserved": true
+      }
+    },
+    {
+      "id": "FOCUS-02",
+      "method": "browser",
+      "title": "Open the room dossier without leaving Room Management",
+      "state": "PASS",
+      "result": {
+        "heading": "Room 201"
+      }
+    },
+    {
+      "id": "FOCUS-03",
+      "method": "browser",
+      "title": "Open Breakfast service as Front Desk",
+      "state": "PASS",
+      "result": {
+        "status": 200,
+        "heading": "Breakfast service"
+      }
+    },
+    {
+      "id": "FOCUS-04",
+      "method": "browser",
+      "title": "Confirm guest is redirected from direct staff URL",
+      "state": "PASS",
+      "result": {
+        "destination": "/account"
+      }
+    },
+    {
+      "id": "FOCUS-05",
+      "method": "browser + HTTP",
+      "title": "Observe notifications arriving over the booking calendar",
+      "state": "PASS",
+      "result": {
+        "toastCount": 3,
+        "overlayWidth": 560,
+        "overlayHeight": 256.5625
+      }
+    }
+  ],
+  "workstations": [
+    {
+      "width": 1280,
+      "height": 1253,
+      "theme": "light",
+      "screen": "dashboard",
+      "title": "Here's what's happening today.",
+      "titleTop": 121,
+      "mainWidth": 985,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 5,
+      "visibleRows": 5,
+      "firstRowTop": 197,
+      "firstRowHeight": 187,
+      "tables": [],
+      "status": null,
+      "contrastTitle": 15.99,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 334
+    },
+    {
+      "width": 1280,
+      "height": 5106,
+      "theme": "light",
+      "screen": "rooms",
+      "title": "Room Management",
+      "titleTop": 164,
+      "mainWidth": 985,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 30,
+      "visibleRows": 0,
+      "firstRowTop": 657,
+      "firstRowHeight": 330,
+      "tables": [],
+      "status": null,
+      "contrastTitle": 17.74,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 346
+    },
+    {
+      "width": 1280,
+      "height": 2029,
+      "theme": "light",
+      "screen": "bookings",
+      "title": "Bookings",
+      "titleTop": 164,
+      "mainWidth": 985,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 10,
+      "visibleRows": 0,
+      "firstRowTop": 761,
+      "firstRowHeight": 118,
+      "tables": [
+        {
+          "content": 657,
+          "frame": 657,
+          "sticky": "static"
+        }
+      ],
+      "status": null,
+      "contrastTitle": 15.99,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 556
+    },
+    {
+      "width": 1280,
+      "height": 1840,
+      "theme": "light",
+      "screen": "calendar",
+      "title": "Bookings",
+      "titleTop": 164,
+      "mainWidth": 985,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 30,
+      "visibleRows": 0,
+      "firstRowTop": 769,
+      "firstRowHeight": 89,
+      "tables": [
+        {
+          "content": 1010,
+          "frame": 935,
+          "sticky": "sticky"
+        }
+      ],
+      "status": null,
+      "contrastTitle": 15.99,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 285
+    },
+    {
+      "width": 1280,
+      "height": 1303,
+      "theme": "dark",
+      "screen": "dashboard",
+      "title": "Here's what's happening today.",
+      "titleTop": 137,
+      "mainWidth": 985,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 5,
+      "visibleRows": 5,
+      "firstRowTop": 228,
+      "firstRowHeight": 187,
+      "tables": [],
+      "status": null,
+      "contrastTitle": 15.79,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 381
+    },
+    {
+      "width": 1280,
+      "height": 5144,
+      "theme": "dark",
+      "screen": "rooms",
+      "title": "Room Management",
+      "titleTop": 178,
+      "mainWidth": 985,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 30,
+      "visibleRows": 0,
+      "firstRowTop": 685,
+      "firstRowHeight": 329,
+      "tables": [],
+      "status": null,
+      "contrastTitle": 15.79,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 357
+    },
+    {
+      "width": 1280,
+      "height": 2087,
+      "theme": "dark",
+      "screen": "bookings",
+      "title": "Bookings",
+      "titleTop": 178,
+      "mainWidth": 985,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 10,
+      "visibleRows": 0,
+      "firstRowTop": 789,
+      "firstRowHeight": 118,
+      "tables": [
+        {
+          "content": 649,
+          "frame": 649,
+          "sticky": "static"
+        }
+      ],
+      "status": null,
+      "contrastTitle": 15.79,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 472
+    },
+    {
+      "width": 1280,
+      "height": 1894,
+      "theme": "dark",
+      "screen": "calendar",
+      "title": "Bookings",
+      "titleTop": 178,
+      "mainWidth": 985,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 30,
+      "visibleRows": 0,
+      "firstRowTop": 799,
+      "firstRowHeight": 88,
+      "tables": [
+        {
+          "content": 1010,
+          "frame": 927,
+          "sticky": "sticky"
+        }
+      ],
+      "status": null,
+      "contrastTitle": 15.79,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 268
+    },
+    {
+      "width": 1366,
+      "height": 1235,
+      "theme": "light",
+      "screen": "dashboard",
+      "title": "Here's what's happening today.",
+      "titleTop": 121,
+      "mainWidth": 1071,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 5,
+      "visibleRows": 5,
+      "firstRowTop": 197,
+      "firstRowHeight": 169,
+      "tables": [],
+      "status": null,
+      "contrastTitle": 15.99,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 410
+    },
+    {
+      "width": 1366,
+      "height": 5245,
+      "theme": "light",
+      "screen": "rooms",
+      "title": "Room Management",
+      "titleTop": 164,
+      "mainWidth": 1071,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 30,
+      "visibleRows": 0,
+      "firstRowTop": 657,
+      "firstRowHeight": 343,
+      "tables": [],
+      "status": null,
+      "contrastTitle": 17.74,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 339
+    },
+    {
+      "width": 1366,
+      "height": 1985,
+      "theme": "light",
+      "screen": "bookings",
+      "title": "Bookings",
+      "titleTop": 164,
+      "mainWidth": 1071,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 10,
+      "visibleRows": 0,
+      "firstRowTop": 717,
+      "firstRowHeight": 118,
+      "tables": [
+        {
+          "content": 743,
+          "frame": 743,
+          "sticky": "static"
+        }
+      ],
+      "status": null,
+      "contrastTitle": 15.99,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 538
+    },
+    {
+      "width": 1366,
+      "height": 1840,
+      "theme": "light",
+      "screen": "calendar",
+      "title": "Bookings",
+      "titleTop": 164,
+      "mainWidth": 1071,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 30,
+      "visibleRows": 0,
+      "firstRowTop": 769,
+      "firstRowHeight": 89,
+      "tables": [
+        {
+          "content": 1021,
+          "frame": 1021,
+          "sticky": "sticky"
+        }
+      ],
+      "status": null,
+      "contrastTitle": 15.99,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 248
+    },
+    {
+      "width": 1366,
+      "height": 1285,
+      "theme": "dark",
+      "screen": "dashboard",
+      "title": "Here's what's happening today.",
+      "titleTop": 137,
+      "mainWidth": 1071,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 5,
+      "visibleRows": 5,
+      "firstRowTop": 228,
+      "firstRowHeight": 169,
+      "tables": [],
+      "status": null,
+      "contrastTitle": 15.79,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 375
+    },
+    {
+      "width": 1366,
+      "height": 5283,
+      "theme": "dark",
+      "screen": "rooms",
+      "title": "Room Management",
+      "titleTop": 178,
+      "mainWidth": 1071,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 30,
+      "visibleRows": 0,
+      "firstRowTop": 685,
+      "firstRowHeight": 342,
+      "tables": [],
+      "status": null,
+      "contrastTitle": 15.79,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 342
+    },
+    {
+      "width": 1366,
+      "height": 2039,
+      "theme": "dark",
+      "screen": "bookings",
+      "title": "Bookings",
+      "titleTop": 178,
+      "mainWidth": 1071,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 10,
+      "visibleRows": 0,
+      "firstRowTop": 745,
+      "firstRowHeight": 118,
+      "tables": [
+        {
+          "content": 735,
+          "frame": 735,
+          "sticky": "static"
+        }
+      ],
+      "status": null,
+      "contrastTitle": 15.79,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 527
+    },
+    {
+      "width": 1366,
+      "height": 1894,
+      "theme": "dark",
+      "screen": "calendar",
+      "title": "Bookings",
+      "titleTop": 178,
+      "mainWidth": 1071,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 30,
+      "visibleRows": 0,
+      "firstRowTop": 799,
+      "firstRowHeight": 88,
+      "tables": [
+        {
+          "content": 1013,
+          "frame": 1013,
+          "sticky": "sticky"
+        }
+      ],
+      "status": null,
+      "contrastTitle": 15.79,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 276
+    },
+    {
+      "width": 1440,
+      "height": 1235,
+      "theme": "light",
+      "screen": "dashboard",
+      "title": "Here's what's happening today.",
+      "titleTop": 121,
+      "mainWidth": 1145,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 5,
+      "visibleRows": 5,
+      "firstRowTop": 197,
+      "firstRowHeight": 169,
+      "tables": [],
+      "status": null,
+      "contrastTitle": 15.99,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 408
+    },
+    {
+      "width": 1440,
+      "height": 5365,
+      "theme": "light",
+      "screen": "rooms",
+      "title": "Room Management",
+      "titleTop": 164,
+      "mainWidth": 1145,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 30,
+      "visibleRows": 0,
+      "firstRowTop": 657,
+      "firstRowHeight": 354,
+      "tables": [],
+      "status": null,
+      "contrastTitle": 17.74,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 341
+    },
+    {
+      "width": 1440,
+      "height": 1970,
+      "theme": "light",
+      "screen": "bookings",
+      "title": "Bookings",
+      "titleTop": 164,
+      "mainWidth": 1145,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 10,
+      "visibleRows": 1,
+      "firstRowTop": 702,
+      "firstRowHeight": 118,
+      "tables": [
+        {
+          "content": 817,
+          "frame": 817,
+          "sticky": "static"
+        }
+      ],
+      "status": null,
+      "contrastTitle": 15.99,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 550
+    },
+    {
+      "width": 1440,
+      "height": 1840,
+      "theme": "light",
+      "screen": "calendar",
+      "title": "Bookings",
+      "titleTop": 164,
+      "mainWidth": 1145,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 30,
+      "visibleRows": 1,
+      "firstRowTop": 769,
+      "firstRowHeight": 89,
+      "tables": [
+        {
+          "content": 1095,
+          "frame": 1095,
+          "sticky": "sticky"
+        }
+      ],
+      "status": null,
+      "contrastTitle": 15.99,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 253
+    },
+    {
+      "width": 1440,
+      "height": 1285,
+      "theme": "dark",
+      "screen": "dashboard",
+      "title": "Here's what's happening today.",
+      "titleTop": 137,
+      "mainWidth": 1145,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 5,
+      "visibleRows": 5,
+      "firstRowTop": 228,
+      "firstRowHeight": 169,
+      "tables": [],
+      "status": null,
+      "contrastTitle": 15.79,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 442
+    },
+    {
+      "width": 1440,
+      "height": 5402,
+      "theme": "dark",
+      "screen": "rooms",
+      "title": "Room Management",
+      "titleTop": 178,
+      "mainWidth": 1145,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 30,
+      "visibleRows": 0,
+      "firstRowTop": 685,
+      "firstRowHeight": 353,
+      "tables": [],
+      "status": null,
+      "contrastTitle": 15.79,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 348
+    },
+    {
+      "width": 1440,
+      "height": 2025,
+      "theme": "dark",
+      "screen": "bookings",
+      "title": "Bookings",
+      "titleTop": 178,
+      "mainWidth": 1145,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 10,
+      "visibleRows": 1,
+      "firstRowTop": 731,
+      "firstRowHeight": 118,
+      "tables": [
+        {
+          "content": 809,
+          "frame": 809,
+          "sticky": "static"
+        }
+      ],
+      "status": null,
+      "contrastTitle": 15.79,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 550
+    },
+    {
+      "width": 1440,
+      "height": 1894,
+      "theme": "dark",
+      "screen": "calendar",
+      "title": "Bookings",
+      "titleTop": 178,
+      "mainWidth": 1145,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 30,
+      "visibleRows": 1,
+      "firstRowTop": 799,
+      "firstRowHeight": 88,
+      "tables": [
+        {
+          "content": 1087,
+          "frame": 1087,
+          "sticky": "sticky"
+        }
+      ],
+      "status": null,
+      "contrastTitle": 15.79,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 267
+    },
+    {
+      "width": 1600,
+      "height": 1235,
+      "theme": "light",
+      "screen": "dashboard",
+      "title": "Here's what's happening today.",
+      "titleTop": 121,
+      "mainWidth": 1305,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 5,
+      "visibleRows": 5,
+      "firstRowTop": 197,
+      "firstRowHeight": 169,
+      "tables": [],
+      "status": null,
+      "contrastTitle": 15.99,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 338
+    },
+    {
+      "width": 1600,
+      "height": 4077,
+      "theme": "light",
+      "screen": "rooms",
+      "title": "Room Management",
+      "titleTop": 164,
+      "mainWidth": 1305,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 30,
+      "visibleRows": 0,
+      "firstRowTop": 657,
+      "firstRowHeight": 434,
+      "tables": [],
+      "status": null,
+      "contrastTitle": 17.74,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 359
+    },
+    {
+      "width": 1600,
+      "height": 1970,
+      "theme": "light",
+      "screen": "bookings",
+      "title": "Bookings",
+      "titleTop": 164,
+      "mainWidth": 1305,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 10,
+      "visibleRows": 1,
+      "firstRowTop": 702,
+      "firstRowHeight": 118,
+      "tables": [
+        {
+          "content": 977,
+          "frame": 977,
+          "sticky": "static"
+        }
+      ],
+      "status": null,
+      "contrastTitle": 15.99,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 583
+    },
+    {
+      "width": 1600,
+      "height": 1840,
+      "theme": "light",
+      "screen": "calendar",
+      "title": "Bookings",
+      "titleTop": 164,
+      "mainWidth": 1305,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 30,
+      "visibleRows": 1,
+      "firstRowTop": 769,
+      "firstRowHeight": 89,
+      "tables": [
+        {
+          "content": 1255,
+          "frame": 1255,
+          "sticky": "sticky"
+        }
+      ],
+      "status": null,
+      "contrastTitle": 15.99,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 247
+    },
+    {
+      "width": 1600,
+      "height": 1285,
+      "theme": "dark",
+      "screen": "dashboard",
+      "title": "Here's what's happening today.",
+      "titleTop": 137,
+      "mainWidth": 1305,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 5,
+      "visibleRows": 5,
+      "firstRowTop": 228,
+      "firstRowHeight": 169,
+      "tables": [],
+      "status": null,
+      "contrastTitle": 15.79,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 381
+    },
+    {
+      "width": 1600,
+      "height": 4121,
+      "theme": "dark",
+      "screen": "rooms",
+      "title": "Room Management",
+      "titleTop": 178,
+      "mainWidth": 1305,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 30,
+      "visibleRows": 0,
+      "firstRowTop": 685,
+      "firstRowHeight": 433,
+      "tables": [],
+      "status": null,
+      "contrastTitle": 15.79,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 339
+    },
+    {
+      "width": 1600,
+      "height": 2021,
+      "theme": "dark",
+      "screen": "bookings",
+      "title": "Bookings",
+      "titleTop": 178,
+      "mainWidth": 1305,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 10,
+      "visibleRows": 1,
+      "firstRowTop": 731,
+      "firstRowHeight": 118,
+      "tables": [
+        {
+          "content": 969,
+          "frame": 969,
+          "sticky": "static"
+        }
+      ],
+      "status": null,
+      "contrastTitle": 15.79,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 553
+    },
+    {
+      "width": 1600,
+      "height": 1894,
+      "theme": "dark",
+      "screen": "calendar",
+      "title": "Bookings",
+      "titleTop": 178,
+      "mainWidth": 1305,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 30,
+      "visibleRows": 1,
+      "firstRowTop": 799,
+      "firstRowHeight": 88,
+      "tables": [
+        {
+          "content": 1247,
+          "frame": 1247,
+          "sticky": "sticky"
+        }
+      ],
+      "status": null,
+      "contrastTitle": 15.79,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 268
+    },
+    {
+      "width": 1920,
+      "height": 1235,
+      "theme": "light",
+      "screen": "dashboard",
+      "title": "Here's what's happening today.",
+      "titleTop": 121,
+      "mainWidth": 1625,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 5,
+      "visibleRows": 5,
+      "firstRowTop": 197,
+      "firstRowHeight": 169,
+      "tables": [],
+      "status": null,
+      "contrastTitle": 15.99,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 401
+    },
+    {
+      "width": 1920,
+      "height": 3661,
+      "theme": "light",
+      "screen": "rooms",
+      "title": "Room Management",
+      "titleTop": 164,
+      "mainWidth": 1625,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 30,
+      "visibleRows": 5,
+      "firstRowTop": 657,
+      "firstRowHeight": 422,
+      "tables": [],
+      "status": null,
+      "contrastTitle": 17.74,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 327
+    },
+    {
+      "width": 1920,
+      "height": 1842,
+      "theme": "light",
+      "screen": "bookings",
+      "title": "Bookings",
+      "titleTop": 164,
+      "mainWidth": 1625,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 10,
+      "visibleRows": 3,
+      "firstRowTop": 702,
+      "firstRowHeight": 102,
+      "tables": [
+        {
+          "content": 1112,
+          "frame": 1112,
+          "sticky": "static"
+        }
+      ],
+      "status": null,
+      "contrastTitle": 15.99,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 554
+    },
+    {
+      "width": 1920,
+      "height": 1840,
+      "theme": "light",
+      "screen": "calendar",
+      "title": "Bookings",
+      "titleTop": 164,
+      "mainWidth": 1625,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 30,
+      "visibleRows": 3,
+      "firstRowTop": 769,
+      "firstRowHeight": 89,
+      "tables": [
+        {
+          "content": 1390,
+          "frame": 1390,
+          "sticky": "sticky"
+        }
+      ],
+      "status": null,
+      "contrastTitle": 15.99,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 261
+    },
+    {
+      "width": 1920,
+      "height": 1285,
+      "theme": "dark",
+      "screen": "dashboard",
+      "title": "Here's what's happening today.",
+      "titleTop": 137,
+      "mainWidth": 1625,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 5,
+      "visibleRows": 5,
+      "firstRowTop": 228,
+      "firstRowHeight": 169,
+      "tables": [],
+      "status": null,
+      "contrastTitle": 15.79,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 348
+    },
+    {
+      "width": 1920,
+      "height": 4240,
+      "theme": "dark",
+      "screen": "rooms",
+      "title": "Room Management",
+      "titleTop": 178,
+      "mainWidth": 1625,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 30,
+      "visibleRows": 0,
+      "firstRowTop": 685,
+      "firstRowHeight": 448,
+      "tables": [],
+      "status": null,
+      "contrastTitle": 15.79,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 324
+    },
+    {
+      "width": 1920,
+      "height": 1893,
+      "theme": "dark",
+      "screen": "bookings",
+      "title": "Bookings",
+      "titleTop": 178,
+      "mainWidth": 1625,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 10,
+      "visibleRows": 3,
+      "firstRowTop": 731,
+      "firstRowHeight": 102,
+      "tables": [
+        {
+          "content": 1104,
+          "frame": 1104,
+          "sticky": "static"
+        }
+      ],
+      "status": null,
+      "contrastTitle": 15.79,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 445
+    },
+    {
+      "width": 1920,
+      "height": 1894,
+      "theme": "dark",
+      "screen": "calendar",
+      "title": "Bookings",
+      "titleTop": 178,
+      "mainWidth": 1625,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 30,
+      "visibleRows": 3,
+      "firstRowTop": 799,
+      "firstRowHeight": 88,
+      "tables": [
+        {
+          "content": 1382,
+          "frame": 1382,
+          "sticky": "sticky"
+        }
+      ],
+      "status": null,
+      "contrastTitle": 15.79,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 246
+    },
+    {
+      "width": 2560,
+      "height": 1440,
+      "theme": "light",
+      "screen": "dashboard",
+      "title": "Here's what's happening today.",
+      "titleTop": 121,
+      "mainWidth": 2265,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 5,
+      "visibleRows": 5,
+      "firstRowTop": 197,
+      "firstRowHeight": 169,
+      "tables": [],
+      "status": null,
+      "contrastTitle": 15.99,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 383
+    },
+    {
+      "width": 2560,
+      "height": 3661,
+      "theme": "light",
+      "screen": "rooms",
+      "title": "Room Management",
+      "titleTop": 164,
+      "mainWidth": 2265,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 30,
+      "visibleRows": 5,
+      "firstRowTop": 657,
+      "firstRowHeight": 422,
+      "tables": [],
+      "status": null,
+      "contrastTitle": 17.74,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 345
+    },
+    {
+      "width": 2560,
+      "height": 1842,
+      "theme": "light",
+      "screen": "bookings",
+      "title": "Bookings",
+      "titleTop": 164,
+      "mainWidth": 2265,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 10,
+      "visibleRows": 6,
+      "firstRowTop": 702,
+      "firstRowHeight": 102,
+      "tables": [
+        {
+          "content": 1112,
+          "frame": 1112,
+          "sticky": "static"
+        }
+      ],
+      "status": null,
+      "contrastTitle": 15.99,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 553
+    },
+    {
+      "width": 2560,
+      "height": 1840,
+      "theme": "light",
+      "screen": "calendar",
+      "title": "Bookings",
+      "titleTop": 164,
+      "mainWidth": 2265,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 30,
+      "visibleRows": 7,
+      "firstRowTop": 769,
+      "firstRowHeight": 89,
+      "tables": [
+        {
+          "content": 1390,
+          "frame": 1390,
+          "sticky": "sticky"
+        }
+      ],
+      "status": null,
+      "contrastTitle": 15.99,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 271
+    },
+    {
+      "width": 2560,
+      "height": 1440,
+      "theme": "dark",
+      "screen": "dashboard",
+      "title": "Here's what's happening today.",
+      "titleTop": 137,
+      "mainWidth": 2265,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 5,
+      "visibleRows": 5,
+      "firstRowTop": 228,
+      "firstRowHeight": 169,
+      "tables": [],
+      "status": null,
+      "contrastTitle": 15.79,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 330
+    },
+    {
+      "width": 2560,
+      "height": 4240,
+      "theme": "dark",
+      "screen": "rooms",
+      "title": "Room Management",
+      "titleTop": 178,
+      "mainWidth": 2265,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 30,
+      "visibleRows": 4,
+      "firstRowTop": 685,
+      "firstRowHeight": 448,
+      "tables": [],
+      "status": null,
+      "contrastTitle": 15.79,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 352
+    },
+    {
+      "width": 2560,
+      "height": 1893,
+      "theme": "dark",
+      "screen": "bookings",
+      "title": "Bookings",
+      "titleTop": 178,
+      "mainWidth": 2265,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 10,
+      "visibleRows": 6,
+      "firstRowTop": 731,
+      "firstRowHeight": 102,
+      "tables": [
+        {
+          "content": 1104,
+          "frame": 1104,
+          "sticky": "static"
+        }
+      ],
+      "status": null,
+      "contrastTitle": 15.79,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 545
+    },
+    {
+      "width": 2560,
+      "height": 1894,
+      "theme": "dark",
+      "screen": "calendar",
+      "title": "Bookings",
+      "titleTop": 178,
+      "mainWidth": 2265,
+      "sidebarWidth": 280,
+      "horizontalPage": 0,
+      "rows": 30,
+      "visibleRows": 7,
+      "firstRowTop": 799,
+      "firstRowHeight": 88,
+      "tables": [
+        {
+          "content": 1382,
+          "frame": 1382,
+          "sticky": "sticky"
+        }
+      ],
+      "status": null,
+      "contrastTitle": 15.79,
+      "contrastBadge": null,
+      "alerts": [],
+      "readyMs": 266
+    }
+  ],
+  "sidebar": [
+    "Dashboard",
+    "Room Management",
+    "Bookings",
+    "Guest Management",
+    "Guest Requests",
+    "Transportation",
+    "Hotel Operations",
+    "Approvals & Escalations",
+    "Housekeeping",
+    "Reports",
+    "Operational Handover",
+    "Lost & Found",
+    "Cash & Shifts"
+  ],
+  "roleChecks": [
+    {
+      "label": "Reservation details",
+      "method": "GET",
+      "route": "/api/staff/reservations/:reservation",
+      "observed": {
+        "front_desk": 200,
+        "guest": 403,
+        "housekeeping": 403,
+        "maintenance": 403,
+        "anon": 401
+      }
+    },
+    {
+      "label": "Report generation",
+      "method": "GET",
+      "route": "/api/front-desk/reports",
+      "observed": {
+        "front_desk": 200,
+        "guest": 403,
+        "housekeeping": 403,
+        "manager": 403,
+        "anon": 401
+      }
+    },
+    {
+      "label": "Cash drawer view",
+      "method": "GET",
+      "route": "/api/front-desk/cash-drawer",
+      "observed": {
+        "front_desk": 200,
+        "guest": 403,
+        "housekeeping": 403,
+        "manager": 403,
+        "anon": 401
+      }
+    },
+    {
+      "label": "Transportation view",
+      "method": "GET",
+      "route": "/api/transportation",
+      "observed": {
+        "front_desk": 200,
+        "guest": 403,
+        "housekeeping": 403,
+        "maintenance": 403,
+        "anon": 401
+      }
+    },
+    {
+      "label": "Lost-property queue",
+      "method": "GET",
+      "route": "/api/staff/lost-found",
+      "observed": {
+        "front_desk": 200,
+        "guest": 403,
+        "maintenance": 403,
+        "accounting": 403,
+        "anon": 401
+      }
+    },
+    {
+      "label": "Generic invoice list",
+      "method": "GET",
+      "route": "/api/resources/invoices",
+      "observed": {
+        "front_desk": 403,
+        "anon": 401
+      }
+    },
+    {
+      "label": "Generic payment history",
+      "method": "GET",
+      "route": "/api/resources/payments",
+      "observed": {
+        "front_desk": 403,
+        "anon": 401
+      }
+    },
+    {
+      "label": "Finance refund processing",
+      "method": "POST",
+      "route": "/api/accounting/refunds/:id/process",
+      "observed": {
+        "front_desk": 403,
+        "anon": 401
+      }
+    },
+    {
+      "label": "Checkout role",
+      "method": "POST",
+      "route": "/api/front-desk/reservations/:reservation/checkout",
+      "observed": {
+        "front_desk": 409,
+        "accounting": 403,
+        "manager": 403,
+        "guest": 403,
+        "housekeeping": 403,
+        "anon": 401
+      }
+    },
+    {
+      "label": "Book staff reservation",
+      "method": "POST",
+      "route": "/api/front-desk/reservations",
+      "observed": {
+        "front_desk": 400,
+        "guest": 403,
+        "manager": 403,
+        "accounting": 403,
+        "housekeeping": 403,
+        "anon": 401
+      }
+    }
+  ],
+  "mainHttp": [
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations",
+      "status": 201,
+      "ms": 64,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations",
+      "status": 201,
+      "ms": 25,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations",
+      "status": 400,
+      "ms": 14,
+      "error": "Check-out must be after check-in.",
+      "code": "VALIDATION_ERROR"
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations",
+      "status": 409,
+      "ms": 48,
+      "error": "This action could not be completed. Review the latest record before trying again.",
+      "code": "BOOKING_QUOTE_CHANGED"
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/check-in",
+      "status": 409,
+      "ms": 42,
+      "error": "Verify the guest's valid ID before check-in.",
+      "code": "IDENTITY_VERIFICATION_REQUIRED"
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations/:reservation/identity",
+      "status": 200,
+      "ms": 25,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/check-in",
+      "status": 409,
+      "ms": 17,
+      "error": "Collect the remaining lodging balance before check-in.",
+      "code": "REMAINING_BALANCE_REQUIRED"
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations/:reservation/assign",
+      "status": 409,
+      "ms": 20,
+      "error": "This room is not ready for guests. Choose another eligible room or check its preparation status.",
+      "code": "REQUEST_409"
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations/:reservation/payment",
+      "status": 200,
+      "ms": 42,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations/:reservation/payment",
+      "status": 200,
+      "ms": 23,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations/:reservation/assign",
+      "status": 200,
+      "ms": 39,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/check-in",
+      "status": 200,
+      "ms": 48,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations",
+      "status": 201,
+      "ms": 47,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations",
+      "status": 201,
+      "ms": 28,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations/:reservation/assign",
+      "status": 200,
+      "ms": 39,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations/:reservation/assign",
+      "status": 409,
+      "ms": 39,
+      "error": "That room was assigned by another staff member.",
+      "code": "REQUEST_409"
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations/:reservation/charge",
+      "status": 200,
+      "ms": 47,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations/:reservation/charge",
+      "status": 200,
+      "ms": 20,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations/:reservation/charge",
+      "status": 409,
+      "ms": 15,
+      "error": "These charge details differ from the earlier submission. Check the folio before starting a new charge.",
+      "code": "REQUEST_409"
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations/:reservation/checkout",
+      "status": 409,
+      "ms": 20,
+      "error": "Settle the folio balance before checkout.",
+      "code": "REQUEST_409"
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations/:reservation/payment",
+      "status": 409,
+      "ms": 19,
+      "error": "Unable to record payment.",
+      "code": "REQUEST_409"
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations/:reservation/change-room",
+      "status": 409,
+      "ms": 19,
+      "error": "A Manager must authorize a different room-type upgrade.",
+      "code": "REQUEST_409"
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations/:reservation/change-room",
+      "status": 200,
+      "ms": 43,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "GET",
+      "endpoint": "/api/front-desk/reservations/:reservation/extend-preview",
+      "status": 200,
+      "ms": 20,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations/:reservation/extend",
+      "status": 409,
+      "ms": 20,
+      "error": "The new checkout must be later than the current checkout.",
+      "code": "REQUEST_409"
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations/:reservation/extend",
+      "status": 200,
+      "ms": 29,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations/:reservation/extend",
+      "status": 409,
+      "ms": 17,
+      "error": "The new checkout must be later than the current checkout.",
+      "code": "REQUEST_409"
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations/:reservation/requests",
+      "status": 201,
+      "ms": 53,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/manager/approvals",
+      "status": 201,
+      "ms": 23,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/manager/approvals/:id/review",
+      "status": 403,
+      "ms": 14,
+      "error": "Manager review authority required.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "manager",
+      "method": "POST",
+      "endpoint": "/api/manager/approvals/:id/review",
+      "status": 200,
+      "ms": 43,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations/:reservation/payment",
+      "status": 200,
+      "ms": 48,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations/:reservation/checkout",
+      "status": 200,
+      "ms": 40,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/housekeeping/tasks/HKT-B7359975/start",
+      "status": 403,
+      "ms": 13,
+      "error": "You don't have permission to perform this housekeeping action.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "housekeeping",
+      "method": "POST",
+      "endpoint": "/api/housekeeping/tasks/HKT-B7359975/assign",
+      "status": 200,
+      "ms": 38,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "housekeeping",
+      "method": "POST",
+      "endpoint": "/api/housekeeping/tasks/HKT-B7359975/start",
+      "status": 200,
+      "ms": 20,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "housekeeping",
+      "method": "POST",
+      "endpoint": "/api/housekeeping/tasks/HKT-B7359975/complete",
+      "status": 200,
+      "ms": 28,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "housekeeping",
+      "method": "POST",
+      "endpoint": "/api/housekeeping/tasks/HKT-B7359975/inspect",
+      "status": 200,
+      "ms": 19,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "GET",
+      "endpoint": "/api/front-desk/reports",
+      "status": 400,
+      "ms": 14,
+      "error": "Enter a valid report date (YYYY-MM-DD).",
+      "code": "REQUEST_400"
+    },
+    {
+      "role": "front_desk",
+      "method": "GET",
+      "endpoint": "/api/front-desk/reports",
+      "status": 200,
+      "ms": 22,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations",
+      "status": 201,
+      "ms": 49,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reports",
+      "status": 409,
+      "ms": 22,
+      "error": "Hotel activity changed since this preview. Generate it again before submitting.",
+      "code": "REQUEST_409"
+    },
+    {
+      "role": "front_desk",
+      "method": "GET",
+      "endpoint": "/api/front-desk/reports",
+      "status": 200,
+      "ms": 28,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reports",
+      "status": 200,
+      "ms": 26,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reports/:id/review",
+      "status": 403,
+      "ms": 14,
+      "error": "Manager review authority required.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "manager",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reports/:id/review",
+      "status": 200,
+      "ms": 21,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/staff/handover",
+      "status": 200,
+      "ms": 25,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "GET",
+      "endpoint": "/api/staff/handover",
+      "status": 200,
+      "ms": 16,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "housekeeping",
+      "method": "POST",
+      "endpoint": "/api/staff/lost-found",
+      "status": 200,
+      "ms": 27,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "GET",
+      "endpoint": "/api/staff/lost-found",
+      "status": 200,
+      "ms": 36,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "housekeeping",
+      "method": "GET",
+      "endpoint": "/api/staff/lost-found",
+      "status": 200,
+      "ms": 24,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations/:reservation/payment",
+      "status": 409,
+      "ms": 20,
+      "error": "Open a cash shift in Cash & Shifts before collecting a cash payment.",
+      "code": "REQUEST_409"
+    },
+    {
+      "role": "front_desk",
+      "method": "GET",
+      "endpoint": "/api/staff/reservations/:reservation",
+      "status": 200,
+      "ms": 73,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "guest",
+      "method": "GET",
+      "endpoint": "/api/staff/reservations/:reservation",
+      "status": 403,
+      "ms": 14,
+      "error": "You don't have permission to perform this action. Ask your system administrator if you need access.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "housekeeping",
+      "method": "GET",
+      "endpoint": "/api/staff/reservations/:reservation",
+      "status": 403,
+      "ms": 10,
+      "error": "You don't have permission to perform this action. Ask your system administrator if you need access.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "maintenance",
+      "method": "GET",
+      "endpoint": "/api/staff/reservations/:reservation",
+      "status": 403,
+      "ms": 10,
+      "error": "You don't have permission to perform this action. Ask your system administrator if you need access.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "anon",
+      "method": "GET",
+      "endpoint": "/api/staff/reservations/:reservation",
+      "status": 401,
+      "ms": 5,
+      "error": "Please sign in to continue.",
+      "code": "REQUEST_401"
+    },
+    {
+      "role": "front_desk",
+      "method": "GET",
+      "endpoint": "/api/front-desk/reports",
+      "status": 200,
+      "ms": 31,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "guest",
+      "method": "GET",
+      "endpoint": "/api/front-desk/reports",
+      "status": 403,
+      "ms": 10,
+      "error": "Reports access required.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "housekeeping",
+      "method": "GET",
+      "endpoint": "/api/front-desk/reports",
+      "status": 403,
+      "ms": 9,
+      "error": "Reports access required.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "manager",
+      "method": "GET",
+      "endpoint": "/api/front-desk/reports",
+      "status": 403,
+      "ms": 12,
+      "error": "Front Desk report generation required.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "anon",
+      "method": "GET",
+      "endpoint": "/api/front-desk/reports",
+      "status": 401,
+      "ms": 5,
+      "error": "Please sign in to continue.",
+      "code": "REQUEST_401"
+    },
+    {
+      "role": "front_desk",
+      "method": "GET",
+      "endpoint": "/api/front-desk/cash-drawer",
+      "status": 200,
+      "ms": 20,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "guest",
+      "method": "GET",
+      "endpoint": "/api/front-desk/cash-drawer",
+      "status": 403,
+      "ms": 11,
+      "error": "You don't have permission to perform this action.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "housekeeping",
+      "method": "GET",
+      "endpoint": "/api/front-desk/cash-drawer",
+      "status": 403,
+      "ms": 11,
+      "error": "You don't have permission to perform this action.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "manager",
+      "method": "GET",
+      "endpoint": "/api/front-desk/cash-drawer",
+      "status": 403,
+      "ms": 11,
+      "error": "You don't have permission to perform this action.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "anon",
+      "method": "GET",
+      "endpoint": "/api/front-desk/cash-drawer",
+      "status": 401,
+      "ms": 7,
+      "error": "Please sign in to continue.",
+      "code": "REQUEST_401"
+    },
+    {
+      "role": "front_desk",
+      "method": "GET",
+      "endpoint": "/api/transportation",
+      "status": 200,
+      "ms": 27,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "guest",
+      "method": "GET",
+      "endpoint": "/api/transportation",
+      "status": 403,
+      "ms": 12,
+      "error": "Transportation access required.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "housekeeping",
+      "method": "GET",
+      "endpoint": "/api/transportation",
+      "status": 403,
+      "ms": 10,
+      "error": "Transportation access required.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "maintenance",
+      "method": "GET",
+      "endpoint": "/api/transportation",
+      "status": 403,
+      "ms": 10,
+      "error": "Transportation access required.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "anon",
+      "method": "GET",
+      "endpoint": "/api/transportation",
+      "status": 401,
+      "ms": 5,
+      "error": "Please sign in to continue.",
+      "code": "REQUEST_401"
+    },
+    {
+      "role": "front_desk",
+      "method": "GET",
+      "endpoint": "/api/staff/lost-found",
+      "status": 200,
+      "ms": 24,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "guest",
+      "method": "GET",
+      "endpoint": "/api/staff/lost-found",
+      "status": 403,
+      "ms": 10,
+      "error": "Lost & Found access required.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "maintenance",
+      "method": "GET",
+      "endpoint": "/api/staff/lost-found",
+      "status": 403,
+      "ms": 11,
+      "error": "Lost & Found access required.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "accounting",
+      "method": "GET",
+      "endpoint": "/api/staff/lost-found",
+      "status": 403,
+      "ms": 10,
+      "error": "Lost & Found access required.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "anon",
+      "method": "GET",
+      "endpoint": "/api/staff/lost-found",
+      "status": 401,
+      "ms": 6,
+      "error": "Please sign in to continue.",
+      "code": "REQUEST_401"
+    },
+    {
+      "role": "front_desk",
+      "method": "GET",
+      "endpoint": "/api/resources/invoices",
+      "status": 403,
+      "ms": 15,
+      "error": "You don't have permission to perform this action.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "anon",
+      "method": "GET",
+      "endpoint": "/api/resources/invoices",
+      "status": 401,
+      "ms": 6,
+      "error": "Please sign in to continue.",
+      "code": "REQUEST_401"
+    },
+    {
+      "role": "front_desk",
+      "method": "GET",
+      "endpoint": "/api/resources/payments",
+      "status": 403,
+      "ms": 10,
+      "error": "You don't have permission to perform this action.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "anon",
+      "method": "GET",
+      "endpoint": "/api/resources/payments",
+      "status": 401,
+      "ms": 5,
+      "error": "Please sign in to continue.",
+      "code": "REQUEST_401"
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/accounting/refunds/:id/process",
+      "status": 403,
+      "ms": 14,
+      "error": "You don't have permission to perform this accounting action. Ask Accounting for help.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "anon",
+      "method": "POST",
+      "endpoint": "/api/accounting/refunds/:id/process",
+      "status": 401,
+      "ms": 5,
+      "error": "Please sign in to continue.",
+      "code": "REQUEST_401"
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations/:reservation/checkout",
+      "status": 409,
+      "ms": 15,
+      "error": "Unable to complete checkout.",
+      "code": "REQUEST_409"
+    },
+    {
+      "role": "accounting",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations/:reservation/checkout",
+      "status": 403,
+      "ms": 10,
+      "error": "Only Front Desk can perform this action. Ask Front Desk for help.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "manager",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations/:reservation/checkout",
+      "status": 403,
+      "ms": 13,
+      "error": "Only Front Desk can perform this action. Ask Front Desk for help.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "guest",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations/:reservation/checkout",
+      "status": 403,
+      "ms": 11,
+      "error": "Only Front Desk can perform this action. Ask Front Desk for help.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "housekeeping",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations/:reservation/checkout",
+      "status": 403,
+      "ms": 11,
+      "error": "Only Front Desk can perform this action. Ask Front Desk for help.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "anon",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations/:reservation/checkout",
+      "status": 401,
+      "ms": 6,
+      "error": "Please sign in to continue.",
+      "code": "REQUEST_401"
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations",
+      "status": 400,
+      "ms": 14,
+      "error": "Please enter the guest's full name.",
+      "code": "VALIDATION_ERROR"
+    },
+    {
+      "role": "guest",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations",
+      "status": 403,
+      "ms": 11,
+      "error": "This hotel action is not available to your role.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "manager",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations",
+      "status": 403,
+      "ms": 11,
+      "error": "This hotel action is not available to your role.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "accounting",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations",
+      "status": 403,
+      "ms": 11,
+      "error": "This hotel action is not available to your role.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "housekeeping",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations",
+      "status": 403,
+      "ms": 10,
+      "error": "This hotel action is not available to your role.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "anon",
+      "method": "POST",
+      "endpoint": "/api/front-desk/reservations",
+      "status": 401,
+      "ms": 6,
+      "error": "Please sign in to continue.",
+      "code": "REQUEST_401"
+    },
+    {
+      "role": "front_desk",
+      "method": "PATCH",
+      "endpoint": "/api/staff/reservations/:reservation",
+      "status": 409,
+      "ms": 17,
+      "error": "The configured no-show cutoff has not been reached.",
+      "code": "REQUEST_409"
+    },
+    {
+      "role": "front_desk",
+      "method": "PATCH",
+      "endpoint": "/api/staff/reservations/:reservation",
+      "status": 409,
+      "ms": 30,
+      "error": "The configured no-show cutoff has not been reached.",
+      "code": "REQUEST_409"
+    },
+    {
+      "role": "front_desk",
+      "method": "PATCH",
+      "endpoint": "/api/staff/reservations/:reservation",
+      "status": 200,
+      "ms": 46,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "PATCH",
+      "endpoint": "/api/staff/reservations/:reservation",
+      "status": 200,
+      "ms": 36,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/accounting/cash-shifts",
+      "status": 200,
+      "ms": 26,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "housekeeping",
+      "method": "POST",
+      "endpoint": "/api/accounting/cash-shifts",
+      "status": 403,
+      "ms": 11,
+      "error": "Cash handling access required.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/accounting/cash-shifts",
+      "status": 409,
+      "ms": 17,
+      "error": "A cash shift is already open. Close it before opening another.",
+      "code": "CASH_SHIFT_ALREADY_OPEN"
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/maintenance/orders",
+      "status": 201,
+      "ms": 23,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "maintenance",
+      "method": "GET",
+      "endpoint": "/api/resources/maintenance_orders",
+      "status": 200,
+      "ms": 29,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "GET",
+      "endpoint": "/api/resources/maintenance_orders",
+      "status": 403,
+      "ms": 11,
+      "error": "You don't have permission to perform this action.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/transportation",
+      "status": 400,
+      "ms": 13,
+      "error": "Transportation cannot be in the past.",
+      "code": "VALIDATION_ERROR"
+    },
+    {
+      "role": "manager",
+      "method": "POST",
+      "endpoint": "/api/transportation",
+      "status": 403,
+      "ms": 12,
+      "error": "Transportation access required.",
+      "code": "REQUEST_403"
+    },
+    {
+      "role": "front_desk",
+      "method": "POST",
+      "endpoint": "/api/transportation",
+      "status": 400,
+      "ms": 12,
+      "error": "Please check the highlighted details.",
+      "code": "REQUEST_400"
+    },
+    {
+      "role": "front_desk",
+      "method": "GET",
+      "endpoint": "/api/staff/occupants/in-house",
+      "status": 200,
+      "ms": 24,
+      "error": null,
+      "code": null
+    },
+    {
+      "role": "front_desk",
+      "method": "GET",
+      "endpoint": "/api/staff/reservations/:reservation",
+      "status": 200,
+      "ms": 30,
+      "error": null,
+      "code": null
+    }
+  ],
+  "extensionReplay": {
+    "status": 409,
+    "error": "The new checkout must be later than the current checkout.",
+    "oneCharge": true,
+    "dateApplied": true
+  },
+  "primaryPageErrors": 0,
+  "sidebarContrast": [
+    {
+      "theme": "light",
+      "label": "Workspace",
+      "size": "11px",
+      "foreground": [
+        188.4,
+        191.55,
+        197.85
+      ],
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "ratio": 1.8319974072586929
+    },
+    {
+      "theme": "dark",
+      "label": "Workspace",
+      "size": "11px",
+      "foreground": [
+        58,
+        67.45,
+        86.25
+      ],
+      "background": [
+        22,
+        31,
+        48
+      ],
+      "ratio": 1.672466796186355
+    }
+  ]
+}

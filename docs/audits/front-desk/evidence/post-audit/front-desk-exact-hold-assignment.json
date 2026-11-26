@@ -1,0 +1,284 @@
+{
+  "date": "2026-11-26",
+  "environment": "Isolated loopback Next.js, PostgREST and PostgreSQL with synthetic test accounts",
+  "migration": "20261126010000_front_desk_exact_hold_eligibility",
+  "edgeVersion": "158.0.4370.33",
+  "nonLoopbackServerFetchAttempts": 0,
+  "browserPageErrors": 0,
+  "checks": [
+    {
+      "id": "FD-API-003-EDGE",
+      "method": "Edge + authenticated HTTP + PostgreSQL",
+      "title": "Reject the stale selection, hide the room while held, and allow assignment after expiry",
+      "state": "PASS",
+      "result": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "guestHoldStatus": 201,
+        "initialRoomCount": 9,
+        "liveRoomCount": 8,
+        "expiredRoomCount": 9,
+        "availableAlternative": true,
+        "alertInReservationFooter": {
+          "light1366": {
+            "visible": true,
+            "contrast": 5.58
+          },
+          "dark1280": {
+            "visible": true,
+            "contrast": 5.58
+          }
+        },
+        "httpConflict": 409,
+        "outcome": "rejected",
+        "conflictCode": "ROOM_HELD_FOR_GUEST",
+        "visibleConflict": "A guest is holding this room for these dates. Reopen the room list and choose another room.",
+        "rejectedAssignments": 0,
+        "rejectedAssignmentAudits": 0,
+        "expiryCleanupRun": false,
+        "holdStatusAtExpiry": "active",
+        "afterExpiryAssignment": 200,
+        "finalAssignments": 1,
+        "finalAssignmentAudits": 1,
+        "invoices": 1,
+        "payments": 0
+      }
+    },
+    {
+      "id": "FD-API-003-CONTROLS",
+      "method": "Authenticated HTTP + PostgreSQL",
+      "title": "Only live overlapping unconverted exact holds remove a room",
+      "state": "PASS",
+      "result": {
+        "typeOnlyRetainsAllRooms": true,
+        "adjacentRetainsAllRooms": true,
+        "paymentSubmittedFixtureExcludesOnlyExactRoom": true,
+        "inactiveHoldRetainsAllRooms": true,
+        "payments": 0,
+        "conversions": 0,
+        "paymentEndpointPosts": 0
+      }
+    },
+    {
+      "id": "SHARED-01",
+      "method": "Authenticated HTTP + PostgreSQL",
+      "title": "Race one final unit with both guest hold modes",
+      "state": "PASS",
+      "result": [
+        {
+          "winner": "Guest hold",
+          "statuses": [
+            201,
+            409
+          ],
+          "mode": "type",
+          "firstQueued": "Guest",
+          "concurrentLockWaits": {
+            "guest": 1,
+            "desk": 1
+          },
+          "persisted": {
+            "reservations": 0,
+            "invoices": 0,
+            "payments": 0,
+            "liveHolds": 1,
+            "convertedHolds": 0
+          },
+          "availableUnits": 0
+        },
+        {
+          "winner": "Guest hold",
+          "statuses": [
+            201,
+            409
+          ],
+          "mode": "exact",
+          "firstQueued": "Guest",
+          "concurrentLockWaits": {
+            "guest": 1,
+            "desk": 1
+          },
+          "persisted": {
+            "reservations": 0,
+            "invoices": 0,
+            "payments": 0,
+            "liveHolds": 1,
+            "convertedHolds": 0
+          },
+          "availableUnits": 0
+        },
+        {
+          "winner": "Front Desk booking",
+          "statuses": [
+            409,
+            201
+          ],
+          "mode": "type",
+          "firstQueued": "Front Desk",
+          "concurrentLockWaits": {
+            "guest": 1,
+            "desk": 1
+          },
+          "persisted": {
+            "reservations": 1,
+            "invoices": 1,
+            "payments": 0,
+            "liveHolds": 0,
+            "convertedHolds": 0
+          },
+          "availableUnits": 0
+        },
+        {
+          "winner": "Front Desk booking",
+          "statuses": [
+            409,
+            201
+          ],
+          "mode": "exact",
+          "firstQueued": "Front Desk",
+          "concurrentLockWaits": {
+            "guest": 1,
+            "desk": 1
+          },
+          "persisted": {
+            "reservations": 1,
+            "invoices": 1,
+            "payments": 0,
+            "liveHolds": 0,
+            "convertedHolds": 0
+          },
+          "availableUnits": 0
+        }
+      ]
+    },
+    {
+      "id": "SHARED-02",
+      "method": "Authenticated HTTP + PostgreSQL",
+      "title": "Keep a mixed request burst within four shared rooms",
+      "state": "PASS",
+      "result": {
+        "requests": 12,
+        "accepted": 4,
+        "guestAccepted": 0,
+        "staffAccepted": 4,
+        "expectedCapacityConflicts": 8,
+        "concurrentLockWaits": {
+          "guest": 2,
+          "desk": 6
+        },
+        "persisted": {
+          "reservations": 4,
+          "invoices": 4,
+          "payments": 0,
+          "liveHolds": 0,
+          "convertedHolds": 0
+        }
+      }
+    },
+    {
+      "id": "SHARED-03",
+      "method": "Guest Edge + authenticated HTTP + PostgreSQL",
+      "title": "An expired exact hold releases the last room before cleanup",
+      "state": "PASS",
+      "result": {
+        "availabilityBeforeExpiry": 0,
+        "availabilityAfterExpiryBeforeSweep": 1,
+        "liveSameAttempt": 200,
+        "expiredSameAttempt": "HOLD_ATTEMPT_EXPIRED",
+        "staffRetryStatus": 201,
+        "guestReviewShowsExpiry": true,
+        "searchKeepsDates": true,
+        "statusAfterGuestReview": "expired",
+        "laterSweepRows": 0,
+        "persisted": {
+          "reservations": 1,
+          "invoices": 1,
+          "payments": 0,
+          "liveHolds": 0,
+          "convertedHolds": 0
+        }
+      }
+    },
+    {
+      "id": "SHARED-04",
+      "method": "Authenticated HTTP + PostgreSQL",
+      "title": "Race a fresh guest attempt and desk booking for newly expired inventory",
+      "state": "PASS",
+      "result": {
+        "winner": "Front Desk booking",
+        "statuses": [
+          409,
+          201
+        ],
+        "concurrentLockWaits": {
+          "guest": 1,
+          "desk": 1
+        },
+        "persisted": {
+          "reservations": 1,
+          "invoices": 1,
+          "payments": 0,
+          "liveHolds": 0,
+          "convertedHolds": 0
+        }
+      }
+    },
+    {
+      "id": "SHARED-05",
+      "method": "Authenticated HTTP + PostgreSQL",
+      "title": "Protect a guest’s exact room while another unit can take a staff booking",
+      "state": "PASS",
+      "result": {
+        "concurrentLockWaits": {
+          "guest": 1,
+          "desk": 1
+        },
+        "heldRoomWasOffered": false,
+        "alternateOffered": true,
+        "heldRoomAssignmentStatus": 409,
+        "heldRoomAssignmentMessage": "A guest is holding this room for these dates. Reopen the room list and choose another room.",
+        "alternateAssignmentStatus": 200,
+        "exactHoldStillActive": true
+      }
+    },
+    {
+      "id": "SHARED-06",
+      "method": "Authenticated HTTP + PostgreSQL",
+      "title": "Observe requests that start before the hold expires and leave the lock after expiry",
+      "state": "PASS",
+      "result": {
+        "bothQueuedBeforeExpiry": true,
+        "releasedAfterExpiry": true,
+        "initialStatuses": [
+          409,
+          409
+        ],
+        "retryStatus": 201,
+        "concurrentLockWaits": {
+          "guest": 1,
+          "desk": 1
+        },
+        "persisted": {
+          "reservations": 1,
+          "invoices": 1,
+          "payments": 0,
+          "liveHolds": 0,
+          "convertedHolds": 0
+        }
+      }
+    },
+    {
+      "id": "SHARED-07",
+      "method": "PostgreSQL",
+      "title": "Confirm the fixture created no payments or conversions",
+      "state": "PASS",
+      "result": {
+        "paymentRowsAdded": 0,
+        "convertedTestHolds": 0,
+        "paymentRoutePosts": 0
+      }
+    }
+  ]
+}

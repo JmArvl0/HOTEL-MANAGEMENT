@@ -1,0 +1,2960 @@
+{
+  "date": "2026-11-24",
+  "runtime": "v22.22.2",
+  "localMigrationLedger": "20261124020000",
+  "cloneOnlyMigration": "20261124030000",
+  "operators": 12,
+  "baselineFixture": {
+    "rooms": 150,
+    "baselineReservations": 1276
+  },
+  "timedWrites": 336,
+  "timedStatusCounts": {
+    "201": 76,
+    "409": 123,
+    "200": 137
+  },
+  "requestsRecordedIncludingSetup": 446,
+  "databaseLockSamples": {
+    "samples": 242,
+    "samplesWithWaits": 87,
+    "peakWaitingSessions": 9,
+    "eventsObserved": [
+      "advisory",
+      "transactionid",
+      "tuple"
+    ]
+  },
+  "checks": [
+    {
+      "id": "FD-CONC-SEED",
+      "method": "PostgreSQL",
+      "title": "Prepare the 150-room workload and reservation history",
+      "state": "PASS",
+      "result": {
+        "rooms": 150,
+        "baselineReservations": 1276
+      }
+    },
+    {
+      "id": "FD-CONC-01",
+      "method": "HTTP + PostgreSQL",
+      "title": "Same-type booking demand stays within nightly capacity",
+      "state": "PASS",
+      "result": {
+        "rounds": 3,
+        "attempts": 72,
+        "accepted": 24,
+        "expectedCapacityConflicts": 48
+      }
+    },
+    {
+      "id": "FD-CONC-02",
+      "method": "HTTP + PostgreSQL",
+      "title": "An exact booking retry creates one reservation and invoice",
+      "state": "PASS",
+      "result": {
+        "reservations": 1,
+        "invoices": 1,
+        "confirmations": 1,
+        "pristine": 1,
+        "recovered": true
+      }
+    },
+    {
+      "id": "FD-CONC-03",
+      "method": "HTTP + PostgreSQL",
+      "title": "Competing assignments leave one winner per room and no orphaned reservation pointers",
+      "state": "PASS",
+      "result": {
+        "rounds": 3,
+        "attempts": 24,
+        "winners": 12,
+        "expectedAssignmentConflicts": 12
+      }
+    },
+    {
+      "id": "FD-CONC-FOLIO-SETUP",
+      "method": "HTTP + PostgreSQL",
+      "title": "Book and check in five synthetic stays through Front Desk",
+      "state": "PASS",
+      "result": {
+        "checkedIn": 5,
+        "startingBalances": 0
+      }
+    },
+    {
+      "id": "FD-CONC-04",
+      "method": "HTTP + PostgreSQL",
+      "title": "Parallel charges, exact charge replay and exact tender replay preserve folio totals",
+      "state": "PASS",
+      "result": {
+        "chargesAdded": 13,
+        "paymentsAdded": 1,
+        "receiptsAdded": 1,
+        "balance": 90
+      }
+    },
+    {
+      "id": "FD-CONC-05",
+      "method": "HTTP + PostgreSQL",
+      "title": "Concurrent payments cannot overcollect the remaining balance",
+      "state": "PASS",
+      "result": {
+        "accepted": 4,
+        "expectedBalanceConflicts": 8,
+        "paid": 100,
+        "remainingBalance": 0
+      }
+    },
+    {
+      "id": "FD-CONC-06",
+      "method": "HTTP + PostgreSQL",
+      "title": "One synthetic electronic reference can be accepted across two folios",
+      "state": "PASS",
+      "result": {
+        "accepted": 1,
+        "expectedReferenceConflicts": 11,
+        "balances": [
+          90,
+          100
+        ]
+      }
+    },
+    {
+      "id": "FD-CONC-07",
+      "method": "HTTP + PostgreSQL",
+      "title": "Booking, contested assignment and same-folio writes reconcile in mixed 24- and 48-request bursts",
+      "state": "PASS",
+      "result": {
+        "rounds": 5,
+        "attempts": 168,
+        "createdBookings": 40,
+        "assignments": 28,
+        "charges": 28,
+        "payments": 28,
+        "expectedCapacityConflicts": 16,
+        "expectedAssignmentConflicts": 28
+      }
+    },
+    {
+      "id": "FD-CONC-08",
+      "method": "PostgreSQL",
+      "title": "Reconcile no active overlapping rooms and no lost folio links",
+      "state": "PASS",
+      "result": {
+        "overlapping_assignments": 0,
+        "invalid_tender_links": 0,
+        "invalid_charge_links": 0,
+        "stored_booking_results": 150,
+        "added_booking_results": 150
+      }
+    }
+  ],
+  "bursts": [
+    {
+      "name": "capacity booking",
+      "round": 1,
+      "wallMs": 1059,
+      "workers": 24,
+      "responses": [
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 419,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 324,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 596,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 512,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 790,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 961,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 1004,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 698,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 1040,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 1051,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 1053,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 1054,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 1041,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 863,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 1056,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 1004,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 1055,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 1051,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 1054,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 1056,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 1051,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 1054,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 1055,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 1046,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        }
+      ],
+      "categories": {
+        "booking": {
+          "status": {
+            "201": 8,
+            "409": 16
+          },
+          "count": 24,
+          "p50Ms": 1041,
+          "p95Ms": 1056,
+          "maxMs": 1056
+        }
+      },
+      "sampleCount": 45,
+      "lockSamples": 34,
+      "peakWaiters": 9,
+      "observed": {
+        "advisory": 9
+      }
+    },
+    {
+      "name": "capacity booking",
+      "round": 2,
+      "wallMs": 334,
+      "workers": 24,
+      "responses": [
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 243,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 242,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 243,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 243,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 243,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 264,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 281,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 274,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 287,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 293,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 303,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 310,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 314,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 316,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 316,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 330,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 327,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 332,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 332,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 323,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 332,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 330,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 331,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 332,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        }
+      ],
+      "categories": {
+        "booking": {
+          "status": {
+            "201": 8,
+            "409": 16
+          },
+          "count": 24,
+          "p50Ms": 310,
+          "p95Ms": 332,
+          "maxMs": 332
+        }
+      },
+      "sampleCount": 17,
+      "lockSamples": 8,
+      "peakWaiters": 9,
+      "observed": {
+        "advisory": 9
+      }
+    },
+    {
+      "name": "capacity booking",
+      "round": 3,
+      "wallMs": 281,
+      "workers": 24,
+      "responses": [
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 242,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 249,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 249,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 252,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 252,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 252,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 255,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 260,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 263,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 266,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 267,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 268,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 268,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 269,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 269,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 275,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 276,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 278,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 276,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 278,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 278,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 277,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 276,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 276,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        }
+      ],
+      "categories": {
+        "booking": {
+          "status": {
+            "201": 8,
+            "409": 16
+          },
+          "count": 24,
+          "p50Ms": 268,
+          "p95Ms": 278,
+          "maxMs": 278
+        }
+      },
+      "sampleCount": 15,
+      "lockSamples": 5,
+      "peakWaiters": 9,
+      "observed": {
+        "advisory": 9
+      }
+    },
+    {
+      "name": "booking replay",
+      "round": 1,
+      "wallMs": 148,
+      "workers": 12,
+      "responses": [
+        {
+          "kind": "booking replay",
+          "status": 201,
+          "ms": 142,
+          "code": null
+        },
+        {
+          "kind": "booking replay",
+          "status": 201,
+          "ms": 142,
+          "code": null
+        },
+        {
+          "kind": "booking replay",
+          "status": 201,
+          "ms": 142,
+          "code": null
+        },
+        {
+          "kind": "booking replay",
+          "status": 201,
+          "ms": 143,
+          "code": null
+        },
+        {
+          "kind": "booking replay",
+          "status": 201,
+          "ms": 142,
+          "code": null
+        },
+        {
+          "kind": "booking replay",
+          "status": 201,
+          "ms": 144,
+          "code": null
+        },
+        {
+          "kind": "booking replay",
+          "status": 201,
+          "ms": 146,
+          "code": null
+        },
+        {
+          "kind": "booking replay",
+          "status": 201,
+          "ms": 146,
+          "code": null
+        },
+        {
+          "kind": "booking replay",
+          "status": 201,
+          "ms": 145,
+          "code": null
+        },
+        {
+          "kind": "booking replay",
+          "status": 201,
+          "ms": 145,
+          "code": null
+        },
+        {
+          "kind": "booking replay",
+          "status": 201,
+          "ms": 146,
+          "code": null
+        },
+        {
+          "kind": "booking replay",
+          "status": 201,
+          "ms": 146,
+          "code": null
+        }
+      ],
+      "categories": {
+        "booking replay": {
+          "status": {
+            "201": 12
+          },
+          "count": 12,
+          "p50Ms": 144,
+          "p95Ms": 146,
+          "maxMs": 146
+        }
+      },
+      "sampleCount": 8,
+      "lockSamples": 1,
+      "peakWaiters": 3,
+      "observed": {
+        "advisory": 3
+      }
+    },
+    {
+      "name": "contested assignment",
+      "round": 1,
+      "wallMs": 215,
+      "workers": 8,
+      "responses": [
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 131,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 185,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 149,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 209,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 136,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 192,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 153,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 214,
+          "code": "REQUEST_409"
+        }
+      ],
+      "categories": {
+        "assignment": {
+          "status": {
+            "200": 4,
+            "409": 4
+          },
+          "count": 8,
+          "p50Ms": 153,
+          "p95Ms": 214,
+          "maxMs": 214
+        }
+      },
+      "sampleCount": 11,
+      "lockSamples": 5,
+      "peakWaiters": 7,
+      "observed": {
+        "advisory": 3,
+        "transactionid": 4
+      }
+    },
+    {
+      "name": "contested assignment",
+      "round": 2,
+      "wallMs": 121,
+      "workers": 8,
+      "responses": [
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 76,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 94,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 102,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 120,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 84,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 102,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 102,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 120,
+          "code": "REQUEST_409"
+        }
+      ],
+      "categories": {
+        "assignment": {
+          "status": {
+            "200": 4,
+            "409": 4
+          },
+          "count": 8,
+          "p50Ms": 102,
+          "p95Ms": 120,
+          "maxMs": 120
+        }
+      },
+      "sampleCount": 7,
+      "lockSamples": 2,
+      "peakWaiters": 5,
+      "observed": {
+        "advisory": 2,
+        "transactionid": 3
+      }
+    },
+    {
+      "name": "contested assignment",
+      "round": 3,
+      "wallMs": 119,
+      "workers": 8,
+      "responses": [
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 88,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 92,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 97,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 118,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 87,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 92,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 96,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 118,
+          "code": "REQUEST_409"
+        }
+      ],
+      "categories": {
+        "assignment": {
+          "status": {
+            "200": 4,
+            "409": 4
+          },
+          "count": 8,
+          "p50Ms": 92,
+          "p95Ms": 118,
+          "maxMs": 118
+        }
+      },
+      "sampleCount": 6,
+      "lockSamples": 2,
+      "peakWaiters": 7,
+      "observed": {
+        "advisory": 3,
+        "transactionid": 4
+      }
+    },
+    {
+      "name": "distinct charges",
+      "round": 1,
+      "wallMs": 223,
+      "workers": 12,
+      "responses": [
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 120,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 150,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 121,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 126,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 121,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 172,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 193,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 132,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 215,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 166,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 220,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 222,
+          "code": null
+        }
+      ],
+      "categories": {
+        "charge": {
+          "status": {
+            "200": 12
+          },
+          "count": 12,
+          "p50Ms": 150,
+          "p95Ms": 222,
+          "maxMs": 222
+        }
+      },
+      "sampleCount": 13,
+      "lockSamples": 6,
+      "peakWaiters": 6,
+      "observed": {
+        "transactionid": 2,
+        "tuple": 5
+      }
+    },
+    {
+      "name": "charge replay",
+      "round": 1,
+      "wallMs": 135,
+      "workers": 12,
+      "responses": [
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 127,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 127,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 130,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 133,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 133,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 133,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 134,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 133,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 133,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 133,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 133,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 133,
+          "code": null
+        }
+      ],
+      "categories": {
+        "charge": {
+          "status": {
+            "200": 12
+          },
+          "count": 12,
+          "p50Ms": 133,
+          "p95Ms": 134,
+          "maxMs": 134
+        }
+      },
+      "sampleCount": 7,
+      "lockSamples": 0,
+      "peakWaiters": 0,
+      "observed": {}
+    },
+    {
+      "name": "payment replay",
+      "round": 1,
+      "wallMs": 175,
+      "workers": 12,
+      "responses": [
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 121,
+          "code": null
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 124,
+          "code": null
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 133,
+          "code": null
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 146,
+          "code": null
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 146,
+          "code": null
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 146,
+          "code": null
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 163,
+          "code": null
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 161,
+          "code": null
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 164,
+          "code": null
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 172,
+          "code": null
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 164,
+          "code": null
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 173,
+          "code": null
+        }
+      ],
+      "categories": {
+        "payment": {
+          "status": {
+            "200": 12
+          },
+          "count": 12,
+          "p50Ms": 146,
+          "p95Ms": 173,
+          "maxMs": 173
+        }
+      },
+      "sampleCount": 8,
+      "lockSamples": 3,
+      "peakWaiters": 9,
+      "observed": {
+        "advisory": 9
+      }
+    },
+    {
+      "name": "contested folio balance",
+      "round": 1,
+      "wallMs": 198,
+      "workers": 12,
+      "responses": [
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 128,
+          "code": null
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 170,
+          "code": null
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 177,
+          "code": null
+        },
+        {
+          "kind": "payment",
+          "status": 409,
+          "ms": 190,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 188,
+          "code": null
+        },
+        {
+          "kind": "payment",
+          "status": 409,
+          "ms": 196,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "payment",
+          "status": 409,
+          "ms": 196,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "payment",
+          "status": 409,
+          "ms": 196,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "payment",
+          "status": 409,
+          "ms": 196,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "payment",
+          "status": 409,
+          "ms": 196,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "payment",
+          "status": 409,
+          "ms": 196,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "payment",
+          "status": 409,
+          "ms": 193,
+          "code": "REQUEST_409"
+        }
+      ],
+      "categories": {
+        "payment": {
+          "status": {
+            "200": 4,
+            "409": 8
+          },
+          "count": 12,
+          "p50Ms": 193,
+          "p95Ms": 196,
+          "maxMs": 196
+        }
+      },
+      "sampleCount": 10,
+      "lockSamples": 4,
+      "peakWaiters": 9,
+      "observed": {
+        "transactionid": 2,
+        "tuple": 7
+      }
+    },
+    {
+      "name": "contested payment reference",
+      "round": 1,
+      "wallMs": 144,
+      "workers": 12,
+      "responses": [
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 135,
+          "code": null
+        },
+        {
+          "kind": "payment",
+          "status": 409,
+          "ms": 135,
+          "code": "DUPLICATE_PAYMENT_REFERENCE"
+        },
+        {
+          "kind": "payment",
+          "status": 409,
+          "ms": 135,
+          "code": "DUPLICATE_PAYMENT_REFERENCE"
+        },
+        {
+          "kind": "payment",
+          "status": 409,
+          "ms": 140,
+          "code": "DUPLICATE_PAYMENT_REFERENCE"
+        },
+        {
+          "kind": "payment",
+          "status": 409,
+          "ms": 141,
+          "code": "DUPLICATE_PAYMENT_REFERENCE"
+        },
+        {
+          "kind": "payment",
+          "status": 409,
+          "ms": 141,
+          "code": "DUPLICATE_PAYMENT_REFERENCE"
+        },
+        {
+          "kind": "payment",
+          "status": 409,
+          "ms": 142,
+          "code": "DUPLICATE_PAYMENT_REFERENCE"
+        },
+        {
+          "kind": "payment",
+          "status": 409,
+          "ms": 141,
+          "code": "DUPLICATE_PAYMENT_REFERENCE"
+        },
+        {
+          "kind": "payment",
+          "status": 409,
+          "ms": 142,
+          "code": "DUPLICATE_PAYMENT_REFERENCE"
+        },
+        {
+          "kind": "payment",
+          "status": 409,
+          "ms": 142,
+          "code": "DUPLICATE_PAYMENT_REFERENCE"
+        },
+        {
+          "kind": "payment",
+          "status": 409,
+          "ms": 141,
+          "code": "DUPLICATE_PAYMENT_REFERENCE"
+        },
+        {
+          "kind": "payment",
+          "status": 409,
+          "ms": 141,
+          "code": "DUPLICATE_PAYMENT_REFERENCE"
+        }
+      ],
+      "categories": {
+        "payment": {
+          "status": {
+            "200": 1,
+            "409": 11
+          },
+          "count": 12,
+          "p50Ms": 141,
+          "p95Ms": 142,
+          "maxMs": 142
+        }
+      },
+      "sampleCount": 8,
+      "lockSamples": 2,
+      "peakWaiters": 5,
+      "observed": {
+        "transactionid": 3,
+        "tuple": 3
+      }
+    },
+    {
+      "name": "mixed 24",
+      "round": 1,
+      "wallMs": 267,
+      "workers": 24,
+      "responses": [
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 255,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 259,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 259,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 262,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 259,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 259,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 264,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 264,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 265,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 264,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 265,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 265,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 262,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 261,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 263,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 263,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 261,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 263,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 265,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 264,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 265,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 265,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 264,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 265,
+          "code": null
+        }
+      ],
+      "categories": {
+        "booking": {
+          "status": {
+            "201": 8
+          },
+          "count": 8,
+          "p50Ms": 263,
+          "p95Ms": 265,
+          "maxMs": 265
+        },
+        "assignment": {
+          "status": {
+            "200": 4,
+            "409": 4
+          },
+          "count": 8,
+          "p50Ms": 261,
+          "p95Ms": 265,
+          "maxMs": 265
+        },
+        "charge": {
+          "status": {
+            "200": 4
+          },
+          "count": 4,
+          "p50Ms": 259,
+          "p95Ms": 265,
+          "maxMs": 265
+        },
+        "payment": {
+          "status": {
+            "200": 4
+          },
+          "count": 4,
+          "p50Ms": 263,
+          "p95Ms": 265,
+          "maxMs": 265
+        }
+      },
+      "sampleCount": 15,
+      "lockSamples": 4,
+      "peakWaiters": 3,
+      "observed": {
+        "advisory": 1,
+        "transactionid": 1,
+        "tuple": 1
+      }
+    },
+    {
+      "name": "mixed 24",
+      "round": 2,
+      "wallMs": 253,
+      "workers": 24,
+      "responses": [
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 239,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 238,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 238,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 238,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 241,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 238,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 240,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 240,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 240,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 246,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 247,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 245,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 245,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 245,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 245,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 246,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 244,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 246,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 245,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 245,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 246,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 246,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 246,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 249,
+          "code": null
+        }
+      ],
+      "categories": {
+        "booking": {
+          "status": {
+            "201": 8
+          },
+          "count": 8,
+          "p50Ms": 245,
+          "p95Ms": 246,
+          "maxMs": 246
+        },
+        "assignment": {
+          "status": {
+            "200": 4,
+            "409": 4
+          },
+          "count": 8,
+          "p50Ms": 244,
+          "p95Ms": 247,
+          "maxMs": 247
+        },
+        "charge": {
+          "status": {
+            "200": 4
+          },
+          "count": 4,
+          "p50Ms": 238,
+          "p95Ms": 245,
+          "maxMs": 245
+        },
+        "payment": {
+          "status": {
+            "200": 4
+          },
+          "count": 4,
+          "p50Ms": 246,
+          "p95Ms": 249,
+          "maxMs": 249
+        }
+      },
+      "sampleCount": 13,
+      "lockSamples": 2,
+      "peakWaiters": 1,
+      "observed": {
+        "transactionid": 1
+      }
+    },
+    {
+      "name": "mixed 24",
+      "round": 3,
+      "wallMs": 257,
+      "workers": 24,
+      "responses": [
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 248,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 251,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 250,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 252,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 252,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 250,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 252,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 252,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 252,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 255,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 255,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 251,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 255,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 251,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 255,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 255,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 255,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 255,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 255,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 254,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 255,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 255,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 255,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 255,
+          "code": null
+        }
+      ],
+      "categories": {
+        "booking": {
+          "status": {
+            "201": 8
+          },
+          "count": 8,
+          "p50Ms": 255,
+          "p95Ms": 255,
+          "maxMs": 255
+        },
+        "assignment": {
+          "status": {
+            "200": 4,
+            "409": 4
+          },
+          "count": 8,
+          "p50Ms": 252,
+          "p95Ms": 255,
+          "maxMs": 255
+        },
+        "charge": {
+          "status": {
+            "200": 4
+          },
+          "count": 4,
+          "p50Ms": 250,
+          "p95Ms": 252,
+          "maxMs": 252
+        },
+        "payment": {
+          "status": {
+            "200": 4
+          },
+          "count": 4,
+          "p50Ms": 255,
+          "p95Ms": 255,
+          "maxMs": 255
+        }
+      },
+      "sampleCount": 14,
+      "lockSamples": 2,
+      "peakWaiters": 2,
+      "observed": {
+        "advisory": 2,
+        "transactionid": 1
+      }
+    },
+    {
+      "name": "mixed 48",
+      "round": 4,
+      "wallMs": 568,
+      "workers": 48,
+      "responses": [
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 557,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 557,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 538,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 560,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 557,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 556,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 534,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 537,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 502,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 537,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 536,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 536,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 559,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 559,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 555,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 546,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 536,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 558,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 558,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 565,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 536,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 565,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 565,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 565,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 564,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 558,
+          "code": null
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 564,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 564,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 564,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 564,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 564,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 561,
+          "code": null
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 561,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 564,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 564,
+          "code": null
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 564,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 560,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 563,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 556,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 563,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 556,
+          "code": null
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 564,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 560,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 563,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 563,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 563,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 563,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 563,
+          "code": null
+        }
+      ],
+      "categories": {
+        "booking": {
+          "status": {
+            "201": 8,
+            "409": 8
+          },
+          "count": 16,
+          "p50Ms": 560,
+          "p95Ms": 565,
+          "maxMs": 565
+        },
+        "assignment": {
+          "status": {
+            "200": 8,
+            "409": 8
+          },
+          "count": 16,
+          "p50Ms": 559,
+          "p95Ms": 565,
+          "maxMs": 565
+        },
+        "charge": {
+          "status": {
+            "200": 8
+          },
+          "count": 8,
+          "p50Ms": 538,
+          "p95Ms": 565,
+          "maxMs": 565
+        },
+        "payment": {
+          "status": {
+            "200": 8
+          },
+          "count": 8,
+          "p50Ms": 563,
+          "p95Ms": 564,
+          "maxMs": 564
+        }
+      },
+      "sampleCount": 23,
+      "lockSamples": 3,
+      "peakWaiters": 3,
+      "observed": {
+        "advisory": 1,
+        "transactionid": 1,
+        "tuple": 2
+      }
+    },
+    {
+      "name": "mixed 48",
+      "round": 5,
+      "wallMs": 461,
+      "workers": 48,
+      "responses": [
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 421,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 423,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 423,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 423,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 423,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 441,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 445,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 445,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 445,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 449,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 449,
+          "code": null
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 445,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 457,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 449,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 449,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 457,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 457,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 456,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 457,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 458,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 458,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 458,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 458,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "charge",
+          "status": 200,
+          "ms": 458,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 456,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 447,
+          "code": null
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 456,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 456,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 455,
+          "code": null
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 455,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 457,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 455,
+          "code": null
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 457,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 457,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "assignment",
+          "status": 200,
+          "ms": 457,
+          "code": null
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 457,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 446,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 446,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 454,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 201,
+          "ms": 454,
+          "code": null
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 454,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 456,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 454,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 456,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 455,
+          "code": null
+        },
+        {
+          "kind": "booking",
+          "status": 409,
+          "ms": 455,
+          "code": "ROOM_TYPE_UNAVAILABLE"
+        },
+        {
+          "kind": "assignment",
+          "status": 409,
+          "ms": 456,
+          "code": "REQUEST_409"
+        },
+        {
+          "kind": "payment",
+          "status": 200,
+          "ms": 456,
+          "code": null
+        }
+      ],
+      "categories": {
+        "booking": {
+          "status": {
+            "201": 8,
+            "409": 8
+          },
+          "count": 16,
+          "p50Ms": 455,
+          "p95Ms": 458,
+          "maxMs": 458
+        },
+        "assignment": {
+          "status": {
+            "200": 8,
+            "409": 8
+          },
+          "count": 16,
+          "p50Ms": 454,
+          "p95Ms": 458,
+          "maxMs": 458
+        },
+        "charge": {
+          "status": {
+            "200": 8
+          },
+          "count": 8,
+          "p50Ms": 445,
+          "p95Ms": 458,
+          "maxMs": 458
+        },
+        "payment": {
+          "status": {
+            "200": 8
+          },
+          "count": 8,
+          "p50Ms": 456,
+          "p95Ms": 457,
+          "maxMs": 457
+        }
+      },
+      "sampleCount": 22,
+      "lockSamples": 4,
+      "peakWaiters": 4,
+      "observed": {
+        "advisory": 1,
+        "transactionid": 2,
+        "tuple": 2
+      }
+    }
+  ],
+  "persistedWaveChecks": [
+    {
+      "name": "capacity booking",
+      "round": 1,
+      "persisted": {
+        "reservations": 8,
+        "invoices": 8,
+        "confirmations": 8,
+        "pristine": 8
+      },
+      "availableUnits": 0
+    },
+    {
+      "name": "capacity booking",
+      "round": 2,
+      "persisted": {
+        "reservations": 8,
+        "invoices": 8,
+        "confirmations": 8,
+        "pristine": 8
+      },
+      "availableUnits": 0
+    },
+    {
+      "name": "capacity booking",
+      "round": 3,
+      "persisted": {
+        "reservations": 8,
+        "invoices": 8,
+        "confirmations": 8,
+        "pristine": 8
+      },
+      "availableUnits": 0
+    },
+    {
+      "name": "contested assignment",
+      "round": 1,
+      "persisted": {
+        "assignments": 4,
+        "rooms": 4,
+        "reconciled": 4,
+        "unassigned": 4
+      }
+    },
+    {
+      "name": "contested assignment",
+      "round": 2,
+      "persisted": {
+        "assignments": 4,
+        "rooms": 4,
+        "reconciled": 4,
+        "unassigned": 4
+      }
+    },
+    {
+      "name": "contested assignment",
+      "round": 3,
+      "persisted": {
+        "assignments": 4,
+        "rooms": 4,
+        "reconciled": 4,
+        "unassigned": 4
+      }
+    },
+    {
+      "name": "mixed 24",
+      "round": 1,
+      "persisted": {
+        "reservations": 8,
+        "invoices": 8,
+        "confirmations": 8,
+        "pristine": 8
+      },
+      "assignments": [
+        {
+          "assignments": 4,
+          "rooms": 4,
+          "reconciled": 4,
+          "unassigned": 4
+        }
+      ],
+      "charges": 4,
+      "payments": 4,
+      "remainingBalance": 120
+    },
+    {
+      "name": "mixed 24",
+      "round": 2,
+      "persisted": {
+        "reservations": 8,
+        "invoices": 8,
+        "confirmations": 8,
+        "pristine": 8
+      },
+      "assignments": [
+        {
+          "assignments": 4,
+          "rooms": 4,
+          "reconciled": 4,
+          "unassigned": 4
+        }
+      ],
+      "charges": 4,
+      "payments": 4,
+      "remainingBalance": 140
+    },
+    {
+      "name": "mixed 24",
+      "round": 3,
+      "persisted": {
+        "reservations": 8,
+        "invoices": 8,
+        "confirmations": 8,
+        "pristine": 8
+      },
+      "assignments": [
+        {
+          "assignments": 4,
+          "rooms": 4,
+          "reconciled": 4,
+          "unassigned": 4
+        }
+      ],
+      "charges": 4,
+      "payments": 4,
+      "remainingBalance": 160
+    },
+    {
+      "name": "mixed 48",
+      "round": 4,
+      "persisted": {
+        "reservations": 8,
+        "invoices": 8,
+        "confirmations": 8,
+        "pristine": 8
+      },
+      "assignments": [
+        {
+          "assignments": 4,
+          "rooms": 4,
+          "reconciled": 4,
+          "unassigned": 4
+        },
+        {
+          "assignments": 4,
+          "rooms": 4,
+          "reconciled": 4,
+          "unassigned": 4
+        }
+      ],
+      "charges": 8,
+      "payments": 8,
+      "remainingBalance": 200
+    },
+    {
+      "name": "mixed 48",
+      "round": 5,
+      "persisted": {
+        "reservations": 8,
+        "invoices": 8,
+        "confirmations": 8,
+        "pristine": 8
+      },
+      "assignments": [
+        {
+          "assignments": 4,
+          "rooms": 4,
+          "reconciled": 4,
+          "unassigned": 4
+        },
+        {
+          "assignments": 4,
+          "rooms": 4,
+          "reconciled": 4,
+          "unassigned": 4
+        }
+      ],
+      "charges": 8,
+      "payments": 8,
+      "remainingBalance": 240
+    }
+  ],
+  "browserChecks": [
+    {
+      "id": "FD-CONC-UI",
+      "method": "Edge + HTTP + PostgreSQL",
+      "title": "Observe operator recovery when a quoted type sells out before creation",
+      "state": "PASS",
+      "result": {
+        "status": 409,
+        "code": "ROOM_TYPE_UNAVAILABLE",
+        "visibleMessage": "This action could not be completed. Review the latest record before trying again.",
+        "returnedToAvailability": true,
+        "competingBookings": 8,
+        "rejectedBookingRows": 0,
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        }
+      }
+    }
+  ]
+}

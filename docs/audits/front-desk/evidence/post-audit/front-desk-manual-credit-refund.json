@@ -1,0 +1,164 @@
+{
+  "date": "2026-11-26",
+  "environment": "Isolated loopback Next.js, PostgREST and PostgreSQL with synthetic guest and staff accounts",
+  "edgeVersion": "158.0.4370.33",
+  "nonLoopbackServerFetchAttempts": 0,
+  "browserPageErrors": 0,
+  "targetedVitest": {
+    "passed": 36,
+    "testFiles": 5
+  },
+  "checks": [
+    {
+      "id": "FD-LOWER-RATE-CREDIT-REQUEST",
+      "method": "Edge guest and Manager + PostgreSQL",
+      "title": "Submit and approve a lower-rate guest room change with a frozen price difference",
+      "state": "PASS",
+      "result": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "originalNightlyRate": 100,
+        "approvedNightlyRate": 70,
+        "currentCatalogNightlyRate": 85,
+        "originalRecordedPayment": 220,
+        "originalBalanceDue": 25,
+        "approvedLodgingDelta": -60,
+        "quotedFolioTotal": 185,
+        "folioBefore": 245,
+        "guestRequestStatus": 201,
+        "managerApprovalStatus": 200,
+        "guestAndManagerUsedEdge": true,
+        "approvalVisibleToFrontDesk": true
+      }
+    },
+    {
+      "id": "FD-LOWER-RATE-CREDIT-HOLD",
+      "method": "Edge + second guest HTTP + PostgreSQL",
+      "title": "Reject a hold on the selected replacement, then complete and retry the lower-rate move",
+      "state": "PASS",
+      "result": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "explicitReplacementPrompt": true,
+        "heldRoomBlocked": true,
+        "selectedRoomWasLastAvailableUnit": true,
+        "messageVisibleInDialog": true,
+        "wrongRoomKeptGenericOutcome": true,
+        "blockedStatus": 409,
+        "blockedCode": "ROOM_HELD_FOR_GUEST",
+        "blockedMessage": "A guest is holding the replacement room for the amended dates. Select Execute as Front Desk to choose another room, or retry the same room after the hold expires.",
+        "databaseReason": "MODIFICATION_ROOM_HELD",
+        "blockedPreservedApprovalReservationAndFolio": true,
+        "holdRowStillActiveWhenExpired": true,
+        "executionStatus": 200,
+        "nightCount": 2,
+        "activeAssignments": 1,
+        "originalAssignmentReassigned": true,
+        "laterBookingPreserved": true,
+        "folioBefore": 245,
+        "approvedLodgingReductionAppliedOnce": 60,
+        "folioAfter": 185,
+        "offlinePaidAmount": 220,
+        "appliedPayment": 185,
+        "folioBalance": 0,
+        "folioCredit": 35,
+        "approvedNightlyRatePreserved": true,
+        "guestPortalShowsNewRoomType": true,
+        "guestPortalShowsUpdatedFolio": true,
+        "guestPortalAndFrontDeskShowCredit": true,
+        "originalInvoiceUpdatedOnce": true,
+        "originalChargeAndPaymentRowsPreserved": true,
+        "newFolioCharges": 0,
+        "refundRequests": 0,
+        "refundAttempts": 0,
+        "refundPayments": 0,
+        "replayStatus": 409,
+        "replayCode": "APPROVAL_NOT_EXECUTABLE",
+        "folioUnchangedAfterReplay": true,
+        "guestChangeStatus": "executed",
+        "completedGuestRequestExitedQueue": true,
+        "executionAudits": 1
+      }
+    },
+    {
+      "id": "FD-LOWER-RATE-CREDIT-ISOLATION",
+      "method": "HTTP + PostgreSQL",
+      "title": "Verify zero payment or refund requests and no guest hold conversion",
+      "state": "PASS",
+      "result": {
+        "syntheticLedgerEntries": 1,
+        "paymentOrRefundEndpointPosts": 0,
+        "refundRequests": 0,
+        "holdConversions": 0
+      }
+    },
+    {
+      "id": "FD-MANUAL-CREDIT-REFUND-QUEUE",
+      "method": "Accounting Edge + Front Desk HTTP + PostgreSQL",
+      "title": "Verify the active folio credit has no supported refund-request handoff",
+      "state": "PASS",
+      "result": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "confirmedReservation": true,
+        "existingCredit": 35,
+        "existingRefundRequests": 0,
+        "accountingQueueContainsBooking": false,
+        "createRefundActionAvailable": false,
+        "refundExceptionStatus": 409,
+        "refundExceptionCode": "REFUND_EXCEPTION_REQUIRES_CLOSURE"
+      }
+    },
+    {
+      "id": "FD-MANUAL-CREDIT-REFUND-PAYOUT",
+      "method": "Accounting Edge + PostgreSQL",
+      "title": "Record a simulated payout against a seeded pending refund and recover the identical result on retry",
+      "state": "PASS",
+      "result": {
+        "viewport": {
+          "width": 1366,
+          "height": 768
+        },
+        "pendingRequestSeededInDisposableDatabase": true,
+        "frontDeskPayoutDeniedStatus": 403,
+        "firstPayoutStatus": 200,
+        "recordedRefund": 35,
+        "initialCredit": 35,
+        "remainingCredit": 0,
+        "folioTotal": 185,
+        "netPaid": 185,
+        "refundRequestCount": 1,
+        "refundPaymentCount": 1,
+        "processedRefundAttemptCount": 1,
+        "refundAuditCount": 1,
+        "identicalRetryStatuses": [
+          200,
+          200
+        ],
+        "identicalRetryResults": true,
+        "differentReferenceStatus": 409,
+        "folioAndRefundRecordsUnchangedAfterRetry": true,
+        "guestPortalShowsZeroCredit": true
+      }
+    },
+    {
+      "id": "FD-MANUAL-CREDIT-REFUND-ISOLATION",
+      "method": "Edge HTTP + PostgreSQL",
+      "title": "Verify the only write is the simulated manual ledger payout",
+      "state": "PASS",
+      "result": {
+        "syntheticPayoutMethod": "bank_transfer",
+        "browserPayoutPostsIncludingRetries": 4,
+        "newRefundPayments": 1,
+        "realProviderPayouts": 0,
+        "originalPaymentPreserved": true
+      }
+    }
+  ]
+}
