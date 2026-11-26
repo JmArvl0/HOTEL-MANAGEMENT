@@ -1,5 +1,131 @@
 # Current Status
 
+## Front Desk post-audit implementation (2026-11-24, local)
+
+The release candidate fixes eight original Front Desk findings and measures
+booking and rack performance at 150 rooms and more than 1,000 reservations.
+The matching extension-replay migration was verified on a disposable clone.
+Property, hosted schema and load, ID hardware, Finance and Fleet acceptance
+are pending. See [[2026-11-24 - Front Desk Post-Audit Implementation]].
+
+## Guest audit follow-up (2026-11-24, local)
+
+Owned reservation, folio and request histories are complete in the 1,240-stay
+fixture. The final local journey covered simulated payment and payout, guest
+navigation, photo recovery and Front Desk lifecycle. Live checkout, property
+privacy and media approval, and partner and physical-device acceptance remain
+open. Guest-details Back and Forward restore the same-tab draft in Edge.
+The room hold still saves the details. See [[2026-11-24 - Guest Draft History]]
+and [[2026-11-24 - Guest Audit Follow-up]].
+
+## Hotel audit remediation (2026-11-24, local)
+
+The dependency audit reports zero production advisories. Owner-managed
+Close Day coverage and server-paginated Front Office Bookings have two
+unapplied local migrations. Accounting remains available for the Finance
+handoff. Local SQL, signed-in smoke and Finance file validation cover the
+release candidate. See [[2026-11-24 - Hotel Audit Remediation]].
+
+## Product audit (2026-11-23, local)
+
+The audit and evidence map cover 25 module groups, 36 pages and 212 HTTP
+handlers. Patched Next.js 16.4.6, Sharp 0.35.5 and source-map-js 1.2.4 clear
+the initial framework/image/source-map registry findings locally. Browser
+checks verified booking balance and location fallback repairs. See
+[[2026-11-23 - Hotel Product Audit]] for the baseline and the newer remediation
+entry for follow-up results.
+
+## Hotel PDF downloads (2026-11-23, local)
+
+Approved A4 styling is implemented for Booking Confirmation, Checkout Folio,
+Cash Shift Close Summary and Daily Operations Report. Source records and
+permissions are checked before a PDF is generated. Production deployment is
+pending. See [[2026-11-23 - Hotel PDF Downloads]].
+
+## Hotel subsystem scope (2026-11-23, local)
+
+The Hotel app retires duplicate procurement, schedule creation, and equipment
+management. Front Desk uses reservation-level billing and its scoped drawer.
+Finance review JSON is available from saved closes. Partner integrations and
+the handover of existing Accounting-only duties remain pending.
+See [[2026-11-23 - Hotel Subsystem Scope]].
+
+## RBAC audit and enforcement (2026-11-23, local)
+
+The role and action matrix covers 210 API route files. The matched app and
+migration `20261123020000` pass focused authorization and database checks.
+Deployment remains pending. See [[2026-11-23 - RBAC Audit and Enforcement]].
+
+## Front Office workflow (2026-11-23, local)
+
+Front Desk can book from a saved guest, select a priced room type, and recover a
+pending submission by request identity. Arrival rows link to the unresolved task.
+Room Management surfaces turnover and serviceability, and authorized staff can
+edit saved contact and preferences. See [[2026-11-23 - Front Office Workflow]].
+
+## Predictive Analytics improvements (2026-11-23, local)
+
+All seven views use the revised inputs or comparison workflows. The daily
+snapshot records booking counts by lead and evaluation evidence for the new
+horizons. See [[2026-11-23 - Predictive Analytics Improvements]].
+
+## Desktop forecast workspace (2026-11-22, local)
+
+Manager forecasts adapt to laptop and monitor widths. Pricing review
+supports date filtering with persistent selection. The housekeeping
+chart highlights its busiest day. See [[2026-11-22 - Desktop Forecast Workspace]].
+
+## Predictive dashboard charts (2026-11-22, local)
+
+Predictive Analytics now shows five views with reference-based charts,
+forecast comparisons where supported, and links to the applicable staff
+work queues. The pricing view uses the existing approval workflow.
+See [[2026-11-22 - Predictive Dashboard Charts]].
+
+## Plain-language forecast views (2026-11-22, local)
+
+The forecast UI leads with expected room demand, upcoming work or stock
+shortages, and which earlier forecast was closer. The detailed accuracy
+metrics and evidence remain available. This is a local follow-up to the
+frozen defense release. See [[2026-11-22 - Plain-Language Forecasts]].
+
+## Defense candidate prepared (2026-11-22)
+
+GitHub Actions passed on `91e910b` and Vercel built the matching Preview.
+The hosted Supabase read and dry-run agree on pending versions
+`20261121010000` and `20261122010000`. See [release evidence](../../docs/qa/defense-release-2026-11-22.md).
+
+## Age enforcement and release gate (2026-11-22, local)
+
+Manual and Express QR arrivals use the same primary age gate. The new
+migration preserves the separately audited age policy activation date.
+Local migration replay, production build, and all 2,690 tests passed.
+The GitHub Actions workflow has been added locally. Hosted release is pending.
+See [[2026-11-22 - Age Enforcement and Defense QA]].
+
+## Analytical Reports and Command Center (2026-11-22, local)
+
+Manager and Owner open a shared operating overview and period-based reports.
+Analytical Reports include room performance, cash, booking and service
+measures, CSV, and a date-matched Forecast Evaluation link. Historical
+occupancy and room-accrual ratios show night-audit coverage.
+See [[2026-11-22 - Analytical Reports and Command Center]].
+
+## Seasonal Occupancy (2026-11-22, local)
+
+Manager Predictive Insights offers a monthly occupancy outlook and same-date
+comparisons across years. Saved daily occupancy evidence powers the baseline.
+Cold-start bookings and historical coverage are visible from the first day.
+See [[2026-11-22 - Seasonal Occupancy]].
+
+## Forecast Evaluation (2026-11-22, local)
+
+Manager Predictive Insights has a Forecast Evaluation view for occupancy,
+timed housekeeping hours, and item-level inventory usage. The generation
+job saves actuals and a frozen baseline using the existing analytics schema.
+Defense accuracy results require seven matched observations per cohort after
+prospective capture begins. See [[2026-11-22 - Forecast Evaluation Phase 1]].
+
 ## Transportation fares (2026-11-20, production)
 
 Haven production runs `c7c7166` with migrations through `20261120040000`.

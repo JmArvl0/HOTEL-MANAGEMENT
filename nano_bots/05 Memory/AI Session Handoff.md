@@ -1,5 +1,229 @@
 # AI Session Handoff
 
+## Working tree review — 2026-11-26
+
+The local review reconnected Housekeeping service controls, removed an unused
+Room Rack callback, and corrected the exact-hold and amendment regression
+fixtures. Typecheck, the full Vitest run, the isolated production build,
+PostgreSQL replay, and the signed-in Edge smoke passed. See
+[[2026-11-26 - Working Tree Review and Commit Inventory]].
+
+## Front Desk exact holds — 2026-11-26
+
+FD-API-003 is verified locally. The assignment list excludes live exact guest
+holds, and a stale room selection returns `ROOM_HELD_FOR_GUEST`. Edge and
+PostgreSQL confirmed the room returns after the deadline and accepts assignment
+before cleanup runs. Hosted replay remains pending. See
+[[2026-11-26 - Front Desk Exact Room Holds]].
+
+FD-API-004 extends the specific conflict to guided check-in and room changes.
+Edge verified that both pickers can refresh and complete the original room
+selection after expiry. See [[2026-11-26 - Front Desk Hold Conflict Feedback]].
+
+FD-API-005 restores the server role's acceptance RPC grant. Edge recorded
+guest acceptance, replay kept one upgrade charge, and check-in succeeded
+after hold expiry. See [[2026-11-26 - Front Desk Upgrade Acceptance Permission]].
+
+FD-API-006 and FD-UX-005 are verified locally. Front Desk records consent in
+the mid-stay approval dialog. Edge moved the guest after hold expiry and
+verified one upgrade charge after retry. See [[2026-11-26 - Front Desk Mid-Stay Upgrade]].
+
+FD-API-007 is verified locally. Same-room extension previews identify exact
+holds on added nights, and stale submits show the hold with a refresh action.
+Edge verified expiry and one extension charge after a lost-response retry.
+Hosted replay remains pending. See [[2026-11-26 - Front Desk Same-Room Extension Holds]].
+
+FD-UX-006 is verified locally. The approved in-place extension alert tells
+Front Desk to retry after the hold expires. Edge verified the same approval
+and one folio charge after retry, plus the replacement-room path. See
+[[2026-11-26 - Front Desk Approved Extension Hold Guidance]].
+
+FD-API-008 and FD-API-009 are verified locally. Approved guest amendments
+appear in the Front Desk execution queue. Edge verified the inline hold
+conflict, room move after expiry and identical folio after retry. See
+[[2026-11-26 - Front Desk Approved Guest Amendments]].
+
+## Front Desk sold-out feedback — 2026-11-24
+
+FD-API-002 uses the approved availability message. Local Edge verification
+filled the quoted type with eight competing synthetic bookings, then confirmed
+the form refreshed the same dates and the rejected attempt created no
+reservation or invoice. [Audit evidence](../../docs/audits/front-desk/FRONT-DESK-CONCURRENCY-TEST-REPORT.md#confirmed-follow-up)
+
+## Front Desk post-audit implementation — 2026-11-24
+
+Local migration `20261124030000` and the dialog recover a committed stay
+extension. Daily dashboard queues, departure balances, duplicate tender copy,
+sidebar contrast, alert placement and compact workstation controls were verified
+with synthetic data. Hosted load, property approvals, device and partner
+acceptance remain open. See [[2026-11-24 - Front Desk Post-Audit Implementation]].
+
+## Guest draft history — 2026-11-24
+
+Reproduced pre-hold input loss in both browser-history directions and fixed
+restoration within the original signed-in booking entry. Edge verified the
+restored contact, booking and ride fields, explicit discard and a successful
+test hold. The draft stays in document memory. Other browser engines and
+tab-termination behavior remain open. See [[2026-11-24 - Guest Draft History]].
+
+## Guest audit follow-up — 2026-11-24
+
+Guest history stays complete beyond the REST response cap. My Stay uses a
+bounded snapshot, and folio and request pages render one page of detail.
+The local browser verified unsaved navigation, configured and failed photos,
+and simulated payout and waiver records. The register records 16 verified
+fixes, two partial resolutions and blocked live checkout. See
+[[2026-11-24 - Guest Audit Follow-up]] for measurements and open acceptance.
+
+## Guest post-audit implementation — 2026-11-24
+
+Local guest checkout fixes covered bodyless actions, cancellation and refund
+copy, search recovery, the mobile pass and a dedicated privacy route. The
+isolated browser verified payment replay, release and Front Desk lifecycle.
+Live provider and property acceptance remain open. See
+[[2026-11-24 - Guest Post-Audit Implementation]].
+
+## Guest experience audit — 2026-11-24
+
+The local guest audit verified mobile registration, a simulated paid booking,
+the populated account, services and cancellation. Direct booking is gated by
+payment mode and documented defects. Reports and evidence are indexed in the
+[[2026-11-24 - Guest Experience Audit]] session. No application code changed.
+
+## Hotel audit remediation — 2026-11-24
+
+Local dependency advisories are clear, the operating day supports audited
+primary and backup Manager assignment, and Front Office booking history is
+paginated. Close Day access and booking pages were tested with the two new
+migrations on disposable PostgreSQL. The built app passed scoped reads over
+real local PostgREST and the Finance review batch can be checked offline.
+Hosted release and partner acceptance are pending. See [[2026-11-24 - Hotel Audit Remediation]].
+
+## Product audit and first repairs — 2026-11-23
+
+The full product audit covers 25 module groups and ranks readiness gates.
+Next.js, Sharp and the existing source-map dependency were patched locally.
+Manager bookings distinguish missing folio data from settlement, the landing
+page tolerates invalid location data, and lint excludes generated guest preview
+output. The remaining registry findings were addressed in the follow-up above.
+See [[2026-11-23 - Hotel Product Audit]].
+
+## Hotel PDF downloads — 2026-11-23
+
+Branded local downloads are connected to booking confirmation, issued checkout
+folio, closed cash shifts and saved daily operations reports. The route checks
+roles, ownership and source state. Checkout folios use the existing staff
+issuance action. See [[2026-11-23 - Hotel PDF Downloads]].
+
+## Hotel subsystem scope — 2026-11-23
+
+Local Hotel screens and routes retire new purchase orders, staff schedules,
+equipment registration, and preventive scheduling. Historical work, stock
+receiving, and room readiness stay operational. Front Desk finance reads are
+scoped to its drawer and selected stay. Accounting role assignment is retired,
+and existing Accounting operators can download a Finance JSON review batch.
+Partner acceptance and retirement of current Accounting access remain pending.
+See [[2026-11-23 - Hotel Subsystem Scope]].
+
+## RBAC audit and enforcement — 2026-11-23
+
+All eight roles retained. Local app and migration `20261123020000` enforce
+approval type and source, restrict departmental fields, and send Room Rack
+reclean through an audited command. Edge and PostgreSQL checked the eight
+roles. Hosted verification was read-only. See [[2026-11-23 - RBAC Audit and Enforcement]].
+
+## Room Management cards — 2026-11-23
+
+Room Management uses the supplied curved-photo card for one search result or
+when Large cards is selected. The default multi-room grid stays compact. Live
+stay details and catalog photos feed both layouts, and the ellipsis opens the
+existing role-scoped actions. See [[2026-11-23 - Room Management Cards]].
+
+## Front Office workflow — 2026-11-23
+
+The shared staff booking form, Book again, arrival actions, room triage, profile
+edits and cancellation presets are implemented locally. Migration
+`20261123010000` belongs with the matching app release. See [[2026-11-23 - Front Office Workflow]].
+The follow-up adds local Front Office navigation, an explicit Bookings view
+switch, mobile record layouts and editable steps in the booking form.
+
+## Predictive Analytics improvements — 2026-11-23
+
+The local workspace implements audited corrections in Occupancy, Demand & Rate,
+Housekeeping, Inventory, Maintenance, Seasonal Outlook, and Forecast Accuracy.
+Recent actuals can be recovered from verified records through the existing
+snapshot fields. Inventory v4 preserves fractional stock quantities in
+forecasts, shortage alerts, and reorder suggestions. See
+[[2026-11-23 - Predictive Analytics Improvements]].
+
+## Desktop forecast workspace — 2026-11-22
+
+Predictive Analytics adapts to six verified desktop sizes with the
+sidebar open and collapsed. Pricing has a stay-date filter and a
+shortcut from the featured recommendation. Housekeeping highlights
+its busiest date. See [[2026-11-22 - Desktop Forecast Workspace]].
+
+## Predictive dashboard charts — 2026-11-22
+
+The Manager Predictive Analytics workspace has five forecast views matching
+the reference chart types and hierarchy, plus Seasonal Outlook and Forecast
+Accuracy. Live computations supply the values and saved evidence supplies
+the comparisons. The staff sidebar keeps its standard background.
+See [[2026-11-22 - Predictive Dashboard Charts]].
+
+## Plain-language forecasts — 2026-11-22
+
+Predictive Insights leads each tab with one answer for the selected task.
+Forecast Accuracy explains which comparison was closer and keeps calculations
+in a disclosure. Seasonal Outlook gives a room count for an exact date.
+Desktop and mobile QA passed on the local build. See [[2026-11-22 - Plain-Language Forecasts]].
+
+## Defense release candidate — 2026-11-22
+
+`codex/defense-release-2026-11-22` freezes commit `91e910b` with the defense
+features and CI. GitHub Actions passed and Vercel built the matching Preview.
+The user elected to skip staging. The configured hosted ledger and dry-run
+agree on two pending migrations. See [release evidence](../../docs/qa/defense-release-2026-11-22.md).
+
+## Age enforcement and defense QA — 2026-11-22
+
+The local age check binds official-ID evidence to the current primary guest
+and scheduled check-in date for both manual and Express QR arrivals. Front
+Desk can repeat verification after changes. CI is defined locally. The hosted
+ledger is unlinked in this checkout and the age policy remains unactivated.
+See [[2026-11-22 - Age Enforcement and Defense QA]].
+
+## Analytical Reports and Command Center — 2026-11-22
+
+Manager and Owner have a live Command Center and separate Operational and
+Analytical report views. Historical ratios use closed night audits. Dated room
+type capacity is still unavailable. Owner can read saved operational reports
+with Manager retaining review authority. Local implementation only.
+See [[2026-11-22 - Analytical Reports and Command Center]].
+
+## Seasonal Occupancy — 2026-11-22
+
+Predictive Insights now offers month and exact-date comparisons with a selected
+earlier year. Bookings remain visible as the daily analytics job builds recorded
+occupancy history. Local production build, tests, and Edge/PostgreSQL QA passed.
+See [[2026-11-22 - Seasonal Occupancy]].
+
+## Forecast Evaluation Phase 1 — 2026-11-22
+
+Manager Predictive Insights compares occupancy, timed housekeeping hours, and
+item-level inventory usage against actuals and a seven-closed-day baseline.
+The existing daily job stores evidence prospectively in existing JSON fields.
+The UI includes MAE, MAPE, coverage, and CSV. Local implementation only.
+See [[2026-11-22 - Forecast Evaluation Phase 1]].
+
+## Booking authentication reference — 2026-11-22
+
+Booking sign-in and registration show the selected room photo, inline arrows,
+and a compact summary with dates and guests on one row. The header shows the
+Haven logo and Front Desk support. Edge verified 320–1448px, photo browsing,
+and both account paths returning to the selected stay with breakfast.
+See [[2026-11-22 - Booking Authentication Reference]].
+
 ## Room search and Express check-in — 2026-11-21
 
 Public search, numbered-room selection and portal Find a Room share a compact
