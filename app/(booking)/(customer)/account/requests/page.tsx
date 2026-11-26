@@ -1,5 +1,7 @@
 import { BookingHoldsSection } from "@/components/customer/booking-holds-section";
 import { WithdrawRequestButton } from "@/components/customer/withdraw-request-button";
+import { ReservationHistoryFooter } from "@/components/customer/reservation-history-footer";
+import { paginateTableRows } from "@/lib/table-pagination";
 import{BookOpenText,ChevronDown}from"lucide-react";import{requireCustomerSession}from"@/lib/customer-auth";import{getGuestReservations}from"@/lib/booking";import{friendlyStatus,getCustomerRequests}from"@/lib/customer";import{portalCatalogOptions}from"@/lib/request-catalog";import{GuestRequestForm}from"@/components/customer/guest-request-form";import{StatusBadge}from"@/components/ui";import{requestLabel}from"@/lib/request-options";import{groupRequestBatches,requestCode}from"@/lib/request-batches";
 // One submission = one collapsible card. Items share a batch_id (portal
 // submissions file the client idempotency key; one checkout files
@@ -8,10 +10,22 @@ import{BookOpenText,ChevronDown}from"lucide-react";import{requireCustomerSession
 // two cards. The request number is derived from the batch id, not stored.
 const APPROVAL_LABELS={pending:"Pending review",approved:"Approved",rejected:"Declined",withdrawn:"Withdrawn"}as const;
 const when=(value:string)=>new Date(value).toLocaleString("en-PH",{dateStyle:"medium",timeStyle:"short"});
-export default async function RequestsPage(){const session=await requireCustomerSession();const[requests,reservations,options]=await Promise.all([getCustomerRequests(session.user.id),getGuestReservations(session.user.id),portalCatalogOptions()]);const eligible=reservations.filter((item)=>["confirmed","checked_in"].includes(String(item.status))).map((item)=>({id:item.id,confirmation_number:item.confirmation_number,room_type:item.room_type}));
+const stayDates = new Intl.DateTimeFormat("en-PH", { month: "short", day: "numeric", timeZone: "UTC" });
+
+export default async function RequestsPage({ searchParams }: { searchParams: Promise<{ page?: string | string[] }> }) {
+ const session = await requireCustomerSession();
+ const [requests, reservations, options, raw] = await Promise.all([
+   getCustomerRequests(session.user.id),
+   getGuestReservations(session.user.id, ["confirmed", "checked_in"]),
+   portalCatalogOptions(),
+   searchParams,
+ ]);
+ const eligible = reservations.map(({ id, confirmation_number, room_type }) => ({ id, confirmation_number, room_type }));
  const batches=groupRequestBatches(requests);
+ const requestedPage = Array.isArray(raw.page) ? raw.page[0] : raw.page;
+ const { rows, ...pagination } = paginateTableRows(batches, Number(requestedPage ?? 1), 10);
  return <div className="customer-requests-page"><section className="customer-page-title"><div><p className="eyebrow">Guest requests</p><h1>How can we help?</h1><p>Tell us what you need; Front Desk reviews every submission and Haven routes it to the right team.</p></div></section><BookingHoldsSection userId={session.user.id} /><GuestRequestForm reservations={eligible} options={options}/>
- {!batches.length?<div className="customer-empty"><BookOpenText/><h2>No requests yet</h2><p>Your service request history will appear here.</p></div>:<div className="cgr-batches">{batches.map((batch)=>{const reservation=reservations.find((entry)=>entry.id===batch.items[0].reservation_id);const stay=reservation?new Intl.DateTimeFormat("en-PH",{month:"short",day:"numeric"}).formatRange(new Date(reservation.check_in),new Date(reservation.check_out)):null;const room=reservation?(reservation.room_number?`Room ${reservation.room_number} · ${reservation.room_type}`:reservation.room_type):batch.items[0].reservation_id;return (
+ {!batches.length?<div className="customer-empty"><BookOpenText/><h2>No requests yet</h2><p>Your service request history will appear here.</p></div>:<><div className="cgr-batches">{rows.map((batch)=>{const reservation=batch.items[0].reservation;const stay=reservation?stayDates.formatRange(new Date(reservation.check_in),new Date(reservation.check_out)):null;const room=reservation?(reservation.room_number?`Room ${reservation.room_number} · ${reservation.room_type}`:reservation.room_type):batch.items[0].reservation_id;return (
   <details key={batch.key} className="cgr-batch">
    <summary className="cgr-batch-header">
     <span className="cgr-batch-heading">
@@ -33,4 +47,4 @@ export default async function RequestsPage(){const session=await requireCustomer
      </div>
      <StatusBadge status={item.status} size="sm"/>{item.status === "open" && item.approval_status === "pending" && <WithdrawRequestButton id={item.id} version={item.version} />}
     </li>);})}</ul>
-  </details>);})}</div>}</div>}
+  </details>);})}</div><ReservationHistoryFooter {...pagination} noun="request batches" /></>}</div>}

@@ -13,6 +13,7 @@ import {
 import { formatPeso } from "@/lib/format";
 import { CheckInQr, CheckInQrExpired } from "@/components/customer/check-in-qr";
 import { ReservationActions, type OpenChangeRequest } from "@/components/customer/reservation-actions";
+import { HotelPdfDownload } from "@/components/ui/hotel-pdf-download";
 import LoyaltyRedemptionSelector from "@/components/booking/loyalty-redemption-selector";
 import { Modal } from "@/components/ui/Modal";
 import {
@@ -35,6 +36,8 @@ export type ReservationDetailViewData = {
   nights: number;
   guests: number;
   status: string;
+  canDownloadConfirmation?: boolean;
+  canDownloadFolio?: boolean;
   paymentStatus: string;
   guestName: string;
   guestEmail: string;
@@ -49,6 +52,7 @@ export type ReservationDetailViewData = {
   checkOutTime: string;
   transportLines: { name: string; price: number; note?: string | null }[];
   breakfastLines?: { label: string; amount: number }[];
+  breakfastIncluded?: boolean;
   policyText: string;
   policyItems?: PolicyItem[];
   cancellationPolicy?: {
@@ -248,7 +252,8 @@ export function ReservationDetailView({ data, breakfast }: { data: ReservationDe
               <span><small>Reservation</small><span className={`customer-status ${data.status}`}>{friendly(data.status)}</span></span>
               <span><small>Payment</small><span className={`customer-status ${data.paymentStatus}`}>{friendly(data.paymentStatus)}</span></span>
             </div>
-            <ReservationActions id={data.id} status={data.status} checkIn={data.checkIn} checkOut={data.checkOut} roomType={data.roomType} openRequest={openRequest} />
+            <ReservationActions id={data.id} status={data.status} checkIn={data.checkIn} checkOut={data.checkOut} roomType={data.roomType} openRequest={openRequest} breakfastIncluded={data.breakfastIncluded} />
+            {data.canDownloadConfirmation && <HotelPdfDownload kind="booking-confirmation" id={data.id} label="Download confirmation PDF" />}
             {openRequestRow && (
               <section className="crd-change-status" aria-label="Reservation change request status">
                 <p className="crd-change-eyebrow">Reservation change request</p>
@@ -276,7 +281,10 @@ export function ReservationDetailView({ data, breakfast }: { data: ReservationDe
           </ol>
         )}
         {terminal(data.status) && (
-          <p className={`crd-terminal customer-status ${data.status}`}>{friendly(data.status)} — {data.cancellationReason ? data.cancellationReason : "this reservation will not proceed."}</p>
+          <div className="crd-terminal">
+            <span className={`customer-status ${data.status}`}>{friendly(data.status)}</span>
+            <p>{data.cancellationReason ?? "This reservation will not proceed."}</p>
+          </div>
         )}
         {data.status === "cancelled" && (
           <section className="crd-refund-status" aria-label="Refund status">
@@ -375,6 +383,7 @@ export function ReservationDetailView({ data, breakfast }: { data: ReservationDe
 
       <section className="customer-detail-card crd-panel" role="tabpanel" id="crd-panel-folio" aria-labelledby="crd-tab-folio" hidden={tab !== "folio"}>
         <h2>Rate &amp; folio</h2>
+        {data.canDownloadFolio && <HotelPdfDownload kind="checkout-folio" id={data.id} label="Download folio PDF" />}
         <dl>
           <DetailRow term={`Nightly rate × ${data.nights}`}>{formatPeso(money.nightly * data.nights)}</DetailRow>
           <DetailRow term="Original stay total">{formatPeso(money.stayTotal)}</DetailRow>

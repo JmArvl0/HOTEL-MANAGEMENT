@@ -10,11 +10,14 @@ import { StayReviewCard } from "@/components/customer/stay-review-card";
 import { BreakfastEntry } from "@/components/customer/breakfast-entry";
 import { breakfastLine } from "@/lib/breakfast";
 import { isLegacyGuestPayment } from "@/lib/payment-display";
+import { findCheckoutFolio, isBookingConfirmationStatus } from "@/lib/hotel-document-data";
 export default async function ReservationPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireCustomerSession();
   const { id } = await params;
   const [reservation, transportation] = await Promise.all([getCustomerReservationDetail(session.user.id, id), getCustomerTransportation(session.user.id, id)]);
   if (!reservation) notFound();
+
+  const checkoutFolio = reservation.status === "checked_out" ? await findCheckoutFolio(id, reservation.checked_out_at).catch(() => null) : null;
 
   const invoice = reservation.invoice;
   const stayTotal = Number(reservation.total || 0);
@@ -199,6 +202,8 @@ export default async function ReservationPage({ params }: { params: Promise<{ id
         nights: reservation.nights,
         guests: reservation.guests,
         status: reservation.status,
+        canDownloadConfirmation: isBookingConfirmationStatus(reservation.status),
+        canDownloadFolio: Boolean(checkoutFolio),
         paymentStatus: String(invoice?.status ?? reservation.payment_status),
         guestName: reservation.guest?.name ?? reservation.guest_name ?? "-",
         guestEmail: reservation.guest?.email ?? reservation.guest_email ?? "-",
@@ -213,6 +218,7 @@ export default async function ReservationPage({ params }: { params: Promise<{ id
         checkOutTime: displayTime(policy.checkOutTime),
         transportLines,
         breakfastLines,
+        breakfastIncluded: Boolean(reservation.breakfast_snapshot),
         pendingNotice: reservation.status === "pending"
           ? reservation.payments.some((payment) => payment.purpose === "reservation_deposit" && payment.status === "pending_verification" && isLegacyGuestPayment(payment.method))
             ? "Contact Front Desk with your original deposit reference before paying again."

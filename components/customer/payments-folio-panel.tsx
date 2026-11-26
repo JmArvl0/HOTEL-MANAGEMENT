@@ -1,10 +1,11 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useState, useTransition, type ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { BadgeCheck, Files, WalletCards, X } from "lucide-react";
 import { HavenDataToolbar, HavenSearchInput, HavenSelect } from "@/components/ui";
 import { ModuleSummaryCards } from "@/components/manager/module-summary-cards";
-import { TablePagination, useTablePagination } from "@/components/ui/table-pagination";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { formatPeso } from "@/lib/format";
 import type { FolioPaymentState, ReservationCategory } from "@/lib/customer";
 
@@ -22,160 +23,105 @@ const PAYMENT_LABELS: Record<FolioPaymentState, string> = {
   settled: "Settled",
 };
 
-export type PaymentsFolioItem = {
-  id: string;
-  stayState: ReservationCategory;
-  paymentState: FolioPaymentState;
-  balance: number;
-  paid: number;
-  searchText: string;
-  content: ReactNode;
+export type FolioFilters = {
+  stay: ReservationCategory | "all";
+  payment: FolioPaymentState | "all";
+  query: string;
 };
 
-type StayFilter = ReservationCategory | "all";
-type PaymentFilter = FolioPaymentState | "all";
-
-const stayValues = Object.keys(STAY_LABELS) as ReservationCategory[];
-const paymentValues = Object.keys(PAYMENT_LABELS) as FolioPaymentState[];
-
-function normalized(value: string) {
-  return value.trim().toLocaleLowerCase("en");
-}
-
-function matchesSearch(item: PaymentsFolioItem, search: string) {
-  return !search || normalized(item.searchText).includes(search);
-}
-
-function countLabel(count: number) {
-  return `${count} stay record${count === 1 ? "" : "s"}`;
-}
-
-export function PaymentsFolioPanel({
-  items,
-  initialStay = "all",
-  initialPayment = "all",
-  initialQuery = "",
-}: {
-  items: PaymentsFolioItem[];
-  initialStay?: StayFilter;
-  initialPayment?: PaymentFilter;
-  initialQuery?: string;
+export function PaymentsFolioPanel({ filters, stayCounts, paymentCounts, pagination, outstanding, paidToDate, children }: {
+  filters: FolioFilters;
+  stayCounts: Record<FolioFilters["stay"], number>;
+  paymentCounts: Record<FolioFilters["payment"], number>;
+  pagination: { page: number; pageCount: number; start: number; end: number; total: number };
+  outstanding: number;
+  paidToDate: number;
+  children: ReactNode;
 }) {
-  const [stay, setStay] = useState<StayFilter>(initialStay);
-  const [payment, setPayment] = useState<PaymentFilter>(initialPayment);
-  const [query, setQuery] = useState(initialQuery);
-  const search = normalized(query);
+  const router = useRouter();
+  const pathname = usePathname();
+  const [pending, startTransition] = useTransition();
+  const [active, setActive] = useState(filters);
+  const [previousFilters, setPreviousFilters] = useState(filters);
+  if (previousFilters !== filters) {
+    setPreviousFilters(filters);
+    setActive(filters);
+  }
+  const hasActiveFilters = filters.stay !== "all" || filters.payment !== "all" || Boolean(filters.query);
+  const total = pagination.total;
 
-  const filtered = useMemo(
-    () => items.filter((item) => matchesSearch(item, search) && (stay === "all" || item.stayState === stay) && (payment === "all" || item.paymentState === payment)),
-    [items, payment, search, stay],
-  );
-  const stayFacet = useMemo(
-    () => items.filter((item) => matchesSearch(item, search) && (payment === "all" || item.paymentState === payment)),
-    [items, payment, search],
-  );
-  const paymentFacet = useMemo(
-    () => items.filter((item) => matchesSearch(item, search) && (stay === "all" || item.stayState === stay)),
-    [items, search, stay],
-  );
-
-  const outstanding = filtered.reduce((sum, item) => sum + item.balance, 0);
-  const paidToDate = filtered.reduce((sum, item) => sum + item.paid, 0);
-  const hasActiveFilters = stay !== "all" || payment !== "all" || Boolean(search);
-  const page = useTablePagination(filtered, 4);
-  useEffect(() => { page.setPage(1); }, [stay, payment, search]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
+  const navigate = (next: FolioFilters, page = 1) => {
     const params = new URLSearchParams();
-    if (stay !== "all") params.set("stay", stay);
-    if (payment !== "all") params.set("pay", payment);
-    if (query.trim()) params.set("q", query.trim());
+    if (next.stay !== "all") params.set("stay", next.stay);
+    if (next.payment !== "all") params.set("pay", next.payment);
+    if (next.query.trim()) params.set("q", next.query.trim());
+    if (page > 1) params.set("page", String(page));
     const suffix = params.toString();
-    window.history.replaceState(null, "", suffix ? `${window.location.pathname}?${suffix}` : window.location.pathname);
-  }, [payment, query, stay]);
-
-  const clearFilters = () => {
-    setStay("all");
-    setPayment("all");
-    setQuery("");
+    setActive(next);
+    startTransition(() => {
+      router.replace(suffix ? `${pathname}?${suffix}` : pathname, { scroll: false });
+    });
   };
-
+  const clearFilters = () => navigate({ stay: "all", payment: "all", query: "" });
   const stayOptions = [
-    { value: "all", label: `All stays (${stayFacet.length})` },
-    ...stayValues.map((value) => ({
-      value,
-      label: `${STAY_LABELS[value]} (${stayFacet.filter((item) => item.stayState === value).length})`,
-    })),
+    { value: "all", label: `All stays (${stayCounts.all})` },
+    ...Object.entries(STAY_LABELS).map(([value, label]) => ({ value, label: `${label} (${stayCounts[value as ReservationCategory]})` })),
   ];
   const paymentOptions = [
-    { value: "all", label: `All payments (${paymentFacet.length})` },
-    ...paymentValues.map((value) => ({
-      value,
-      label: `${PAYMENT_LABELS[value]} (${paymentFacet.filter((item) => item.paymentState === value).length})`,
-    })),
+    { value: "all", label: `All payments (${paymentCounts.all})` },
+    ...Object.entries(PAYMENT_LABELS).map(([value, label]) => ({ value, label: `${label} (${paymentCounts[value as FolioPaymentState]})` })),
   ];
 
   return (
     <>
       <div aria-label="Filtered financial summary" aria-live="polite" aria-atomic="true">
-        {/* Guest surface: customer tokens (--cp-*) paint the shared card via
-            ui-primitives fallback chains; tones land as semantic chips. */}
         <ModuleSummaryCards
           cards={[
-            { label: "Total folios", value: filtered.length, hint: countLabel(filtered.length), icon: Files, tone: "today" },
+            { label: "Total folios", value: total, hint: `${total} stay record${total === 1 ? "" : "s"}`, icon: Files, tone: "today" },
             { label: "Outstanding balance", value: formatPeso(outstanding), hint: outstanding > 0 ? "Payment remains due" : "All balances settled", icon: WalletCards, tone: outstanding > 0 ? "attention" : "done" },
             { label: "Total paid to date", value: formatPeso(paidToDate), hint: "Verified payments received", icon: BadgeCheck, tone: "done" },
           ]}
           ariaLabel="Financial summary"
         />
       </div>
-
       <HavenDataToolbar
         variant="customer"
         label="Filter payment and folio records"
         filtersLayout="compact"
-        search={
-          <HavenSearchInput
-            value={query}
-            onValueChange={setQuery}
-            label="Search folios"
-            placeholder="Booking reference or room"
-            variant="customer"
-            debounceMs={0}
-          />
-        }
+        search={<HavenSearchInput value={active.query} onValueChange={(query) => navigate({ ...active, query })} label="Search folios" placeholder="Booking reference or room" variant="customer" />}
         advancedFilters={
           <>
             <div className="haven-filter folio-filter-control">
-              <HavenSelect value={stay} onChange={(value) => setStay(value as StayFilter)} ariaLabel="Stay status" options={stayOptions} />
+              <HavenSelect value={active.stay} onChange={(stay) => navigate({ ...active, stay: stay as FolioFilters["stay"] })} ariaLabel="Stay status" options={stayOptions} />
             </div>
             <div className="haven-filter folio-filter-control">
-              <HavenSelect value={payment} onChange={(value) => setPayment(value as PaymentFilter)} ariaLabel="Payment status" options={paymentOptions} />
+              <HavenSelect value={active.payment} onChange={(payment) => navigate({ ...active, payment: payment as FolioFilters["payment"] })} ariaLabel="Payment status" options={paymentOptions} />
             </div>
           </>
         }
       />
-
-      {filtered.length === 0 ? (
-        <div className="customer-empty folio-empty">
-          <h2>No folios match these filters</h2>
-          <p>Try another stay status, payment state, or booking reference.</p>
-          <button className="btn btn-soft" type="button" onClick={clearFilters}>Show all folios</button>
-        </div>
-      ) : (
-        <>
-          <div className="customer-financial-list">{page.rows.map((item) => <Fragment key={item.id}>{item.content}</Fragment>)}</div>
-          <div className="reservation-history-footer folio-footer">
-            {hasActiveFilters && (
-              <button type="button" className="btn btn-soft" onClick={() => { clearFilters(); page.setPage(1); }}>
-                <X size={14} aria-hidden="true" />
-                Clear filters
-              </button>
-            )}
-            <TablePagination {...page} onPageChange={page.setPage} noun="folios" />
+      <div aria-busy={pending}>
+        {total === 0 ? (
+          <div className="customer-empty folio-empty">
+            <h2>No folios match these filters</h2>
+            <p>Try another stay status, payment state, or booking reference.</p>
+            <button className="btn btn-soft" type="button" onClick={clearFilters}>Show all folios</button>
           </div>
-        </>
-      )}
+        ) : (
+          <>
+            <div className="customer-financial-list">{children}</div>
+            <div className="reservation-history-footer folio-footer">
+              {hasActiveFilters && (
+                <button type="button" className="btn btn-soft" onClick={clearFilters}>
+                  <X size={14} aria-hidden="true" />
+                  Clear filters
+                </button>
+              )}
+              <TablePagination {...pagination} onPageChange={(page) => navigate(active, page)} noun="folios" />
+            </div>
+          </>
+        )}
+      </div>
     </>
   );
 }

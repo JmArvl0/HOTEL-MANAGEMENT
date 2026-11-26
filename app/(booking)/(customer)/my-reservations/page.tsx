@@ -17,6 +17,7 @@ import {
 import { requireCustomerSession } from "@/lib/customer-auth";
 import { roomPrimary } from "@/lib/room-images";
 import { BookingHoldsSection } from "@/components/customer/booking-holds-section";
+import { paginateTableRows } from "@/lib/table-pagination";
 
 const statusFilters: { value: ReservationHistoryStatus; label: string; heading: string; category?: ReservationCategory }[] = [
   { value: "all", label: "All reservations", heading: "All reservations" },
@@ -44,13 +45,7 @@ export default async function MyReservationsPage({
   const requestedSort = first(raw.sort) ?? "recommended";
   const sort = ["recommended", "stay-oldest", "stay-newest", "booked-newest"].includes(requestedSort) ? requestedSort : "recommended";
   const visible = filterReservationHistory(reservations, { query, status, sort });
-  // Section-level pagination (same offset math as paginateTableRows).
-  const PAGE_SIZE = 6;
-  const pageCount = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
-  const requestedPage = Number(first(raw.page) ?? 1);
-  const page = Math.min(Math.max(1, Math.floor(requestedPage) || 1), pageCount);
-  const offset = (page - 1) * PAGE_SIZE;
-  const pageRows = visible.slice(offset, offset + PAGE_SIZE);
+  const { rows: pageRows, ...pagination } = paginateTableRows(visible, Number(first(raw.page) ?? 1), 6);
   const submittedDeposits = await getGuestSubmittedDeposits(session.user.id, pageRows.filter((row) => row.status === "pending").map((row) => row.id));
   const totals = groupReservations(reservations);
   const hasActiveFilters = Boolean(query || status !== "all" || sort !== "recommended");
@@ -163,11 +158,7 @@ export default async function MyReservationsPage({
                   query={query}
                   status={status}
                   sort={sort}
-                  page={page}
-                  pageCount={pageCount}
-                  start={pageRows.length ? offset + 1 : 0}
-                  end={offset + pageRows.length}
-                  total={visible.length}
+                  {...pagination}
                   hasActiveFilters={hasActiveFilters}
                 />
               </section>

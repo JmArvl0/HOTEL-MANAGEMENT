@@ -19,7 +19,7 @@ vi.mock("next/navigation", () => ({
   redirect: (path: string) => { nav.redirected.push(path); throw new Error(`NEXT_REDIRECT:${path}`); },
 }));
 
-const { getCustomerFinancials, getCustomerReceipt, getCustomerRequests, getCustomerReservationDetail, buildNotifications } = await import("@/lib/customer");
+const { getCustomerFinancialSummary, getCustomerFolioDetails, getCustomerOverview, getCustomerReceipt, getCustomerRequests, getCustomerReservationDetail } = await import("@/lib/customer");
 const { getGuestReservation, getGuestReservations, getOwnedHold, getGuestProfile } = await import("@/lib/booking");
 const { requireCustomerSession } = await import("@/lib/customer-auth");
 const { getServerSession } = await import("next-auth");
@@ -61,6 +61,15 @@ function seed(): FakeDb {
 beforeEach(() => {
   for (const key of Object.keys(fake.db)) delete fake.db[key];
   Object.assign(fake.db, seed());
+  const reservations = new Map(fake.db.reservations.map((row) => [row.id, row]));
+  for (const table of ["invoices", "refund_requests", "reservation_change_requests"]) {
+    for (const row of fake.db[table]) row.reservations = reservations.get(row.reservation_id);
+  }
+  for (const payment of fake.db.payments) payment.invoices = { reservations: reservations.get(payment.reservation_id) };
+  for (const request of fake.db.guest_requests) {
+    request.reservation = reservations.get(request.reservation_id);
+    request.reservations = request.reservation;
+  }
   nav.redirected.length = 0;
   vi.mocked(getServerSession).mockReset();
 });
@@ -127,15 +136,14 @@ describe("customer data ownership", () => {
     expect(JSON.stringify(detail)).not.toContain("BRAVO");
   });
 
-  it("keeps payments, folio, refunds and documents scoped in the financial view", async () => {
-    const financials = await getCustomerFinancials(A);
+  it("keeps payments, folio and refunds scoped in the financial view", async () => {
+    const financials = await getCustomerFolioDetails(await getCustomerFinancialSummary(A));
     expect(financials).toHaveLength(1);
     const [reservation] = financials;
     expect(reservation.payments.map((item) => item.id)).toEqual(["pay-alfa"]);
     expect(reservation.charges.map((item) => item.id)).toEqual(["chg-alfa"]);
     expect(reservation.refunds.map((item) => item.id)).toEqual(["ref-alfa"]);
     expect(reservation.adjustments.map((item) => item.id)).toEqual(["adj-alfa"]);
-    expect(reservation.documents.map((item) => item.id)).toEqual(["doc-alfa"]);
     expect(JSON.stringify(financials)).not.toContain("BRAVO");
   });
 
@@ -146,13 +154,13 @@ describe("customer data ownership", () => {
   });
 
   it("builds notifications only from the customer's own records", async () => {
-    const notifications = buildNotifications(await getCustomerFinancials(A), await getCustomerRequests(A));
+    const { notifications } = await getCustomerOverview(A);
     expect(notifications.length).toBeGreaterThan(0);
     expect(JSON.stringify(notifications)).not.toContain("BRAVO");
   });
 
   it("returns nothing at all for a customer with no records", async () => {
-    await expect(getCustomerFinancials("99999999-9999-9999-9999-999999999999")).resolves.toEqual([]);
+    await expect(getCustomerFinancialSummary("99999999-9999-9999-9999-999999999999")).resolves.toEqual([]);
     await expect(getCustomerRequests("99999999-9999-9999-9999-999999999999")).resolves.toEqual([]);
   });
 

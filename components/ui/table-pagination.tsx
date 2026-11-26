@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { paginateTableRows } from "@/lib/table-pagination";
+
+export { paginateTableRows } from "@/lib/table-pagination";
 
 const tableCollator = new Intl.Collator("en", {
   sensitivity: "base",
@@ -15,22 +18,6 @@ export function sortTableRows<T>(rows: readonly T[], getLabel: (row: T) => strin
   );
 }
 
-export function paginateTableRows<T>(rows: readonly T[], requestedPage: number, pageSize: number) {
-  const safePageSize = Math.max(1, Math.floor(pageSize));
-  const pageCount = Math.max(1, Math.ceil(rows.length / safePageSize));
-  const page = Math.min(Math.max(1, Math.floor(requestedPage)), pageCount);
-  const offset = (page - 1) * safePageSize;
-  const pageRows = rows.slice(offset, offset + safePageSize);
-
-  return {
-    rows: pageRows,
-    page,
-    pageCount,
-    start: pageRows.length ? offset + 1 : 0,
-    end: offset + pageRows.length,
-    total: rows.length,
-  };
-}
 
 export function useTablePagination<T>(rows: readonly T[], pageSize = 10) {
   const [requestedPage, setRequestedPage] = useState(1);

@@ -211,6 +211,13 @@
   background:color-mix(in srgb,var(--cp-bg) 88%,transparent);
   border-bottom:1px solid var(--cp-line);
 }
+.customer-shell .customer-mobile-search{display:none}
+@media(max-width:680px){
+  .customer-shell .customer-content-header .saas-header-search-btn{display:none}
+  .customer-shell.customer-booking-flow .concierge-float{display:none}
+  .customer-shell .customer-content-header strong{white-space:normal;overflow-wrap:normal}
+  .customer-shell .customer-mobile-search{display:flex;align-items:center;gap:10px;min-height:44px;margin:0 12px 8px;color:var(--cp-text)}
+}
 .customer-shell .customer-content-header .customer-header-link,
 .customer-shell .customer-content-header .customer-header-theme,
 .customer-shell .customer-header-actions>a,
@@ -908,4 +915,19 @@
 @media(prefers-reduced-motion:reduce){
   .customer-shell .concierge-float-card{animation:none}
   .customer-shell .concierge-msg{animation:none}
+}
+
+.deposit-confirmation{container:booking-confirmation / inline-size}
+.customer-shell .deposit-confirmation > .customer-checkin-qr-strip{display:grid}
+@container booking-confirmation (max-width:480px){
+  .customer-shell .deposit-confirmation .customer-checkin-qr-strip{
+    grid-template-columns:minmax(0,1fr);justify-items:center;gap:14px;
+    max-width:100%;text-align:center;padding:16px 12px
+  }
+  .customer-shell .deposit-confirmation .customer-checkin-qr-strip :is(.customer-checkin-qr-copy,.customer-checkin-qr-head,.customer-checkin-qr-action){
+    width:100%;justify-items:center
+  }
+  .customer-shell .deposit-confirmation .customer-checkin-qr-strip .btn{width:100%;white-space:normal;overflow-wrap:normal}
+  .customer-shell .deposit-confirmation .customer-checkin-qr-figure{max-width:100%}
+  .customer-shell .deposit-confirmation .customer-checkin-qr-figure img{max-width:100%;height:auto;min-height:0}
 }

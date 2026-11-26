@@ -1,17 +1,30 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { PaymentsFolioPanel, type PaymentsFolioItem } from "./payments-folio-panel";
+import { PaymentsFolioPanel } from "./payments-folio-panel";
 
-afterEach(cleanup);
+const replace = vi.hoisted(() => vi.fn());
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace }),
+  usePathname: () => "/account/payments",
+}));
 
-const items: PaymentsFolioItem[] = [
-  { id: "current", stayState: "current", paymentState: "settled", balance: 0, paid: 5800, searchText: "HVN-260921 Garden Twin", content: <article>Current folio</article> },
-  { id: "upcoming", stayState: "upcoming", paymentState: "due", balance: 4060, paid: 1740, searchText: "HVN-260930 Ocean Suite", content: <article>Upcoming folio</article> },
-  { id: "cancelled", stayState: "cancelled", paymentState: "refund", balance: 0, paid: 2670, searchText: "HVN-260901 Deluxe King", content: <article>Cancelled folio</article> },
-];
+afterEach(() => {
+  cleanup();
+  replace.mockClear();
+});
+
+const props = {
+  filters: { stay: "all", payment: "all", query: "" } as const,
+  stayCounts: { all: 12, current: 1, upcoming: 1, past: 9, cancelled: 1 },
+  paymentCounts: { all: 12, pending: 0, due: 1, refund: 1, settled: 10 },
+  pagination: { page: 2, pageCount: 3, start: 5, end: 8, total: 12 },
+  outstanding: 4060,
+  paidToDate: 10210,
+  children: <article>Current folio page</article>,
+};
 
 describe("PaymentsFolioPanel", () => {
   it("is mounted after the page hero so the full hierarchy starts with the banner", () => {
@@ -21,32 +34,30 @@ describe("PaymentsFolioPanel", () => {
   });
 
   it("renders summary cards before the transparent filter toolbar and folio list", () => {
-    const { container } = render(<PaymentsFolioPanel items={items} />);
+    const { container } = render(<PaymentsFolioPanel {...props} />);
     const summary = container.querySelector('[aria-label="Financial summary"]')!;
     const toolbar = container.querySelector(".haven-data-toolbar")!;
     const list = container.querySelector(".customer-financial-list")!;
     expect(summary.compareDocumentPosition(toolbar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(toolbar.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(toolbar.classList.contains("filters-compact")).toBe(true);
-    expect(screen.getByText("3 stay records")).toBeTruthy();
+    expect(screen.getByText("12 stay records")).toBeTruthy();
+    expect(screen.getByText("₱4,060")).toBeTruthy();
+    expect(screen.getByText("Current folio page")).toBeTruthy();
   });
 
-  it("filters locally from the keyboard-accessible selects and updates totals", () => {
-    render(<PaymentsFolioPanel items={items} />);
+  it("changes the filter URL and resets the page", () => {
+    render(<PaymentsFolioPanel {...props} />);
     fireEvent.click(screen.getByRole("button", { name: "Stay status" }));
     fireEvent.click(screen.getByRole("option", { name: "Upcoming Stays (1)" }));
-    expect(screen.getByText("Upcoming folio")).toBeTruthy();
-    expect(screen.queryByText("Current folio")).toBeNull();
-    expect(screen.getByText("1 stay record")).toBeTruthy();
-    expect(screen.getByText("₱4,060")).toBeTruthy();
+    expect(replace).toHaveBeenCalledWith("/account/payments?stay=upcoming", { scroll: false });
   });
 
-  it("searches booking references without navigation and can clear the result", async () => {
-    render(<PaymentsFolioPanel items={items} />);
-    fireEvent.change(screen.getByRole("searchbox", { name: "Search folios" }), { target: { value: "260901" } });
-    expect(await screen.findByText("Cancelled folio")).toBeTruthy();
-    expect(screen.queryByText("Upcoming folio")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Clear search folios" }));
-    expect(await screen.findByText("Upcoming folio")).toBeTruthy();
+  it("keeps filters on the next page and clears them together", () => {
+    render(<PaymentsFolioPanel {...props} filters={{ stay: "past", payment: "settled", query: "QA-12" }} />);
+    fireEvent.click(screen.getByRole("button", { name: "Next page of folios" }));
+    expect(replace).toHaveBeenLastCalledWith("/account/payments?stay=past&pay=settled&q=QA-12&page=3", { scroll: false });
+    fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+    expect(replace).toHaveBeenLastCalledWith("/account/payments", { scroll: false });
   });
 });

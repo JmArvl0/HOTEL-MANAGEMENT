@@ -3,7 +3,8 @@ import { calculateNights, hotelToday } from "@/lib/booking";
 import { inclusiveTaxBreakdown, ratePercent } from "@/lib/accounting";
 import { getOperationalPolicy } from "@/lib/hotel-policy";
 import { buildReceiptDocument, receiptEligible, type ReceiptDocument } from "@/lib/receipt";
-import { getCustomerTransportation, type CustomerTransportationRequest } from "@/lib/transportation";
+import type { CustomerNotification } from "@/lib/notifications";
+import { readAllRows } from "@/lib/read-all-rows";
 
 export type ReservationCategory = "current" | "upcoming" | "past" | "cancelled";
 const STATUS_LABELS: Record<string,string> = {
@@ -14,7 +15,7 @@ const STATUS_LABELS: Record<string,string> = {
   unpaid:"Unpaid",paid:"Paid",failed:"Failed",expired:"Expired"
 };
 export const friendlyStatus=(value:string)=>STATUS_LABELS[value]??value.replaceAll("_"," ").replace(/^./,(char)=>char.toUpperCase());
-export const formatStayDate=(value:string)=>new Intl.DateTimeFormat("en-PH",{month:"short",day:"numeric",year:"numeric",timeZone:"UTC"}).format(new Date(`${value}T00:00:00Z`));
+export { formatStayDate } from "@/lib/format";
 export function formatStayRange(checkIn:string,checkOut:string){const start=new Date(`${checkIn}T00:00:00Z`),end=new Date(`${checkOut}T00:00:00Z`);const sameYear=start.getUTCFullYear()===end.getUTCFullYear();const first=new Intl.DateTimeFormat("en-PH",{month:"short",day:"numeric",...(sameYear?{}:{year:"numeric"}),timeZone:"UTC"}).format(start);const last=new Intl.DateTimeFormat("en-PH",{month:"short",day:"numeric",year:"numeric",timeZone:"UTC"}).format(end);return `${first} - ${last}`}
 export function reservationCategory(reservation:{status:string;check_in:string;check_out:string},today=hotelToday()):ReservationCategory{if(["cancelled","no_show"].includes(reservation.status))return"cancelled";if(reservation.status==="checked_in")return"current";if(reservation.status==="checked_out"||reservation.check_out<=today)return"past";return"upcoming"}
 export function groupReservations<T extends{status:string;check_in:string;check_out:string}>(reservations:T[],today=hotelToday()){const groups:Record<ReservationCategory,T[]>={current:[],upcoming:[],past:[],cancelled:[]};for(const reservation of reservations)groups[reservationCategory(reservation,today)].push(reservation);groups.current.sort((a,b)=>a.check_out.localeCompare(b.check_out));groups.upcoming.sort((a,b)=>a.check_in.localeCompare(b.check_in));groups.past.sort((a,b)=>b.check_out.localeCompare(a.check_out));groups.cancelled.sort((a,b)=>b.check_in.localeCompare(a.check_in));return groups}
@@ -56,6 +57,7 @@ export function financialPaymentState(record:FolioStateInput):FolioPaymentState{
 export function filterFinancialRecords<T extends FolioStateInput>(records:T[],filters:{stay?:string|null;pay?:string|null},today=hotelToday()):T[]{const stay=FOLIO_STAY_FILTERS.includes(filters.stay as ReservationCategory)?(filters.stay as ReservationCategory):null;const pay=FOLIO_PAY_FILTERS.includes(filters.pay as FolioPaymentState)?(filters.pay as FolioPaymentState):null;return records.filter((record)=>(!stay||reservationCategory(record,today)===stay)&&(!pay||financialPaymentState(record)===pay))}
 
 const financialColumns="id,confirmation_number,room_type,room_number,check_in,check_out,guests,status,total,deposit,deposit_required,deposit_policy_snapshot,operational_policy_snapshot,amenity_snapshot,payment_due_at,payment_status,cancellation_reason,identity_status";
+const invoiceColumns = "id,reservation_id,amount,paid,balance,credit_balance,terminal_settlement,status,method,due_date,created_at";
 
 export async function getGuestSubmittedDeposits(userId: string, reservationIds: string[]) {
   const deposits = new Map<string, number>();
@@ -74,22 +76,71 @@ export async function getGuestSubmittedDeposits(userId: string, reservationIds: 
   return deposits;
 }
 
-export async function getCustomerFinancials(userId:string){
-  if(!supabase)return[];await supabase.rpc("expire_booking_holds");
-  const{data:reservations,error:reservationError}=await supabase.from("reservations").select(financialColumns).eq("user_id",userId).order("check_in",{ascending:false});if(reservationError)throw reservationError;
-  const ids=(reservations??[]).map((item)=>item.id);if(!ids.length)return[];
-  const{data:invoices,error:invoiceError}=await supabase.from("invoices").select("id,reservation_id,amount,paid,balance,credit_balance,terminal_settlement,status,method,due_date,created_at").in("reservation_id",ids);if(invoiceError)throw invoiceError;
-  const invoiceIds=(invoices??[]).map((item)=>item.id);
-  const [paymentResult,chargeResult,refundResult,changeResult,adjustmentResult,documentResult]=await Promise.all([
-    invoiceIds.length?supabase.from("payments").select("id,invoice_id,reservation_id,amount,currency,method,reference,purpose,status,submitted_at,verified_at,created_at").in("invoice_id",invoiceIds).order("created_at",{ascending:false}):Promise.resolve({data:[]}),
-    invoiceIds.length?supabase.from("folio_charges").select("id,invoice_id,reservation_id,description,category,amount,status,created_at").in("invoice_id",invoiceIds).order("created_at",{ascending:false}):Promise.resolve({data:[]}),
-    supabase.from("refund_requests").select("id,reservation_id,reason,paid_deposit,refund_basis_points,eligible_amount,status,reference,processed_at,created_at").in("reservation_id",ids).order("created_at",{ascending:false}),
-    supabase.from("reservation_change_requests").select("id,reservation_id,requested_check_in,requested_check_out,requested_room_type,requested_guests,requested_special_requests,calculated_total,payment_difference,execution_status,reason,status,created_at").in("reservation_id",ids).order("created_at",{ascending:false}),
-    supabase.from("financial_adjustments").select("id,invoice_id,reservation_id,transaction_type,direction,amount,reason,created_at").in("reservation_id",ids).order("created_at",{ascending:false}),
-    supabase.from("financial_documents").select("id,document_number,document_type,reservation_id,payment_id,created_at").in("reservation_id",ids).order("created_at",{ascending:false})
+function groupGuestRows<T>(rows: T[], key: (row: T) => string | null) {
+  const grouped = new Map<string, T[]>();
+  for (const row of rows) {
+    const id = key(row);
+    if (!id) continue;
+    const group = grouped.get(id);
+    if (group) group.push(row);
+    else grouped.set(id, [row]);
+  }
+  return grouped;
+}
+
+export async function getCustomerFinancialSummary(userId: string) {
+  const client = supabase;
+  if (!client) return [];
+  await client.rpc("expire_booking_holds");
+  const [reservations, invoices, refunds, payments] = await Promise.all([
+    readAllRows(() => client.from("reservations").select(financialColumns)
+      .eq("user_id", userId).order("check_in", { ascending: false })),
+    readAllRows(() => client.from("invoices")
+      .select(`${invoiceColumns},reservations!inner()`)
+      .eq("reservations.user_id", userId)),
+    readAllRows(() => client.from("refund_requests")
+      .select("id,reservation_id,reason,paid_deposit,refund_basis_points,eligible_amount,status,reference,processed_at,created_at,reservations!inner()")
+      .eq("reservations.user_id", userId).order("created_at", { ascending: false })),
+    // Follow the invoice relationship so pre-existing payments without a reservation_id remain visible.
+    readAllRows(() => client.from("payments")
+      .select("id,invoice_id,reservation_id,amount,currency,method,reference,purpose,status,submitted_at,verified_at,created_at,invoices!inner(reservations!inner())")
+      .eq("invoices.reservations.user_id", userId).order("created_at", { ascending: false })),
   ]);
-  for(const result of [paymentResult,chargeResult,refundResult,changeResult,adjustmentResult,documentResult]){if("error" in result && result.error)throw result.error;}
-  return(reservations??[]).map((reservation)=>{const invoice=(invoices??[]).find((item)=>item.reservation_id===reservation.id);return{...reservation,invoice:invoice??null,payments:invoice?(paymentResult.data??[]).filter((payment)=>payment.invoice_id===invoice.id):[],charges:invoice?(chargeResult.data??[]).filter((charge)=>charge.invoice_id===invoice.id):[],refunds:(refundResult.data??[]).filter((refund)=>refund.reservation_id===reservation.id),changeRequests:(changeResult.data??[]).filter((request)=>request.reservation_id===reservation.id),adjustments:(adjustmentResult.data??[]).filter((adjustment)=>adjustment.reservation_id===reservation.id),documents:(documentResult.data??[]).filter((document)=>document.reservation_id===reservation.id)}});
+  const invoiceByStay = groupGuestRows(invoices, (row) => row.reservation_id);
+  const refundsByStay = groupGuestRows(refunds, (row) => row.reservation_id);
+  const paymentsByInvoice = groupGuestRows(payments, (row) => row.invoice_id);
+  return reservations.map((reservation) => {
+    const invoice = invoiceByStay.get(reservation.id)?.[0] ?? null;
+    return {
+      ...reservation,
+      invoice,
+      payments: invoice ? paymentsByInvoice.get(invoice.id) ?? [] : [],
+      refunds: refundsByStay.get(reservation.id) ?? [],
+    };
+  });
+}
+
+/** Add line items for one page of records already loaded through getCustomerFinancialSummary. */
+export async function getCustomerFolioDetails(financial: Awaited<ReturnType<typeof getCustomerFinancialSummary>>) {
+  const client = supabase;
+  if (!client || !financial.length) return [];
+  const ids = financial.map((item) => item.id);
+  const invoiceIds = financial.flatMap(({ invoice }) => invoice ? [invoice.id] : []);
+  const [charges, adjustments] = await Promise.all([
+    invoiceIds.length ? readAllRows(() => client.from("folio_charges")
+      .select("id,invoice_id,reservation_id,description,category,amount,status,created_at")
+      .in("invoice_id", invoiceIds).order("created_at", { ascending: false })) : [],
+    readAllRows(() => client.from("financial_adjustments")
+      .select("id,invoice_id,reservation_id,transaction_type,direction,amount,reason,created_at")
+      .in("reservation_id", ids).order("created_at", { ascending: false })),
+  ]);
+  const chargesByInvoice = groupGuestRows(charges, (row) => row.invoice_id);
+  const adjustmentsByStay = groupGuestRows(adjustments, (row) => row.reservation_id);
+  return financial.map((record) => ({
+    ...record,
+    charges: record.invoice ? chargesByInvoice.get(record.invoice.id) ?? [] : [],
+    adjustments: adjustmentsByStay.get(record.id) ?? [],
+  }));
 }
 /* The ONLY data door for a customer receipt. Ownership and eligibility are
    enforced here, server-side, for every caller — the preview modal, the JSON
@@ -128,27 +179,161 @@ export async function getCustomerReceipt(userId:string,paymentId:string):Promise
   }:reservation;
   return buildReceiptDocument({payment,reservation:stay,labels:{purpose:friendlyStatus(payment.purpose),method:friendlyStatus(payment.method)},tax:tax?{netSubtotal:tax.netSubtotal,serviceCharge:tax.serviceCharge,vatAmount:tax.vatAmount,grossTotal:tax.grossTotal,serviceChargeRate:ratePercent(tax.serviceChargeBp),vatRate:ratePercent(tax.vatRateBp)}:null,documentNumber:document?.document_number??null});
 }
-export async function getCustomerRequests(userId:string){if(!supabase)return[];const{data:reservations,error}=await supabase.from("reservations").select("id,confirmation_number,room_type,status,guest_id").eq("user_id",userId);if(error)throw error;const ids=(reservations??[]).map((item)=>item.id);if(!ids.length)return[];const{data,error:requestError}=await supabase.from("guest_requests").select("id,version,reservation_id,request,request_type,batch_id,approval_status,approval_note,approved_at,department,priority,severity,escalation_status,status,created_at").in("reservation_id",ids).order("created_at",{ascending:false});if(requestError)throw requestError;return(data??[]).map((request)=>({...request,reservation:(reservations??[]).find((item)=>item.id===request.reservation_id)??null}))}
-export async function getCustomerOverview(userId:string){const[financials,requests,transportation]=await Promise.all([getCustomerFinancials(userId),getCustomerRequests(userId),getCustomerTransportation(userId)]);const groups=groupReservations(financials);const primary=groups.current[0]??groups.upcoming[0]??null;return{groups,primary,financial:primary,requests:requests.slice(0,3),notifications:buildNotifications(financials,requests,transportation).slice(0,5)}}
-export function buildNotifications(financials:Awaited<ReturnType<typeof getCustomerFinancials>>,requests:Awaited<ReturnType<typeof getCustomerRequests>>,transportation:CustomerTransportationRequest[]=[]){
- const items:{id:string;title:string;detail:string;createdAt:string;href:string}[]=[];
- for(const reservation of financials){items.push({id:`reservation-${reservation.id}`,title:`Reservation ${friendlyStatus(reservation.status)}`,detail:`${reservation.room_type} - ${reservation.confirmation_number??reservation.id}`,createdAt:String(reservation.invoice?.created_at??`${reservation.check_in}T00:00:00Z`),href:`/my-reservations/${reservation.id}`});for(const payment of reservation.payments){const title=payment.purpose==="reservation_deposit"?(payment.status==="paid"?"Reservation deposit verified":payment.status==="pending_verification"?"Deposit awaiting verification":`Reservation deposit ${friendlyStatus(payment.status)}`):`${friendlyStatus(payment.purpose)} ${friendlyStatus(payment.status)}`;items.push({id:`payment-${payment.id}`,title,detail:`${friendlyStatus(payment.method)} - ${reservation.confirmation_number??reservation.id}`,createdAt:String(payment.verified_at??payment.submitted_at??payment.created_at),href:"/account/payments"})}for(const refund of reservation.refunds)items.push({id:`refund-${refund.id}`,title:`Refund ${friendlyStatus(refund.status)}`,detail:`PHP ${Number(refund.eligible_amount).toLocaleString("en-PH")} - ${reservation.confirmation_number??reservation.id}`,createdAt:String(refund.processed_at??refund.created_at),href:"/account/payments"});for(const change of reservation.changeRequests)items.push({id:`change-${change.id}`,title:`Change request ${friendlyStatus(change.status)}`,detail:`${reservation.confirmation_number??reservation.id}`,createdAt:String(change.created_at),href:`/my-reservations/${reservation.id}`})}
- for(const request of requests)items.push({id:`request-${request.id}`,title:`Request ${friendlyStatus(request.status)}`,detail:request.request,createdAt:request.created_at,href:"/account/requests"});
- for(const trip of transportation)items.push({id:`transportation-${trip.id}`,title:`Transportation ${friendlyStatus(trip.status.toLowerCase())}`,detail:`${trip.pickup_location} → ${trip.dropoff_location}`,createdAt:trip.created_at,href:"/account/transportation"});return items.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+export async function getCustomerRequests(userId: string) {
+  const client = supabase;
+  if (!client) return [];
+  const requests = await readAllRows(() => client.from("guest_requests")
+    .select("id,version,reservation_id,request,request_type,batch_id,approval_status,approval_note,approved_at,department,priority,severity,escalation_status,status,created_at,reservation:reservations!inner(id,confirmation_number,room_type,room_number,check_in,check_out,status,guest_id)")
+    .eq("reservation.user_id", userId).order("created_at", { ascending: false }));
+  return requests.map((row) => ({ ...row, reservation: relatedRow(row.reservation) ?? null }));
 }
+
+// The service client types embeds as arrays without a schema. Many-to-one
+// relationships arrive as objects from PostgREST.
+function relatedRow<T>(value: T | T[] | null | undefined): T | undefined {
+  return Array.isArray(value) ? value[0] : value ?? undefined;
+}
+
+async function getPrimaryStay(client: NonNullable<typeof supabase>, userId: string) {
+  const owned = () => client.from("reservations").select(financialColumns).eq("user_id", userId);
+  const current = await owned().eq("status", "checked_in")
+    .order("check_out").order("check_in", { ascending: false }).order("id").limit(1).maybeSingle();
+  if (current.error) throw current.error;
+  const result = current.data ? current : await owned()
+    .not("status", "in", "(cancelled,no_show,checked_in,checked_out)").gt("check_out", hotelToday())
+    .order("check_in").order("id").limit(1).maybeSingle();
+  if (result.error) throw result.error;
+  if (!result.data) return null;
+  const { data: invoice, error } = await client.from("invoices").select(invoiceColumns)
+    .eq("reservation_id", result.data.id).order("id").limit(1).maybeSingle();
+  if (error) throw error;
+  const payments = invoice ? await readAllRows(() => client.from("payments").select("id,amount,purpose,method,status")
+    .eq("invoice_id", invoice.id).eq("status", "pending_verification").in("method", ["manual_gcash", "manual_bank_transfer"])) : [];
+  return { ...result.data, invoice, payments };
+}
+
+const RECENT_UPDATES = 5;
+type RecentQuery<T> = {
+  order(column: string, options?: { ascending?: boolean }): RecentQuery<T>;
+  limit(count: number): PromiseLike<{ data: T[] | null; error: unknown }>;
+};
+async function latest<T>(query: RecentQuery<T>, date = "created_at") {
+  const { data, error } = await query.order(date, { ascending: false }).order("id").limit(RECENT_UPDATES);
+  if (error) throw error;
+  return data ?? [];
+}
+
+async function getRecentStayUpdates(client: NonNullable<typeof supabase>, userId: string) {
+  const stayRef = "id,room_type,status,confirmation_number";
+  const payments = () => client.from("payments")
+    .select("id,method,purpose,status,verified_at,submitted_at,created_at,invoices!inner(reservations!inner(id,confirmation_number))")
+    .eq("invoices.reservations.user_id", userId);
+  const refunds = () => client.from("refund_requests")
+    .select("id,reservation_id,status,eligible_amount,processed_at,created_at,reservations!inner(confirmation_number)")
+    .eq("reservations.user_id", userId);
+  // Each timestamp branch is disjoint. Its first five rows are sufficient
+  // for the overall first five, including activity from legacy records.
+  const [invoiced, noInvoiceDate, verified, submitted, entered, processed, requested,
+    changes, requests, trips] = await Promise.all([
+    latest(client.from("invoices").select(`id,created_at,reservations!inner(${stayRef})`)
+      .eq("reservations.user_id", userId).not("created_at", "is", null)),
+    latest(client.from("reservations").select(`${stayRef},check_in,invoices()`)
+      .eq("user_id", userId).not("invoices.created_at", "is", null).is("invoices", null), "check_in"),
+    latest(payments().not("verified_at", "is", null), "verified_at"),
+    latest(payments().is("verified_at", null).not("submitted_at", "is", null), "submitted_at"),
+    latest(payments().is("verified_at", null).is("submitted_at", null).not("created_at", "is", null)),
+    latest(refunds().not("processed_at", "is", null), "processed_at"),
+    latest(refunds().is("processed_at", null)),
+    latest(client.from("reservation_change_requests").select("id,reservation_id,status,created_at,reservations!inner(confirmation_number)")
+      .eq("reservations.user_id", userId)),
+    latest(client.from("guest_requests").select("id,request,status,created_at,reservations!inner()")
+      .eq("reservations.user_id", userId).not("created_at", "is", null)),
+    latest(client.from("transportation_requests").select("id,status,pickup_location,dropoff_location,created_at,reservations!inner()")
+      .eq("reservations.user_id", userId)),
+  ]);
+  const updates: CustomerNotification[] = [];
+  for (const { stay, createdAt } of [
+    ...invoiced.map((row) => ({ stay: relatedRow(row.reservations), createdAt: row.created_at })),
+    ...noInvoiceDate.map((stay) => ({ stay, createdAt: `${stay.check_in}T00:00:00Z` })),
+  ]) {
+    if (!stay) continue;
+    updates.push({
+      id: `reservation-${stay.id}`, title: `Reservation ${friendlyStatus(stay.status)}`,
+      detail: `${stay.room_type} - ${stay.confirmation_number ?? stay.id}`, createdAt, href: `/my-reservations/${stay.id}`,
+    });
+  }
+  for (const payment of [...verified, ...submitted, ...entered]) {
+    const stay = relatedRow(relatedRow(payment.invoices)?.reservations);
+    if (!stay) continue;
+    let title = `${friendlyStatus(payment.purpose)} ${friendlyStatus(payment.status)}`;
+    if (payment.purpose === "reservation_deposit" && payment.status === "paid") title = "Reservation deposit verified";
+    if (payment.purpose === "reservation_deposit" && payment.status === "pending_verification") title = "Deposit awaiting verification";
+    updates.push({
+      id: `payment-${payment.id}`, title, detail: `${friendlyStatus(payment.method)} - ${stay.confirmation_number ?? stay.id}`,
+      createdAt: payment.verified_at ?? payment.submitted_at ?? payment.created_at, href: "/account/payments",
+    });
+  }
+  for (const refund of [...processed, ...requested]) {
+    updates.push({
+      id: `refund-${refund.id}`, title: `Refund ${friendlyStatus(refund.status)}`,
+      detail: `PHP ${Number(refund.eligible_amount).toLocaleString("en-PH")} - ${relatedRow(refund.reservations)?.confirmation_number ?? refund.reservation_id}`,
+      createdAt: refund.processed_at ?? refund.created_at, href: "/account/payments",
+    });
+  }
+  for (const change of changes) {
+    updates.push({
+      id: `change-${change.id}`, title: `Change request ${friendlyStatus(change.status)}`,
+      detail: relatedRow(change.reservations)?.confirmation_number ?? change.reservation_id, createdAt: change.created_at,
+      href: `/my-reservations/${change.reservation_id}`,
+    });
+  }
+  for (const request of requests) {
+    updates.push({
+      id: `request-${request.id}`, title: `Request ${friendlyStatus(request.status)}`,
+      detail: request.request, createdAt: request.created_at, href: "/account/requests",
+    });
+  }
+  for (const trip of trips) {
+    updates.push({
+      id: `transportation-${trip.id}`, title: `Transportation ${friendlyStatus(trip.status.toLowerCase())}`,
+      detail: `${trip.pickup_location} → ${trip.dropoff_location}`, createdAt: trip.created_at, href: "/account/transportation",
+    });
+  }
+  return updates.sort((a, b) => b.createdAt.localeCompare(a.createdAt) || a.id.localeCompare(b.id)).slice(0, RECENT_UPDATES);
+}
+
+export async function getCustomerOverview(userId: string) {
+  const client = supabase;
+  if (!client) return { primary: null, notifications: [] };
+  await client.rpc("expire_booking_holds");
+  const [primary, notifications] = await Promise.all([
+    getPrimaryStay(client, userId),
+    getRecentStayUpdates(client, userId),
+  ]);
+  return { primary, notifications };
+}
+
+
 export async function getCustomerReservationDetail(userId:string,id:string){
- if(!supabase)return null;await supabase.rpc("expire_booking_holds");
- const{data:reservation,error:reservationError}=await supabase.from("reservations").select("id,confirmation_number,guest_id,guest_name,guest_email,room_type,room_number,check_in,check_out,guests,status,total,deposit,deposit_required,deposit_policy_snapshot,operational_policy_snapshot,amenity_snapshot,breakfast_snapshot,payment_due_at,payment_status,payment_method,source,special_requests,request_options,transport_lines,transportation_preferences,expected_arrival,cancellation_reason,identity_status,created_at").eq("id",id).eq("user_id",userId).maybeSingle();
+ const client = supabase;
+ if(!client)return null;await client.rpc("expire_booking_holds");
+ const{data:reservation,error:reservationError}=await client.from("reservations").select("id,confirmation_number,guest_id,guest_name,guest_email,room_type,room_number,check_in,check_out,guests,status,total,deposit,deposit_required,deposit_policy_snapshot,operational_policy_snapshot,amenity_snapshot,breakfast_snapshot,payment_due_at,payment_status,payment_method,source,special_requests,request_options,transport_lines,transportation_preferences,expected_arrival,cancellation_reason,identity_status,checked_out_at,created_at").eq("id",id).eq("user_id",userId).maybeSingle();
  if(reservationError)throw new Error("Could not load reservation details.",{cause:reservationError});
  if(!reservation)return null;
- const [invoiceResult,guestResult,refundResult,changeResult]=await Promise.all([supabase.from("invoices").select("id,amount,paid,balance,credit_balance,terminal_settlement,status,method,due_date").eq("reservation_id",id).maybeSingle(),reservation.guest_id?supabase.from("guests").select("name,email,phone,nationality,address").eq("id",reservation.guest_id).maybeSingle():Promise.resolve({data:null}),supabase.from("refund_requests").select("id,reason,paid_deposit,refund_basis_points,eligible_amount,status,reference,processed_at,created_at").eq("reservation_id",id).order("created_at",{ascending:false}),supabase.from("reservation_change_requests").select("id,requested_check_in,requested_check_out,requested_room_type,requested_guests,requested_special_requests,calculated_total,payment_difference,execution_status,reason,status,created_at").eq("reservation_id",id).order("created_at",{ascending:false})]);
- for(const result of [invoiceResult,guestResult,refundResult,changeResult]){
+ const [invoiceResult,guestResult,refunds,changeRequests]=await Promise.all([
+  client.from("invoices").select("id,amount,paid,balance,credit_balance,terminal_settlement,status,method,due_date").eq("reservation_id",id).maybeSingle(),
+  reservation.guest_id?client.from("guests").select("name,email,phone,nationality,address").eq("id",reservation.guest_id).maybeSingle():Promise.resolve({data:null}),
+  readAllRows(() => client.from("refund_requests").select("id,reason,paid_deposit,refund_basis_points,eligible_amount,status,reference,processed_at,created_at").eq("reservation_id",id).order("created_at",{ascending:false})),
+  readAllRows(() => client.from("reservation_change_requests").select("id,requested_check_in,requested_check_out,requested_room_type,requested_guests,requested_special_requests,calculated_total,payment_difference,execution_status,reason,status,created_at").eq("reservation_id",id).order("created_at",{ascending:false})),
+ ]);
+ for(const result of [invoiceResult,guestResult]){
   if("error" in result&&result.error)throw new Error("Could not load reservation details.",{cause:result.error});
  }
- const {data:invoice}=invoiceResult,{data:guest}=guestResult,{data:refunds}=refundResult,{data:changeRequests}=changeResult;
- const [paymentResult,chargeResult,adjustmentResult]=invoice?await Promise.all([supabase.from("payments").select("id,amount,method,reference,purpose,status,submitted_at,verified_at,proof_original_name,created_at").eq("invoice_id",invoice.id).order("created_at",{ascending:false}),supabase.from("folio_charges").select("id,description,category,amount,status,created_at").eq("invoice_id",invoice.id).order("created_at",{ascending:false}),supabase.from("financial_adjustments").select("id,reason,direction,amount,created_at").eq("invoice_id",invoice.id).order("created_at",{ascending:false})]):[{data:[]},{data:[]},{data:[]}];
- for(const result of [paymentResult,chargeResult,adjustmentResult]){
-  if("error" in result&&result.error)throw new Error("Could not load reservation details.",{cause:result.error});
- }
- return{...reservation,invoice,guest,adjustments:adjustmentResult.data??[],payments:paymentResult.data??[],charges:chargeResult.data??[],refunds:refunds??[],changeRequests:changeRequests??[],nights:calculateNights(reservation.check_in,reservation.check_out)};
+ const {data:invoice}=invoiceResult,{data:guest}=guestResult;
+ const [payments,charges,adjustments] = invoice ? await Promise.all([
+  readAllRows(() => client.from("payments").select("id,amount,method,reference,purpose,status,submitted_at,verified_at,proof_original_name,created_at").eq("invoice_id",invoice.id).order("created_at",{ascending:false})),
+  readAllRows(() => client.from("folio_charges").select("id,description,category,amount,status,created_at").eq("invoice_id",invoice.id).order("created_at",{ascending:false})),
+  readAllRows(() => client.from("financial_adjustments").select("id,reason,direction,amount,created_at").eq("invoice_id",invoice.id).order("created_at",{ascending:false})),
+ ]) : [[], [], []];
+ return{...reservation,invoice,guest,adjustments,payments,charges,refunds,changeRequests,nights:calculateNights(reservation.check_in,reservation.check_out)};
 }

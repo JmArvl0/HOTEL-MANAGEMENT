@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { ReceiptText } from "lucide-react";
 import { ReceiptAction } from "@/components/customer/receipt-action";
-import { PaymentsFolioPanel, type PaymentsFolioItem } from "@/components/customer/payments-folio-panel";
+import { PaymentsFolioPanel, type FolioFilters } from "@/components/customer/payments-folio-panel";
 import { requireCustomerSession } from "@/lib/customer-auth";
 import { emailConfigured } from "@/lib/email";
-import { formatPeso } from "@/lib/booking";
+import { formatPeso, hotelToday } from "@/lib/booking";
 import { pendingPaymentLabel } from "@/lib/payment-display";
 import { receiptEligible } from "@/lib/receipt";
 import {
@@ -14,15 +14,17 @@ import {
   folioMoney,
   formatStayRange,
   friendlyStatus,
-  getCustomerFinancials,
+  getCustomerFinancialSummary,
+  getCustomerFolioDetails,
   reservationCategory,
   type FolioPaymentState,
   type ReservationCategory,
 } from "@/lib/customer";
 import { operationalPolicyFromSnapshot } from "@/lib/hotel-policy";
 import { StatusBadge } from "@/components/ui";
+import { paginateTableRows } from "@/lib/table-pagination";
 
-type FinancialRecord = Awaited<ReturnType<typeof getCustomerFinancials>>[number];
+type FinancialRecord = Awaited<ReturnType<typeof getCustomerFolioDetails>>[number];
 
 function FolioCard({ record, emailAvailable }: { record: FinancialRecord; emailAvailable: boolean }) {
   const invoice = record.invoice;
@@ -118,31 +120,52 @@ export default async function PaymentsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await requireCustomerSession();
-  const records = await getCustomerFinancials(session.user.id);
+  const [records, raw] = await Promise.all([getCustomerFinancialSummary(session.user.id), searchParams]);
   // Decided once per render: whether the receipt email path has a provider.
   // When it does not, the action says so instead of failing on click.
   const emailAvailable = emailConfigured();
-  const raw = await searchParams;
   const param = (key: string) => {
     const value = raw[key];
     return Array.isArray(value) ? value[0] : value;
   };
   const stay = param("stay") ?? null;
   const pay = param("pay") ?? null;
-  const initialStay = FOLIO_STAY_FILTERS.includes(stay as ReservationCategory) ? stay as ReservationCategory : "all";
-  const initialPayment = FOLIO_PAY_FILTERS.includes(pay as FolioPaymentState) ? pay as FolioPaymentState : "all";
-  const items: PaymentsFolioItem[] = records.map((record) => {
-    const money = folioMoney(record);
-    return {
-      id: record.id,
-      stayState: reservationCategory(record),
-      paymentState: financialPaymentState(record),
-      balance: money.balance,
-      paid: money.paid,
-      searchText: `${record.confirmation_number ?? record.id} ${record.room_type} ${record.status} ${record.payment_status}`,
-      content: <FolioCard record={record} emailAvailable={emailAvailable} />,
-    };
-  });
+  const filters: FolioFilters = {
+    stay: FOLIO_STAY_FILTERS.includes(stay as ReservationCategory) ? stay as ReservationCategory : "all",
+    payment: FOLIO_PAY_FILTERS.includes(pay as FolioPaymentState) ? pay as FolioPaymentState : "all",
+    query: param("q") ?? "",
+  };
+  const search = filters.query.trim().toLocaleLowerCase("en");
+  const stayCounts = { all: 0, current: 0, upcoming: 0, past: 0, cancelled: 0 };
+  const paymentCounts = { all: 0, pending: 0, due: 0, refund: 0, settled: 0 };
+  const filtered: typeof records = [];
+  const today = hotelToday();
+  let outstanding = 0;
+  let paidToDate = 0;
+  for (const record of records) {
+    const searchable = `${record.confirmation_number ?? record.id} ${record.room_type} ${record.status} ${record.payment_status}`;
+    if (search && !searchable.toLocaleLowerCase("en").includes(search)) continue;
+    const stayState = reservationCategory(record, today);
+    const paymentState = financialPaymentState(record);
+    const matchesStay = filters.stay === "all" || filters.stay === stayState;
+    const matchesPayment = filters.payment === "all" || filters.payment === paymentState;
+    if (matchesPayment) {
+      stayCounts.all++;
+      stayCounts[stayState]++;
+    }
+    if (matchesStay) {
+      paymentCounts.all++;
+      paymentCounts[paymentState]++;
+    }
+    if (matchesStay && matchesPayment) {
+      const { balance, paid } = folioMoney(record);
+      outstanding += balance;
+      paidToDate += paid;
+      filtered.push(record);
+    }
+  }
+  const { rows, ...pagination } = paginateTableRows(filtered, Number(param("page") ?? 1), 4);
+  const cards = await getCustomerFolioDetails(rows);
 
   return (
     <div className="customer-content--payments">
@@ -158,7 +181,9 @@ export default async function PaymentsPage({
           <p>Folios appear after a reservation is created.</p>
         </div>
       ) : (
-        <PaymentsFolioPanel items={items} initialStay={initialStay} initialPayment={initialPayment} initialQuery={param("q") ?? ""} />
+        <PaymentsFolioPanel filters={filters} pagination={pagination} outstanding={outstanding} paidToDate={paidToDate} stayCounts={stayCounts} paymentCounts={paymentCounts}>
+          {cards.map((record) => <FolioCard key={record.id} record={record} emailAvailable={emailAvailable} />)}
+        </PaymentsFolioPanel>
       )}
     </div>
   );

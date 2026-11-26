@@ -32,7 +32,10 @@ export function CheckInQr({ reservationId, confirmationNumber }: { reservationId
     return () => { cancelled = true; };
   }, [reservationId]);
 
-  if (failed) return null;
+  if (failed) return <aside className="customer-checkin-qr" role="status">
+    <h3>Digital Express Pass unavailable</h3>
+    <p className="customer-checkin-qr-note">Refresh to try again, or bring your booking confirmation to Front Desk for check-in.</p>
+  </aside>;
   if (!qr) {
     return (
       <div className="customer-checkin-qr customer-checkin-qr-strip" aria-busy="true">
