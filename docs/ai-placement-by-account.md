@@ -86,9 +86,9 @@ separately from recorded facts.
 
 | Trigger | Proposed behavior | Staff view |
 |---|---|---|
-| **Module opens** | Load current role-scoped HAVEN facts and any stored recommendation. Do not call Gemini on open, even if the stored result is absent or stale. | Show the right-edge dock immediately with the result state and one-line stored-guidance preview. The full facts, source, and analysis time appear in the toggleable overlay drawer. |
+| **Module opens** | Load current role-scoped HAVEN facts and any stored recommendation. Do not call Gemini on open, even if the stored result is absent or stale. | Show the right-edge dock immediately with the result state and one-line stored-guidance preview. The full facts, source, and analysis time appear in the toggleable AI panel. |
 | **Selected record changes** | Load that authorized record's stored analysis without calling Gemini. Discard a late result for a record the person has left. | Update the dock preview and, if open, the drawer for the selected record, with source links and a visible analysis time. |
-| **Person toggles the AI drawer** | Open or close the stored context display. Do not call Gemini or change an operational record. | The drawer overlays the right side of the module without shifting its contents. The edge toggle remains available to close it; Escape also closes it. |
+| **Person toggles the AI drawer** | Open or close the stored context display. Do not call Gemini or change an operational record. | On desktop the drawer becomes a right layout column and collapses left navigation, allowing module content to reflow. Expanding navigation closes AI; closing either panel leaves the other as it is. At 1000px and below, the panels use fixed overlays and opening one closes the other. The edge toggle and Escape close AI. |
 | **Relevant data changes** | A server-side event creates or refreshes only affected record analysis and genuinely affected module summaries. Coalesce repeated events and enforce usage limits. | The open module receives the new result; a closed module shows it when next opened. |
 | **Guest Request batch is filed** | Evaluate the proposed routine auto-approval workflow when booking confirmation auto-files selected requests or a guest submits a later batch, independently of whether Front Desk has opened the module. A booking-form selection alone is not a trigger. | Front Desk sees either an attributed auto-approval or a pending batch requiring staff review. |
 | **Person clicks Ask HAVEN AI** | Start a role-scoped conversation or detailed analysis for a complex case. | Show the answer as AI assistance; any staff-confirmed action remains attributed to that employee. |
@@ -97,8 +97,8 @@ If Gemini is unavailable, the dock and drawer still show authoritative HAVEN fac
 marks the AI recommendation unavailable or stale. An uncertain or failed
 automatic-approval attempt leaves the batch pending for Front Desk; it never
 becomes approved because someone opened a screen. Keep the collapsed dock compact;
-opening the drawer temporarily covers part of the module but never changes its
-layout or position. Generate an initial baseline in a
+opening the desktop drawer reflows the module into the remaining workspace.
+Generate an initial baseline in a
 server-side job; do not use first page open as a hidden provider trigger. See
 the trigger and fallback contract in
 [`AI_ASSISTANT_SPEC.md`](../AI_ASSISTANT_SPEC.md).
@@ -230,7 +230,7 @@ be treated as the placement design.
 
 | Prototype scene | Required behavior to review |
 |---|---|
-| Front Desk Bookings | The right-edge AI dock immediately previews reservation readiness; its overlay drawer shows room and QR context, source-linked blockers, and the retained Ask HAVEN AI button. It cannot perform check-in. |
+| Front Desk Bookings | The right-edge AI dock immediately previews reservation readiness; its panel shows room and QR context, source-linked blockers, and the retained Ask HAVEN AI button. It cannot perform check-in. |
 | Front Desk Guest Requests and Manager Request Types | Demonstrate Manager on/off guest visibility separately from automatic-approval eligibility, booking-confirmation and later-submission batches, pending/mixed/auto-approved/human-approved states, and the decision-source label. A disabled item disappears from future guest choices but does not erase submitted work. |
 | Manager Approvals & Escalations | Show an AI cross-examination brief for all exception types, a hotel-caused room-type substitution with an exact eligible alternative, and a fully booked case that stays with Manager because no room can be assigned. Mark any later automatic exception example as proposed, not currently authorized. |
 | Housekeeping, Maintenance, Accounting, and Lost & Found | Show the different module purposes from the account tables, the right role scope, a selected-record change, and ordinary staff authority for completion, payment verification, and item release. |
@@ -416,7 +416,7 @@ changes before any live AI implementation begins.
    gate** above. Treat that reviewed placement and wording as the gate before
    any live AI, database, or approval change.
 2. Establish the shared AI capability and one role-enforced server tool policy.
-   Show a proactive dock and overlay drawer in each authorized module while retaining Ask HAVEN AI
+   Show a proactive dock and right panel in each authorized module while retaining Ask HAVEN AI
    for complex questions and general Q&A.
 3. Give each module an explicit context adapter and purpose from the tables.
    A selected record can sharpen the answer, but no module loses general AI

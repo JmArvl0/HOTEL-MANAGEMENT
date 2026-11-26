@@ -1756,9 +1756,18 @@ example defines the AI's overall scope. Each module needs a named purpose,
 source-linked facts, and a next step that leaves decisions and operations with
 authorized staff. The seven-staff-account analysis is
 `docs/ai-placement-by-account.md`. Its 94 staff account/module placements now
-use one fixed right-edge drawer in the existing local layouts. The toggle and
-dismissible summary label stay below the app header; opening the drawer does
-not resize the module or call Gemini. `GET /api/ai/placement` validates the
+use one right-edge drawer in the existing local layouts. On desktop, opening it
+collapses the left navigation and gives the drawer its own layout column, so
+the module reflows into the remaining workspace. Expanding the navigation closes
+the drawer; closing either panel leaves the other in its current state. At
+1000px and below, both panels use the existing overlay pattern, with only one
+open at a time. The toggle and dismissible summary label stay below the app
+header when the drawer is closed. Opening the drawer does not call Gemini.
+The edge toggle can be dragged only vertically (or moved with arrow, Home, and
+End keys); its per-device position is saved and clamped between the visible app
+header and the viewport bottom or a visible shell footer. A drag does not open
+or close the drawer.
+`GET /api/ai/placement` validates the
 signed-in role and module, then returns the module purpose and any supported
 role-scoped aggregate HAVEN facts. `POST /api/ai/placement` handles deliberate
 Ask submissions through Gemini with scope checks, an existing Ask rate limit

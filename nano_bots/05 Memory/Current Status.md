@@ -1,8 +1,36 @@
 # Current Status
 
-## Approved HAVEN AI drawer and manual Gemini Ask (2026-11-22, local)
+## Movable staff AI toggle (2026-11-26, local)
 
-- The user approved the fixed right-edge overlay on existing staff layouts and
+- Live and sample AI toggles now move only vertically by pointer drag or
+  Arrow/Home/End keys, within the visible header and viewport/footer bounds.
+  The height is saved per device and restored after responsive clamping.
+  Dragging and horizontal swiping do not activate the drawer; clicking does.
+- Focused tests (13), full Vitest (248 files / 2,551 tests with 30s timeout),
+  typecheck, touched AI ESLint (0 warnings), design detector, and isolated
+  webpack build passed. The default 5s encoding scan timed out; no encoding
+  defect was reported and the guard passed with the timeout override.
+  Authenticated visual QA remains. See [[2026-11-26 - Movable AI Toggle]].
+
+## Exclusive staff navigation and AI panel (2026-11-25, local)
+
+- The 2026-11-23 bubble sample was dropped. The live and sample AI drawers now
+  sit in the staff shell. Above 1000px, an open AI drawer owns a right flex
+  column and collapses the left navigation; expanding the left navigation
+  closes AI. Closing either panel does not reopen the other. On narrow screens,
+  opening either fixed panel closes the other.
+- Manager/staff, Owner, and Admin shells share this behavior. The dedicated
+  Manager HAVEN AI page clears the drawer state. The Guest concierge is separate.
+- Focused tests, full Vitest (248 files / 2,547 tests), typecheck, touched
+  ESLint (0 errors, 6 existing warnings), design detector, and isolated webpack
+  build passed. The local dashboard redirected to sign-in, so authenticated
+  visual desktop/phone QA is still needed. No deployment or database change.
+  See [[2026-11-25 - Exclusive Staff AI Panel]].
+
+## Approved HAVEN AI drawer and manual Gemini Ask (2026-11-22, layout superseded)
+
+- The overlay layout in this historical entry was superseded by the 2026-11-25
+  exclusive-panel behavior above. The user approved the fixed right-edge overlay on existing staff layouts and
   requested live Gemini guidance. The seven staff account shells now expose
   one shared drawer at the 94 mapped module entries. Manager's HAVEN AI page
   and the Guest concierge keep their separate surfaces. The fictional sample
@@ -22,7 +50,7 @@
   outside this implementation until an exact eligibility policy is reviewed.
   See [[2026-11-22 - Approved HAVEN AI Placement Integration]].
 
-## AI placement on local module layouts (2026-11-22, awaiting account review)
+## AI placement on local module layouts (2026-11-22, layout superseded)
 
 - The prototype launcher now opens the actual staff workspace. A session-scoped
   right-edge AI toggle and fixed sample drawer are mounted in the five shared

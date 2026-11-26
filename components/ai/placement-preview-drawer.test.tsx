@@ -29,18 +29,20 @@ describe("PlacementPreviewDrawer", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("overlays current module content without changing it or requesting AI", async () => {
+  it("shares the staff shell with current module content without requesting AI", async () => {
     window.sessionStorage.setItem(AI_PLACEMENT_PREVIEW_KEY, "1");
-    const { rerender } = render(<><main data-testid="actual-module">Existing booking table</main><PlacementPreviewDrawer role="front_desk" module="Bookings" /></>);
+    const shell = (module: string) => <div className="app-shell"><main data-testid="actual-module">Existing booking table</main><PlacementPreviewDrawer role="front_desk" module={module} /></div>;
+    const { rerender, container } = render(shell("Bookings"));
     const toggle = await screen.findByRole("button", { name: "Open HAVEN AI placement preview" });
     expect(screen.getByTestId("actual-module")).toHaveTextContent("Existing booking table");
     fireEvent.click(toggle);
     expect(screen.getByRole("dialog", { name: "HAVEN AI" })).toHaveTextContent("Front Desk · Bookings");
+    expect(container.querySelector(".app-shell > .haven-ai-placement-preview")).toContainElement(screen.getByRole("dialog", { name: "HAVEN AI" }));
     await waitFor(() => expect(screen.getByText("Booking process guide")).toBeInTheDocument());
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith("/prototypes/haven-ai-system-preview-data.json");
 
-    rerender(<><main data-testid="actual-module">Existing booking table</main><PlacementPreviewDrawer role="front_desk" module="Lost & Found" /></>);
+    rerender(shell("Lost & Found"));
     expect(screen.getByRole("dialog", { name: "HAVEN AI" })).toHaveTextContent("Front Desk · Lost & Found");
     expect(screen.getByText("Claim readiness check")).toBeInTheDocument();
     expect(screen.getByTestId("actual-module")).toHaveTextContent("Existing booking table");
@@ -79,5 +81,18 @@ describe("PlacementPreviewDrawer", () => {
     fireEvent.click(screen.getByRole("button", { name: "Exit AI placement preview" }));
     expect(window.sessionStorage.getItem(AI_PLACEMENT_PREVIEW_KEY)).toBeNull();
     expect(screen.queryByRole("button", { name: /HAVEN AI placement preview/ })).not.toBeInTheDocument();
+  });
+
+  it("restores the saved toggle height when the sample appears after loading", async () => {
+    const values = new Map<string, string>([["haven-ai-toggle-top", "275"]]);
+    vi.stubGlobal("localStorage", {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key),
+    });
+    window.sessionStorage.setItem(AI_PLACEMENT_PREVIEW_KEY, "1");
+    const { container } = render(<PlacementPreviewDrawer role="front_desk" module="Bookings" />);
+    await screen.findByRole("button", { name: "Open HAVEN AI placement preview" });
+    await waitFor(() => expect(container.querySelector<HTMLElement>(".haven-ai-placement-preview")?.style.getPropertyValue("--haven-ai-toggle-top")).toBe("275px"));
   });
 });

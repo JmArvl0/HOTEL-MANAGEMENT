@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
-import { createPortal } from "react-dom";
 import { ChevronRight, MessageCircle, Sparkles, X } from "lucide-react";
 import type { Role } from "@/lib/types";
 import "./placement-preview-drawer.css";
+import { useAiTogglePosition } from "./use-ai-toggle-position";
 
 export const AI_PLACEMENT_PREVIEW_KEY = "haven-ai-placement-preview";
 
@@ -53,18 +53,19 @@ function DismissiblePeek({ open, resultState, purpose }: { open: boolean; result
 }
 
 /** Sample-only placement layer. It never reads a hotel record or calls an AI endpoint. */
-export default function PlacementPreviewDrawer({ role, module, onExit }: { role: Role; module: string; onExit?: () => void }) {
+export default function PlacementPreviewDrawer({ role, module, onExit, open: controlledOpen, onOpenChange }: { role: Role; module: string; onExit?: () => void; open?: boolean; onOpenChange?: (open: boolean) => void }) {
   const [enabled, setEnabled] = useState(false);
   const [headerBottom, setHeaderBottom] = useState(60);
   const [placements, setPlacements] = useState<PlacementMap | null>(null);
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
   const [resultState, setResultState] = useState<ResultState>("current");
   const [revision, setRevision] = useState(1);
   const [askOpen, setAskOpen] = useState(false);
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const panelId = useId();
-  const toggleRef = useRef<HTMLButtonElement>(null);
+  const { toggleRef, top: toggleTop, consumeDragClick, ...dragHandlers } = useAiTogglePosition(enabled);
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -105,13 +106,13 @@ export default function PlacementPreviewDrawer({ role, module, onExit }: { role:
     closeRef.current?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setOpen(false);
+        if (onOpenChange) onOpenChange(false); else setInternalOpen(false);
         toggleRef.current?.focus();
       }
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [open]);
+  }, [open, onOpenChange, toggleRef]);
 
   if (!enabled) return null;
 
@@ -121,8 +122,10 @@ export default function PlacementPreviewDrawer({ role, module, onExit }: { role:
   const guidance = sampleGuidance(module, role, description);
   const hasResult = resultState === "current" || resultState === "stale";
 
+  function changeOpen(next: boolean) { if (onOpenChange) onOpenChange(next); else setInternalOpen(next); }
+
   function closePanel() {
-    setOpen(false);
+    changeOpen(false);
     toggleRef.current?.focus();
   }
 
@@ -136,17 +139,20 @@ export default function PlacementPreviewDrawer({ role, module, onExit }: { role:
     }
   }
 
-  return createPortal(
-    <div className="haven-ai-placement-preview" data-open={open} style={{ "--haven-ai-header-bottom": `${headerBottom}px` } as CSSProperties}>
+  return (
+    <div className="haven-ai-placement-preview" data-open={open} style={{ "--haven-ai-header-bottom": `${headerBottom}px`, ...(toggleTop === null ? {} : { "--haven-ai-toggle-top": `${toggleTop}px` }) } as CSSProperties}>
       <DismissiblePeek key={`${role}:${module}`} open={open} resultState={resultState} purpose={purpose} />
+      <span id={`${panelId}-drag-help`} className="haven-ai-placement-drag-help">Drag vertically to move this button. Arrow keys also reposition it.</span>
       <button
         ref={toggleRef}
         type="button"
         className="haven-ai-placement-toggle"
         aria-label={open ? "Close HAVEN AI placement preview" : "Open HAVEN AI placement preview"}
+        aria-describedby={`${panelId}-drag-help`}
         aria-controls={panelId}
         aria-expanded={open}
-        onClick={() => open ? closePanel() : setOpen(true)}
+        {...dragHandlers}
+        onClick={() => { if (consumeDragClick()) return; if (open) closePanel(); else changeOpen(true); }}
       ><Sparkles size={18} aria-hidden="true" /><span>AI</span></button>
       {open && <aside id={panelId} className="haven-ai-placement-panel" role="dialog" aria-modal="false" aria-labelledby={`${panelId}-title`}>
         <header className="haven-ai-placement-header">
@@ -177,10 +183,9 @@ export default function PlacementPreviewDrawer({ role, module, onExit }: { role:
             <button type="button" className="haven-ai-placement-ask-toggle" aria-expanded={askOpen} onClick={() => setAskOpen((value) => !value)}><MessageCircle size={17} aria-hidden="true" /> Ask HAVEN AI</button>
             {askOpen && <div className="haven-ai-placement-ask"><label htmlFor={`${panelId}-question`}>Question about this module</label><textarea id={`${panelId}-question`} value={question} onChange={(event) => setQuestion(event.target.value)} rows={3} placeholder="What should I check for this case?" /><button type="button" className="haven-ai-placement-submit" onClick={ask} disabled={!question.trim()}>Show sample answer</button>{answer && <p className="haven-ai-placement-answer" role="status">{answer}</p>}</div>}
           </section>
-          <button type="button" className="haven-ai-placement-exit" onClick={() => { window.sessionStorage.removeItem(AI_PLACEMENT_PREVIEW_KEY); setEnabled(false); onExit?.(); }}>Exit AI placement preview</button>
+          <button type="button" className="haven-ai-placement-exit" onClick={() => { window.sessionStorage.removeItem(AI_PLACEMENT_PREVIEW_KEY); setEnabled(false); changeOpen(false); onExit?.(); }}>Exit AI placement preview</button>
         </div>
       </aside>}
-    </div>,
-    document.body
+    </div>
   );
 }

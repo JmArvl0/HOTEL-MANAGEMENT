@@ -1,8 +1,41 @@
 # AI Session Handoff
 
-## Approved HAVEN AI placement integration (2026-11-22, current)
+## Vertically movable staff AI toggle (2026-11-26, current)
 
-The user approved the existing-layout right-edge overlay and selected live
+The live and sample AI toggles can be dragged vertically with touch or mouse,
+or moved with Arrow/Home/End keys. They remain on the same right edge, stay
+12px below the visible header and above the viewport bottom or a visible shell
+footer, and share a per-device saved position. A drag or horizontal swipe does
+not open AI; a click still does. Resize temporarily clamps the toggle and
+restores the preferred height when space returns. The sample applies the saved
+position after its toggle loads. Focused tests (13), full Vitest (248 files /
+2,551 tests using a 30s test timeout), typecheck, touched AI ESLint (0 errors
+or warnings), design detector, and isolated webpack build passed. The default
+5s encoding scan timed out twice; its targeted and full-suite runs passed with
+the CLI timeout override. Authenticated browser visual QA remains pending.
+No deployment or operational write. See [[2026-11-26 - Movable AI Toggle]].
+
+## Exclusive staff navigation and AI panel (2026-11-25, prior)
+
+The user dropped the 2026-11-23 bubble sample and changed the live staff
+panel behavior. On desktop, opening AI collapses left navigation and the AI
+panel becomes a flex column that reflows module content. Expanding navigation
+closes AI; closing AI leaves navigation collapsed. At 1000px and below, the
+existing fixed panels remain mutually exclusive. The shared Manager/staff,
+Owner, and Admin shells use controlled AI open state; the sample drawer follows
+the same layout. The dedicated Manager HAVEN AI page clears an open drawer.
+The bubble CSS and component changes were removed; its historical session
+record is retained as superseded. Focused tests, full Vitest (248 files / 2,547
+tests), typecheck, touched ESLint (0 errors, 6 existing warnings), design
+detector, and isolated webpack build passed. The browser reached sign-in for
+`/manager_dashboard`, so authenticated desktop/phone visual QA remains. No
+deployment, database change, or operational write. See
+[[2026-11-25 - Exclusive Staff AI Panel]].
+
+## Approved HAVEN AI placement integration (2026-11-22, layout superseded)
+
+The overlay layout described here was superseded by the 2026-11-25 panel
+behavior above. The user approved the existing-layout right-edge overlay and selected live
 Gemini guidance. A permanent role-scoped drawer is now mounted for the 94
 mapped staff module entries. Opening it reads approved purposes and supported
 HAVEN aggregates without a provider call; manual Ask calls Gemini with scope
@@ -18,7 +51,7 @@ pending module migration. Automatic approvals need an exact reviewed policy.
 Other roles, mobile, and themes still need live visual QA. See
 [[2026-11-22 - Approved HAVEN AI Placement Integration]].
 
-## Local-layout AI placement prototype (2026-11-22, awaiting account review)
+## Local-layout AI placement prototype (2026-11-22, layout superseded)
 
 User rejected the standalone prototype's invented module contents and asked
 to preserve local module layouts with minimal changes. The launcher at

@@ -2,7 +2,7 @@
 
 > **For Claude:** Use `${SUPERPOWERS_SKILLS_ROOT}/skills/collaboration/executing-plans/SKILL.md` to implement this plan task-by-task. Follow the repo's one-agent rule in `AGENTS.md`.
 
-**Status:** Supplementary engineering task breakdown. The user approved Gate 1's right-edge overlay on the existing local module layouts. The shared staff drawer and manual, role-scoped Gemini Ask path are now implemented locally; one authenticated Front Desk browser check passed. The original fictional sample remains available from `public/prototypes/haven-ai-system-preview.html`. Stored event-driven recommendations, record-specific context, and automatic approvals remain to be implemented. The canonical source for placement, scenarios, and conditions remains `docs/ai-placement-by-account.md`. The old Phase 1–2 module-card plan was discarded after its critical safeguards were carried into the placement report.
+**Status:** Supplementary engineering task breakdown. Gate 1's original right-edge overlay was superseded on 2026-11-25 by an exclusive desktop layout column for AI and a collapsible left navigation; both panels remain mutually exclusive at narrow widths. The shared staff drawer and manual, role-scoped Gemini Ask path are implemented locally; one earlier authenticated Front Desk browser check covered the former overlay, while the new layout still needs visual QA. The original fictional sample remains available from `public/prototypes/haven-ai-system-preview.html`. Stored event-driven recommendations, record-specific context, and automatic approvals remain to be implemented. The canonical source for placement, scenarios, and conditions remains `docs/ai-placement-by-account.md`. The old Phase 1–2 module-card plan was discarded after its critical safeguards were carried into the placement report.
 Gate 2–4 file and test tasks are provisional until the user reviews Gate 1's
 prototype and chooses the exact request and exception policy; decompose them
 into code-sized implementation steps after that design freeze.
@@ -31,7 +31,7 @@ into code-sized implementation steps after that design freeze.
 **Files:** `public/prototypes/haven-ai-system-preview.html`, `components/ai/placement-preview-drawer.tsx`, the existing staff/Owner/Admin shells, and the static placement map generated from `docs/ai-placement-by-account.md`. Keep this session-scoped visual layer separate from live Gemini and approval behavior.
 
 1. Sign in as each of the seven staff accounts and inspect its real authorized modules. Use the 94-entry map to check purpose wording without inventing replacement cards, tables, or navigation. The Guest account uses the real portal and its separate concierge.
-2. Check the compact right-edge dock and fixed overlay drawer. Opening a module or toggling the drawer must not call Gemini, and the underlying module must not resize or move.
+2. Check the compact right-edge dock and exclusive AI panel. Opening a module or toggling the drawer must not call Gemini. On desktop, the module reflows next to the open AI column; at narrow widths, the panel follows the fixed mobile navigation pattern.
 3. Check sample result states, manual Ask for complex hotel questions, and a refusal for personal/code-generation requests. The drawer's sample text must not claim to analyze real displayed records.
 4. Review the representative Guest Request, Manager exception, attribution, and catalog scenarios in the canonical report with fictional fixtures before any live automation work. The current placement preview does not execute those workflows.
 5. Check desktop, phone, light/dark themes, focus order, and drawer coverage over each module's core work. The ordinary local module controls remain active; no Gemini key, operational write, or new database connection belongs to the preview layer.
@@ -64,12 +64,12 @@ into code-sized implementation steps after that design freeze.
 4. Add invalidation, deduplication, concurrency, per-user/module and hotel-wide budgets, retry/failure status, and stale-response protection. Test both normal and provider-outage paths.
 5. Check the live migration ledger before naming/applying the additive migration. Use `supabase db push` after a dry run and approval gate; never use `npm run migrate`.
 
-### Task 5: Integrate the reviewed module dock, overlay drawer, and manual Ask HAVEN AI
+### Task 5: Integrate the reviewed module dock, AI panel, and manual Ask HAVEN AI
 
 **Files:** Modify the staff components/pages identified in Gate 1, likely `components/manager/manager-dashboard-client.tsx` and the Owner/Admin workspaces; add focused component tests. Reuse reviewed design tokens in `DESIGN.md`.
 
 1. Write failing tests for immediate HAVEN facts, stored result states, record switching, role scope, and the retained manual button. Verify module navigation and record selection make no provider request.
-2. Implement the reviewed right-edge dock and overlay drawer across authorized module layouts without resizing the work area. The Manager HAVEN AI page remains the dedicated workspace, without a nested duplicate.
+2. Implement the reviewed right-edge dock and exclusive AI panel across authorized module layouts. On desktop it reflows the work area and collapses navigation; on narrow screens it uses the fixed overlay pattern. The Manager HAVEN AI page remains the dedicated workspace, without a nested duplicate.
 3. Connect manual Ask HAVEN AI to the role-scoped, purpose-limited route. It may analyze complex cases but cannot bypass a guarded write workflow.
 4. Check all 94 account/module entries for availability and permission boundaries, then perform browser QA in representative desktop/mobile layouts and both themes.
 

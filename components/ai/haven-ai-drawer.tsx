@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
-import { createPortal } from "react-dom";
 import { MessageCircle, Sparkles, X } from "lucide-react";
 import { placementForRole } from "@/lib/ai/placement-policy";
 import type { Role } from "@/lib/types";
 import "./placement-preview-drawer.css";
+import { useAiTogglePosition } from "./use-ai-toggle-position";
 
 type Fact = { id: string; label: string; display: string; basis: "FACT" | "PREDICTION"; source: string; asOf: string; note?: string };
 type PlacementData = { module: string; purpose: string; description: string; facts: Fact[]; state: "current" | "stale" | "absent" | "unavailable"; recommendation: string | null; analyzedAt?: string | null };
@@ -20,18 +20,19 @@ function SummaryPeek({ purpose, state, open }: { purpose: string; state: Placeme
   </div>;
 }
 
-export default function HavenAiDrawer({ role, module }: { role: Role; module: string }) {
+export default function HavenAiDrawer({ role, module, open: controlledOpen, onOpenChange }: { role: Role; module: string; open?: boolean; onOpenChange?: (open: boolean) => void }) {
   const placement = placementForRole(role, module);
   const [headerBottom, setHeaderBottom] = useState(60);
   const [data, setData] = useState<PlacementData | null>(null);
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
   const [askOpen, setAskOpen] = useState(false);
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [busy, setBusy] = useState(false);
   const [loadError, setLoadError] = useState("");
   const panelId = useId();
-  const toggleRef = useRef<HTMLButtonElement>(null);
+  const { toggleRef, top: toggleTop, consumeDragClick, ...dragHandlers } = useAiTogglePosition(Boolean(placement));
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -63,11 +64,11 @@ export default function HavenAiDrawer({ role, module }: { role: Role; module: st
     if (!open) return;
     closeRef.current?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") { setOpen(false); toggleRef.current?.focus(); }
+      if (event.key === "Escape") { if (onOpenChange) onOpenChange(false); else setInternalOpen(false); toggleRef.current?.focus(); }
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [open]);
+  }, [open, onOpenChange, toggleRef]);
 
   if (!placement) return null;
   const currentData = data?.module === module ? data : null;
@@ -75,7 +76,8 @@ export default function HavenAiDrawer({ role, module }: { role: Role; module: st
   const purpose = currentData?.purpose ?? placement.purpose;
   const description = currentData?.description ?? placement.description;
 
-  function closePanel() { setOpen(false); toggleRef.current?.focus(); }
+  function changeOpen(next: boolean) { if (onOpenChange) onOpenChange(next); else setInternalOpen(next); }
+  function closePanel() { changeOpen(false); toggleRef.current?.focus(); }
   async function ask() {
     if (busy || !question.trim()) return;
     setBusy(true); setAnswer("");
@@ -87,9 +89,10 @@ export default function HavenAiDrawer({ role, module }: { role: Role; module: st
     finally { setBusy(false); }
   }
 
-  return createPortal(<div className="haven-ai-placement-preview" data-open={open} style={{ "--haven-ai-header-bottom": `${headerBottom}px` } as CSSProperties}>
+  return <div className="haven-ai-placement-preview" data-open={open} style={{ "--haven-ai-header-bottom": `${headerBottom}px`, ...(toggleTop === null ? {} : { "--haven-ai-toggle-top": `${toggleTop}px` }) } as CSSProperties}>
     <SummaryPeek key={`${role}:${module}`} purpose={purpose} state={state} open={open} />
-    <button ref={toggleRef} type="button" className="haven-ai-placement-toggle" aria-label={open ? "Close HAVEN AI" : "Open HAVEN AI"} aria-controls={panelId} aria-expanded={open} onClick={() => open ? closePanel() : setOpen(true)}><Sparkles size={18} aria-hidden="true" /><span>AI</span></button>
+    <span id={`${panelId}-drag-help`} className="haven-ai-placement-drag-help">Drag vertically to move this button. Arrow keys also reposition it.</span>
+    <button ref={toggleRef} type="button" className="haven-ai-placement-toggle" aria-label={open ? "Close HAVEN AI" : "Open HAVEN AI"} aria-describedby={`${panelId}-drag-help`} aria-controls={panelId} aria-expanded={open} {...dragHandlers} onClick={() => { if (consumeDragClick()) return; if (open) closePanel(); else changeOpen(true); }}><Sparkles size={18} aria-hidden="true" /><span>AI</span></button>
     {open && <aside id={panelId} className="haven-ai-placement-panel" role="dialog" aria-modal="false" aria-labelledby={`${panelId}-title`}>
       <header className="haven-ai-placement-header"><div><span className="haven-ai-placement-eyebrow">Hotel assistance</span><h2 id={`${panelId}-title`}>HAVEN AI</h2><p>{ROLE_NAMES[role] ?? role} · {module}</p></div><button ref={closeRef} type="button" className="haven-ai-placement-icon-button" aria-label="Close HAVEN AI" onClick={closePanel}><X size={18} aria-hidden="true" /></button></header>
       <div className="haven-ai-placement-scroll">
@@ -100,5 +103,5 @@ export default function HavenAiDrawer({ role, module }: { role: Role; module: st
         <section className="haven-ai-placement-block" aria-label="Manual assistance"><span className="haven-ai-placement-eyebrow">Complex case</span><button type="button" className="haven-ai-placement-ask-toggle" aria-expanded={askOpen} onClick={() => setAskOpen((value) => !value)}><MessageCircle size={17} aria-hidden="true" /> Ask HAVEN AI</button>{askOpen && <div className="haven-ai-placement-ask"><label htmlFor={`${panelId}-question`}>Question about this module</label><textarea id={`${panelId}-question`} value={question} onChange={(event) => setQuestion(event.target.value)} rows={3} maxLength={600} placeholder="What should I check for this hotel task? Do not include personal details." /><button type="button" className="haven-ai-placement-submit" onClick={() => void ask()} disabled={busy || !question.trim()}>{busy ? "Asking…" : "Send question"}</button>{answer && <p className="haven-ai-placement-answer" role="status">{answer}</p>}</div>}</section>
       </div>
     </aside>}
-  </div>, document.body);
+  </div>;
 }

@@ -40,14 +40,14 @@ task breakdown is in
 
 | Event | Required target behavior |
 |---|---|
-| Authorized module opens | Show a compact right-edge dock without a Generate click. It carries the current/stale/absent state and a one-line stored-guidance preview. Its full drawer overlays the module without moving cards, filters, tables, or detail. Opening or reopening a module does **not** call Gemini, including when no result exists. |
-| Selected record changes | Load the stored analysis for that authorized record, if one exists. Update the dock and open drawer without reflowing the module. Never display a late result for another selection. Selecting a record does **not** call Gemini. |
+| Authorized module opens | Show a compact right-edge dock without a Generate click. It carries the current/stale/absent state and a one-line stored-guidance preview. On desktop its full drawer becomes a right layout column and collapses the left navigation; at 1000px and below it follows the mobile navigation's fixed overlay behavior. Opening or reopening a module does **not** call Gemini, including when no result exists. |
+| Selected record changes | Load the stored analysis for that authorized record, if one exists. Update the dock and open drawer without changing which panel is open. Never display a late result for another selection. Selecting a record does **not** call Gemini. |
 | Person toggles the drawer | Show or hide the stored facts, source, timestamp, recommendation, and manual Ask entry point. The toggle makes **no** Gemini call and cannot execute an operational action. |
 | Relevant business data changes | A server-side event creates or refreshes only the affected record analysis and any genuinely affected module summary. Coalesce bursts, deduplicate by source version, and enforce usage limits. New or changed request, reservation, room, stock, policy, or exception data can be relevant; unrelated changes do not refresh every module. |
 | Guest Request batch is filed | Evaluate the proposed automatic-approval path when a confirmed booking auto-files its selected requests or when a guest submits a live-stay batch. A booking-form selection or unconfirmed hold is not an approval trigger. The screen later displays the recorded outcome. |
 | Staff clicks **Ask HAVEN AI** | Start deeper, role-scoped Q&A for an unusual case, evidence comparison, exception preparation, or follow-up explanation. This button remains available, but routine module help does not wait for it. |
 
-The dock exposes the result state and short preview immediately; the overlay
+The dock exposes the result state and short preview immediately; the AI
 drawer shows the purpose, source or forecast basis, analysis time, and
 actionable next step. Mark a stored result stale if its source version changed;
 never present it as a current approval basis. A Gemini outage leaves ordinary
