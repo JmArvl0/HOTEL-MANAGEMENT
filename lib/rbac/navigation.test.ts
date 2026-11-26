@@ -39,22 +39,22 @@ describe("role navigation structure", () => {
     expect(item?.roles).toEqual(["manager", "front_desk", "housekeeping"]);
   });
 
-  it("keeps read-only payment history with Accounting and Front Desk", () => {
+  it("keeps property payment history with Accounting", () => {
     expect(NAV_ITEMS.find((item) => item.section === "payments")?.label).toBe("Payment History");
     expect(canAccess("accounting", "payments")).toBe(true);
-    expect(canAccess("front_desk", "payments")).toBe(true);
+    expect(canAccess("front_desk", "payments")).toBe(false);
     expect(canAccess("manager", "payments")).toBe(false);
   });
 
-  it("billing is scoped to collection roles only", () => {
-    expect(sectionsFor("front_desk")).toContain("invoices");
+  it("gives Front Desk the drawer and keeps property billing separate", () => {
+    expect(sectionsFor("front_desk")).toContain("cash_shifts");
+    for (const section of ["invoices", "transactions", "folios", "payments", "documents"]) expect(sectionsFor("front_desk")).not.toContain(section);
     expect(sectionsFor("accounting")).toContain("invoices");
-    for (const role of ["manager", "housekeeping", "maintenance"] as const) {
+    for (const role of ["front_desk", "manager", "housekeeping", "maintenance"] as const) {
       expect(sectionsFor(role)).not.toContain("invoices");
+      expect(canAccess(role, "invoices")).toBe(false);
     }
-    for (const role of ["front_desk", "accounting"] as const) {
-      expect(canAccess(role as Role, "invoices")).toBe(true);
-    }
+    expect(canAccess("accounting", "invoices")).toBe(true);
   });
 
   it("approval review authority stays with the manager", () => {
@@ -92,7 +92,7 @@ describe("domain-separation surface contracts", () => {
     expect(client).not.toContain("room-card-grid");
     const matrix = read("components/shared/unified-room-matrix.tsx");
     expect(matrix).toContain("room-card-grid");
-    expect(matrix).toContain("canAdvanceStatus");
+    expect(matrix).toContain("<StatusBadge");
   });
 
   it("housekeeping fulfillment shares the batch queue (All default, Open filter available)", () => {
@@ -107,9 +107,9 @@ describe("domain-separation surface contracts", () => {
     expect(client).not.toMatch(/verifyDeposit|rejectDeposit/);
   });
 
-  it("filer approvals default to filed-by-me scope with an explicit toggle", () => {
+  it("defaults the Front Desk execution queue to all accessible requests and retains the requester filter", () => {
     const client = read("components/manager/manager-dashboard-client.tsx");
-    expect(client).toContain('useState(canReview ? "all" : "mine")');
+    expect(client).toContain('useState(canReview || canExecute ? "all" : "mine")');
     expect(client).toContain("My requests");
     expect(client).toContain("actorId={user.id}");
   });

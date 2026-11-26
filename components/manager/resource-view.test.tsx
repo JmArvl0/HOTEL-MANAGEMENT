@@ -39,13 +39,9 @@ function renderBilling(items: RecordItem[], search: string, resource: "invoices"
       resource={resource}
       items={items}
       allItems={all}
-      assets={null}
-      registerAsset={noop}
-      assetAction={noop}
       search={search}
       setSearch={noop}
-      open={noop}
-      advance={noop}
+      createMaintenance={noop}
       checkIn={noop}
       viewPayment={noop}
       viewReservation={viewReservation}
@@ -68,8 +64,6 @@ function renderBilling(items: RecordItem[], search: string, resource: "invoices"
       canHousekeep={false}
       canCheckIn={false}
       canProcessRefund={false}
-      canCreate={false}
-      canAdvance={false}
       canCoordinate={false}
       canRequestApproval={resource === "reservations"}
       manageRooms={null}
@@ -110,12 +104,12 @@ describe("Billing search narrows records and count", () => {
 });
 
 describe("Purchase order history", () => {
-  it("keeps received orders accessible when no item needs replenishment", () => {
-    render(<InventoryReplenishment receivingOnly={false} createDraftPo={noop} submitPo={noop} receivePo={noop} cancelPo={noop} replenishment={{
-      suggestions: [], vendors: [],
+  it("keeps received orders accessible without offering new purchasing", () => {
+    render(<InventoryReplenishment receivingOnly={false} receivePo={noop} cancelPo={noop} replenishment={{
+      vendors: [],
       drafts: [{ id: "PO-QA-HISTORY", status: "received", total: 200, items: [{ itemId: "ITM-QA", name: "QA Shampoo", quantity: 20, unit: "bottles" }] }],
     }} />);
-    expect(screen.getByRole("region", { name: "Purchase orders" }).textContent).toContain("Received — immutable");
-    expect(screen.queryByRole("heading", { name: /Replenishment suggestions/ })).toBeNull();
+    expect(screen.getByRole("region", { name: "Delivery history" }).textContent).toContain("Received — immutable");
+    expect(screen.queryByRole("button", { name: /create draft|submit order/i })).toBeNull();
   });
 });

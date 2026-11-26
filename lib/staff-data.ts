@@ -8,12 +8,14 @@ import { readAllRows } from "@/lib/read-all-rows";
 export const operationalReservationFields = "id,confirmation_number,guest_id,guest_name,guest_email,room_id,room_number,room_type,check_in,check_out,guests,status,source,total,deposit,deposit_required,payment_status,payment_method,special_requests,request_options,expected_arrival,cancellation_reason,identity_status,identity_verified_at,operational_policy_snapshot,created_at";
 export const accountingReservationFields = "id,confirmation_number,guest_name,room_type,check_in,check_out,status,source,total,deposit,deposit_required,payment_status,payment_method,cancellation_reason,created_at";
 export const departmentRequestFields = "id,reservation_id,request,department,priority,severity,due_at,escalation_status,escalated_at,status,created_at";
+const guestDirectoryFields = "id,name,email,phone,loyalty_tier,loyalty_points,lifetime_spend,stays,created_at";
 
 function isMissingColumn(error: { code?: string; message?: string } | null, column: string) {
   return error?.code === "42703" && Boolean(error.message?.includes(column));
 }
 
 export async function listForRole(resource: Resource, role: Role): Promise<RecordItem[]> {
+  if (!canAccess(role, resource) || role === "guest") return [];
   if (!supabase) {
     const records = demoStore[resource];
     if (resource === "payments") {
@@ -46,7 +48,13 @@ export async function listForRole(resource: Resource, role: Role): Promise<Recor
     if (error) throw error;
     const ids=(data??[]).map(item=>item.id),guestIds=(data??[]).map(item=>item.guest_id).filter(Boolean) as string[];
     const [invoiceResult,guestResult]=await Promise.all([ids.length?supabase.from("invoices").select("reservation_id,balance,status").in("reservation_id",ids):Promise.resolve({data:[]}),guestIds.length?supabase.from("guests").select("id,phone").in("id",guestIds):Promise.resolve({data:[]})]);
-    let decorated=(data??[]).map(item=>({...item,folio_balance:invoiceResult.data?.find(invoice=>invoice.reservation_id===item.id)?.balance??0,guest_phone:guestResult.data?.find(guest=>guest.id===item.guest_id)?.phone??null})) as RecordItem[];
+    const balances = new Map((invoiceResult.data ?? []).map(invoice => [invoice.reservation_id, invoice.balance]));
+    const phones = new Map((guestResult.data ?? []).map(guest => [guest.id, guest.phone]));
+    let decorated = (data ?? []).map(item => ({
+      ...item,
+      folio_balance: balances.get(item.id) ?? null,
+      guest_phone: item.guest_id ? phones.get(item.guest_id) ?? null : null,
+    })) as RecordItem[];
     if (role === "manager") decorated = await decorateManagerAttention(decorated);
     return decorated;
   }
@@ -123,25 +131,45 @@ export async function listForRole(resource: Resource, role: Role): Promise<Recor
     if (error) throw error;
     return data as RecordItem[];
   }
-  const { data, error } = await supabase.from(resource).select("*").order("created_at", { ascending: false });
-  if (error) throw error;
   if (resource === "guests") {
-    const activeGuests=(data??[]).filter(item=>!item.merged_into_guest_id) as RecordItem[];
+    const current = await supabase.from("guests").select(`${guestDirectoryFields},merged_into_guest_id`).order("created_at", { ascending: false });
+    const { data, error } = isMissingColumn(current.error, "merged_into_guest_id")
+      ? await supabase.from("guests").select(guestDirectoryFields).order("created_at", { ascending: false })
+      : current;
+    if (error) throw error;
+    const activeGuests = ((data ?? []) as RecordItem[]).filter(item => !item.merged_into_guest_id);
     const ids=activeGuests.map(item=>String(item.id));
     let aliasRows:{survivor_guest_id:string;alias_type:string;display_value:string}[]=[];
-    // Merge support is a pending migration on older databases. select("*")
-    // includes its marker column only after that schema has been installed.
+    // Guest merge support is optional on older deployments.
     if(ids.length&&activeGuests.some(guest=>"merged_into_guest_id" in guest)){const aliases=await supabase.from("guest_aliases").select("survivor_guest_id,alias_type,display_value").in("survivor_guest_id",ids);if(aliases.error)throw aliases.error;aliasRows=aliases.data??[];}
     return activeGuests.map(guest=>({...guest,merge_alias_search:aliasRows.filter(alias=>alias.survivor_guest_id===guest.id).map(alias=>alias.display_value).join(" ")})) as RecordItem[];
   }
   // Rooms carry only the type NAME — attach its badge color key so the room-card
   // grid can render the shared room-type badge (one extra query, one small table).
   if (resource === "rooms") {
+    const { data, error } = await supabase.from("rooms")
+      .select("id,number,floor,type,rate,status,housekeeping,amenities,wing,administratively_active,created_at")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
     const { data: types } = await supabase.from("room_types").select("name,badge_color_key");
     const colors = new Map((types ?? []).map((type) => [String(type.name), type.badge_color_key]));
     return (data ?? []).map((item) => ({ ...item, room_type_color: colors.get(String(item.type)) ?? null })) as RecordItem[];
   }
-  return data as RecordItem[];
+  if (resource === "inventory") {
+    const { data, error } = await supabase.from("inventory")
+      .select("id,name,category,quantity,reorder_point,unit,status,unit_cost,vendor_id,created_at,updated_at")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return data as RecordItem[];
+  }
+  if (resource === "staff") {
+    const { data, error } = await supabase.from("staff")
+      .select("id,name,role,department,shift,attendance,status,created_at")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return data as RecordItem[];
+  }
+  return [];
 }
 
 const OPEN_MAINTENANCE_STATUSES = ["open", "assigned", "in_progress", "waiting_parts", "deferred"];
@@ -196,15 +224,20 @@ function decorateManagerAttentionDemo(reservations: RecordItem[]): RecordItem[] 
 }
 
 export async function getStaffReservation(id: string, role: Role) {
+  if (!canViewReservationFinancials(role)) return null;
+  const operational = role !== "accounting";
   if (!supabase) {
     const reservation = demoStore.reservations.find((item) => item.id === id);
     return reservation ? { reservation, guest: null, invoice: null, payments: [], charges: [], adjustments: [], refunds: [], refundAttempts: [], documents: [], changeRequests: [], assignments: [], requests: [], room: null, maintenance: [], transportation: [], approvals: [], turnover: null } : null;
   }
-  const result = role === "accounting"
+  const operationalFields = "id,confirmation_number,guest_id,guest_name,guest_email,room_id,room_number,room_type,check_in,check_out,guests,status,source,total,deposit,deposit_required,payment_status,payment_method,special_requests,request_options,expected_arrival,cancellation_reason,identity_status,identity_verified_at,operational_policy_snapshot,checked_in_at,checked_out_at,nightly_rates,created_at";
+  const readOperational = (fields: string) => supabase!.from("reservations").select(fields).eq("id", id).maybeSingle();
+  let result = role === "accounting"
     ? await supabase.from("reservations").select("id,confirmation_number,guest_name,room_type,check_in,check_out,status,source,total,deposit,deposit_required,payment_status,payment_method,cancellation_reason,created_at").eq("id", id).maybeSingle()
-    : await supabase.from("reservations").select("id,confirmation_number,guest_id,guest_name,guest_email,room_id,room_number,room_type,check_in,check_out,guests,status,source,total,deposit,deposit_required,payment_status,payment_method,special_requests,request_options,expected_arrival,cancellation_reason,identity_status,identity_verified_at,operational_policy_snapshot,checked_in_at,checked_out_at,nightly_rates,created_at").eq("id", id).maybeSingle();
+    : await readOperational(`${operationalFields},guest_phone`);
+  if (result.error?.code === "42703" && result.error.message.includes("reservations.guest_phone")) result = await readOperational(operationalFields);
   if (result.error) throw result.error;
-  const reservation = result.data as RecordItem | null;
+  const reservation = result.data as unknown as RecordItem | null;
   if (!reservation) return null;
   const [{data:invoice},{data:payments},{data:charges},{data:adjustments},{data:refunds},{data:documents},{data:changeRequests},{data:assignments},{data:requests},{data:room},{data:maintenance},{data:transportation},{data:approvals},{data:turnover}] = await Promise.all([
     supabase.from("invoices").select("id,reservation_id,amount,paid,balance,credit_balance,status,method,due_date").eq("reservation_id",id).maybeSingle(),
@@ -213,15 +246,15 @@ export async function getStaffReservation(id: string, role: Role) {
     supabase.from("financial_adjustments").select("id,transaction_type,direction,amount,reason,source_charge_id,created_at").eq("reservation_id",id).order("created_at",{ascending:false}),
     supabase.from("refund_requests").select("id,eligible_amount,refund_basis_points,status,reference,created_at,processed_at").eq("reservation_id",id).order("created_at",{ascending:false}),
     supabase.from("financial_documents").select("id,document_number,document_type,created_at").eq("reservation_id",id).order("created_at",{ascending:false}),
-    supabase.from("reservation_change_requests").select("id,requested_check_in,requested_check_out,requested_room_type,reason,status,created_at").eq("reservation_id",id).order("created_at",{ascending:false}),
-    supabase.from("reservation_room_assignments").select("id,room_id,check_in,check_out,assigned_at,released_at,status,reason,is_upgrade").eq("reservation_id",id).order("assigned_at",{ascending:false}),
-    supabase.from("guest_requests").select("id,request,department,priority,status,created_at").eq("reservation_id",id).order("created_at",{ascending:false}),
+    operational ? supabase.from("reservation_change_requests").select("id,requested_check_in,requested_check_out,requested_room_type,reason,status,created_at").eq("reservation_id",id).order("created_at",{ascending:false}) : Promise.resolve({data:[]}),
+    operational ? supabase.from("reservation_room_assignments").select("id,room_id,check_in,check_out,assigned_at,released_at,status,reason,is_upgrade").eq("reservation_id",id).order("assigned_at",{ascending:false}) : Promise.resolve({data:[]}),
+    operational ? supabase.from("guest_requests").select("id,request,department,priority,status,created_at").eq("reservation_id",id).order("created_at",{ascending:false}) : Promise.resolve({data:[]}),
     reservation.room_id?supabase.from("rooms").select("id,number,type,status,housekeeping,administratively_active").eq("id",reservation.room_id).maybeSingle():Promise.resolve({data:null}),
     reservation.room_id?supabase.from("maintenance_orders").select("id,issue,priority,status,serviceability_impact,estimated_completion,created_at").eq("room_id",reservation.room_id).in("status",["open","assigned","in_progress","waiting_parts","deferred"]):Promise.resolve({data:[]}),
     // Manager oversight extras — read-only, batched into the same Promise.all (no N+1).
     canViewTransportation(role)?supabase.from("transportation_requests").select("id,service_type,status,pickup_location,dropoff_location,pickup_date,pickup_time,return_date,return_time,driver_name,vehicle_type_id,fare_amount").eq("reservation_id",id).order("created_at",{ascending:false}):Promise.resolve({data:[]}),
     (role==="manager"||role==="owner")?supabase.from("manager_approval_requests").select("id,request_type,severity,status,requested_at,requested_action,reason,decision_reason,execution_status,executed_at").eq("reservation_id",id).order("requested_at",{ascending:false}):Promise.resolve({data:[]}),
-    supabase.from("housekeeping_tasks").select("id,task_type,status,started_at,completed_at,inspection_status").eq("reservation_id",id).eq("task_type","checkout_cleaning").order("created_at",{ascending:false}).limit(1)
+    operational ? supabase.from("housekeeping_tasks").select("id,task_type,status,started_at,completed_at,inspection_status").eq("reservation_id",id).eq("task_type","checkout_cleaning").order("created_at",{ascending:false}).limit(1) : Promise.resolve({data:[]})
   ]);
   const refundIds=(refunds??[]).map(item=>item.id);
   const refundAttempts=refundIds.length?((await supabase.from("refund_attempts").select("id,refund_request_id,status,reference,reason,attempted_at").in("refund_request_id",refundIds).order("attempted_at",{ascending:false})).data??[]):[];
@@ -230,7 +263,9 @@ export async function getStaffReservation(id: string, role: Role) {
     const result = await supabase.from("guests").select("id,name,email,phone,loyalty_tier,preferences,special_requests,nationality,address").eq("id", reservation.guest_id).maybeSingle();
     guest = result.data as RecordItem | null;
   }
-  return { reservation, guest, invoice: invoice as RecordItem | null, payments: (payments ?? []) as RecordItem[], charges:(charges??[])as RecordItem[], adjustments:(adjustments??[])as RecordItem[], refunds:(refunds??[])as RecordItem[], refundAttempts:refundAttempts as RecordItem[], documents:(documents??[])as RecordItem[], changeRequests:(changeRequests??[])as RecordItem[], assignments:(assignments??[])as RecordItem[], requests:(requests??[])as RecordItem[], room:room as RecordItem|null, maintenance:(maintenance??[])as RecordItem[], transportation:(transportation??[])as RecordItem[], approvals:(approvals??[])as RecordItem[], turnover:(turnover?.[0] ?? null) as RecordItem|null };
+  const closedAction = reservation.status === "cancelled" ? "cancel_reservation" : reservation.status === "no_show" ? "reservation_no_show" : null;
+  const closed = closedAction && role !== "accounting" ? await supabase.from("audit_logs").select("created_at").eq("entity_type", "reservation").eq("entity_id", id).eq("action", closedAction).order("created_at", { ascending: false }).limit(1).maybeSingle() : null;
+  return { reservation, guest, invoice: invoice as RecordItem | null, payments: (payments ?? []) as RecordItem[], charges:(charges??[])as RecordItem[], adjustments:(adjustments??[])as RecordItem[], refunds:(refunds??[])as RecordItem[], refundAttempts:refundAttempts as RecordItem[], documents:(documents??[])as RecordItem[], changeRequests:(changeRequests??[])as RecordItem[], assignments:(assignments??[])as RecordItem[], requests:(requests??[])as RecordItem[], room:room as RecordItem|null, maintenance:(maintenance??[])as RecordItem[], transportation:(transportation??[])as RecordItem[], approvals:(approvals??[])as RecordItem[], turnover:(turnover?.[0] ?? null) as RecordItem|null, closedAt: closed?.data?.created_at ?? null };
 }
 
 // Read-only room dossier: current state, room-type facts, physical booking history
@@ -238,6 +273,7 @@ export async function getStaffReservation(id: string, role: Role) {
 // is only gathered for roles that may see reservations and guest contact at all;
 // housekeeping/maintenance receive the operational sections only.
 export async function getRoomDetail(id: string, role: Role) {
+  if (!canAccess(role, "rooms")) return null;
   const bookingVisible = canAccess(role, "reservations") && canViewGuestContact(role);
   if (!supabase) {
     const room = demoStore.rooms.find((item) => item.id === id);
@@ -247,15 +283,17 @@ export async function getRoomDetail(id: string, role: Role) {
     const orders = demoStore.maintenance_orders.filter((item) => String(item.room_number) === String(room.number));
     return { room, roomType: null, bookingVisible, currentStay: reservations.find((item) => item.status === "checked_in") ?? null, nextReservation: reservations.find((item) => ["pending", "confirmed"].includes(String(item.status))) ?? null, assignments: reservations.map((reservation) => ({ id: String(reservation.id), room_id: id, check_in: reservation.check_in, check_out: reservation.check_out, status: "completed", reason: null, is_upgrade: false, reservation })), tasks, orders: orders.map((order) => ({ ...order, assigned_to: order.assignee ?? "Unassigned", events: [] })), blocked: orders.some((order) => ["open", "assigned", "in_progress", "waiting_parts", "deferred"].includes(String(order.status)) && ["blocked", "out_of_service"].includes(String(order.serviceability_impact ?? "serviceable"))) };
   }
-  const roomResult = await supabase.from("rooms").select("id,number,floor,type,rate,status,housekeeping,amenities,wing,administrative_designation,administratively_active,deactivated_at,deactivation_reason,configuration_version,updated_at").eq("id", id).maybeSingle();
+  const roomFields = "id,number,floor,type,status,housekeeping,amenities,wing,administratively_active,updated_at";
+  const configurationFields = "rate,administrative_designation,deactivated_at,deactivation_reason,configuration_version";
+  const roomResult = await supabase.from("rooms").select(bookingVisible ? `${roomFields},${configurationFields}` : roomFields).eq("id", id).maybeSingle();
   if (roomResult.error) throw roomResult.error;
   const room = roomResult.data as RecordItem | null;
   if (!room) return null;
   const [{data: roomType}, {data: assignments}, {data: currentStay}, {data: nextReservation}, {data: tasks}, {data: orders}] = await Promise.all([
-    supabase.from("room_types").select("name,description,max_guests,beds,size_sqm,base_rate,amenities,photo_urls").eq("name", String(room.type)).maybeSingle(),
+    supabase.from("room_types").select(bookingVisible ? "name,description,max_guests,beds,size_sqm,base_rate,amenities,photo_urls" : "name,description,max_guests,beds,size_sqm,amenities,photo_urls").eq("name", String(room.type)).maybeSingle(),
     bookingVisible ? supabase.from("reservation_room_assignments").select("id,room_id,check_in,check_out,assigned_at,released_at,status,reason,is_upgrade,reservations(id,confirmation_number,guest_name,status,check_in,check_out,checked_in_at,checked_out_at)").eq("room_id", id).order("check_in", { ascending: false }).limit(25) : Promise.resolve({ data: [] }),
     bookingVisible ? supabase.from("reservations").select("id,confirmation_number,guest_name,check_in,check_out,guests,status,checked_in_at").eq("room_id", id).eq("status", "checked_in").maybeSingle() : Promise.resolve({ data: null }),
-    bookingVisible ? supabase.from("reservations").select("id,confirmation_number,guest_name,check_in,check_out,guests,status").eq("room_id", id).in("status", ["pending", "confirmed"]).order("check_in", { ascending: true }).limit(1).maybeSingle() : Promise.resolve({ data: null }),
+    bookingVisible ? supabase.from("reservations").select("id,confirmation_number,guest_name,check_in,check_out,guests,status,expected_arrival").eq("room_id", id).in("status", ["pending", "confirmed"]).order("check_in", { ascending: true }).limit(1).maybeSingle() : Promise.resolve({ data: null }),
     supabase.from("housekeeping_tasks").select("id,task,task_type,assignee,assigned_user_id,priority,status,notes,started_at,completed_at,deferred_at,deferred_reason,inspection_status,inspected_by,inspected_at,created_at").eq("room_id", id).order("created_at", { ascending: false }).limit(15),
     supabase.from("maintenance_orders").select("id,issue,category,assignee,assigned_user_id,priority,status,serviceability_impact,serviceability_reason,diagnosis,resolution,created_at,started_at,resolved_at,completed_at").eq("room_id", id).order("created_at", { ascending: false }).limit(15)
   ]);
@@ -298,6 +336,7 @@ function guestStayCounts(stays: RecordItem[]) {
 // attached solely for roles that may see reservation financials; payment proofs
 // and identity documents are never selected anywhere.
 export async function getStaffGuestProfile(id: string, role: Role) {
+  if (!canViewGuestContact(role)) return null;
   const financialVisible = canViewReservationFinancials(role);
   if (!supabase) {
     const guest = demoStore.guests.find((item) => item.id === id) ?? null;

@@ -1,12 +1,55 @@
+import { getAuthenticatedSession, requirePermission } from "@/lib/authorization";
+import { canAccess } from "@/lib/permissions";
 import { publicJson } from "@/lib/server-errors";
-import{getServerSession}from"next-auth";import { NextRequest } from "next/server";import{authOptions}from"@/lib/auth";import{create,update}from"@/lib/data";import{canAccess}from"@/lib/permissions";import{listForRole}from"@/lib/staff-data";import{supabase}from"@/lib/supabase";import type{Resource}from"@/lib/types";
-const resources:Resource[]=["reservations","rooms","guests","guest_requests","housekeeping_tasks","maintenance_orders","invoices","payments","refunds","inventory","staff"];
-const departmentFields:Record<string,Partial<Record<Resource,string[]>>>={housekeeping:{inventory:["quantity","status"]},maintenance:{inventory:["quantity","status"]}};
-function departmentWriteAllowed(role:string,resource:Resource,payload:Record<string,unknown>,creating:boolean){if(!(role in departmentFields))return true;if(creating&&!((role==="housekeeping"&&resource==="housekeeping_tasks")||(role==="maintenance"&&resource==="maintenance_orders")))return false;const allowed=departmentFields[role][resource]??[];return Object.keys(payload).every((key)=>allowed.includes(key))}
-async function authorize(resource:string){const session=await getServerSession(authOptions);if(!session||session.user.disabled||session.user.otpPending)return{error:publicJson({error:"Please sign in to continue."},{status:401})};if(!resources.includes(resource as Resource)||!canAccess(session.user.role,resource as Resource))return{error:publicJson({error:"You don't have permission to perform this action. Ask your system administrator if you need access."},{status:403})};return{resource:resource as Resource,session}}
-export async function GET(_:NextRequest,{params}:{params:Promise<{resource:string}>}){const{resource}=await params;const auth=await authorize(resource);if(auth.error)return auth.error;try{if(auth.session!.user.role==="guest"&&supabase){if(resource==="reservations"){const{data,error}=await supabase.from("reservations").select("id,confirmation_number,room_number,room_type,check_in,check_out,guests,status,source,total,deposit,deposit_required,payment_status,payment_method,special_requests,expected_arrival,cancellation_reason,created_at").eq("user_id",auth.session!.user.id).order("created_at",{ascending:false});if(error)throw error;return publicJson({data})}if(resource==="invoices"){const{data:reservations,error:reservationError}=await supabase.from("reservations").select("id").eq("user_id",auth.session!.user.id);if(reservationError)throw reservationError;const ids=(reservations??[]).map((item)=>item.id);if(!ids.length)return publicJson({data:[]});const{data,error}=await supabase.from("invoices").select("id,reservation_id,amount,paid,balance,status,method,due_date,created_at").in("reservation_id",ids).order("created_at",{ascending:false});if(error)throw error;return publicJson({data})}}return publicJson({data:await listForRole(auth.resource!,auth.session!.user.role)})}catch{return publicJson({error:"We couldn't load these records. Please try again."},{status:500})}}
-export async function POST(request:NextRequest,{params}:{params:Promise<{resource:string}>}){const{resource}=await params;const auth=await authorize(resource);if(auth.error)return auth.error;if(resource==="guest_requests")return publicJson({error:"Use the guest request workflow to create or update requests."},{status:403});try{const payload=await request.json();if(resource==="reservations"||resource==="maintenance_orders"||auth.session!.user.role==="owner"||auth.session!.user.role==="guest"||auth.session!.user.role==="accounting"||auth.session!.user.role==="manager"||["payments","refunds","housekeeping_tasks"].includes(resource)||resource==="maintenance_orders"||(auth.session!.user.role==="housekeeping"&&["rooms","housekeeping_tasks"].includes(resource))||(auth.session!.user.role==="front_desk"&&["rooms","guests","housekeeping_tasks","invoices","inventory"].includes(resource))||!departmentWriteAllowed(auth.session!.user.role,auth.resource!,payload,true))return publicJson({error:"Open the relevant module and use its create action."},{status:403});return publicJson({data:await create(auth.resource!,payload)},{status:201})}catch{return publicJson({error:"Unable to create record"},{status:400})}}
-export async function PATCH(request:NextRequest,{params}:{params:Promise<{resource:string}>}){const{resource}=await params;const auth=await authorize(resource);if(auth.error)return auth.error;if(resource==="guest_requests")return publicJson({error:"Use the guest request workflow to create or update requests."},{status:403});try{const{id,...payload}=await request.json();if(!id)return publicJson({error:"Select a record before continuing."},{status:400});if(resource==="reservations"||auth.session!.user.role==="owner"||auth.session!.user.role==="guest"||auth.session!.user.role==="accounting"||auth.session!.user.role==="manager"||["payments","refunds","housekeeping_tasks"].includes(resource)||resource==="maintenance_orders"||(auth.session!.user.role==="housekeeping"&&["rooms","guest_requests","housekeeping_tasks"].includes(resource))||(auth.session!.user.role==="front_desk"&&["rooms","guests","housekeeping_tasks","invoices","inventory"].includes(resource)))return publicJson({error:"Open the relevant module to make this change."},{status:403});
-if(!departmentWriteAllowed(auth.session!.user.role,auth.resource!,payload,false))return publicJson({error:"You don't have permission to change these details."},{status:403});
-if(resource==="inventory"&&(payload.quantity!==undefined||payload.status!==undefined))return publicJson({error:"Use Inventory movements to record a stock change."},{status:409});
-return publicJson({data:await update(auth.resource!,id,payload)})}catch{return publicJson({error:"Unable to update record"},{status:400})}}
+import { listForRole } from "@/lib/staff-data";
+import { supabase } from "@/lib/supabase";
+import type { Resource } from "@/lib/types";
+
+type Context = { params: Promise<{ resource: string }> };
+
+export async function GET(_: Request, { params }: Context) {
+  const resource = (await params).resource as Resource;
+  const auth = await requirePermission(role => canAccess(role, resource), "You don’t have permission to view these records.");
+  if (auth.error) return auth.error;
+  const { id, role } = auth.session.user;
+  try {
+    if (role !== "guest") return publicJson({ data: await listForRole(resource, role) });
+    if (!supabase) return publicJson({ error: "Guest records are temporarily unavailable." }, { status: 503 });
+    if (resource === "reservations") {
+      const { data, error } = await supabase.from("reservations")
+        .select("id,confirmation_number,room_number,room_type,check_in,check_out,guests,status,source,total,deposit,deposit_required,payment_status,payment_method,special_requests,expected_arrival,cancellation_reason,created_at")
+        .eq("user_id", id).order("created_at", { ascending: false });
+      if (error) throw error;
+      return publicJson({ data });
+    }
+    // Guest invoices inherit ownership from the linked reservation.
+    const { data, error } = await supabase.from("invoices")
+      .select("id,reservation_id,amount,paid,balance,status,method,due_date,created_at,reservations!inner(user_id)")
+      .eq("reservations.user_id", id).order("created_at", { ascending: false });
+    if (error) throw error;
+    return publicJson({ data: (data ?? []).map(invoice => ({
+      id: invoice.id, reservation_id: invoice.reservation_id, amount: invoice.amount, paid: invoice.paid,
+      balance: invoice.balance, status: invoice.status, method: invoice.method, due_date: invoice.due_date,
+      created_at: invoice.created_at,
+    })) });
+  } catch {
+    return publicJson({ error: "We couldn’t load these records. Please try again." }, { status: 500 });
+  }
+}
+
+// Retain the response for older clients while all writes use named workflows.
+async function rejectWrite(_: Request, { params }: Context) {
+  if (!await getAuthenticatedSession()) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
+  const error = (await params).resource === "guest_requests"
+    ? "Use the guest request workflow to create or update requests."
+    : "Open the relevant module to make this change.";
+  return publicJson({ error }, { status: 403 });
+}
+
+export async function POST(request: Request, context: Context) {
+  return rejectWrite(request, context);
+}
+
+export async function PATCH(request: Request, context: Context) {
+  return rejectWrite(request, context);
+}

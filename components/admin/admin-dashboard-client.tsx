@@ -43,7 +43,7 @@ const requiredText = (msg: string) => (value: unknown) => typeof value === "stri
 const requiredNumber = (msg: string) => (value: unknown) => { const n = value === "" ? NaN : Number(value); return Number.isFinite(n) ? null : `${msg} is required` };
 const emailField = (msg: string) => (value: unknown) => requiredText(msg)(value) ?? (typeof value === "string" && /^\S+@\S+\.\S+$/.test(value.trim()) ? null : "Enter a valid email address");
 const timeField = (msg: string) => (value: unknown) => typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value) ? null : `${msg} must be HH:MM (24-hour)`;
-const ROLE_OPTIONS = [["manager", "Manager"], ["front_desk", "Front desk"], ["housekeeping", "Housekeeping"], ["maintenance", "Maintenance"], ["accounting", "Accounting"]].map(([value, optLabel]) => ({ value, label: optLabel }));
+const ROLE_OPTIONS = [["manager", "Manager"], ["front_desk", "Front desk"], ["housekeeping", "Housekeeping"], ["maintenance", "Maintenance"]].map(([value, optLabel]) => ({ value, label: optLabel }));
 const STATUS_OPTIONS = [["active", "Active"], ["inactive", "Inactive"], ["suspended", "Suspended"]].map(([value, optLabel]) => ({ value, label: optLabel }));
 // Sidebar category dropdowns own their open/closed state here so a toggle
 // re-renders only the sidebar, not the whole admin workspace (the root-level
@@ -145,7 +145,7 @@ export default function AdminDashboardClient({ user, sessionExpiresAt }: { user:
     let fields: FormField[] = [reason];
     if (action === "status") fields = [{ key: "status", label: "New status", type: "select", required: true, defaultValue: String(item.account_status), options: STATUS_OPTIONS }, reason];
     if (action === "role") fields = [
-      { key: "role", label: "New role", type: "select", required: true, defaultValue: converting ? "front_desk" : String(item.role), options: ROLE_OPTIONS },
+      { key: "role", label: "New role", type: "select", required: true, defaultValue: converting ? "front_desk" : item.role === "accounting" ? "" : String(item.role), options: ROLE_OPTIONS },
       ...(converting ? [{ key: "department", label: "Department", type: "text", helpText: "Leave blank to use the department assigned to this role." } as FormField, { key: "employeeReference", label: "Employee reference (optional)", type: "text" } as FormField, { key: "withHistory", label: "Carry existing booking history (Owner only)", type: "checkbox", helpText: "Converts despite holds/reservations; history is preserved and audited. Requires an active Owner session." } as FormField] : []),
       reason
     ];

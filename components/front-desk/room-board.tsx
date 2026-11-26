@@ -1,10 +1,13 @@
 "use client";
 
-import { MoreHorizontal } from "lucide-react";
+import { BedDouble, Calendar, Crown, Layers, MoreHorizontal, Sparkles, User } from "lucide-react";
+import Image from "next/image";
+import { useId, useState, type CSSProperties } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { RoomTypeBadge } from "@/components/ui/RoomTypeBadge";
-import { StatusBadge } from "@/components/ui/StatusBadge";
-import { groupRoomsByType, roomBoardState, type RackReservation, type RackRoom } from "@/lib/room-rack";
+import { roomPhotoNeedsDirectUrl, roomPrimaryPhoto } from "@/lib/room-images";
+import { groupRoomsByType, linkedRoomStay, roomBoardState, type RackBoardState, type RackReservation, type RackRoom } from "@/lib/room-rack";
+import styles from "./room-board.module.css";
 
 export type BoardAction = { label: string; hint?: string; onSelect: () => void };
 
@@ -16,96 +19,153 @@ const HOUSEKEEPING_LABEL: Record<string, string> = {
   reclean_required: "Reclean required",
 };
 
-const stayRange = (stay: RackReservation) => `${stay.check_in.slice(0, 10)} → ${stay.check_out.slice(0, 10)}`;
+const stayDate = new Intl.DateTimeFormat("en-US", {
+  month: "short", day: "numeric", year: "numeric", timeZone: "UTC",
+});
 
-function outOfServiceReason(room: RackRoom, blocked = false): string {
+export function roomCardStayDates(stay: RackReservation): string {
+  const start = new Date(stay.check_in.slice(0, 10));
+  const end = new Date(stay.check_out.slice(0, 10));
+  if (!Number.isFinite(+start) || !Number.isFinite(+end) || end < start) return "Stay dates unavailable";
+  return stayDate.formatRange(start, end);
+}
+
+function outOfServiceReason(room: RackRoom, blocked: boolean): string {
   if (blocked) return "Maintenance-blocked";
   if (room.administratively_active === false) return "Retired";
   if (room.status === "maintenance") return "Maintenance";
   return "Cleanup pending";
 }
 
-function occupancyStatus(state: string, blocked: boolean): { label: string; status: string } {
-  if (blocked || roomOutOfService(state)) return { label: "Out of service", status: "out_of_service" };
-  switch (state) {
-    case "available": return { label: "Available", status: "available" };
-    case "occupied": return { label: "Occupied", status: "occupied" };
-    case "dirty": return { label: "Dirty", status: "dirty" };
-    case "reserved": return { label: "Reserved", status: "reserved" };
-    default: return { label: state.charAt(0).toUpperCase() + state.slice(1), status: state };
-  }
+const OCCUPANCY_LABEL: Record<RackBoardState, string> = {
+  available: "Available",
+  occupied: "Occupied",
+  dirty: "Turnover due",
+  reserved: "Reserved",
+  out_of_service: "Out of service",
+};
+
+// The same measured curve clips the photo and draws the thin gold edge.
+const SIDE_CURVE = "M 77 0 C 90 2 100 11 100 20 C 100 31 87 41 87 51 C 87 63 96 70 96 79 C 96 89 88 98 70 100";
+const BOTTOM_CURVE = "M 100 77 C 93 91 83 100 70 100 C 59 100 50 88 38 89 C 25 89 13 99 0 85";
+
+function RoomCardPhoto({ room, large }: { room: RackRoom; large: boolean }) {
+  const curveId = useId();
+  const [failedUrls, setFailedUrls] = useState<string[]>([]);
+  const catalogUrl = room.room_type_photo_url;
+  const fallbackUrl = roomPrimaryPhoto(room.type);
+  const src = [catalogUrl, fallbackUrl].find((url) => url && !failedUrls.includes(url));
+  const photoAlt = src === catalogUrl ? `${room.type} room interior` : `Illustrative ${room.type} room interior`;
+
+  return (
+    <div className={styles.photo}>
+      <svg className={styles.edge} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <clipPath id={`${curveId}-side`} clipPathUnits="objectBoundingBox">
+            <path d={`${SIDE_CURVE} H 0 V 0 Z`} transform="scale(.01)" />
+          </clipPath>
+          <clipPath id={`${curveId}-bottom`} clipPathUnits="objectBoundingBox">
+            <path d={`${BOTTOM_CURVE} V 0 H 100 Z`} transform="scale(.01)" />
+          </clipPath>
+        </defs>
+        <path className={styles.sideEdge} d={SIDE_CURVE} vectorEffect="non-scaling-stroke" />
+        <path className={styles.bottomEdge} d={BOTTOM_CURVE} vectorEffect="non-scaling-stroke" />
+      </svg>
+      <div
+        className={styles.photoSurface}
+        style={{ "--photo-side": `url("#${curveId}-side")`, "--photo-bottom": `url("#${curveId}-bottom")` } as CSSProperties}
+      >
+        {src ? (
+          <Image
+            src={src}
+            alt={photoAlt}
+            fill
+            sizes={large ? "(max-width: 680px) 100vw, 36vw" : "(max-width: 680px) 100vw, 320px"}
+            unoptimized={roomPhotoNeedsDirectUrl(src)}
+            onError={() => setFailedUrls((failed) => [...failed, src])}
+          />
+        ) : (
+          <div className={styles.photoPlaceholder} role="img" aria-label={`No photo available for ${room.type}`}>
+            <BedDouble aria-hidden="true" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
-function roomOutOfService(state: string): boolean {
-  return state === "out_of_service";
-}
-
-function housekeepingStatus(room: RackRoom): { label: string; status: string } {
-  const key = String(room.housekeeping);
-  return { label: HOUSEKEEPING_LABEL[key] ?? key.charAt(0).toUpperCase() + key.slice(1), status: key };
-}
-
-/**
- * Redesigned room card: prominent room number, separate occupancy and
- * housekeeping badges, guest info when applicable, hover state, click to
- * open room details.
- */
 function RoomCard({
   room,
-  stay,
-  upcoming,
+  reservation,
   state,
   blocked,
   selected,
+  large,
   onSelect,
+  onActions,
 }: {
   room: RackRoom;
-  stay: RackReservation | null;
-  upcoming: RackReservation | null;
-  state: string;
-  blocked?: boolean;
+  reservation: RackReservation | null;
+  state: RackBoardState;
+  blocked: boolean;
   selected: boolean;
+  large: boolean;
   onSelect: () => void;
+  onActions: () => void;
 }) {
-  const occupancy = occupancyStatus(state, !!blocked);
-  const housekeeping = housekeepingStatus(room);
-  const guest = stay?.guest_name ?? upcoming?.guest_name ?? null;
-  const range = stay ? stayRange(stay) : upcoming ? stayRange(upcoming) : null;
-  const hasStay = Boolean(stay ?? upcoming);
+  const occupancy = blocked ? "out_of_service" : state;
+  const housekeeping = HOUSEKEEPING_LABEL[room.housekeeping] ?? room.housekeeping.replaceAll("_", " ");
+  const guest = reservation?.guest_name?.trim();
+  const floor = room.floor == null || room.floor === "" ? "Floor not set" : `Floor ${room.floor}`;
+  const type = room.type || "Unspecified";
 
   return (
-      <div
-        role="button"
-        tabIndex={0}
-        className={`room-card is-${state}${selected ? " selected" : ""}`}
-        aria-pressed={selected}
-        aria-label={`Room ${room.number}, floor ${String(room.floor ?? "—")}, ${occupancy.label}, housekeeping ${housekeeping.label}${guest ? `, guest ${guest}` : ""}`}
-        onClick={onSelect}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(); } }}
-      >
-      <div className="room-card-head">
-        <RoomTypeBadge name={room.type} colorKey={room.room_type_color ?? null} />
-        <button type="button" className="room-card-menu" aria-label="More options" onClick={(e) => { e.stopPropagation(); }}><MoreHorizontal size={14} aria-hidden="true" /></button>
-      </div>
-      <div className="room-card-body">
-        <div className="room-card-number">Room {room.number}</div>
-        <div className="room-card-badges">
-          <StatusBadge status={occupancy.status} label={occupancy.label} size="sm" />
-          <StatusBadge status={housekeeping.status} label={housekeeping.label} size="sm" />
-        </div>
-        <div className="room-card-floor">Floor {String(room.floor ?? "—")}{state === "out_of_service" ? ` · ${outOfServiceReason(room, blocked)}` : ""}</div>
-        {hasStay ? (
-          <div className="room-card-stay">
-            {stay?.guest_name ? <img className="room-card-avatar" src={"https://ui-avatars.com/api/?name=" + encodeURIComponent(stay.guest_name) + "&background=random"} alt="" /> : null}
-            <div className="room-card-stay-text">
-              <div className="room-card-guest">{guest ? `Guest · ${guest}` : "—"}</div>
-              <div className="room-card-range">{range ?? "—"}</div>
+    <div className={styles.cardFrame}>
+      <article className={styles.card} data-variant={large ? "large" : "compact"} data-selected={selected}>
+        <button
+          type="button"
+          className={styles.openRoom}
+          aria-haspopup="dialog"
+          aria-label={`Room ${room.number}, ${floor.toLowerCase()}, ${OCCUPANCY_LABEL[occupancy]}, housekeeping ${housekeeping}${guest ? `, guest ${guest}` : ""}`}
+          onClick={onSelect}
+        />
+        <RoomCardPhoto room={room} large={large} />
+        <div className={styles.content}>
+          <div className={styles.summary}>
+            <div className={styles.heading}>
+              <RoomTypeBadge name={type} colorKey={room.room_type_color} className={styles.roomType} icon={<Crown aria-hidden="true" />} />
+              <button type="button" className={styles.menu} aria-label={`Room ${room.number} actions`} aria-haspopup="dialog" onClick={onActions}>
+                <MoreHorizontal aria-hidden="true" />
+              </button>
             </div>
+            <h3 className={styles.number}>Room {room.number}</h3>
+            <div className={styles.statuses}>
+              <span className={styles.status} data-status={occupancy}>{OCCUPANCY_LABEL[occupancy]}</span>
+              <span className={styles.status} data-status={room.housekeeping}>
+                {room.housekeeping === "clean" && <Sparkles aria-hidden="true" />}
+                {housekeeping || "Unknown"}
+              </span>
+            </div>
+            <p className={styles.floor}>
+              <Layers aria-hidden="true" />
+              <span>{floor}{occupancy === "out_of_service" ? ` · ${outOfServiceReason(room, blocked)}` : ""}</span>
+            </p>
+            {!reservation && occupancy === "available" && <p className={styles.ready}>Ready for check-in</p>}
           </div>
-        ) : (
-          <div className="room-card-empty">Ready for check-in</div>
-        )}
-      </div>
+          {reservation && (
+            <dl className={styles.details}>
+              <div className={styles.detail}>
+                <dt><User className={styles.detailIcon} aria-hidden="true" />Guest</dt>
+                <dd>{guest || "No guest assigned"}</dd>
+              </div>
+              <div className={styles.detail}>
+                <dt><Calendar className={styles.detailIcon} aria-hidden="true" />Stay dates</dt>
+                <dd>{roomCardStayDates(reservation)}</dd>
+              </div>
+            </dl>
+          )}
+        </div>
+      </article>
     </div>
   );
 }
@@ -115,23 +175,25 @@ export function RoomActionSheet({
   state,
   stay,
   upcoming,
+  blocked,
   actions,
   onClose,
 }: {
   room: RackRoom;
-  state: string;
+  state: RackBoardState;
   stay: RackReservation | null;
   upcoming: RackReservation | null;
+  blocked: boolean;
   actions: BoardAction[];
   onClose: () => void;
 }) {
-  const occupancy = occupancyStatus(state, false);
+  const occupancy = OCCUPANCY_LABEL[blocked ? "out_of_service" : state];
   const guest = stay?.guest_name ?? upcoming?.guest_name ?? null;
   return (
     <Modal
       isOpen
       onClose={onClose}
-      title={`Room ${room.number} — ${occupancy.label}`}
+      title={`Room ${room.number} — ${occupancy}`}
       description={`${room.type} · Floor ${String(room.floor ?? "—")}${guest ? ` · ${guest}` : ""}`}
       size="md"
       headerVariant="branded"
@@ -161,17 +223,22 @@ export default function RoomBoard({
   today,
   blockedRoomIds,
   selectedRoomId,
+  largeCards = false,
   onSelectRoom,
+  onRoomActions,
 }: {
   rooms: RackRoom[];
   reservations: RackReservation[];
   today: string;
   blockedRoomIds?: Set<string> | string[] | null;
   selectedRoomId: string | null;
+  largeCards?: boolean;
   onSelectRoom: (room: RackRoom) => void;
+  onRoomActions: (room: RackRoom) => void;
 }) {
   const blocked = blockedRoomIds instanceof Set ? blockedRoomIds : new Set(blockedRoomIds ?? []);
   const groups = groupRoomsByType(rooms);
+  const large = largeCards || rooms.length === 1;
   return (
     <div className="board-groups" role="list" aria-label="Rooms by type">
       {groups.map((group) => {
@@ -183,14 +250,10 @@ export default function RoomBoard({
           reserved: states.filter((s) => s === "reserved").length,
           out_of_service: states.filter((s) => s === "out_of_service").length,
         };
-        const colorKey = group.rooms[0]?.room_type_color ?? null;
         return (
           <section key={group.type} className="board-group" role="listitem" aria-label={`${group.type}, ${group.rooms.length} rooms`}>
             <header className="board-group-head">
-              <div className="board-group-title">
-                <RoomTypeBadge name={group.type} colorKey={colorKey} />
-                <span className="board-group-name">{group.type}</span>
-              </div>
+              <span className="board-group-name">{group.type}</span>
               <span className="board-group-count">{group.rooms.length}</span>
               <ul className="board-group-breakdown" aria-label={`${group.type} condition`}>
                 {counts.available > 0 && <li className="breakdown-available">{counts.available} ready</li>}
@@ -200,19 +263,22 @@ export default function RoomBoard({
                 {counts.out_of_service > 0 && <li className="breakdown-out_of_service">{counts.out_of_service} out of service</li>}
               </ul>
             </header>
-            <div className="board-cards">
+            <div className={styles.cards} data-layout={large ? "large" : "compact"}>
               {group.rooms.map((room) => {
                 const board = roomBoardState(room, reservations, today, blocked);
+                const reservation = board.stay ?? board.upcoming ??
+                  (board.state === "dirty" || board.state === "out_of_service" ? linkedRoomStay(room.id, reservations, today) : null);
                 return (
                   <RoomCard
                     key={room.id}
                     room={room}
-                    stay={board.stay}
-                    upcoming={board.upcoming}
+                    reservation={reservation}
                     state={board.state}
                     blocked={blocked.has(room.id)}
                     selected={selectedRoomId === room.id}
+                    large={large}
                     onSelect={() => onSelectRoom(room)}
+                    onActions={() => onRoomActions(room)}
                   />
                 );
               })}

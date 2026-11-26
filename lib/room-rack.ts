@@ -16,6 +16,7 @@ export interface RackRoom {
   administratively_active?: boolean | null;
   /** Semantic badge color key from room_types (null = uncolored type). */
   room_type_color?: string | null;
+  room_type_photo_url?: string | null;
 }
 
 export interface RackReservation {
@@ -181,6 +182,17 @@ export function heldRoomIds(reservations: RackReservation[], today: string): Set
   );
 }
 
+/** Linked guest and dates, independent of whether the room can be used. */
+export function linkedRoomStay(roomId: string, reservations: RackReservation[], today: string): RackReservation | null {
+  const mine = reservations.filter((r) => r.room_id === roomId);
+  return mine.find((r) => r.status === "checked_in" && r.check_in.slice(0, 10) <= today && r.check_out.slice(0, 10) > today)
+    ?? mine.find((r) => r.status === "checked_in")
+    ?? mine
+      .filter((r) => r.status === "confirmed" && r.check_out.slice(0, 10) > today)
+      .sort((a, b) => (a.check_in < b.check_in ? -1 : 1))[0]
+    ?? null;
+}
+
 /**
  * Board state for one room card, derived from the same authoritative fields
  * the tape chart and assign gates use — never from reservation presence
@@ -201,24 +213,16 @@ export function roomBoardState(
     return { state: "out_of_service", stay: null, upcoming: null };
   if (room.housekeeping === "dirty" || room.status === "dirty")
     return { state: "dirty", stay: null, upcoming: null };
-  const mine = reservations.filter(
-    (r) => r.room_id === room.id && (r.status === "confirmed" || r.status === "checked_in")
-  );
-  const stay = mine.find((r) => r.status === "checked_in" && r.check_in.slice(0, 10) <= today && r.check_out.slice(0, 10) > today)
-    ?? mine.find((r) => r.status === "checked_in")
-    ?? null;
-  if (stay) return { state: "occupied", stay, upcoming: null };
+  const linked = linkedRoomStay(room.id, reservations, today);
+  if (linked?.status === "checked_in") return { state: "occupied", stay: linked, upcoming: null };
   // MGR-002: a Maintenance-blocked room is never reservable or ready, even
   // when its stored status/housekeeping still read clean+available. An
   // in-house stay keeps precedence above (the guest is physically there).
   if (blockedIds?.has(room.id)) return { state: "out_of_service", stay: null, upcoming: null };
-  const upcoming = mine
-    .filter((r) => r.status === "confirmed" && r.check_out.slice(0, 10) > today)
-    .sort((a, b) => (a.check_in < b.check_in ? -1 : 1))[0] ?? null;
-  if (upcoming) return { state: "reserved", stay: null, upcoming };
+  if (linked) return { state: "reserved", stay: null, upcoming: linked };
   if (room.status === "available" && room.housekeeping === "clean")
     return { state: "available", stay: null, upcoming: null };
-  return { state: "reserved", stay: null, upcoming };
+  return { state: "reserved", stay: null, upcoming: null };
 }
 
 /** Board grouping: live room types in first-seen order (never hardcoded). */

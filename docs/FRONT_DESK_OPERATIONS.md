@@ -14,6 +14,8 @@ The normal lifecycle is `pending -> confirmed -> checked_in -> checked_out`. `ca
 
 A room change retains the reservation and folio. It closes the old assignment, creates the replacement assignment, and sends the released room to turnover. Front Desk can move within the reserved type; Owner, Admin, and Manager may explicitly authorize a different-type upgrade. A stay extension also retains the reservation, checks the active room against future assignments, prices only additional nights, and uses an idempotency key for the new folio charge.
 
+If Front Desk does not receive confirmation, retry the same checkout date and reason in the open dialog. An exact retry of an extension recorded by the updated database returns the original result. A different staff user, stay, date or reason cannot use the same key. Historical charges from before the update remain on the folio for reconciliation.
+
 ## Check-in and checkout gates
 
 Check-in requires a confirmed reservation, complete guest contact data, verified ID, verified deposit, zero pre-stay invoice balance, the hotel-local arrival window, and an eligible physical room. Early check-in is disabled by default. The unreleased occupant extension adds a complete named register and verified primary-age check only after their separately configured effective dates. Active DNR flags and unresolved room discrepancies also block arrival in the database authority; UI readiness is advisory.
@@ -40,10 +42,10 @@ Checkout still requires `checked_in` status and zero folio balance, completes th
 
 ## Department boundaries
 
-- Front Desk: reservation, guest contact, assignment, arrival/departure, payment collection, folio visibility, and request routing.
+- Front Desk: reservations, guest contact, assignments, arrivals and departures, payment collection, folio visibility, and request routing. Open the payment history and receipt from the selected booking. Use **Cash & Shifts** for the authorized drawer.
 - Housekeeping: completion of housekeeping work and room-readiness cleaning.
 - Maintenance: completion of work orders; resolved rooms still require cleaning before sale.
-- Accounting: refund approval/processing and financial reconciliation.
+- Accounting: the standalone **Payment History** ledger, refund processing, and financial reconciliation.
 - Owner/Admin/Manager: supervisory operations, including cross-room-type upgrade authorization.
 
 The generic resource endpoint cannot be used by Front Desk to bypass protected reservation, room, guest, housekeeping, invoice, payment, or refund workflows. Specialist guest requests cannot be completed by Front Desk.

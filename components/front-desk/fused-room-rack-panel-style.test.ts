@@ -47,8 +47,6 @@ describe("fused room rack style contract", () => {
     // Reserved reuses the adaptive muted token, so it needs no light override.
     for (const state of ["available", "occupied", "dirty", "out_of_service"])
       expect(css).toContain(`.theme-light .app-shell .room-rack .badge.board-state-${state}`);
-    const board = readFileSync(new URL("./room-board.tsx", import.meta.url), "utf8");
-    expect(board).toContain("colorKey={colorKey}");
     const route = readFileSync(new URL("../../app/api/rack/route.ts", import.meta.url), "utf8");
     expect(route).toContain("badge_color_key");
     expect(route).toContain("room_type_color");

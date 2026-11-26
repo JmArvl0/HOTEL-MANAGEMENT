@@ -6,13 +6,14 @@ import { afterEach, describe, expect, it, vi, beforeEach } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import FrontOfficeRack from "./fused-room-rack-panel";
 import * as hook from "@/hooks/use-front-office-rack";
+import { inReservationQueue, reservationOverlapsWindow, reservationQueues, type ReservationQueue } from "@/lib/reservation-workspace";
 
 vi.mock("@/hooks/use-front-office-rack", () => ({
   useFrontOfficeRack: vi.fn(),
 }));
 
 const rooms = [
-  { id: "RM-101", number: "101", floor: 1, wing: null, type: "Deluxe King", status: "available", housekeeping: "clean" },
+  { id: "RM-101", number: "101", floor: 1, wing: null, type: "Deluxe King", room_type_color: "ocean", status: "available", housekeeping: "clean" },
   { id: "RM-102", number: "102", floor: 1, wing: null, type: "Deluxe King", status: "dirty", housekeeping: "dirty" },
   { id: "RM-103", number: "103", floor: 1, wing: null, type: "Deluxe King", status: "maintenance", housekeeping: "dirty" },
   { id: "RM-104", number: "104", floor: 1, wing: null, type: "Deluxe King", status: "available", housekeeping: "clean" },
@@ -30,7 +31,27 @@ const reservations = [
   },
 ];
 
-function stubRack() {
+function bookingResponse(url: string, rows = reservations) {
+  if (!url.startsWith("/api/staff/bookings?")) return Response.json({ data: {} });
+  const params = new URL(url, "https://hotel.example.invalid").searchParams;
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
+  const queue = (params.get("queue") ?? "all") as ReservationQueue;
+  const scope = params.get("scope");
+  const search = params.get("search")?.toLowerCase() ?? "";
+  const closed = params.get("closed") ?? "all";
+  const base = scope === "history" ? rows : scope === "board" ? [] : rows.filter(row => reservationOverlapsWindow(row, params.get("from")!, params.get("through")!));
+  const filtered = base.filter(row => inReservationQueue(row, queue, today)
+    && (queue !== "closed" || closed === "all" || row.status === closed)
+    && `${row.guest_name} ${row.confirmation_number} ${row.room_number ?? ""} ${row.id}`.toLowerCase().includes(search));
+  const page = Number(params.get("page"));
+  return Response.json({ data: {
+    rows: filtered.slice((page - 1) * 10, page * 10), total: filtered.length, page,
+    counts: Object.fromEntries(reservationQueues.map(queue => [queue.value, base.filter(row => inReservationQueue(row, queue.value, today)).length])),
+    daily: rows.filter(row => inReservationQueue(row, "arrivals", today) || inReservationQueue(row, "in_house", today)),
+  } });
+}
+
+function stubRack(rows = reservations) {
   vi.mocked(hook.useFrontOfficeRack).mockReturnValue({
     from: "2026-09-22",
     days: 7,
@@ -38,7 +59,7 @@ function stubRack() {
     setFrom: vi.fn(),
     shift: vi.fn(),
     goToday: vi.fn(),
-    snapshot: { from: "2026-09-22", days: 7, rooms, reservations },
+    snapshot: { from: "2026-09-22", days: 7, rooms, reservations: rows },
     loading: false,
     error: "",
     reload: vi.fn(async () => {}),
@@ -47,11 +68,11 @@ function stubRack() {
 
 beforeEach(() => {
   stubRack();
-  vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({ data: reservations }) })));
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => bookingResponse(url)));
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
-function renderRack(role = "front_desk") {
+function renderRack(role: "front_desk" | "manager" | "owner" = "front_desk") {
   const props = {
     role,
     onOpenFolio: vi.fn(),
@@ -70,9 +91,9 @@ describe("FrontOfficeRack", () => {
   it("refreshes full reservation history after a folio mutation without losing the selected view", async () => {
     let closed = false;
     const pastStay = { ...reservations[0], check_in: "2026-09-01", check_out: "2026-09-03" };
-    const fetchHistory = vi.fn(async () => Response.json({ data: [{ ...pastStay, status: closed ? "no_show" : "confirmed" }] }));
+    const fetchHistory = vi.fn(async (...[url]: [string, RequestInit?]) => bookingResponse(url, [{ ...pastStay, status: closed ? "no_show" : "confirmed" }]));
     vi.stubGlobal("fetch", fetchHistory);
-    const props = { role: "front_desk", onOpenFolio: vi.fn(), onCheckIn: vi.fn(), workspace: "reservations" as const, initialView: "all" as const, initialTab: "all" as const };
+    const props = { role: "front_desk" as const, onOpenFolio: vi.fn(), onCheckIn: vi.fn(), workspace: "reservations" as const, initialView: "all" as const, initialTab: "all" as const };
     const view = render(<FrontOfficeRack {...props} refreshVersion={0} />);
     await screen.findByText("No bookings match");
     fireEvent.click(screen.getByRole("button", { name: "Booking date scope" }));
@@ -84,21 +105,31 @@ describe("FrontOfficeRack", () => {
     await waitFor(() => expect(list().getAllByText("No Show")).toHaveLength(1));
     expect(list().queryByText("Confirmed")).toBeNull();
     expect(screen.getByText("Full booking history · All dates")).toBeTruthy();
-    expect(fetchHistory).toHaveBeenCalledTimes(2);
-    expect(fetchHistory).toHaveBeenLastCalledWith("/api/resources/reservations", { cache: "no-store" });
+    expect(fetchHistory.mock.calls.filter(([url]) => url.includes("scope=history"))).toHaveLength(2);
   });
   it("groups rooms by live type and renders card states with guests", () => {
     renderRack();
-    expect(screen.getAllByText("Deluxe King").length).toBeGreaterThan(0);
+    const group = screen.getByRole("listitem", { name: "Deluxe King, 4 rooms" });
+    expect(within(group).getAllByText("Deluxe King", { exact: true })).toHaveLength(5);
+    const occupiedRoom = within(screen.getByRole("heading", { name: "Room 101" }).closest("article")!);
+    expect(occupiedRoom.getByText("Deluxe King", { exact: true }).classList.contains("rt-ocean")).toBe(true);
+    const unconfiguredRoom = within(screen.getByRole("heading", { name: "Room 102" }).closest("article")!);
+    expect(unconfiguredRoom.getByText("Deluxe King", { exact: true }).classList.contains("room-type")).toBe(true);
+    expect(unconfiguredRoom.getByText("Deluxe King", { exact: true }).classList.contains("rt-ocean")).toBe(false);
     expect(screen.getByText(/1 occupied/)).toBeTruthy();
     expect(screen.getByText("Room 101")).toBeTruthy();
     expect(screen.getAllByText("Floor 1").length).toBe(3);
     expect(screen.getByText("Floor 1 · Maintenance")).toBeTruthy();
-    expect(screen.getByText("Guest · Cruz")).toBeTruthy();
+    expect(screen.getByText("Cruz")).toBeTruthy();
+    expect(screen.getByText(/Sep 24\s*–\s*26, 2026/)).toBeTruthy();
     expect(screen.getByRole("button", { name: /Room 101, floor 1, Occupied, housekeeping Clean/ })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Room 102, floor 1, Dirty, housekeeping Dirty/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Room 102, floor 1, Turnover due, housekeeping Dirty/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: /Room 103, floor 1, Out of service, housekeeping Dirty/ })).toBeTruthy();
-    expect(screen.getByText("Guest · Cruz")).toBeTruthy();
+    const readyRoom = within(screen.getByRole("heading", { name: "Room 104" }).closest("article")!);
+    expect(readyRoom.getByText("Ready for check-in")).toBeTruthy();
+    expect(screen.getAllByText("Ready for check-in")).toHaveLength(1);
+    expect(screen.queryByText("No guest assigned")).toBeNull();
+    expect(screen.queryByText("No active reservation")).toBeNull();
     expect(screen.getByText("Rooms ready")).toBeTruthy();
   });
 
@@ -124,17 +155,42 @@ describe("FrontOfficeRack", () => {
     expect(props.onOpenFolio).toHaveBeenCalledWith("RSV-B");
   });
 
+  it("opens the existing role-scoped actions from the card menu", () => {
+    const props = renderRack();
+    fireEvent.click(screen.getByRole("button", { name: "Room 101 actions" }));
+    const dialog = screen.getByRole("dialog", { name: /Room 101.*Occupied/ });
+    fireEvent.click(within(dialog).getByRole("button", { name: /View folio/ }));
+    expect(props.onOpenFolio).toHaveBeenCalledWith("RSV-B");
+    expect(props.onViewRoom).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("shows the linked stay on a dirty room and keeps its existing action gates", () => {
+    stubRack([...reservations, {
+      ...reservations[0], id: "RSV-C", room_id: "RM-102", room_number: "102",
+      check_in: "2099-12-31", check_out: "2100-01-02",
+    }]);
+    renderRack();
+    const card = within(screen.getByRole("heading", { name: "Room 102" }).closest("article")!);
+    expect(card.getByText("Reyes")).toBeTruthy();
+    expect(card.getByText(/Dec 31, 2099\s*–\s*Jan 2, 2100/)).toBeTruthy();
+    fireEvent.click(card.getByRole("button", { name: "Room 102 actions" }));
+    const dialog = within(screen.getByRole("dialog", { name: /Room 102.*Turnover due/ }));
+    expect(dialog.getByRole("button", { name: /^Dispatch reclean/ })).toBeTruthy();
+    expect(dialog.queryByRole("button", { name: /^Check in guest/ })).toBeNull();
+  });
+
   it("routes dirty cards to dispatch and posts the reclean task", async () => {
     const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({}) }));
     vi.stubGlobal("fetch", fetchMock);
     const props = renderRack();
-    fireEvent.click(screen.getByRole("button", { name: /Room 102, floor 1, Dirty/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Room 102, floor 1, Turnover due/ }));
     const actions = props.onViewRoom.mock.calls[0][1] as { label: string; onSelect: () => void }[];
     act(() => { actions.find((a) => a.label === "Dispatch reclean")!.onSelect(); });
     expect(screen.getByText("Dispatch reclean for room 102?")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Dispatch reclean" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
-      "/api/resources/housekeeping_tasks",
+      "/api/front-desk/rooms/RM-102/reclean",
       expect.objectContaining({ method: "POST" })
     ));
     vi.unstubAllGlobals();
@@ -142,7 +198,7 @@ describe("FrontOfficeRack", () => {
 
   it("offers no assign action on a dirty room", () => {
     const props = renderRack();
-    fireEvent.click(screen.getByRole("button", { name: /Room 102, floor 1, Dirty/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Room 102, floor 1, Turnover due/ }));
     const actions = props.onViewRoom.mock.calls[0][1] as { label: string }[];
     expect(actions.some((a) => a.label === "Assign arrival…")).toBe(false);
   });
@@ -173,7 +229,7 @@ describe("FrontOfficeRack", () => {
     const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({}) }));
     vi.stubGlobal("fetch", fetchMock);
     const props = renderRack();
-    fireEvent.click(screen.getByRole("button", { name: /Room 102, floor 1, Dirty/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Room 102, floor 1, Turnover due/ }));
     const actions = props.onViewRoom.mock.calls[0][1] as { label: string; onSelect: () => void }[];
     act(() => { actions.find((a) => a.label === "Dispatch reclean")!.onSelect(); });
     const dialog = screen.getByRole("dialog", { name: "Dispatch reclean for room 102?" });
@@ -184,7 +240,7 @@ describe("FrontOfficeRack", () => {
     expect(confirm.className).toContain("btn-accent");
     fireEvent.click(confirm);
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
-      "/api/resources/housekeeping_tasks",
+      "/api/front-desk/rooms/RM-102/reclean",
       expect.objectContaining({ method: "POST" })
     ));
     vi.unstubAllGlobals();
@@ -224,6 +280,7 @@ describe("FrontOfficeRack", () => {
 
   it("offers a single range control with no steppers, presets, or captions", () => {
     render(<FrontOfficeRack role="front_desk" workspace="reservations" onOpenFolio={vi.fn()} onCheckIn={vi.fn()} onViewRoom={vi.fn()} onNewReservation={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Calendar" }));
     const trigger = screen.getByRole("button", { name: /Stay window, currently/ });
     expect(trigger.textContent).toContain("09/22");
     expect(screen.getByRole("button", { name: "Today" })).toBeTruthy();
@@ -244,6 +301,20 @@ describe("FrontOfficeRack", () => {
     expect(calls.at(-1)?.value.setDays).toHaveBeenCalledWith(3);
   });
 
+  it("opens Bookings in list view and preserves the queue and search after a calendar visit", async () => {
+    render(<FrontOfficeRack role="front_desk" workspace="reservations" onOpenFolio={vi.fn()} onCheckIn={vi.fn()} />);
+    const views = within(screen.getByRole("group", { name: "Bookings view" }));
+    expect(views.getByRole("button", { name: "List" }).getAttribute("aria-pressed")).toBe("true");
+    await screen.findByRole("table", { name: "Booking list" });
+    fireEvent.click(within(screen.getByRole("group", { name: "Booking queue" })).getByRole("button", { name: /In-house/ }));
+    fireEvent.change(screen.getByLabelText("Search bookings"), { target: { value: "Cruz" } });
+    fireEvent.click(views.getByRole("button", { name: "Calendar" }));
+    fireEvent.click(views.getByRole("button", { name: "List" }));
+    expect((screen.getByLabelText("Search bookings") as HTMLInputElement).value).toBe("Cruz");
+    expect(within(screen.getByRole("group", { name: "Booking queue" })).getByRole("button", { name: /In-house/ }).getAttribute("aria-pressed")).toBe("true");
+    expect(within(await screen.findByRole("table", { name: "Booking list" })).getByText("Cruz")).toBeTruthy();
+  });
+
   it("keeps attention visible in reservation views with one working search", async () => {
     renderRack();
     fireEvent.click(screen.getByRole("button", { name: "Booking List" }));
@@ -251,7 +322,7 @@ describe("FrontOfficeRack", () => {
     await screen.findByRole("table", { name: "Booking list" });
     const queues = screen.getByRole("group", { name: "Booking queue" });
     fireEvent.click(within(queues).getByRole("button", { name: /In-house/ }));
-    expect(within(screen.getByRole("table")).getByText("Cruz")).toBeTruthy();
+    expect(within(await screen.findByRole("table")).getByText("Cruz")).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Search bookings"), { target: { value: "no-such-guest" } });
     await screen.findByText("No bookings match");
     expect(screen.getAllByLabelText("Search bookings")).toHaveLength(1);
@@ -279,7 +350,7 @@ describe("FrontOfficeRack", () => {
 
   it("loads full history and distinguishes completed, cancelled and no-show", async () => {
     const history = ["checked_out", "cancelled", "no_show"].map((status, i) => ({ ...reservations[0], id: "CLOSED-" + i, guest_name: "Past guest " + i, status, check_in: "2026-09-01", check_out: "2026-09-03" }));
-    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({ data: history }) })));
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => bookingResponse(url, history)));
     renderRack();
     fireEvent.click(screen.getByRole("button", { name: "Booking List" }));
     await waitFor(() => expect(screen.queryByRole("status", { name: "Loading booking history" })).toBeNull());
@@ -287,16 +358,16 @@ describe("FrontOfficeRack", () => {
     fireEvent.click(screen.getByRole("option", { name: "Full history · all dates" }));
     const queues = screen.getByRole("group", { name: "Booking queue" });
     fireEvent.click(within(queues).getByRole("button", { name: /Closed/ }));
-    expect(screen.getAllByText(/Past guest/)).toHaveLength(3);
+    expect(await screen.findAllByText(/Past guest/)).toHaveLength(3);
     fireEvent.click(screen.getByRole("button", { name: "Closed booking outcome" }));
     fireEvent.click(screen.getByRole("option", { name: "Completed" }));
-    expect(screen.getByText("Past guest 0")).toBeTruthy();
+    expect(await screen.findByText("Past guest 0")).toBeTruthy();
     expect(screen.queryByText("Past guest 1")).toBeNull();
     expect(screen.queryByRole("button", { name: /Stay window, currently/ })).toBeNull();
   });
 
   it("withholds incomplete history and allows retry", async () => {
-    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: false }).mockResolvedValue({ ok: true, json: async () => ({ data: reservations }) });
+    const fetchMock = vi.fn(async (url: string) => bookingResponse(url)).mockResolvedValueOnce(new Response(null, { status: 503 }));
     vi.stubGlobal("fetch", fetchMock);
     renderRack();
     fireEvent.click(screen.getByRole("button", { name: "Booking List" }));
@@ -313,18 +384,18 @@ describe("FrontOfficeRack", () => {
     await waitFor(() => expect(within(summary).getByRole("button", { name: /^In-house/ }).querySelector("b")?.textContent).toBe("1"));
     fireEvent.click(within(summary).getByRole("button", { name: /^In-house/ }));
     expect(screen.getByRole("button", { name: "Booking List" }).getAttribute("aria-pressed")).toBe("true");
-    expect(within(screen.getByRole("table")).getByText("Cruz")).toBeTruthy();
+    expect(within(await screen.findByRole("table")).getByText("Cruz")).toBeTruthy();
     expect(screen.getByText("Full booking history · All dates")).toBeTruthy();
   });
 
   it("refreshes stay counts on window focus without changing the rack snapshot", async () => {
-    vi.stubGlobal("fetch", vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ data: reservations }) })
-      .mockResolvedValue({ ok: true, json: async () => ({ data: reservations.map(r => ({ ...r, status: "checked_out" })) }) }));
+    let checkedOut = false;
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => bookingResponse(url, checkedOut ? reservations.map(r => ({ ...r, status: "checked_out" })) : reservations)));
     renderRack();
     const summary = screen.getByRole("group", { name: "Front office summary" });
     const count = () => within(summary).getByRole("button", { name: /^In-house/ }).querySelector("b")?.textContent;
     await waitFor(() => expect(count()).toBe("1"));
+    checkedOut = true;
     fireEvent(window, new Event("focus"));
     await waitFor(() => expect(count()).toBe("0"));
   });
@@ -338,6 +409,18 @@ describe("FrontOfficeRack", () => {
     expect(screen.getByRole("button", { name: /^Occupied/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^Ready/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^Cleaning/ })).toBeTruthy();
+  });
+
+  it("features a single search result and can expand the whole card grid", async () => {
+    render(<FrontOfficeRack role="front_desk" workspace="rooms" onOpenFolio={vi.fn()} onCheckIn={vi.fn()} />);
+    expect(screen.getByRole("heading", { name: "Room 101" }).closest("article")?.dataset.variant).toBe("compact");
+    const search = screen.getByRole("searchbox", { name: "Search rooms" });
+    fireEvent.change(search, { target: { value: "101" } });
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Room 101" }).closest("article")?.dataset.variant).toBe("large"));
+    fireEvent.click(screen.getByRole("button", { name: "Clear search rooms" }));
+    fireEvent.click(screen.getByRole("button", { name: "Room card layout" }));
+    fireEvent.click(screen.getByRole("option", { name: "Large cards" }));
+    expect(screen.getByRole("heading", { name: "Room 104" }).closest("article")?.dataset.variant).toBe("large");
   });
 
   it("opens Bookings directly in the calendar and routes Rooms ready back to room management", async () => {

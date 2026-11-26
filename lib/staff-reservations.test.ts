@@ -132,7 +132,7 @@ describe("stale detail modals never follow navigation", () => {
       expect(start).toBeGreaterThan(-1);
       const body = dashboard.slice(start, dashboard.indexOf("async function", start + loader.length));
       expect(body).toContain("requestSection");
-      expect(body).toContain("sectionRef.current !== requestSection");
+      expect(body).toMatch(/sectionRef\.current (?:!== requestSection\) return|=== requestSection\) setDetail)/);
     }
   });
 

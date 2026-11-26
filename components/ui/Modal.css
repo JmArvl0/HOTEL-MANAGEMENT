@@ -192,7 +192,17 @@ body:has(.dialog-backdrop) {
   gap: 10px;
 }
 
-/* Detail-modal footers (reservation detail) can carry a dozen action buttons. */
+.modal-footer .room-action-footer {
+  display: grid;
+  width: 100%;
+  gap: 10px;
+}
+
+.modal-footer .room-action-footer .haven-error-alert {
+  --error-fg: var(--danger-fg);
+}
+
+/* A reservation can carry a dozen action buttons. */
 .modal-footer .reservation-detail-actions {
   display: flex;
   flex-wrap: wrap;

@@ -88,14 +88,14 @@ describe("advisory surface contracts", () => {
     expect(panel).toMatch(/applySuggestion\?\.\(suggestion\)|applySuggestion\(suggestion\)/);
     // Applying routes through the audited assign endpoint — no direct write here.
     const dashboard = read("components/manager/manager-dashboard-client.tsx");
-    expect(dashboard).toMatch(/\/api\/housekeeping\/tasks\/\$\{s\.taskId\}\/assign/);
+    expect(dashboard).toMatch(/\/api\/housekeeping\/tasks\/\$\{suggestion\.taskId\}\/assign/);
     expect(dashboard).toContain("Assigned from the suggested plan");
   });
 
   it("housekeeping self-assigns and owner assigns the suggested teammate (Manager coordinates only)", () => {
     const dashboard = read("components/manager/manager-dashboard-client.tsx");
     expect(dashboard).toContain("const self = user.role === \"housekeeping\"");
-    expect(dashboard).toMatch(/assignedUserId: s\.staffId/);
+    expect(dashboard).toMatch(/assignedUserId: suggestion\.staffId/);
     const panel = read("components/manager/housekeeping-queue-panel.tsx");
     expect(panel).toContain("Suggestion only — coordinate via Prioritize");
     expect(panel).toContain("\"Assign to me\"");

@@ -17,6 +17,7 @@ interface Builder extends PromiseLike<{ data: Row[]; error: null; count: number 
   range(from: number, to: number): Builder;
   eq(column: string, value: unknown): Builder;
   neq(column: string, value: unknown): Builder;
+  not(column: string, operator: "is" | "in", value: unknown): Builder;
   in(column: string, values: unknown[]): Builder;
   is(column: string, value: unknown): Builder;
   gt(column: string, value: unknown): Builder;
@@ -29,6 +30,14 @@ interface Builder extends PromiseLike<{ data: Row[]; error: null; count: number 
 }
 
 const text = (value: unknown) => (value === null || value === undefined ? "" : String(value));
+
+function fieldAt(row: Row, column: string): unknown {
+  let field: unknown = row;
+  for (const part of column.split(".")) {
+    field = typeof field === "object" && field !== null ? (field as Row)[part] : undefined;
+  }
+  return field;
+}
 
 function build(rows: Row[]): Builder {
   let result = [...rows];
@@ -45,8 +54,11 @@ function build(rows: Row[]): Builder {
     },
     limit: (count) => { result = result.slice(0, count); return builder; },
     range: (from, to) => { result = result.slice(Math.max(0, from), to + 1); return builder; },
-    eq: (column, value) => keep((row) => row[column] === value),
+    eq: (column, value) => keep((row) => fieldAt(row, column) === value),
     neq: (column, value) => keep((row) => row[column] !== value),
+    not: (column, operator, value) => keep((row) => operator === "is"
+      ? (fieldAt(row, column) ?? null) !== value
+      : !String(value).slice(1, -1).split(",").includes(String(fieldAt(row, column)))),
     in: (column, values) => keep((row) => values.includes(row[column])),
     is: (column, value) => keep((row) => (row[column] ?? null) === value),
     gt: (column, value) => keep((row) => text(row[column]) > text(value)),

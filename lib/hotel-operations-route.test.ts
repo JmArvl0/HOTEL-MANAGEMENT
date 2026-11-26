@@ -6,6 +6,8 @@ vi.mock("next-auth",()=>({getServerSession:vi.fn()}));
 const{getServerSession}=await import("next-auth");
 const party=await import("@/app/api/front-desk/reservations/[id]/guests/route");
 const close=await import("@/app/api/accounting/night-audit/close/route");
+const staffClose=await import("@/app/api/staff/night-audit/close/route");
+const coverage=await import("@/app/api/owner/operating-day-coverage/route");
 const day=await import("@/app/api/staff/operational-date/route");
 const handover=await import("@/app/api/staff/handover/route");
 const quote=await import("@/app/api/front-desk/fees/quote/route");
@@ -34,6 +36,19 @@ describe("hotel operation routes keep their server actor and role boundaries",()
   vi.mocked(getServerSession).mockResolvedValue({user:{id:"actor",role:"accounting",disabled:true}} as never);
   for(const action of [()=>day.POST(),()=>handover.POST(request({})),()=>quote.POST(request({})),()=>close.POST(request({}))])expect((await action()).status).toBe(401);
   expect(boundary.rpc).not.toHaveBeenCalled();
+ });
+ it("binds staff close to the session actor and reports a revoked assignment",async()=>{
+  const fields={businessDate:"2026-11-03",expectedVersion:1,idempotencyKey:crypto.randomUUID()};
+  vi.mocked(getServerSession).mockResolvedValue({user:{id:"desk",role:"front_desk"}} as never);
+  expect((await staffClose.POST(request(fields))).status).toBe(403);
+  expect(boundary.rpc).not.toHaveBeenCalled();
+  vi.mocked(getServerSession).mockResolvedValue({user:{id:"manager",role:"manager"}} as never);
+  expect((await coverage.PUT(request({}))).status).toBe(403);
+  expect(boundary.rpc).not.toHaveBeenCalled();
+  boundary.rpc.mockResolvedValueOnce({error:{message:"OPERATING_DAY_FORBIDDEN"}});
+  expect((await staffClose.POST(request(fields))).status).toBe(403);
+  expect(boundary.rpc).toHaveBeenCalledWith("hotel_night_audit_close",{p_actor:"manager",p_date:fields.businessDate,p_version:1,p_key:fields.idempotencyKey});
+  expect((await staffClose.POST(request(fields))).status).toBe(200);
  });
  it.each(["STALE_OPERATING_DAY","OPERATIONS_CHANGED_RETRY"])("returns a refreshable conflict for %s without leaking database messages",async code=>{
   vi.mocked(getServerSession).mockResolvedValue({user:{id:"actor",role:"accounting"}} as never);

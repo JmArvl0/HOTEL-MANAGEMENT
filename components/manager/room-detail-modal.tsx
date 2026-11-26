@@ -117,7 +117,7 @@ export default function RoomDetailModal({ room, role, onClose, onViewReservation
               ))}
             </div>
 
-            {tab === "overview" && <OverviewPanel detail={detail} onViewReservation={onViewReservation} />}
+            {tab === "overview" && <OverviewPanel detail={detail} onViewReservation={onViewReservation} onReview={(section) => { setTab(section); requestAnimationFrame(() => tabRefs.current[section]?.focus()); }} />}
             {tab === "booking" && <BookingPanel detail={detail} onViewReservation={onViewReservation} shown={shown("booking")} onShowMore={() => setExpanded((state) => ({ ...state, booking: (state.booking ?? 6) + 9 }))} />}
             {tab === "housekeeping" && <HousekeepingPanel detail={detail} shown={shown("housekeeping")} onShowMore={() => setExpanded((state) => ({ ...state, housekeeping: (state.housekeeping ?? 6) + 9 }))} />}
             {tab === "maintenance" && <MaintenancePanel detail={detail} shown={shown("maintenance")} onShowMore={() => setExpanded((state) => ({ ...state, maintenance: (state.maintenance ?? 6) + 9 }))} />}
@@ -129,21 +129,57 @@ export default function RoomDetailModal({ room, role, onClose, onViewReservation
   );
 }
 
-function OverviewPanel({ detail, onViewReservation }: { detail: RoomDetail; onViewReservation: (reservationId: string) => void }) {
+function OverviewPanel({ detail, onViewReservation, onReview }: { detail: RoomDetail; onViewReservation: (reservationId: string) => void; onReview: (section: "housekeeping" | "maintenance") => void }) {
   const { room, roomType, currentStay, nextReservation, blocked } = detail;
   const photo = roomPrimary(roomType?.photo_urls as string[] | undefined, String(room.type));
   const amenities = (roomType?.amenities ?? room.amenities) as unknown as string[] | null;
   return (
     <div id="room-panel-overview" role="tabpanel" aria-labelledby="room-tab-overview">
+      <dl className="room-operational-facts" aria-label="Room status by responsibility">
+        <div><dt>Occupancy</dt><dd>{currentStay || room.status === "occupied" ? "Occupied" : room.status === "reserved" ? "Reserved" : "Vacant"}</dd></div>
+        <div><dt>Housekeeping</dt><dd>{room.housekeeping === "inspection" ? "Inspection pending" : label(room.housekeeping).replace(/^./, first => first.toUpperCase())}</dd></div>
+        <div><dt>Serviceability</dt><dd>{blocked ? "Maintenance blocked" : ["maintenance", "out_of_service"].includes(String(room.status)) ? "Out of service" : "Serviceable"}</dd></div>
+        <div><dt>Inventory</dt><dd>{room.administratively_active === false ? "Inactive" : "Active"}</dd></div>
+      </dl>
+      <div className="room-operational-actions">
+        {(blocked || ["maintenance", "out_of_service"].includes(String(room.status))) && <button type="button" className="btn btn-soft" onClick={() => onReview("maintenance")}>Review maintenance</button>}
+        {Boolean(room.housekeeping && room.housekeeping !== "clean") && <button type="button" className="btn btn-soft" onClick={() => onReview("housekeeping")}>Review turnover</button>}
+      </div>
+      {detail.bookingVisible && <div className="room-detail-grid room-live-stays">
+        <section>
+          <h3>Current stay</h3>
+          {currentStay ? <>
+            <dl>
+              <div><dt>Guest</dt><dd>{label(currentStay.guest_name)}</dd></div>
+              <div><dt>Reference</dt><dd>{label(currentStay.confirmation_number || currentStay.id)}</dd></div>
+              <div><dt>Dates</dt><dd>{label(currentStay.check_in)} to {label(currentStay.check_out)}</dd></div>
+              {currentStay.checked_in_at ? <div><dt>Checked in</dt><dd>{when(currentStay.checked_in_at)}</dd></div> : null}
+            </dl>
+            <button className="btn btn-soft" onClick={() => onViewReservation(String(currentStay.id))}><DoorOpen size={14} /> View reservation</button>
+          </> : <p className="room-detail-note">No active reservation is in house.</p>}
+        </section>
+        <section>
+          <h3>Next arrival</h3>
+          {nextReservation ? <>
+            <dl>
+              <div><dt>Next reservation</dt><dd>{label(nextReservation.guest_name)}</dd></div>
+              <div><dt>Reference</dt><dd>{label(nextReservation.confirmation_number || nextReservation.id)}</dd></div>
+              <div><dt>Arrival</dt><dd>{label(nextReservation.check_in)}</dd></div>
+              {Boolean(nextReservation.expected_arrival) && <div><dt>Expected time</dt><dd>{label(nextReservation.expected_arrival)}</dd></div>}
+              <div><dt>Departure</dt><dd>{label(nextReservation.check_out)}</dd></div>
+              <div><dt>Status</dt><dd><StatusBadge status={String(nextReservation.status)} label={label(nextReservation.status)} /></dd></div>
+            </dl>
+            <button className="btn btn-soft" onClick={() => onViewReservation(String(nextReservation.id))}><DoorOpen size={14} /> View next reservation</button>
+          </> : <p className="room-detail-note">No incoming reservation is assigned.</p>}
+        </section>
+      </div>}
       <div className="room-detail-grid">
         {photo && <img className="room-detail-photo" src={photo} alt={`${label(room.type)} room type`} />}
         <section>
           <h3>Room facts</h3>
           <dl>
-            <div><dt>Status</dt><dd><StatusBadge status={String(room.status)} label={label(room.status)} /></dd></div>
-            <div><dt>Housekeeping</dt><dd><StatusBadge status={String(room.housekeeping)} label={label(room.housekeeping)} /></dd></div>
             <div><dt>Floor</dt><dd>{label(room.floor)}</dd></div>
-            <div><dt>Nightly rate</dt><dd>{formatPeso(Number(room.rate || 0))}</dd></div>
+            <div><dt>Nightly rate</dt><dd>{room.rate == null ? "—" : formatPeso(Number(room.rate))}</dd></div>
             {room.wing ? <div><dt>Wing</dt><dd>{label(room.wing)}</dd></div> : null}
           </dl>
         </section>
@@ -162,28 +198,6 @@ function OverviewPanel({ detail, onViewReservation }: { detail: RoomDetail; onVi
           <h3>Readiness</h3>
           {readiness(room, blocked).map((note) => <p key={note} className="room-detail-note">{note}</p>)}
         </section>
-        {detail.bookingVisible && <section>
-          <h3>Current stay</h3>
-          {currentStay ? <>
-            <dl>
-              <div><dt>Guest</dt><dd>{label(currentStay.guest_name)}</dd></div>
-              <div><dt>Reference</dt><dd>{label(currentStay.confirmation_number || currentStay.id)}</dd></div>
-              <div><dt>Dates</dt><dd>{label(currentStay.check_in)} to {label(currentStay.check_out)}</dd></div>
-              {currentStay.checked_in_at ? <div><dt>Checked in</dt><dd>{when(currentStay.checked_in_at)}</dd></div> : null}
-            </dl>
-            <button className="btn btn-soft" onClick={() => onViewReservation(String(currentStay.id))}><DoorOpen size={14} /> View reservation</button>
-          </> : nextReservation ? <>
-            <p className="room-detail-note">No active reservation is in house.</p>
-            <dl>
-              <div><dt>Next reservation</dt><dd>{label(nextReservation.guest_name)}</dd></div>
-              <div><dt>Reference</dt><dd>{label(nextReservation.confirmation_number || nextReservation.id)}</dd></div>
-              <div><dt>Arrival</dt><dd>{label(nextReservation.check_in)}</dd></div>
-              <div><dt>Departure</dt><dd>{label(nextReservation.check_out)}</dd></div>
-              <div><dt>Status</dt><dd><StatusBadge status={String(nextReservation.status)} label={label(nextReservation.status)} /></dd></div>
-            </dl>
-            <button className="btn btn-soft" onClick={() => onViewReservation(String(nextReservation.id))}><DoorOpen size={14} /> View reservation</button>
-          </> : <p className="room-detail-note">No active reservation. This room is not held for an arriving guest.</p>}
-        </section>}
       </div>
     </div>
   );

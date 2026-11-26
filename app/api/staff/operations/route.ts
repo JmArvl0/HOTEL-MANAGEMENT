@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-import { OPERATIONAL_ROLES, operationsAction, rosterWindowValid } from "@/lib/operations";
+import { OPERATIONAL_ROLES, operationsAction } from "@/lib/operations";
 
 async function context() {
   const session = await getServerSession(authOptions);
@@ -34,12 +34,12 @@ export async function POST(request: Request) {
   if (!parsed.success) return publicJson(validationBody(parsed.error, { error: parsed.error.issues[0]?.message ?? "Check the form." }), { status: 400 });
   const v = parsed.data;
   let rpc: string; let args: Record<string, unknown>;
-  if (v.action === "schedule" || v.action === "cancel_schedule") {
+  if (v.action === "schedule") {
+    return publicJson({ error: "New staff schedules are managed by Workforce. You can still record a Hotel handover." }, { status: 403 });
+  }
+  if (v.action === "cancel_schedule") {
     if (ctx.user.role !== "manager") return publicJson({ error: "Only Manager can change schedules." }, { status: 403 });
-    if (v.action === "schedule") {
-      if (!rosterWindowValid(v.startsAt, v.endsAt)) return publicJson({ error: "A shift must last between 1 minute and 24 hours." }, { status: 400 });
-      rpc = "save_roster_assignment"; args = { p_actor: ctx.user.id, p_id: v.id, p_staff: v.staffId, p_starts: v.startsAt, p_ends: v.endsAt, p_note: v.note };
-    } else { rpc = "cancel_roster_assignment"; args = { p_actor: ctx.user.id, p_id: v.id, p_version: v.version, p_reason: v.note }; }
+    rpc = "cancel_roster_assignment"; args = { p_actor: ctx.user.id, p_id: v.id, p_version: v.version, p_reason: v.note };
   } else if (v.action === "handover") {
     rpc = "submit_shift_handover"; args = { p_actor: ctx.user.id, p_id: v.id, p_summary: v.summary, p_source_type: v.sourceType, p_source_id: v.sourceId, p_follow_up: v.followUpId };
   } else {

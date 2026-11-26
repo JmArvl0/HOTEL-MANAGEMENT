@@ -63,8 +63,8 @@ describe("physical room roster surface", () => {
     // Physical rooms are created/edited only through the roster modal behind
     // catalog authority; the generic resource controls would only 403.
     // Maintenance and housekeeping previously saw a dead "Add rooms" button.
-    expect(dashboard).toContain('canCreate={section !== "rooms"');
-    expect(dashboard).toContain('canAdvance={section !== "rooms"');
+    expect(dashboard).not.toContain("<CreateModal");
+    expect(dashboard).not.toContain("Click to move to next status");
   });
 });
 
@@ -166,10 +166,7 @@ describe("room-inventory permission boundary", () => {
     const resources = readFileSync("app/api/resources/[resource]/route.ts", "utf8");
     // Maintenance may create only maintenance_orders; every other create —
     // rooms included — hits the protected-workflow refusal.
-    expect(resources).toContain('(role==="maintenance"&&resource==="maintenance_orders")');
-    expect(resources).toContain("!departmentWriteAllowed(");
-    expect(resources).toContain("Open the relevant module and use its create action");
-    expect(resources).toContain("permission to change these details");
+    expect(resources).toContain("return rejectWrite(request, context)");
   });
   it("keeps maintenance workflows and front-desk assignment wired", () => {
     expect(dashboard).toContain('canMaintain={user.role === "maintenance"}');

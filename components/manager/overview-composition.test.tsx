@@ -67,7 +67,7 @@ describe("Overview role composition", () => {
     expect(screen.getByText("Booked occupancy this week")).toBeTruthy();
     expect(screen.getByText("Decisions & exceptions")).toBeTruthy();
     expect(container.querySelector(".overview-role-manager .panel-needs-attention")).toBeTruthy();
-    expect(screen.getByText("Predictive insights")).toBeTruthy();
+    expect(screen.getByText("Predictive Analytics")).toBeTruthy();
   });
 
   it("front desk gets an arrivals queue panel and no occupancy chart", () => {
@@ -75,6 +75,16 @@ describe("Overview role composition", () => {
     expect(screen.getByText("Today's arrivals & departures")).toBeTruthy();
     expect(screen.queryByText("Booked occupancy this week")).toBeNull();
     expect(container.querySelector(".overview-role-front_desk")).toBeTruthy();
+  });
+
+  it("opens the exact Front Desk daily queues and labels departure balances separately", () => {
+    const onOpenRack = vi.fn();
+    const metrics = { ...data.metrics, balancesAttention: 6, departureBalancesAttention: 1 };
+    render(<Overview data={{ ...data, metrics }} setSection={vi.fn()} allowed={["overview", "reservations", "rooms"]} role="front_desk" onScan={vi.fn()} onOpenRack={onOpenRack} />);
+    fireEvent.click(screen.getByRole("button", { name: /^Arrivals today/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Departures today.*1 departure balance due/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^In-house guests/ }));
+    expect(onOpenRack.mock.calls).toEqual([["arrivals", "arrivals"], ["departures", "departures"], ["in_house", "in_house"]]);
   });
 
   it("accounting gets financial cards and actions, no occupancy chart", () => {

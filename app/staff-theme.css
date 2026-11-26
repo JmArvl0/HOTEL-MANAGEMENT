@@ -378,21 +378,24 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .app-shell .room-card header b{min-width:0;color:#e8edf4;font:800 20px/1.25 var(--font-sans)}
 .app-shell .room-card header .badge{flex:none;border:0;cursor:default;font-size:11px!important;line-height:1.35;padding:5px 10px;border-radius:999px;letter-spacing:.3px;font-weight:700}
 .app-shell .room-card header button.badge{cursor:pointer}
-.app-shell .room-type{display:inline-flex;padding:4px 10px;border-radius:999px;background:#0f141b;color:#93a0b4;font:700 11px/1.3 var(--font-sans)}
+:where(.app-shell .room-type){display:inline-flex;padding:4px 10px;border-radius:999px;background:#0f141b;color:#93a0b4;font:700 11px/1.3 var(--font-sans)}
 .app-shell .room-card .room-type{margin:0 0 14px}
-.app-shell .room-type.rt-sage{--rt-bg:#10b981;--rt-fg:#10b981;--rt-bg-l:#10b981;--rt-fg-l:#10b981}
-.app-shell .room-type.rt-gold{--rt-bg:#f59e0b;--rt-fg:#f59e0b;--rt-bg-l:#f59e0b;--rt-fg-l:#f59e0b}
-.app-shell .room-type.rt-ocean{--rt-bg:#3b82f6;--rt-fg:#3b82f6;--rt-bg-l:#3b82f6;--rt-fg-l:#3b82f6}
-.app-shell .room-type.rt-plum{--rt-bg:#3b82f6;--rt-fg:#3b82f6;--rt-bg-l:#3b82f6;--rt-fg-l:#3b82f6}
-.app-shell .room-type.rt-terracotta{--rt-bg:#f59e0b;--rt-fg:#ef4444;--rt-bg-l:#ef4444;--rt-fg-l:#ef4444}
-.app-shell .room-type.rt-slate{--rt-bg:#3b82f6;--rt-fg:#3b82f6;--rt-bg-l:#3b82f6;--rt-fg-l:#3b82f6}
-.app-shell .room-type.rt-sand{--rt-bg:#f59e0b;--rt-fg:#f59e0b;--rt-bg-l:#f59e0b;--rt-fg-l:#f59e0b}
-.app-shell .room-type.rt-lavender{--rt-bg:#3b82f6;--rt-fg:#3b82f6;--rt-bg-l:#3b82f6;--rt-fg-l:#3b82f6}
-.app-shell .room-type[class*="rt-"]{background:var(--rt-bg);color:var(--rt-fg)}
-.theme-light .app-shell .room-type{background:#f3f3f3;color:#5b6472}
-.app-shell .modal-content .room-type{background:#f3f3f3;color:#5b6472}
-.theme-light .app-shell .room-type[class*="rt-"]{background:var(--rt-bg-l);color:var(--rt-fg-l)}
-.app-shell .modal-content .room-type[class*="rt-"]{background:var(--rt-bg-l);color:var(--rt-fg-l)}
+.room-type.rt-sage{--rt-accent:#4a9379}
+.room-type.rt-gold{--rt-accent:#b48028}
+.room-type.rt-ocean{--rt-accent:#398aca}
+.room-type.rt-plum{--rt-accent:#98637f}
+.room-type.rt-terracotta{--rt-accent:#bd6450}
+.room-type.rt-slate{--rt-accent:#687b98}
+.room-type.rt-sand{--rt-accent:#ad8963}
+.room-type.rt-lavender{--rt-accent:#8770b1}
+:where(.room-type[class*="rt-"]){
+  --rt-bg:color-mix(in srgb,var(--rt-accent) 27%,#0f141b);
+  --rt-fg:color-mix(in srgb,var(--rt-accent) 38%,#fff);
+  --rt-bg-l:color-mix(in srgb,var(--rt-accent) 19%,#fff);
+  --rt-fg-l:color-mix(in srgb,var(--rt-accent) 53%,#101218);
+  background:var(--rt-bg);color:var(--rt-fg);
+}
+:where(.theme-light .app-shell .room-type,.app-shell .modal-content .room-type){background:var(--rt-bg-l,#f3f3f3);color:var(--rt-fg-l,#5b6472)}
 .rt-color-row{display:flex;flex-wrap:wrap;gap:8px}
 .rt-color-swatch{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid #e8edf4;border-radius:8px;background:transparent;cursor:pointer;transition:border-color .15s ease,box-shadow .15s ease}
 .rt-color-swatch:hover:not(:disabled){border-color:#3b82f640}
@@ -619,6 +622,8 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 @media(max-width:680px){.app-shell .modal-content .arrival-approval{flex-direction:column;align-items:stretch;text-align:left}}
 @media(max-width:680px){.app-shell .modal-content .arrival-approval-cta{width:100%}}
 .app-shell .modal-content .arrival-error{margin:0 0 10px;padding:9px 11px;border:1px solid #ef444440;border-radius:6px;background:#ef44441f;color:#fca5a5;font-size:10px;line-height:1.5}
+.app-shell .stay-extension-dialog .modal-content .arrival-error{color:var(--danger-fg);font-size:13px}
+.app-shell .stay-extension-dialog .arrival-chip b{color:inherit}
 .theme-light .app-shell .arrival-chip{background:#fff;color:#5b6472}
 .theme-light .app-shell .arrival-chip.ok{background:#10b98114;border-color:#10b98140;color:#047857}
 .theme-light .app-shell .arrival-chip.warn{background:#fff0dd;border-color:#f59e0b40;color:#b45309}
@@ -984,17 +989,6 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 .app-shell .insights-state p{max-width:52ch;margin:0;font-size:10px;line-height:1.6}
 .app-shell .insights-state .btn{margin-top:6px}
 .app-shell .insights-state-error>svg{color:#fca5a5}
-.app-shell .insights-metric-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-.app-shell .insights-metric-card{min-height:110px;padding:14px;border-radius:12px}
-.app-shell .insights-metric-card::after{display:none}
-.app-shell .insights-metric-card>div{display:flex;min-width:0;flex:1;flex-direction:column}
-.app-shell .insights-metric-card span{font-size:9px;letter-spacing:.02em}
-.app-shell .insights-metric-card b{margin:10px 0 6px;font-size:23px;line-height:1.08;font-variant-numeric:tabular-nums}
-.app-shell .insights-metric-card small{margin-top:auto;line-height:1.55}
-.app-shell .insights-metric-card>i{width:34px;height:34px;border-radius:10px}
-.app-shell .insights-metric-card.medium>i{border-color:#f59e0b40;background:#f59e0b1f;color:#fcd34d}
-.app-shell .insights-metric-card.high>i{border-color:#ef444440;background:#ef44441f;color:#fca5a5}
-.app-shell .insights-metric-card.low>i{border-color:#10b98140;background:#10b9811f;color:#6ee7b7}
 .app-shell .insights-panel{--panel-divider-inset:16px;min-width:0;padding:16px;border-radius:12px}
 .app-shell .insights-panel>.panel-heading{align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--dl);gap:16px}
 .app-shell .insights-panel>.panel-heading>div{min-width:0}
@@ -1101,14 +1095,10 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 
 .theme-light .app-shell .insights-freshness{border-inline-end-color:#d1d5db;color:#5b6472}
 .theme-light .app-shell .insights-freshness b{color:#111827}
-.theme-light .app-shell .insights-metric-card.medium>i{border-color:#f59e0b40;background:#fff0dd;color:#b45309}
-.theme-light .app-shell .insights-metric-card.high>i{border-color:#ef444440;background:#ef444414;color:#b91c1c}
-.theme-light .app-shell .insights-metric-card.low>i{border-color:#10b98140;background:#10b98114;color:#047857}
 .theme-light .app-shell .insights-panel>.panel-heading .btn:hover{background:#f3f3f3}
 .theme-light .app-shell .insights-chart-panel .recharts-responsive-container{background:transparent}
 @media(max-width:1180px){.app-shell .predictive-insights .insights-title{align-items:flex-start;flex-direction:column}}
 @media(max-width:1180px){.app-shell .predictive-insights .insights-title .page-header-actions{width:100%;justify-content:space-between}}
-@media(max-width:1180px){.app-shell .insights-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:1180px){.app-shell .occupancy-pricing-layout{grid-template-columns:1fr}}
 @media(max-width:1180px){.app-shell .pricing-preview-list{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:720px){.app-shell .insights-tabs{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}}
@@ -1118,7 +1108,6 @@ html:not(.theme-light) .tt-rays{opacity:1;transform:none}
 @media(max-width:720px){.app-shell .predictive-insights .insights-title .page-header-actions{align-items:stretch;flex-direction:column}}
 @media(max-width:720px){.app-shell .insights-freshness{padding:0 0 10px;border-inline-end:0;border-bottom:1px solid rgba(59,130,246,.28)}}
 @media(max-width:720px){.app-shell .predictive-insights .insights-title .page-header-actions .btn{justify-content:center;width:100%;font-size:10px}}
-@media(max-width:720px){.app-shell .insights-metric-grid{grid-template-columns:1fr}}
 @media(max-width:720px){.app-shell .insights-panel{--panel-divider-inset:15px;padding:15px}}
 @media(max-width:720px){.app-shell .insights-panel>.panel-heading{align-items:flex-start;flex-direction:column}}
 @media(max-width:720px){.app-shell .insights-panel>.panel-heading .btn{width:100%;justify-content:center}}
@@ -2711,6 +2700,39 @@ tbody tr:hover{background: var(--surface-hover)}
 }
 .app-shell .front-desk-metrics > .metric-needs-attention small { color: #fbbf24; }
 .theme-light .app-shell .front-desk-metrics > .metric-needs-attention small { color: #b45309; }
+.app-shell.front-desk-shell .sidebar .nav-group-header {
+  color: var(--st-text-primary);
+  opacity: 1;
+  transition-property: background-color;
+}
+.app-shell.front-desk-shell .sidebar .nav-group-header:hover { background: var(--st-bg-surface-hover); }
+.app-shell.front-desk-shell .sidebar .nav-group-header:focus-visible,
+.app-shell .front-desk-metrics > .metric-queue-action:focus-visible {
+  outline: 2px solid var(--st-text-primary);
+  outline-offset: 2px;
+}
+.app-shell .front-desk-metrics > .metric-queue-action {
+  font: inherit;
+  justify-content: flex-start;
+  text-align: start;
+  cursor: pointer;
+}
+.app-shell .front-desk-metrics > .metric-queue-action:hover { background: var(--st-bg-surface-hover); }
+
+@media (min-width: 1001px) {
+  .app-shell.front-desk-shell .app-header { height: 56px; padding-inline: 20px; }
+  .app-shell.front-desk-shell .workspace-body { padding: 12px 20px 32px; }
+  .app-shell.front-desk-shell .front-desk-metrics > .metric-card { min-height: 114px; padding: 12px 14px; }
+  .app-shell.front-desk-shell .front-desk-metrics > .metric-card > div { grid-template-rows: auto auto auto; }
+  .app-shell.front-desk-shell .front-desk-metrics > .metric-card b { margin-block: 4px; }
+  .app-shell.front-desk-shell .front-desk-metrics > .metric-card > i { inset-block-start: 12px; inset-inline-end: 12px; }
+  .app-shell.front-desk-shell .toast-stack {
+    inset: auto 18px 18px auto;
+    transform: none;
+    width: min(360px, 100vw - 32px);
+    min-width: 0;
+  }
+}
 .app-shell .front-desk-metrics > .metric-card > i {
   position: absolute;
   top: 16px;
@@ -2735,4 +2757,37 @@ tbody tr:hover{background: var(--surface-hover)}
 }
 @media (max-width: 420px) {
   .app-shell .metric-grid.front-desk-metrics { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Front Office room facts and reservation history. */
+.app-shell .room-detail .room-operational-facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px 16px;
+  padding: 12px 14px;
+  margin: 0 0 12px;
+  border: 1px solid var(--st-border-color);
+  border-radius: 10px;
+  background: var(--st-bg-surface-subtle);
+}
+.app-shell .room-detail .room-operational-facts dt { font-size: .75rem; color: var(--st-text-secondary); }
+.app-shell .room-detail .room-operational-facts dd { margin: 4px 0 0; font-size: .875rem; font-weight: 650; }
+.app-shell .room-detail .room-operational-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.app-shell .room-detail .room-operational-actions:not(:empty) { margin-bottom: 12px; }
+.app-shell .room-detail .room-operational-actions button { min-height: 44px; }
+.app-shell .room-detail .room-live-stays { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; margin-bottom: 14px; }
+.app-shell .room-detail .room-live-stays h3 { font-size: .9375rem; }
+.app-shell .room-detail .room-live-stays dt { font-size: .8125rem; }
+.app-shell .room-detail .room-live-stays dd { font-size: .875rem; overflow-wrap: anywhere; }
+.app-shell .room-detail .room-live-stays button { min-height: 44px; }
+.app-shell .reservation-activity { margin-block: 12px; border-block: 1px solid var(--st-border-color, #dae2dc); }
+.app-shell .reservation-activity summary { padding: 12px 0; font-weight: 650; cursor: pointer; }
+.app-shell .reservation-activity summary span, .app-shell .reservation-activity time { color: var(--st-text-secondary, #55645a); font-size: .8125rem; font-weight: 400; }
+.app-shell .reservation-activity summary span { margin-inline-start: 8px; }
+.app-shell .reservation-activity ol { margin: 0; padding: 0; list-style: none; }
+.app-shell .reservation-activity li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; padding: 8px 0; border-top: 1px solid var(--st-border-color, #dae2dc); font-size: .875rem; }
+.app-shell .reservation-activity time { font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) {
+  .app-shell .room-detail .room-operational-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .app-shell .room-detail .room-live-stays { grid-template-columns: minmax(0, 1fr); }
 }

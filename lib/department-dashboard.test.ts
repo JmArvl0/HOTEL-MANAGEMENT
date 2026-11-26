@@ -33,6 +33,22 @@ beforeEach(() => {
 afterEach(() => {for (const resource of resources) demoStore[resource] = originals.get(resource)!;});
 
 describe('department dashboard preserves actionable operational metrics', () => {
+  it('projects recent stays without guest contact or private fields', async () => {
+    demoStore.reservations = [{
+      id: 'R-PRIVATE', guest_name: 'Fixture guest', guest_email: 'guest@example.invalid',
+      guest_phone: 'Fixture phone', special_requests: 'Fixture notes', status: 'confirmed',
+    }];
+    for (const role of ['front_desk', 'manager', 'accounting'] as const) {
+      const { recentReservations } = await getDashboard(role);
+      expect(recentReservations[0]).toMatchObject({ id: 'R-PRIVATE', guest_name: 'Fixture guest' });
+      expect(recentReservations[0]).not.toHaveProperty('guest_email');
+      expect(recentReservations[0]).not.toHaveProperty('guest_phone');
+      expect(recentReservations[0]).not.toHaveProperty('special_requests');
+    }
+    for (const role of ['housekeeping', 'maintenance'] as const) {
+      expect((await getDashboard(role)).recentReservations).toEqual([]);
+    }
+  });
   it('shows Maintenance its active/urgent work and unique blocked rooms', async () => {
     const {metrics} = await getDashboard('maintenance');
     expect(metrics).toMatchObject({openMaintenance:3,criticalMaintenance:2,outOfServiceRooms:2,departmentRequests:1});

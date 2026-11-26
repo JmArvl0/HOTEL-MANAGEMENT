@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { canRequestManagerApproval, canReviewManagerApprovals } from "@/lib/permissions";
+import { canExecuteManagerApproval, canRequestManagerApproval, canReviewManagerApprovals } from "@/lib/permissions";
 import type { RecordItem, Role } from "@/lib/types";
 
 export const MANAGER_APPROVAL_TYPES=["room_upgrade","room_type_exception","reservation_modification","early_check_in","late_checkout","guest_compensation","refund_exception","checkout_exception","guest_escalation","stay_extension"] as const;
@@ -9,9 +9,28 @@ export const managerCanReview=(role:Role)=>canReviewManagerApprovals(role);
 export const staffCanRequestApproval=(role:Role)=>canRequestManagerApproval(role);
 
 export async function listManagerApprovals(role:Role,userId:string):Promise<RecordItem[]>{
- if(!supabase)return[];
+ if(!supabase || (!canReviewManagerApprovals(role) && !canRequestManagerApproval(role)))return[];
+ if (role === "housekeeping" || role === "maintenance") {
+   const { data, error } = await supabase.from("manager_approval_requests")
+     .select("id,request_type,department,severity,reason,requested_by,requested_at,status,reviewed_at,decision_reason,execution_status,version")
+     .eq("requested_by", userId).eq("request_type", "guest_escalation").eq("department", role)
+     .order("requested_at", { ascending: false });
+   if (error) throw error;
+   return (data ?? []) as RecordItem[];
+ }
  let query=supabase.from("manager_approval_requests").select("id,request_type,related_entity_type,related_entity_id,reservation_id,guest_request_id,department,severity,reason,requested_action,normal_policy_result,requested_by,requested_at,status,reviewed_by,reviewed_at,decision_reason,execution_status,executed_by,executed_at,version,updated_at,guest_accepted_at,guest_accepted_by,authority_level,owner_escalated_by,owner_escalated_at,owner_escalation_reason,owner_reviewed_by,owner_reviewed_at");
- if(!canReviewManagerApprovals(role))query=query.eq("requested_by",userId);
+ if (canExecuteManagerApproval(role)) {
+   const guestChangesForExecution = [
+     "department.eq.front_desk",
+     "request_type.eq.reservation_modification",
+     "related_entity_type.eq.reservation_change_request",
+     "status.eq.approved",
+     "execution_status.eq.awaiting_execution",
+   ].join(",");
+   query = query.or(`requested_by.eq.${userId},and(${guestChangesForExecution})`);
+ } else if (!canReviewManagerApprovals(role)) {
+   query = query.eq("requested_by", userId);
+ }
  const{data,error}=await query.order("requested_at",{ascending:false});if(error)throw error;
  const rows=(data??[])as RecordItem[];const reservationIds=[...new Set(rows.map(row=>String(row.reservation_id||"")).filter(Boolean))];const userIds=[...new Set(rows.flatMap(row=>[String(row.requested_by||""),String(row.reviewed_by||"")]).filter(Boolean))];
  const[reservations,users]=await Promise.all([reservationIds.length?supabase.from("reservations").select("id,confirmation_number,guest_name,room_type,room_number,check_in,check_out,status,payment_status").in("id",reservationIds):Promise.resolve({data:[]}),userIds.length?supabase.from("user_accounts").select("id,name,role").in("id",userIds):Promise.resolve({data:[]})]);

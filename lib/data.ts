@@ -1,48 +1,74 @@
-import { demoStore, makeId } from "@/lib/demo-store";
+import { demoStore } from "@/lib/demo-store";
 import { env } from "@/lib/env";
 import { hotelToday } from "@/lib/booking";
 import { supabase } from "@/lib/supabase";
 import { bookedOccupancyTrend } from "@/lib/analytics/occupancy";
-import type { ReservationLike } from "@/lib/analytics/types";
+import { shiftDate, type ReservationLike } from "@/lib/analytics/types";
 import { maintenanceBlockedRoomIds, roomBoardState, type RackReservation, type RackRoom } from "@/lib/room-rack";
+import { inReservationQueue } from "@/lib/reservation-workspace";
 import type { DashboardData, RecordItem, Resource, Role } from "@/lib/types";
 import { readAllRows } from "@/lib/read-all-rows";
 
 export const databaseMode = env.databaseMode;
 
-export async function list(resource: Resource): Promise<RecordItem[]> {
-  if (!supabase) return demoStore[resource];
-  return readAllRows<RecordItem>(() => supabase!.from(resource).select("*").order("created_at", { ascending: false }));
-}
+const activeMaintenanceStatuses = new Set(["open", "assigned", "in_progress", "waiting_parts", "deferred"]);
+const recentStayFields = "id,confirmation_number,guest_name,room_type,check_in,status,source,payment_status,created_at";
 
-export async function create(resource: Resource, payload: Omit<RecordItem, "id">): Promise<RecordItem> {
-  if (!supabase) {
-    const item = { ...payload, id: makeId(resource) } as RecordItem;
-    demoStore[resource].unshift(item);
-    return item;
+async function getDashboardRows(role: Role, today: string) {
+  const operational = role === "manager" || role === "front_desk";
+  const department = role === "housekeeping" || role === "maintenance" ? role : null;
+  const client = supabase;
+  if (!client) {
+    const { reservations, rooms, housekeeping_tasks: tasks, invoices, payments, guest_requests: requests, maintenance_orders: maintenance } = demoStore;
+    return { reservations, rooms, tasks, invoices, payments, requests, maintenance, recent: reservations.slice(0, 5) };
   }
-  const { data, error } = await supabase.from(resource).insert(payload).select().single();
-  if (error) throw error;
-  return data as RecordItem;
-}
 
-export async function update(resource: Resource, id: string, payload: Partial<RecordItem>): Promise<RecordItem> {
-  if (!supabase) {
-    const index = demoStore[resource].findIndex((item) => item.id === id);
-    if (index < 0) throw new Error("Record not found");
-    demoStore[resource][index] = { ...demoStore[resource][index], ...payload };
-    return demoStore[resource][index];
-  }
-  const { data, error } = await supabase.from(resource).update(payload).eq("id", id).select().single();
-  if (error) throw error;
-  return data as RecordItem;
+  const orderField = (resource: Resource, fields: string) => client.from(resource).select(fields)
+    .order("created_at", { ascending: false });
+  const weekStart = shiftDate(today, -6);
+  const reservationScope = [
+    "status.eq.checked_in",
+    `and(status.eq.confirmed,check_out.gt.${today})`,
+    `and(check_in.lte.${today},check_out.gte.${weekStart})`,
+    ...(operational || role === "owner" || role === "admin" ? ["and(source.eq.Website,status.in.(pending,confirmed))"] : []),
+  ];
+  const activeMaintenance = `status.in.(${[...activeMaintenanceStatuses].join(",")})`;
+  const startOfDay = `${today}T00:00:00+08:00`;
+  const nextDay = `${shiftDate(today, 1)}T00:00:00+08:00`;
+  const [reservations, rooms, tasks, invoices, payments, requests, maintenance, recent] = await Promise.all([
+    readAllRows(() => orderField("reservations", `${recentStayFields},check_out,room_id`).or(reservationScope.join(",")).returns<RecordItem[]>()),
+    readAllRows(() => orderField("rooms", "id,number,status,housekeeping,administratively_active").returns<RecordItem[]>()),
+    role === "guest" ? [] : readAllRows(() => orderField("housekeeping_tasks", "id,status,created_at").or("status.neq.completed,status.is.null").returns<RecordItem[]>()),
+    role === "manager" || role === "accounting"
+      ? readAllRows(() => orderField("invoices", "id,reservation_id,paid,balance").returns<RecordItem[]>())
+      : role === "front_desk"
+        ? readAllRows(() => client.from("invoices").select("id,reservation_id,balance,reservations!inner(id)")
+          .or(`check_in.eq.${today},check_out.eq.${today}`, { referencedTable: "reservations" })
+          .in("reservations.status", ["confirmed", "checked_in"]).returns<RecordItem[]>())
+        : [],
+    role === "accounting" ? readAllRows(() => orderField("payments", "id,status,purpose,amount,verified_at,created_at").eq("status", "paid")
+      .or(`and(verified_at.gte.${startOfDay},verified_at.lt.${nextDay}),and(verified_at.is.null,created_at.gte.${startOfDay},created_at.lt.${nextDay})`).returns<RecordItem[]>()) : [],
+    role === "guest" || role === "accounting" ? [] : readAllRows(() => {
+      const query = orderField("guest_requests", "id,status,department,request,due_at,created_at,escalated_at,escalation_status,approval_status,batch_id");
+      if (department) return query.eq("department", department).eq("approval_status", "approved").in("status", ["open", "in_progress"]).returns<RecordItem[]>();
+      return query.or(`status.neq.completed,status.is.null,escalation_status.eq.escalated${operational ? ",approval_status.eq.pending" : ""}`).returns<RecordItem[]>();
+    }),
+    readAllRows(() => orderField("maintenance_orders", "id,room_id,room_number,status,serviceability_impact,priority,issue,created_at")
+      .or(role === "manager" ? `${activeMaintenance},and(or(status.neq.resolved,status.is.null),priority.in.(urgent,critical))` : activeMaintenance).returns<RecordItem[]>()),
+    operational || role === "accounting"
+      ? orderField("reservations", recentStayFields).order("id").limit(5).returns<RecordItem[]>().then(({ data, error }) => {
+        if (error) throw error;
+        return data ?? [];
+      })
+      : [],
+  ]);
+  return { reservations, rooms, tasks, invoices, payments, requests, maintenance, recent };
 }
 
 export async function getDashboard(role: Role, userId?: string): Promise<DashboardData> {
-  const [reservations, rooms, tasks, invoices, payments, requests, maintenance] = await Promise.all([list("reservations"), list("rooms"), list("housekeeping_tasks"), list("invoices"), list("payments"), list("guest_requests"), list("maintenance_orders")]);
   const today = hotelToday();
+  const { reservations, rooms, tasks, invoices, payments, requests, maintenance, recent } = await getDashboardRows(role, today);
   const occupied = rooms.filter((record) => record.status === "occupied").length;
-  const activeMaintenanceStatuses = new Set(["open", "assigned", "in_progress", "waiting_parts", "deferred"]);
   // MGR-002: one shared blocked-room derivation (room_id link with a room
   // number fallback), so metrics, board, and gates can never disagree.
   const blockedMaintenanceRoomIds = maintenanceBlockedRoomIds(
@@ -58,7 +84,7 @@ export async function getDashboard(role: Role, userId?: string): Promise<Dashboa
   const serviceableRooms = rooms.filter((record) => record.administratively_active !== false && !blockedMaintenanceRoomIds.has(record.id)).length;
   const financialRole = ["manager", "front_desk", "accounting"].includes(role);
   const operationalRole = ["manager", "front_desk"].includes(role);
-  const revenue = financialRole ? invoices.reduce((sum, item) => sum + Number(item.paid || 0), 0) : 0;
+  const revenue = financialRole && role !== "front_desk" ? invoices.reduce((sum, item) => sum + Number(item.paid || 0), 0) : 0;
   // Occupancy history is BOOKED occupancy — the reservations themselves, one point per
   // hotel day for the trailing week, on the engine's shared night-covering basis
   // (bookedOccupancyTrend). It is measured from reservation stay dates, so it is not the
@@ -68,12 +94,16 @@ export async function getDashboard(role: Role, userId?: string): Promise<Dashboa
   const occupancyTrend = bookedOccupancyTrend(reservations as unknown as ReservationLike[], serviceableRooms, today);
   const activeArrivals = reservations.filter((record) => record.check_in === today && ["confirmed", "checked_in"].includes(String(record.status)));
   const activeDepartures = reservations.filter((record) => record.check_out === today && ["confirmed", "checked_in"].includes(String(record.status)));
+  const frontDeskArrivals = role === "front_desk" ? rackReservations.filter(record => inReservationQueue(record, "arrivals", today)) : [];
+  const frontDeskDepartures = role === "front_desk" ? rackReservations.filter(record => inReservationQueue(record, "departures", today)) : [];
+  const invoiceByReservation = new Map(invoices.map(invoice => [invoice.reservation_id, invoice]));
+  const hasBalance = (item: { id: RecordItem["id"] }) => Number(invoiceByReservation.get(item.id)?.balance ?? 0) > 0;
   const online = reservations.filter((record) => record.source === "Website" && ["pending", "confirmed", "checked_in"].includes(String(record.status)));
   const recentReservations = operationalRole || role === "accounting"
-    ? reservations.slice(0, 5).map((record) => role === "accounting" ? {
+    ? recent.map((record) => ({
         id: record.id, confirmation_number: record.confirmation_number, guest_name: record.guest_name, room_type: record.room_type,
         check_in: record.check_in, status: record.status, source: record.source, payment_status: record.payment_status
-      } : record)
+      }))
     : [];
   const refundRole = ["accounting"].includes(role);
   const refunds: RecordItem[] = refundRole ? (!supabase ? demoStore.refunds : (((await supabase.from("refund_requests").select("id,reservation_id,eligible_amount,status,created_at").in("status",["pending","failed"]).order("created_at",{ascending:false})).data ?? []) as RecordItem[])) : [];
@@ -132,7 +162,6 @@ export async function getDashboard(role: Role, userId?: string): Promise<Dashboa
     for(const report of reportNotifications)notifications.push({id:`manager-report-${report.id}`,title:"Daily operations report awaiting review",detail:`${report.report_date} - submitted by Front Desk`,section:"reports",createdAt:typeof report.submitted_at==="string"?report.submitted_at:undefined});
   }
   if (role === "front_desk") {
-    const invoiceByReservation=new Map(invoices.map(invoice=>[invoice.reservation_id,invoice]));
     const maintenanceRooms=blockedMaintenanceRoomIds;
     for(const reservation of activeArrivals.filter(item=>!item.room_id))notifications.push({id:`unassigned-${reservation.id}`,title:"Arrival needs a room assignment",detail:`${reservation.confirmation_number||reservation.id} - ${reservation.guest_name}`,section:"room_rack"});
     for(const reservation of [...activeArrivals,...activeDepartures]){const invoice=invoiceByReservation.get(reservation.id);if(Number(invoice?.balance||0)>0)notifications.push({id:`balance-${reservation.id}`,title:reservation.check_out===today?"Departure has an outstanding balance":"Arrival balance requires attention",detail:`${reservation.confirmation_number||reservation.id} - ${new Intl.NumberFormat("en-PH",{style:"currency",currency:"PHP"}).format(Number(invoice?.balance||0))}`,section:"room_rack"});const room=rooms.find(item=>item.id===reservation.room_id);if(room&&(room.status==="maintenance"||room.housekeeping!=="clean"||maintenanceRooms.has(room.id)))notifications.push({id:`room-block-${reservation.id}`,title:"Assigned room is not ready",detail:`${reservation.confirmation_number||reservation.id} - Room ${room.number}`,section:"room_rack"});}
@@ -164,18 +193,21 @@ export async function getDashboard(role: Role, userId?: string): Promise<Dashboa
 
   const metrics: DashboardData["metrics"] = {
     occupancy: Math.round((occupied / Math.max(serviceableRooms, 1)) * 100),
-      arrivals: activeArrivals.length,
-      departures: activeDepartures.length,
+      arrivals: role === "front_desk" ? frontDeskArrivals.length : activeArrivals.length,
+      departures: role === "front_desk" ? frontDeskDepartures.length : activeDepartures.length,
       revenue,
       openTasks: tasks.filter((task) => task.status !== "completed").length,
       availableRooms: countBoardState("available"),
       onlineBookings: online.length,
       inHouse: reservations.filter(item=>item.status==="checked_in").length,
-      unassignedArrivals: activeArrivals.filter(item=>!item.room_id).length,
+      unassignedArrivals: role === "front_desk"
+        ? frontDeskArrivals.filter(item => item.status === "confirmed" && !item.room_id).length
+        : activeArrivals.filter(item => !item.room_id).length,
       dirtyRooms: rooms.filter(item=>["dirty","reclean_required"].includes(String(item.housekeeping))).length,
       outOfServiceRooms: blockedMaintenanceRoomIds.size,
       openRequests: requests.filter(item=>item.status!=="completed").length,
-      balancesAttention: [...activeArrivals,...activeDepartures].filter(item=>Number(invoices.find(invoice=>invoice.reservation_id===item.id)?.balance||0)>0).length,
+      balancesAttention: [...activeArrivals, ...activeDepartures].filter(hasBalance).length,
+      ...(role === "front_desk" ? { departureBalancesAttention: frontDeskDepartures.filter(hasBalance).length } : {}),
       roomsCleaning:rooms.filter(item=>item.housekeeping==="cleaning").length,roomsAwaitingInspection:rooms.filter(item=>item.housekeeping==="inspection").length,overdueHousekeeping:overdueHousekeeping.length,openMaintenance:maintenance.filter(item=>activeMaintenanceStatuses.has(String(item.status))).length,criticalMaintenance:maintenance.filter(item=>activeMaintenanceStatuses.has(String(item.status))&&["urgent","critical"].includes(String(item.priority))).length,overdueRequests:overdueGuestRequests.length,escalatedIssues:requests.filter(item=>item.escalation_status==="escalated").length,pendingApprovals:approvals.filter(item=>item.status==="pending").length,collectionsToday,depositsReceived,refundSummary,outstandingBalances:financialRole?invoices.reduce((sum,item)=>sum+Number(item.balance||0),0):0,cashThisShift,shiftFloat,shiftOpen,pendingRequestBatches,departmentRequests,transportationRequested,pendingRefundCount
   };
 

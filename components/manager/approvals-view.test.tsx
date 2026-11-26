@@ -103,6 +103,7 @@ function renderView(overrides: Partial<Parameters<typeof ManagerApprovalView>[0]
     setSearch: vi.fn(),
     review: vi.fn().mockResolvedValue(true),
     execute: vi.fn().mockResolvedValue(true),
+    recordAcceptance: vi.fn().mockResolvedValue(null),
     executeException: vi.fn().mockResolvedValue(true),
     financialExecute: vi.fn().mockResolvedValue(true),
     escalateOwner: vi.fn().mockResolvedValue(true),
@@ -212,6 +213,31 @@ describe("ManagerApprovalView", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
+  it("shows a guest's approved reservation change in the default Front Desk queue", async () => {
+    const amendment = {
+      ...approvedStayExtension,
+      id: "guest-amendment",
+      request_type: "reservation_modification",
+      requested_by: "guest-account",
+      reservation_reference: "HV-AMENDMENT",
+      requested_action: { checkIn: "2026-09-13", checkOut: "2026-09-15" },
+    } as unknown as RecordItem;
+    const ownRequest = { ...normalCheckout, requested_by: "front-desk-account" };
+    renderView({ canReview: false, canExecute: true, actorId: "front-desk-account", items: [amendment, ownRequest] });
+
+    expect(screen.getByRole("button", { name: "All requests" }).getAttribute("aria-pressed")).toBe("true");
+    expect(tableRows()).toHaveLength(2);
+    fireEvent.click(screen.getByRole("button", { name: "My requests" }));
+    expect(tableRows()).toHaveLength(1);
+    expect(within(tableRows()[0]).getByText("HV-1001")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "All requests" }));
+    const guestRow = tableRows().find((row) => within(row).queryByText("HV-AMENDMENT"))!;
+    fireEvent.click(within(guestRow).getByRole("button", { name: "Review" }));
+    const modal = await screen.findByRole("dialog");
+    expect(within(modal).getByRole("button", { name: "Execute as Front Desk" })).toBeTruthy();
+  });
+
   it("shows the caught-up empty state when the pending queue is clear, and the clear-filters state when filtered out", () => {
     renderView({ items: [decidedComp] });
     fireEvent.click(screen.getByRole("button", { name: "pending" }));
@@ -243,5 +269,35 @@ describe("ManagerApprovalView", () => {
     fireEvent.click(within(modal).getByText("Execute as Front Desk"));
     await waitFor(() => expect(props.execute).toHaveBeenCalledWith(approvedStayExtension));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
+  it("records acceptance before exposing execution for a guest-paid mid-stay upgrade", async () => {
+    const upgrade = {
+      ...approvedStayExtension,
+      request_type: "room_upgrade",
+      guest_accepted_at: null,
+      requested_action: {
+        requestedRoomType: "Deluxe",
+        financials: { responsibility: "guest", reasonCode: "guest_premium_type", difference: 560, originalTotal: 400, targetTotal: 960 },
+      },
+    } as unknown as RecordItem;
+    const recordAcceptance = vi.fn()
+      .mockResolvedValueOnce("Unable to record guest acceptance.")
+      .mockResolvedValueOnce(null);
+    const props = renderView({ items: [upgrade], recordAcceptance });
+    fireEvent.click(within(tableRows()[0]).getByText("Review"));
+    const modal = await screen.findByRole("dialog");
+    const action = within(modal).getByRole("button", { name: "Record guest acceptance" });
+    expect(within(modal).queryByRole("button", { name: "Execute as Front Desk" })).toBeNull();
+
+    fireEvent.click(action);
+    expect((await within(modal).findByRole("alert")).textContent).toContain("Unable to record guest acceptance.");
+    fireEvent.click(action);
+    expect((await within(modal).findByRole("status")).textContent).toContain("Guest acceptance recorded");
+    expect(recordAcceptance).toHaveBeenCalledTimes(2);
+    expect(recordAcceptance).toHaveBeenLastCalledWith(upgrade);
+    expect(within(modal).queryByRole("alert")).toBeNull();
+    fireEvent.click(within(modal).getByRole("button", { name: "Execute as Front Desk" }));
+    await waitFor(() => expect(props.execute).toHaveBeenCalledWith(upgrade));
   });
 });

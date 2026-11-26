@@ -49,18 +49,14 @@ export async function GET(request: Request) {
       .gt("check_out", from)
       .not("status", "in", "(cancelled,no_show)")
       .order("check_in", { ascending: true })),
-    readAllRows(() => supabase!.from("invoices").select("reservation_id,balance").not("reservation_id", "is", null)),
-    readAllRows(() => supabase!.from("room_types").select("name,badge_color_key")),
+    readAllRows(() => supabase!.from("invoices").select("reservation_id,balance,reservations!inner(id)")
+      .lt("reservations.check_in", to).gt("reservations.check_out", from).not("reservations.status", "in", "(cancelled,no_show)")),
+    readAllRows(() => supabase!.from("room_types").select("name,badge_color_key,photo_urls")),
     readAllRows(() => supabase!.from("maintenance_orders").select("room_id,room_number,status,serviceability_impact").in("status", ["open", "assigned", "in_progress", "waiting_parts", "deferred"]).in("serviceability_impact", ["blocked", "out_of_service"])),
     readAllRows(() => supabase!.from("reservation_room_assignments").select("id,reservation_id,room_id,check_in,check_out,effective_from,effective_to,status").lt("check_in",to).gt("check_out",from)),
   ]);
 
-  const colors = new Map(
-    ((types ?? []) as { name: string; badge_color_key: string | null }[]).map((row) => [
-      String(row.name),
-      row.badge_color_key,
-    ])
-  );
+  const roomTypes = new Map(types.map((type) => [type.name, type]));
 
   const balances = new Map(
     ((invoices ?? []) as { reservation_id: string; balance: number | string }[]).map((row) => [
@@ -75,10 +71,14 @@ export async function GET(request: Request) {
       assignments,
       blockedRoomIds,
       days: parsed.data.days,
-      rooms: ((rooms ?? []) as Record<string, unknown>[]).map((row) => ({
-        ...row,
-        room_type_color: colors.get(String(row.type)) ?? null,
-      })),
+      rooms: rooms.map((row) => {
+        const type = roomTypes.get(row.type);
+        return {
+          ...row,
+          room_type_color: type?.badge_color_key ?? null,
+          room_type_photo_url: type?.photo_urls?.find((url: unknown) => typeof url === "string" && url.trim())?.trim() ?? null,
+        };
+      }),
       reservations: ((reservations ?? []) as Record<string, unknown>[]).map((row) => ({
         ...row,
         folio_balance: balances.get(String(row.id)) ?? null,

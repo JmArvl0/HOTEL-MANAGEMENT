@@ -57,6 +57,8 @@ describe("housekeeping queue surface", () => {
     expect(panel).not.toContain("supabase");
     expect(panel).not.toContain("fetchPublic(");
     expect(dashboard).toContain('housekeepingAction={operateHousekeeping}');
+    expect(dashboard).toContain('onServiceOutcome={recordHousekeepingOutcome}');
+    expect(dashboard).toContain('onSetDnd={setHousekeepingDnd}');
     expect(dashboard).toContain("HousekeepingQueuePanel");
     expect(panel).toContain('housekeepingAction(item, "start")');
     expect(panel).toContain('housekeepingAction(item, "inspect")');
@@ -109,8 +111,6 @@ describe("daily report housekeeping block", () => {
 describe("generic resources route no longer carries the dead completion branch", () => {
   it("removes the unreachable complete_housekeeping_task RPC call", () => {
     expect(resourcesRoute).not.toContain("complete_housekeeping_task");
-    // Every role is 403'd for housekeeping_tasks before that branch could run —
-    // the guard chain itself stays intact.
-    expect(resourcesRoute).toContain('["payments","refunds","housekeeping_tasks"].includes(resource)');
+    expect(resourcesRoute).toContain("return rejectWrite(request, context)");
   });
 });

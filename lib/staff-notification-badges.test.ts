@@ -46,7 +46,8 @@ describe("transient toast alerts", () => {
     expect(client).toContain("seenAlerts.current === null");
   });
   it("dedupes alerts by notification id", () => {
-    expect(client).toContain("if (seenAlerts.current.has(notice.id)) continue;");
+    expect(client).toContain("dashboard.notifications.filter(notice => !seen.has(notice.id))");
+    expect(client).toContain("for (const notice of incoming) seen.add(notice.id)");
   });
   it("routes toast View actions to the alert's module", () => {
     expect(client).toContain("setSection(notice.section)");
