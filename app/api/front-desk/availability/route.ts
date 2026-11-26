@@ -16,14 +16,16 @@ export async function GET(request: Request) {
   if (!allowed.has(session.user.role)) return publicJson({ error: "Only Front Desk can perform this action. Ask Front Desk for help." }, { status: 403 });
   if (!supabase) return publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
   const params = new URL(request.url).searchParams;
-  const parsed = searchSchemaFor(hotelToday(await getBookingTimezone())).safeParse({
+  const today = hotelToday(await getBookingTimezone());
+  if (params.get("calendar") === "1") return publicJson({ data: { hotelToday: today } });
+  const parsed = searchSchemaFor(today, 20).safeParse({
     checkIn: params.get("checkIn") ?? "",
     checkOut: params.get("checkOut") ?? "",
     guests: params.get("guests") ?? "1",
   });
   if (!parsed.success) return publicJson(validationBody(parsed.error, { error: parsed.error.issues[0]?.message ?? "Please check the stay dates and number of guests." }), { status: 400 });
   try {
-    const data = await getAvailability(parsed.data);
+    const data = await getAvailability(parsed.data, true, 20);
     return publicJson({ data });
   } catch {
     return publicJson({ error: "Unable to check availability right now." }, { status: 502 });

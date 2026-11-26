@@ -13,10 +13,10 @@ export function reservationOverlapsWindow(r: RackReservation, from: string, thro
 
 export function inReservationQueue(r: RackReservation, queue: ReservationQueue, today: string) {
   const arrival = r.status === "pending" || r.status === "confirmed";
-  if (queue === "arrivals") return arrival && r.check_in.slice(0, 10) === today;
-  if (queue === "upcoming") return arrival && r.check_in.slice(0, 10) > today;
+  if (queue === "arrivals") return arrival && r.check_in?.slice(0, 10) === today;
+  if (queue === "upcoming") return arrival && (r.check_in ?? "").slice(0, 10) > today;
   if (queue === "in_house") return r.status === "checked_in";
-  if (queue === "departures") return r.status === "checked_in" && r.check_out.slice(0, 10) === today;
+  if (queue === "departures") return r.status === "checked_in" && r.check_out?.slice(0, 10) === today;
   if (queue === "closed") return ["checked_out", "cancelled", "no_show"].includes(r.status);
   return true;
 }

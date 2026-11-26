@@ -1,0 +1,94 @@
+.dialog :global(.modal-body) { padding: 0; }
+.frame, .editor {
+  --booking-ink: var(--st-text-primary, #19251f);
+  --booking-muted: var(--st-text-secondary, #55645a);
+  --booking-line: var(--st-border-color, #dce5df);
+  --booking-surface: var(--st-bg-surface, #fff);
+  --booking-tint: color-mix(in srgb, var(--booking-surface) 95%, var(--haven-brand-600, #216247));
+  --booking-accent: var(--st-primary-text, var(--haven-brand-700, #215c41));
+}
+.frame {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(11rem, 26%);
+  gap: 16px;
+  padding: 16px;
+  background: var(--booking-tint);
+  color: var(--booking-ink);
+}
+.sheet { min-width: 0; background: var(--booking-surface); border: 1px solid var(--booking-line); border-radius: 14px; }
+.steps { display: flex; margin: 0; padding: 0 24px; gap: 22px; list-style: none; border-bottom: 1px solid var(--booking-line); }
+.steps li { display: inline-flex; gap: 5px; align-items: center; min-height: 47px; border-bottom: 2px solid transparent; color: var(--booking-muted); font-size: .8125rem; }
+.steps li[aria-current] { color: var(--booking-ink); border-color: var(--booking-accent); font-weight: 650; }
+.steps li button { display: inline-flex; gap: 5px; align-items: center; min-height: 44px; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.steps li button:hover { color: var(--booking-ink); text-decoration: underline; text-underline-offset: 3px; }
+.steps li button:focus-visible { outline: 2px solid var(--booking-accent); outline-offset: 3px; }
+.steps li button:disabled { cursor: default; opacity: .65; }
+.form { display: grid; gap: 16px; padding: 24px; }
+.form h3, .summary h3 { margin: 0; font-size: 1.135rem; font-weight: 650; letter-spacing: -.025em; overflow-wrap: anywhere; }
+.form p { margin: 0; color: var(--booking-muted); }
+.form .error { padding: 10px 12px; border-inline-start: 3px solid var(--st-danger, #bd4936); background: color-mix(in srgb, var(--booking-surface) 93%, #bd4936); color: var(--booking-ink); }
+.form label { display: grid; gap: 6px; font-size: .875rem; font-weight: 550; min-width: 0; }
+.form input:not([type="radio"]), .form select, .form textarea {
+  box-sizing: border-box;
+  min-height: 44px;
+  width: 100%;
+  padding: 8px 11px;
+  border: 1px solid var(--booking-line);
+  border-radius: 8px;
+  background: var(--booking-surface);
+  color: var(--booking-ink);
+  font: inherit;
+}
+.form :is(input, select, textarea, button, summary):focus-visible { outline: 2px solid var(--booking-accent); outline-offset: 2px; }
+.form :global(button.btn), .dialog .footerActions > :global(button.btn) { min-height: 44px; justify-self: start; }
+.dialog :global(button.btn), .dialog :global(button.modal-close) { box-shadow: none; }
+.search { position: relative; }
+.search svg { position: absolute; top: 14px; left: 12px; color: var(--booking-muted); pointer-events: none; }
+.search input[type="search"] { padding-left: 38px; }
+.fields, .review { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px 16px; margin: 0; }
+.wide { grid-column: 1 / -1; }
+.matches { padding: 0; margin: 0; list-style: none; }
+.matches li + li { border-top: 1px solid var(--booking-line); }
+.matches button { display: flex; align-items: center; justify-content: space-between; width: 100%; text-align: start; border: 0; background: transparent; color: var(--booking-ink); padding: 8px; min-height: 48px; cursor: pointer; }
+.matches button:hover, .room:hover { background: var(--booking-tint); }
+.matches small, .room small, .profile span { display: block; color: var(--booking-muted); overflow-wrap: anywhere; font-size: .8125rem; }
+.profile { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px; border: 1px solid var(--booking-line); border-radius: 8px; }
+.profile div { flex: 1 1 140px; min-width: 0; overflow-wrap: anywhere; }
+.rooms { min-width: 0; margin: 0; padding: 0; border: 0; display: grid; gap: 8px; }
+.rooms legend { margin-bottom: 8px; font-size: .875rem; font-weight: 600; }
+.form .room { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 9px; padding: 10px; min-height: 48px; border: 1px solid var(--booking-line); border-radius: 8px; cursor: pointer; }
+.room:has(input:checked) { border-color: var(--booking-accent); background: var(--booking-tint); }
+.room input { accent-color: var(--booking-accent); }
+.price { text-align: end; font-variant-numeric: tabular-nums; }
+.options { border-top: 1px solid var(--booking-line); }
+.options summary { min-height: 44px; padding-block: 12px; cursor: pointer; font-size: .875rem; font-weight: 600; }
+.options summary span { margin-inline-start: 6px; color: var(--booking-muted); font-size: .75rem; font-weight: 400; }
+.summary { padding: 12px 4px 12px 0; }
+.summary dl { margin: 16px 0; display: grid; gap: 14px; }
+.summary dt { display: flex; gap: 6px; align-items: center; }
+.summary dt, .review dt, .total span { color: var(--booking-muted); font-size: .8125rem; }
+.summary dd, .review dd { margin: 4px 0 0; font-weight: 600; overflow-wrap: anywhere; }
+.total { margin: 0; padding-top: 12px; border-top: 1px solid var(--booking-line); }
+.total strong { display: block; margin-top: 4px; font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+.editor { padding: 16px; margin-top: 16px; border: 1px solid var(--booking-line); border-radius: 10px; color: var(--booking-ink); }
+.editor h3 { margin: 0 0 12px; font-size: 1rem; }
+.editor .form { padding: 0; }
+.editorActions { display: flex; gap: 8px; flex-wrap: wrap; }
+.footer { width: 100%; }
+.footerActions { display: flex; gap: 10px; justify-content: space-between; }
+.footerActions button:last-child { margin-inline-start: auto; }
+.compactQuote { display: none; }
+@media (max-width: 640px) {
+  .frame { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 10px; }
+  .steps { gap: 13px; padding: 0 15px; }
+  .form { padding: 15px; }
+  .summary { display: none; }
+  .compactQuote { display: flex; justify-content: space-between; gap: 8px; margin: 0 0 10px; font-size: .8125rem; color: var(--st-text-secondary); }
+  .compactQuote strong { color: var(--st-text-primary); font-variant-numeric: tabular-nums; }
+  .dialog .footerActions > :global(button.btn) { flex: 0 0 auto; width: auto; }
+}
+@media (max-width: 360px) {
+  .form .fields { grid-template-columns: minmax(0, 1fr); }
+  .form .room { grid-template-columns: auto minmax(0, 1fr); }
+  .price { grid-column: 2; text-align: start; }
+}

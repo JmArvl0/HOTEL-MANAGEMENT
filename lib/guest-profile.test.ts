@@ -90,10 +90,12 @@ describe("getStaffGuestProfile", () => {
 });
 
 describe("guest profile route contract", () => {
-  it("gates the endpoint on guest-contact visibility, GET only", () => {
+  it("gates dossier reads and scopes edits to staff with guest-contact authority", () => {
     expect(routeSource).toContain("if (!canViewGuestContact(session.user.role)) return publicJson({ error: \"You don't have permission to perform this action. Ask your system administrator if you need access.\" }, { status: 403 });");
     expect(routeSource).toContain("getStaffGuestProfile");
-    expect(routeSource).not.toContain("PATCH");
+    expect(routeSource).toContain("hotelGuard(canEditGuestProfile)");
+    expect(routeSource).toContain('rpc("hotel_staff_edit_guest_profile"');
+    expect(routeSource).not.toContain("p_email:");
     expect(routeSource).not.toContain("POST");
   });
   it("never selects payment proofs or identity documents in the profile query", () => {
