@@ -91,22 +91,23 @@ export function validationIssueMessage(issue: ZodIssue): string {
   const label = labels[field] ?? "this value";
   if (issue.code === "custom") return userMessage(issue.message, `Please check ${label}.`);
   if (issue.code === "invalid_type") {
-    if (issue.received === "undefined" || issue.received === "null") return `Please enter ${label}.`;
-    if (issue.expected === "integer") return `Please enter a whole number for ${label.replace(/^(?:a |an |the )/, "")}.`;
+    if (issue.expected === "int") return `Please enter a whole number for ${label.replace(/^(?:a |an |the )/, "")}.`;
+    if (issue.message === `Invalid input: expected ${issue.expected}, received undefined` ||
+        issue.message === `Invalid input: expected ${issue.expected}, received null`) return `Please enter ${label}.`;
     return `Please enter a valid value for ${label.replace(/^(?:a |an |the )/, "")}.`;
   }
   if (issue.code === "too_small") {
-    if (issue.type === "string") return Number(issue.minimum) === 1 ? `Please enter ${label}.` : `Use at least ${issue.minimum} characters for ${label.replace(/^(?:a |an |the )/, "")}.`;
-    if (issue.type === "array") return `Please choose at least ${issue.minimum} item${issue.minimum === 1 ? "" : "s"}.`;
+    if (issue.origin === "string") return Number(issue.minimum) === 1 ? `Please enter ${label}.` : `Use at least ${issue.minimum} characters for ${label.replace(/^(?:a |an |the )/, "")}.`;
+    if (issue.origin === "array") return `Please choose at least ${issue.minimum} item${issue.minimum === 1 ? "" : "s"}.`;
     return `Please enter ${issue.inclusive ? "at least" : "more than"} ${issue.minimum} for ${label.replace(/^(?:a |an |the )/, "")}.`;
   }
   if (issue.code === "too_big") {
-    if (issue.type === "string") return `Please keep ${label.replace(/^(?:a |an |the )/, "")} to ${Number(issue.maximum).toLocaleString("en-PH")} characters or fewer.`;
-    if (issue.type === "array") return `Please choose no more than ${issue.maximum} items.`;
+    if (issue.origin === "string") return `Please keep ${label.replace(/^(?:a |an |the )/, "")} to ${Number(issue.maximum).toLocaleString("en-PH")} characters or fewer.`;
+    if (issue.origin === "array") return `Please choose no more than ${issue.maximum} items.`;
     return `Please enter ${issue.inclusive ? "no more than" : "less than"} ${issue.maximum} for ${label.replace(/^(?:a |an |the )/, "")}.`;
   }
-  if (issue.code === "invalid_string" && issue.validation === "email") return "Please enter a valid email address.";
-  if (issue.code === "invalid_enum_value" || issue.code === "invalid_union_discriminator") return `Please choose ${label}.`;
+  if (issue.code === "invalid_format" && issue.format === "email") return "Please enter a valid email address.";
+  if (issue.code === "invalid_value" || (issue.code === "invalid_union" && issue.discriminator)) return `Please choose ${label}.`;
   if (issue.code === "unrecognized_keys") return "Refresh the page and check the details before trying again.";
   return userMessage(issue.message, `Please check ${label}.`);
 }
