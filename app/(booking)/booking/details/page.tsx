@@ -5,7 +5,6 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { BookingPageFrame } from "@/components/booking/booking-page-frame";
-import { BookingStaySummary } from "@/components/booking/booking-stay-summary";
 import { GuestDetailsForm } from "@/components/booking/guest-details-form";
 import { getGuestProfile, getOwnedHold, getRoomType, searchSchemaFor, hotelToday, getBookingTimezone, getDepositPolicy, calculateReservationDeposit } from "@/lib/booking";
 import { getExactRooms } from "@/lib/exact-rooms";
@@ -42,6 +41,28 @@ export default async function DetailsPage({searchParams}:{searchParams:Promise<R
   }
   const breakfast = selectedRoom ? await getBreakfastChoice(room.id, search.data.checkIn, search.data.checkOut, search.data.guests, room.subtotal, usableHold?.breakfast_snapshot) : null;
   const breakfastChanged = Boolean(offerFromSearch && offerFromSearch !== breakfast?.id);
+  const draftScope = session.activityId ? JSON.stringify([session.activityId, returnPath, usableHold?.token, breakfast?.id]) : undefined;
  const breadcrumb=[{label:"Find a Room",href:`/booking/rooms/${encodeURIComponent(roomType)}?${new URLSearchParams({checkIn:search.data.checkIn,checkOut:search.data.checkOut,guests:String(search.data.guests)})}`},{label:"Guest details",current:true}];
- return <BookingPageFrame session={session} step="Guest details" breadcrumb={breadcrumb}><section className="booking-stage customer-booking-stage-inner"><div><p className="eyebrow">Almost yours</p><h1>Tell us about your stay.</h1>{selectedRoom&&<p><strong>Room {selectedRoom.number} · {room.name}</strong></p>}<p>We&apos;ll use these details for your reservation and arrival preparation.</p>{breakfastChanged && <p role="status">The breakfast offer changed while you were signing in. Review the options below.</p>}<GuestDetailsForm roomId={raw.roomId} holdToken={usableHold?.token} roomType={room.name} checkIn={search.data.checkIn} checkOut={search.data.checkOut} guests={search.data.guests} checkInFrom={displayTime(policy.checkInTime)} defaults={defaults} initialRequests={initialRequests} initialArrival={initialArrival} initialTransport={initialTransport} preArrival={preArrival} breakfast={breakfast} initialBreakfast={Boolean(usableHold?.breakfast_snapshot || (offerFromSearch && offerFromSearch === breakfast?.id))}/></div><BookingStaySummary roomNumber={selectedRoom?.number} roomType={room.name} checkIn={search.data.checkIn} checkOut={search.data.checkOut} guests={search.data.guests} nights={room.nights} rate={room.nightlyRate} total={room.subtotal} photos={room.photos} footnote={breakfast?.mode === "optional" ? <p>Room-only estimate. The breakfast option shows the updated total when selected.</p> : undefined}/></section></BookingPageFrame>;
+ return <BookingPageFrame session={session} step="Guest details" breadcrumb={breadcrumb}>
+   <section className="booking-stage customer-booking-stage-inner">
+     <GuestDetailsForm
+       key={draftScope} draftScope={draftScope} draftExpiresAt={session.sessionExpiresAt}
+       roomId={raw.roomId} holdToken={usableHold?.token} roomType={room.name}
+       checkIn={search.data.checkIn} checkOut={search.data.checkOut} guests={search.data.guests}
+       checkInFrom={displayTime(policy.checkInTime)} defaults={defaults} initialRequests={initialRequests}
+       initialArrival={initialArrival} initialTransport={initialTransport} preArrival={preArrival} breakfast={breakfast}
+       initialBreakfast={Boolean(usableHold?.breakfast_snapshot || (offerFromSearch && offerFromSearch === breakfast?.id))}
+       intro={<>
+         <h1>Tell us about your stay.</h1>
+         {selectedRoom && <p><strong>Room {selectedRoom.number} · {room.name}</strong></p>}
+         <p>Select Review booking to save your details and start your room hold.</p>
+         {breakfastChanged && <p role="status">The breakfast offer changed while you were signing in. Review the options below.</p>}
+       </>}
+       summary={{ roomNumber: selectedRoom?.number, roomType: room.name, checkIn: search.data.checkIn, checkOut: search.data.checkOut,
+         guests: search.data.guests, nights: room.nights, rate: room.nightlyRate, rateVaries: room.rateVaries,
+         total: room.subtotal, photos: room.photos, depositDue: { label: "Estimated deposit", amount: quote.requiredDeposit },
+         remainingBalance: Math.max(0, room.subtotal - quote.requiredDeposit) }}
+     />
+   </section>
+ </BookingPageFrame>;
 }

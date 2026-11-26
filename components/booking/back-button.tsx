@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { canLeaveBooking } from "@/lib/booking-leave";
 
 /** "Go back" control: `to` navigates deterministically to a known step URL
  *  (booking flow pages); without it, returns to the previous page when the
@@ -15,6 +16,7 @@ export function BackButton({ to, fallback = "/", label = "Go back", className = 
       type="button"
       className={`booking-back ${className}`.trim()}
       onClick={() => {
+        if (!canLeaveBooking()) return;
         if (to) {
           router.push(to);
         } else if (window.history.length > 1 && document.referrer.startsWith(window.location.origin)) {

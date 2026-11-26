@@ -5,7 +5,8 @@
 // early-check-in rules are untouched (asserted by source contract).
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { readGuestDetailsDraft } from "@/lib/guest-details-draft";
 import { GuestDetailsForm } from "./guest-details-form";
 
 const push = vi.hoisted(() => vi.fn());
@@ -38,6 +39,48 @@ const submitForm = (container: HTMLElement) => fireEvent.submit(container.queryS
 const payloadOf = () => JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
 const arrival = () => screen.getByLabelText(/Expected arrival/) as HTMLInputElement;
 const pickup = () => screen.getByLabelText("Pickup time") as HTMLInputElement;
+
+describe("browser history draft", () => {
+  afterEach(() => {
+    window.dispatchEvent(new Event("pagehide"));
+    window.history.replaceState(null, "");
+  });
+
+  it("restores only to the original booking, session and history entry", async () => {
+    const view = renderForm({ draftScope: "original-session-and-booking" });
+    fireEvent.change(screen.getByLabelText("Address"), { target: { value: "Synthetic address" } });
+    await Promise.resolve();
+    const entry = window.history.state;
+    expect(Object.keys(entry)).toEqual(["havenGuestDetailsEntry"]);
+    expect(JSON.stringify(entry)).not.toContain("Synthetic address");
+    view.unmount();
+    expect(readGuestDetailsDraft("different-session-for-the-same-booking")).toBeUndefined();
+    expect(readGuestDetailsDraft("same-session-for-a-different-booking")).toBeUndefined();
+
+    window.history.replaceState(null, "");
+    const freshEntry = renderForm({ draftScope: "original-session-and-booking" });
+    expect((screen.getByLabelText("Address") as HTMLInputElement).value).toBe("");
+    freshEntry.unmount();
+
+    window.history.replaceState(entry, "");
+    renderForm({ draftScope: "original-session-and-booking" });
+    await screen.findByText(/Draft restored/);
+    expect((screen.getByLabelText("Address") as HTMLInputElement).value).toBe("Synthetic address");
+  });
+
+  it("clears the browser history draft after the server creates the hold", async () => {
+    const view = renderForm({ draftScope: "submitted-booking", initialArrival: "15:30" });
+    fireEvent.change(screen.getByLabelText("Address"), { target: { value: "Synthetic hold address" } });
+    await Promise.resolve();
+    submitForm(view.container);
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/booking/review/hold-token"));
+    expect(readGuestDetailsDraft("submitted-booking")).toBeUndefined();
+    view.unmount();
+    renderForm({ draftScope: "submitted-booking" });
+    expect((screen.getByLabelText("Address") as HTMLInputElement).value).toBe("");
+    expect(screen.queryByText(/Draft restored/)).toBeNull();
+  });
+});
 
 describe("expected arrival — simple time input", () => {
   it("renders a native time input with an explicit label association", () => {

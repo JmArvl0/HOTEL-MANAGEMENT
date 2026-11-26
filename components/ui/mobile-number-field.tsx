@@ -9,6 +9,7 @@ const countries = [
   ["SG", "Singapore", "65"], ["AE", "United Arab Emirates", "971"], ["GB", "United Kingdom", "44"], ["US", "United States", "1"],
 ] as const;
 type Country = (typeof countries)[number];
+export type MobileNumberDraft = { countryCode: string; text: string; international: boolean };
 
 function parse(raw: string, selected: Country = countries[0]) {
   const value = raw.trim();
@@ -28,11 +29,14 @@ function parse(raw: string, selected: Country = countries[0]) {
   return { country: selected, text, international: false };
 }
 
-export function MobileNumberField({ name, defaultValue = "", className = "", error, errorId }: {
+export function MobileNumberField({ name, defaultValue = "", className = "", error, errorId, draft, onDraftChange }: {
   name: string; defaultValue?: string; className?: string; error?: string; errorId?: string;
+  draft?: MobileNumberDraft; onDraftChange?: (draft: MobileNumberDraft) => void;
 }) {
   const id = useId();
-  const [number, setNumber] = useState(() => parse(defaultValue));
+  const [number, setNumber] = useState(() => draft
+    ? { country: countries.find(([code]) => code === draft.countryCode) ?? countries[0], text: draft.text, international: draft.international }
+    : parse(defaultValue));
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [touched, setTouched] = useState(false);
@@ -43,6 +47,10 @@ export function MobileNumberField({ name, defaultValue = "", className = "", err
   const validity = !text ? "Enter your mobile number." : !canonical ? "Check the number and country code." : "";
   const visibleError = error || (touched ? validity : "");
   const matching = countries.filter(item => item.join(" ").toLowerCase().includes(query.toLowerCase().replace("+", "")));
+  const changeNumber = (value: typeof number) => {
+    setNumber(value);
+    onDraftChange?.({ countryCode: value.country[0], text: value.text, international: value.international });
+  };
 
   return <div className={`mobile-number-field ${className}`} onBlur={event => {
     if (!event.currentTarget.contains(event.relatedTarget as Node)) setOpen(false);
@@ -59,7 +67,7 @@ export function MobileNumberField({ name, defaultValue = "", className = "", err
         data-error-field={name} value={text} placeholder={international ? "+49 151 2345 6789" : "917 000 0000"}
         aria-describedby={`${id}-hint${error && errorId ? " " + errorId : ""}`} aria-invalid={Boolean(visibleError) || undefined}
         ref={node => node?.setCustomValidity(validity)} onInvalid={() => setTouched(true)} onBlur={() => setTouched(true)}
-        onChange={event => setNumber(parse(event.target.value, country))} />
+        onChange={event => changeNumber(parse(event.target.value, country))} />
       <input type="hidden" name={name} value={canonical ?? ""} />
       {open && <div className="mobile-country-picker" id={`${id}-countries`} onKeyDown={event => {
         if (event.key === "Escape") { setOpen(false); trigger.current?.focus(); }
@@ -69,12 +77,12 @@ export function MobileNumberField({ name, defaultValue = "", className = "", err
         <div className="mobile-country-options">
           {matching.map(item => <button key={item[0]} type="button" aria-pressed={!international && country[0] === item[0]}
             onPointerDown={event => event.preventDefault()} onClick={() => {
-              setNumber(parse(international ? "" : text, item)); setOpen(false); trigger.current?.focus();
+              changeNumber(parse(international ? "" : text, item)); setOpen(false); trigger.current?.focus();
             }}><Flag code={item[0]}/><span>{item[1]}</span><small>+{item[2]}</small>
             {!international && country[0] === item[0] && <Check size={14}/>}
           </button>)}
           <button type="button" aria-pressed={international} onPointerDown={event => event.preventDefault()} onClick={() => {
-            setNumber({ country, text: international ? text : "+", international: true });
+            changeNumber({ country, text: international ? text : "+", international: true });
             setOpen(false); document.getElementById(id)?.focus();
           }}><Globe2 size={18}/><span>Other international number</span></button>
         </div>
