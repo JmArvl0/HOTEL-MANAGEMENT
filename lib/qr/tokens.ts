@@ -81,7 +81,8 @@ export async function ensureReservationQrToken(reservationId: string, createdBy:
   if (!reservation || !(RESERVATION_QR_ACTIVE_STATUSES as readonly string[]).includes(reservation.status)) return null;
   if (reservation.qr_code) {
     const existing = await findQrToken(reservation.qr_code);
-    if (existing && !existing.revoked_at && existing.resource_type === "reservation" && existing.resource_id === reservationId) {
+    if (existing && !existing.revoked_at && (!existing.expires_at || Date.parse(existing.expires_at) > Date.now())
+      && existing.purpose === "check_in" && existing.resource_type === "reservation" && existing.resource_id === reservationId) {
       return { dataUrl: await qrDataUrl(reservation.qr_code) };
     }
   }

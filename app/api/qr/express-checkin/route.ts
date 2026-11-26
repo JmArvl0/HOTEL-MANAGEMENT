@@ -13,6 +13,7 @@ const FRIENDLY: Record<string, string> = {
   SELF_CHECKIN_NOT_CONFIRMED: "This reservation is not confirmed yet. Please see the Front Desk.",
   SELF_CHECKIN_ID_UNVERIFIED: "Your ID is not verified yet. Please see the Front Desk with a valid ID.",
   OCCUPANT_REGISTER_REQUIRED: "The Front Desk needs to record each staying guest before check-in.",
+  PARTY_PRIMARY_REQUIRED: "The Front Desk needs to confirm the primary staying guest before check-in.",
   PRIMARY_AGE_UNVERIFIED: "The Front Desk must check the primary guest's age from official ID.",
   PRIMARY_UNDER_MINIMUM_AGE: "The primary guest does not meet the hotel's minimum age. Please see the Front Desk.",
   GUEST_DO_NOT_RENT: "Please see the Front Desk for help completing check-in.",
@@ -31,7 +32,7 @@ const FRIENDLY: Record<string, string> = {
  */
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.disabled) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
+  if (!session || session.user.disabled || session.user.otpPending) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
   if (session.user.role !== "guest") return publicJson({ error: "Please sign in with a guest account to continue." }, { status: 403 });
   if (!supabase) return publicJson({ error: "This service is temporarily unavailable. Please try again shortly." }, { status: 503 });
 

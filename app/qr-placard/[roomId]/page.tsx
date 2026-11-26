@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getAuthenticatedSession } from "@/lib/authorization";
 import { supabase } from "@/lib/supabase";
 import { ensureRoomQrToken, qrDataUrl } from "@/lib/qr/tokens";
 import { QrPlacard } from "@/components/qr/qr-placard";
@@ -15,7 +14,7 @@ import { QrPlacard } from "@/components/qr/qr-placard";
 const STAFF = new Set(["front_desk", "manager", "owner", "admin", "housekeeping", "maintenance"]);
 
 export default async function RoomPlacardPage({ params }: { params: Promise<{ roomId: string }> }) {
-  const session = await getServerSession(authOptions);
+  const session = await getAuthenticatedSession();
   if (!session) redirect(`/login?callbackUrl=${encodeURIComponent("/manager_dashboard")}`);
   if (!STAFF.has(session.user.role)) redirect("/manager_dashboard");
   if (!supabase) redirect("/manager_dashboard");

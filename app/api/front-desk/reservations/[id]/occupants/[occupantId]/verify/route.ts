@@ -5,9 +5,9 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string;o
  const context=await hotelGuard(["front_desk"]);if(context instanceof NextResponse)return context;
  const body=await hotelBody(request,occupantVerificationSchema);if(body instanceof NextResponse)return body;
  const {id,occupantId}=await params;
- return hotelRpc(context,"hotel_occupant_verify",{
+ return hotelRpc(context,"hotel_occupant_verify_arrival",{
   p_reservation_id:id,p_occupant_id:occupantId,p_date_of_birth:body.dateOfBirth??null,
   p_verified_age_years:body.verifiedAgeYears??null,p_nationality:body.nationality??null,
-  p_key:body.idempotencyKey,p_evidence:"Government-issued ID visually inspected in person",
+  p_key:body.idempotencyKey,p_expected_check_in:body.expectedCheckIn,p_expected_version:body.expectedVersion,
  });
 }
