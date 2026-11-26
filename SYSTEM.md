@@ -22,6 +22,23 @@ tests, deployment).
 
 ## 1. What this is
 
+**Hotel subsystem scope (2026-11-23, local):** Front Desk opens billing from
+the selected reservation and uses `/api/front-desk/cash-drawer` for the open
+drawer, the latest shared closed drawer, and its 25 most recent own drawers.
+The property-wide accounting ledger is reserved for Owner and existing
+Accounting users. New Accounting role assignments are retired while existing
+users retain the Hotel close, refund, reconciliation, and export workflows.
+The closed-day export also supports versioned JSON review batches with PHP
+amounts in centavos and no guest details. No request is sent to Finance.
+New staff schedules, purchase order creation, submission and approval, and
+equipment registry writes and preventive scheduling are retired at the Hotel
+application boundary. Hotel staff can still record handovers, post supply
+movements, receive previously approved deliveries, close eligible legacy
+orders, and report and clear room restrictions through the Hotel maintenance
+workflow. Existing linked work orders can still record service completion.
+See [Hotel integration readiness](docs/plans/2026-11-23-hotel-integration-readiness.md)
+for the partner handoffs and cutover gates.
+
 **Focused HMS update (2026-11-03):** The approved workflow prototype is implemented
 in the current local application. The configured database now includes scoped
 versions `20261103010000`, `20261103030000`, `20261103070000`,
@@ -327,12 +344,11 @@ staff mirror (`converted_with_guest_history`). Converted accounts lose
 guest-portal access through the existing role gates; operating on one's own
 live stays through staff powers remains a disclosed, audited residual risk.
 
-**Per-request re-validation.** `callbacks.jwt` re-reads the account row each request; a deactivated
-account, or a changed `auth_version`, marks the token `disabled` and forces the role to `guest`. Route
-guards (`guardAdmin`, `guardCatalog`, `guardOwner`, `guardManager`, `guardHousekeeping`,
-`guardFinancial`, `guardTransportation`) additionally re-query `user_accounts` and return 401 when
-the session no longer matches. Every privileged RPC **re-checks the actor's role inside the
-function body**, reading `user_accounts where id = p_staff_user_id and active`.
+**Per-request re-validation.** `callbacks.jwt` re-reads the account row on session validation.
+Deactivation, required recovery or a changed `auth_version` disables the session. Route guards
+apply role and action permissions to that validated session. `guardAdmin`, `guardCatalog`
+and `guardOwner` perform an additional account read. Privileged workflow RPCs recheck the
+actor and their action authority at the database write boundary.
 
 **Session security policy** (System Administration → Security Configuration, D-021,
 migration `20261009010000`, cookie policy + extended ranges in `20261023010000`). One authoritative `security_policies` row: the **cookie-policy toggle is the
@@ -413,6 +429,25 @@ closed. One-hour single-use recovery links are a separate, untouched flow.
 | `canManageCatalog` (room types/photos, transfer vehicle types) | `owner`, `admin`, `manager` |
 | `canSetRoomTypeRate` (set `base_rate` directly, review rate proposals) | `owner`, `admin` |
 | `canProposeRoomTypeRate` (submit rate changes for approval) | `manager` |
+| `canDispatchReclean` (request urgent cleaning on an eligible dirty room) | `front_desk`, `manager` |
+
+**Approval filing and read boundaries (local, 2026-11-23).** Front Desk files stay
+exceptions. Accounting may file refund and compensation exceptions. Housekeeping
+and Maintenance can escalate approved, open or in-progress requests in their
+own department. Front Desk may escalate those requests across its inbox.
+Migration `20261123020000` binds each escalation to its approved source row
+under lock and records the authenticated actor's role on the audit event.
+Department filer history uses a reduced projection. Manager review, Owner
+escalation and department execution still have independent grants.
+
+**Resource and navigation boundaries (local, 2026-11-23).** Generic resources
+are read-only. Guest reservation/invoice reads inherit the reservation's
+account ownership. Department room detail omits rate and administrative
+fields, and Accounting reservation detail omits non-financial service history.
+Room Rack dispatch uses `hotel_dispatch_reclean`, which checks eligibility,
+reuses existing open room-cleaning work and atomically audits newly created
+tasks. Staff navigation and section selection share `config/role-navigation.ts`.
+See [the RBAC audit and access matrix](docs/qa/rbac-audit-2026-11-23.md).
 
 **Room-type governance** (rate changes are propose→approve). Manager creates room types and owns
 their guest-facing content — description, photos, amenities, capacity, beds, size, and the
@@ -459,7 +494,7 @@ arrival dialogs, and approval financials render the frozen per-night breakdown w
 
 **Predictive rate recommendations** (migration `20261018010000`) remain a human-in-the-loop
 input to that same rate-plan pipeline, never a second pricing authority. `lib/analytics/dynamic-pricing.ts`
-combines the 7-day occupancy forecast, room-type net booking pickup over the prior 48 hours, and
+combines the 7-day occupancy forecast, room-type confirmations and confirmed-booking reversals recorded over the prior 48 hours, and
 Friday/Saturday demand into explainable centavo-exact recommendations. Occupancy ≥80% yields a
 15–35% surge band; 50–<80% stays within ±5%; <30% yields a 10–20% discount; the 30–<50% gap uses
 a conservative 0–5% discount. Every result is clamped to generated room-type bounds
@@ -467,15 +502,18 @@ a conservative 0–5% discount. Every result is clamped to generated room-type b
 advisory guardrails only; `room_nightly_rates` remains the price authority.
 
 `GET /api/analytics/pricing-recommendations` is server-authorized to Manager/Owner/Admin and
-returns recommendations with FACT/PREDICTION basis, data confidence, pace, bounds, and reasoning.
+returns the effective nightly selling rate and recommendations with FACT/PREDICTION basis,
+recorded observation counts, pace, bounds, and reasoning. The suggested amount is tied to the
+configured base-rate rule. The displayed change uses the active selling rate for that stay date.
 Only Manager may call `POST /api/analytics/pricing-recommendations/propose`; the server rebuilds
-the current recommendations, rejects stale model-run ids and out-of-bound/fractional-centavo
-rates, then calls `manager_propose_analytics_rate_plans`. That transaction calls the existing
+the current recommendations and checks each selected review fingerprint, model-run ID,
+and permitted centavo-exact rate, then calls `manager_propose_analytics_rate_plans`. That transaction calls the existing
 `manager_propose_room_rate_plan` for every selected date, leaves each row `pending`, stamps
 `created_from_analytics = true` + `analytics_model_run_id`, and adds a dedicated audit event.
 Owner/Admin still must call `admin_review_room_rate_plan` before any overlay becomes `active`.
-The Predictive Insights occupancy view presents the review/edit modal; the Rate Plans review
-surface labels analytics-origin proposals.
+The Predictive Analytics **Demand & Rate Forecast** view presents the review/edit modal; the Rate Plans review
+surface labels analytics-origin proposals. Recent rate outcomes show proposal status and recorded
+frozen nightly rates when a comparable set of stays is available. These figures describe bookings.
 
 **Room-type badge colors** (migrations `20260925010000` + `20260927010000`). Each room type carries
 a semantic color key on `room_types.badge_color_key` — one of eight curated HAVEN palette keys
@@ -787,6 +825,40 @@ and release limits: `docs/qa/location-content-implementation-2026-11-06.md`.
 
 ### 7.2 Guest booking flow (`/booking/*`)
 
+**Guest audit implementation (November 24, 2026).** Search distinguishes
+zero sellable rooms, invalid search criteria and a temporarily unavailable
+lookup. Date corrections retain valid entered values, and dates with several
+prices label the lowest nightly rate as a starting price. A sellable room gets
+a Front Desk booking link when online checkout is closed. The payment provider
+remains sandbox-only. The checkout summary follows the selected breakfast
+quote. The database still owns inventory, price, hold and settlement decisions.
+
+Confirmation distinguishes a cancelled reservation from a provider-expired
+checkout. The cancelled view uses verified collections and the recorded
+terminal fee and each recorded refund, including when folio balances have
+already been netted. It identifies the fee as the amount assessed and
+marks missing legacy collection evidence as unavailable. The guest details
+form warns on in-app links, booking Back, portal navigation and sign-out when
+there are unsaved changes. The room hold is the first persistence boundary.
+Browser Back and Forward within the same document can restore the pre-hold
+draft to its original history entry while the signed-in booking remains
+valid. The history entry carries an opaque ID. Form values stay in tab
+memory. Confirmed in-app departure and a successful hold clear that draft.
+Reload and close warnings depend on browser support.
+
+Guest history reads use the owning reservation or invoice relationship and
+page through the REST response cap. My Reservations renders six stays per
+page, Payments & Folio loads line items for four cards per page, and Requests
+pages ten complete submission batches. Counts, balances and filter totals
+are calculated across the matching guest history. My Stay selects its primary
+stay and the five most recent updates with bounded, guest-scoped reads.
+Activity keeps the verified, submitted and creation timestamp precedence used
+by the full history.
+
+The `/privacy` page gives guest-facing processing information. The appointed
+controller, retention periods, privacy contact and final notice require property
+approval before real guest onboarding. See the [guest resolution register](docs/audits/GUEST-AUDIT-RESOLUTION-REGISTER.md).
+
 **Breakfast (2026-11-15, reviewed implementation).** With `HAVEN_BREAKFAST_ENABLED=true`,
 Room Types offers breakfast configuration. Manager/Owner/Admin can propose,
 and Owner/Admin can publish or decline. One published offer per type covers
@@ -829,6 +901,15 @@ wraps the existing pricing/policy RPC under the same type advisory lock, checks
 the continuous room claim and saves `selected_room_id/number`. Owned hold edits
 replace the previous hold atomically. Manual/gateway conversion assigns that room
 in the conversion transaction; staff assignment writes honor active exact holds.
+With local migration `20261126010000_front_desk_exact_hold_eligibility`, the
+Front Desk eligible-room list also excludes overlapping, unconverted exact holds
+whose deadline has not elapsed. If a hold starts after the list loads,
+pre-assignment, guided check-in and room changes return HTTP 409 with
+`ROOM_HELD_FOR_GUEST` and display the explanation above the dialog actions.
+Guided check-in clears the stale selection and returns to the room step.
+Both guided check-in and room changes offer **Refresh eligible rooms** after
+the rejection. A fresh list can offer the room as soon as the hold expires,
+before cleanup updates the hold row.
 Availability exposes only room ID/number/floor/availability through service-role
 server reads. Existing type-capacity RPCs remain for legacy/staff callers. The
 older focused-type search description below is superseded for landing type links.
@@ -1041,6 +1122,9 @@ Self-service actions and their constraints:
   inventory permits, and the existing physical room can be kept. A change close to arrival
   or requiring a replacement room files a **manager approval** (`reservation_modification`).
   Manager authorizes the change and Front Desk selects any required replacement with the guest.
+  Approved guest changes appear in the Front Desk **All requests** queue while awaiting execution.
+  A live exact hold on the selected replacement returns `ROOM_HELD_FOR_GUEST` and the approval
+  dialog offers another room selection or a retry after the hold expires.
   Notes-only changes preserve the exact room, rates, and all folio amounts. Date or type changes
   preserve the rates on retained nights of the same room type and apply only the lodging delta
   to the existing folio. Date, room-type, and guest-count changes wait until pending online
@@ -1112,6 +1196,15 @@ Self-service actions and their constraints:
   in the shared Download menu. Route-level ownership and unwrapped page navigation are
   asserted in `lib/receipt-route.test.ts` and `lib/customer-ownership.test.ts`. Profile/password/
   settings and a public find-room view live alongside.
+- **Hotel PDF downloads (2026-11-23, local).** The branded A4 downloads under
+  `/api/documents/[kind]/[id]` recheck the role and record scope on every request.
+  Guests can download their confirmed booking and an issued checkout folio for
+  their own stay. Front Desk and Accounting can issue the folio through the
+  existing document action. Cash Shift Close Summary uses a closed, permitted
+  drawer and its stored count, expected cash and variance. Reports downloads
+  use a saved Daily Operations snapshot and its actual review status. These
+  read-only, private downloads exclude payment references, identity material
+  and internal adjustment reasons. They require no database migration.
 - **Stay reviews** — after checkout (`checked_out` only), the reservation detail page offers one
   review per stay (`stay_reviews`, UNIQUE on `reservation_id`; `customer_submit_stay_review` RPC
   enforces ownership + completion: `NOT_BOOKED` / `STAY_NOT_COMPLETED` / `ALREADY_REVIEWED`).
@@ -1185,14 +1278,20 @@ Staff operations (each a named RPC with row locks + audit, §10):
   lodging, projected folio total, room conflict — never client-derived); `front_desk_extend_stay`
   posts one idempotent `extension` folio charge at the room type's current per-night resolver rates
   (added nights only; the frozen breakdown is appended), pushes
-  check-out and the active assignment. If the room is taken it refuses with
+  check-out and the active assignment. Local migration `20261124030000` also
+  records a private replay receipt in that transaction. A retry with the same
+  staff account, reservation, checkout and reason returns the original checkout,
+  charge and balance. The dialog keeps the attempt key while it is open.
+  If the room is taken it refuses with
   `EXTENSION_REQUIRES_ROOM_CHANGE`, and the dialog hands off to the `stay_extension` Manager
   exception — see §7.8. Before arrival, a later checkout is a `reservation_modification`, not an
   extension), **update guest** (phone/arrival/notes), **checkout** (folio must balance —
   `FOLIO_BALANCE_REQUIRED`; closes assignment, room dirty, creates a typed `checkout_cleaning`
   housekeeping task), **verify identity**, **record payment / post folio charge**, **review guest
   request batches** (§7.7).
-- **Payment History** gives Accounting and Front Desk payment status and details.
+- **Payment History** is the standalone Accounting ledger. Front Desk sees
+  payments, receipts and the current balance from the selected booking's folio,
+  and manages authorized drawer activity in **Cash & Shifts**.
   Legacy manual submissions retain their recorded status, amount, reference, and proof.
   Signed proof remains accessible to Accounting and the paying guest. Staff record actual
   collections through the existing collection workflow. Xendit confirms online payments
@@ -1305,23 +1404,13 @@ Work orders: `open → assigned → in_progress → resolved → completed`, plu
 requires a diagnosis, and if `cleanup_required` it creates the housekeeping cleanup task. Room-level
 departments are coordinated, not owned, by maintenance (escalation is a Manager action, §7.8).
 
-**Preventive maintenance (roadmap Phase 8)** — a registry of **real assets** (`maintenance_assets`,
-migrations `20260932010000` + role-tightening `20260933010000`): Maintenance staff and the Manager
-register actual equipment (name, category, optional room, optional location, service interval,
-optional last-serviced date) through four audited `SECURITY DEFINER` RPCs
-(`maintenance_register_asset` / `maintenance_record_asset_service` / `maintenance_update_asset` /
-`maintenance_deactivate_asset`, service-role-only, null-safe actor guards). **`next_service_date` is
-a stored generated column** (`last_serviced_at + service_interval_days`) — the schedule is derived,
-never manually entered, and advances only when a service is recorded (each recording is an audited
-event with before/after; service history lives in `audit_logs`). Deactivation retires an asset
-without deleting it. **No equipment is ever seeded** — the table starts empty and the hotel
-registers what it really owns. **Nothing here touches rooms**: a due or overdue service is
-visibility only (the Maintenance section's "Preventive maintenance" card group: overdue / ≤7 days /
-≤30 days / scheduled / no-history), and the serviceability model stays owned by work-order
-diagnosis — the predictive risk model may suggest, but a room is never blocked because a service is
-due. Owner/Admin are deliberately absent from these routes (departmental execution boundary, §7.9):
-`GET/POST /api/maintenance/assets` + `POST /api/maintenance/assets/[id]/[action]` allow
-maintenance + manager only.
+The legacy equipment registry (`maintenance_assets`) created by migrations
+`20260932010000` and `20260933010000` remains readable by Maintenance and
+Manager. Hotel routes retire new equipment registration, registry updates and
+preventive scheduling. The Maintenance workspace reads existing links through
+`GET /api/maintenance/asset-work`. An authorized user can record completed
+service on an existing linked order, preserving service evidence and the audit
+log. Hotel work-order diagnosis and room inspection govern room serviceability.
 
 ### 7.7 Guest requests (structured, batched, approved)
 
@@ -1405,7 +1494,12 @@ history is reproducible even if base rates later change (a nights change at chec
   `folio_charges`/`invoices` architecture, idempotent on the approval id; for arrival-time
   `room_type_exception`s the charge posts at acceptance so the existing `REMAINING_BALANCE_REQUIRED`
   gate enforces settlement before check-in; mid-stay `room_upgrade`s post at execution), and
-  execution raises `ROOM_TYPE_EXCEPTION_ACCEPTANCE_REQUIRED` without it. The manual
+  execution raises `ROOM_TYPE_EXCEPTION_ACCEPTANCE_REQUIRED` without it. Local migration
+  `20261126020000_grant_room_type_change_acceptance` grants execute to the server's
+  `service_role`. Front Desk records mid-stay acceptance from the approved
+  request dialog. The in-house type-change validator matches the approved
+  `room_upgrade` and its authorized assignment. Initial check-in still needs
+  the exact room named by a `room_type_exception`. The manual
   `priceDifference`/`waived` inputs on the legacy `room_upgrade` form are gone.
 - **Negative difference (downgrade)**: displayed and flagged for Manager review; pricing stays at
   the original total — no refund policy exists for this path.
@@ -1444,6 +1538,17 @@ first (`EXTENSION_ROOM_NOT_READY` / `EXTENSION_ROOM_UNAVAILABLE`; a cross-type m
 the room-change exception first, then extend normally at the new type's rate) — an overlap can never
 be created. Departure transportation booked on the old checkout date is flagged, never rescheduled.
 
+The normal extension preview checks live exact guest holds on the assigned room for
+the added nights. It reports a guest hold separately from a conflicting stay so Front
+Desk can refresh availability in place and retain their checkout date and reason. The
+assignment guard rechecks the hold when the extension is submitted and returns
+`ROOM_HELD_FOR_GUEST` through the extension API on rejection. An expired hold clears
+on refresh without waiting for cleanup. A retry with the same request key returns
+the committed result and leaves one extension charge.
+
+When a guest hold blocks an approved extension in the current room, the approval
+dialog directs Front Desk to select **Execute as Front Desk** again after expiry.
+
 **The dropdown audit (2026-09-23)** traced every generic "Request Manager exception" option end to
 end (form → route → RPC → review → execution → audit): all eight are live business cases with
 working handlers — none removed. Label clarifications only. `room_type_exception` stays absent from
@@ -1465,29 +1570,51 @@ are unchanged. Workspaces offered per role:
 | Role | Sections offered |
 |---|---|
 | Manager | Dashboard (risk command centre), reservations, rooms (+ **Manage rooms** roster, §6), guests, guest requests, **Transportation**, **Room Types & Photos**, **Transfer Vehicles**, housekeeping, maintenance, inventory, **Lost & Found**, **Approvals & Escalations**, **Reports** (performance center + daily-report review, §7.12) |
-| Front Desk | Dashboard (arrivals/departures/in-house/rooms ready), reservations, rooms, guests, guest requests, **Transportation**, housekeeping, **Lost & Found**, billing, Payment History, **Transactions · Guest folios · Cash & shifts · Financial documents**, Approvals, **Reports** (daily operations report, §7.12) |
+| Front Desk | Dashboard (arrivals/departures/in-house/rooms ready), reservations with stay-level billing, rooms, guests, guest requests, **Transportation**, housekeeping, **Lost & Found**, **Cash & Shifts**, Approvals, **Reports** (daily operations report, §7.12) |
 | Housekeeping | Dashboard, rooms, guest requests, housekeeping tasks, **Lost & Found**, inventory, Approvals |
 | Maintenance | Dashboard, rooms, guest requests, maintenance orders, inventory, Approvals |
 | Accounting | Dashboard, reservations, billing, **Payment History**, Refunds, **Transactions · Folios · Cash & shifts · Reconciliation · Documents**, Reports, Approvals |
 
 **Front Office modules (2026-11-04).** Staff navigation separates Room Management
 (`room_rack`), Reservations (`reservations`), and Guest Management (`guests`).
-Front Desk Room Management uses `FrontOfficeRack` in rooms mode, defaulting to a
-seven-day calendar (Cards remains available). Rooms run down the left and dates
-across the top; guest names span assigned nights with checkout day excluded.
-Recorded room-move segments determine each room's allocation; overlapping records
-remain visible in separate lanes and unassigned stays are listed separately.
-Clicking a stay opens existing reservation details; clicking a room opens its
-existing dossier/actions. Only catalog-authorized roles see Manage rooms.
+Room Management uses `FrontOfficeRack` in rooms mode and shows live room cards.
+The card grid is compact for multiple results, features a single result at full
+size, and offers Large cards for the full result set. Cards use the rack's
+occupancy, housekeeping and linked stays, plus the room type's first catalog
+photo when available. Cards with a linked stay show its guest and dates. An
+available room with no linked stay shows Ready for check-in. Clicking a room
+opens its dossier. Its actions button opens the existing role-scoped actions.
+Only catalog-authorized roles see Manage rooms.
+The Bookings calendar places rooms down the left and dates across the top. Guest
+names span assigned nights with checkout day excluded. Recorded room-move
+segments determine each room's allocation, overlapping records occupy separate
+lanes, and unassigned stays appear separately. Clicking a stay opens its
+reservation details.
 Front Desk Reservations uses the same shared workspace in ledger mode, while
 Manager/Accounting retain their existing role-specific reservation surfaces.
-Guest Management retains existing profiles and history; no new CRUD or RBAC is
-implied by the label. Its shared list/profile reads support the deployed schema
+Guest Management retains existing profiles and history. The Front Office workflow
+migration adds scoped phone, address and confirmed-preference edits for Front Desk,
+Manager and Owner. The edit compares the saved values before writing and audits the
+changed fields. Profile email remains part of the account identity workflow.
+Its shared list/profile reads support the deployed schema
 before the reviewed-merge and soft-removal migrations: absent merge markers skip
 alias enrichment; only the exact missing merge/removal column permits the legacy
 profile/membership read. Upgraded alias/canonical history and removal filtering
 remain intact; other database errors still surface. See
 `docs/qa/guest-management-load-fix-2026-11-06.md` for verification limits.
+
+**Front Office workflow (2026-11-23, local).** Walk-in, phone and future Front Desk
+bookings share a guest picker, dated availability and priced review. Front Desk can
+start a new stay from a guest profile. The create RPC locks the quote and inventory,
+uses a selected guest ID, snapshots the phone for this stay, and returns the original
+result for an unchanged actor-bound retry. A separate read can recover a completed
+request before another submission. Staff bookings and the legacy RPC share the same
+reservation, invoice and audit transaction. The booking source uses the existing
+`source` field. Cancellation and no-show presets record a reason code alongside
+the established financial settlement. Visible arrival rows use a bounded readiness
+read; the guided arrival opens at the applicable step and the check-in RPC validates
+again before committing. Apply `20261123010000_front_office_booking_flow.sql` with the
+matching application release. The migration was exercised locally.
 Clickable summaries route to today's arrivals,
 today's in-house departures, all current in-house stays, or clean/available rooms
 in the selected board window. List queues distinguish arrivals, upcoming, in-house,
@@ -1905,7 +2032,7 @@ folio issuance remains a separate financial-document workflow.
   `housekeeping_tasks` table, not a duplicate), rooms, transportation, and manager approvals. The
   default date is the hotel's local today.
 - **Submission.** `POST /api/front-desk/reports` supplies the preview's snapshot version to
-  `submit_front_desk_report`. SQL builds the snapshot and compares its version in the same
+  `submit_front_desk_daily_snapshot`. SQL builds the snapshot and compares its version in the same
   transaction. Changed totals return 409 and require a refreshed preview; the browser never
   supplies snapshot content. The RPC is front-desk-guarded, future dates refused,
   `front_desk_reports` row with id/timestamps/submitter/status, one **live submission per hotel day**
@@ -1921,6 +2048,30 @@ folio issuance remains a separate financial-document workflow.
   Snapshots are never updated — immutability comes from RLS-with-no-policies + service-role-only
   writes through the two RPCs (same trust model as `financial_documents`).
 
+**Reports workspace.** Manager and Owner have separate Analytical and Operational views.
+Only Manager reviews submitted daily snapshots. Owner can read the same saved history. Front
+Desk retains preview, submit, and resubmission. Accounting retains its financial workspace.
+
+`GET /api/staff/analytical-report` returns a completed hotel-date range of up to 90 days
+and an equal preceding period. Property booked occupancy, ADR and RevPAR are operational
+room-accrual measures based on immutable night audits and dated serviceable room supply.
+Their range totals require complete inputs. The report shows Phase 1 recorded occupancy as a
+separate daily series. Settled payments and refunds are grouped by operating posting date,
+falling back to local settlement date for older payments. Room type and source filters apply
+to reservations and contracted room accrual by type. Historical capacity by room type is
+unavailable, and the breakdown identifies the current reservation type as its grouping basis.
+Service measures use traceable checkout-task and guest-request timestamps. The report also
+shows repeated maintenance groups and links to saved occupancy forecast evaluation for the
+same period. CSV and print use the selected report.
+
+**Hotel Command Center.** Manager and Owner open the same read-only operating overview
+via `GET /api/staff/command-center`. It shows live occupancy of serviceable rooms, current
+arrivals and departures, room readiness, workload, transport, stock, and forecast alerts.
+Management approval counts follow the actor's authority level. The financial projection uses
+the existing operating-day summary and labels its date when the operating day differs from the
+calendar. Queue cards route to the role's permitted module. The overview distinguishes failed
+reads from actual zero counts, with local disclosure for partial data.
+
 ### 7.13 Innovation layer — Predictive Analytics, Gemini AI assistance, QR operations
 
 The capstone innovation layer. Full architecture and defense narrative:
@@ -1935,28 +2086,64 @@ hotel operational data → lib/analytics (HAVEN's own forecasts — the ONLY pre
 
 **Predictive analytics engine** (`lib/analytics/`, pure functions over plain arrays — dual-mode and
 unit-testable). Four operational forecasts plus one governed pricing recommendation model:
-**occupancy** (7-day; per day KNOWN/booked occupancy as FACT from
-confirmed+checked-in reservations, plus a PREDICTED final occupancy from same-weekday historical
-pickup — shown only when enough observations exist, always labeled with its basis), **housekeeping
-workload** (expected departures → checkout cleans, stayovers → services, inspections per policy,
-labor hours from historical task durations), **inventory demand** (per item: 3-day predicted
-consumption from `inventory_movements` daily means → projected shortage + recommended reorder —
-genuinely predictive, not a low-stock alert; items without history are flagged, never guessed),
-**maintenance recurring-issue risk** (repeat-incidence grouping per room+category over 90 days —
-"recurring issue risk", never a failure-probability claim). `runner.ts` orchestrates the four,
+**occupancy** (tonight and seven future dates; booked room counts from confirmed and checked-in
+reservations, plus net pickup from historically saved booking counts and verified occupied nights
+at the same lead time). At least five pairs are required. Occupancy uses administratively active
+rooms. Current sellable capacity accounts for maintenance blocks and is shown separately;
+**housekeeping workload** (today's open work and expected additional jobs, with linked turnover
+tasks deduplicated. Cleaning and guest-request labor is estimated by task type where timed
+history supports each required category);
+**inventory demand** (three full Manila dates, based on recorded usage within eligible closed
+days. The forecast, projected shortage and reorder quantity retain the ledger's two-decimal
+precision. Gaps stay unrecorded and stock at the reorder threshold is visible independently);
+**maintenance recurring-issue risk** (90-day history with cancelled orders removed, trend
+compared across two completed 30-day periods, and named equipment when the order matches one
+registered asset in the same room). `runner.ts` orchestrates the four,
 persists snapshots to `analytics_model_runs` + `analytics_predictions` through the atomic
 `persist_analytics_generation` RPC (serialized cooldown claim; failed prediction writes roll
-back the generation and retain a failed-attempt record), and computes evaluation
-metrics (predicted vs actual for elapsed target dates: occupancy MAE/MAPE, housekeeping MAE,
-inventory MAE — shown in the UI as "Prediction performance"). Snapshots generate daily via a
+back the generation and retain a failed-attempt record). Snapshots generate daily via a
 Vercel cron (`vercel.json` → `/api/analytics/generate`, 02:35 Manila) or on-demand by an
-authorized Manager (rate-limited ≥1 h between runs); `/api/analytics/insights` serves the latest
-snapshot with on-demand-compute fallback. UI: Manager dashboard → **Predictive Insights**
-(metric cards with FACT vs PREDICTION separation, 7-day occupancy chart with booked-fact bars vs
-dashed predicted line, housekeeping/inventory forecast tables, maintenance-risk cards, performance
-metrics, honest data-quality notes everywhere). Beside the occupancy chart, **predictive pricing**
-shows high/moderate/low demand cards and a Manager-only edit-and-propose modal; base rates are
-FACT, occupancy-driven recommendations are PREDICTION, and submitting never activates a price.
+authorized Manager (rate-limited ≥1 h between runs). `/api/analytics/insights` computes the outlook
+from operational inputs and returns the latest saved snapshot timestamp separately.
+Manager dashboard → **Predictive Analytics** has five dedicated views, plus Seasonal Outlook
+and Forecast Accuracy. Occupancy, housekeeping, inventory and rates show previews of saved
+accuracy comparisons where applicable. Pricing and its filter keep hotel-wide occupancy
+separate from room-type rate recommendations. A Manager can select stay dates and edit rates
+within their bounds before submitting a pending proposal for Owner/Admin review. Maintenance
+shows recurring patterns using recorded incident counts, priority and suggested actions.
+The Occupancy Forecast chart includes up to 14 closed hotel nights from saved evaluation
+evidence and the existing seven-day forward outlook. Inventory charts recorded daily usage
+and the daily mean underlying its three-day forecast. The maintenance trend uses weekly
+recorded work-order counts for flagged rooms and equipment. A compact forecast selector
+supports smaller desktop workspaces.
+
+**Forecast Accuracy** (`/api/analytics/evaluation`, Manager/Owner/Admin API, Manager workspace)
+compares saved predictions with recorded actuals and an issuance-time benchmark. Occupancy and
+housekeeping compare the first saved forecast at 1, 3 or 7 days before each target date. Inventory uses
+the next three full hotel dates, per item and unit. Atomic generation stores previous-day actuals
+in model-run parameters and the baseline in prediction metadata using existing JSON fields.
+Each new batch can fill recent missing actuals when the operational evidence is still available.
+The earliest valid saved actual takes precedence.
+Occupancy actuals use recorded presence at Manila midnight and the active room count captured on
+the target date. Housekeeping actuals sum elapsed time for completed checkout cleans, stayover
+cleans, and guest-request tasks. The baseline averages seven prior recorded closed dates, scaled
+to three days for inventory. MAE uses identical matched rows for the model and baseline. MAPE
+excludes zero actuals. The UI shows which forecast was closer and each method’s average
+error. Technical scores, input history, data quality, exclusions, and a CSV remain available.
+Head-to-head scores require seven rows with both forecasts and a verified actual. The model-actual
+count is available separately. Legacy pre-evaluation snapshots lack the required evidence, and
+legacy inventory zeros without a recorded basis are unavailable for scoring.
+
+**Seasonal Occupancy** (`/api/analytics/seasonal-occupancy`, Manager/Owner/Admin API, Manager
+workspace) adds planning by month or exact calendar date. The reference year defaults to the prior
+year and can be changed. The reference matches either the same calendar date or the nearest
+matching weekday in the chosen year, using recorded occupancy from closed-day evidence.
+Night-audit booked occupancy appears separately where available. The estimate applies the old rate to today's active room
+capacity and uses current booked rooms as its lower bound. Closed target dates display recorded
+actuals alongside the reference. A month can show partial daily estimates. A whole-period figure
+requires a usable value for every target date. Same-date matching leaves February 29 unmatched in a non-leap reference year. Cold-start bookings remain visible while daily analytics runs build historical coverage.
+Seasonal estimates refresh with bookings. Forecast Accuracy scores the saved
+short-term forecasts separately.
 
 **Gemini AI assistance** (`lib/ai/`, server-side only, `@google/genai` 2.21.0). `gemini-client.ts`
 is the single source of truth for the model (`GEMINI_MODEL_DEFAULT = "gemini-3.6-flash"`,
@@ -2060,34 +2247,16 @@ visibility is never the gate) serves a **read-only** workforce snapshot derived 
 - **Demo mode.** Without Supabase env the snapshot is served from the demo store (assignee names
   matched by name; no cash shifts in demo data).
 
-### 7.15 Inventory replenishment, receiving, and local purchase-order workflow
+### 7.15 Hotel supplies and delivery receiving
 
-The live workflow supports draft → submit → threshold approval → receive/cancel
-(migration 20261014010000; live receive function inspected 2026-11-03). Earlier draft-only wording
-was stale. Manager/Owner/Admin create drafts using server-read inventory costs; submission does
-not transmit an order to a vendor. Above-threshold approval remains with Owner/Admin.
-Forecast suggestions remain advisory, never automatic orders.
-
-- **Draft creation stays separate from approval.** The collection route creates or edits
-  `draft` rows using `buildDraftPurchaseOrder`; it does not submit them. Separate submit,
-  review, receive and cancel routes implement `draft → approved/pending_approval →
-  received/cancelled`. Submission recomputes costs; totals at/below the policy threshold
-  auto-approve, and higher totals require Owner/Admin review. Receiving an approved order
-  updates stock and records inventory movements in one transaction. These are local workflow
-  actions, not supplier communications. See migration `20261014010000` and
-  `app/api/inventory/purchase-orders/`.
-- **Server-side truth.** Unit cost is re-read from the `inventory` rows (never trusted from the
-  client), the vendor must be active or absent, the total is recomputed server-side, and an
-  `audit_logs` row (`inventory_draft_purchase_order`, `after_data.submittedToVendor: false`)
-  records the creation. Supplier transmission, sourcing and enterprise procurement integration
-  remain outside the application. Any future SCM handoff must preserve existing local approvals,
-  stock receipts and history; the proposed ownership boundaries are in
-  `docs/ENTERPRISE_BOUNDARIES.md`, pending agreement with the other system teams.
-- **Local acceptance fixes (2026-11-04, unreleased):** the draft form accepts an
-  unassigned vendor, and existing orders remain visible after all shortages are
-  resolved. Migration `20261104020000` updates received stock's `healthy`/`low`/`out`
-  status in the same atomic receipt transaction, using the existing stock-movement
-  thresholds. Supplier transmission is still absent.
+Hotel Supplies covers operational counts, usage, stock movements and delivery
+receiving. Supply Chain handles new procurement. The Hotel application retires
+purchase-order creation, editing, submission and approval. Authorized staff can
+close eligible existing orders and receive previously approved deliveries.
+Manager, Owner and Admin can read purchase history. Housekeeping can see
+approved and partially received orders with the quantities needed for receiving.
+Forecast suggestions remain advisory. See `app/api/inventory/purchase-orders/`
+and the SCM handoff gates in `docs/ENTERPRISE_BOUNDARIES.md`.
 
 Local improvements (2026-11-03; remote deployment pending): explicit integer delivery quantities,
 atomic cumulative receipts/stock movements, partial status, receipt history, and an approved-
@@ -2143,16 +2312,20 @@ staff walkthrough that preceded it.
   remaining nights. Existing unknown assignment boundaries remain visibly unknown;
   they are never invented from the reservation's full stay. Ordinary early checkout
   ends the physical segment without silently changing contracted prices/stay dates.
-- **Operating date** is explicitly activated by Accounting on the current hotel-local
-  day, never by migration. Booking expiry, security and calendar clocks stay real-time.
+- **Operating date** starts on the current hotel-local day when an assigned Manager or
+  an existing Accounting operator activates it. Booking expiry, security and calendar clocks stay real-time.
   New payments, charges, adjustments, refunds and invoices receive server-owned
   posting dates; previously posted history remains NULL/pre-cutover. Corrections use
   existing authorized ledger workflows on the current open day, with no backdating
   or editing an immutable closed snapshot.
-- **Night audit**: Front Desk resolves operational blockers; Accounting activates and
-  closes; Manager/Owner review financial summaries. Preview is
-  `/api/staff/night-audit`; close is Accounting-only
-  `/api/accounting/night-audit/close`. Closing today before its calendar day ends,
+- **Night audit.** Front Desk resolves operational blockers. The Owner can assign
+  two active Managers as primary and backup in **Operations → Operating day & close**.
+  Each assignment change records the Owner, before/after IDs and reason. The staff
+  preview `/api/staff/night-audit` returns whether the caller can close. The person
+  executing `/api/staff/night-audit/close` must still be an assigned Manager or an
+  existing Accounting operator when PostgreSQL commits. This change uses migration
+  `20261124010000`. Existing Accounting staff retain reconciliation, payout and
+  reporting authority during the Finance handoff. Closing today before its calendar day ends,
   unresolved arrivals/departures, unreconciled cash/ledger or missing frozen rates
   blocks close. Pending inspections and handover work carry forward as warnings;
   close never releases rooms or makes automatic no-show decisions. No force bypass.
@@ -2160,6 +2333,11 @@ staff walkthrough that preceded it.
   operational assessment inputs with nonwaiting table locks, rechecks, records an
   immutable snapshot and advances one day exactly once. Busy operational writes
   return a refreshable conflict rather than a mixed snapshot or deadlock wait.
+- **Front Office bookings.** `/api/staff/bookings` returns ten bookings per page,
+  complete queue counts for the selected date scope, and the current/overdue work
+  used in the sidebar. Search and closed outcomes apply before paging, and folio
+  balances are read for the returned bookings and current work. Migration
+  `20261124020000` enforces the existing Front Desk, Manager and Owner scope.
 - **Reconciliation** keeps D-033 booked room nights separate from physical rack
   occupancy measured at assessment/close. Room accrual uses contracted frozen nightly
   rates; receipts/refunds use actual stamped paid events, charges and signed
@@ -2215,6 +2393,11 @@ schema as deployed until release is complete.
   without adding a companion. Guest-ID-only update callers resolve an existing
   active occupant on that same stay; names never establish identity, and removed
   occupants are not silently revived (`20261104010000`).
+  The local `20261122010000` migration ties the age check to the reservation's
+  current primary guest and scheduled local check-in date, even if only age
+  enforcement is active. Manual and Express QR arrivals share the database gate
+  and readiness uses the same rule. Front Desk can replace stale evidence after
+  confirming official ID in person. Party and audit views omit DOB and exact age.
 - **Room discrepancies:** Housekeeping records the observed occupancy and system snapshot; the
   database opens a linked Front Desk handover. Front Desk investigates and resolves against a
   fresh room snapshot. An unresolved mismatch blocks a new arrival or assignment and never
@@ -2254,14 +2437,13 @@ applied remotely. See `docs/ROLE-IMPROVEMENT-IMPLEMENTATION.md` for deployment a
   Existing department work prevents withdrawal; new work is serialized against it.
 - **Reviews:** public testimonials come from real records, with an honest empty/unavailable
   state. Production fallback never supplies sample reviews.
-- **Schedule & Handover:** all five operational roles have a navigation entry. Manager schedules
-  active operational staff with overlap protection and Manila times. Staff read only their own
-  roster. Scheduling does not grant account-governance powers or prove attendance. Department
-  handovers retain source references, follow-up ownership, acknowledgement and resolution.
-- **Preventive work:** Manager assigns maintenance technicians; technicians assign themselves.
-  An asset has at most one unfinished linked occurrence. Existing work-order lifecycle applies;
-  completed work and an actual service date are required before updating the linked schedule.
-  Due dates alone do not block rooms.
+- **Operational Handover:** all five operational roles have a navigation entry.
+  Department handovers retain source references, ownership, acknowledgement and
+  resolution. Staff can read their own legacy roster, and Manager can cancel
+  existing assignments. Workforce owns new official schedules.
+- **Linked maintenance:** staff can complete existing linked work orders.
+  Service recording requires a completed order and an actual service date.
+  New preventive scheduling belongs to Facilities.
 - **Lost & Found:** Housekeeping records/secures; Front Desk records claims; Manager authorizes
   release or declines claims; Front Desk verifies identity before release. Custody changes are
   acknowledged and audited. Manager disposition requires explicit policy confirmation/reason;
@@ -2297,8 +2479,8 @@ Provisional defaults (`docs/PROVISIONAL_BUSINESS_POLICIES.md`, `lib/hotel-policy
 | Deposit (website) | 30% of total (`reservation_deposit_policies`, `percentage_basis_points = 3000`); hold 15 min; "At hotel / check-in" balance wording |
 | Cancellation refunds | full within 14 days, 50% (5000 bp) 7–14 days, 0 after — computed on the hotel-local day |
 | Self-service modification | allowed > 3 days before check-in; else manager approval |
-| Identity | valid ID required at check-in (guest cannot self-check-in) |
-| Minimum booking age | 18 (data source for the actual age check is a gap — §15) |
+| Identity | Valid ID is required by policy. Express check-in requires Front Desk to have verified identity first. |
+| Minimum booking age | 18 by default. The local implementation enforces the configured age at check-in after the audited age-policy effective date (§7.16.1, §15). |
 | Email verification | required: **off** |
 | VAT / service charge | **VAT-inclusive**: 12% VAT + 10% service charge (`vat_rate_bp` 1200, `service_charge_bp` 1000, basis points 0–10000, Owner/Admin-editable) — displayed prices are the full amount guests pay; documents derive the breakdown (net = gross ÷ ((1+sc)×(1+vat)), VAT line absorbs rounding). Rates freeze into `operational_policy_snapshot` per reservation; settled documents are never recomputed |
 | Historical deposit verification SLA | Stored with prior policy snapshots and carried through policy updates. The application retired the review queue and its SLA controls on 2026-11-15. |
@@ -2325,7 +2507,7 @@ Grouped by domain:
 | Transportation | `transportation_requests`, `transport_vehicle_types` | Requests: service type, text locations, pickup/return date-time, passengers, status machine, driver, `fare_amount`/`fare_posted_at`, `version`; **one active request per reservation** (partial unique index) + stay-window trigger. Vehicle types: seats, base fare, per-km/per-minute, booking fee. (The earlier `transport_services` price-list table was **dropped** in favor of vehicle types.) |
 | Money | `invoices`, `folio_charges`, `payments`, `financial_adjustments`, `refund_requests`, `refund_attempts`, `cash_shifts`, `cash_count_drafts`, `payment_reconciliations`, `financial_documents` | Folio truth is **derived** (`sync_invoice_financials`); settled payments are immutable; manual deposit payments retain private proof-storage metadata for Accounting review; documents are generated snapshots |
 | Manager/owner | `manager_approval_requests`, `manager_notes`, **`front_desk_reports`** | Exception engine with `version`, `execution_status`, `authority_level` manager/owner; reports = immutable daily snapshots (`snapshot` jsonb, `supersedes` lineage, one live per date) |
-| Retail/back-office | `inventory`, `vendors`, `purchase_orders` | Live stock grid and movements-based usage (§7.13), with existing issue/count operations. Purchase-order creation/editing produces drafts; separate local submit, approval, receive and cancel actions manage the lifecycle (§7.15). Supplier transmission and external SCM integration are absent (the unused `reviews` table was dropped 2026-09-14) |
+| Hotel supplies | `inventory`, `vendors`, `purchase_orders` | Live stock grid, issue and count operations, existing delivery receiving and purchase-order history (§7.15) |
 | Guest communication | `notifications`, `guest_reminder_deliveries` | Immutable guest-facing event content with per-user scope, timestamp, link, and optional `read_at`; the email copy is best-effort and not the source of truth. Deliveries: one row per reservation+reminder kind (`pre_arrival`/`pre_departure`, unique index = idempotency), status/error/sent-at for audit |
 | Innovation layer | `analytics_model_runs`, `analytics_predictions`, `ai_interactions`, `inventory_movements`, `qr_tokens`, `qr_scan_events` | §7.13. Analytics run/prediction snapshots (predictions indexed by type+date); AI interaction audit rows (no prompt/response bodies — also the durable rate-limit counter); append-only consumption/restock/adjustment movements feeding the inventory forecast; hashed QR tokens (unique `token_hash`, active-per-resource partial index) + scan events. Same RLS/no-policies/service-role-only trust model as every other table |
 | Audit | `audit_logs` | Append-only event trail (`protect_audit_history`), `before_data`/`after_data` jsonb |
@@ -2376,7 +2558,7 @@ availability/room-state counts, and write `audit_logs` rows. Grouped by workflow
 | No-show | `mark_reservation_no_show` (local-time cutoff gate; explicit settled-deposit fee, idempotent terminal settlement) |
 | Accounting | `sync_invoice_financials` (single folio recompute; internal-only, revoked even from service_role), `accounting_reject_deposit`, `accounting_reverse_charge`, `accounting_record_adjustment`, `accounting_open/close_cash_shift`, `accounting_reconcile_cash_shift`, `accounting_reconcile_payments`, `accounting_generate_document`; immutability triggers `protect_settled_payment` (economic fields **and status**), `protect_audit_history` |
 | Manager & Owner | `request_manager_approval` (reason-code validation + server-stamped `financials` for room-type changes; `stayExtension` snapshot for stay extensions), `review_manager_approval` (feasibility re-check + version), `validate_room_type_exception_request`, `validate_room_type_exception_approval`, `validate_room_type_exception_check_in` (exact-ID validation triggers), `room_type_change_responsibility` (reason→payer helper; internal), `record_room_type_change_acceptance` (guest acceptance + idempotent folio posting), `front_desk_execute_manager_approval` (stay_extension branch performs `front_desk_extend_stay` after an optional validated same-type room move), `accounting_execute_manager_financial_approval`, `manager_prioritize_housekeeping`, `manager_escalate_maintenance`, `escalate_manager_approval_to_owner`, `review_owner_exception`, `protect_owner_exception_review`, `sync_manager_financial_execution` |
-| Front-desk reports | `submit_front_desk_report` (front-desk-guarded; future-date + supersedes validation; one live per day), `review_front_desk_report` (manager-guarded; version-guarded; note required on return) |
+| Front-desk reports | `submit_front_desk_daily_snapshot` (staff-report submission; expected snapshot version; future-date + supersedes validation; one live per day), `review_front_desk_report` (manager-guarded; version-guarded; note required on return) |
 | Customer | `register_guest_account`, `customer_request_reservation_change`, recovery RPCs (`admin_initiate_account_recovery`, `complete_account_recovery`), policy snapshot triggers |
 | Governance/catalogue | `admin_create_staff`, `admin_change_account_status`, `admin_change_user_role`, `admin_update_user_metadata`, `admin_create_room`, `admin_update_room_metadata`, `admin_update_room_type` (incl. `photo_urls`), `admin_update_operational_policy`, `upsert_transport_vehicle_type`, `current_operational_policy_snapshot`, `hotel_today`, `manager_propose_room_rate_plan` / `admin_review_room_rate_plan` / `manager_retire_room_rate_plan` (rate-plan governance, §6) |
 
@@ -2436,13 +2618,12 @@ advisory assignment plan, §7.5; applying still goes through the audited assign 
 
 **Maintenance** (`/api/maintenance`): `POST orders`, `POST orders/[id]/[action]`
 (action ∈ assign, start, diagnose, defer, progress, resolve, close, cancel);
-**`GET/POST /api/maintenance/assets` + `POST /api/maintenance/assets/[id]/[action]`**
-(action ∈ record-service, update, deactivate — the §7.6 preventive-maintenance asset
-registry; maintenance/manager only, never touches rooms).
+`GET /api/maintenance/assets` (legacy registry reference); `GET/POST /api/maintenance/asset-work`
+(existing linked work and service completion for Maintenance and Manager).
 
-**Inventory replenishment** (§7.15): `GET/POST /api/inventory/purchase-orders`
-(manager/owner/admin — forecast shortage suggestions + draft-PO creation; POST writes status
-`draft` only, no submit/send path exists).
+**Hotel supplies** (§7.15): `GET /api/inventory/purchase-orders` (existing
+delivery records); `POST /api/inventory/purchase-orders/[id]/receive | cancel`
+for eligible existing orders.
 
 **Transportation** (`/api/transportation`, staff): `GET /transportation` (workspace rows + vehicle
 types), `POST /transportation/[id]/transition` (action ∈ review, schedule, assign, start, complete,
@@ -2471,8 +2652,10 @@ closeReservation), `GET rooms/[id]` (room dossier), `GET guests/[id]` (consolida
 §7.9 — guest-contact roles only, GET only); **dashboard** `GET /api/manager_dashboard`.
 
 **Analytics** (`/api/analytics`, §7.13; manager/owner/admin — front desk gets a reduced subset on
-insights): `GET /insights` (latest prediction snapshot + evaluation metrics, on-demand-compute
-fallback); `POST /generate` (run the analytics engine + persist snapshot — Vercel cron bearer
+insights): `GET /insights` (live forecast plus saved-run metadata); `GET /seasonal-occupancy`
+(`view=month|date`, `target=YYYY-MM|YYYY-MM-DD`, `referenceYear`); `GET /evaluation`
+(saved comparisons, `metric=occupancy|housekeeping|inventory`, `days=14|30|90`);
+`POST /generate` (run the analytics engine and persist the snapshot and evaluation evidence — Vercel cron bearer
 `CRON_SECRET` or authorized session, ≥1 h between runs); `GET /pricing-recommendations`
 (Manager/Owner/Admin) and `POST /pricing-recommendations/propose` (Manager only; governed pending
 rate-plan proposals, never direct pricing writes).
@@ -2671,8 +2854,9 @@ schema, then `set-passwords.mjs` on the empty database to create/activate the st
 `vercel.json` registers **two daily crons** (Hobby-plan Vercel allows daily only): 02:35 Manila
 `/api/analytics/generate` and 09:05 Manila `/api/guest-reminders`, both with the `CRON_SECRET`
 bearer (§7.13, §11); mid-day prediction refresh happens through the Manager's
-[Refresh predictions] button. There is no CI
-pipeline config in the repo at this tree.
+[Refresh predictions] button. The local GitHub Actions CI workflow installs locked
+dependencies, generates Next.js route types, and runs typecheck, lint, tests, and
+build on push and pull request.
 
 ## 15. Current gaps & deferred configuration
 
@@ -2703,9 +2887,10 @@ Honest inventory of what is **not** wired up yet (not prescriptions). Full split
   sends best-effort transactional copies for selected payment, request, and transportation events;
   durable in-app notifications remain authoritative. Email verification is off, and booking expiry
   still has no external reminder service.
-- **Minimum-age enforcement is not deployed.** The local unreleased occupant register now supports
-  Front Desk DOB or exact-age evidence recorded from official ID, without inferring unknown ages;
-  active enforcement still requires the matching migration/app release and explicit policy dates.
+- **Minimum-age enforcement is local.** Front Desk records DOB or exact age
+  from official ID for the current primary guest's scheduled hotel check-in date.
+  Production enforcement requires the matching migration/app release and explicit
+  activation through the audited occupant policy.
 - **Transportation stays usable without map services.** Locations can be entered
   as free text. Guest map pins assist address entry. The TomTom-priced variant
   was removed.
@@ -2763,8 +2948,8 @@ Honest inventory of what is **not** wired up yet (not prescriptions). Full split
   risk model — due dates are calendar facts, not predictions). Hobby-plan
   Vercel allows daily crons only — the analytics
   snapshot refreshes once per night plus on-demand Manager refresh.
-- No CI config; no production observability; guest-facing behaviour depends on the provisional
-  policies in §8 until real ones are configured.
+- Production observability remains pending. Guest-facing behaviour depends on the
+  provisional policies in §8 until real ones are configured.
 
 ## 16. Further reading
 

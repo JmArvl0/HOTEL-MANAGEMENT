@@ -4,6 +4,26 @@ The source-of-truth reference for the shipped UI. **Do not apply
 `design-system/haven-hotel/MASTER.md`** — it is superseded (see `DESIGN-STATUS.md` F2).
 This doc and `app/ui-primitives.css` are the current system.
 
+**Forecast Accuracy.** Each Predictive Insights tab starts with the result for the
+selected task. The room outlook gives the booked room count and expected occupancy
+for tomorrow, with exact daily figures available below the chart. Forecast Accuracy
+shows which forecast was closer and each method’s average error. Occupancy and
+housekeeping can be reviewed at 1, 3, or 7 days ahead. Actual uses a solid
+line, the HAVEN forecast a dashed line, and the seven-day average a dotted line.
+Technical scores and forecast records are keyboard-accessible disclosures.
+
+**Seasonal Occupancy.** The second Predictive Insights tab opens a month or exact-date view.
+The filter tray pairs the target with a reference year and matching rule. Bookings, the historical baseline,
+and the occupancy estimate use a divided summary, backed by a gap-aware chart and daily
+records. A plain-language result above the summary gives the expected rooms for an exact
+date or explains when earlier records are missing.
+
+**Hotel Command Center and Reports.** Manager and Owner use a divided hotel summary and
+an arrivals/departures board. Needs attention sits beside the board on wide screens and
+above it on narrow screens. Reports use a compact view switcher, period and cohort filters,
+and an accessible trend with daily figures. Both surfaces reuse staff light and dark tokens,
+tabular figures, and the forecast workspace's bordered panels.
+
 **Lost & Found.** Four status counters filter the item register. Wide workspaces
 show the register and item details side by side with independent scrolling. Narrow
 workspaces show one pane at a time, and Back restores focus to the selected row.
@@ -20,14 +40,26 @@ and 44px touch floor; room/card frames use 12px. The guest theme is scoped in
 Narrow layouts stack the room/photo, use a two-column booking timeline and
 stack the next action and supporting sections. Guest detail forms stack their
 summary below the form at 1100px and optional requests/transport use disclosures.
-Booking-related auth pairs the room summary with the account form on desktop.
-At 900px and below, a single compact summary sits above the form, with a room
-thumbnail, stay facts, the estimated total, and the room/date change link.
+Unsaved guest details use a confirmation on in-app departure and the browser
+warning for reload or close. Returning to a history entry with a valid draft
+restores the form and displays a status above the fields. Payments & Folio
+keeps summary cards and both filter counts above its paged cards. Changes to
+search and status return to the first page and Requests keeps all items in a
+submission together.
 Search and exact-room browsing use compact controls and
 deposit estimates; the hold remains the pricing authority.
 Desktop account and narrow hold/recovery renders were inspected. Final stay-guide,
-auth, dark-mode and full mobile-matrix visual QA remain pending after browser
+dark-mode and full mobile-matrix visual QA remain pending after browser
 control became unavailable.
+
+**Booking sign-in and registration.** The booking account pages use the shared
+Haven logo and a warm ivory canvas. On desktop, the room photo and reservation
+summary sit beside the account panel. At 900px and below, the same summary
+stacks above the form. Dates and guests share a row, followed by the room
+details and highlighted estimated total. Changing the room or dates is a
+secondary action. When several room photos are available, inline arrows
+sync the photo and counter with the full-screen viewer. The auth routes carry
+the booking callback through sign-in, registration, and password recovery.
 
 **Reservation checkout (2026-11-14, local).** The Xendit payment step follows the
 user's supplied two-column checkout reference and Stripe's published payment
@@ -204,11 +236,10 @@ disclosure. Owner/Admin Website Content pairs editor fields with a guest preview
 and shows the published and saved values side by side before publication. See
 `docs/qa/landing-audit-implementation-2026-11-11.md`.
 
-**Front Office workspaces (2026-11-04):** Separate Room Management, Reservations
-and Guest Management navigation entries. Room Management defaults to a full-width
-seven-day room/guest calendar, with Cards as an alternate format. Its room column
-and date header stay visible inside a horizontally scrollable frame; named stay
-bars carry status/reference/dates, with distinct lanes for overlapping allocations.
+**Front Office workspaces (2026-11-04):** Separate Room Management, Bookings
+and Guest Management navigation entries. The Bookings calendar keeps its room
+column and date header visible inside a horizontally scrollable frame. Named stay
+bars carry status, reference and dates, with distinct lanes for overlapping allocations.
 Reservations opens the ledger directly, with four clickable shared summary cards
 and an actionable Needs attention rail. Summary links navigate between modules.
 List order is search → queue filters → scope/date controls → results. Dates stay
@@ -225,6 +256,31 @@ top-right icons and aligned values/helper text. Direct panel headings in
 `.overview-role-front_desk` have zero left/right padding. Shared staff
 `.panel-heading` styles also have zero top padding; existing bottom padding
 and outer article padding remain intact.
+
+**Front Office workflow (2026-11-23).** The shared staff booking form uses the
+Framed Sheet direction. Guest selection, dates and available room types stay in
+one working surface, with the stay and price summary alongside on desktop and
+below on compact screens. The active step uses a short underline and the quoted
+total uses tabular figures. Room Management surfaces next-arrival risks before
+the rack, and the dossier separates occupancy, housekeeping, serviceability and
+inventory. The arrivals ledger sends staff directly to the relevant task.
+
+Room Management's large card follows the supplied room reference with a curved
+catalog photo, white surface, Playfair room heading and separate status pills.
+Guest and stay dates share a panel when a stay is linked. Available cards without
+a stay show Ready for check-in. Group headers show the room type in plain text,
+and the light-mode Room Management workspace has a white background.
+The large card stacks the image over the details
+when the card is narrower than 680px. The compact grid retains room, floor,
+status and stay information. A single result uses the large card automatically,
+and the Room card layout control can expand all results.
+
+Front Desk has local Rooms, Bookings and Guests navigation with an underlined
+current section. Bookings opens as a list and offers an explicit List and
+Calendar switch that keeps its search and queue. Peer metrics share a divided
+panel. Phone-sized booking and guest rows fit within the viewport, and the
+booking form keeps the selected quote next to Review reservation while completed
+steps open for editing.
 
 **Shared panel dividers (2026-11-03):** Direct `.panel > .panel-heading`
 dividers extend to the container edges across staff portals. The divider inset
@@ -246,6 +302,11 @@ standalone source/owner form and filterable follow-up log. Guest and uploaded-ID
 forms preserve the existing portal/arrival shell. Labels, draft preservation,
 stable retry keys, truthful status/error feedback and keyboard focus are part of
 the workflow; no prototype/sample records are wired into production screens.
+
+**Front Desk age verification (2026-11-22):** The Staying guests panel shows the
+scheduled check-in date and the primary guest's current age requirement. The
+inline form shows one evidence field at a time and records the Front Desk ID
+attestation. Staff can reopen verification when the date changes.
 
 **Cash safeguards (2026-11-05, local):** Count review distinguishes unsaved edits,
 an explicitly saved server draft, resume/fresh count and final Close. Changed
@@ -456,6 +517,15 @@ provider settlement status. Legacy manual submissions show their recorded status
 
 ## 8. Public booking search
 
+Guest audit changes retain the Haven identity and use the existing booking
+motion, controls and type. Unavailable dates offer Edit stay dates first.
+Inventory and the booking channel have distinct messages. Correctable search
+errors stay in the editor beside the rejected values. Mobile booking sign-in
+puts the account controls ahead of the preserved stay summary. Inside a narrow
+confirmation card, the Digital Express Pass stacks its code, instructions and
+actions. Mobile portal search remains available in the menu, and the floating
+concierge is hidden during phone checkout so amounts and actions stay clear.
+
 **Approved prototype implementation (2026-11-11):** Room-type selection opens a
 dedicated numbered-room page, preserving the neutral Inter/Playfair Haven identity.
 Three desktop room columns collapse to two at900 and one at480. Unavailable rooms
@@ -572,6 +642,14 @@ hint, 13–14px padding — dense enough to read as a snapshot above a table.
   the same order while stacking full-width; customer touch targets rise to 44px.
   Search inputs carry accessible labels and clear controls. See
   `docs/HAVEN_UI_STANDARDS.md` for the canonical primitives and migration rules.
+
+- **Front Desk workstation density.** Bookings keeps List and Calendar beside
+  the booking actions, with compact summary metrics above the existing
+  search/filter sequence. The calendar retains sticky time and room references.
+  Automatic Room Management cards use shorter photos on short workstations.
+  Incoming desk alerts use the header bell, while a transaction can still show
+  its own feedback. The staff foreground token keeps sidebar group labels
+  readable in both themes.
 
 ## 11. Dropdowns & selects — one Haven language, two mechanisms
 
@@ -768,21 +846,38 @@ room-mix donut — only composition differs:
   attention list, folio/requests/notifications cards, quick actions);
   `/my-reservations` stays the separate history module.
 
-## 19. Predictive pricing workspace (2026-09-22)
+## 19. Predictive Analytics workspace (2026-11-22)
 
-- The Occupancy Outlook keeps the FACT bars and dashed PREDICTION line as the
-  primary evidence. A responsive recommendation workspace sits beside it at
-  wide widths and stacks below it before mobile.
-- Recommendation cards show room/date, base rate (FACT), proposed rate,
-  percentage movement, demand-tier badge, confidence, and plain-language
-  reasoning. Color is never the only status signal.
-- The top three highest-impact recommendations preview in the panel. The
-  branded review modal exposes all seven-day room/date recommendations with
-  native checkboxes, bounded numeric inputs, visible focus treatment, and a
-  sticky semantic footer count/action group.
-- The sole primary action says **Submit Proposal to Owner**. Supporting copy
-  states that submission leaves live rates unchanged and creates pending
-  Owner/Admin work. Reduced-motion removes skeleton and row transitions.
+- Occupancy Forecast, Demand & Rate Forecast, Housekeeping Workload,
+  Inventory Consumption and Recurring Maintenance Risk share the Manager
+  shell, staff theme tokens and workspace tabs. Seasonal Outlook and
+  Forecast Accuracy remain available through the same navigation.
+- Each view starts with its date range or evidence window. A KPI strip leads
+  into a chart and a plain-language summary. Supported accuracy previews use
+  saved matched comparisons and link to the detailed evidence. The main
+  grid uses available workspace width after the sidebar. Compact laptops
+  get a full-width chart with summary cards below and four compact KPIs.
+  The pricing table follows its chart within the same column. The summary
+  rail shifts below that column on compact desktop workspaces. A compact
+  view selector complements the sidebar, and the workspace caps at 1740px.
+  Scrollable tables retain their columns and keyboard focus.
+- Occupancy uses an area timeline with a solid recorded series, dashed
+  forecast series and a Today divider. Booked occupancy is available in the
+  daily breakdown and on chart dates without a prediction. Housekeeping uses
+  paired bars for checkout cleans and estimated hours, highlights its
+  busiest date by task count, and provides a separate accuracy chart.
+  Inventory shows daily logged usage and the projected daily
+  mean for the selected item. Maintenance charts recorded weekly work
+  orders for flagged issues and shows priority, evidence and a suggested
+  action for the selected pattern.
+- Pricing labels the effective selling rate and suggested nightly rate
+  separately and identifies hotel-wide occupancy as booked or expected. A
+  room-type filter scopes the nightly rate series on the secondary currency
+  axis. The rate table has a stay-date filter and a shortcut from the
+  featured recommendation. The review action exposes the selected count
+  across filters and keeps those dates selected until review. The page
+  headers use existing Haven photography and the staff sidebar retains
+  its standard background.
 
 ## 20. System Health module conformance (2026-09-26)
 
