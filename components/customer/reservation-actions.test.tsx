@@ -2,7 +2,7 @@
 // Request-a-Change is one complete modal (dates + HavenSelect room type +
 // required reason textarea); a reservation with an unresolved request shows a
 // non-action pending state instead of an active button.
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ReservationActions } from "./reservation-actions";
 
@@ -169,13 +169,14 @@ describe("ReservationActions change modal", () => {
   it("submits once on double-click with a single idempotency key", async () => {
     let posts = 0;
     const bodies: string[] = [];
+    const response = Promise.withResolvers<Response>();
     const fetch = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
       if (url.includes("room-options")) {
         return Promise.resolve({ ok: true, json: () => Promise.resolve({ data: [{ name: "Garden Twin", availableUnits: 2 }] }) });
       }
       posts += 1;
       bodies.push(String(init?.body ?? ""));
-      return new Promise((resolve) => setTimeout(() => resolve({ ok: true, json: () => Promise.resolve({ data: { status: "pending", id: "c1" } }) }), 30));
+      return response.promise;
     });
     vi.stubGlobal("fetch", fetch);
     render(<ReservationActions {...base} />);
@@ -187,7 +188,11 @@ describe("ReservationActions change modal", () => {
       fireEvent.click(submit);
       fireEvent.click(submit);
     });
-    await waitFor(() => expect(posts).toBe(1));
+    await act(async () => {
+      response.resolve(Response.json({ data: { status: "pending", id: "c1" } }));
+    });
+    expect(screen.queryByRole("dialog", { name: "Request a reservation change" })).toBeNull();
+    expect(posts).toBe(1);
     expect(bodies[0]).toContain("Need an extra night");
     expect(bodies[0]).toContain("11111111-1111-1111-1111-111111111111");
   });

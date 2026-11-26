@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>General HAVEN AI assistant · Design prototype</title>
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="haven-general-ai-preview.css">
+  <script src="hms-workflow-icons.js" defer></script>
+  <script src="haven-general-ai-preview.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to assistant</a>
+  <aside class="sidebar" aria-label="HAVEN preview navigation">
+    <div class="brand"><img src="../haven-logo-small.png" width="40" height="40" alt=""><div><strong>HAVEN</strong><span>HOTEL MANAGEMENT</span></div></div>
+    <p class="sidebar-label">WORKSPACE</p>
+    <div class="sidebar-link muted"><i data-icon="Gauge"></i><span>Dashboard</span></div>
+    <div class="sidebar-link muted"><i data-icon="BedDouble"></i><span>Hotel operations</span></div>
+    <div class="sidebar-link muted"><i data-icon="ClipboardList"></i><span>Work queues</span></div>
+    <p class="sidebar-label">ASSISTANCE</p>
+    <div class="sidebar-link active" aria-current="page"><i data-icon="Activity"></i><span>HAVEN AI</span><small>ONE ASSISTANT</small></div>
+    <div class="sidebar-bottom"><div class="avatar" id="avatar" aria-hidden="true">FD</div><div><strong id="account-name">Front Desk</strong><span id="account-caption">Preview account</span></div></div>
+  </aside>
+  <div class="workspace">
+    <header class="topbar">
+      <div class="topbar-location"><span class="mobile-brand"><img src="../haven-logo-small.png" width="28" height="28" alt="">HAVEN</span><span class="breadcrumb">Workspace <i data-icon="ChevronRight"></i> <strong>HAVEN AI</strong></span></div>
+      <div class="topbar-controls"><span class="sample-chip">Interactive design prototype</span><label class="role-picker" for="preview-role"><span>Preview as</span><select id="preview-role"><option value="front_desk">Front Desk</option><option value="housekeeping">Housekeeping</option><option value="maintenance">Maintenance</option><option value="accounting">Accounting</option><option value="manager">Manager</option><option value="owner">Owner</option><option value="admin">System Administrator</option></select></label><button type="button" class="icon-button" id="theme-toggle" aria-label="Switch to dark theme" aria-pressed="false" title="Toggle theme"><i data-icon="Moon"></i></button></div>
+    </header>
+    <main id="main" tabindex="-1">
+      <div class="prototype-note" role="note"><i data-icon="ShieldCheck"></i><span>Concept preview. Questions, answers, counts, and sources below are scripted examples. No hotel records or Gemini service are connected.</span></div>
+      <header class="page-header"><div><p class="eyebrow">HOTEL-WIDE ASSISTANCE · ROLE-AWARE CONTEXT</p><h1>Ask HAVEN about your hotel day.</h1><p>One Gemini assistant helps connect information across the hotel workflows your account can access.</p></div><div class="hero-mark" aria-hidden="true"><i data-icon="Activity"></i></div></header>
+      <section class="scope-strip" aria-label="Assistant scope"><div><span class="scope-label">YOU ARE PREVIEWING</span><strong id="role-title">Front Desk account</strong><p id="role-description">Questions can span your authorized operations.</p></div><div><span class="scope-label">ASSISTANT CONTEXT</span><div class="context-pills" id="context-pills"></div></div></section>
+      <div class="content-grid">
+        <section class="panel conversation" aria-labelledby="assistant-title">
+          <div class="panel-heading"><div class="ai-mark"><i data-icon="Activity"></i></div><div><p class="section-kicker">GENERAL ASSISTANT</p><h2 id="assistant-title">HAVEN AI</h2><p>Ask about priorities, connected workflows, or what a forecast means.</p></div><span class="read-only"><i data-icon="ShieldCheck"></i> Advisory</span></div>
+          <div class="conversation-body" id="conversation-body" aria-live="polite"></div>
+          <div class="composer"><p class="composer-label">Try a question</p><div class="suggestions" id="suggestions"></div><form id="ask-form"><label class="sr-only" for="question">Ask HAVEN a question</label><textarea id="question" rows="2" maxlength="500" placeholder="Ask HAVEN about your hotel operations…" required></textarea><button type="submit" id="ask-button"><i data-icon="ArrowUpRight"></i><span>Show sample answer</span></button></form><p class="composer-help">Sample responses only. In the implementation, Gemini would receive server-approved context for your role.</p></div>
+        </section>
+        <aside class="insights" aria-label="Assistant context and safeguards">
+          <section class="panel context-panel"><p class="section-kicker">A CONNECTED VIEW</p><h2>What HAVEN can bring together</h2><p id="context-intro">The assistant draws from the workflows permitted to this account.</p><div class="context-list" id="context-list"></div></section>
+          <section class="panel boundary-panel"><p class="section-kicker">HOW THE THREE PARTS WORK TOGETHER</p><div class="boundary-row"><span class="boundary-icon"><i data-icon="FileText"></i></span><div><strong>HAVEN records</strong><p>Operational facts stay in the hotel system.</p></div></div><div class="boundary-row"><span class="boundary-icon"><i data-icon="Activity"></i></span><div><strong>Predictive analytics</strong><p>HAVEN calculates forecasts and labels them as predictions.</p></div></div><div class="boundary-row"><span class="boundary-icon"><i data-icon="ShieldCheck"></i></span><div><strong>QR operations</strong><p>Scans open protected workflows. The assistant can explain status, but cannot complete an action.</p></div></div><div class="boundary-row"><span class="boundary-icon"><i data-icon="CircleHelp"></i></span><div><strong>Gemini assistance</strong><p>Summarizes, explains, and suggests next steps for an authorized person.</p></div></div></section>
+        </aside>
+      </div>
+      <p class="disclosure">AI-generated operational guidance. Verify important decisions using authoritative HAVEN records. This preview does not grant access or change existing permissions.</p>
+    </main>
+  </div>
+</body>
+</html>

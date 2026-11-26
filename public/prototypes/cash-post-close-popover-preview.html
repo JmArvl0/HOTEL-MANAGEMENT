@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Post-close actions preview · Haven</title>
+  <style>
+    :root { font-family: Arial, Helvetica, sans-serif; color: #26312b; background: #f4f4f2; font-size: 13px; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    button { font: inherit; cursor: pointer; }
+    button:focus-visible { outline: 3px solid #224b3d; outline-offset: 3px; }
+    .shell { display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: 100dvh; }
+    .sidebar { padding: 30px 14px; border-right: 1px solid #dce1d9; background: #fff; }
+    .brand { display: flex; align-items: center; gap: 12px; padding: 0 8px 20px; border-bottom: 1px solid #e5e8e2; font-size: 17px; font-weight: 800; letter-spacing: .07em; }
+    .brand-mark { display: grid; place-items: center; width: 42px; height: 42px; border: 2px solid #173e33; border-radius: 8px; color: #173e33; font-family: Georgia, serif; font-size: 28px; line-height: 1; }
+    .brand small { display: block; margin-top: 2px; color: #9aa2a5; font-size: 9px; font-weight: 700; letter-spacing: .1em; }
+    .nav-heading { margin: 34px 8px 14px; color: #a2a9ad; font-size: 10px; font-weight: 700; letter-spacing: .12em; }
+    .nav-item { padding: 13px 14px; border-radius: 9px; color: #3c4a55; }
+    .nav-item.active { border: 1px solid #cbd7cf; background: #f1f2f0; color: #172f27; font-weight: 700; }
+    .page { min-width: 0; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 14px; min-height: 60px; padding: 10px 28px; border-bottom: 1px solid #dce1d9; background: #fff; }
+    .topbar strong { font-size: 13px; }
+    .topbar small { display: block; margin-top: 3px; color: #637169; font-size: 11px; }
+    .topbar-badge { padding: 6px 10px; border: 1px solid #efd1ce; border-radius: 99px; background: #fff4f2; color: #a5453e; font-size: 10px; font-weight: 700; letter-spacing: .04em; white-space: nowrap; }
+    .workspace { width: min(100%, 1430px); margin: 0 auto; padding: 44px 48px 80px; }
+    .prototype-note { display: inline-block; margin: 0 0 22px; padding: 8px 11px; border: 1px solid #d7dfd7; border-radius: 7px; background: #edf3ed; color: #315342; font-size: 12px; }
+    .prototype-note strong { font-weight: 750; }
+    .workspace-heading { display: flex; align-items: end; justify-content: space-between; gap: 14px; margin-bottom: 18px; }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: 28px; letter-spacing: -.035em; }
+    .workspace-heading p { margin-top: 6px; color: #637169; }
+    .heading-actions { display: flex; gap: 8px; }
+    .button { display: inline-flex; justify-content: center; align-items: center; gap: 7px; min-height: 40px; padding: 8px 13px; border: 1px solid #8c9a8d; border-radius: 7px; background: #fffefa; color: #25342c; font-size: 12px; font-weight: 650; white-space: nowrap; }
+    .button.green { border-color: #224b3d; background: #224b3d; color: #fff; }
+    .button.outline { border-color: #224b3d; background: #eef3ec; color: #224b3d; font-weight: 700; }
+    .button.outline:hover { background: #e3eddf; }
+    .button.small { min-height: 36px; padding: 6px 10px; }
+    .button svg, .text-action svg, .post-close-trigger svg { width: 14px; height: 14px; flex: none; }
+    .overview { display: grid; grid-template-columns: minmax(0, 2.05fr) minmax(290px, 1fr); align-items: start; gap: 16px; }
+    .surface { min-width: 0; border: 1px solid #dce1d9; border-radius: 11px; background: #fffefa; }
+    .drawer { display: flex; flex-direction: column; min-height: 418px; padding: 20px; }
+    .section-head, .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .eyebrow { margin-bottom: 4px; color: #617066; font-size: 10px; font-weight: 750; letter-spacing: .1em; }
+    h2 { font-size: 16px; line-height: 1.35; }
+    h3 { font-size: 14px; }
+    .badge { display: inline-flex; align-items: center; min-height: 25px; padding: 4px 9px; border-radius: 99px; background: #f2f3ef; color: #59665e; font-size: 11px; font-weight: 700; }
+    .closed-note { margin-top: 14px; color: #59665e; }
+    .last-close { display: flex; flex: 1; flex-direction: column; margin-top: 18px; padding-top: 14px; border-top: 1px solid #dce1d9; }
+    .last-close p { margin-top: 4px; color: #59665e; font-size: 12px; }
+    .money-list { display: grid; flex: 1; grid-template-rows: repeat(3, 1fr); margin: 0; padding: 10px 0 0; }
+    .money-list > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid #dce1d9; }
+    .money-list dt { color: #59665e; font-size: 12px; }
+    .money-list dd { margin: 0; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .side-rail { display: grid; gap: 14px; min-width: 0; }
+    .panel-head { padding: 16px 18px 10px; }
+    .checklist { padding-bottom: 10px; }
+    .steps { display: grid; gap: 12px; margin: 0; padding: 4px 16px 12px; list-style: none; }
+    .steps li { display: flex; gap: 10px; }
+    .step-icon { display: grid; place-items: center; width: 21px; height: 21px; flex: none; border: 1px solid #315b3d; border-radius: 50%; background: #e8efe6; color: #315b3d; font-size: 13px; }
+    .steps strong { display: block; font-size: 12px; }
+    .steps small { display: block; margin-top: 3px; color: #637169; font-size: 11px; }
+    .handover { position: relative; }
+    .handover-copy { padding: 18px; color: #59665e; line-height: 1.5; }
+    .post-close-trigger { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 44px; padding: 10px 18px; border: 0; border-top: 1px solid #dce1d9; border-radius: 0 0 10px 10px; background: #fffefa; color: #224b3d; text-align: left; font-size: 12px; font-weight: 700; }
+    .post-close-trigger:hover, .post-close-trigger[aria-expanded="true"] { background: #eef3ec; }
+    .post-close-trigger[aria-expanded="true"] svg { transform: rotate(90deg); }
+    .activity { margin-top: 16px; overflow: hidden; }
+    .activity-head { padding: 18px; }
+    .activity-head p { margin-top: 5px; color: #637169; font-size: 12px; }
+    .activity-controls { display: flex; gap: 8px; padding: 0 18px 13px; }
+    .activity-controls input, .activity-controls select { min-height: 38px; padding: 8px 10px; border: 1px solid #8c9a8d; border-radius: 6px; background: #fffefa; color: #48564e; font: inherit; }
+    .activity-controls input { width: min(290px, 100%); }
+    .activity-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; }
+    .activity-table th { padding: 10px 13px; border-top: 1px solid #dce1d9; background: #f7f7f1; color: #59665e; font-weight: 650; }
+    .activity-table td { padding: 11px 13px; border-top: 1px solid #dce1d9; }
+    .activity-table th:last-child, .activity-table td:last-child { text-align: right; }
+    .activity-foot { padding: 10px 14px; border-top: 1px solid #dce1d9; font-size: 11px; font-weight: 700; }
+    .activity-foot small { display: block; margin-top: 3px; color: #637169; font-size: 10px; font-weight: 400; }
+    .history { min-height: 120px; margin-top: 16px; padding: 18px; }
+    .history p { margin-top: 5px; color: #637169; }
+    #postClosePanel:popover-open { display: block; }
+    #postClosePanel { position: fixed; inset: auto; margin: 0; padding: 0; border: 1px solid #cbd7cf; border-radius: 12px; background: #fffefa; color: #26312b; box-shadow: 0 20px 50px rgba(23, 43, 30, .2), 0 4px 12px rgba(23, 43, 30, .08); overflow: auto; overscroll-behavior: contain; }
+    #postClosePanel::backdrop { background: transparent; }
+    .popover-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px 18px 13px; border-bottom: 1px solid #dce1d9; background: #fffefa; }
+    .popover-head p { margin-top: 4px; color: #637169; font-size: 11px; line-height: 1.4; }
+    .popover-head button { width: 30px; height: 30px; flex: none; border: 1px solid #cbd7cf; border-radius: 6px; background: #fffefa; color: #224b3d; font-size: 20px; line-height: 1; }
+    .popover-section { padding: 15px 18px; border-bottom: 1px solid #e3e8e0; }
+    .popover-section:last-child { border-bottom: 0; }
+    .popover-section h3 { margin-bottom: 6px; font-size: 13px; }
+    .popover-section p { color: #4d5a51; font-size: 12px; line-height: 1.5; }
+    .popover-section .status-line { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; color: #315b3d; font-weight: 700; }
+    .popover-section .status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .popover-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 11px; }
+    .popover-section .fine-print { margin-top: 10px; color: #637169; font-size: 11px; }
+    .text-action { display: inline-flex; align-items: center; gap: 4px; min-height: 34px; padding: 4px 0; border: 0; background: none; color: #224b3d; font-size: 12px; font-weight: 700; }
+    .text-action:hover { text-decoration: underline; }
+    .toast { position: fixed; right: 20px; bottom: 20px; z-index: 100; max-width: 280px; padding: 12px 14px; border: 1px solid #cbd7cf; border-radius: 8px; background: #fffefa; color: #224b3d; box-shadow: 0 8px 24px rgba(23, 43, 30, .14); font-size: 12px; }
+    [hidden] { display: none !important; }
+    @media (max-width: 1030px) { .shell { grid-template-columns: 72px minmax(0, 1fr); } .sidebar { padding-inline: 9px; } .sidebar .brand { justify-content: center; padding-inline: 0; font-size: 0; } .sidebar .brand small, .nav-heading, .nav-item { display: none; } .workspace { padding: 32px 24px 60px; } }
+    @media (max-width: 800px) { .overview { grid-template-columns: 1fr; } .side-rail { grid-template-columns: repeat(2, minmax(0, 1fr)); } .drawer { min-height: 0; } .money-list { grid-template-rows: auto; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; } .money-list > div { display: block; padding-top: 10px; } .money-list dd { margin-top: 5px; font-size: 14px; } }
+    @media (max-width: 620px) { .shell { display: block; } .sidebar { display: none; } .topbar { padding-inline: 16px; } .workspace { padding: 23px 14px 48px; } .workspace-heading { align-items: flex-start; flex-direction: column; } .heading-actions { width: 100%; } .overview, .side-rail { grid-template-columns: 1fr; } .last-close .section-head { align-items: flex-start; flex-wrap: wrap; } .activity { overflow-x: auto; } .activity-table { min-width: 620px; } .prototype-note { line-height: 1.4; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" aria-label="Preview navigation">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">H</span><span>HAVEN<small>HOTEL MANAGEMENT</small></span></div>
+      <p class="nav-heading">OPERATIONS</p><div class="nav-item">Hotel Operations</div><div class="nav-item">Reports</div><div class="nav-item">Operational Handover</div>
+      <p class="nav-heading">FINANCE</p><div class="nav-item">Billing</div><div class="nav-item">Transactions</div><div class="nav-item">Guest Folios</div><div class="nav-item">Deposit Verification</div><div class="nav-item active">Cash &amp; Shifts</div>
+    </aside>
+    <div class="page">
+      <header class="topbar"><div><strong>Cash &amp; shifts</strong><small>Interactive layout preview</small></div><span class="topbar-badge">CASH SHIFT: CLOSED</span></header>
+      <main class="workspace">
+        <p class="prototype-note"><strong>Prototype with sample data.</strong> Click Post-close actions to see the floating panel; these controls do not change hotel records.</p>
+        <div class="workspace-heading"><div><h1>Cash &amp; Shifts</h1><p>Track the shared drawer, count cash, and review completed shifts.</p></div><div class="heading-actions"><button class="button" type="button" data-demo>Refresh</button><button class="button green" type="button" data-demo>Open cash shift →</button></div></div>
+        <div class="overview">
+          <section class="surface drawer" aria-labelledby="drawer-title"><div class="section-head"><div><p class="eyebrow">CURRENT DRAWER</p><h2 id="drawer-title">No drawer is open</h2></div><span class="badge">Closed</span></div><p class="closed-note">Open a shift with a counted float to accept cash payments.</p><div class="last-close"><div class="section-head"><div><h3>Latest closed shift</h3><p>Liam Cruz · Oct 3, 2026, 12:53 AM</p></div><button class="button outline" type="button" data-demo>View shift record →</button></div><dl class="money-list"><div><dt>Expected at close</dt><dd>₱9,480.00</dd></div><div><dt>Counted at close</dt><dd>₱70,000.00</dd></div><div><dt>Over by</dt><dd>₱60,520.00</dd></div></dl></div></section>
+          <aside class="side-rail">
+            <section class="surface checklist" aria-labelledby="checklist-title"><div class="panel-head"><div><p class="eyebrow">SHIFT CHECKLIST</p><h2 id="checklist-title">Latest shift summary</h2></div><span class="badge">Closed</span></div><ol class="steps"><li><span class="step-icon" aria-hidden="true">✓</span><span><strong>Drawer opened</strong><small>Opened by Liam Cruz</small></span></li><li><span class="step-icon" aria-hidden="true">✓</span><span><strong>Cash activity recorded</strong><small>1 collection · 0 payouts</small></span></li><li><span class="step-icon" aria-hidden="true">✓</span><span><strong>Physical count</strong><small>Recorded at close</small></span></li></ol></section>
+            <section class="surface handover" aria-labelledby="handover-title"><div class="panel-head"><div><p class="eyebrow">TEAM FOLLOW-UP</p><h2 id="handover-title">Drawer handover</h2></div><button class="button outline" type="button" data-demo>View all</button></div><p class="handover-copy">No unresolved cash follow-up appears in the recent authorized records. Older records are outside this list.</p><button id="postCloseTrigger" class="post-close-trigger" type="button" aria-expanded="false" aria-controls="postClosePanel">Post-close actions <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button></section>
+          </aside>
+        </div>
+        <section class="surface activity" id="activity" aria-labelledby="activity-title"><div class="activity-head"><p class="eyebrow">CLOSED DRAWER · #6B4C640E</p><h2 id="activity-title">Recent cash activity</h2><p>Payments and payouts linked to this drawer. Times shown in Manila time.</p></div><div class="activity-controls"><input aria-label="Search activity" placeholder="Reservation, reference or method" readonly><select aria-label="Activity type"><option>All activity</option></select></div><table class="activity-table"><thead><tr><th>Time</th><th>Reservation / reference</th><th>Activity</th><th>Method</th><th>Amount</th></tr></thead><tbody><tr><td>Oct 3, 2026, 12:36 AM</td><td><strong>RSV-6DE2764C</strong></td><td>Collection</td><td>cash</td><td>+₱4,480.00</td></tr></tbody></table><div class="activity-foot">Showing 1 of 1 cash movements<small>Only paid, linked records enter the drawer balance.</small></div></section>
+        <section class="surface history"><p class="eyebrow">ALL DATES</p><h2>Shift history</h2><p>Drawer records and their reconciliation status.</p></section>
+      </main>
+    </div>
+  </div>
+
+  <div id="postClosePanel" popover="auto" role="dialog" aria-label="Post-close actions for shift 6b4c640e" aria-modal="false">
+    <div class="popover-head"><div><h2>Post-close actions</h2><p>Shift #6b4c640e · Oct 3, 2026, 12:53 AM<br>Recorded variance ₱60,520.00</p></div><button id="closePanel" type="button" aria-label="Close post-close actions">×</button></div>
+    <section class="popover-section"><h3>Accounting review</h3><p class="status-line"><span class="status-dot" aria-hidden="true"></span>Reconciled</p><p>The original count and variance remain recorded.</p></section>
+    <section class="popover-section"><h3>Operational follow-up</h3><p>No unresolved handover for this drawer in your department.</p><div class="popover-actions"><button class="button small" type="button" data-demo>Add a concern</button><button class="text-action" type="button" data-demo>View handovers</button></div></section>
+    <section class="popover-section"><h3>Daily report · 2026-10-03</h3><p>Not submitted</p><div class="popover-actions"><button class="button small" type="button" data-demo>Open daily report</button></div><p class="fine-print">One report covers the hotel day. Preview and submit explicitly; Close does not submit it.</p></section>
+    <section class="popover-section"><button class="text-action" type="button" data-demo>Refresh next steps</button></section>
+  </div>
+  <p id="toast" class="toast" role="status" hidden>Preview only — no hotel record was changed.</p>
+
+  <script>
+    const trigger = document.getElementById('postCloseTrigger');
+    const panel = document.getElementById('postClosePanel');
+    const closePanel = document.getElementById('closePanel');
+    const toast = document.getElementById('toast');
+    let toastTimer;
+
+    function positionPanel() {
+      const rect = trigger.getBoundingClientRect();
+      const width = Math.min(420, trigger.closest('.handover').getBoundingClientRect().width, window.innerWidth - 24);
+      const below = window.innerHeight - rect.bottom - 12;
+      const above = rect.top - 12;
+      const opensBelow = below >= 320 || below >= above;
+      const available = Math.max(180, opensBelow ? below : above);
+      panel.style.width = width + 'px';
+      panel.style.left = Math.max(12, Math.min(rect.right - width, window.innerWidth - width - 12)) + 'px';
+      panel.style.maxHeight = Math.min(440, available) + 'px';
+      panel.style.top = opensBelow ? rect.bottom + 6 + 'px' : 'auto';
+      panel.style.bottom = opensBelow ? 'auto' : window.innerHeight - rect.top + 6 + 'px';
+    }
+
+    trigger.addEventListener('click', () => {
+      if (panel.matches(':popover-open')) panel.hidePopover();
+      else { positionPanel(); panel.showPopover(); closePanel.focus(); }
+    });
+    closePanel.addEventListener('click', () => panel.hidePopover());
+    panel.addEventListener('toggle', event => {
+      trigger.setAttribute('aria-expanded', String(event.newState === 'open'));
+      if (event.newState === 'closed') trigger.focus();
+    });
+    window.addEventListener('resize', () => { if (panel.matches(':popover-open')) positionPanel(); });
+    window.addEventListener('scroll', () => { if (panel.matches(':popover-open')) positionPanel(); }, { passive: true });
+    document.querySelectorAll('[data-demo]').forEach(button => button.addEventListener('click', () => {
+      toast.hidden = false;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { toast.hidden = true; }, 3200);
+    }));
+  </script>
+</body>
+</html>

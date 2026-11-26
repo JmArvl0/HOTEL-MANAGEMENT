@@ -1,5 +1,13 @@
 # AI Session Handoff
 
+## Staff redesign and AI reconciliation (2026-11-26)
+
+PR #1 reconciles the 17 feature commits with the current main branch. The
+live AI drawer and movable toggle are wired to the current staff shells.
+Current Front Office, Accounting, guest, and Lost & Found workflows stay
+authoritative. Four older migration identities were already superseded by
+verified migrations on main. See [[2026-11-26 - Staff Redesign PR Reconciliation]].
+
 ## Working tree review — 2026-11-26
 
 The local review reconnected Housekeeping service controls, removed an unused

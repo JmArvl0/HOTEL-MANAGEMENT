@@ -943,3 +943,13 @@ dark theme acquiring the light theme's tone-tint grammar; HAVEN AI's 5-across
 mini strip becomes the standard card at 20px gap; report cards go vertical.
 Manual browser checks required: staff dark + light, guest payments + loyalty,
 HAVEN AI skeleton, report print.
+
+## 22. Staff AI drawer and movable toggle
+
+The right edge toggle opens the staff AI drawer. Above 1000px the drawer uses a
+layout column and opening it collapses the left navigation. Opening navigation
+closes AI. Closing either panel leaves the other in its current state. At 1000px
+and below, each panel uses its existing overlay behavior and opening either
+closes the other. The toggle moves vertically by dragging or with Arrow, Home,
+and End keys. Its preferred height is saved for the device and clamped between
+the visible header and footer or viewport edge.

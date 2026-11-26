@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Transactions · Haven UI prototype</title>
+  <link rel="stylesheet" href="transactions-preview.css">
+  <script src="hms-workflow-icons.js" defer></script>
+  <script src="transactions-preview.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to transactions</a>
+  <header class="masthead">
+    <div class="masthead-inner">
+      <div class="brand"><img src="../haven-logo-small.png" alt="" width="36" height="36"><span>HAVEN<small>HOTEL MANAGEMENT</small></span></div>
+      <div class="breadcrumb"><span>Finance</span><i data-icon="ChevronRight"></i><strong>Transactions</strong></div>
+      <div class="masthead-tools">
+        <span class="demo-tag"><span class="demo-dot"></span>Prototype · sample data</span>
+        <label class="role-control"><span>View as</span><select id="role" aria-label="View as staff role"><option value="accounting">Accounting</option><option value="front_desk">Front Desk</option></select></label>
+        <button class="theme-button" id="theme" type="button" aria-label="Switch to dark theme" aria-pressed="false"><i data-icon="Moon"></i></button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1">
+    <header class="page-heading">
+      <div><h1>Transactions</h1><p>Trace payments and refunds from the ledger to the individual record.</p></div>
+      <p class="ledger-note"><i data-icon="LockKeyhole"></i> Settled entries are preserved. Corrections are recorded separately.</p>
+    </header>
+
+    <section class="summary" aria-labelledby="summary-title">
+      <div class="summary-heading">
+        <div><h2 id="summary-title">Money movement</h2><p>Settled activity for the selected period · Manila time</p></div>
+        <label class="period-control"><span>Period</span><select id="period" aria-label="Summary period"><option value="today" selected>15 Nov 2026</option><option value="yesterday">14 Nov 2026</option><option value="all">All sample dates</option></select></label>
+      </div>
+      <dl class="summary-values">
+        <div><dt>Gross collected</dt><dd id="gross"></dd><small>Paid deposits and stay payments</small></div>
+        <div><dt>Refunds issued</dt><dd id="refunds"></dd><small>Settled refund outflows</small></div>
+        <div class="net"><dt>Net collections</dt><dd id="net"></dd><small>Gross collected less refunds</small></div>
+        <div class="pending"><dt>Awaiting verification</dt><dd id="pending"></dd><small>Excluded from settled totals</small></div>
+      </dl>
+    </section>
+
+    <div class="workspace" id="workspace" data-view="ledger">
+      <section class="ledger" aria-labelledby="ledger-title">
+        <div class="ledger-heading"><div><h2 id="ledger-title">Ledger</h2><p id="ledger-count" role="status"></p></div><span class="sort-note">Newest first</span></div>
+        <div class="status-filters" role="group" aria-label="Transaction status">
+          <button type="button" data-status="all" aria-pressed="true">All <span></span></button>
+          <button type="button" data-status="paid" aria-pressed="false">Settled <span></span></button>
+          <button type="button" data-status="pending_verification" aria-pressed="false">Awaiting review <span></span></button>
+          <button type="button" data-status="failed" aria-pressed="false">Failed <span></span></button>
+        </div>
+        <div class="toolbar" role="search" aria-label="Find transactions">
+          <label class="search-field"><i data-icon="Search"></i><span class="sr-only">Search guest, booking, or reference</span><input id="query" type="search" placeholder="Search guest, booking, or reference" autocomplete="off"></label>
+          <label class="type-field"><span class="sr-only">Transaction type</span><select id="type"><option value="all">All types</option><option value="deposit">Deposits</option><option value="stay_payment">Stay payments</option><option value="refund">Refunds</option></select><i data-icon="ChevronDown"></i></label>
+          <button type="button" id="clear" class="text-button" hidden>Clear</button>
+        </div>
+        <div class="ledger-table" aria-label="Sample transactions">
+          <div class="table-head" aria-hidden="true"><span>Recorded</span><span>Guest &amp; booking</span><span>Method · reference</span><span>Amount</span></div>
+          <div id="rows" role="list"></div>
+        </div>
+        <div class="empty" id="empty" hidden><i data-icon="Search"></i><h3>No matching transactions</h3><p>Try another guest, booking, reference, or filter.</p><button class="text-button" id="empty-clear" type="button">Clear filters</button></div>
+        <footer class="ledger-footer"><p id="range"></p><div class="pager" role="group" aria-label="Ledger pages"><button id="prev" type="button" aria-label="Previous page"><i data-icon="ChevronRight"></i></button><span id="page"></span><button id="next" type="button" aria-label="Next page"><i data-icon="ChevronRight"></i></button></div></footer>
+      </section>
+
+      <aside class="detail" aria-labelledby="detail-title">
+        <div class="detail-heading"><button class="text-button back" id="back" type="button"><i data-icon="ArrowLeft"></i> Back to ledger</button><div class="detail-heading-row"><div><h2 id="detail-title" tabindex="-1">Transaction detail</h2><p>Recorded activity and context</p></div><span class="read-only"><i data-icon="LockKeyhole"></i> Read-only</span></div></div>
+        <div id="detail-content" class="detail-content"></div>
+      </aside>
+    </div>
+    <footer class="page-footer"><span><i data-icon="CircleHelp"></i> Illustrative records for UI review. No live financial actions.</span><span>Haven Hotel &amp; Residences</span></footer>
+  </main>
+</body>
+</html>

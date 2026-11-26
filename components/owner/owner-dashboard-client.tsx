@@ -1,4 +1,6 @@
 "use client";
+
+import AiDrawerEntry from "@/components/ai/ai-drawer-entry";
 import { fetchPublic, readResponse } from "@/lib/client-errors";
 
 import HotelOperationsPanel, { OperatingDateBanner } from "@/components/manager/hotel-operations-panel";
@@ -87,6 +89,13 @@ export default function OwnerDashboardClient({ user, sessionExpiresAt }: { user:
   const toastController = useToasts();
   const [collapsed, setCollapsed] = useState(false);
   const [menu, setMenu] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const changeAiOpen = useCallback((next: boolean) => {
+    setAiOpen(next);
+    if (!next) return;
+    setMenu(false);
+    setCollapsed(true);
+  }, []);
   useEffect(() => { try { if (window.localStorage.getItem("haven-owner-sidebar-collapsed") === "true") setCollapsed(true); } catch { } }, []);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const toggleGroup = (id: string) => setOpenGroups((prev) => { const next = { ...prev, [id]: !(prev[id] ?? false) }; window.localStorage.setItem("haven-owner-sidebar-groups", JSON.stringify(next)); return next; });
@@ -264,7 +273,7 @@ export default function OwnerDashboardClient({ user, sessionExpiresAt }: { user:
   }
 
   const rows = Array.isArray(data) ? data as Row[] : [];
-  const toggleSidebar = () => { if (window.matchMedia("(max-width: 1000px)").matches) setMenu(false); else { const next = !collapsed; setCollapsed(next); window.localStorage.setItem("haven-owner-sidebar-collapsed", String(next)); } };
+  const toggleSidebar = () => { if (window.matchMedia("(max-width: 1000px)").matches) setMenu(false); else { const next = !collapsed; if (!next) setAiOpen(false); setCollapsed(next); window.localStorage.setItem("haven-owner-sidebar-collapsed", String(next)); } };
   const [profileOpen, setProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [soundOn, setSoundOn] = useNotificationSound();
@@ -279,9 +288,9 @@ export default function OwnerDashboardClient({ user, sessionExpiresAt }: { user:
         </div>;
       })}</nav>
     </aside>
-    <main className="workspace"><header className="app-header"><button className="menu-btn brand-menu-btn" onClick={() => setMenu(true)} aria-label="Open navigation"><span className="brand-mark"><HavenLogo size={31} small /></span></button><div><p>{nav.find((item) => item[0] === section)?.[1]}</p><small>Provisional Owner / Super Admin Governance Baseline</small></div><div className="header-actions"><button type="button" className="saas-header-search-btn" onClick={() => setCmdOpen(true)} aria-label="Search or jump to... (Press Cmd+K)" title="Search or jump to... (Cmd+K)"><Search size={14} /><span suppressHydrationWarning>Search...</span><kbd className="saas-kbd">⌘K</kbd></button><SessionExpiryGuard expiresAt={sessionExpiresAt} /><ThemeToggle /><div className="profile-menu-wrap"><button ref={profileBtn} type="button" className="profile-menu-btn" onClick={() => setProfileOpen((value) => !value)} aria-expanded={profileOpen} aria-haspopup="menu" aria-label="Account menu"><b>{(user.name ?? "OW").slice(0, 2).toUpperCase()}</b><span>{user.name}</span><ChevronDown size={14} /></button><ProfilePopover variant="staff" user={user} roleLabel="Owner / Super Admin" triggerRef={profileBtn} open={profileOpen} onClose={() => setProfileOpen(false)} onSignOut={() => signOut({ callbackUrl: "/" })} onSettings={() => setSettingsOpen(true)} soundEnabled={soundOn} onSoundToggle={setSoundOn} /></div></div></header><OperatingDateBanner /><ToastStack controller={toastController} />
+    <main className="workspace"><header className="app-header"><button className="menu-btn brand-menu-btn" onClick={() => { setAiOpen(false); setMenu(true); }} aria-label="Open navigation"><span className="brand-mark"><HavenLogo size={31} small /></span></button><div><p>{nav.find((item) => item[0] === section)?.[1]}</p><small>Provisional Owner / Super Admin Governance Baseline</small></div><div className="header-actions"><button type="button" className="saas-header-search-btn" onClick={() => setCmdOpen(true)} aria-label="Search or jump to... (Press Cmd+K)" title="Search or jump to... (Cmd+K)"><Search size={14} /><span suppressHydrationWarning>Search...</span><kbd className="saas-kbd">⌘K</kbd></button><SessionExpiryGuard expiresAt={sessionExpiresAt} /><ThemeToggle /><div className="profile-menu-wrap"><button ref={profileBtn} type="button" className="profile-menu-btn" onClick={() => setProfileOpen((value) => !value)} aria-expanded={profileOpen} aria-haspopup="menu" aria-label="Account menu"><b>{(user.name ?? "OW").slice(0, 2).toUpperCase()}</b><span>{user.name}</span><ChevronDown size={14} /></button><ProfilePopover variant="staff" user={user} roleLabel="Owner / Super Admin" triggerRef={profileBtn} open={profileOpen} onClose={() => setProfileOpen(false)} onSignOut={() => signOut({ callbackUrl: "/" })} onSettings={() => setSettingsOpen(true)} soundEnabled={soundOn} onSoundToggle={setSoundOn} /></div></div></header><OperatingDateBanner /><ToastStack controller={toastController} />
       <div className="workspace-body owner-module">{section === "website_content" ? <WebsiteContentPanel /> : section === "website_location" ? <LocationContentPanel /> : section === "room_types" ? <RoomCatalogPanel role="owner" /> : section === "transport_services" ? <TransportServicesPanel /> : section === "transportation" ? <TransportationPanel role="owner" initialQueue={commandTransport ? "today" : "all"} /> : section === "payments" ? <PaymentSettingsPanel notify={notify} /> : section === "overview" ? <HotelCommandCenter role="owner" onNavigate={commandNavigate} /> : section === "reports" ? <HotelReports role="owner" /> : loading ? <div className="empty"><Activity /><h3>Loading executive records…</h3></div> : section === "operations" ? <><Operations data={data as { metrics: Record<string, number>; departmentSummary: Record<string, Record<string, number>>; risks: Record<string, Row[]>; trend: Row[] }} /><HotelOperationsPanel role="owner" /></> : section === "financial" ? <Financial data={data as Row} /> : section === "departments" ? <Departments data={data as { departmentSummary: Record<string, Record<string, number>>; risks: Record<string, Row[]> }} /> : section === "admins" ? <Admins rows={rows} currentId={user.id} createAdmin={createAdmin} action={adminAction} /> : section === "roles" ? <Roles data={data as { catalogue: Record<string, string[]>; ownerPrinciples: string[] }} /> : section === "policy" ? <Policy item={((data as { policy?: Row } | null)?.policy ?? data) as Row} trail={((data as { trail?: Row[] } | null)?.trail ?? []) as Row[]} edit={editPolicy} /> : section === "exceptions" ? <Exceptions rows={rows} review={reviewException} /> : section === "audit" || section === "security" ? <Audit rows={rows} security={section === "security"} /> : null}</div>
-    </main>{settingsOpen && <SettingsDialog isOpen onClose={() => setSettingsOpen(false)} />}{dialogs.view}<CommandPalette isOpen={cmdOpen} onClose={() => setCmdOpen(false)} items={ownerCommandItems} />
+    </main><AiDrawerEntry role="owner" module={nav.find(([key]) => key === section)?.[1] ?? "Dashboard"} open={aiOpen} onOpenChange={changeAiOpen} />{settingsOpen && <SettingsDialog isOpen onClose={() => setSettingsOpen(false)} />}{dialogs.view}<CommandPalette isOpen={cmdOpen} onClose={() => setCmdOpen(false)} items={ownerCommandItems} />
   </div>;
 }
 

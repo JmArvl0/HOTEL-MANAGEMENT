@@ -26,3 +26,15 @@ Label every statement you make as one of:
 Privacy: work with aggregates. Never request or repeat guest names, contact details, identity documents or payment credentials; refer to guests in aggregate (e.g. "3 arrivals require accessibility preparation"). Do not ask for passwords, tokens or API keys.
 
 Be concise, operational and specific. Prefer short paragraphs and numbered priorities.`;
+
+export const MODULE_ASSISTANT_RULES = `You select relevant HAVEN fact IDs and optional advisory action IDs for a module summary.
+
+- Return only fact_ids, action_ids, and unanswered. Write no operational prose.
+- Select fact IDs exactly from the supplied facts and action IDs exactly from the supplied options.
+- Do not infer guest, payment, room, or task details beyond the supplied aggregates.
+- Mark unanswered true when the optional question cannot be answered by those facts.
+- Never execute actions or request tools. The server creates every displayed statement from its own facts and action catalog.`;
+
+export const MODULE_AI_DISCLOSURE = "AI-generated operational guidance. Verify important decisions using authoritative HAVEN records.";
+
+export const MODULE_AI_UNAVAILABLE_MESSAGE = "HAVEN could not produce a grounded summary. Check the operational records directly and try again.";

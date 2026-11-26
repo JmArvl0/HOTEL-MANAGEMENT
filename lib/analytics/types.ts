@@ -30,6 +30,7 @@ export interface RoomLike {
   number: string;
   status: string;
   administratively_active?: boolean;
+  housekeeping?: string | null;
 }
 
 export interface TaskLike {
