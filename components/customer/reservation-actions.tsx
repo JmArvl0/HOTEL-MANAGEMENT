@@ -6,6 +6,7 @@ import { userMessage } from "@/lib/errors";
 import { useEffect, useRef, useState } from "react";
 import { HavenErrorAlert, HavenSkeletonCard } from "@/components/ui/haven-data-controls";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { CalendarClock, Clock3, MessageSquareText, XCircle } from "lucide-react";
 import { ConfirmDialog, Modal } from "@/components/ui/Modal";
 import { HavenSelect } from "@/components/ui/haven-select";
@@ -32,6 +33,7 @@ export function ReservationActions({
   checkOut,
   roomType,
   openRequest,
+  breakfastIncluded = false,
 }: {
   id: string;
   status: string;
@@ -39,6 +41,7 @@ export function ReservationActions({
   checkOut: string;
   roomType: string;
   openRequest: OpenChangeRequest | null;
+  breakfastIncluded?: boolean;
 }) {
   const router = useRouter();
   const notify = useCustomerToast();
@@ -262,6 +265,8 @@ export function ReservationActions({
           <button className="btn btn-soft" type="button" disabled aria-disabled="true" title="Your change request is under review">
             <Clock3 size={16} aria-hidden="true" /> Change request under review
           </button>
+        ) : breakfastIncluded ? (
+          <Link className="btn btn-soft" href="/account/help">Contact Front Desk about changes</Link>
         ) : (
           <button className="btn btn-accent" disabled={busy} onClick={openChange}>
             <CalendarClock size={16} aria-hidden="true" /> Request a change
@@ -271,6 +276,7 @@ export function ReservationActions({
           <XCircle size={16} aria-hidden="true" /> Cancel reservation
         </button>
       </div>
+      {breakfastIncluded && !openRequest && <p>Your booking includes breakfast. Front Desk can help change the dates or room and check whether breakfast is available for the updated stay.</p>}
       {openRequest && (
         <p role="status">We received your requested changes. You&apos;ll be notified when there&apos;s an update.</p>
       )}

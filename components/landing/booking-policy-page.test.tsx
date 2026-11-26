@@ -88,7 +88,7 @@ describe("booking policy page", () => {
     expect(screen.getByRole("tabpanel", { name: "Cancellation & refunds" })).toBeTruthy();
   });
 
-  it("keeps one policy destination in the footer and no quick-links block on the policy page", () => {
+  it("links distinct booking and privacy destinations without duplicating booking terms", () => {
     const { rerender } = render(<BookingPolicyPage content={DEFAULT_WEBSITE_CONTENT} information={information} />);
     expect(screen.queryByRole("navigation", { name: "Quick links" })).toBeNull();
     expect(screen.queryByText("Booking terms")).toBeNull();
@@ -96,6 +96,7 @@ describe("booking policy page", () => {
     rerender(<WebsiteFooter content={DEFAULT_WEBSITE_CONTENT} />);
     const footer = within(screen.getByRole("navigation", { name: "Footer" }));
     expect(footer.getByRole("link", { name: "Booking policy" }).getAttribute("href")).toBe("/booking-policy");
+    expect(footer.getByRole("link", { name: "Privacy" }).getAttribute("href")).toBe("/privacy");
     expect(screen.queryByRole("link", { name: /Booking terms|Privacy policy|Deposit & cancellation/ })).toBeNull();
   });
 });

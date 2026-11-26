@@ -750,9 +750,6 @@ html{scroll-padding-top:86px}
 @media(max-width:680px){html{scroll-padding-top:72px}}
 
 /* Haven boot gate — quick bespoke exit, no flash for fast navigations */
-.haven-boot-hiding{animation: haven-boot-out 340ms ease forwards}
-@keyframes haven-boot-out{to{opacity:0; transform: translateY(4px)}}
-@media (prefers-reduced-motion: reduce){.haven-boot-hiding{animation:none; opacity:0}}
 
 /* Room catalog panel — manager/owner/admin photo + room-type editor */
 .spin{animation: spin 900ms linear infinite}

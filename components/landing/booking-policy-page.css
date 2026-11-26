@@ -248,3 +248,9 @@
   .booking-policy-glance { display: block; }
   .hotel-booking-policy .booking-policy-support p { display: none; }
 }
+.guest-privacy .booking-policy-content {
+  width: min(100%, 68ch);
+  margin-inline: auto;
+  padding-inline: clamp(18px, 3vw, 32px);
+}
+.guest-privacy .booking-policy-section a { text-decoration: underline; text-underline-offset: 3px; }

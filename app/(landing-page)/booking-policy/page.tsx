@@ -15,7 +15,7 @@ export default async function PolicyPage() {
     <BookingPolicyPage information={information} content={content} />
     <footer className="booking-policy-footer">
       <small>© {new Date().getFullYear()} {content.identity.name}</small>
-      <nav aria-label="Policies"><Link href="/booking-policy" aria-current="page">Booking policy</Link></nav>
+      <nav aria-label="Policies"><Link href="/booking-policy" aria-current="page">Booking policy</Link><Link href="/privacy">Privacy</Link></nav>
     </footer>
   </main>;
 }
