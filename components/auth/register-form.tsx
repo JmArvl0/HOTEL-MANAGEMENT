@@ -8,9 +8,10 @@ import { getSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { MobileNumberField } from "@/components/ui/mobile-number-field";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import Link from "next/link";
 import { authDestination } from "@/lib/auth-destination";
 
-export function RegisterForm({ callbackUrl }: { callbackUrl: string }) {
+export function RegisterForm({ callbackUrl, booking = false }: { callbackUrl: string; booking?: boolean }) {
   const router = useRouter();
   const [fields, setFields] = useState<FormFieldErrors>({});
   const pending = useRef(false);
@@ -143,8 +144,9 @@ export function RegisterForm({ callbackUrl }: { callbackUrl: string }) {
           </label>
         </div>
 
+        <p className="haven-vault__privacy">Read how Haven uses your information in the <Link href="/privacy">guest privacy notice</Link>.</p>
         <button className="haven-vault__submit" disabled={loading} aria-busy={loading}>
-          {loading ? "Creating account…" : "Create guest account"} <ArrowRight size={15} aria-hidden="true" />
+          {loading ? "Creating account…" : booking ? "Create account & continue" : "Create guest account"} <ArrowRight size={15} aria-hidden="true" />
         </button>
       </form>
     </>

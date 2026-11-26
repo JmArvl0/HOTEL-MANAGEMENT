@@ -70,8 +70,8 @@ export default function LoginForm({
   return (
     <>
       <div className="haven-vault__head">
-        <h1>{booking ? "Continue your stay" : "Sign in to Haven"}</h1>
-        <p>{booking ? "Your selected room and stay details are waiting." : "Access your dashboard, reservations, and stay details securely."}</p>
+        <h1>{booking ? "Continue your booking" : "Sign in to Haven"}</h1>
+        <p>{booking ? "Sign in to your Haven account to complete your reservation, manage your bookings, and enjoy a faster checkout." : "Access your dashboard, reservations, and stay details securely."}</p>
       </div>
 
       {expired && !error && (
@@ -88,7 +88,7 @@ export default function LoginForm({
         </div>
       )}
 
-      <form onSubmit={submit} noValidate>
+      <form onSubmit={submit} noValidate={!booking}>
         <label className="haven-vault__field" htmlFor="haven-email">
           <span>
             <Mail size={12} aria-hidden="true" /> Email address
@@ -98,7 +98,7 @@ export default function LoginForm({
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            autoComplete="username"
+            autoComplete={booking ? "email" : "username"}
             inputMode="email"
             placeholder="you@haven.com"
             required
@@ -149,7 +149,7 @@ export default function LoginForm({
         </div>
 
         <button className="haven-vault__submit" disabled={loading} aria-busy={loading}>
-          {loading ? "Signing in…" : "Sign in"} <ArrowRight size={15} aria-hidden="true" />
+          {loading ? "Signing in…" : booking ? "Sign in & continue" : "Sign in"} <ArrowRight size={15} aria-hidden="true" />
         </button>
       </form>
     </>

@@ -6,9 +6,10 @@ import { safeInternalPath } from "@/lib/booking";
 export default async function RegisterPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const params = await searchParams;
   const callbackUrl = safeInternalPath(params.callbackUrl, "/auth/continue");
+  const booking = params.booking === "1";
   return (
-    <AuthVaultShell bookingContext={params.booking === "1" ? await bookingAccountContext(callbackUrl) : null} mode="register" callbackUrl={callbackUrl} booking={params.booking === "1"}>
-      <RegisterForm callbackUrl={callbackUrl} />
+    <AuthVaultShell bookingContext={booking ? await bookingAccountContext(callbackUrl) : null} mode="register" callbackUrl={callbackUrl} booking={booking}>
+      <RegisterForm callbackUrl={callbackUrl} booking={booking} />
     </AuthVaultShell>
   );
 }
