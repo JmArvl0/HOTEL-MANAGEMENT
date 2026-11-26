@@ -5,6 +5,7 @@
 // old checkout date is flagged — never rescheduled. All fetches are stubbed.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { STAY_EXTENSION_HOLD_MESSAGE } from "@/lib/error-messages";
 import ExtendStayDialog from "./extend-stay-dialog";
 
 // jsdom ships no matchMedia; Modal reads prefers-reduced-motion on every render.
@@ -22,7 +23,7 @@ if (!window.matchMedia) {
 const reservation = { id: "RSV-1045", guest_name: "Ana Cruz", check_out: "2026-09-12", room_number: "302", room_type: "Executive Suite" };
 
 const previewBody = {
-  data: { currentCheckOut: "2026-09-12", requestedCheckOut: "2026-09-15", nights: 3, rate: 11600, additionalAmount: 34800, projectedTotal: 58000, balance: 0, roomConflict: false, roomNumber: "302", roomType: "Executive Suite" },
+  data: { currentCheckOut: "2026-09-12", requestedCheckOut: "2026-09-15", nights: 3, rate: 11600, additionalAmount: 34800, projectedTotal: 58000, balance: 0, roomConflict: false, roomHeld: false, roomNumber: "302", roomType: "Executive Suite" },
 };
 
 const routes = {
@@ -105,10 +106,95 @@ describe("ExtendStayDialog", () => {
     expect(payload.idempotencyKey).toMatch(/^[0-9a-f-]{36}$/);
   });
 
+  it("reuses the original request after losing the response", async () => {
+    let firstAttempt = true;
+    const fetchMock = serve([
+      routes.preview(),
+      {
+        ...routes.extend({}),
+        respond: () => {
+          if (firstAttempt) { firstAttempt = false; throw new TypeError("NetworkError"); }
+          return { ok: true, body: { data: { additional_amount: 34800 } } };
+        },
+      },
+    ]);
+    const onDone = vi.fn();
+    render(<ExtendStayDialog reservation={reservation} onClose={() => {}} onDone={onDone} />);
+    await pickDate("2026-09-15");
+    fillReason();
+    const submit = () => screen.getByRole("button", { name: "Extend stay" });
+    await waitFor(() => expect((submit() as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(submit());
+    expect((await screen.findByRole("alert")).textContent).toMatch(/retry with the same details/i);
+    fireEvent.click(submit());
+    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+    const [first, retry] = fetchMock.mock.calls.filter(([, init]) => init?.method === "POST");
+    expect(first[1]?.body).toBe(retry[1]?.body);
+  });
+
+  it("shows a hold in the preview and refreshes the same checkout without submitting", async () => {
+    let roomHeld = true;
+    const fetchMock = serve([{
+      ...routes.preview(),
+      respond: () => ({ ok: true, body: { data: { ...previewBody.data, roomHeld } } }),
+    }]);
+    render(<ExtendStayDialog reservation={reservation} onClose={() => {}} onDone={() => {}} />);
+    await pickDate("2026-09-15");
+    fillReason();
+    expect((await screen.findByRole("alert")).textContent).toBe(STAY_EXTENSION_HOLD_MESSAGE);
+    expect(screen.getByText("Guest hold")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Extend stay" })).toBeNull();
+
+    roomHeld = false;
+    fireEvent.click(screen.getByRole("button", { name: "Refresh availability" }));
+    await screen.findByText("Room available");
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect((screen.getByRole("button", { name: "Extend stay" }) as HTMLButtonElement).disabled).toBe(false);
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "/api/front-desk/reservations/RSV-1045/extend-preview?checkOut=2026-09-15",
+      "/api/front-desk/reservations/RSV-1045/extend-preview?checkOut=2026-09-15",
+    ]);
+  });
+
+  it("replaces stale availability with the hold conflict and preserves the extension details and key", async () => {
+    let firstAttempt = true;
+    const fetchMock = serve([
+      routes.preview(),
+      {
+        ...routes.extend({}),
+        respond: () => {
+          if (firstAttempt) {
+            firstAttempt = false;
+            return { ok: false, body: { code: "ROOM_HELD_FOR_GUEST", error: STAY_EXTENSION_HOLD_MESSAGE, outcome: "rejected" } };
+          }
+          return { ok: true, body: { data: { additional_amount: 34800 } } };
+        },
+      },
+    ]);
+    const onDone = vi.fn();
+    render(<ExtendStayDialog reservation={reservation} onClose={() => {}} onDone={onDone} />);
+    await pickDate("2026-09-15");
+    fillReason();
+    await screen.findByText("Room available");
+    fireEvent.click(screen.getByRole("button", { name: "Extend stay" }));
+    expect((await screen.findByRole("alert")).textContent).toBe(STAY_EXTENSION_HOLD_MESSAGE);
+    expect(screen.queryByText("Room available")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Request Manager exception" })).toBeNull();
+    expect(screen.getByDisplayValue("2026-09-15")).toBeTruthy();
+    expect(screen.getByDisplayValue("Guest asked to stay three more nights")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh availability" }));
+    await screen.findByText("Room available");
+    fireEvent.click(screen.getByRole("button", { name: "Extend stay" }));
+    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+    const [first, retry] = fetchMock.mock.calls.filter(([, init]) => init?.method === "POST");
+    expect(retry[1]?.body).toBe(first[1]?.body);
+  });
+
   it("offers the Manager exception handoff when the normal path reports a room conflict", async () => {
     const fetchMock = serve([
       routes.preview({ ...previewBody, data: { ...previewBody.data, roomConflict: true } }),
-      routes.extend({ error: "The assigned room conflicts with a future stay. Coordinate a room change or choose another date." }, false),
+      routes.extend({ code: "EXTENSION_REQUIRES_ROOM_CHANGE", error: "The assigned room conflicts with a future stay. Coordinate a room change or choose another date." }, false),
       routes.approvals(),
     ]);
     const onDone = vi.fn();

@@ -1,6 +1,6 @@
 "use client";
 import { fetchPublic, readResponse } from "@/lib/client-errors";
-
+import { STAY_EXTENSION_HOLD_MESSAGE } from "@/lib/error-messages";
 import { userMessage } from "@/lib/errors";
 // Extend stay (extra nights, checkout DATE changes — deliberately not "late
 // checkout", which is a same-day time exception). Every figure shown here comes
@@ -9,15 +9,16 @@ import { userMessage } from "@/lib/errors";
 // the room conflicts with a future stay, the dialog hands off to the Manager
 // exception (stay_extension) with the chosen dates and reason — no re-entry.
 import { useEffect, useRef, useState } from "react";
-import { CalendarPlus, ShieldQuestion } from "lucide-react";
+import { CalendarPlus, RefreshCw, ShieldQuestion } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import type { RecordItem } from "@/lib/types";
 
 const money = (v: unknown) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 }).format(Number(v || 0));
 const human = (v: unknown) => String(v ?? "").replaceAll("_", " ");
 const day = (v: unknown) => String(v ?? "").slice(0, 10);
+const retryMessage = "Could not confirm the extension. Retry with the same details.";
 
-type Preview = { currentCheckOut: string; requestedCheckOut: string; nights: number; rate: number | null; nightlyRates?: { date: string; rate: number }[]; additionalAmount: number; projectedTotal: number; balance: number; roomConflict: boolean; roomNumber: string; roomType: string };
+type Preview = { currentCheckOut: string; requestedCheckOut: string; nights: number; rate: number | null; nightlyRates?: { date: string; rate: number }[]; additionalAmount: number; projectedTotal: number; balance: number; roomConflict: boolean; roomHeld: boolean; roomNumber: string; roomType: string };
 
 export default function ExtendStayDialog({ reservation, transportation, onClose, onDone }: {
   reservation: RecordItem;
@@ -32,51 +33,73 @@ export default function ExtendStayDialog({ reservation, transportation, onClose,
   const [reason, setReason] = useState("");
   const [preview, setPreview] = useState<Preview | null>(null);
   const [previewError, setPreviewError] = useState("");
+  const [previewVersion, setPreviewVersion] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [conflict, setConflict] = useState(false); // normal path refused → exception handoff
   const [requested, setRequested] = useState<string | null>(null);
   // Debounced preview: one in-flight fetch per date, stale responses dropped.
-  const previewRef = useRef("");
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
-
-  useEffect(() => () => clearTimeout(timerRef.current), []);
+  const retry = useRef<{ signature: string; key: string } | null>(null);
 
   useEffect(() => {
-    clearTimeout(timerRef.current);
     if (!checkOut || checkOut <= currentOut) return;
-    timerRef.current = setTimeout(async () => {
-      const key = String(reservation.id) + ":" + checkOut;
-      previewRef.current = key;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
       try {
-        const res = await fetchPublic(`/api/front-desk/reservations/${reservation.id}/extend-preview?checkOut=${checkOut}`, { cache: "no-store" });
+        const res = await fetchPublic(`/api/front-desk/reservations/${reservation.id}/extend-preview?checkOut=${checkOut}`, { cache: "no-store", signal: controller.signal });
         const body = await readResponse(res).catch(() => ({}));
-        if (previewRef.current !== key) return; // a newer date superseded this response
+        if (controller.signal.aborted) return;
         if (!res.ok) { setPreviewError(userMessage(body.error, "Unable to preview this extension.")); return; }
         setPreview(body.data as Preview);
-      } catch { setPreviewError("Unable to preview this extension."); }
+      } catch {
+        if (!controller.signal.aborted) setPreviewError("Unable to preview this extension.");
+      } finally {
+        if (!controller.signal.aborted) setRefreshing(false);
+      }
     }, 350);
-  }, [checkOut, currentOut, reservation.id]);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [checkOut, currentOut, reservation.id, previewVersion]);
 
   // Departure transportation booked for the old checkout date — flag only.
   const departureTrip = (transportation ?? []).find((trip) => day(trip.pickup_date) === currentOut);
 
-  const valid = Boolean(checkOut && checkOut > currentOut && reason.trim().length >= 3 && preview);
+  const valid = Boolean(checkOut > currentOut && reason.trim().length >= 3 && preview?.requestedCheckOut === checkOut);
+  const roomHeld = preview?.roomHeld ?? false;
+  const feedback = previewError || error || (roomHeld ? STAY_EXTENSION_HOLD_MESSAGE : "");
+
+  const refreshAvailability = () => {
+    setPreviewError("");
+    setRefreshing(true);
+    setPreviewVersion((version) => version + 1);
+  };
 
   const submit = async () => {
+    if (busy || roomHeld || !valid) return;
+    const payload = { checkOut, reason: reason.trim() };
+    const signature = JSON.stringify([reservation.id, payload]);
+    if (retry.current?.signature !== signature) retry.current = { signature, key: crypto.randomUUID() };
     setBusy(true); setError(""); setConflict(false);
-    const idempotencyKey = crypto.randomUUID();
     try {
-      const res = await fetchPublic(`/api/front-desk/reservations/${reservation.id}/extend`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ checkOut, reason: reason.trim(), idempotencyKey }) });
+      const res = await fetchPublic(`/api/front-desk/reservations/${reservation.id}/extend`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, idempotencyKey: retry.current.key }) });
       const body = await readResponse(res).catch(() => ({}));
       if (!res.ok) {
-        // The normal path refuses only when the room conflicts with a future stay —
-        // that is exactly what the Manager exception exists for.
-        if (String(body.error ?? "").includes("conflicts with a future stay")) { setConflict(true); setError(userMessage(body.error)); }
-        else setError(userMessage(body.error, "Unable to extend stay."));
+        if (body.code === "ROOM_HELD_FOR_GUEST") {
+          setPreview((current) => current && { ...current, roomHeld: true });
+          return;
+        }
+        setConflict(body.code === "EXTENSION_REQUIRES_ROOM_CHANGE");
+        setError(body.outcome === "unknown" ? retryMessage : userMessage(body.error, retryMessage));
         return;
       }
-      onClose(); await onDone(`Stay extended. Additional lodging: ${money(body.data?.additional_amount)}.`);
+      if (body.data?.additional_amount == null) {
+        setError(retryMessage);
+        return;
+      }
+      onClose();
+      await onDone(`Stay extended. Additional lodging: ${money(body.data.additional_amount)}.`);
+    } catch {
+      setError(retryMessage);
     } finally { setBusy(false); }
   };
 
@@ -91,29 +114,32 @@ export default function ExtendStayDialog({ reservation, transportation, onClose,
     } finally { setBusy(false); }
   };
 
-  return <Modal isOpen onClose={busy ? () => {} : onClose} title="Extend stay" description={`Extra nights for ${human(reservation.guest_name)} — the checkout date moves. For a same-day later checkout time, use the late-checkout exception instead.`} size="lg" headerVariant="branded" footer={
+  return <Modal isOpen onClose={busy ? () => {} : onClose} title="Extend stay" description={`Extra nights for ${human(reservation.guest_name)} — the checkout date moves. For a same-day later checkout time, use the late-checkout exception instead.`} size="lg" headerVariant="branded" className="stay-extension-dialog" footer={
     <div className="arrival-footer">
       {requested
         ? <button className="btn btn-accent" onClick={onClose}>Done</button>
-        : conflict
-          ? <button className="btn btn-accent" onClick={requestException} disabled={busy || !valid}><ShieldQuestion size={15} /> {busy ? "Requesting…" : "Request Manager exception"}</button>
-          : <button className="btn btn-accent" onClick={submit} disabled={busy || !valid}><CalendarPlus size={15} /> {busy ? "Extending…" : "Extend stay"}</button>}
+        : roomHeld
+          ? <button className="btn btn-accent" onClick={refreshAvailability} disabled={refreshing}><RefreshCw size={15} /> {refreshing ? "Checking availability…" : "Refresh availability"}</button>
+          : conflict
+            ? <button className="btn btn-accent" onClick={requestException} disabled={busy || !valid}><ShieldQuestion size={15} /> {busy ? "Requesting…" : "Request Manager exception"}</button>
+            : <button className="btn btn-accent" onClick={submit} disabled={busy || !valid}><CalendarPlus size={15} /> {busy ? "Extending…" : "Extend stay"}</button>}
     </div>
   }>
     <div className="walk-in-fields">
       <label className="arrival-field">Current checkout<input type="text" value={currentOut} readOnly aria-readonly="true" /></label>
-      <label className="arrival-field">Requested new checkout<input type="date" value={checkOut} min={addDay(currentOut, 1)} onChange={(e) => { setCheckOut(e.target.value); setPreview(null); setPreviewError(""); setConflict(false); }} required /></label>
+      <label className="arrival-field">Requested new checkout<input type="date" value={checkOut} min={addDay(currentOut, 1)} onChange={(e) => { setCheckOut(e.target.value); setPreview(null); setPreviewError(""); setError(""); setConflict(false); }} disabled={busy || refreshing} required /></label>
     </div>
-    <label className="arrival-field">Reason for the extension<textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why is the guest extending?" required minLength={3} /></label>
+    <label className="arrival-field">Reason for the extension<textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why is the guest extending?" disabled={busy} required minLength={3} maxLength={500} /></label>
 
-    {previewError && <p className="arrival-error" role="alert">{previewError}</p>}
-    {error && <p className="arrival-error" role="alert">{error}</p>}
+    {feedback && <p className="arrival-error" role="alert">{feedback}</p>}
     {requested && <p className="arrival-notice approved" role="status">Manager exception requested ({requested}). The Manager reviews the extension plan; Front Desk executes after approval — a room move is chosen at execution, never an overlap.</p>}
 
     {preview && !previewError && <>
       <div className="arrival-summary" role="status">
         <span>Room <b>{human(preview.roomNumber)}</b> · {human(preview.roomType)}</span>
-        <span className={`arrival-chip${preview.roomConflict ? " warn" : ""}`}><b>{preview.roomConflict ? "Room conflict" : "Room available"}</b> {preview.roomConflict ? "for the added nights" : `through ${day(preview.requestedCheckOut)}`}</span>
+        <span className={`arrival-chip${roomHeld || preview.roomConflict ? " warn" : ""}`}>
+          {roomHeld ? <b>Guest hold</b> : preview.roomConflict ? <><b>Room conflict</b> for the added nights</> : <><b>Room available</b> through {day(preview.requestedCheckOut)}</>}
+        </span>
       </div>
       <dl className="arrival-facts">
         <div><dt>Added nights</dt><dd>{preview.nights}</dd></div>
