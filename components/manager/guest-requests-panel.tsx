@@ -69,7 +69,7 @@ export default function GuestRequestsPanel({ role, onEscalate }: { role: Role; o
   const [search, setSearch] = useState("");
   const dialogs = useActionDialogs();
   const canReview = role === "front_desk";
-  const canEscalate = role === "housekeeping" && Boolean(onEscalate);
+  const canEscalate = Boolean(onEscalate);
   const showInventory = canAccess(role, "inventory");
   const notify = (message: string, tone: "info" | "success" | "warning" | "error" = "success") => feedback.push({ title: message, tone, ...(tone === "error" || tone === "warning" ? { duration: 0 } : {}) });
 
@@ -214,7 +214,7 @@ export default function GuestRequestsPanel({ role, onEscalate }: { role: Role; o
                     <StatusBadge status={item.status} label={label(item.status)} />
                     {canProgress(item) && item.status === "open" && <button className="table-action action-primary" onClick={() => void progress(item, "start")}>Start</button>}
                     {canProgress(item) && ["open", "in_progress"].includes(item.status) && <button className="table-action action-primary" onClick={() => void progress(item, "complete")}>Complete</button>}
-                    {canEscalate && item.status !== "completed" && item.escalation_status !== "escalated" && <button className="table-action" onClick={() => void escalate(item)}>Escalate</button>}
+                    {canEscalate && item.approval_status === "approved" && ["open", "in_progress"].includes(String(item.status)) && item.escalation_status !== "escalated" && <button className="table-action" onClick={() => void escalate(item)}>Escalate</button>}
                     {canEscalate && item.escalation_status === "escalated" && <span className="badge escalated">Escalated</span>}
                   </div>
                 </li>

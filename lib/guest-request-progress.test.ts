@@ -59,7 +59,8 @@ describe("guest request progress route", () => {
       expect(route).toContain(code);
   });
   it("requires the dedicated guest-request workflow for generic creates and updates", () => {
-    expect(resourcesRoute.match(/Use the guest request workflow to create or update requests/g)).toHaveLength(2);
+    expect(resourcesRoute).toContain("Use the guest request workflow to create or update requests");
+    expect(resourcesRoute.match(/return rejectWrite\(request, context\)/g)).toHaveLength(2);
   });
 });
 

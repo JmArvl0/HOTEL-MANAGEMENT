@@ -1,4 +1,5 @@
 import type { AccountingSection, ManagerSection, Resource, Role } from "@/lib/types";
+import { canAccess, canUseStaffWorkspace } from "@/lib/permissions";
 
 export type Section = "overview" | "room_rack" | Resource | "reports" | AccountingSection | ManagerSection;
 
@@ -21,7 +22,7 @@ export const NAV_GROUPS: { id: NavGroupId; label: string }[] = [
   { id: "workspace", label: "Workspace" },
   { id: "front_office", label: "Front Office" },
   { id: "operations", label: "Operations" },
-  { id: "finance", label: "Finance" },
+  { id: "finance", label: "Cashiering" },
   { id: "management", label: "Management" },
 ];
 
@@ -41,23 +42,23 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Approvals & Escalations", section: "approvals", roles: ["manager", "front_desk", "housekeeping", "maintenance", "accounting"], group: "operations" },
   { label: "Housekeeping", section: "housekeeping_tasks", group: "operations" },
   { label: "Maintenance", section: "maintenance_orders", group: "operations" },
-  { label: "Inventory", section: "inventory", group: "operations" },
+  { label: "Hotel Supplies", section: "inventory", roles: ["manager", "housekeeping", "maintenance"], group: "operations" },
   { label: "Reports", section: "reports", roles: ["manager", "accounting", "front_desk"], group: "operations" },
-  { label: "Billing", section: "invoices", roles: ["front_desk", "accounting"], group: "finance" },
-  { label: "Transactions", section: "transactions", roles: ["front_desk", "accounting"], group: "finance" },
-  { label: "Guest Folios", section: "folios", roles: ["front_desk", "accounting"], group: "finance" },
-  { label: "Payment History", section: "payments", group: "finance" },
+  { label: "Billing", section: "invoices", roles: ["accounting"], group: "finance" },
+  { label: "Transactions", section: "transactions", roles: ["accounting"], group: "finance" },
+  { label: "Guest Folios", section: "folios", roles: ["accounting"], group: "finance" },
+  { label: "Payment History", section: "payments", roles: ["accounting"], group: "finance" },
   { label: "Refunds", section: "refunds", roles: ["accounting"], group: "finance" },
   { label: "Cash & Shifts", section: "cash_shifts", roles: ["front_desk", "accounting"], group: "finance" },
   { label: "Reconciliation", section: "reconciliation", roles: ["accounting"], group: "finance" },
-  { label: "Financial Documents", section: "documents", roles: ["front_desk", "accounting"], group: "finance" },
+  { label: "Financial Documents", section: "documents", roles: ["accounting"], group: "finance" },
   { label: "Operational Handover", section: "team_operations", roles: ["manager", "front_desk", "housekeeping", "maintenance", "accounting"], group: "operations" },
   { label: "Lost & Found", section: "lost_found", roles: ["manager", "front_desk", "housekeeping"], group: "operations" },
   { label: "Staff & Duty", section: "staff_duty", roles: ["manager"], group: "management" },
   { label: "Room Types & Photos", section: "room_types", roles: ["manager"], group: "management" },
   { label: "Transfer Vehicles", section: "transport_services", roles: ["manager"], group: "management" },
   { label: "Request Types", section: "request_types", roles: ["manager"], group: "management" },
-  { label: "Predictive Insights", section: "insights", roles: ["manager"], group: "management" },
+  { label: "Predictive Analytics", section: "insights", roles: ["manager"], group: "management" },
   { label: "HAVEN AI", section: "ai", roles: ["manager"], group: "management" },
 ];
 
@@ -70,3 +71,11 @@ export const canOpenSection = (allowed: readonly Section[], section: Section) =>
   section === "room_rack"
     ? allowed.includes("reservations") && allowed.includes("rooms")
     : allowed.includes(section);
+
+export const staffSections = (role: Role): Section[] => {
+  if (!canUseStaffWorkspace(role)) return [];
+  const sections = NAV_ITEMS.filter(item =>
+    item.section === "overview" || (item.roles ? item.roles.includes(role) : canAccess(role, item.section as Resource)),
+  ).map(item => item.section);
+  return sections.filter(section => canOpenSection(sections, section));
+};
