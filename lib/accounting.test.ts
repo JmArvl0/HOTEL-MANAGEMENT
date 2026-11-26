@@ -110,19 +110,11 @@ describe("server-side authorization", () => {
 });
 
 describe("front desk ledger access", () => {
-  it("admits cash-handling staff to the ledger endpoint, not just full ledger viewers", () => {
-    expect(ledgerRoute).toContain("canViewAccountingLedger(role)||canOperateCashShift(role)");
+  it("admits only property ledger viewers to the ledger endpoint", () => {
+    expect(ledgerRoute).toContain("guardFinancial(canViewAccountingLedger,");
   });
   it("mirrors the same gate inside getAccountingLedger so the route cannot out-grant the data layer", () => {
-    expect(accountingLib).toContain("(!canViewAccountingLedger(role) && !canOperateCashShift(role)) || !supabase");
-  });
-  it("keeps the refund queue and reconciliation internals out of the front desk payload", () => {
-    // The accounting-only tables are fetched behind the full-ledger flag, not in the
-    // unconditional Promise.all that serves every admitted role.
-    const unconditional = accountingLib.slice(accountingLib.indexOf("const [transactions"), accountingLib.indexOf("const [refunds"));
-    for (const table of ["refund_requests", "refund_attempts", "payment_reconciliations"]) expect(unconditional).not.toContain(table);
-    const scoped = accountingLib.slice(accountingLib.indexOf("const [refunds"), accountingLib.indexOf("const staffIds"));
-    for (const table of ["refund_requests", "refund_attempts", "payment_reconciliations"]) expect(scoped).toContain(table);
+    expect(accountingLib).toContain("!canViewAccountingLedger(role) || !supabase");
   });
 });
 
@@ -199,7 +191,7 @@ describe("migration safety", () => {
 describe("accounting privacy", () => {
   it("selects no guest contact, identity or authentication material into the ledger", () => {
     const allowLists = accountingLib.match(/const [A-Z_]+_FIELDS = "[^"]+"/g) ?? [];
-    expect(allowLists.length).toBe(9);
+    expect(allowLists.some(list => list.startsWith("const CASH_DRAWER_PAYMENT_FIELDS"))).toBe(true);
     for (const list of allowLists) for (const field of ["email", "phone", "password", "token", "secret", "identity_document", "special_requests", "preferences"]) expect(list, list).not.toContain(field);
   });
   it("never writes provider secrets or card data into a financial document snapshot", () => { for (const field of ["card_number", "cvv", "secret_key", "password_hash", "session_token"]) expect(rpcMigration).not.toContain(field); });

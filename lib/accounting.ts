@@ -1,7 +1,7 @@
 import { fromCentavos, toCentavos } from "@/lib/booking";
 import { supabase } from "@/lib/supabase";
-import { canOperateCashShift, canViewAccountingLedger } from "@/lib/permissions";
-import type { AccountingMetrics, Role } from "@/lib/types";
+import { canViewAccountingLedger } from "@/lib/permissions";
+import type { AccountingMetrics, AccountingSection, Role } from "@/lib/types";
 import { readAllRows } from "@/lib/read-all-rows";
 
 // Money is compared and combined in minor units only. These mirror the SQL side exactly so the
@@ -53,6 +53,12 @@ export interface AccountingLedger {
   refunds: Row[]; refundAttempts: Row[]; cashShifts: Row[]; reconciliations: Row[]; documents: Row[];
 }
 
+export interface CashDrawerLedger {
+  cashShifts: Row[];
+  transactions: Row[];
+  metrics: { cashVariance: number };
+}
+
 // Least privilege: no guest email, phone, identity documents, password hashes, session material or
 // payment credentials are selected anywhere in the Accounting ledger.
 const PAYMENT_FIELDS = "id,reservation_id,invoice_id,purpose,method,reference,amount,currency,status,submitted_at,verified_at,reviewed_at,decision_reason,cash_shift_id,received_by,created_at";
@@ -64,6 +70,7 @@ const ATTEMPT_FIELDS = "id,refund_request_id,status,reference,reason,attempted_a
 const SHIFT_FIELDS = "id,staff_user_id,location,opening_amount,status,opened_at,closed_at,expected_cash,actual_cash,variance,close_notes,reconciled_at,reconciliation_notes";
 const RECONCILIATION_FIELDS = "id,period_start,period_end,payment_method,expected_amount,settled_amount,variance,status,notes,reconciled_at";
 const DOCUMENT_FIELDS = "id,document_number,document_type,reservation_id,payment_id,snapshot,created_at";
+const CASH_DRAWER_PAYMENT_FIELDS = "id,purpose,method,amount,currency,status,cash_shift_id,received_by,created_at";
 
 const sum = (rows: Row[], key: string) => fromCentavos(rows.reduce((total, row) => total + toCentavos(Number(row[key] || 0)), 0));
 
@@ -83,39 +90,46 @@ export function summarizeCollections(payments: Row[]) {
   };
 }
 
-export async function getAccountingLedger(role: Role): Promise<AccountingLedger | null> {
-  // Cash-handling staff (front_desk) get the ledger for their sections; the refund
-  // queue, refund attempts, and payment reconciliations stay Accounting-only.
-  if ((!canViewAccountingLedger(role) && !canOperateCashShift(role)) || !supabase) return null;
-  const full = canViewAccountingLedger(role);
+export async function getAccountingLedger(role: Role, section?: AccountingSection | "active_drawer"): Promise<AccountingLedger | null> {
+  if (!canViewAccountingLedger(role) || !supabase) return null;
   const client = supabase;
   const take = (table: string, fields: string, order: string) =>
     readAllRows<Row>(() => client.from(table).select(fields).returns<Row[]>().order(order, { ascending: false }));
-  const [transactions, invoices, charges, adjustments, cashShifts, documents] = await Promise.all([
-    take("payments", PAYMENT_FIELDS, "created_at"), take("invoices", INVOICE_FIELDS, "created_at"),
-    take("folio_charges", CHARGE_FIELDS, "created_at"), take("financial_adjustments", ADJUSTMENT_FIELDS, "created_at"),
-    take("cash_shifts", SHIFT_FIELDS, "opened_at"), take("financial_documents", DOCUMENT_FIELDS, "created_at")
+  const includes = (scope: AccountingSection) => !section || section === scope;
+  const [payments, invoices, charges, adjustments, cashShifts, documents, refunds, refundAttempts, reconciliations] = await Promise.all([
+    includes("transactions") ? take("payments", PAYMENT_FIELDS, "created_at") :
+      section === "folios" || section === "documents" ? readAllRows<Row>(() => client.from("payments")
+        .select("id,amount,status,purpose").eq("status", "paid").returns<Row[]>()) : [],
+    includes("folios") ? take("invoices", INVOICE_FIELDS, "created_at") : [],
+    includes("folios") ? take("folio_charges", CHARGE_FIELDS, "created_at") : [],
+    includes("folios") ? take("financial_adjustments", ADJUSTMENT_FIELDS, "created_at") : [],
+    section === "active_drawer" ? readAllRows<Row>(() => client.from("cash_shifts").select(SHIFT_FIELDS).eq("status", "open").returns<Row[]>()) :
+      includes("cash_shifts") || section === "reconciliation" ? take("cash_shifts", SHIFT_FIELDS, "opened_at") : [],
+    includes("documents") ? take("financial_documents", DOCUMENT_FIELDS, "created_at") : [],
+    !section || section === "reconciliation" ? take("refund_requests", REFUND_FIELDS, "created_at") : [],
+    !section ? take("refund_attempts", ATTEMPT_FIELDS, "attempted_at") : [],
+    includes("reconciliation") ? take("payment_reconciliations", RECONCILIATION_FIELDS, "reconciled_at") : [],
   ]);
-  const [refunds, refundAttempts, reconciliations] = full ? await Promise.all([
-    take("refund_requests", REFUND_FIELDS, "created_at"), take("refund_attempts", ATTEMPT_FIELDS, "attempted_at"),
-    take("payment_reconciliations", RECONCILIATION_FIELDS, "reconciled_at")
-  ]) : [[] as Row[], [] as Row[], [] as Row[]];
+  const shiftPayments = section === "cash_shifts" ? await readAllRows<Row>(() => client.from("payments")
+    .select(PAYMENT_FIELDS).not("cash_shift_id", "is", null).order("created_at", { ascending: false }).returns<Row[]>()) :
+    section === "active_drawer" && cashShifts.length ? await readAllRows<Row>(() => client.from("payments")
+      .select(CASH_DRAWER_PAYMENT_FIELDS).eq("cash_shift_id", cashShifts[0].id).returns<Row[]>()) : [];
+  const transactions = includes("transactions") ? payments : shiftPayments;
   const staffIds = [...new Set([...cashShifts.map(shift => shift.staff_user_id), ...transactions.map(payment => payment.received_by)].filter(Boolean).map(String))];
   const staff = staffIds.length ? await readAllRows(() => client.from("user_accounts").select("id,name").in("id", staffIds)) : [];
   const nameById = new Map(staff.map((person) => [String(person.id), String(person.name)]));
   // Per-shift cash collected, derived from the payments linked to each shift (in − refunds out)
   // so an open shift shows its running total and a closed one matches its expected-cash basis.
-  const shiftIds = cashShifts.map((shift) => String(shift.id)).filter(Boolean);
-  const shiftPayments = shiftIds.length ? await readAllRows<Row>(() => client.from("payments").select("cash_shift_id,amount,purpose").in("cash_shift_id", shiftIds).eq("status", "paid")) : [];
   const collectedByShift = new Map<string, number>();
-  for (const row of shiftPayments) {
+  for (const row of transactions) {
+    if (row.status !== "paid" || !row.cash_shift_id) continue;
     const key = String(row.cash_shift_id);
     const amount = row.purpose === "refund" ? -toCentavos(Number(row.amount || 0)) : toCentavos(Number(row.amount || 0));
     collectedByShift.set(key, (collectedByShift.get(key) ?? 0) + amount);
   }
   const closedShifts = cashShifts.filter((shift) => shift.status === "closed" || shift.status === "reconciled");
   const metrics: AccountingMetrics = {
-    ...summarizeCollections(transactions),
+    ...summarizeCollections(payments),
     outstandingBalance: sum(invoices, "balance"), folioCredit: sum(invoices, "credit_balance"),
     pendingRefunds: refunds.filter((row) => row.status === "pending").length,
     failedRefunds: refunds.filter((row) => row.status === "failed").length,
@@ -127,5 +141,47 @@ export async function getAccountingLedger(role: Role): Promise<AccountingLedger 
   return {
     metrics, transactions: transactions.map(payment => ({ ...payment, received_by_name: nameById.get(String(payment.received_by)) ?? null })), invoices, charges, adjustments, refunds, refundAttempts, reconciliations, documents,
     cashShifts: cashShifts.map((shift) => ({ ...shift, staff_name: nameById.get(String(shift.staff_user_id)) ?? "Unknown", collected: fromCentavos(collectedByShift.get(String(shift.id)) ?? 0) }))
+  };
+}
+
+export async function getCashDrawerShifts(actorId: string) {
+  if (!supabase) throw new Error("Drawer unavailable");
+  const client = supabase;
+  const drawerFields = "id,staff_user_id,location,opening_amount,status,opened_at,closed_at,expected_cash,actual_cash,variance,close_notes,reconciled_at";
+  // The desk shares the open drawer and its latest handover. Older drawers belong to their opener.
+  const [active, lastClosed, own] = await Promise.all([
+    client.from("cash_shifts").select(drawerFields).eq("status", "open").order("opened_at", { ascending: false }).order("id").limit(1).maybeSingle(),
+    client.from("cash_shifts").select(drawerFields).in("status", ["closed", "reconciled"]).order("opened_at", { ascending: false }).order("id").limit(1).maybeSingle(),
+    client.from("cash_shifts").select(drawerFields).eq("staff_user_id", actorId).order("opened_at", { ascending: false }).order("id").limit(25),
+  ]);
+  if (active.error || lastClosed.error || own.error) throw new Error("Unable to verify drawer scope");
+  return [...new Map([active.data, lastClosed.data, ...(own.data ?? [])]
+    .filter(shift => shift !== null).map(shift => [shift.id, shift])).values()];
+}
+
+export async function getCashDrawerLedger(actorId: string): Promise<CashDrawerLedger> {
+  if (!supabase) throw new Error("Drawer unavailable");
+  const client = supabase;
+  const shifts = await getCashDrawerShifts(actorId);
+  const shiftIds = shifts.map(shift => shift.id);
+  const transactions = shiftIds.length ? await readAllRows<Row>(() => client.from("payments")
+    .select(CASH_DRAWER_PAYMENT_FIELDS).in("cash_shift_id", shiftIds).returns<Row[]>().order("created_at", { ascending: false })) : [];
+  const staffIds = [...new Set([...shifts.map(shift => shift.staff_user_id), ...transactions.map(row => row.received_by)].filter(Boolean).map(String))];
+  const staff = staffIds.length ? await readAllRows(() => client.from("user_accounts").select("id,name").in("id", staffIds)) : [];
+  const names = new Map(staff.map(person => [String(person.id), String(person.name)]));
+  const netByShift = new Map<unknown, number>();
+  for (const payment of transactions) {
+    if (payment.status !== "paid") continue;
+    const amount = toCentavos(Number(payment.amount || 0));
+    const net = payment.purpose === "refund" ? -amount : amount;
+    netByShift.set(payment.cash_shift_id, (netByShift.get(payment.cash_shift_id) ?? 0) + net);
+  }
+  return {
+    transactions: transactions.map(row => ({ ...row, received_by_name: names.get(String(row.received_by)) ?? null })),
+    cashShifts: shifts.map(shift => ({
+      ...shift, staff_name: names.get(String(shift.staff_user_id)) ?? "Unknown",
+      collected: fromCentavos(netByShift.get(shift.id) ?? 0),
+    })),
+    metrics: { cashVariance: sum(shifts.filter(shift => shift.status !== "open"), "variance") },
   };
 }
