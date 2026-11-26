@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Typecheck, lint, test, and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx --no-install next typegen
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          SUPABASE_SERVICE_ROLE_KEY: isolated-ci-build-placeholder
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npx --no-install playwright install --with-deps chromium
+      - run: node scripts/hotel-browser-smoke.mjs
+
+  database:
+    name: Replay and test hotel database
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: backend_audit
+          POSTGRES_DB: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 127.0.0.1:55432:5432
+        options: >-
+          --health-cmd "pg_isready -U backend_audit -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: node scripts/backend-remediation-db-test.mjs
+      - name: Verify protected Hotel and partner workflows
+        run: |
+          node scripts/rbac-db-test.mjs
+          node scripts/front-office-booking-db-test.mjs
+          node scripts/front-office-booking-page-db-test.mjs
+          node scripts/front-desk-exact-hold-db-test.mjs
+          node scripts/front-desk-extension-replay-db-test.mjs
+          node scripts/reservation-amendment-db-test.mjs
+          node scripts/hotel-operations-db-test.mjs
+          node scripts/operating-day-coverage-db-test.mjs
+          node scripts/enterprise-boundaries-db-test.mjs
+          node scripts/xendit-sandbox-db-test.mjs
+          node scripts/workforce-integration-db-test.mjs
+          node scripts/fleet-automatic-dispatch-db-test.mjs
+          node scripts/hotel-breakfast-db-test.mjs
+          node scripts/inventory-replenishment-db-test.mjs
