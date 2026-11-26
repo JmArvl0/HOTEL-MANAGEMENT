@@ -16,6 +16,7 @@ const reservation = (over: Partial<ReservationLike>): ReservationLike => ({
 const task = (over: Partial<TaskLike>): TaskLike => ({
   id: Math.random().toString(36).slice(2),
   status: "completed",
+  task_type: "checkout_cleaning",
   created_at: `${TODAY}T08:00:00Z`,
   ...over
 });
@@ -46,11 +47,11 @@ describe("forecastHousekeeping", () => {
     const openRequests = [
       task({ task_type: "guest_request", status: "pending" }),
       task({ task_type: "guest_request", status: "in_progress" }),
-      task({ task_type: "guest_request", status: "completed" }) // not open — excluded
+      task({ task_type: "guest_request", status: "completed", created_at: "2026-09-07T08:00:00Z" }) // not open — excluded
     ];
     const forecast = forecastHousekeeping({ reservations: [], tasks: openRequests, today: TODAY, horizon: 2, inspectionRequired: false });
     expect(forecast.days[0].guestRequestTasks).toBe(2);
-    expect(forecast.days[1].guestRequestTasks).toBe(0.2); // 3 created in the trailing 14 days / 14
+    expect(forecast.days[1].guestRequestTasks).toBe(0.1); // One request across the completed lookback days
   });
 
   it("omits labor hours unless at least five real completed durations exist", () => {
@@ -58,9 +59,9 @@ describe("forecastHousekeeping", () => {
       task({ started_at: "2026-09-07T09:00:00Z", completed_at: "2026-09-07T09:30:00Z" }),
       task({ started_at: "2026-09-06T09:00:00Z", completed_at: "2026-09-06T09:45:00Z" })
     ];
-    const sparse = forecastHousekeeping({ reservations: [], tasks: two, today: TODAY, inspectionRequired: false });
+    const sparse = forecastHousekeeping({ reservations: [reservation({})], tasks: two, today: TODAY, inspectionRequired: false });
     expect(sparse.days[0].estimatedLaborHours).toBeUndefined();
-    expect(sparse.days[0].basisNote).toContain("No completed-task duration history");
+    expect(sparse.days[1].basisNote).toContain("checkout cleaning");
 
     const durations = Array.from({ length: 5 }, (_, i) =>
       task({ started_at: `2026-09-0${3 + i}T09:00:00Z`, completed_at: `2026-09-0${3 + i}T10:00:00Z` }));
@@ -76,8 +77,17 @@ describe("forecastHousekeeping", () => {
         task({ started_at: `2026-09-0${3 + i}T09:00:00Z`, completed_at: `2026-09-0${3 + i}T10:00:00Z` })),
       task({ started_at: "2026-09-07T09:00:00Z", completed_at: "2026-09-09T09:00:00Z" }) // 2 days — discarded
     ];
-    const forecast = forecastHousekeeping({ reservations: [], tasks, today: TODAY, inspectionRequired: false });
-    expect(forecast.days[0].meanTaskMinutes).toBe(60);
+    const forecast = forecastHousekeeping({ reservations: [reservation({})], tasks, today: TODAY, inspectionRequired: false });
+    expect(forecast.days[1].meanTaskMinutes).toBe(60);
+  });
+
+  it("counts a pending checkout clean once before and after checkout", () => {
+    const stay = reservation({ check_in: shiftDate(TODAY, -1), check_out: TODAY, status: "checked_in" });
+    const tasks = [task({ status: "pending", reservation_id: stay.id })];
+    for (const status of ["checked_in", "checked_out"]) {
+      const forecast = forecastHousekeeping({ today: TODAY, tasks, reservations: [{ ...stay, status }], inspectionRequired: false });
+      expect(forecast.days[0]).toMatchObject({ checkoutCleans: 1, openTasks: 1, expectedNewTasks: 0 });
+    }
   });
 
   it("falls back to documented fixed workload cutoffs with a note when history is thin", () => {

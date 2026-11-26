@@ -15,13 +15,13 @@ const { POST } = await import("@/app/api/analytics/pricing-recommendations/propo
 const modelRunId = "11111111-1111-4111-8111-111111111111";
 const roomTypeId = "22222222-2222-4222-8222-222222222222";
 const recommendation = {
-  roomTypeId, roomTypeName: "Garden Twin", targetDate: "2026-09-23", baseRate: 5800,
+  roomTypeId, roomTypeName: "Garden Twin", targetDate: "2026-09-23", baseRate: 5800, sellingRate: 6100, observations: 20, reviewKey: "a".repeat(64),
   projectedOccupancy: 85, recommendedRate: 6960, percentageChange: 20,
   demandTier: "high" as const, reasoning: "+20% surge due to demand.", bookingPace: 2,
   confidence: "medium" as const, occupancyBasis: "prediction" as const,
   floorRate: 4640, ceilingRate: 7830, boundApplied: null,
 };
-const pricing = { generatedAt: "2026-09-22T00:00:00Z", modelRunId, modelVersion: "dynamic-pricing-v1", recommendations: [recommendation], confidence: { level: "medium" as const, basis: "Supported." } };
+const pricing = { generatedAt: "2026-09-22T00:00:00Z", modelRunId, modelVersion: "dynamic-pricing-v1", recommendations: [recommendation], outcomes: [], confidence: { level: "medium" as const, basis: "Supported." } };
 
 beforeEach(() => {
   vi.mocked(guardCatalog).mockReset();
@@ -55,7 +55,7 @@ describe("pricing recommendation authorization", () => {
     const response = await POST(new Request("http://haven.test/api/analytics/pricing-recommendations/propose", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ modelRunId, recommendations: [{ roomTypeId, targetDate: recommendation.targetDate, nightlyRate: 7100.25 }] }),
+      body: JSON.stringify({ modelRunId, recommendations: [{ roomTypeId, reviewKey: recommendation.reviewKey, targetDate: recommendation.targetDate, nightlyRate: 7100.25 }] }),
     }));
     expect(response.status).toBe(201);
     expect(rpc).toHaveBeenCalledWith("manager_propose_analytics_rate_plans", expect.objectContaining({
@@ -65,13 +65,24 @@ describe("pricing recommendation authorization", () => {
     }));
   });
 
+  it("rejects an outdated reviewed price when the snapshot ID still matches", async () => {
+    const rpc = vi.fn();
+    vi.mocked(guardCatalog).mockResolvedValue({ actorId: "manager-id", role: "manager", client: { rpc } } as never);
+    const request = new Request("http://haven.test/api/analytics/pricing-recommendations/propose", { method: "POST",
+      body: JSON.stringify({ modelRunId, recommendations: [{ roomTypeId, targetDate: recommendation.targetDate,
+        nightlyRate: 7100, reviewKey: "b".repeat(64) }] })
+    });
+    expect((await POST(request)).status).toBe(409);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
   it("rejects rates with fractional centavos before reaching the database", async () => {
     const rpc = vi.fn();
     vi.mocked(guardCatalog).mockResolvedValue({ actorId: "manager-id", role: "manager", client: { rpc } } as never);
     const response = await POST(new Request("http://haven.test/api/analytics/pricing-recommendations/propose", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ modelRunId, recommendations: [{ roomTypeId, targetDate: recommendation.targetDate, nightlyRate: 7100.251 }] }),
+      body: JSON.stringify({ modelRunId, recommendations: [{ roomTypeId, reviewKey: recommendation.reviewKey, targetDate: recommendation.targetDate, nightlyRate: 7100.251 }] }),
     }));
     expect(response.status).toBe(400);
     expect(rpc).not.toHaveBeenCalled();

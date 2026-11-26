@@ -31,24 +31,23 @@ describe("forecastInventory", () => {
   });
 
   it("predicts a shortage when forecast consumption exceeds stock — not merely when stock is low", () => {
-    // 30 pcs/day on each of 8 of the trailing 30 days → mean 8/day → 24 predicted;
-    // stock 20 → projected shortage 4, reorder 24 + 60 − 20.
+    // 30 pcs on each recorded day. Missing days do not count as zero.
     const movements = historyDays.map((day) => movement(day, 30));
     const forecast = forecastInventory({ items: [item({ quantity: 20 })], movements, today: TODAY });
     const row = forecast.items[0];
     expect(row.movementDays).toBe(8);
-    expect(row.predictedConsumption).toBe(24);
-    expect(row.projectedShortage).toBe(4);
-    expect(row.recommendedReorder).toBe(64);
+    expect(row.predictedConsumption).toBe(90);
+    expect(row.projectedShortage).toBe(70);
+    expect(row.recommendedReorder).toBe(130);
     expect(row.risk).toBe("high");
     expect(row.riskBasis).toBe("predicted-shortage");
     expect(forecast.shortageCount).toBe(1);
   });
 
   it("rates medium when stock survives the forecast but dips to the reorder point", () => {
-    // Predicted 24 use from stock 40 → 16 left, below the 60 reorder point → medium, no shortage.
+    // Predicted 90 use from stock 130 → 40 left, below the 60 reorder point.
     const movements = historyDays.map((day) => movement(day, 30));
-    const forecast = forecastInventory({ items: [item({ quantity: 40 })], movements, today: TODAY });
+    const forecast = forecastInventory({ items: [item({ quantity: 130 })], movements, today: TODAY });
     const row = forecast.items[0];
     expect(row.projectedShortage).toBe(0);
     expect(row.risk).toBe("medium");
@@ -56,8 +55,31 @@ describe("forecastInventory", () => {
     expect(forecast.shortageCount).toBe(0);
   });
 
+  it("flags shortages for stock measured in fractional units", () => {
+    const [row] = forecastInventory({
+      items: [item({ quantity: "0.20", reorder_point: "0.10", unit: "L" })],
+      movements: historyDays.map(day => movement(day, 0.12)),
+      today: TODAY
+    }).items;
+    expect(row).toMatchObject({
+      dailyExpected: 0.12,
+      predictedConsumption: 0.36,
+      projectedShortage: 0.16,
+      recommendedReorder: 0.26,
+      riskBasis: "predicted-shortage"
+    });
+  });
+
+  it("does not use days before the item existed or treat logging gaps as zero", () => {
+    const movements = historyDays.slice(0, 7).map(day => movement(day, 10));
+    const [row] = forecastInventory({ items: [item({ quantity: 15, reorder_point: 5,
+      created_at: `${shiftDate(TODAY, -9)}T10:00:00Z` })], movements, today: TODAY }).items;
+    expect(row).toMatchObject({ eligibleDays: 8, movementDays: 7, predictedConsumption: 30, projectedShortage: 15 });
+    expect(row.usageHistory?.find(day => day.date === shiftDate(TODAY, -8))?.quantity).toBeNull();
+  });
+
   it("keeps a genuinely healthy stocked item at low risk", () => {
-    const movements = historyDays.map((day) => movement(day, 2)); // 16 total → mean 0.53/day → 2 predicted
+    const movements = historyDays.map((day) => movement(day, 2)); // 2 per recorded day
     const forecast = forecastInventory({ items: [item({ quantity: 500, reorder_point: 100 })], movements, today: TODAY });
     const row = forecast.items[0];
     expect(row.risk).toBe("low");
@@ -71,7 +93,7 @@ describe("forecastInventory", () => {
       movement(shiftDate(TODAY, -45), 30) // outside the 30-day window — ignored
     ];
     const forecast = forecastInventory({ items: [item({ quantity: 20 })], movements, today: TODAY });
-    expect(forecast.items[0].predictedConsumption).toBe(24); // still 8/day × 3
+    expect(forecast.items[0].predictedConsumption).toBe(90); // 30 per recorded day × 3
   });
 });
 

@@ -47,46 +47,41 @@ describe("countNights — the FACT basis", () => {
 describe("forecastOccupancy", () => {
   it("reports fact-only with honest limited quality when no booking history exists", () => {
     const forecast = forecastOccupancy({ reservations: [], rooms: ROOMS, today: TODAY });
-    expect(forecast.days).toHaveLength(7);
+    expect(forecast.days).toHaveLength(8);
     for (const day of forecast.days) {
       expect(day.knownOccupied).toBe(0);
       expect(day.knownOccupancyPct).toBe(0);
       expect(day.predictedOccupancyPct).toBeUndefined(); // never a fabricated prediction
       expect(day.dataQuality).toBe("limited");
     }
-    expect(forecast.notes.some((note) => note.includes("at least 5 days of booking history"))).toBe(true);
+    expect(forecast.notes.some((note) => note.includes("at least 5 matched booking snapshots"))).toBe(true);
   });
 
-  it("publishes a prediction only when enough pickup observations exist", () => {
-    // Two past nights with genuine late pickup: booked the day of arrival, not a week out
-    // (late materialization is visible at lead >= 1, day-granularity booking dates).
-    const late = [
-      reservation({ check_in: shiftDate(TODAY, -2), check_out: shiftDate(TODAY, -1), created_at: `${shiftDate(TODAY, -2)}T20:00:00Z` }),
-      reservation({ check_in: shiftDate(TODAY, -3), check_out: shiftDate(TODAY, -2), created_at: `${shiftDate(TODAY, -3)}T20:00:00Z` })
-    ];
-    const few = pickupEstimate(late, TODAY, 1);
-    expect(few.observations).toBe(2);
-    expect(few.pickup).toBeGreaterThan(0);
+  it("uses verified zeros and negative net pickup only after enough snapshots", () => {
+    const history = Array.from({ length: 5 }, (_, index) => ({
+      night: shiftDate(TODAY, -index - 1), lead: 1, booked: 2, occupied: 0
+    }));
+    const reservations = [reservation({ check_out: shiftDate(TODAY, 2) })];
+    const sparse = forecastOccupancy({ reservations, rooms: ROOMS, today: TODAY, pickupHistory: history.slice(0, 4) });
+    expect(sparse.days[1].predictedOccupied).toBeUndefined();
+    expect(pickupEstimate(history, TODAY, 1)).toEqual({ pickup: -2, observations: 5 });
+    const rich = forecastOccupancy({ reservations, rooms: ROOMS, today: TODAY, pickupHistory: history });
+    expect(rich.days[1]).toMatchObject({ knownOccupied: 1, predictedOccupied: 0, basisObservations: 5 });
+    expect(rich.days[3].predictedOccupied).toBeUndefined();
+  });
 
-    const sparse = forecastOccupancy({ reservations: late, rooms: ROOMS, today: TODAY });
-    expect(sparse.days.every((day) => day.predictedOccupancyPct === undefined)).toBe(true);
+  it("uses the hotel date for a historical booking cutoff", () => {
+    const stay = reservation({ created_at: "2026-09-07T16:30:00Z" });
+    expect(countNights([stay], TODAY, true, "2026-09-07")).toBe(0);
+    expect(countNights([stay], TODAY, true, TODAY)).toBe(1);
+  });
 
-    // Same nights plus a longer stretch of real history → the lead-1 day publishes a prediction.
-    const many = [
-      ...late,
-      ...Array.from({ length: 8 }, (_, i) =>
-        reservation({
-          check_in: shiftDate(TODAY, -4 - i),
-          check_out: shiftDate(TODAY, -3 - i),
-          created_at: `${shiftDate(TODAY, -4 - i)}T20:00:00Z`
-        }))
-    ];
-    expect(pickupEstimate(many, TODAY, 1).observations).toBeGreaterThanOrEqual(5);
-    const rich = forecastOccupancy({ reservations: many, rooms: ROOMS, today: TODAY });
-    const tomorrow = rich.days[1];
-    expect(tomorrow.predictedOccupancyPct).toBeDefined();
-    expect(tomorrow.pickupRooms).toBeGreaterThan(0);
-    expect(tomorrow.basisObservations).toBeGreaterThanOrEqual(5);
+  it("shows capacity shortages and withholds predictions without active rooms", () => {
+    const stays = [reservation({}), reservation({})];
+    const rooms = [ROOMS[0], { ...ROOMS[1], status: "maintenance" }];
+    expect(forecastOccupancy({ reservations: stays, rooms, today: TODAY }).days[0])
+      .toMatchObject({ totalRooms: 2, serviceableRooms: 1, roomsAvailableToSell: 0, overbookedRooms: 1 });
+    expect(forecastOccupancy({ reservations: stays, rooms: [], today: TODAY }).days[0].predictedOccupied).toBeUndefined();
   });
 
   it("computes known occupancy from active rooms and current bookings", () => {
@@ -104,17 +99,11 @@ describe("forecastOccupancy", () => {
   });
 
   it("caps the predicted total at the room count and rates risk from the prediction", () => {
-    const history = Array.from({ length: 8 }, (_, i) =>
-      reservation({
-        status: "checked_out",
-        check_in: shiftDate(TODAY, -2 - i),
-        check_out: shiftDate(TODAY, -1 - i),
-        created_at: `${shiftDate(TODAY, -2 - i)}T23:00:00Z`
-      }));
+    const history = Array.from({ length: 8 }, (_, i) => ({ night: shiftDate(TODAY, -i - 2), lead: 1, booked: 0, occupied: 3 }));
     // Nine rooms already booked through tomorrow, one late-booking pattern → predicted full.
     const current = Array.from({ length: 9 }, (_, i) =>
       reservation({ id: `cur${i}`, check_in: TODAY, check_out: shiftDate(TODAY, 2) }));
-    const forecast = forecastOccupancy({ reservations: [...history, ...current], rooms: ROOMS, today: TODAY });
+    const forecast = forecastOccupancy({ reservations: current, rooms: ROOMS, today: TODAY, pickupHistory: history });
     const tomorrow = forecast.days[1];
     expect(tomorrow.knownOccupied).toBe(9);
     expect(tomorrow.predictedOccupied).toBe(10);

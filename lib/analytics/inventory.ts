@@ -1,4 +1,4 @@
-import { shiftDate, toNumber, type DataQuality, type InventoryItemLike, type InventoryMovementLike, type RiskLevel } from "./types";
+import { analyticsDay, hotelMidnight, shiftDate, toNumber, type DataQuality, type InventoryItemLike, type InventoryMovementLike, type RiskLevel } from "./types";
 
 /**
  * INVENTORY DEMAND / SHORTAGE FORECAST — genuinely predictive, deliberately
@@ -11,10 +11,11 @@ import { shiftDate, toNumber, type DataQuality, type InventoryItemLike, type Inv
  * number — the movement log added in the innovation migration is the fix.
  */
 
-export const INVENTORY_MODEL_VERSION = "inventory-v1";
+export const INVENTORY_MODEL_VERSION = "inventory-v4";
 export const FORECAST_DAYS = 3;
 const MOVEMENT_WINDOW_DAYS = 30;
 const MIN_MOVEMENT_DAYS = 7;
+const QUANTITY_SCALE = 100;
 
 export interface InventoryRisk {
   itemId: string;
@@ -30,11 +31,17 @@ export interface InventoryRisk {
   riskBasis: "predicted-shortage" | "predicted-below-reorder" | "current-low-stock" | "none";
   dataQuality: DataQuality;
   movementDays: number;
+  eligibleDays: number;
+  belowReorderPoint: boolean;
+  /** Recorded daily consumption and the daily mean underlying the three-day forecast. */
+  usageHistory?: { date: string; quantity: number | null }[];
+  dailyExpected?: number;
 }
 
 export interface InventoryForecast {
   today: string;
   items: InventoryRisk[];
+  attentionCount: number;
   shortageCount: number;
   method: string;
   notes: string[];
@@ -49,15 +56,23 @@ export interface InventoryInput {
 export function forecastInventory(input: InventoryInput): InventoryForecast {
   const windowStart = shiftDate(input.today, -MOVEMENT_WINDOW_DAYS);
   const notes: string[] = [];
+  const consumptionByItem = dailyRecordedConsumption(input.movements, windowStart, shiftDate(input.today, -1));
   const items: InventoryRisk[] = input.items.map((item) => {
     const currentStock = toNumber(item.quantity);
     const reorderPoint = toNumber(item.reorder_point);
-    const consumptions = input.movements.filter((movement) =>
-      movement.item_id === item.id
-      && movement.direction === "consumption"
-      && movement.created_at.slice(0, 10) >= windowStart
-    );
-    const movementDays = new Set(consumptions.map((movement) => movement.created_at.slice(0, 10))).size;
+    const createdDay = item.created_at ? analyticsDay(item.created_at) : "";
+    const firstClosedDay = createdDay && Date.parse(item.created_at!) > Date.parse(hotelMidnight(createdDay))
+      ? shiftDate(createdDay, 1) : createdDay || windowStart;
+    const eligibleDays = Array.from({ length: MOVEMENT_WINDOW_DAYS }, (_, index) => shiftDate(windowStart, index))
+      .filter(date => date >= firstClosedDay);
+    const recorded = consumptionByItem.get(item.id);
+    const quantities = eligibleDays.flatMap(date => recorded?.has(date) ? [recorded.get(date)!] : []);
+    const movementDays = quantities.length;
+    const belowReorderPoint = currentStock <= reorderPoint;
+    const usageHistory = Array.from({ length: 14 }, (_, index) => {
+      const date = shiftDate(input.today, index - 14);
+      return { date, quantity: date >= firstClosedDay ? recorded?.get(date) ?? null : null };
+    });
 
     // Not enough consumption history: report the current-stock facts only.
     if (movementDays < MIN_MOVEMENT_DAYS) {
@@ -69,25 +84,29 @@ export function forecastInventory(input: InventoryInput): InventoryForecast {
         risk: low ? "high" : "low",
         riskBasis: low ? "current-low-stock" : "none",
         dataQuality: "limited",
-        movementDays
+        movementDays, eligibleDays: eligibleDays.length, belowReorderPoint, usageHistory
       };
     }
 
-    const dailyMean = consumptions.reduce((sum, movement) => sum + toNumber(movement.quantity), 0) / MOVEMENT_WINDOW_DAYS;
-    const predictedConsumption = Math.round(dailyMean * FORECAST_DAYS);
-    const projectedShortage = Math.max(0, predictedConsumption - currentStock);
-    const stockAfterForecast = currentStock - predictedConsumption;
-    const risk: RiskLevel = projectedShortage > 0 ? "high" : stockAfterForecast <= reorderPoint ? "medium" : "low";
+    // Inventory movements and stock quantities are recorded to two decimal places.
+    const dailyHundredths = quantities.reduce((sum, quantity) => sum + Math.round(quantity * QUANTITY_SCALE), 0) / movementDays;
+    const forecastHundredths = Math.round(dailyHundredths * FORECAST_DAYS);
+    const stockAfterForecast = Math.round(currentStock * QUANTITY_SCALE) - forecastHundredths;
+    const reorderHundredths = Math.round(reorderPoint * QUANTITY_SCALE);
+    const predictedConsumption = forecastHundredths / QUANTITY_SCALE;
+    const projectedShortage = Math.max(0, -stockAfterForecast) / QUANTITY_SCALE;
+    const projectedBelowReorder = stockAfterForecast <= reorderHundredths;
+    const risk: RiskLevel = projectedShortage > 0 ? "high" : projectedBelowReorder ? "medium" : "low";
     return {
       itemId: item.id, name: item.name, category: item.category, unit: item.unit,
       currentStock, reorderPoint,
       predictedConsumption,
       projectedShortage,
-      recommendedReorder: Math.max(0, predictedConsumption + reorderPoint - currentStock),
+      recommendedReorder: Math.max(0, reorderHundredths - stockAfterForecast) / QUANTITY_SCALE,
       risk,
-      riskBasis: projectedShortage > 0 ? "predicted-shortage" : stockAfterForecast <= reorderPoint ? "predicted-below-reorder" : "none",
-      dataQuality: movementDays >= MOVEMENT_WINDOW_DAYS ? "medium" : "limited",
-      movementDays
+      riskBasis: projectedShortage > 0 ? "predicted-shortage" : belowReorderPoint ? "current-low-stock" : projectedBelowReorder ? "predicted-below-reorder" : "none",
+      dataQuality: movementDays >= 14 && movementDays >= eligibleDays.length * 0.8 ? "medium" : "limited",
+      movementDays, eligibleDays: eligibleDays.length, belowReorderPoint, usageHistory, dailyExpected: Math.round(dailyHundredths) / QUANTITY_SCALE
     };
   });
 
@@ -99,15 +118,34 @@ export function forecastInventory(input: InventoryInput): InventoryForecast {
   return {
     today: input.today,
     items,
+    attentionCount: items.filter(item => item.riskBasis !== "none").length,
     shortageCount: items.filter((item) => item.projectedShortage !== null && item.projectedShortage > 0).length,
-    method: `Mean daily consumption from inventory movements (trailing ${MOVEMENT_WINDOW_DAYS} days) × ${FORECAST_DAYS}-day horizon`,
+    method: `Mean recorded daily use within the last ${MOVEMENT_WINDOW_DAYS} closed hotel days × ${FORECAST_DAYS} days. Gaps are excluded.`,
     notes
   };
+}
+
+/** A missing movement does not establish that an item had no usage. */
+export function dailyRecordedConsumption(movements: InventoryMovementLike[], from: string, through: string) {
+  const items = new Map<string, Map<string, number>>();
+  for (const movement of movements) {
+    if (movement.direction !== "consumption") continue;
+    const date = analyticsDay(movement.created_at);
+    const quantity = Number(movement.quantity);
+    if (date < from || date > through || !Number.isFinite(quantity) || quantity < 0) continue;
+    let item = items.get(movement.item_id);
+    if (!item) {
+      item = new Map();
+      items.set(movement.item_id, item);
+    }
+    item.set(date, (item.get(date) ?? 0) + quantity);
+  }
+  return items;
 }
 
 /** Actual consumption for an item over a window — used by prediction-vs-actual evaluation. */
 export function actualConsumption(movements: InventoryMovementLike[], itemId: string, from: string, to: string): number {
   return movements
-    .filter((movement) => movement.item_id === itemId && movement.direction === "consumption" && movement.created_at.slice(0, 10) >= from && movement.created_at.slice(0, 10) <= to)
+    .filter((movement) => movement.item_id === itemId && movement.direction === "consumption" && analyticsDay(movement.created_at) >= from && analyticsDay(movement.created_at) <= to)
     .reduce((sum, movement) => sum + toNumber(movement.quantity), 0);
 }

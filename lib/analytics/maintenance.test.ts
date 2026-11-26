@@ -74,6 +74,23 @@ describe("assessMaintenanceRisk", () => {
     expect(report.risks.some((risk) => risk.category === "Water heater")).toBe(true);
   });
 
+  it("ignores cancelled work orders and compares equal closed periods", () => {
+    const prior = [34, 45].map(days => order({ created_at: `${shiftDate(TODAY, -days)}T09:00:00Z` }));
+    const recent = [3, 10, 15].map(days => order({ created_at: `${shiftDate(TODAY, -days)}T09:00:00Z` }));
+    const cancelled = Array.from({ length: 4 }, () => order({ status: "cancelled", room_id: "rm2" }));
+    const report = assessMaintenanceRisk({ orders: [...prior, ...recent, ...cancelled], today: TODAY });
+    expect(report.risks).toMatchObject([{ roomId: "rm1", incidents90Days: 5, trend: "increasing" }]);
+  });
+
+  it("only attaches an equipment name when the matching registered asset is unique", () => {
+    const asset = { id: "asset-1", room_id: "rm1", name: "AC A", category: "cooling", last_serviced_at: null };
+    const orders = Array.from({ length: 2 }, () => order({ target_type: "equipment", target_label: " ac a " }));
+    expect(assessMaintenanceRisk({ today: TODAY, orders, assets: [asset] }).risks)
+      .toMatchObject([{ assetId: asset.id, assetName: asset.name }]);
+    expect(assessMaintenanceRisk({ today: TODAY, orders, assets: [asset, { ...asset, id: "asset-2" }] }).risks[0].assetId)
+      .toBeUndefined();
+  });
+
   it("describes recurring-issue risk, never a failure probability", () => {
     const report = assessMaintenanceRisk({
       orders: [30, 50, 70, 85].map((back) => order({ created_at: `${shiftDate(TODAY, -back)}T09:00:00Z` })),

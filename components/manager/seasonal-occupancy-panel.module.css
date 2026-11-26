@@ -1,0 +1,81 @@
+.views {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--fe-line);
+  border-radius: 12px;
+  background: var(--fe-raised);
+}
+
+.views button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fe-muted);
+  padding: 0 11px;
+  font: inherit;
+  font-size: .8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.views button[aria-pressed="true"] {
+  border-color: var(--fe-line);
+  background: var(--fe-surface);
+  color: var(--fe-ink);
+}
+
+.views button:hover { color: var(--fe-ink); }
+
+.filters { align-items: end; }
+
+.filters input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 10px;
+  background: var(--fe-surface);
+  border: 1px solid var(--fe-line);
+  border-radius: 8px;
+  color: var(--fe-ink);
+  font: inherit;
+}
+
+:global(.app-shell) .filters button[type="submit"] { min-height: 44px; }
+
+:is(.views button, .filters input, .dateLink):focus-visible {
+  outline: 2px solid var(--fe-actual);
+  outline-offset: 2px;
+}
+
+.formError { flex-basis: 100%; margin: 0; color: var(--fe-ink); }
+
+.summary { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 16px; }
+
+.dateLink {
+  padding: 0;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--fe-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.lineKey { width: 18px; border-block-start: 2px solid var(--fe-actual); }
+.lineKey[data-series="baselinePercent"] { border-block-start: 2px dotted var(--fe-baseline); }
+.lineKey[data-series="projectedPercent"] { border-block-start: 2px dashed var(--fe-predicted); }
+.lineKey[data-series="actualPercent"] { border-block-start: 2px dashed var(--fe-ink); }
+
+@media (max-width: 640px) {
+  .filters input { font-size: 1rem; }
+  .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .summary > div:last-child { grid-column: 1 / -1; }
+}

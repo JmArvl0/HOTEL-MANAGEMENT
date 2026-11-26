@@ -8,7 +8,15 @@ import { shiftDate } from "@/lib/analytics/types";
 const fake = vi.hoisted(() => ({ db: {} as FakeDb }));
 vi.mock("@/lib/supabase", async () => {
   const { fakeSupabase: make } = await import("@/lib/fake-supabase");
-  return { supabase: make(fake.db) };
+  const client = make(fake.db);
+  return { supabase: { ...client, from: (table: string) => {
+    const query = client.from(table);
+    const emptyFilter = () => {
+      if (fake.db[table]?.length) throw new Error(`Add fixture support for this filter on ${table}`);
+      return query;
+    };
+    return Object.assign(query, { or: emptyFilter, not: emptyFilter });
+  } } };
 });
 
 const { AI_TOOLS, aiToolDeclarations, executeAiTool } = await import("@/lib/ai/tools");
@@ -103,9 +111,9 @@ describe("tool payloads — aggregated, PII-free", () => {
 
   it("getOccupancyForecast returns HAVEN's own forecast structure with honest quality labels", async () => {
     const output = (await executeAiTool("getOccupancyForecast")) as { days: { date: string; knownOccupied: number; dataQuality: string }[]; method: string };
-    expect(output.days).toHaveLength(7);
+    expect(output.days).toHaveLength(8);
     expect(output.days[0].knownOccupied).toBe(2); // confirmed + checked_in cover tonight
-    expect(output.method).toContain("Known booked occupancy");
+    expect(output.method).toContain("average net pickup");
     expect(JSON.stringify(output)).not.toContain(PII_MARKER);
   });
 });

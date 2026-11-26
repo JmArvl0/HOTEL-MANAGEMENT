@@ -4,18 +4,22 @@ import { numericInput } from "@/lib/input-validation";
 
 import { z } from "zod";
 import { guardCatalog, adminGuardFailed, adminRpcFailure } from "@/lib/admin-route";
+import { MAX_RATE_PROPOSALS } from "@/lib/analytics/dynamic-pricing";
 import { getPricingRecommendations } from "@/lib/analytics/pricing-service";
+
+const staleForecast = "The pricing forecast changed. Refresh and review the latest recommendations.";
 
 const proposalSchema = z.object({
   modelRunId: z.string().uuid(),
   recommendations: z.array(z.object({
     roomTypeId: z.string().uuid(),
+    reviewKey: z.string().regex(/^[a-f0-9]{64}$/),
     targetDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     nightlyRate: numericInput(z.number().positive().max(10_000_000)).refine(
       (value) => Math.abs(value * 100 - Math.round(value * 100)) < 0.000001,
       "Rates may use at most two decimal places."
     ),
-  })).min(1).max(50),
+  })).min(1).max(MAX_RATE_PROPOSALS),
 });
 
 export async function POST(request: Request) {
@@ -29,9 +33,12 @@ export async function POST(request: Request) {
   try {
     const current = await getPricingRecommendations(c.client);
     if (!current.modelRunId || current.modelRunId !== parsed.data.modelRunId) {
-      return publicJson({ error: "The pricing forecast changed. Refresh and review the latest recommendations." }, { status: 409 });
+      return publicJson({ error: staleForecast }, { status: 409 });
     }
     const byKey = new Map(current.recommendations.map((entry) => [`${entry.roomTypeId}:${entry.targetDate}`, entry]));
+    if (parsed.data.recommendations.some(selected => byKey.get(`${selected.roomTypeId}:${selected.targetDate}`)?.reviewKey !== selected.reviewKey)) {
+      return publicJson({ error: staleForecast }, { status: 409 });
+    }
     const recommendations = parsed.data.recommendations.map((selected) => {
       const recommendation = byKey.get(`${selected.roomTypeId}:${selected.targetDate}`);
       const nightlyRate = Math.round(selected.nightlyRate * 100) / 100;
@@ -40,7 +47,7 @@ export async function POST(request: Request) {
         roomTypeId: selected.roomTypeId,
         targetDate: selected.targetDate,
         nightlyRate,
-        reason: `${recommendation.reasoning} Manager reviewed the recommended ₱${recommendation.recommendedRate.toFixed(2)} rate and proposed ₱${nightlyRate.toFixed(2)}.`,
+        reason: `${recommendation.reasoning} Selling ₱${recommendation.sellingRate.toFixed(2)}. Recommended ₱${recommendation.recommendedRate.toFixed(2)}. Proposed ₱${nightlyRate.toFixed(2)}.`,
       };
     });
 

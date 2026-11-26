@@ -38,6 +38,11 @@ export async function POST(request: NextRequest) {
     return publicJson({ error: "Unknown prediction type." }, { status: 400 });
   }
 
+  const focus = body && typeof body === "object" && "focus" in body ? body.focus : undefined;
+  if (focus !== undefined && (typeof focus !== "string" || !focus.length || focus.length > 240)) {
+    return publicJson({ error: "Choose a valid forecast record." }, { status: 400 });
+  }
+
   if (await aiRateLimited(session.userId, "explain", 20, 10)) {
     await recordAiInteraction({ userId: session.userId, role: session.role, feature: "explain", toolCalls: [], status: "rate_limited" });
     return publicJson({ error: "Explanation limit reached. Try again in a few minutes." }, { status: 429 });
@@ -45,7 +50,10 @@ export async function POST(request: NextRequest) {
 
   try {
     const type = (body as { type: "occupancy" | "housekeeping" | "inventory" | "maintenance" }).type;
-    const { label, method, context } = await buildExplainContext(type);
+    const { label, method, context } = await buildExplainContext(type, focus);
+    if (focus && Array.isArray(context) && context.length === 0) {
+      return publicJson({ error: "This forecast record has changed. Refresh the outlook and try again." }, { status: 409 });
+    }
     const result = await generateJson({
       systemInstruction: `${HAVEN_SYSTEM_PROMPT}\n\n${EXPLAIN_TASK}`,
       contents: `Prediction to explain: ${label}\nMethod used by HAVEN's analytics engine: ${method}\n\n${JSON.stringify(context, null, 2)}`,

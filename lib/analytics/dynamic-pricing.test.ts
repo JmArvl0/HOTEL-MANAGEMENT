@@ -9,6 +9,9 @@ const forecast = (date: string, occupancy: number): OccupancyForecast => ({
   days: [{
     date,
     totalRooms: 10,
+    serviceableRooms: 10,
+    roomsAvailableToSell: 10 - Math.round(occupancy / 10),
+    overbookedRooms: 0,
     knownOccupied: Math.round(occupancy / 10),
     knownOccupancyPct: occupancy,
     predictedOccupied: Math.round(occupancy / 10),
@@ -51,17 +54,27 @@ describe("calculateDynamicRateRecommendations", () => {
       forecast: forecast("2026-09-18", 90), // Friday
       roomTypes: [room],
       now: "2026-09-17T12:00:00.000Z",
+      events: [{ reservationId: "cancelled", at: "2026-09-17T09:00:00.000Z", delta: -1 }],
       reservations: [
         { id: "new-1", room_type: room.name, status: "confirmed", check_in: "2026-09-18", check_out: "2026-09-19", created_at: "2026-09-17T08:00:00.000Z" },
         { id: "new-2", room_type: room.name, status: "confirmed", check_in: "2026-09-18", check_out: "2026-09-19", created_at: "2026-09-16T13:00:00.000Z" },
-        { id: "cancelled", room_type: room.name, status: "cancelled", check_in: "2026-09-18", check_out: "2026-09-19", created_at: "2026-09-17T09:00:00.000Z" },
+        { id: "cancelled", room_type: room.name, status: "cancelled", check_in: "2026-09-18", check_out: "2026-09-19", created_at: "2026-09-01T09:00:00.000Z" },
       ],
     });
 
     expect(result.bookingPace).toBe(1);
     expect(result.percentageChange).toBe(27);
-    expect(result.reasoning).toContain("90% projected Friday occupancy");
+    expect(result.reasoning).toContain("90% expected Friday occupancy");
     expect(result.reasoning).toContain("net +1 booking in the last 48 hours");
+  });
+
+  it("compares the suggested change with an active selling rate", () => {
+    const date = "2026-09-14";
+    const [row] = calculateDynamicRateRecommendations({
+      forecast: forecast(date, 80), reservations: [], now: "2026-09-13T00:00:00Z",
+      roomTypes: [{ ...room, baseRate: 5_000, sellingRates: { [date]: 6_500 } }]
+    });
+    expect(row).toMatchObject({ recommendedRate: 5750, sellingRate: 6500, percentageChange: -11.5 });
   });
 
   it("enforces room-type floor and ceiling bounds after demand calculation", () => {

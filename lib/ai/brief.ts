@@ -59,10 +59,10 @@ export async function buildBriefInput(insights?: InsightsResult): Promise<BriefI
     (reservation) => ["confirmed", "checked_in"].includes(reservation.status) && reservation[field] === date
   ).length;
 
-  const occupancy = insights?.occupancy ?? forecastOccupancy({ reservations: inputs.reservations, rooms: inputs.rooms, today });
+  const occupancy = insights?.occupancy ?? forecastOccupancy({ reservations: inputs.reservations, rooms: inputs.rooms, pickupHistory: inputs.pickupHistory, today });
   const housekeeping = insights?.housekeeping ?? forecastHousekeeping({ reservations: inputs.reservations, tasks: inputs.tasks, today, inspectionRequired: inputs.inspectionRequired });
   const inventory = insights?.inventory ?? forecastInventory({ items: inputs.inventoryItems, movements: inputs.movements, today });
-  const maintenance = insights?.maintenance ?? assessMaintenanceRisk({ orders: inputs.orders, today });
+  const maintenance = insights?.maintenance ?? assessMaintenanceRisk({ orders: inputs.orders, assets: inputs.assets, today });
 
   const tomorrowOccupancy = occupancy.days.find((day) => day.date === tomorrow) ?? occupancy.days[1] ?? occupancy.days[0];
   const tomorrowHousekeeping = housekeeping.days.find((day) => day.date === tomorrow) ?? housekeeping.days[1] ?? housekeeping.days[0];

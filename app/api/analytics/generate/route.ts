@@ -1,7 +1,6 @@
 import { publicJson } from "@/lib/server-errors";
-import { getServerSession } from "next-auth";
 import { NextRequest } from "next/server";
-import { authOptions } from "@/lib/auth";
+import { requirePermission } from "@/lib/authorization";
 import { generateAndPersistInsights, generationCoolingDown, generateInsights, markDemoGeneration, GENERATION_COOLDOWN_MS } from "@/lib/analytics/runner";
 import { supabase } from "@/lib/supabase";
 
@@ -14,12 +13,12 @@ import { supabase } from "@/lib/supabase";
 
 const AUTHORIZED_ROLES = new Set(["manager", "owner", "admin"]);
 
-async function authorized(request: NextRequest): Promise<boolean> {
+async function authorizationError(request: NextRequest) {
   const secret = process.env.CRON_SECRET?.trim();
-  if (secret && request.headers.get("authorization") === `Bearer ${secret}`) return true;
-  if (request.method === "GET") return false;
-  const session = await getServerSession(authOptions);
-  return Boolean(session && !session.user.disabled && !session.user.otpPending && AUTHORIZED_ROLES.has(session.user.role));
+  if (secret && request.headers.get("authorization") === `Bearer ${secret}`) return;
+  if (request.method === "GET") return publicJson({ error: "Scheduled job authorization required." }, { status: 401 });
+  const result = await requirePermission(role => AUTHORIZED_ROLES.has(role), "You don't have permission to refresh forecasts.");
+  return result.error;
 }
 
 export async function GET(request: NextRequest) {
@@ -31,7 +30,8 @@ export async function POST(request: NextRequest) {
 }
 
 async function run(request: NextRequest) {
-  if (!(await authorized(request))) return publicJson({ error: "Please sign in to continue." }, { status: 401 });
+  const denied = await authorizationError(request);
+  if (denied) return denied;
   try {
     if (await generationCoolingDown()) {
       return publicJson({ error: `Predictions were generated recently. Try again within the hour (cooldown ${Math.round(GENERATION_COOLDOWN_MS / 60000)} minutes).` }, { status: 429 });

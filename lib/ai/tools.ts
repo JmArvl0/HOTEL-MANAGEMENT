@@ -39,7 +39,7 @@ async function roomStatusCounts() {
 
 const occupancyForecast = async () => {
   const inputs = await getAnalyticsInputs();
-  return forecastOccupancy({ reservations: inputs.reservations, rooms: inputs.rooms, today: inputs.today });
+  return forecastOccupancy({ reservations: inputs.reservations, rooms: inputs.rooms, pickupHistory: inputs.pickupHistory, today: inputs.today });
 };
 
 const housekeepingForecast = async () => {
@@ -54,7 +54,7 @@ const inventoryRisk = async () => {
 
 const maintenanceRisk = async () => {
   const inputs = await getAnalyticsInputs();
-  return assessMaintenanceRisk({ orders: inputs.orders, today: inputs.today });
+  return assessMaintenanceRisk({ orders: inputs.orders, assets: inputs.assets, today: inputs.today });
 };
 
 async function arrivalsDepartures(kind: "arrivals" | "departures") {
