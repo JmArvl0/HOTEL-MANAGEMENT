@@ -31,6 +31,6 @@ describe("early check-in honors the requested arrival time", () => {
 describe("retired rooms are unassignable at the desk", () => {
   it("assign_room raises ROOM_INACTIVE and the route explains it", () => {
     expect(migration).toContain("if not coalesce(room.administratively_active,true)then raise exception'ROOM_INACTIVE';end if;");
-    expect(assignRoute).toContain('ROOM_INACTIVE:"That room is administratively retired."');
+    expect(assignRoute).toMatch(/\bROOM_INACTIVE:\s*"That room is administratively retired\."/);
   });
 });

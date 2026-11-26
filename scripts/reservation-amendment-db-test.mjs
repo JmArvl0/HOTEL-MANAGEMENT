@@ -181,7 +181,7 @@ try {
     assert.equal(result.status, "pending");
     await approve(f, result);
     await assert.rejects(execute(f, result), /MODIFICATION_ROOM_SELECTION_REQUIRED/);
-    await assert.rejects(execute(f, result, f.rooms[0].id), /MODIFICATION_ROOM_UNAVAILABLE/);
+    await assert.rejects(execute(f, result, f.rooms[0].id), { message: "MODIFICATION_ROOM_HELD" });
     assert.deepEqual(await assignment(f.id), previous);
     assert.equal((await execute(f, result, f.rooms[1].number)).status, "executed");
     assert.equal((await assignment(f.id)).room_id, f.rooms[1].id);
