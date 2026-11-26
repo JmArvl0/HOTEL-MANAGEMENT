@@ -7,7 +7,7 @@ const access: Record<Role, Resource[]> = {
   owner: ["reservations", "rooms", "guests", "guest_requests", "housekeeping_tasks", "maintenance_orders", "invoices", "payments", "refunds", "inventory", "staff"],
   admin: [],
   manager: ["reservations", "rooms", "guests", "guest_requests", "housekeeping_tasks", "maintenance_orders", "inventory"],
-  front_desk: ["reservations", "rooms", "guests", "guest_requests", "housekeeping_tasks", "invoices", "payments", "inventory"],
+  front_desk: ["reservations", "rooms", "guests", "guest_requests", "housekeeping_tasks", "inventory"],
   housekeeping: ["rooms", "guest_requests", "housekeeping_tasks", "inventory"],
   maintenance: ["rooms", "maintenance_orders", "inventory"],
   accounting: [...financial],
@@ -15,7 +15,11 @@ const access: Record<Role, Resource[]> = {
 };
 
 export const canAccess = (role: Role, resource: Resource) => access[role]?.includes(resource) ?? false;
+export const isRole = (role: unknown): role is Role => typeof role === "string" && Object.hasOwn(access, role);
+export const canUseStaffWorkspace = (role: Role) =>
+  role === "manager" || role === "front_desk" || role === "housekeeping" || role === "maintenance" || role === "accounting";
 export const canViewGuestContact = (role: Role) => ["owner", "manager", "front_desk"].includes(role);
+export const canEditGuestProfile = (role: Role) => ["owner", "manager", "front_desk"].includes(role);
 export const canManageReservation = (role: Role) => role === "front_desk";
 export const canViewReservationFinancials = (role: Role) => ["owner", "manager", "front_desk", "accounting"].includes(role);
 const financialAuthority: Role[] = ["accounting"];
@@ -36,10 +40,30 @@ export const canSetRoomTypeRate = (role: Role) => role === "owner" || role === "
 export const canProposeRoomTypeRate = (role: Role) => role === "manager";
 export const canReviewManagerApprovals = (role: Role) => role === "manager";
 export const canRequestManagerApproval = (role: Role) => ["front_desk", "housekeeping", "maintenance", "accounting"].includes(role);
+export const canRequestApprovalType = (role: Role, type: string) => {
+  switch (type) {
+    case "guest_escalation":
+      return role === "front_desk" || role === "housekeeping" || role === "maintenance";
+    case "refund_exception":
+    case "guest_compensation":
+      return role === "front_desk" || role === "accounting";
+    case "room_upgrade":
+    case "room_type_exception":
+    case "reservation_modification":
+    case "early_check_in":
+    case "late_checkout":
+    case "checkout_exception":
+    case "stay_extension":
+      return canManageReservation(role);
+    default:
+      return false;
+  }
+};
 export const canExecuteManagerApproval = (role: Role) => role === "front_desk";
 export const canExecuteManagerFinancialApproval = (role: Role) => role === "accounting";
 export const canCoordinateOperations = (role: Role) => role === "manager";
 export const canPerformHousekeeping = (role: Role) => role === "housekeeping";
+export const canDispatchReclean = (role: Role) => role === "front_desk" || role === "manager";
 export const canReportHousekeepingMaintenance = canPerformHousekeeping;
 // Transportation: Front Desk executes the operational path; Manager may only
 // cancel/reject (supervisory exception handling); Owner has read visibility.

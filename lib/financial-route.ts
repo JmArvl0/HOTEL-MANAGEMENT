@@ -1,13 +1,14 @@
 import { publicJson } from "@/lib/server-errors";
-import{getServerSession}from"next-auth";import{NextResponse}from"next/server";import{authOptions}from"@/lib/auth";import{supabase}from"@/lib/supabase";import type{Role}from"@/lib/types";
+import{NextResponse}from"next/server";import{supabase}from"@/lib/supabase";import type{Role}from"@/lib/types";
+import { requirePermission } from "@/lib/authorization";
 // Shared server-side guard for every financial route. Authorization is re-checked here and again
 // inside each security-definer RPC, so hiding a control in the UI is never the only protection.
 export type FinancialContext={actorId:string;role:Role;client:NonNullable<typeof supabase>};
 export async function guardFinancial(allow:(role:Role)=>boolean,denial:string):Promise<FinancialContext|NextResponse>{
- const session=await getServerSession(authOptions);if(!session||session.user.disabled)return publicJson({error:"Please sign in to continue."},{status:401});
- const role=session.user.role as Role;if(!allow(role))return publicJson({error:denial},{status:403});
+ const result = await requirePermission(allow, denial);
+ if (result.error) return result.error;
  if(!supabase)return publicJson({error:"This service is temporarily unavailable. Please try again shortly."},{status:503});
- return{actorId:session.user.id,role,client:supabase};}
+ return{actorId:result.session.user.id,role:result.session.user.role,client:supabase};}
 export const guardFailed=(value:FinancialContext|NextResponse):value is NextResponse=>value instanceof NextResponse;
 export const invalid=(message:string)=>publicJson({error:message},{status:400});
 // RPC exceptions are surfaced as operator-readable messages only. Raw database text, provider

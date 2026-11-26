@@ -1,6 +1,6 @@
 import type { Role } from "@/lib/types";
 
-export const ADMIN_ASSIGNABLE_ROLES = ["manager","front_desk","housekeeping","maintenance","accounting"] as const;
+export const ADMIN_ASSIGNABLE_ROLES = ["manager","front_desk","housekeeping","maintenance"] as const;
 export const OWNER_ASSIGNABLE_ROLES = ["owner","admin",...ADMIN_ASSIGNABLE_ROLES,"guest"] as const;
 
 export const ROLE_CAPABILITIES: Record<Role, string[]> = {

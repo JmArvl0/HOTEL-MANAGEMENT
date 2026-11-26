@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAuthenticatedSession } from "@/lib/authorization";
 import { breakfastDate, breakfastDayLabel } from "@/lib/breakfast";
 import { canShowBreakfastPass, getGuestBreakfast } from "@/lib/breakfast-server";
 import { breakfastPassPng } from "@/lib/breakfast-pass-image";
@@ -8,8 +7,9 @@ import { displayTime } from "@/lib/hotel-policy";
 export const runtime = "nodejs";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string; date: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "guest" || session.user.disabled || session.user.otpPending) return new Response(null, { status: 401 });
+  const session = await getAuthenticatedSession();
+  if (!session) return new Response(null, { status: 401 });
+  if (session.user.role !== "guest") return new Response(null, { status: 403 });
   const { id, date } = await params;
   if (!breakfastDate.safeParse(date).success) return new Response(null, { status: 404 });
   try {

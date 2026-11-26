@@ -5,7 +5,7 @@ const read = (path: string) => readFileSync(path, "utf8");
 
 describe("client fetch resilience", () => {
   it("does not fetch a NextAuth session globally for pages that do not consume it", () => {
-    expect(read("components/providers.tsx")).not.toContain("SessionProvider");
+    expect(read("app/layout.tsx")).not.toMatch(/SessionProvider|<Providers>/);
     // SessionProvider (next-auth/react) uses React context with no "use client"
     // boundary, so a Server Component importing it crashes with "React Context
     // is unavailable in Server Components". The profile page must stay a pure

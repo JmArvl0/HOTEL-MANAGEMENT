@@ -38,7 +38,7 @@ describe("Admin governance boundary", () => {
   it("uses the existing single-role catalogue without creating parallel RBAC", () => {
     expect(canAdministerSystem("owner")).toBe(true);
     expect(canAdministerSystem("admin")).toBe(true);
-    expect(ADMIN_ASSIGNABLE_ROLES).toEqual(["manager", "front_desk", "housekeeping", "maintenance", "accounting"]);
+    expect(ADMIN_ASSIGNABLE_ROLES).toEqual(["manager", "front_desk", "housekeeping", "maintenance"]);
     expect(ROLE_CAPABILITIES.admin).toContain("User governance");
     expect(migration).not.toMatch(/create table if not exists public\.(roles|permissions|role_permissions)/);
   });

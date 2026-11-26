@@ -28,6 +28,9 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
  const parsed=schema.safeParse(await request.json().catch(() => null));
  if(!parsed.success)return publicJson(validationBody(parsed.error, { error:"Reopen the account and choose an available action." }),{status:400});
  const id=(await params).id,v=parsed.data;
+ if ((v.action === "role" || v.action === "convert") && v.role === "accounting") {
+  return publicJson({ error: "Choose an available Hotel staff role." }, { status: 403 });
+ }
  let rpc="",args:Record<string,unknown>={};
  if(v.action==="status"){if(!v.status||!v.version)return publicJson({error:"Choose an account status. If it is already selected, reopen the account and try again."},{status:400});rpc="admin_change_account_status";args={p_target_user_id:id,p_status:v.status,p_reason:v.reason,p_expected_version:v.version,p_actor_user_id:context.actorId};}
  if(v.action==="role"){if(!v.role||!v.version)return publicJson({error:"Choose a role. If it is already selected, reopen the latest account and try again."},{status:400});rpc="admin_change_user_role";args={p_target_user_id:id,p_role:v.role,p_reason:v.reason,p_expected_version:v.version,p_actor_user_id:context.actorId};}

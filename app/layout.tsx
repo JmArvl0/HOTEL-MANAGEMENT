@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { Providers } from "@/components/providers";
 import "./globals.css";
 import "./guest-booking.css";
 import "./responsive.css";
@@ -45,7 +44,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           dangerouslySetInnerHTML there is no script fiber — the HTML parser runs
           it while parsing <body>, still before first paint. */}
       <div hidden dangerouslySetInnerHTML={{ __html: `<script>${themeScript}</script>` }} />
-      <Providers>{children}</Providers>
+      {children}
     </body>
   </html>;
 }
